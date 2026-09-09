@@ -881,7 +881,7 @@
   <div id="assistantMessages" class="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scrollbar"></div>
 
   <div class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
-    <button id="assistantMicBtn" onclick="unlockAudioForMobile();startListening()" aria-label="Hablar" class="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">
+    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleContinuousMode()" aria-label="Hablar" class="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </button>
     <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" class="flex-1 h-10 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
@@ -1266,31 +1266,74 @@ async function runAssistantBrain(text){
 
 /* --- Voice input (browser Speech-to-Text, free, no API needed) --- */
 let recognition = null;
+let continuousMode = false;
+let silenceTimer = null;
+const SILENCE_TIMEOUT_MS = 4000;
+const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
+
+function isGoodbye(text){
+  const t = text.toLowerCase();
+  return GOODBYE_PATTERNS.some(p => t.includes(p));
+}
+
+function clearSilenceTimer(){
+  if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+}
+
+function stopContinuousMode(){
+  continuousMode = false;
+  clearSilenceTimer();
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
+  const micBtn = document.getElementById('assistantMicBtn');
+  if (micBtn) { micBtn.style.background = ''; micBtn.style.color = 'var(--navy)'; }
+}
+
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SpeechRecognitionAPI) {
   recognition = new SpeechRecognitionAPI();
   recognition.lang = 'es-PE';
   recognition.interimResults = false;
   recognition.maxAlternatives = 1;
+
   recognition.onstart = () => {
     document.getElementById('assistantStatus').textContent = 'Escuchando…';
     document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
     document.getElementById('assistantMicBtn').style.color = '#fff';
+    clearSilenceTimer();
+    silenceTimer = setTimeout(() => {
+      if (recognition) { try { recognition.stop(); } catch(e) {} }
+    }, SILENCE_TIMEOUT_MS);
   };
+
   recognition.onresult = (e) => {
+    clearSilenceTimer();
     const said = e.results[0][0].transcript;
     document.getElementById('assistantInput').value = said;
     addAssistantMessage('user', said);
+
+    if (isGoodbye(said)) {
+      continuousMode = false;
+      setTimeout(() => runAssistantBrain(said), 350);
+      return;
+    }
+
     setTimeout(() => runAssistantBrain(said), 350);
   };
-  recognition.onerror = () => { showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.'); };
+
+  recognition.onerror = () => {
+    clearSilenceTimer();
+    if (!continuousMode) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
+  };
+
   recognition.onend = () => {
+    clearSilenceTimer();
     document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
     document.getElementById('assistantMicBtn').style.background = '';
     document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
   };
 } else {
-  // Browser doesn't support voice (e.g. some Safari versions) — hide mic, text still works
   window.addEventListener('DOMContentLoaded', () => {
     const micBtn = document.getElementById('assistantMicBtn');
     if (micBtn) micBtn.classList.add('hidden');
@@ -1300,6 +1343,15 @@ if (SpeechRecognitionAPI) {
 function startListening(){
   if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
   try { recognition.start(); } catch(e) { /* already listening */ }
+}
+
+function toggleContinuousMode(){
+  if (continuousMode) {
+    stopContinuousMode();
+  } else {
+    continuousMode = true;
+    startListening();
+  }
 }
 
 /* --- Voice output: Aria's real voice (Ara, via Grok) with browser TTS as fallback --- */
@@ -1312,43 +1364,22 @@ function unlockAudioForMobile(){
   ariaAudioPlayer.pause();
   audioUnlocked = true;
 }
-  function speakWithAria(audioBase64){
+
+function speakWithAria(audioBase64){
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
+    ariaAudioPlayer.onended = () => {
+      if (continuousMode) startListening();
+    };
     ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
   } catch (err) {
     // if anything goes wrong decoding/playing Ara's voice, just stay silent —
     // the text reply is already visible in the chat
   }
 }
-
-
-hideGreetBubble();
-if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
-  fetch('/.netlify/functions/aria-chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Preséntate brevemente como Aria, la asistente de compras, y pregunta qué está buscando el cliente.' })
-  })
-  .then(res => res.json())
-  .then(data => {
-    addAssistantMessage('bot', data.reply, data.audio);
-  })
-  .catch(() => {
-    addAssistantMessage('bot', '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas.');
-  });
-}
-
-function speakText(text){
-  if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'es-PE';
-  utter.rate = 1.02;
-  window.speechSynthesis.speak(utter);
-}
-
 </script>
+</body>
+</html>
 </body>
 </html>
