@@ -1268,6 +1268,7 @@ async function runAssistantBrain(text){
 let recognition = null;
 let continuousMode = false;
 let silenceTimer = null;
+  let intentionalStop = false;
   let lastTranscriptLength = 0;
 let maxSessionTimer = null;
 const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
@@ -1309,12 +1310,14 @@ if (SpeechRecognitionAPI) {
   // start the silence countdown fresh — it only fires if no speech
   // event resets it before it completes
   silenceTimer = setTimeout(() => {
+    intentionalStop = true;
     if (recognition) { try { recognition.stop(); } catch(e) {} }
   }, SILENCE_TIMEOUT_MS);
 
   if (maxSessionTimer) clearTimeout(maxSessionTimer);
   maxSessionTimer = setTimeout(() => {
     continuousMode = false;
+    intentionalStop = true;
     if (recognition) { try { recognition.stop(); } catch(e) {} }
     showToast('Sesión de voz finalizada por inactividad prolongada.');
   }, MAX_SESSION_MS);
@@ -1360,17 +1363,23 @@ recognition.onresult = (e) => {
   };
 
   recognition.onend = () => {
-    clearSilenceTimer();
-    document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-    document.getElementById('assistantMicBtn').style.background = '';
-    document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+  clearSilenceTimer();
 
-    if (continuousMode && !assistantThinking) {
-      setTimeout(() => {
-        if (continuousMode) startListening();
-      }, 400);
-    }
-  };
+  if (intentionalStop) {
+    intentionalStop = false;
+    return;
+  }
+
+  document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+  document.getElementById('assistantMicBtn').style.background = '';
+  document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+
+  if (continuousMode && !assistantThinking) {
+    setTimeout(() => {
+      if (continuousMode) startListening();
+    }, 400);
+  }
+};
 } else {
   window.addEventListener('DOMContentLoaded', () => {
     const micBtn = document.getElementById('assistantMicBtn');
