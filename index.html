@@ -1350,7 +1350,7 @@ function startListening(){
   if (!SpeechRecognitionAPI) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
   if (recognition) { try { recognition.onend = null; recognition.stop(); } catch(e) {} }
   recognition = createRecognitionInstance();
-  try { setTimeout(() => { recognition.start(); }, 300); } catch(e) { /* already listening */ }
+  try { recognition.start(); } catch(e) { /* already listening */ }
 }
 
 function stopAndSend(){
