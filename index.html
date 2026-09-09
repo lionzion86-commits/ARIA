@@ -1182,7 +1182,7 @@ function addAssistantMessage(role, text, audioBase64){
   wrap.scrollTop = wrap.scrollHeight;
   if (role === 'bot') {
     if (audioBase64) {
-      speakWithAria(audioBase64);
+      speakWithAria(audioBase64, text);
     } else {
       speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
     }
@@ -1269,6 +1269,8 @@ let recognition = null;
 let continuousMode = false;
 let silenceTimer = null;
   let intentionalStop = false;
+  let intentionalStop = false;
+      let currentAriaSpeech = '';
   let lastTranscriptLength = 0;
 let maxSessionTimer = null;
 const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
@@ -1331,10 +1333,16 @@ if (SpeechRecognitionAPI) {
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
   const transcript = result[0].transcript;
-// barge-in: if Aria is mid-speech and the user starts talking, cut her off immediately
+// barge-in: if Aria is mid-speech and the user starts talking, cut her off immediately —
+      // but ignore it if the transcript looks like an echo of Aria's own current speech
       if (ariaAudioPlayer && !ariaAudioPlayer.paused && transcript.trim().length > 0) {
-        ariaAudioPlayer.pause();
-        ariaAudioPlayer.currentTime = 0;
+        const heard = transcript.trim().toLowerCase();
+        const ariaSaid = currentAriaSpeech.toLowerCase();
+        const isEcho = heard.length > 3 && ariaSaid.includes(heard);
+        if (!isEcho) {
+          ariaAudioPlayer.pause();
+          ariaAudioPlayer.currentTime = 0;
+        }
       }
   // reset the silence timer on any speech activity, not just growing transcripts —
         // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
@@ -1422,7 +1430,8 @@ function unlockAudioForMobile(){
   audioUnlocked = true;
 }
 
-function speakWithAria(audioBase64){
+function speakWithAria(audioBase64, ariaText){
+        currentAriaSpeech = ariaText || '';
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
