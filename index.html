@@ -1266,31 +1266,18 @@ async function runAssistantBrain(text){
 
 /* --- Voice input (browser Speech-to-Text, free, no API needed) --- */
 let recognition = null;
-let continuousMode = false;
+let continuousMode = false; // kept false permanently so speakWithAria's onended check stays a no-op
+let isListening = false;
 let silenceTimer = null;
 let intentionalStop = false;
-let currentAriaSpeech = '';
-let lastTranscriptLength = 0;
-let maxSessionTimer = null;
-const MAX_SESSION_MS = 120000;
+let currentTranscript = '';
 const SILENCE_TIMEOUT_MS = 4000;
-const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
-
-function isGoodbye(text){
-  const t = text.toLowerCase();
-  return GOODBYE_PATTERNS.some(p => t.includes(p));
-}
 
 function clearSilenceTimer(){
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
 }
 
-function stopContinuousMode(){
-  continuousMode = false;
-  intentionalStop = true;
-  clearSilenceTimer();
-  if (maxSessionTimer) { clearTimeout(maxSessionTimer); maxSessionTimer = null; }
-  if (recognition) { try { recognition.stop(); } catch(e) {} }
+function resetMicUI(){
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
   const micBtn = document.getElementById('assistantMicBtn');
@@ -1299,11 +1286,6 @@ function stopContinuousMode(){
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-// iOS Safari (and some other browsers) become unreliable after a SpeechRecognition
-// instance has been stopped and restarted a few times — it reports "started" and
-// "listening" but silently stops delivering real audio results. The fix is to build
-// a brand new instance with fresh handlers every time we start listening, instead
-// of reusing one instance for the whole session.
 function createRecognitionInstance(){
   const r = new SpeechRecognitionAPI();
   r.lang = 'es-PE';
@@ -1311,80 +1293,37 @@ function createRecognitionInstance(){
   r.maxAlternatives = 1;
 
   r.onstart = () => {
+    isListening = true;
+    currentTranscript = '';
     document.getElementById('assistantStatus').textContent = 'Escuchando…';
     document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
     document.getElementById('assistantMicBtn').style.color = '#fff';
-    lastTranscriptLength = 0;
     clearSilenceTimer();
-    silenceTimer = setTimeout(() => {
-      intentionalStop = true;
-      if (recognition) { try { recognition.stop(); } catch(e) {} }
-      document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-      document.getElementById('assistantMicBtn').style.background = '';
-      document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
-    }, SILENCE_TIMEOUT_MS);
-    if (maxSessionTimer) clearTimeout(maxSessionTimer);
-    maxSessionTimer = setTimeout(() => {
-      continuousMode = false;
-      intentionalStop = true;
-      if (recognition) { try { recognition.stop(); } catch(e) {} }
-      document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-      document.getElementById('assistantMicBtn').style.background = '';
-      document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
-      showToast('Sesión de voz finalizada por inactividad prolongada.');
-    }, MAX_SESSION_MS);
+    silenceTimer = setTimeout(() => { stopAndSend(); }, SILENCE_TIMEOUT_MS);
   };
 
   r.onresult = (e) => {
     const result = e.results[e.results.length - 1];
     const transcript = result[0].transcript;
-
-    if (transcript.trim().length > 0) {
-      clearSilenceTimer();
-      lastTranscriptLength = transcript.trim().length;
-      if (!result.isFinal) {
-        silenceTimer = setTimeout(() => {
-          intentionalStop = true;
-          if (recognition) { try { recognition.stop(); } catch(e) {} }
-        }, SILENCE_TIMEOUT_MS);
-      }
-    }
-
+    currentTranscript = transcript;
     document.getElementById('assistantInput').value = transcript;
 
-    if (result.isFinal) {
-      lastTranscriptLength = 0;
-      addAssistantMessage('user', transcript);
-      document.getElementById('assistantInput').value = '';
-
-      if (isGoodbye(transcript)) {
-        continuousMode = false;
-        setTimeout(() => runAssistantBrain(transcript), 350);
-        return;
-      }
-      setTimeout(() => runAssistantBrain(transcript), 350);
-    }
+    clearSilenceTimer();
+    silenceTimer = setTimeout(() => { stopAndSend(); }, SILENCE_TIMEOUT_MS);
   };
 
   r.onerror = () => {
     clearSilenceTimer();
-    if (!continuousMode) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
+    isListening = false;
+    resetMicUI();
+    if (!intentionalStop) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
+    intentionalStop = false;
   };
 
   r.onend = () => {
     clearSilenceTimer();
-    if (intentionalStop) {
-      intentionalStop = false;
-      return;
-    }
-    document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-    document.getElementById('assistantMicBtn').style.background = '';
-    document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
-    if (continuousMode && !assistantThinking) {
-      setTimeout(() => {
-        if (continuousMode) startListening();
-      }, 400);
-    }
+    isListening = false;
+    intentionalStop = false;
   };
 
   return r;
@@ -1399,18 +1338,31 @@ if (!SpeechRecognitionAPI) {
 
 function startListening(){
   if (!SpeechRecognitionAPI) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
-  // stop and discard any old instance first, then build a completely fresh one —
-  // this is what fixes iOS's silent-mic-after-a-few-restarts issue
   if (recognition) { try { recognition.onend = null; recognition.stop(); } catch(e) {} }
   recognition = createRecognitionInstance();
   try { recognition.start(); } catch(e) { /* already listening */ }
 }
 
+function stopAndSend(){
+  clearSilenceTimer();
+  intentionalStop = true;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  resetMicUI();
+
+  const transcript = currentTranscript.trim();
+  currentTranscript = '';
+  document.getElementById('assistantInput').value = '';
+
+  if (transcript.length > 0) {
+    addAssistantMessage('user', transcript);
+    setTimeout(() => runAssistantBrain(transcript), 350);
+  }
+}
+
 function toggleContinuousMode(){
-  if (continuousMode) {
-    stopContinuousMode();
+  if (isListening) {
+    stopAndSend();
   } else {
-    continuousMode = true;
     startListening();
   }
 }
