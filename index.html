@@ -1312,6 +1312,17 @@ function unlockAudioForMobile(){
   ariaAudioPlayer.pause();
   audioUnlocked = true;
 }
+  function speakWithAria(audioBase64){
+  try {
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
+    ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
+  } catch (err) {
+    // if anything goes wrong decoding/playing Ara's voice, just stay silent —
+    // the text reply is already visible in the chat
+  }
+}
+
 
 hideGreetBubble();
 if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
