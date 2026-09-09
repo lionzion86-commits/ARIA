@@ -1379,12 +1379,12 @@ function unlockAudioForMobile(){
 }
 
 function speakWithAria(audioBase64, ariaText){
-        currentAriaSpeech = ariaText || '';
+        
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
     ariaAudioPlayer.onended = () => {
-      if (continuousMode) startListening();
+      
     };
     ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
 } catch (err) {
