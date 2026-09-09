@@ -1268,6 +1268,9 @@ async function runAssistantBrain(text){
 let recognition = null;
 let continuousMode = false;
 let silenceTimer = null;
+  let lastTranscriptLength = 0;
+let maxSessionTimer = null;
+const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
 const SILENCE_TIMEOUT_MS = 4000;
 const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
 
@@ -1298,45 +1301,58 @@ if (SpeechRecognitionAPI) {
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
-    document.getElementById('assistantStatus').textContent = 'Escuchando…';
-    document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
-    document.getElementById('assistantMicBtn').style.color = '#fff';
+  document.getElementById('assistantStatus').textContent = 'Escuchando…';
+  document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
+  document.getElementById('assistantMicBtn').style.color = '#fff';
+  lastTranscriptLength = 0;
+  clearSilenceTimer();
+  // start the silence countdown fresh — it only fires if no speech
+  // event resets it before it completes
+  silenceTimer = setTimeout(() => {
+    if (recognition) { try { recognition.stop(); } catch(e) {} }
+  }, SILENCE_TIMEOUT_MS);
+
+  if (maxSessionTimer) clearTimeout(maxSessionTimer);
+  maxSessionTimer = setTimeout(() => {
+    continuousMode = false;
+    if (recognition) { try { recognition.stop(); } catch(e) {} }
+    showToast('Sesión de voz finalizada por inactividad prolongada.');
+  }, MAX_SESSION_MS);
+};
+
+recognition.onresult = (e) => {
+  const result = e.results[e.results.length - 1];
+  const transcript = result[0].transcript;
+
+  // only reset the silence timer if there's meaningfully new text,
+  // not just background noise triggering an empty or unchanged result
+  if (transcript.trim().length > lastTranscriptLength) {
     clearSilenceTimer();
-    // start the silence countdown fresh — it only fires if no speech
-    // event resets it before it completes
-    silenceTimer = setTimeout(() => {
-      if (recognition) { try { recognition.stop(); } catch(e) {} }
-    }, SILENCE_TIMEOUT_MS);
-  };
+    lastTranscriptLength = transcript.trim().length;
 
-  recognition.onresult = (e) => {
-    const result = e.results[e.results.length - 1];
-    const transcript = result[0].transcript;
-
-    // any new speech, interim or final, means the person is still
-    // talking — reset the silence countdown
-    clearSilenceTimer();
-    document.getElementById('assistantInput').value = transcript;
-
-    if (result.isFinal) {
-      addAssistantMessage('user', transcript);
-      document.getElementById('assistantInput').value = '';
-
-      if (isGoodbye(transcript)) {
-        continuousMode = false;
-        setTimeout(() => runAssistantBrain(transcript), 350);
-        return;
-      }
-
-      setTimeout(() => runAssistantBrain(transcript), 350);
-    } else {
-      // still talking — restart the silence timer so it only
-      // triggers after real silence, not from when they started
+    if (!result.isFinal) {
       silenceTimer = setTimeout(() => {
         if (recognition) { try { recognition.stop(); } catch(e) {} }
       }, SILENCE_TIMEOUT_MS);
     }
-  };
+  }
+
+  document.getElementById('assistantInput').value = transcript;
+
+  if (result.isFinal) {
+    lastTranscriptLength = 0;
+    addAssistantMessage('user', transcript);
+    document.getElementById('assistantInput').value = '';
+
+    if (isGoodbye(transcript)) {
+      continuousMode = false;
+      setTimeout(() => runAssistantBrain(transcript), 350);
+      return;
+    }
+
+    setTimeout(() => runAssistantBrain(transcript), 350);
+  }
+};
 
   recognition.onerror = () => {
     clearSilenceTimer();
