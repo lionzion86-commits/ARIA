@@ -1294,7 +1294,7 @@ const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechReco
 if (SpeechRecognitionAPI) {
   recognition = new SpeechRecognitionAPI();
   recognition.lang = 'es-PE';
-  recognition.interimResults = false;
+  recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
@@ -1302,24 +1302,39 @@ if (SpeechRecognitionAPI) {
     document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
     document.getElementById('assistantMicBtn').style.color = '#fff';
     clearSilenceTimer();
+    // start the silence countdown fresh — it only fires if no speech
+    // event resets it before it completes
     silenceTimer = setTimeout(() => {
       if (recognition) { try { recognition.stop(); } catch(e) {} }
     }, SILENCE_TIMEOUT_MS);
   };
 
   recognition.onresult = (e) => {
+    const result = e.results[e.results.length - 1];
+    const transcript = result[0].transcript;
+
+    // any new speech, interim or final, means the person is still
+    // talking — reset the silence countdown
     clearSilenceTimer();
-    const said = e.results[0][0].transcript;
-    document.getElementById('assistantInput').value = said;
-    addAssistantMessage('user', said);
+    document.getElementById('assistantInput').value = transcript;
 
-    if (isGoodbye(said)) {
-      continuousMode = false;
-      setTimeout(() => runAssistantBrain(said), 350);
-      return;
+    if (result.isFinal) {
+      addAssistantMessage('user', transcript);
+
+      if (isGoodbye(transcript)) {
+        continuousMode = false;
+        setTimeout(() => runAssistantBrain(transcript), 350);
+        return;
+      }
+
+      setTimeout(() => runAssistantBrain(transcript), 350);
+    } else {
+      // still talking — restart the silence timer so it only
+      // triggers after real silence, not from when they started
+      silenceTimer = setTimeout(() => {
+        if (recognition) { try { recognition.stop(); } catch(e) {} }
+      }, SILENCE_TIMEOUT_MS);
     }
-
-    setTimeout(() => runAssistantBrain(said), 350);
   };
 
   recognition.onerror = () => {
@@ -1332,6 +1347,12 @@ if (SpeechRecognitionAPI) {
     document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
     document.getElementById('assistantMicBtn').style.background = '';
     document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+
+    if (continuousMode && !assistantThinking) {
+      setTimeout(() => {
+        if (continuousMode) startListening();
+      }, 400);
+    }
   };
 } else {
   window.addEventListener('DOMContentLoaded', () => {
