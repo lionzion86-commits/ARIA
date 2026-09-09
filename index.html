@@ -1333,17 +1333,7 @@ if (SpeechRecognitionAPI) {
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
   const transcript = result[0].transcript;
-// barge-in: if Aria is mid-speech and the user starts talking, cut her off immediately —
-      // but ignore it if the transcript looks like an echo of Aria's own current speech
-      if (ariaAudioPlayer && !ariaAudioPlayer.paused && transcript.trim().length > 0) {
-        const heard = transcript.trim().toLowerCase();
-        const ariaSaid = currentAriaSpeech.toLowerCase();
-        const isEcho = heard.length > 3 && ariaSaid.includes(heard);
-        if (!isEcho) {
-          ariaAudioPlayer.pause();
-          ariaAudioPlayer.currentTime = 0;
-        }
-      }
+
   // reset the silence timer on any speech activity, not just growing transcripts —
         // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
         if (transcript.trim().length > 0) {
@@ -1439,8 +1429,8 @@ function speakWithAria(audioBase64, ariaText){
       if (continuousMode) startListening();
     };
     ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
-        startListening();
-  } catch (err) {
+        
+  
     // if anything goes wrong decoding/playing Ara's voice, just stay silent —
     // the text reply is already visible in the chat
   }
