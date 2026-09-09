@@ -1331,7 +1331,11 @@ if (SpeechRecognitionAPI) {
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
   const transcript = result[0].transcript;
-
+// barge-in: if Aria is mid-speech and the user starts talking, cut her off immediately
+      if (ariaAudioPlayer && !ariaAudioPlayer.paused && transcript.trim().length > 0) {
+        ariaAudioPlayer.pause();
+        ariaAudioPlayer.currentTime = 0;
+      }
   // reset the silence timer on any speech activity, not just growing transcripts —
         // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
         if (transcript.trim().length > 0) {
