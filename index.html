@@ -1226,7 +1226,7 @@ async function runAssistantBrain(text){
   if (statusEl) statusEl.textContent = 'Aria está pensando…';
 
   try {
-    const res = await fetch('/.netlify/functions/aria-chat', {
+    const res = await fetch('/.netlify/functions/aria-chat-groq', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: text, history: ariaChatHistory })
