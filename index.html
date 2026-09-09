@@ -1271,7 +1271,7 @@ let isListening = false;
 let silenceTimer = null;
 let intentionalStop = false;
 let currentTranscript = '';
-const SILENCE_TIMEOUT_MS = 4000;
+const SILENCE_TIMEOUT_MS = 3000;
 
 function clearSilenceTimer(){
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
@@ -1384,6 +1384,7 @@ function speakWithAria(audioBase64, ariaText){
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
     ariaAudioPlayer.onended = () => {
+      startListening();
       
     };
     ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
