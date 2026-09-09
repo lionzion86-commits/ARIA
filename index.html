@@ -1324,6 +1324,16 @@ function createRecognitionInstance(){
     clearSilenceTimer();
     isListening = false;
     intentionalStop = false;
+
+    const transcript = currentTranscript.trim();
+    currentTranscript = '';
+    resetMicUI();
+    document.getElementById('assistantInput').value = '';
+
+    if (transcript.length > 0) {
+      addAssistantMessage('user', transcript);
+      setTimeout(() => runAssistantBrain(transcript), 350);
+    }
   };
 
   return r;
@@ -1345,18 +1355,9 @@ function startListening(){
 
 function stopAndSend(){
   clearSilenceTimer();
-  intentionalStop = true;
   if (recognition) { try { recognition.stop(); } catch(e) {} }
-  resetMicUI();
-
-  const transcript = currentTranscript.trim();
-  currentTranscript = '';
-  document.getElementById('assistantInput').value = '';
-
-  if (transcript.length > 0) {
-    addAssistantMessage('user', transcript);
-    setTimeout(() => runAssistantBrain(transcript), 350);
-  }
+  // sending now happens in r.onend below, so it fires no matter
+  // which device/browser is the one that actually stops recognition
 }
 
 function toggleContinuousMode(){
