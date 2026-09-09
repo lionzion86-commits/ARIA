@@ -1429,7 +1429,7 @@ function speakWithAria(audioBase64, ariaText){
       if (continuousMode) startListening();
     };
     ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
-        
+} catch (err) {
   
     // if anything goes wrong decoding/playing Ara's voice, just stay silent —
     // the text reply is already visible in the chat
