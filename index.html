@@ -1135,10 +1135,21 @@ function toggleAssistant(){
   document.getElementById('assistantPanel').classList.toggle('hidden', !assistantOpen);
   document.getElementById('assistantIconSpark').classList.toggle('hidden', assistantOpen);
   document.getElementById('assistantIconClose').classList.toggle('hidden', !assistantOpen);
-  hideGreetBubble();
-  if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
-    addAssistantMessage('bot', '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas — por ejemplo "quiero un regalo para mi hijo" o "busco audífonos" — y te muestro opciones de nuestro catálogo.');
-  }
+hideGreetBubble();
+if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
+  fetch('/.netlify/functions/aria-chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'Preséntate brevemente como Aria, la asistente de compras, y pregunta qué está buscando el cliente.' })
+  })
+  .then(res => res.json())
+  .then(data => {
+    addAssistantMessage('bot', data.reply, data.audio);
+  })
+  .catch(() => {
+    addAssistantMessage('bot', '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas.');
+  });
+}
 }
 
 function hideGreetBubble(){
