@@ -1268,12 +1268,11 @@ async function runAssistantBrain(text){
 let recognition = null;
 let continuousMode = false;
 let silenceTimer = null;
-  let intentionalStop = false;
-  
-      let currentAriaSpeech = '';
-  let lastTranscriptLength = 0;
+let intentionalStop = false;
+let currentAriaSpeech = '';
+let lastTranscriptLength = 0;
 let maxSessionTimer = null;
-const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
+const MAX_SESSION_MS = 120000;
 const SILENCE_TIMEOUT_MS = 4000;
 const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
 
@@ -1288,7 +1287,9 @@ function clearSilenceTimer(){
 
 function stopContinuousMode(){
   continuousMode = false;
+  intentionalStop = true;
   clearSilenceTimer();
+  if (maxSessionTimer) { clearTimeout(maxSessionTimer); maxSessionTimer = null; }
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
@@ -1297,98 +1298,99 @@ function stopContinuousMode(){
 }
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
-if (SpeechRecognitionAPI) {
-  recognition = new SpeechRecognitionAPI();
-  recognition.lang = 'es-PE';
-  recognition.interimResults = true;
-  recognition.maxAlternatives = 1;
 
-  recognition.onstart = () => {
-  document.getElementById('assistantStatus').textContent = 'Escuchando…';
-  document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
-  document.getElementById('assistantMicBtn').style.color = '#fff';
-  lastTranscriptLength = 0;
-  clearSilenceTimer();
-  // start the silence countdown fresh — it only fires if no speech
-  // event resets it before it completes
-  silenceTimer = setTimeout(() => {
-        intentionalStop = true;
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-        document.getElementById('assistantMicBtn').style.background = '';
-        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
-      }, SILENCE_TIMEOUT_MS);
-  if (maxSessionTimer) clearTimeout(maxSessionTimer);
-      maxSessionTimer = setTimeout(() => {
-        continuousMode = false;
-        intentionalStop = true;
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-        document.getElementById('assistantMicBtn').style.background = '';
-        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
-        showToast('Sesión de voz finalizada por inactividad prolongada.');
-      }, MAX_SESSION_MS);
-    };
+// iOS Safari (and some other browsers) become unreliable after a SpeechRecognition
+// instance has been stopped and restarted a few times — it reports "started" and
+// "listening" but silently stops delivering real audio results. The fix is to build
+// a brand new instance with fresh handlers every time we start listening, instead
+// of reusing one instance for the whole session.
+function createRecognitionInstance(){
+  const r = new SpeechRecognitionAPI();
+  r.lang = 'es-PE';
+  r.interimResults = true;
+  r.maxAlternatives = 1;
 
-recognition.onresult = (e) => {
-  const result = e.results[e.results.length - 1];
-  const transcript = result[0].transcript;
-
-  // reset the silence timer on any speech activity, not just growing transcripts —
-        // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
-        if (transcript.trim().length > 0) {
-          clearSilenceTimer();
-          lastTranscriptLength = transcript.trim().length;
-
-          if (!result.isFinal) {
-            silenceTimer = setTimeout(() => {
-              intentionalStop = true;
-              if (recognition) { try { recognition.stop(); } catch(e) {} }
-            }, SILENCE_TIMEOUT_MS);
-          }
-        }
-
-  document.getElementById('assistantInput').value = transcript;
-
-  if (result.isFinal) {
+  r.onstart = () => {
+    document.getElementById('assistantStatus').textContent = 'Escuchando…';
+    document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
+    document.getElementById('assistantMicBtn').style.color = '#fff';
     lastTranscriptLength = 0;
-    addAssistantMessage('user', transcript);
-    document.getElementById('assistantInput').value = '';
-
-    if (isGoodbye(transcript)) {
+    clearSilenceTimer();
+    silenceTimer = setTimeout(() => {
+      intentionalStop = true;
+      if (recognition) { try { recognition.stop(); } catch(e) {} }
+      document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+      document.getElementById('assistantMicBtn').style.background = '';
+      document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+    }, SILENCE_TIMEOUT_MS);
+    if (maxSessionTimer) clearTimeout(maxSessionTimer);
+    maxSessionTimer = setTimeout(() => {
       continuousMode = false;
-      setTimeout(() => runAssistantBrain(transcript), 350);
-      return;
+      intentionalStop = true;
+      if (recognition) { try { recognition.stop(); } catch(e) {} }
+      document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+      document.getElementById('assistantMicBtn').style.background = '';
+      document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+      showToast('Sesión de voz finalizada por inactividad prolongada.');
+    }, MAX_SESSION_MS);
+  };
+
+  r.onresult = (e) => {
+    const result = e.results[e.results.length - 1];
+    const transcript = result[0].transcript;
+
+    if (transcript.trim().length > 0) {
+      clearSilenceTimer();
+      lastTranscriptLength = transcript.trim().length;
+      if (!result.isFinal) {
+        silenceTimer = setTimeout(() => {
+          intentionalStop = true;
+          if (recognition) { try { recognition.stop(); } catch(e) {} }
+        }, SILENCE_TIMEOUT_MS);
+      }
     }
 
-    setTimeout(() => runAssistantBrain(transcript), 350);
-  }
-};
+    document.getElementById('assistantInput').value = transcript;
 
-  recognition.onerror = () => {
+    if (result.isFinal) {
+      lastTranscriptLength = 0;
+      addAssistantMessage('user', transcript);
+      document.getElementById('assistantInput').value = '';
+
+      if (isGoodbye(transcript)) {
+        continuousMode = false;
+        setTimeout(() => runAssistantBrain(transcript), 350);
+        return;
+      }
+      setTimeout(() => runAssistantBrain(transcript), 350);
+    }
+  };
+
+  r.onerror = () => {
     clearSilenceTimer();
     if (!continuousMode) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
   };
 
-  recognition.onend = () => {
-  clearSilenceTimer();
+  r.onend = () => {
+    clearSilenceTimer();
+    if (intentionalStop) {
+      intentionalStop = false;
+      return;
+    }
+    document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+    document.getElementById('assistantMicBtn').style.background = '';
+    document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+    if (continuousMode && !assistantThinking) {
+      setTimeout(() => {
+        if (continuousMode) startListening();
+      }, 400);
+    }
+  };
 
-  if (intentionalStop) {
-    intentionalStop = false;
-    return;
-  }
+  return r;
+}
 
-  document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-  document.getElementById('assistantMicBtn').style.background = '';
-  document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
-
-  if (continuousMode && !assistantThinking) {
-    setTimeout(() => {
-      if (continuousMode) startListening();
-    }, 400);
-  }
-};
-} else {
+if (!SpeechRecognitionAPI) {
   window.addEventListener('DOMContentLoaded', () => {
     const micBtn = document.getElementById('assistantMicBtn');
     if (micBtn) micBtn.classList.add('hidden');
@@ -1396,7 +1398,11 @@ recognition.onresult = (e) => {
 }
 
 function startListening(){
-  if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
+  if (!SpeechRecognitionAPI) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
+  // stop and discard any old instance first, then build a completely fresh one —
+  // this is what fixes iOS's silent-mic-after-a-few-restarts issue
+  if (recognition) { try { recognition.onend = null; recognition.stop(); } catch(e) {} }
+  recognition = createRecognitionInstance();
   try { recognition.start(); } catch(e) { /* already listening */ }
 }
 
