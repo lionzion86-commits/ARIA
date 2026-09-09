@@ -1327,18 +1327,19 @@ recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
   const transcript = result[0].transcript;
 
-  // only reset the silence timer if there's meaningfully new text,
-  // not just background noise triggering an empty or unchanged result
-  if (transcript.trim().length > lastTranscriptLength) {
-    clearSilenceTimer();
-    lastTranscriptLength = transcript.trim().length;
+  // reset the silence timer on any speech activity, not just growing transcripts —
+        // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
+        if (transcript.trim().length > 0) {
+          clearSilenceTimer();
+          lastTranscriptLength = transcript.trim().length;
 
-    if (!result.isFinal) {
-      silenceTimer = setTimeout(() => {
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-      }, SILENCE_TIMEOUT_MS);
-    }
-  }
+          if (!result.isFinal) {
+            silenceTimer = setTimeout(() => {
+              intentionalStop = true;
+              if (recognition) { try { recognition.stop(); } catch(e) {} }
+            }, SILENCE_TIMEOUT_MS);
+          }
+        }
 
   document.getElementById('assistantInput').value = transcript;
 
