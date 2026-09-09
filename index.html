@@ -1320,6 +1320,7 @@ if (SpeechRecognitionAPI) {
 
     if (result.isFinal) {
       addAssistantMessage('user', transcript);
+      document.getElementById('assistantInput').value = '';
 
       if (isGoodbye(transcript)) {
         continuousMode = false;
