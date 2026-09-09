@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Aria — Compra en EE. UU., entregado en Perú</title>
+<meta name="description" content="Compra en tiendas de EE. UU. y te lo llevamos a Perú. Precio total, envío y aranceles incluidos, sin sorpresas.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://ariashop.pe/">
+<meta property="og:title" content="Aria — Compra en EE. UU., entregado en Perú">
+<meta property="og:description" content="Compra en tiendas de EE. UU. y te lo llevamos a Perú. Precio total, envío y aranceles incluidos, sin sorpresas.">
+<meta property="og:image" content="https://ariashop.pe/aria-og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Aria — Compra en EE. UU., entregado en Perú">
+<meta name="twitter:description" content="Compra en tiendas de EE. UU. y te lo llevamos a Perú. Precio total, envío y aranceles incluidos, sin sorpresas.">
+<meta name="twitter:image" content="https://ariashop.pe/aria-og-image.png">
+<link rel="icon" type="image/png" href="aria-icon-512.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0A1F44;
+    --blue:#2F5FEE;
+    --blue-dark:#1E46C4;
+    --sky:#EAF0FF;
+    --paper:#FAFAF8;
+    --green:#1C8A4B;
+    --green-bg:#EAF7EF;
+    --line:#E4E6EC;
+    --amber:#B8860B;
+  }
+  body{font-family:'Manrope',sans-serif; background:var(--paper); color:var(--navy); -webkit-font-smoothing:antialiased}
+  .tabular{font-variant-numeric:tabular-nums}
+  .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+  ::selection{background:var(--blue);color:#fff}
+  .focus-ring:focus-visible{outline:2px solid var(--blue); outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
+  .view{display:none}
+  .view.active{display:block}
+</style>
+</head>
+<body class="antialiased">
+
+<!-- HEADER -->
+<header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b" style="border-color:var(--line)">
+  <div class="max-w-[1240px] mx-auto px-5 h-[68px] flex items-center justify-between gap-6">
+    <button onclick="goHome()" class="flex items-center gap-2.5 flex-shrink-0 focus-ring rounded-lg">
+      <img src="aria-mark-transparent.png" alt="Aria" class="w-8 h-8 object-contain flex-shrink-0">
+      <span class="text-[21px] font-semibold tracking-[0.12em]" style="color:var(--navy); font-family:'Rajdhani',sans-serif">ARIA</span>
+    </button>
+    <nav class="hidden lg:flex items-center gap-7 text-[14px] font-medium flex-1" style="color:var(--navy)">
+      <a href="#" onclick="showPage('howView');return false;" class="opacity-70 hover:opacity-100 transition">Cómo funciona</a>
+      <a href="#cats" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Categorías</a>
+      <a href="#whyUs" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">¿Por qué Aria?</a>
+      <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
+      <a href="#" onclick="showPage('aboutView');return false;" class="opacity-70 hover:opacity-100 transition">Nosotros</a>
+      <a href="#" onclick="showPage('returnsView');return false;" class="opacity-70 hover:opacity-100 transition">Devoluciones</a>
+    </nav>
+    <div class="flex items-center gap-2.5 flex-shrink-0">
+      <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
+        🇵🇪 Perú · PEN
+      </span>
+      <button class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Ingresar</button>
+      <button class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+      <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+    </div>
+  </div>
+  <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
+    <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
+    <a href="#cats" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
+    <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
+    <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
+    <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
+    <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5">Devoluciones</a>
+  </nav>
+</header>
+
+<!-- ============ HOME VIEW ============ -->
+<div id="homeView" class="view active">
+
+  <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
+      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
+      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
+      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">EE. UU.</text>
+      <g transform="translate(1120 130) rotate(24)">
+        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
+    </svg>
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 text-center">
+      <img src="aria-full-logo.png" alt="Aria" class="mx-auto w-[220px] sm:w-[260px] h-auto object-contain mb-6">
+      <h1 class="text-[38px] sm:text-[50px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
+      </h1>
+      <p class="text-[15px] leading-relaxed mt-4 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de EE. UU., y te mostramos un solo total ya puesto en tu puerta.
+      </p>
+
+      <div class="mt-8 relative max-w-[560px] mx-auto">
+        <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
+          class="w-full h-[58px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          style="border-color:var(--line)">
+        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
+        <span style="color:#8FA3D6">Prueba con:</span>
+        <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
+        <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
+        <button onclick="searchFor('Vitamina D3')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Vitaminas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CATEGORIES -->
+  <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-6 pb-14">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[20px] font-bold tracking-[-0.02em]">Comprar por categoría</h2>
+      <span class="text-[12.5px] text-zinc-400">7 tiendas comparadas en cada búsqueda</span>
+    </div>
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-3" id="catGrid"></div>
+  </div>
+
+  <!-- WHY SHOP WITH US -->
+  <div id="whyUs" class="border-t" style="border-color:var(--line); background:var(--paper)">
+    <div class="max-w-[1100px] mx-auto px-5 py-16">
+      <h2 class="text-[24px] font-bold tracking-[-0.02em] text-center mb-2">¿Por qué comprar con Aria?</h2>
+      <p class="text-[14px] text-zinc-500 text-center mb-10 max-w-[52ch] mx-auto">Todo lo que necesitas para comprar en Estados Unidos, en un solo lugar, sin sorpresas.</p>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+          <div class="w-10 h-10 rounded-xl grid place-items-center mb-3" style="background:#EEF3FF">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M20 7 12 3 4 7l8 4 8-4Z"/><path d="M4 7v10l8 4 8-4V7"/><path d="M12 11v10"/></svg>
+          </div>
+          <div class="font-bold text-[15px] mb-1.5">Productos que no existen en Perú</div>
+          <div class="text-[13px] text-zinc-500 leading-relaxed">Accede a marcas y modelos que nunca llegan a las tiendas peruanas.</div>
+        </div>
+
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+          <div class="w-10 h-10 rounded-xl grid place-items-center mb-3" style="background:#EEF3FF">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-4 4"/></svg>
+          </div>
+          <div class="font-bold text-[15px] mb-1.5">Comparamos varias tiendas a la vez</div>
+          <div class="text-[13px] text-zinc-500 leading-relaxed">Vemos el precio del mismo producto en distintas tiendas de EE. UU. y te mostramos la mejor opción real, con envío y aranceles incluidos.</div>
+        </div>
+
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+          <div class="w-10 h-10 rounded-xl grid place-items-center mb-3" style="background:#EEF3FF">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <div class="font-bold text-[15px] mb-1.5">Acceso a las grandes ofertas de EE. UU.</div>
+          <div class="text-[13px] text-zinc-500 leading-relaxed">Black Friday, Cyber Monday y otras rebajas de temporada, directo desde Perú, sin depender de que alguien te las traiga.</div>
+        </div>
+
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+          <div class="w-10 h-10 rounded-xl grid place-items-center mb-3" style="background:#EEF3FF">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg>
+          </div>
+          <div class="font-bold text-[15px] mb-1.5">Compara con el precio en Perú</div>
+          <div class="text-[13px] text-zinc-500 leading-relaxed">Cuando el producto también existe en tiendas peruanas, te mostramos ambos precios para que veas exactamente cuánto ahorras.</div>
+        </div>
+
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+          <div class="w-10 h-10 rounded-xl grid place-items-center mb-3" style="background:#EEF3FF">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+          </div>
+          <div class="font-bold text-[15px] mb-1.5">Precio final, sin sorpresas</div>
+          <div class="text-[13px] text-zinc-500 leading-relaxed">Envío y aranceles ya calculados desde el inicio. Lo que ves es lo que pagas al recibir tu pedido.</div>
+        </div>
+
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+          <div class="w-10 h-10 rounded-xl grid place-items-center mb-3" style="background:#EEF3FF">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          </div>
+          <div class="font-bold text-[15px] mb-1.5">Seguimiento de tu pedido</div>
+          <div class="text-[13px] text-zinc-500 leading-relaxed">Desde que compramos en EE. UU. hasta que llega a tu puerta en Perú, siempre sabes en qué paso está tu pedido.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="border-t" style="border-color:var(--line); background:#fff">
+    <div class="max-w-[1000px] mx-auto px-5 py-16">
+      <h2 class="text-[24px] font-bold tracking-[-0.02em] text-center mb-10">Cómo funciona Aria</h2>
+      <div class="grid md:grid-cols-3 gap-8">
+        <div>
+          <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">1</div>
+          <div class="rounded-2xl border p-4 h-[110px] mb-4" style="border-color:var(--line); background:var(--paper)">
+            <div class="h-9 rounded-lg bg-white border flex items-center px-3 text-[11px] text-zinc-400" style="border-color:var(--line)">Buscar un producto…</div>
+          </div>
+          <div class="font-bold text-[15px]">Busca</div>
+          <div class="text-[13px] text-zinc-500 mt-1 leading-relaxed">Encuentra cualquier producto de tus tiendas favoritas en EE. UU.</div>
+        </div>
+        <div>
+          <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">2</div>
+          <div class="rounded-2xl border p-4 h-[110px] mb-4 space-y-1.5" style="border-color:var(--line); background:var(--paper)">
+            <div class="h-6 rounded bg-white border" style="border-color:var(--line)"></div>
+            <div class="h-6 rounded bg-white border" style="border-color:var(--line)"></div>
+            <div class="h-6 rounded-md" style="background:var(--green-bg); border:1px solid #BFE6CC"></div>
+          </div>
+          <div class="font-bold text-[15px]">Compara precios</div>
+          <div class="text-[13px] text-zinc-500 mt-1 leading-relaxed">Te mostramos el mejor precio total, con todo lo que cuesta llegar a Perú incluido.</div>
+        </div>
+        <div>
+          <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">3</div>
+          <div class="rounded-2xl border p-4 h-[110px] mb-4 grid place-items-center" style="border-color:var(--line); background:var(--paper)">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.6"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>
+          </div>
+          <div class="font-bold text-[15px]">Te lo entregamos en Perú</div>
+          <div class="text-[13px] text-zinc-500 mt-1 leading-relaxed">Nos encargamos de la compra, la aduana y el envío hasta tu puerta.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEATURE STRIP -->
+  <div class="max-w-[1240px] mx-auto px-5 py-14">
+    <div class="grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="rounded-2xl border p-5" style="border-color:var(--line)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M20.59 13.41 13.42 20.58a2 2 0 0 1-2.83 0L2.41 12.4A2 2 0 0 1 2 11V4a2 2 0 0 1 2-2h7a2 2 0 0 1 1.41.59l8.18 8.18a2 2 0 0 1 0 2.83Z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        <div class="font-bold text-[14px] mt-3">Precio transparente</div>
+        <div class="text-[12.5px] text-zinc-500 mt-1 leading-relaxed">Sin cargos escondidos. Ves el costo total antes de pagar.</div>
+      </div>
+      <div class="rounded-2xl border p-5" style="border-color:var(--line)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <div class="font-bold text-[14px] mt-3">Pagos seguros</div>
+        <div class="text-[12.5px] text-zinc-500 mt-1 leading-relaxed">Paga con tarjeta, Yape o Plin, con protección en cada compra.</div>
+      </div>
+      <div class="rounded-2xl border p-5" style="border-color:var(--line)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15h6M9 11h2"/></svg>
+        <div class="font-bold text-[14px] mt-3">Aduana resuelta</div>
+        <div class="text-[12.5px] text-zinc-500 mt-1 leading-relaxed">Nosotros nos encargamos de todo el trámite de importación.</div>
+      </div>
+      <div class="rounded-2xl border p-5" style="border-color:var(--line)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <div class="font-bold text-[14px] mt-3">Entrega puerta a puerta</div>
+        <div class="text-[12.5px] text-zinc-500 mt-1 leading-relaxed">Rápido y confiable a cualquier parte de Perú.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RETAILERS STRIP -->
+  <div class="border-t" style="border-color:var(--line); background:var(--paper)">
+    <div class="max-w-[1240px] mx-auto px-5 py-10 text-center">
+      <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU. de confianza</div>
+      <div class="flex items-center justify-center flex-wrap gap-x-3 gap-y-3">
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#000">Amazon</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#E31837">COSTCO</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#0071CE">Walmart</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#0A4CA0">BEST BUY</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#CC0000">Target</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#EC008C">Victoria's Secret</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#4A2E83">Bath &amp; Body Works</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#000">COACH</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#000">MICHAEL KORS</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-semibold tracking-[-0.01em] lowercase" style="border-color:var(--line); color:#CE0058">kate spade</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t" style="border-color:var(--line); background:#fff">
+    <div class="max-w-[1240px] mx-auto px-5 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center gap-2">
+        <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
+        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
+        <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
+      </div>
+      <div class="flex items-center gap-6 text-[12.5px] text-zinc-500">
+        <a href="#" onclick="showPage('howView');return false;" class="hover:text-[color:var(--navy)] transition">Cómo funciona</a>
+        <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
+        <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
+      </div>
+    </div>
+  </footer>
+
+</div>
+
+<!-- ============ RESULTS VIEW ============ -->
+<div id="resultsView" class="view">
+  <div class="max-w-[1240px] mx-auto px-5 py-6">
+
+    <div class="relative mb-5">
+      <input id="searchInput2" onkeydown="if(event.key==='Enter')doSearch(2)" placeholder="¿Qué estás buscando hoy?"
+        class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition"
+        style="border-color:var(--line)">
+      <button onclick="doSearch(2)" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+    </div>
+
+    <div class="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mb-6" style="background:var(--sky); border:1px solid #D6E1FF">
+      <div class="flex items-center gap-2 text-[13px] font-semibold" style="color:var(--navy)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2 15 5 19 5 19 9 22 12 19 15 19 19 15 19 12 22 9 19 5 19 5 15 2 12 5 9 5 5 9 5Z"/><path d="M9.5 12l1.8 1.8L15 10" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Cada precio incluye envío, aranceles y entrega. Sin cargos ocultos.
+      </div>
+      <div class="flex items-center gap-1.5 text-[12px] text-zinc-500">
+        <span class="w-1.5 h-1.5 rounded-full" style="background:var(--green)"></span>
+        Búsqueda inteligente activa · comparando <span id="storeCount" class="tabular font-semibold" style="color:var(--navy)">5</span> tiendas
+      </div>
+    </div>
+
+    <div class="rounded-2xl border p-5 flex flex-col sm:flex-row items-center gap-6 mb-6" style="border-color:var(--line); background:#fff">
+      <div class="w-[110px] h-[110px] rounded-xl overflow-hidden flex-shrink-0 grid place-items-center" style="background:var(--sky)">
+        <img id="prodImgBig" class="w-full h-full object-cover" alt="">
+      </div>
+      <div class="flex-1 text-center sm:text-left">
+        <div class="flex items-center justify-center sm:justify-start gap-2 text-[12px] font-bold mb-1.5" style="color:var(--blue)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2 13.6 8.4 20 10 13.6 11.6 12 18 10.4 11.6 4 10 10.4 8.4Z"/></svg>
+          Aria Smart Search <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" style="background:var(--sky); color:var(--blue)">BETA</span>
+        </div>
+        <h2 id="prodNameBig" class="text-[18px] font-bold tracking-[-0.02em] leading-tight"></h2>
+        <p class="text-[13px] text-zinc-500 mt-1 max-w-[56ch]">Comparamos precio, envío, aranceles y tiempo de entrega en varias tiendas para encontrarte el mejor costo total puesto en tu puerta.</p>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-[260px_1fr] gap-8">
+
+      <!-- FILTERS -->
+      <aside class="hidden lg:block">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-bold text-[14px]">Filtros</div>
+          <button class="text-[12px] font-semibold" style="color:var(--blue)">Limpiar todo</button>
+        </div>
+        <div class="space-y-6 text-[13px]">
+          <div>
+            <div class="font-semibold mb-2.5">Precio total (PEN)</div>
+            <div class="h-1.5 rounded-full bg-zinc-100 relative">
+              <div class="absolute inset-y-0 left-[15%] right-[10%] rounded-full" style="background:var(--blue)"></div>
+            </div>
+            <div class="flex justify-between text-[12px] text-zinc-500 mt-2">
+              <span id="priceMinLbl">S/ 0</span><span id="priceMaxLbl">S/ 0</span>
+            </div>
+          </div>
+          <div>
+            <div class="font-semibold mb-2.5">Tienda</div>
+            <div id="filterStores" class="space-y-2 text-zinc-600"></div>
+          </div>
+          <div>
+            <div class="font-semibold mb-2.5">Tiempo de entrega</div>
+            <label class="flex items-center gap-2 text-zinc-600"><input type="radio" name="speed" checked class="accent-[#2F5FEE]"> Cualquiera</label>
+            <label class="flex items-center gap-2 text-zinc-600 mt-2"><input type="radio" name="speed" class="accent-[#2F5FEE]"> 3–7 días</label>
+            <label class="flex items-center gap-2 text-zinc-600 mt-2"><input type="radio" name="speed" class="accent-[#2F5FEE]"> 1–2 semanas</label>
+          </div>
+          <div>
+            <div class="font-semibold mb-2.5">Calificación</div>
+            <label class="flex items-center gap-2 text-zinc-600"><input type="radio" name="rating" checked class="accent-[#2F5FEE]"> Cualquiera</label>
+            <label class="flex items-center gap-2 text-zinc-600 mt-2"><input type="radio" name="rating" class="accent-[#2F5FEE]"> ★★★★ y más</label>
+          </div>
+        </div>
+      </aside>
+
+      <!-- RESULTS -->
+      <div>
+        <div class="flex items-center gap-4 mb-5">
+          <img id="prodImg" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">
+          <div>
+            <h1 id="prodName" class="text-[22px] font-bold tracking-[-0.02em] leading-tight"></h1>
+            <div id="prodSpec" class="text-[13px] text-zinc-500 mt-0.5"></div>
+          </div>
+        </div>
+
+        <div id="resultCount" class="text-[13px] text-zinc-500 mb-3"></div>
+
+        <div class="rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+          <div class="hidden sm:grid grid-cols-[1.6fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1fr] gap-2 px-4 py-3 text-[11.5px] font-bold uppercase tracking-wide text-zinc-400 border-b" style="border-color:var(--line); background:#FBFBFA">
+            <div>Tienda</div><div>Precio</div><div>Envío</div><div>Aranceles</div><div>Total a Perú</div><div>Entrega</div><div></div>
+          </div>
+          <div id="offerRows"></div>
+        </div>
+
+        <div class="mt-3 text-[11.5px] text-zinc-400">* Los precios incluyen aranceles e IGV estimados para importación a Perú. Entrega puerta a puerta, sin costos adicionales al recibir.</div>
+
+        <div class="mt-6 rounded-2xl border p-5 flex items-start gap-3" style="border-color:#BFD4FF; background:#F0F5FF">
+          <svg class="flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+          <div class="text-[13px] leading-relaxed" style="color:var(--navy)">
+            Los envíos de <span class="font-bold">hasta 200 dólares</span> ingresan a Perú sin pagar impuestos ni aranceles. Los envíos que superan los 200 dólares tienen un cargo adicional de <span class="font-bold">aproximadamente 23 por ciento</span> por aranceles e IGV, calculado sobre el costo total incluyendo el envío. Este cargo ya está incluido en el precio total que te mostramos, sin sorpresas al recibir tu pedido.
+          </div>
+        </div>
+
+        <div class="mt-4 rounded-2xl border p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style="border-color:var(--line); background:var(--paper)">
+          <div>
+            <div class="font-bold text-[14px] mb-1.5">¿Por qué varían los precios?</div>
+            <div class="text-[12.5px] text-zinc-500 leading-relaxed max-w-[46ch]">Los precios cambian según promociones, tarifas de envío y políticas de cada tienda. Aria siempre te muestra el costo real puesto en tu puerta, sin sorpresas.</div>
+          </div>
+          <div class="flex gap-4 text-[12px] text-zinc-500 flex-shrink-0">
+            <div class="flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Todo incluido</div>
+            <div class="flex items-center gap-1.5"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>Tipo de cambio real</div>
+          </div>
+        </div>
+
+        <div class="mt-8 grid sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="flex items-start gap-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" class="flex-shrink-0 mt-0.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <div><div class="font-bold text-[13px]">Garantía de mejor precio</div><div class="text-[12px] text-zinc-500 mt-0.5">Igualamos un precio más bajo si lo encuentras.</div></div>
+          </div>
+          <div class="flex items-start gap-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M14 9V5a3 3 0 0 0-6 0v4"/><rect x="3" y="9" width="18" height="12" rx="2"/></svg>
+            <div><div class="font-bold text-[13px]">Compras seguras</div><div class="text-[12px] text-zinc-500 mt-0.5">Tus pagos y datos siempre protegidos.</div></div>
+          </div>
+          <div class="flex items-start gap-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M18 8h1a4 4 0 0 1 0 8h-1"/><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"/><line x1="6" y1="1" x2="6" y2="4"/><line x1="10" y1="1" x2="10" y2="4"/><line x1="14" y1="1" x2="14" y2="4"/></svg>
+            <div><div class="font-bold text-[13px]">Ayuda de personas reales</div><div class="text-[12px] text-zinc-500 mt-0.5">Nuestro equipo te ayuda si algo no sale bien.</div></div>
+          </div>
+          <div class="flex items-start gap-3">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" class="flex-shrink-0 mt-0.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            <div><div class="font-bold text-[13px]">Miles de compras en Perú</div><div class="text-[12px] text-zinc-500 mt-0.5">Una comunidad que crece y confía en Aria.</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============ HOW IT WORKS VIEW ============ -->
+<div id="howView" class="view">
+  <div class="max-w-[1080px] mx-auto px-5 py-14">
+    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3">Cómo funciona Aria</h1>
+    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mb-14">
+      Aria compra por ti en tiendas de Estados Unidos, consolida tu pedido en nuestro almacén de Miami, y te lo entrega en Perú con un solo precio total, sin sorpresas en la puerta.
+    </p>
+
+    <div class="space-y-20">
+
+      <!-- STEP 1 -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">1</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Busca cualquier producto</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Escribe lo que quieres comprar, desde electrónica hasta ropa, artículos para el hogar o vitaminas. Buscamos en varias tiendas de Estados Unidos a la vez.</div>
+        </div>
+        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--paper)">
+          <div class="relative">
+            <div class="h-12 rounded-xl bg-white border flex items-center px-4 text-[13px] text-zinc-400 gap-2.5" style="border-color:var(--line)">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+              MacBook Air M4
+            </div>
+          </div>
+          <div class="flex gap-2 mt-3">
+            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Costco</span>
+            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Best Buy</span>
+            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Walmart</span>
+            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">+2</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div class="md:order-2">
+          <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">2</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Compara el precio total real</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Te mostramos el costo completo desde el inicio: producto, envío internacional, aranceles e impuestos de aduana, todo sumado en soles. Nada aparece después, al momento de recibir tu pedido.</div>
+        </div>
+        <div class="md:order-1 rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+          <div class="px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-wide text-zinc-400 border-b flex justify-between" style="border-color:var(--line); background:#FBFBFA">
+            <span>Tienda</span><span>Total a Perú</span>
+          </div>
+          <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--line); background:var(--green-bg)">
+            <div class="flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#E31837">COST</span>
+              <span class="text-[12.5px] font-bold">Costco</span>
+              <span class="text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full" style="background:var(--green)">Mejor precio</span>
+            </div>
+            <span class="text-[13px] font-bold tabular" style="color:var(--navy)">S/ 4,553</span>
+          </div>
+          <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--line)">
+            <div class="flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#0A4CA0">BBY</span>
+              <span class="text-[12.5px] font-bold text-zinc-600">Best Buy</span>
+            </div>
+            <span class="text-[13px] tabular text-zinc-500">S/ 4,782</span>
+          </div>
+          <div class="px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#0071CE">WMT</span>
+              <span class="text-[12.5px] font-bold text-zinc-600">Walmart</span>
+            </div>
+            <span class="text-[13px] tabular text-zinc-500">S/ 4,820</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">3</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Pide con Aria</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Al confirmar tu pedido, nosotros lo compramos directamente en la tienda de origen, verificando que sea producto genuino y no de un revendedor externo.</div>
+        </div>
+        <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-14 h-14 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>
+            <div>
+              <div class="text-[13.5px] font-bold">MacBook Air 13" M4</div>
+              <div class="text-[11.5px] text-zinc-500">Costco · Verificado</div>
+            </div>
+          </div>
+          <button class="w-full h-11 rounded-full text-white text-[13px] font-bold" style="background:var(--blue)">Pedir con Aria</button>
+          <div class="flex items-center gap-1.5 mt-3 text-[11px] text-zinc-500">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+            Compra directa, nunca de un revendedor
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 4 -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div class="md:order-2">
+          <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">4</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Consolidamos en Miami</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Tu compra llega primero a nuestro almacén en Miami, donde se prepara para el envío internacional hacia Perú.</div>
+        </div>
+        <div class="md:order-1 rounded-2xl border p-6 grid place-items-center" style="border-color:var(--line); background:var(--paper)">
+          <div class="flex items-center gap-4">
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><rect x="1" y="7" width="15" height="13" rx="1"/><path d="M16 11h4l3 3v6h-7z"/><circle cx="5.5" cy="20.5" r="2"/><circle cx="18.5" cy="20.5" r="2"/></svg>
+            <div>
+              <div class="text-[13px] font-bold">Almacén Aria</div>
+              <div class="text-[11.5px] text-zinc-500">Miami, Estados Unidos</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 5 -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div>
+          <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">5</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Nos encargamos de la aduana</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Gestionamos todo el trámite de importación a Perú, para que tú no tengas que lidiar con papeleo ni pagos inesperados de aduana.</div>
+        </div>
+        <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+          <div class="space-y-2.5 text-[13px]">
+            <div class="flex justify-between text-zinc-600"><span>Aranceles e impuestos</span><span class="tabular font-semibold" style="color:var(--navy)">Incluido</span></div>
+            <div class="flex justify-between text-zinc-600"><span>Trámite de importación</span><span class="tabular font-semibold" style="color:var(--navy)">Gestionado por Aria</span></div>
+            <div class="h-px" style="background:var(--line)"></div>
+            <div class="flex items-center gap-1.5 text-[12px]" style="color:var(--green)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+              Sin pagos sorpresa al recibir
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STEP 6 -->
+      <div class="grid md:grid-cols-2 gap-10 items-center">
+        <div class="md:order-2">
+          <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">6</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Te lo entregamos en la puerta</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Tu pedido llega directo a tu dirección en Perú. Sin costos adicionales al recibir, sin visitas a un casillero.</div>
+        </div>
+        <div class="md:order-1 rounded-2xl border p-6 grid place-items-center" style="border-color:var(--line); background:var(--paper)">
+          <div class="flex items-center gap-4">
+            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>
+            <div>
+              <div class="text-[13px] font-bold">Entrega puerta a puerta</div>
+              <div class="text-[11.5px] text-zinc-500">Lima y todo el Perú</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mt-16 rounded-2xl border p-6" style="border-color:var(--line); background:var(--sky)">
+      <div class="font-bold text-[15px] mb-2">¿Por qué no comprar directo o usar un casillero?</div>
+      <div class="text-[13.5px] text-zinc-600 leading-relaxed max-w-[58ch]">Los casilleros tradicionales cobran por peso y no muestran el costo final hasta que tu paquete ya está en camino. Aria te muestra el total exacto antes de pagar, y compra por ti para que no necesites una tarjeta internacional ni lidiar con la tienda directamente.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ STORES VIEW ============ -->
+<div id="storesView" class="view">
+  <div class="max-w-[900px] mx-auto px-5 py-14">
+    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3">Tiendas en Estados Unidos</h1>
+    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mb-10">
+      Compramos directamente en tiendas oficiales de Estados Unidos. Nunca a través de un revendedor externo, así que sabes exactamente de dónde viene tu producto.
+    </p>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#E31837">
+          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]">COSTCO</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Costco</div>
+          <div class="text-[12.5px] text-zinc-500">Electrónica, hogar y más al por mayor</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#FFE000">
+          <span class="text-black font-extrabold text-[14px] tracking-[-0.01em]">BEST BUY</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Best Buy</div>
+          <div class="text-[12.5px] text-zinc-500">Tecnología y electrónica</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#0071CE">
+          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]">Walmart</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Walmart</div>
+          <div class="text-[12.5px] text-zinc-500">De todo, a buen precio</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
+          <span class="text-black font-extrabold text-[16px] tracking-[-0.02em] lowercase">amazon</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Amazon</div>
+          <div class="text-[12.5px] text-zinc-500">El catálogo más amplio</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#CC0000">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="11"/><circle cx="12" cy="12" r="6.2" fill="#CC0000"/><circle cx="12" cy="12" r="2.2" fill="#fff"/></svg>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Target</div>
+          <div class="text-[12.5px] text-zinc-500">Ropa, hogar y belleza</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
+          <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:#EC008C">VS</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Victoria's Secret</div>
+          <div class="text-[12.5px] text-zinc-500">Ropa interior y belleza</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#4A2E83">
+          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">B&amp;BW</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Bath &amp; Body Works</div>
+          <div class="text-[12.5px] text-zinc-500">Fragancias y cuidado personal</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#1C8A4B">
+          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">Vitamin Shoppe</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Vitamin Shoppe</div>
+          <div class="text-[12.5px] text-zinc-500">Suplementos y salud</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
+          <span class="font-extrabold text-[16px] tracking-[-0.01em]" style="color:#000">COACH</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Coach</div>
+          <div class="text-[12.5px] text-zinc-500">Bolsos, carteras y accesorios de lujo</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
+          <span class="font-extrabold text-[12px] tracking-[-0.01em]" style="color:#000">MICHAEL KORS</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Michael Kors</div>
+          <div class="text-[12.5px] text-zinc-500">Moda y accesorios premium</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#F5D3E3">
+          <span class="font-semibold text-[13px] tracking-[-0.01em] lowercase" style="color:#000">kate spade</span>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Kate Spade</div>
+          <div class="text-[12.5px] text-zinc-500">Carteras y accesorios con estilo</div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-8 text-[13px] text-zinc-500">Estamos sumando más tiendas constantemente. ¿Buscas algo de una tienda que no está en la lista? Escríbenos.</div>
+  </div>
+</div>
+
+<!-- ============ ABOUT VIEW ============ -->
+<div id="aboutView" class="view">
+  <div class="max-w-[760px] mx-auto px-5 py-14">
+    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3">Nosotros</h1>
+    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mb-8">
+      Aria nace en Lima, Perú, con una idea simple: comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.
+    </p>
+    <div class="space-y-6 text-[14.5px] text-zinc-700 leading-relaxed max-w-[58ch]">
+      <p>Hoy, comprar en tiendas como Target, Walmart o Best Buy desde Perú sigue siendo complicado: casilleros que cobran por peso, costos de aduana que aparecen recién al final, y la duda constante de si el producto es realmente genuino.</p>
+      <p>Aria resuelve eso mostrando un solo precio, todo incluido, antes de que decidas comprar. Compramos directamente en la tienda de origen, consolidamos en nuestro almacén en Miami, y gestionamos todo el proceso de envío y aduana hasta tu puerta en Perú.</p>
+      <p>Confianza es la base de todo lo que hacemos. Por eso cada producto muestra claramente de qué tienda proviene, y nunca trabajamos con revendedores externos.</p>
+    </div>
+    <div class="mt-10 rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+      <div class="font-bold text-[15px] mb-2">¿Tienes preguntas?</div>
+      <div class="text-[13.5px] text-zinc-600">Escríbenos, nos encantaría conocerte.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ RETURNS VIEW ============ -->
+<div id="returnsView" class="view">
+  <div class="max-w-[1000px] mx-auto px-5 py-14">
+    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3 text-center">Devoluciones y reembolsos</h1>
+    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mx-auto text-center mb-12">
+      Como Aria compra directamente en la tienda de origen, las políticas de devolución de esa tienda aplican. Así es como lo hacemos simple para ti.
+    </p>
+
+    <div class="grid md:grid-cols-5 gap-5 mb-14">
+      <div>
+        <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">1</div>
+        <div class="font-bold text-[14px] mb-1">Solicita tu devolución</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Desde tu cuenta Aria, dentro de los 30 días de recibido tu pedido.</div>
+      </div>
+      <div>
+        <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">2</div>
+        <div class="font-bold text-[14px] mb-1">Verificamos la política</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Revisamos si la tienda de origen acepta la devolución de ese producto.</div>
+      </div>
+      <div>
+        <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">3</div>
+        <div class="font-bold text-[14px] mb-1">Envías a nuestro almacén</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Lo mandas a nuestro almacén en Miami o a un punto de recojo en Perú.</div>
+      </div>
+      <div>
+        <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">4</div>
+        <div class="font-bold text-[14px] mb-1">Procesamos con la tienda</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Como Aria hizo la compra, gestionamos la devolución directamente.</div>
+      </div>
+      <div>
+        <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">5</div>
+        <div class="font-bold text-[14px] mb-1">Recibes tu reembolso</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">A tu método de pago original o como saldo Aria, tu eliges.</div>
+      </div>
+    </div>
+
+    <div class="grid sm:grid-cols-2 gap-5">
+      <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+        <div class="font-bold text-[15px] mb-2">Producto equivocado o defectuoso</div>
+        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Aria cubre el envío de vuelta a nuestro almacén y el reembolso es completo, sin costo para ti.</div>
+      </div>
+      <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+        <div class="font-bold text-[15px] mb-2">Cambio de decisión</div>
+        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Puedes devolverlo igual, pero el costo del envío de regreso a Miami corre por tu cuenta.</div>
+      </div>
+    </div>
+
+    <div class="mt-10 rounded-2xl border p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4" style="border-color:var(--line)">
+      <div>
+        <div class="font-bold text-[15px] mb-1">¿Necesitas ayuda con una devolución?</div>
+        <div class="text-[13.5px] text-zinc-600">Nuestro equipo te acompaña en todo el proceso.</div>
+      </div>
+      <button onclick="showToast('Esto es un prototipo — el soporte todavía no está conectado.')" class="h-10 px-5 rounded-full text-white text-[13px] font-semibold focus-ring flex-shrink-0" style="background:var(--blue)">Contactar soporte</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI SHOPPING ASSISTANT WIDGET -->
+<style>
+@keyframes ariaOrbBreathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.09); }
+}
+@keyframes ariaOrbGlow {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+@keyframes ariaStarGlow {
+  0%, 100% { filter: drop-shadow(0 0 16px rgba(79,139,255,0.95)) drop-shadow(0 0 30px rgba(120,170,255,0.75)); }
+  50% { filter: drop-shadow(0 0 24px rgba(120,170,255,1)) drop-shadow(0 0 46px rgba(150,190,255,0.92)); }
+}
+@keyframes ariaHaloPulse {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.75; transform: scale(1.12); }
+}
+@keyframes ariaBlink {
+  0%, 88%, 100% { transform: scaleY(1); }
+  92% { transform: scaleY(0.1); }
+}
+@keyframes ariaDrift {
+  0%, 100% { transform: translate(0, 0); }
+  14% { transform: translate(-24px, -28px); }
+  28% { transform: translate(-42px, -6px); }
+  42% { transform: translate(-32px, 22px); }
+  58% { transform: translate(-8px, 30px); }
+  72% { transform: translate(14px, 6px); }
+  86% { transform: translate(-10px, -20px); }
+}
+#assistantBtn {
+  background: transparent;
+  animation: ariaOrbBreathe 2.6s ease-in-out infinite, ariaDrift 17s ease-in-out infinite;
+  overflow: visible;
+  filter: drop-shadow(0 6px 14px rgba(10,31,68,0.35));
+}
+#assistantBtn:hover {
+  animation-play-state: paused;
+  transform: scale(1.16);
+}
+#assistantStarHalo {
+  animation: ariaHaloPulse 2.6s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(140,180,255,0.55), rgba(140,180,255,0.15) 55%, transparent 75%);
+  filter: blur(6px);
+}
+#assistantStarShape {
+  animation: ariaStarGlow 2.6s ease-in-out infinite;
+}
+.aria-eye-white {
+  animation: ariaBlink 4.5s ease-in-out infinite;
+  transform-origin: center;
+}
+.aria-eye-white.l { animation-delay: 0.15s; }
+#assistantMouth {
+  transition: d 0.25s ease;
+}
+@keyframes ariaBubbleIn {
+  0% { opacity: 0; transform: translateY(8px) scale(0.94); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+#assistantGreetBubble {
+  animation: ariaBubbleIn 0.35s ease-out;
+}
+</style>
+<button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
+  class="fixed bottom-5 right-5 z-40 w-[74px] h-[74px] rounded-full grid place-items-center focus-ring transition">
+  <span id="assistantStarHalo" class="absolute inset-0 rounded-full pointer-events-none"></span>
+  <svg id="assistantIconSpark" width="58" height="58" viewBox="0 0 40 40" class="relative" style="overflow:visible">
+    <defs>
+      <radialGradient id="ariaStarGrad" cx="38%" cy="34%" r="75%">
+        <stop offset="0%" stop-color="#bcd8ff"/>
+        <stop offset="40%" stop-color="#7fb0ff"/>
+        <stop offset="100%" stop-color="#3a6fe0"/>
+      </radialGradient>
+    </defs>
+    <path id="assistantStarShape" d="M20.0 2.0 L24.47 14.85 L38.07 15.13 L27.23 23.35 L31.17 36.37 L20.0 28.6 L8.83 36.37 L12.77 23.35 L1.93 15.13 L15.53 14.85 Z" fill="url(#ariaStarGrad)"/>
+    <g class="aria-eye-white l">
+      <circle cx="14.5" cy="18.5" r="3.6" fill="#fff"/>
+      <circle cx="15.3" cy="18.5" r="2" fill="#0B2545"/>
+      <circle cx="16" cy="17.6" r="0.75" fill="#fff"/>
+      <path d="M11 14.5 Q13 12.8 15 13.6" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/>
+    </g>
+    <g class="aria-eye-white r">
+      <circle cx="25.5" cy="18.5" r="3.6" fill="#fff"/>
+      <circle cx="26.3" cy="18.5" r="2" fill="#0B2545"/>
+      <circle cx="27" cy="17.6" r="0.75" fill="#fff"/>
+      <path d="M22 13.6 Q24 12.8 26 14.5" stroke="#fff" stroke-width="1" fill="none" stroke-linecap="round"/>
+    </g>
+    <path id="assistantMouth" d="M14.5 23.5 Q20 29.5 25.5 23.5" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  </svg>
+  <svg id="assistantIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" class="hidden relative"><path d="M18 6 6 18M6 6l12 12"/></svg>
+</button>
+
+<div id="assistantGreetBubble" class="hidden fixed z-40 max-w-[240px] rounded-2xl rounded-br-sm bg-white px-4 py-3 text-[13px] leading-snug shadow-[0_10px_30px_rgba(10,31,68,0.25)] border" style="bottom: 100px; right: 24px; border-color:var(--line); color:var(--navy)" onclick="toggleAssistant()">
+  <div class="font-bold mb-0.5">¡Hola! Soy Aria 👋</div>
+  <div>Tu asistente personal de compras. ¿Qué estás buscando hoy? Pregúntame lo que quieras.</div>
+</div>
+
+<div id="assistantPanel" class="hidden fixed bottom-24 right-5 z-40 w-[92vw] max-w-[380px] h-[520px] max-h-[72vh] rounded-2xl border bg-white flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(10,31,68,0.25)]" style="border-color:var(--line)">
+  <div class="px-4 py-3.5 border-b flex items-center gap-2.5 flex-shrink-0" style="border-color:var(--line); background:var(--navy)">
+    <div class="w-8 h-8 rounded-full grid place-items-center flex-shrink-0" style="background:rgba(255,255,255,0.15)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+    </div>
+    <div>
+      <div class="text-white font-bold text-[13.5px] leading-tight">Asistente Aria</div>
+      <div id="assistantStatus" class="text-[11.5px] leading-tight" style="color:#B9C6E6">Aquí para ayudarte a encontrar algo</div>
+    </div>
+  </div>
+
+  <div id="assistantMessages" class="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scrollbar"></div>
+
+  <div class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
+    <button id="assistantMicBtn" onclick="startListening()" aria-label="Hablar" class="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+    </button>
+    <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" class="flex-1 h-10 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
+    <button onclick="sendAssistantText()" aria-label="Enviar" class="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-7-7 14-2-5-5-2Z"/></svg>
+    </button>
+  </div>
+</div>
+
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
+
+<script>
+const CATS = [
+  {k:'tech', label:'Electrónica', img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&auto=format&fit=crop&q=70'},
+  {k:'clothing', label:'Ropa', img:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=400&auto=format&fit=crop&q=70'},
+  {k:'shoes', label:'Zapatillas', img:'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&auto=format&fit=crop&q=70'},
+  {k:'home', label:'Hogar y Cocina', img:'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=400&auto=format&fit=crop&q=70'},
+  {k:'health', label:'Salud', img:'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=400&auto=format&fit=crop&q=70'},
+  {k:'toys', label:'Juguetes', img:'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=400&auto=format&fit=crop&q=70'},
+];
+
+document.getElementById('catGrid').innerHTML = CATS.map(c=>`
+  <button onclick="searchCategory('${c.k}')" class="group text-left bg-white border rounded-2xl p-3 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+    <div class="h-[86px] rounded-xl overflow-hidden mb-2.5" style="background:var(--sky)">
+      <img src="${c.img}" alt="${c.label}" class="w-full h-full object-cover group-hover:scale-[1.06] transition duration-500">
+    </div>
+    <div class="text-[12.5px] font-bold flex items-center justify-between">
+      ${c.label}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+  </button>
+`).join('');
+
+const PRODUCTS = [
+  {
+    id:'macbook', name:'MacBook Air 13" M4', spec:'16GB RAM · 256GB SSD · Medianoche', cat:'tech',
+    img:'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=500&auto=format&fit=crop&q=80',
+    keywords:['macbook','laptop','apple','computadora'],
+    offers:[
+      {r:'Costco', init:'COST', price:4420, ship:0, duties:84, days:'Gratis · 5–7 días', rating:'4.9 (1.2k)', best:true},
+      {r:'Best Buy', init:'BBY', price:4485, ship:0, duties:90, days:'6–8 días', rating:'4.7 (980)'},
+      {r:'Walmart', init:'WMT', price:4550, ship:0, duties:92, days:'2–5 días', rating:'4.5 (742)'},
+      {r:'Amazon', init:'AMZ', price:4590, ship:0, duties:96, days:'5–7 días', rating:'4.6 (2.1k)'},
+      {r:'Target', init:'TGT', price:4625, ship:0, duties:98, days:'3–7 días', rating:'4.4 (540)'},
+    ]
+  },
+  {
+    id:'airpods', name:'AirPods Pro 2, USB-C', spec:'Cancelación de ruido activa · Estuche MagSafe', cat:'tech',
+    img:'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&auto=format&fit=crop&q=80',
+    keywords:['airpods','audifonos','apple'],
+    offers:[
+      {r:'Best Buy', init:'BBY', price:1099, ship:45, duties:98, days:'6–8 días', rating:'4.8 (3.4k)', best:true},
+      {r:'Amazon', init:'AMZ', price:1129, ship:42, duties:101, days:'5–7 días', rating:'4.7 (9.1k)'},
+      {r:'Walmart', init:'WMT', price:1149, ship:44, duties:103, days:'7–9 días', rating:'4.5 (620)'},
+      {r:'Target', init:'TGT', price:1179, ship:46, duties:106, days:'6–8 días', rating:'4.6 (410)'},
+    ]
+  },
+  {
+    id:'nike', name:'Nike Air Force 1 White, Talla 42', spec:'Cuero · Nuevo · Unisex', cat:'shoes',
+    img:'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
+    keywords:['nike','air force','zapatillas','zapatos'],
+    offers:[
+      {r:'Costco', init:'COST', price:320, ship:0, duties:25, days:'Gratis · 5–7 días', rating:'4.8 (890)', best:true},
+      {r:'Walmart', init:'WMT', price:345, ship:25, duties:27, days:'6–8 días', rating:'4.5 (410)'},
+      {r:'Amazon', init:'AMZ', price:365, ship:25, duties:29, days:'5–7 días', rating:'4.6 (2.8k)'},
+      {r:'Target', init:'TGT', price:380, ship:25, duties:30, days:'7–9 días', rating:'4.4 (300)'},
+    ]
+  },
+  {
+    id:'stanley', name:'Stanley Quencher 40oz, Crema', spec:'Acero inoxidable · Con popote', cat:'home',
+    img:'https://images.unsplash.com/photo-1523369364227-249b4a2ecc8c?w=500&auto=format&fit=crop&q=80',
+    keywords:['stanley','quencher','termo','vaso'],
+    offers:[
+      {r:'Costco', init:'COST', price:145, ship:28, duties:25, days:'5–7 días', rating:'4.9 (1.6k)', best:true},
+      {r:'Walmart', init:'WMT', price:168, ship:25, duties:28, days:'6–8 días', rating:'4.5 (520)'},
+      {r:'Amazon', init:'AMZ', price:175, ship:25, duties:29, days:'5–7 días', rating:'4.6 (4.2k)'},
+      {r:'Target', init:'TGT', price:182, ship:25, duties:30, days:'7–9 días', rating:'4.4 (380)'},
+    ]
+  },
+  {
+    id:'vitaminD', name:'Vitamina D3 5000 UI, 360 cápsulas', spec:'Suplemento diario · Sin gluten', cat:'health',
+    img:'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=500&auto=format&fit=crop&q=80',
+    keywords:['vitamina','suplemento','salud','d3'],
+    offers:[
+      {r:'Vitamin Shoppe', init:'VS', price:98, ship:22, duties:9, days:'6–8 días', rating:'4.8 (1.1k)', best:true},
+      {r:'Walmart', init:'WMT', price:105, ship:24, duties:9, days:'6–8 días', rating:'4.5 (340)'},
+      {r:'Amazon', init:'AMZ', price:112, ship:24, duties:10, days:'5–7 días', rating:'4.7 (2.9k)'},
+    ]
+  },
+  {
+    id:'teddy', name:'Oso de peluche clásico, 40cm', spec:'Suave · Apto desde 0 años', cat:'toys',
+    img:'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=500&auto=format&fit=crop&q=80',
+    keywords:['peluche','oso','juguete'],
+    offers:[
+      {r:'Target', init:'TGT', price:45, ship:18, duties:4, days:'6–8 días', rating:'4.7 (610)', best:true},
+      {r:'Walmart', init:'WMT', price:49, ship:18, duties:4, days:'7–9 días', rating:'4.5 (280)'},
+      {r:'Amazon', init:'AMZ', price:52, ship:18, duties:5, days:'5–7 días', rating:'4.6 (1.4k)'},
+    ]
+  },
+  {
+    id:'hoodie', name:'Sudadera esencial con capucha', spec:'Algodón mezclado · Unisex', cat:'clothing',
+    img:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&auto=format&fit=crop&q=80',
+    keywords:['sudadera','hoodie','ropa','polera'],
+    offers:[
+      {r:'Walmart', init:'WMT', price:59, ship:20, duties:6, days:'6–8 días', rating:'4.4 (220)', best:true},
+      {r:'Target', init:'TGT', price:65, ship:20, duties:6, days:'7–9 días', rating:'4.5 (390)'},
+      {r:'Amazon', init:'AMZ', price:69, ship:20, duties:7, days:'5–7 días', rating:'4.6 (1.9k)'},
+    ]
+  },
+];
+
+const RETAIL_COLORS = {COST:'#E31837', BBY:'#0A4CA0', WMT:'#0071CE', AMZ:'#000', TGT:'#CC0000', VS:'#EC008C', BBW:'#4A2E83'};
+const RETAIL_LABEL = {COST:'COSTCO', BBY:'BEST BUY', WMT:'Walmart', AMZ:'amazon', TGT:'Target', VS:"VS", BBW:'B&BW'};
+
+function fmtPEN(n){ return 'S/ ' + Math.round(n).toLocaleString('es-PE'); }
+function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
+const FX = 3.78; // demo USD->PEN rate
+
+const ALL_VIEWS = ['homeView','resultsView','howView','storesView','aboutView','returnsView'];
+
+function showPage(id){
+  ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
+  window.scrollTo({top:0, behavior:'instant'});
+}
+
+function goHome(){
+  showPage('homeView');
+}
+
+function toggleMobileMenu(){
+  document.getElementById('mobileMenu').classList.toggle('hidden');
+}
+function closeMobileMenu(){
+  document.getElementById('mobileMenu').classList.add('hidden');
+}
+
+function searchFor(q){
+  document.getElementById('searchInput').value = q;
+  doSearch();
+}
+
+function searchCategory(cat){
+  const match = PRODUCTS.find(p=>p.cat===cat);
+  if(match) showResults(match);
+  else showToast('Aún no tenemos productos de ejemplo en esta categoría.');
+}
+
+function doSearch(which){
+  const q = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).toLowerCase().trim();
+  if(!q){ showToast('Escribe algo para buscar.'); return; }
+  const match = PRODUCTS.find(p => p.name.toLowerCase().includes(q) || p.keywords.some(k=>k.includes(q) || q.includes(k)));
+  if(match){ showResults(match); }
+  else { showResults(PRODUCTS[0]); showToast(`No encontramos "${q}" — te mostramos un producto de ejemplo.`); }
+}
+
+function showResults(product){
+  showPage('resultsView');
+
+  document.getElementById('searchInput2').value = product.name;
+  document.getElementById('prodImg').src = product.img;
+  document.getElementById('prodName').textContent = product.name;
+  document.getElementById('prodSpec').textContent = product.spec;
+  document.getElementById('prodImgBig').src = product.img;
+  document.getElementById('prodNameBig').textContent = product.name;
+  document.getElementById('storeCount').textContent = product.offers.length;
+  document.getElementById('resultCount').textContent = `${product.offers.length} tiendas comparadas · precios convertidos a PEN · incluye envío, aranceles a Perú`;
+
+  const totals = product.offers.map(o => o.price + o.ship + o.duties);
+  const totalsPEN = totals.map(t => t * FX);
+  document.getElementById('priceMinLbl').textContent = fmtPEN(Math.min(...totalsPEN));
+  document.getElementById('priceMaxLbl').textContent = fmtPEN(Math.max(...totalsPEN));
+
+  document.getElementById('filterStores').innerHTML = product.offers.map(o=>
+    `<label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[#2F5FEE]"> ${o.r}</label>`
+  ).join('');
+
+  const sorted = [...product.offers].sort((a,b)=>(a.price+a.ship+a.duties)-(b.price+b.ship+b.duties));
+
+  document.getElementById('offerRows').innerHTML = sorted.map((o,i)=>{
+    const total = o.price + o.ship + o.duties;
+    const totalPEN = total * FX;
+    const isBest = i === 0;
+    const color = RETAIL_COLORS[o.init] || '#333';
+    return `
+    <div class="grid grid-cols-2 sm:grid-cols-[1.6fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1fr] gap-2 sm:gap-2 items-center px-4 py-4 border-b last:border-0 ${isBest ? 'relative' : ''}" style="border-color:var(--line); ${isBest ? 'background:var(--green-bg)' : ''}">
+      <div class="col-span-2 sm:col-span-1 flex items-center gap-2.5">
+        ${isBest ? `<span class="absolute -top-2.5 left-4 text-[10px] font-bold text-white px-2 py-0.5 rounded-full flex items-center gap-1" style="background:var(--green)"><svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 15 5 19 5 19 9 22 12 19 15 19 19 15 19 12 22 9 19 5 19 5 15 2 12 5 9 5 5 9 5Z"/></svg>Mejor precio</span>` : ''}
+        <span class="h-8 px-2.5 rounded-lg grid place-items-center text-[10.5px] font-extrabold flex-shrink-0 border" style="color:${color}; border-color:${color}22; background:${color}0D">${RETAIL_LABEL[o.init] || o.init}</span>
+        <div class="min-w-0">
+          <div class="text-[13px] font-bold truncate">${o.r}</div>
+          <div class="text-[11px] text-zinc-400 flex items-center gap-0.5"><svg width="9" height="9" viewBox="0 0 24 24" fill="#F5A623"><path d="M12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.8 5.5 21 7.5 13.5 2 9 9 9Z"/></svg> ${o.rating}</div>
+        </div>
+      </div>
+      <div class="text-[13px] tabular">${fmtUSD(o.price)}</div>
+      <div class="text-[13px] tabular text-zinc-500">${o.ship===0 ? 'Gratis' : fmtUSD(o.ship)}</div>
+      <div class="text-[13px] tabular text-zinc-500">${fmtUSD(o.duties)}</div>
+      <div class="text-[14px] font-bold tabular" style="color:var(--navy)">${fmtPEN(totalPEN)}</div>
+      <div class="text-[12px] text-zinc-500">${o.days}</div>
+      <div>
+        <button onclick="orderProduct('${product.name.replace(/'/g,"\\'")}')" class="w-full sm:w-auto h-9 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition" style="background:var(--blue)">Pedir con Aria</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function orderProduct(name){
+  showToast('Esto es un prototipo — el checkout todavía no está conectado.');
+}
+
+let toastTimer;
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.opacity = 1; el.style.transform = 'translate(-50%, 0)';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>{ el.style.opacity = 0; el.style.transform = 'translate(-50%, 24px)'; }, 2600);
+}
+
+/* ============================================================
+   AI SHOPPING ASSISTANT (prototype)
+   Voice in/out runs entirely in the browser (free, built-in
+   Web Speech API) — no cost for the voice layer itself.
+   The "brain" below is a local stand-in that searches the
+   PRODUCTS array so the flow is demoable today. To go live,
+   replace runAssistantBrain() with a call to YOUR OWN backend
+   endpoint (e.g. POST /api/assistant), which then calls the
+   Claude API server-side. The Claude API key must never be
+   placed in this front-end file — it would be visible to
+   anyone who views the page source.
+   ============================================================ */
+
+let assistantOpen = false;
+let assistantAwaitingAge = false;
+let assistantAwaitingInterest = false;
+
+(function(){
+  const btn = document.getElementById('assistantBtn');
+  const mouth = document.getElementById('assistantMouth');
+  if (btn && mouth) {
+    const smileNormal = 'M12 24 Q20 32 28 24';
+    const smileWide = 'M10 23 Q20 35 30 23';
+    btn.addEventListener('mouseenter', () => mouth.setAttribute('d', smileWide));
+    btn.addEventListener('mouseleave', () => mouth.setAttribute('d', smileNormal));
+    btn.addEventListener('touchstart', () => mouth.setAttribute('d', smileWide));
+    btn.addEventListener('touchend', () => mouth.setAttribute('d', smileNormal));
+  }
+})();
+
+function toggleAssistant(){
+  assistantOpen = !assistantOpen;
+  document.getElementById('assistantPanel').classList.toggle('hidden', !assistantOpen);
+  document.getElementById('assistantIconSpark').classList.toggle('hidden', assistantOpen);
+  document.getElementById('assistantIconClose').classList.toggle('hidden', !assistantOpen);
+  hideGreetBubble();
+  if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
+    addAssistantMessage('bot', '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas — por ejemplo "quiero un regalo para mi hijo" o "busco audífonos" — y te muestro opciones de nuestro catálogo.');
+  }
+}
+
+function hideGreetBubble(){
+  const bubble = document.getElementById('assistantGreetBubble');
+  if (bubble) bubble.classList.add('hidden');
+}
+
+(function initAssistantGreetBubble(){
+  const bubble = document.getElementById('assistantGreetBubble');
+  if (!bubble) return;
+  setTimeout(() => {
+    if (!assistantOpen) bubble.classList.remove('hidden');
+  }, 2200);
+  setTimeout(hideGreetBubble, 12000);
+})();
+
+function addAssistantMessage(role, text, audioBase64){
+  const wrap = document.getElementById('assistantMessages');
+  const bubble = document.createElement('div');
+  if (role === 'bot') {
+    bubble.className = 'max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed';
+    bubble.style.background = 'var(--sky)'; bubble.style.color = 'var(--navy)';
+    bubble.textContent = text;
+  } else {
+    bubble.className = 'max-w-[85%] ml-auto rounded-2xl rounded-br-sm px-3.5 py-2.5 text-[13px] leading-relaxed text-white';
+    bubble.style.background = 'var(--blue)';
+    bubble.textContent = text;
+  }
+  wrap.appendChild(bubble);
+  wrap.scrollTop = wrap.scrollHeight;
+  if (role === 'bot') {
+    if (audioBase64) {
+      speakWithAria(audioBase64);
+    } else {
+      speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
+    }
+  }
+}
+
+function addAssistantProductCard(product){
+  const wrap = document.getElementById('assistantMessages');
+  const card = document.createElement('button');
+  card.onclick = () => { toggleAssistant(); showResults(product); };
+  card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
+  card.style.borderColor = 'var(--line)';
+  card.innerHTML = `
+    <img src="${product.img}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
+    <div class="min-w-0">
+      <div class="text-[12.5px] font-bold truncate">${product.name}</div>
+      <div class="text-[11.5px] text-zinc-500 truncate">${product.spec}</div>
+    </div>`;
+  wrap.appendChild(card);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function sendAssistantText(){
+  const input = document.getElementById('assistantInput');
+  const text = input.value.trim();
+  if (!text) return;
+  addAssistantMessage('user', text);
+  input.value = '';
+  setTimeout(() => runAssistantBrain(text), 350);
+}
+
+let ariaChatHistory = [];
+let assistantThinking = false;
+
+async function runAssistantBrain(text){
+  if (assistantThinking) return;
+  assistantThinking = true;
+
+  const statusEl = document.getElementById('assistantStatus');
+  const prevStatus = statusEl ? statusEl.textContent : '';
+  if (statusEl) statusEl.textContent = 'Aria está pensando…';
+
+  try {
+    const res = await fetch('/.netlify/functions/aria-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, history: ariaChatHistory })
+    });
+
+    if (!res.ok) {
+      addAssistantMessage('bot', 'Ups, tuve un problema para responder. ¿Puedes intentar de nuevo en un momento?');
+      return;
+    }
+
+    const data = await res.json();
+    const reply = data.reply || 'Lo siento, no pude responder eso.';
+
+    ariaChatHistory.push({ role: 'user', content: text });
+    ariaChatHistory.push({ role: 'assistant', content: reply });
+    if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
+
+    addAssistantMessage('bot', reply, data.audio);
+
+    // Still surface product cards from the local demo catalog when relevant,
+    // until Aria is wired to the real live product database.
+    const q = text.toLowerCase();
+    const matches = PRODUCTS.filter(p =>
+      p.keywords.some(k => q.includes(k)) ||
+      q.includes(p.cat) ||
+      p.name.toLowerCase().split(' ').some(w => w.length > 3 && q.includes(w))
+    );
+    if (matches.length) matches.slice(0, 3).forEach(addAssistantProductCard);
+
+  } catch (err) {
+    addAssistantMessage('bot', 'Ups, no pude conectarme. Revisa tu conexión e intenta de nuevo.');
+  } finally {
+    assistantThinking = false;
+    if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+  }
+}
+
+/* --- Voice input (browser Speech-to-Text, free, no API needed) --- */
+let recognition = null;
+const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI();
+  recognition.lang = 'es-PE';
+  recognition.interimResults = false;
+  recognition.maxAlternatives = 1;
+  recognition.onstart = () => {
+    document.getElementById('assistantStatus').textContent = 'Escuchando…';
+    document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
+    document.getElementById('assistantMicBtn').style.color = '#fff';
+  };
+  recognition.onresult = (e) => {
+    const said = e.results[0][0].transcript;
+    document.getElementById('assistantInput').value = said;
+    addAssistantMessage('user', said);
+    setTimeout(() => runAssistantBrain(said), 350);
+  };
+  recognition.onerror = () => { showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.'); };
+  recognition.onend = () => {
+    document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+    document.getElementById('assistantMicBtn').style.background = '';
+    document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+  };
+} else {
+  // Browser doesn't support voice (e.g. some Safari versions) — hide mic, text still works
+  window.addEventListener('DOMContentLoaded', () => {
+    const micBtn = document.getElementById('assistantMicBtn');
+    if (micBtn) micBtn.classList.add('hidden');
+  });
+}
+
+function startListening(){
+  if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
+  try { recognition.start(); } catch(e) { /* already listening */ }
+}
+
+/* --- Voice output: Aria's real voice (Ara, via Grok) with browser TTS as fallback --- */
+let ariaAudioPlayer = null;
+
+function speakWithAria(audioBase64){
+  try {
+    if (ariaAudioPlayer) { ariaAudioPlayer.pause(); ariaAudioPlayer = null; }
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    ariaAudioPlayer = new Audio('data:audio/mp3;base64,' + audioBase64);
+    ariaAudioPlayer.play().catch(() => { /* autoplay may be blocked until user has interacted — that's fine, text is still shown */ });
+  } catch (err) {
+    // if anything goes wrong decoding/playing Ara's voice, just stay silent —
+    // the text reply is already visible in the chat
+  }
+}
+
+function speakText(text){
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'es-PE';
+  utter.rate = 1.02;
+  window.speechSynthesis.speak(utter);
+}
+
+</script>
+</body>
+</html>
