@@ -1310,18 +1310,23 @@ if (SpeechRecognitionAPI) {
   // start the silence countdown fresh — it only fires if no speech
   // event resets it before it completes
   silenceTimer = setTimeout(() => {
-    intentionalStop = true;
-    if (recognition) { try { recognition.stop(); } catch(e) {} }
-  }, SILENCE_TIMEOUT_MS);
-
+        intentionalStop = true;
+        if (recognition) { try { recognition.stop(); } catch(e) {} }
+        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+        document.getElementById('assistantMicBtn').style.background = '';
+        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+      }, SILENCE_TIMEOUT_MS);
   if (maxSessionTimer) clearTimeout(maxSessionTimer);
-  maxSessionTimer = setTimeout(() => {
-    continuousMode = false;
-    intentionalStop = true;
-    if (recognition) { try { recognition.stop(); } catch(e) {} }
-    showToast('Sesión de voz finalizada por inactividad prolongada.');
-  }, MAX_SESSION_MS);
-};
+      maxSessionTimer = setTimeout(() => {
+        continuousMode = false;
+        intentionalStop = true;
+        if (recognition) { try { recognition.stop(); } catch(e) {} }
+        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+        document.getElementById('assistantMicBtn').style.background = '';
+        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+        showToast('Sesión de voz finalizada por inactividad prolongada.');
+      }, MAX_SESSION_MS);
+    };
 
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
