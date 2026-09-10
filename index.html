@@ -1343,6 +1343,7 @@ function toggleAssistant(){
   document.getElementById('assistantIconClose').classList.toggle('hidden', !assistantOpen);
 hideGreetBubble();
 if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
+  if (!continuousMode) { continuousMode = true; }
   fetch('/.netlify/functions/aria-chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -1389,8 +1390,12 @@ function addAssistantMessage(role, text, audioBase64){
   if (role === 'bot') {
     if (audioBase64) {
       speakWithAria(audioBase64, text);
-    } else {
+    } else if (typeof speakText === 'function') {
       speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
+      if (continuousMode) setTimeout(() => { if (continuousMode) startListening(); }, 400);
+    } else if (continuousMode) {
+      // no audio available at all this turn — still resume listening so the flow isn't stuck
+      setTimeout(() => { if (continuousMode) startListening(); }, 400);
     }
   }
 }
