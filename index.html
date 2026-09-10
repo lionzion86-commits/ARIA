@@ -40,6 +40,41 @@
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
   .view{display:none}
   .view.active{display:block}
+  /* Navy band + floating white card */
+
+.page-hero-section {
+  background: #0C2340;
+  padding: 60px 20px 80px;
+}
+
+.page-hero-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 40px;
+  max-width: 900px;
+  margin: 0 auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+}
+
+.page-hero-card h1 {
+  color: #0C2340;
+  font-size: 28px;
+  margin-bottom: 12px;
+}
+
+.page-hero-card p.subtitle {
+  color: #5F5E5A;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.page-hero-accent {
+  width: 40px;
+  height: 4px;
+  background: #D85A30;
+  border-radius: 2px;
+  margin-bottom: 16px;
+}
 </style>
 </head>
 <body class="antialiased">
@@ -695,10 +730,14 @@
 <!-- ============ ABOUT VIEW ============ -->
 <div id="aboutView" class="view">
   <div class="max-w-[760px] mx-auto px-5 py-14">
-    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3">Nosotros</h1>
-    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mb-8">
-      Aria nace en Lima, Perú, con una idea simple: comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.
-    </p>
+    <div class="page-hero-section">
+          <div class="page-hero-card">
+            <div class="page-hero-accent"></div>
+            <h1>Nosotros</h1>
+            <p class="subtitle">Aria nace en Lima, Perú, con una idea simple: comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.</p>
+          </div>
+        </div>  
+
     <div class="space-y-6 text-[14.5px] text-zinc-700 leading-relaxed max-w-[58ch]">
       <p>Hoy, comprar en tiendas como Target, Walmart o Best Buy desde Perú sigue siendo complicado: casilleros que cobran por peso, costos de aduana que aparecen recién al final, y la duda constante de si el producto es realmente genuino.</p>
       <p>Aria resuelve eso mostrando un solo precio, todo incluido, antes de que decidas comprar. Compramos directamente en la tienda de origen, consolidamos en nuestro almacén en Miami, y gestionamos todo el proceso de envío y aduana hasta tu puerta en Perú.</p>
