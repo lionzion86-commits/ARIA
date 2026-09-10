@@ -31,6 +31,8 @@
     --green-bg:#EAF7EF;
     --line:#E4E6EC;
     --amber:#B8860B;
+    --yellow:#FFC72C;
+    --yellow-dark:#E0A800;
   }
   body{font-family:'Manrope',sans-serif; background:var(--paper); color:var(--navy); -webkit-font-smoothing:antialiased}
   .tabular{font-variant-numeric:tabular-nums}
@@ -40,49 +42,6 @@
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
   .view{display:none}
   .view.active{display:block}
-  /* Navy band + floating white card */
-
-.page-hero-section {
-  background: #0C2340;
-  padding: 60px 20px 80px;
-}
-
-.page-hero-card {
-  background: #ffffff;
-  border-radius: 16px;
-  padding: 40px;
-  max-width: 900px;
-  margin: 0 auto;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-}
-
-.page-hero-card h1 {
-  color: #0C2340;
-  font-size: 28px;
-  margin-bottom: 12px;
-}
-
-.page-hero-card p.subtitle {
-  color: #5F5E5A;
-  line-height: 1.7;
-  margin: 0;
-}
-
-.page-hero-accent {
-  width: 40px;
-  height: 4px;
-  background: #D85A30;
-  border-radius: 2px;
-  margin-bottom: 16px;
-}
-  .page-body-card {
-  background: #F5F5F3;
-  border-radius: 16px;
-  padding: 32px;
-  margin-top: -24px;
-  position: relative;
-  z-index: 1;
-}
 </style>
 </head>
 <body class="antialiased">
@@ -97,6 +56,7 @@
     <nav class="hidden lg:flex items-center gap-7 text-[14px] font-medium flex-1" style="color:var(--navy)">
       <a href="#" onclick="showPage('howView');return false;" class="opacity-70 hover:opacity-100 transition">Cómo funciona</a>
       <a href="#cats" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Categorías</a>
+      <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
       <a href="#whyUs" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">¿Por qué Aria?</a>
       <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
       <a href="#" onclick="showPage('aboutView');return false;" class="opacity-70 hover:opacity-100 transition">Nosotros</a>
@@ -116,12 +76,21 @@
   <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
     <a href="#cats" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
+    <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">🔥 Ofertas</a>
     <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
     <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
     <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5">Devoluciones</a>
   </nav>
 </header>
+
+<!-- SALES PROMO BANNER -->
+<button onclick="goSales()" class="w-full block text-left focus-ring" style="background:var(--yellow)">
+  <div class="max-w-[1240px] mx-auto px-5 h-10 flex items-center justify-center gap-2 text-[12.5px] sm:text-[13px] font-bold" style="color:var(--navy)">
+    🔥 Ofertas de hoy — hasta <span class="font-extrabold">40% OFF</span> en productos seleccionados
+    <span class="underline underline-offset-2">Ver todas →</span>
+  </div>
+</button>
 
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
@@ -297,7 +266,7 @@
     <div class="max-w-[1240px] mx-auto px-5 py-10 text-center">
       <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU. de confianza</div>
       <div class="flex items-center justify-center flex-wrap gap-x-3 gap-y-3">
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#000">Amazon</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#000">NORDSTROM</span>
         <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#E31837">COSTCO</span>
         <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#0071CE">Walmart</span>
         <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#0A4CA0">BEST BUY</span>
@@ -460,6 +429,60 @@
             <div><div class="font-bold text-[13px]">Miles de compras en Perú</div><div class="text-[12px] text-zinc-500 mt-0.5">Una comunidad que crece y confía en Aria.</div></div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ SALES / DEALS VIEW ============ -->
+<div id="salesView" class="view">
+  <div class="max-w-[1240px] mx-auto px-5 py-6">
+
+    <div class="rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, var(--navy) 0%, #14306B 100%)">
+      <div>
+        <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2">🔥 Ofertas y liquidación</h1>
+        <p id="salesCount" class="text-[12.5px] mt-1" style="color:#B9C6E8"></p>
+      </div>
+      <div class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)">Precios actualizados constantemente</div>
+    </div>
+
+    <div class="grid lg:grid-cols-[240px_1fr] gap-8">
+
+      <!-- SALES FILTERS -->
+      <aside class="hidden lg:block">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-bold text-[14px]">Filtros</div>
+        </div>
+        <div class="space-y-6 text-[13px]">
+          <div>
+            <div class="font-semibold mb-2.5">Categoría</div>
+            <select id="salesCatFilter" onchange="renderSalesGrid()" class="w-full h-9 rounded-lg border px-2 text-[13px] focus-ring" style="border-color:var(--line)">
+              <option value="all">Todas las categorías</option>
+            </select>
+          </div>
+          <div>
+            <div class="font-semibold mb-2.5">Tienda</div>
+            <div id="salesStoreFilters" class="space-y-2 text-zinc-600"></div>
+          </div>
+          <div>
+            <div class="font-semibold mb-2.5">Precio máximo (PEN)</div>
+            <input id="salesPriceMax" type="range" min="0" max="20000" step="100" value="20000" oninput="document.getElementById('salesPriceMaxLbl').textContent=fmtPEN(this.value); renderSalesGrid()" class="w-full accent-[#2F5FEE]">
+            <div id="salesPriceMaxLbl" class="text-[12px] text-zinc-500 mt-1 tabular">S/ 20,000</div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- SALES GRID -->
+      <div>
+        <div class="flex items-center justify-between mb-4 gap-3">
+          <div class="lg:hidden text-[12.5px] text-zinc-500">Filtros disponibles en escritorio</div>
+          <select id="salesSort" onchange="renderSalesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
+            <option value="discount">Mayor descuento</option>
+            <option value="priceAsc">Precio: menor a mayor</option>
+            <option value="priceDesc">Precio: mayor a menor</option>
+          </select>
+        </div>
+        <div id="salesGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
       </div>
     </div>
   </div>
@@ -660,11 +683,11 @@
       </div>
       <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
         <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
-          <span class="text-black font-extrabold text-[16px] tracking-[-0.02em] lowercase">amazon</span>
+          <span class="text-black font-extrabold text-[14px] tracking-[-0.01em]">NORDSTROM</span>
         </div>
         <div>
-          <div class="font-bold text-[15px]">Amazon</div>
-          <div class="text-[12.5px] text-zinc-500">El catálogo más amplio</div>
+          <div class="font-bold text-[15px]">Nordstrom</div>
+          <div class="text-[12.5px] text-zinc-500">Moda premium y marcas de diseñador</div>
         </div>
       </div>
       <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
@@ -737,23 +760,49 @@
 
 <!-- ============ ABOUT VIEW ============ -->
 <div id="aboutView" class="view">
-  <div class="max-w-[760px] mx-auto px-5 py-14">
-    <div class="page-hero-section">
-          <div class="page-hero-card">
-            <div class="page-hero-accent"></div>
-            <h1>Nosotros</h1>
-            <p class="subtitle">Aria nace en Lima, Perú, con una idea simple: comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.</p>
-          </div>
-        </div>  
 
-    <div class="space-y-6 text-[14.5px] text-zinc-700 leading-relaxed max-w-[58ch]">
+  <!-- NAVY HERO -->
+  <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #14306B 100%)">
+    <div class="relative max-w-[760px] mx-auto px-5 pt-16 pb-14 text-center">
+      <h1 class="text-[34px] sm:text-[42px] font-extrabold tracking-[-0.03em] text-white mb-4">Nosotros</h1>
+      <p class="text-[16px] sm:text-[18px] leading-relaxed max-w-[56ch] mx-auto" style="color:#DCE6FF">
+        Aria nace en Lima, Perú, con una idea simple:
+        <span class="font-bold" style="color:#7FB8FF">comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div class="max-w-[760px] mx-auto px-5 py-14">
+    <div class="space-y-6 text-[14.5px] text-zinc-700 leading-relaxed max-w-[58ch] mx-auto">
       <p>Hoy, comprar en tiendas como Target, Walmart o Best Buy desde Perú sigue siendo complicado: casilleros que cobran por peso, costos de aduana que aparecen recién al final, y la duda constante de si el producto es realmente genuino.</p>
       <p>Aria resuelve eso mostrando un solo precio, todo incluido, antes de que decidas comprar. Compramos directamente en la tienda de origen, consolidamos en nuestro almacén en Miami, y gestionamos todo el proceso de envío y aduana hasta tu puerta en Perú.</p>
       <p>Confianza es la base de todo lo que hacemos. Por eso cada producto muestra claramente de qué tienda proviene, y nunca trabajamos con revendedores externos.</p>
     </div>
-    <div class="mt-10 rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
-      <div class="font-bold text-[15px] mb-2">¿Tienes preguntas?</div>
-      <div class="text-[13.5px] text-zinc-600">Escríbenos, nos encantaría conocerte.</div>
+
+    <!-- STAT / VALUE STRIP (light blue accent) -->
+    <div class="grid sm:grid-cols-3 gap-4 mt-12 max-w-[58ch] mx-auto">
+      <div class="rounded-2xl p-5 text-center" style="background:var(--sky); border:1px solid #D6E1FF">
+        <div class="text-[12px] font-bold uppercase tracking-wide" style="color:var(--blue)">Nacimos en</div>
+        <div class="text-[16px] font-extrabold mt-1" style="color:var(--navy)">Lima, Perú</div>
+      </div>
+      <div class="rounded-2xl p-5 text-center" style="background:var(--sky); border:1px solid #D6E1FF">
+        <div class="text-[12px] font-bold uppercase tracking-wide" style="color:var(--blue)">Consolidamos en</div>
+        <div class="text-[16px] font-extrabold mt-1" style="color:var(--navy)">Miami, EE. UU.</div>
+      </div>
+      <div class="rounded-2xl p-5 text-center" style="background:var(--sky); border:1px solid #D6E1FF">
+        <div class="text-[12px] font-bold uppercase tracking-wide" style="color:var(--blue)">Nuestra base</div>
+        <div class="text-[16px] font-extrabold mt-1" style="color:var(--navy)">Confianza y transparencia</div>
+      </div>
+    </div>
+
+    <!-- NAVY CTA -->
+    <div class="mt-12 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-w-[58ch] mx-auto" style="background:var(--navy)">
+      <div>
+        <div class="font-bold text-[15px] mb-1 text-white">¿Tienes preguntas?</div>
+        <div class="text-[13.5px]" style="color:#B9C6E8">Escríbenos, nos encantaría conocerte.</div>
+      </div>
+      <span class="text-[12px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)">Siempre transparentes</span>
     </div>
   </div>
 </div>
@@ -971,7 +1020,7 @@ const PRODUCTS = [
       {r:'Costco', init:'COST', price:4420, ship:0, duties:84, days:'Gratis · 5–7 días', rating:'4.9 (1.2k)', best:true},
       {r:'Best Buy', init:'BBY', price:4485, ship:0, duties:90, days:'6–8 días', rating:'4.7 (980)'},
       {r:'Walmart', init:'WMT', price:4550, ship:0, duties:92, days:'2–5 días', rating:'4.5 (742)'},
-      {r:'Amazon', init:'AMZ', price:4590, ship:0, duties:96, days:'5–7 días', rating:'4.6 (2.1k)'},
+      {r:'Nordstrom', init:'NORD', price:4590, ship:0, duties:96, days:'5–7 días', rating:'4.6 (2.1k)'},
       {r:'Target', init:'TGT', price:4625, ship:0, duties:98, days:'3–7 días', rating:'4.4 (540)'},
     ]
   },
@@ -981,7 +1030,7 @@ const PRODUCTS = [
     keywords:['airpods','audifonos','apple'],
     offers:[
       {r:'Best Buy', init:'BBY', price:1099, ship:45, duties:98, days:'6–8 días', rating:'4.8 (3.4k)', best:true},
-      {r:'Amazon', init:'AMZ', price:1129, ship:42, duties:101, days:'5–7 días', rating:'4.7 (9.1k)'},
+      {r:'Nordstrom', init:'NORD', price:1129, ship:42, duties:101, days:'5–7 días', rating:'4.7 (9.1k)'},
       {r:'Walmart', init:'WMT', price:1149, ship:44, duties:103, days:'7–9 días', rating:'4.5 (620)'},
       {r:'Target', init:'TGT', price:1179, ship:46, duties:106, days:'6–8 días', rating:'4.6 (410)'},
     ]
@@ -993,7 +1042,7 @@ const PRODUCTS = [
     offers:[
       {r:'Costco', init:'COST', price:320, ship:0, duties:25, days:'Gratis · 5–7 días', rating:'4.8 (890)', best:true},
       {r:'Walmart', init:'WMT', price:345, ship:25, duties:27, days:'6–8 días', rating:'4.5 (410)'},
-      {r:'Amazon', init:'AMZ', price:365, ship:25, duties:29, days:'5–7 días', rating:'4.6 (2.8k)'},
+      {r:'Nordstrom', init:'NORD', price:365, ship:25, duties:29, days:'5–7 días', rating:'4.6 (2.8k)'},
       {r:'Target', init:'TGT', price:380, ship:25, duties:30, days:'7–9 días', rating:'4.4 (300)'},
     ]
   },
@@ -1004,7 +1053,7 @@ const PRODUCTS = [
     offers:[
       {r:'Costco', init:'COST', price:145, ship:28, duties:25, days:'5–7 días', rating:'4.9 (1.6k)', best:true},
       {r:'Walmart', init:'WMT', price:168, ship:25, duties:28, days:'6–8 días', rating:'4.5 (520)'},
-      {r:'Amazon', init:'AMZ', price:175, ship:25, duties:29, days:'5–7 días', rating:'4.6 (4.2k)'},
+      {r:'Nordstrom', init:'NORD', price:175, ship:25, duties:29, days:'5–7 días', rating:'4.6 (4.2k)'},
       {r:'Target', init:'TGT', price:182, ship:25, duties:30, days:'7–9 días', rating:'4.4 (380)'},
     ]
   },
@@ -1015,7 +1064,7 @@ const PRODUCTS = [
     offers:[
       {r:'Vitamin Shoppe', init:'VS', price:98, ship:22, duties:9, days:'6–8 días', rating:'4.8 (1.1k)', best:true},
       {r:'Walmart', init:'WMT', price:105, ship:24, duties:9, days:'6–8 días', rating:'4.5 (340)'},
-      {r:'Amazon', init:'AMZ', price:112, ship:24, duties:10, days:'5–7 días', rating:'4.7 (2.9k)'},
+      {r:'Nordstrom', init:'NORD', price:112, ship:24, duties:10, days:'5–7 días', rating:'4.7 (2.9k)'},
     ]
   },
   {
@@ -1025,7 +1074,7 @@ const PRODUCTS = [
     offers:[
       {r:'Target', init:'TGT', price:45, ship:18, duties:4, days:'6–8 días', rating:'4.7 (610)', best:true},
       {r:'Walmart', init:'WMT', price:49, ship:18, duties:4, days:'7–9 días', rating:'4.5 (280)'},
-      {r:'Amazon', init:'AMZ', price:52, ship:18, duties:5, days:'5–7 días', rating:'4.6 (1.4k)'},
+      {r:'Nordstrom', init:'NORD', price:52, ship:18, duties:5, days:'5–7 días', rating:'4.6 (1.4k)'},
     ]
   },
   {
@@ -1035,19 +1084,19 @@ const PRODUCTS = [
     offers:[
       {r:'Walmart', init:'WMT', price:59, ship:20, duties:6, days:'6–8 días', rating:'4.4 (220)', best:true},
       {r:'Target', init:'TGT', price:65, ship:20, duties:6, days:'7–9 días', rating:'4.5 (390)'},
-      {r:'Amazon', init:'AMZ', price:69, ship:20, duties:7, days:'5–7 días', rating:'4.6 (1.9k)'},
+      {r:'Nordstrom', init:'NORD', price:69, ship:20, duties:7, days:'5–7 días', rating:'4.6 (1.9k)'},
     ]
   },
 ];
 
-const RETAIL_COLORS = {COST:'#E31837', BBY:'#0A4CA0', WMT:'#0071CE', AMZ:'#000', TGT:'#CC0000', VS:'#EC008C', BBW:'#4A2E83'};
-const RETAIL_LABEL = {COST:'COSTCO', BBY:'BEST BUY', WMT:'Walmart', AMZ:'amazon', TGT:'Target', VS:"VS", BBW:'B&BW'};
+const RETAIL_COLORS = {COST:'#E31837', BBY:'#0A4CA0', WMT:'#0071CE', NORD:'#000', TGT:'#CC0000', VS:'#EC008C', BBW:'#4A2E83'};
+const RETAIL_LABEL = {COST:'COSTCO', BBY:'BEST BUY', WMT:'Walmart', NORD:'NORDSTROM', TGT:'Target', VS:"VS", BBW:'B&BW'};
 
 function fmtPEN(n){ return 'S/ ' + Math.round(n).toLocaleString('es-PE'); }
 function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
 const FX = 3.78; // demo USD->PEN rate
 
-const ALL_VIEWS = ['homeView','resultsView','howView','storesView','aboutView','returnsView'];
+const ALL_VIEWS = ['homeView','resultsView','salesView','howView','storesView','aboutView','returnsView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -1146,6 +1195,116 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>{ el.style.opacity = 0; el.style.transform = 'translate(-50%, 24px)'; }, 2600);
 }
+
+/* ============================================================
+   SALES / DEALS SECTION
+   Demo dataset below — once the live scraped catalog is wired
+   up, generate this from real retailer sale/clearance flags
+   instead of this static array.
+   ============================================================ */
+
+const SALE_PRODUCTS = [
+  { baseId:'macbook', name:'MacBook Air 13" M4', cat:'tech', storeInit:'COST', store:'Costco',
+    img:'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=500&auto=format&fit=crop&q=80',
+    originalPrice:4420, salePrice:3980, tag:'limited' },
+  { baseId:'airpods', name:'AirPods Pro 2, USB-C', cat:'tech', storeInit:'BBY', store:'Best Buy',
+    img:'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&auto=format&fit=crop&q=80',
+    originalPrice:1099, salePrice:879, tag:'limited' },
+  { baseId:'nike', name:'Nike Air Force 1 White, Talla 42', cat:'shoes', storeInit:'COST', store:'Costco',
+    img:'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
+    originalPrice:320, salePrice:192, tag:'clearance' },
+  { baseId:'stanley', name:'Stanley Quencher 40oz, Crema', cat:'home', storeInit:'COST', store:'Costco',
+    img:'https://images.unsplash.com/photo-1523369364227-249b4a2ecc8c?w=500&auto=format&fit=crop&q=80',
+    originalPrice:145, salePrice:101, tag:'clearance' },
+  { baseId:'vitaminD', name:'Vitamina D3 5000 UI, 360 cápsulas', cat:'health', storeInit:'VS', store:'Vitamin Shoppe',
+    img:'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=500&auto=format&fit=crop&q=80',
+    originalPrice:98, salePrice:78, tag:'limited' },
+  { baseId:'teddy', name:'Oso de peluche clásico, 40cm', cat:'toys', storeInit:'TGT', store:'Target',
+    img:'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=500&auto=format&fit=crop&q=80',
+    originalPrice:45, salePrice:27, tag:'clearance' },
+  { baseId:'hoodie', name:'Sudadera esencial con capucha', cat:'clothing', storeInit:'WMT', store:'Walmart',
+    img:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&auto=format&fit=crop&q=80',
+    originalPrice:59, salePrice:41, tag:'clearance' },
+];
+
+function discountPct(p){ return Math.round((1 - p.salePrice / p.originalPrice) * 100); }
+
+function goSales(){
+  showPage('salesView');
+  renderSalesGrid();
+}
+
+function initSalesFilters(){
+  const catSelect = document.getElementById('salesCatFilter');
+  const uniqueCats = [...new Set(SALE_PRODUCTS.map(p => p.cat))];
+  const catLabels = Object.fromEntries(CATS.map(c => [c.k, c.label]));
+  uniqueCats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c;
+    opt.textContent = catLabels[c] || c;
+    catSelect.appendChild(opt);
+  });
+
+  const uniqueStores = [...new Set(SALE_PRODUCTS.map(p => p.storeInit))];
+  document.getElementById('salesStoreFilters').innerHTML = uniqueStores.map(init => {
+    const store = SALE_PRODUCTS.find(p => p.storeInit === init).store;
+    return `<label class="flex items-center gap-2"><input type="checkbox" checked value="${init}" class="salesStoreFilter accent-[#2F5FEE]" onchange="renderSalesGrid()"> ${store}</label>`;
+  }).join('');
+
+  const maxPENPrice = Math.ceil(Math.max(...SALE_PRODUCTS.map(p => p.salePrice)) * FX / 100) * 100;
+  const slider = document.getElementById('salesPriceMax');
+  slider.max = maxPENPrice;
+  slider.value = maxPENPrice;
+  document.getElementById('salesPriceMaxLbl').textContent = fmtPEN(maxPENPrice);
+}
+
+function saleCardHTML(p){
+  const pct = discountPct(p);
+  const color = RETAIL_COLORS[p.storeInit] || '#333';
+  const isClearance = p.tag === 'clearance';
+  const tagLabel = isClearance ? 'Liquidación' : 'Oferta por tiempo limitado';
+  const tagColor = isClearance ? '#CC0000' : 'var(--blue)';
+  return `
+  <button onclick="showResults(PRODUCTS.find(x=>x.id==='${p.baseId}'))" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+    <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
+      <img src="${p.img}" alt="${p.name}" class="w-full h-full object-cover">
+      <span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${pct}%</span>
+      <span class="absolute top-2 right-2 text-[9px] font-bold px-2 py-1 rounded-full text-white" style="background:${tagColor}">${tagLabel}</span>
+    </div>
+    <div class="p-3">
+      <span class="text-[10px] font-extrabold" style="color:${color}">${RETAIL_LABEL[p.storeInit] || p.storeInit}</span>
+      <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${p.name}</div>
+      <div class="flex items-center gap-2 mt-1.5">
+        <span class="text-[11px] text-zinc-400 line-through tabular">${fmtUSD(p.originalPrice)}</span>
+        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${fmtUSD(p.salePrice)}</span>
+      </div>
+    </div>
+  </button>`;
+}
+
+function renderSalesGrid(){
+  const catFilter = document.getElementById('salesCatFilter').value;
+  const activeStores = Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value);
+  const maxPEN = parseFloat(document.getElementById('salesPriceMax').value);
+  const sortBy = document.getElementById('salesSort').value;
+
+  let items = SALE_PRODUCTS.filter(p =>
+    (catFilter === 'all' || p.cat === catFilter) &&
+    activeStores.includes(p.storeInit) &&
+    (p.salePrice * FX) <= maxPEN
+  );
+
+  if (sortBy === 'discount') items.sort((a, b) => discountPct(b) - discountPct(a));
+  else if (sortBy === 'priceAsc') items.sort((a, b) => a.salePrice - b.salePrice);
+  else if (sortBy === 'priceDesc') items.sort((a, b) => b.salePrice - a.salePrice);
+
+  document.getElementById('salesGrid').innerHTML = items.length
+    ? items.map(saleCardHTML).join('')
+    : `<div class="col-span-full text-center text-zinc-400 py-16">No hay ofertas con estos filtros.</div>`;
+  document.getElementById('salesCount').textContent = `${items.length} ofertas activas`;
+}
+
+initSalesFilters();
 
 /* ============================================================
    AI SHOPPING ASSISTANT (prototype)
@@ -1264,12 +1423,26 @@ function sendAssistantText(){
 let ariaChatHistory = [];
 let assistantThinking = false;
 
+const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion','liquidación','rebaja','rebajas','promocion','promoción'];
+
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
 
   const statusEl = document.getElementById('assistantStatus');
   const prevStatus = statusEl ? statusEl.textContent : '';
+
+  // Fast local path: sale/clearance questions go straight to the Sales page
+  // instead of round-tripping to the chat API.
+  const lowerText = text.toLowerCase();
+  if (SALE_KEYWORDS.some(k => lowerText.includes(k))) {
+    addAssistantMessage('bot', '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy 🔥');
+    goSales();
+    assistantThinking = false;
+    if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    return;
+  }
+
   if (statusEl) statusEl.textContent = 'Aria está pensando…';
 
   try {
@@ -1313,18 +1486,30 @@ async function runAssistantBrain(text){
 
 /* --- Voice input (browser Speech-to-Text, free, no API needed) --- */
 let recognition = null;
-let continuousMode = false; // kept false permanently so speakWithAria's onended check stays a no-op
-let isListening = false;
+let continuousMode = false;
 let silenceTimer = null;
-let intentionalStop = false;
-let currentTranscript = '';
-const SILENCE_TIMEOUT_MS = 3000;
+  let intentionalStop = false;
+ 
+      let currentAriaSpeech = '';
+  let lastTranscriptLength = 0;
+let maxSessionTimer = null;
+const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
+const SILENCE_TIMEOUT_MS = 4000;
+const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
+
+function isGoodbye(text){
+  const t = text.toLowerCase();
+  return GOODBYE_PATTERNS.some(p => t.includes(p));
+}
 
 function clearSilenceTimer(){
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
 }
 
-function resetMicUI(){
+function stopContinuousMode(){
+  continuousMode = false;
+  clearSilenceTimer();
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
   const micBtn = document.getElementById('assistantMicBtn');
@@ -1332,61 +1517,98 @@ function resetMicUI(){
 }
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (SpeechRecognitionAPI) {
+  recognition = new SpeechRecognitionAPI();
+  recognition.lang = 'es-PE';
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
 
-function createRecognitionInstance(){
-  const r = new SpeechRecognitionAPI();
-  r.lang = 'es-PE';
-  r.interimResults = true;
-  r.maxAlternatives = 1;
+  recognition.onstart = () => {
+  document.getElementById('assistantStatus').textContent = 'Escuchando…';
+  document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
+  document.getElementById('assistantMicBtn').style.color = '#fff';
+  lastTranscriptLength = 0;
+  clearSilenceTimer();
+  // start the silence countdown fresh — it only fires if no speech
+  // event resets it before it completes
+  silenceTimer = setTimeout(() => {
+        intentionalStop = true;
+        if (recognition) { try { recognition.stop(); } catch(e) {} }
+        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+        document.getElementById('assistantMicBtn').style.background = '';
+        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+      }, SILENCE_TIMEOUT_MS);
+  if (maxSessionTimer) clearTimeout(maxSessionTimer);
+      maxSessionTimer = setTimeout(() => {
+        continuousMode = false;
+        intentionalStop = true;
+        if (recognition) { try { recognition.stop(); } catch(e) {} }
+        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+        document.getElementById('assistantMicBtn').style.background = '';
+        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+        showToast('Sesión de voz finalizada por inactividad prolongada.');
+      }, MAX_SESSION_MS);
+    };
 
-  r.onstart = () => {
-    isListening = true;
-    currentTranscript = '';
-    document.getElementById('assistantStatus').textContent = 'Escuchando…';
-    document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
-    document.getElementById('assistantMicBtn').style.color = '#fff';
-    clearSilenceTimer();
-    silenceTimer = setTimeout(() => { stopAndSend(); }, SILENCE_TIMEOUT_MS);
-  };
+recognition.onresult = (e) => {
+  const result = e.results[e.results.length - 1];
+  const transcript = result[0].transcript;
 
-  r.onresult = (e) => {
-    const result = e.results[e.results.length - 1];
-    const transcript = result[0].transcript;
-    currentTranscript = transcript;
-    document.getElementById('assistantInput').value = transcript;
+  // reset the silence timer on any speech activity, not just growing transcripts —
+        // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
+        if (transcript.trim().length > 0) {
+          clearSilenceTimer();
+          lastTranscriptLength = transcript.trim().length;
 
-    clearSilenceTimer();
-    silenceTimer = setTimeout(() => { stopAndSend(); }, SILENCE_TIMEOUT_MS);
-  };
+          if (!result.isFinal) {
+            silenceTimer = setTimeout(() => {
+              intentionalStop = true;
+              if (recognition) { try { recognition.stop(); } catch(e) {} }
+            }, SILENCE_TIMEOUT_MS);
+          }
+        }
 
-  r.onerror = () => {
-    clearSilenceTimer();
-    isListening = false;
-    resetMicUI();
-    if (!intentionalStop) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
-    intentionalStop = false;
-  };
+  document.getElementById('assistantInput').value = transcript;
 
-  r.onend = () => {
-    clearSilenceTimer();
-    isListening = false;
-    intentionalStop = false;
-
-    const transcript = currentTranscript.trim();
-    currentTranscript = '';
-    resetMicUI();
+  if (result.isFinal) {
+    lastTranscriptLength = 0;
+    addAssistantMessage('user', transcript);
     document.getElementById('assistantInput').value = '';
 
-    if (transcript.length > 0) {
-      addAssistantMessage('user', transcript);
+    if (isGoodbye(transcript)) {
+      continuousMode = false;
       setTimeout(() => runAssistantBrain(transcript), 350);
+      return;
     }
+
+    setTimeout(() => runAssistantBrain(transcript), 350);
+  }
+};
+
+  recognition.onerror = () => {
+    clearSilenceTimer();
+    if (!continuousMode) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
   };
 
-  return r;
-}
+  recognition.onend = () => {
+  clearSilenceTimer();
 
-if (!SpeechRecognitionAPI) {
+  if (intentionalStop) {
+    intentionalStop = false;
+    return;
+  }
+
+  document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
+  document.getElementById('assistantMicBtn').style.background = '';
+  document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+
+  if (continuousMode && !assistantThinking) {
+    setTimeout(() => {
+      if (continuousMode) startListening();
+    }, 400);
+  }
+};
+} else {
   window.addEventListener('DOMContentLoaded', () => {
     const micBtn = document.getElementById('assistantMicBtn');
     if (micBtn) micBtn.classList.add('hidden');
@@ -1394,23 +1616,15 @@ if (!SpeechRecognitionAPI) {
 }
 
 function startListening(){
-  if (!SpeechRecognitionAPI) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
-  if (recognition) { try { recognition.onend = null; recognition.stop(); } catch(e) {} }
-  recognition = createRecognitionInstance();
+  if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
   try { recognition.start(); } catch(e) { /* already listening */ }
 }
 
-function stopAndSend(){
-  clearSilenceTimer();
-  if (recognition) { try { recognition.stop(); } catch(e) {} }
-  // sending now happens in r.onend below, so it fires no matter
-  // which device/browser is the one that actually stops recognition
-}
-
 function toggleContinuousMode(){
-  if (isListening) {
-    stopAndSend();
+  if (continuousMode) {
+    stopContinuousMode();
   } else {
+    continuousMode = true;
     startListening();
   }
 }
@@ -1427,23 +1641,20 @@ function unlockAudioForMobile(){
 }
 
 function speakWithAria(audioBase64, ariaText){
-        
+        currentAriaSpeech = ariaText || '';
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
     ariaAudioPlayer.onended = () => {
-      const isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent); if (!isiOS) startListening();
-      
+      if (continuousMode) startListening();
     };
     ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
 } catch (err) {
-  
+ 
     // if anything goes wrong decoding/playing Ara's voice, just stay silent —
     // the text reply is already visible in the chat
   }
 }
 </script>
-</body>
-</html>
 </body>
 </html>
