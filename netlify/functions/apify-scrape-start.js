@@ -27,13 +27,14 @@ const RETAILER_CONFIG = {
     }),
   },
   target: {
-    actorId: "scrapers_lat/target-scraper",
+    // Switched from scrapers_lat/target-scraper: real test runs against it
+    // came back with 0 items even for common search terms (e.g. "phone
+    // charger") regardless of zip. This one defaults to Target's online
+    // catalog store rather than requiring a specific local store to match.
+    actorId: "rigelbytes/target-scraper",
     buildInput: (query, maxItems) => ({
-      searchQuery: query,
-      maxResults: maxItems,
-      // Target's search results are localized by store; without a zip a
-      // real run came back with 0 items even for a common search term.
-      zip: "10001",
+      searchQueries: [query],
+      maxItems,
     }),
   },
   nordstrom: {
