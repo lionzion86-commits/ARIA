@@ -1219,14 +1219,21 @@ function safeUrl(u){
 
 // Each Actor's dataset items use different field names — try the common
 // variants seen across these retailers' scrapers rather than assuming one.
+// Applied here (not in apify-scrape-start.js) so the raw retailer cost never
+// leaves the server response — the price shown on the results page, and the
+// value later sent to checkout as the declared value, are always this same
+// marked-up number, never the original scraped price.
+const LIVE_PRICE_MARKUP = 1.22;
+
 function normalizeLiveItem(item){
   const title = item.title || item.name || item.productTitle || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
-  const price = typeof priceRaw === 'number' ? priceRaw : (typeof priceRaw === 'string' ? parseFloat(priceRaw.replace(/[^0-9.]/g, '')) : NaN);
+  const rawPrice = typeof priceRaw === 'number' ? priceRaw : (typeof priceRaw === 'string' ? parseFloat(priceRaw.replace(/[^0-9.]/g, '')) : NaN);
+  const price = Number.isFinite(rawPrice) ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
   const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
   const rating = item.rating ?? item.stars ?? null;
   const url = safeUrl(item.url || item.productUrl || item.link || (item.webPath ? `https://www.nordstrom.com${item.webPath}` : null));
-  return { title, price: Number.isFinite(price) ? price : null, image, rating, url };
+  return { title, price, image, rating, url };
 }
 
 function liveRetailerSkeleton(retailer){
