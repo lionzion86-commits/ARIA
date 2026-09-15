@@ -16,7 +16,12 @@ const RETAILER_CONFIG = {
       operation: "search",
       query,
       maxItems,
-      proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"], apifyProxyCountry: "US" },
+      // Was apifyProxyGroups: ["RESIDENTIAL"] — that proxy bandwidth, billed
+      // separately from the Actor's own ~$1/1,000-results fee, was the real
+      // driver behind this costing ~40c/run vs 1-2c for Walmart/Target.
+      // Testing DATACENTER since the Actor's docs warn non-US proxies can
+      // get geo-redirected (i.e. this may need reverting if results go empty).
+      proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["DATACENTER"], apifyProxyCountry: "US" },
     }),
   },
   walmart: {
