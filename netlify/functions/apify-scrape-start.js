@@ -59,6 +59,29 @@ const RETAILER_CONFIG = {
       maxItems,
     }),
   },
+  // TEMPORARY test-only config — not wired into the results page UI.
+  // Only accepts direct product URLs (no keyword search), so `query` is
+  // ignored and a single known-real product page is hardcoded for this
+  // test. Docs say residential proxy is "recommended if datacenter IPs
+  // get 403-blocked" (softer language than Best Buy's, testing without
+  // proxy override first to see if it's actually needed).
+  advanceautoparts: {
+    actorId: "moving_beacon-owner1/advance-auto-parts-scraper",
+    buildInput: (query, maxItems) => ({
+      startUrls: ["https://shop.advanceautoparts.com/p/carquest-professional-platinum-ceramic-brake-pads-4-pad-set-pxd1624h/10413539-P"],
+      maxRetries: 1,
+    }),
+  },
+  // TEMPORARY test-only config — not wired into the results page UI.
+  // No proxy required per docs.
+  autozone: {
+    actorId: "sian.agency/autozone-product-scraper",
+    buildInput: (query, maxItems) => ({
+      keywords: [query],
+      scrapeMode: "overview",
+      maxResults: maxItems,
+    }),
+  },
   // Paused: two real test runs against moving_beacon-owner1/nordstrom-search-scraper
   // (with both %20 and + keyword encoding) completed "successfully" after ~55s
   // but returned 0 items each time — looks like Nordstrom's PerimeterX bot
