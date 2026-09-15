@@ -251,9 +251,11 @@
   }
 
   // Flat local estimate — only used if the live AVI Courier quote can't be reached.
-  function fallbackQuote(kg){
-    const total = kg * CHARGE_PER_KG + BASE_FEE;
-    return { total_usd: total, total_pen: null, flete_usd: total, source: 'fallback' };
+  // Total is the declared product value plus shipping, matching what the
+  // live quote's total_usd represents (flete_usd is shipping alone).
+  function fallbackQuote(kg, valorUsd){
+    const flete = kg * CHARGE_PER_KG + BASE_FEE;
+    return { total_usd: valorUsd + flete, total_pen: null, flete_usd: flete, source: 'fallback' };
   }
 
   async function fetchQuote(kg, valorUsd, description){
@@ -332,7 +334,7 @@
         quoteStatus.textContent = 'Cotización de AVI Courier actualizada.';
       } catch (err) {
         if (seq !== requestSeq) return;
-        latestQuote = fallbackQuote(kg);
+        latestQuote = fallbackQuote(kg, valor);
         quoteStatus.textContent = 'No pudimos conectar con AVI Courier — usando un estimado.';
         showToast('No pudimos conectar con AVI Courier — usando un estimado.');
       }
