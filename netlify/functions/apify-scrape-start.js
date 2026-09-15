@@ -68,7 +68,7 @@ const RETAILER_CONFIG = {
   advanceautoparts: {
     actorId: "moving_beacon-owner1/advance-auto-parts-scraper",
     buildInput: (query, maxItems) => ({
-      startUrls: ["https://shop.advanceautoparts.com/p/carquest-professional-platinum-ceramic-brake-pads-4-pad-set-pxd1624h/10413539-P"],
+      startUrls: [{ url: "https://shop.advanceautoparts.com/p/carquest-professional-platinum-ceramic-brake-pads-4-pad-set-pxd1624h/10413539-P" }],
       maxRetries: 1,
     }),
   },
