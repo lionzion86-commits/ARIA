@@ -59,22 +59,17 @@ const RETAILER_CONFIG = {
       maxItems,
     }),
   },
-  // TEMPORARY test-only config — not wired into the results page UI.
-  // Only accepts direct product URLs (no keyword search), so `query` is
-  // ignored and a single known-real product page is hardcoded for this
-  // test. Docs say residential proxy is "recommended if datacenter IPs
-  // get 403-blocked" (softer language than Best Buy's, testing without
-  // proxy override first to see if it's actually needed).
-  advanceautoparts: {
-    actorId: "moving_beacon-owner1/advance-auto-parts-scraper",
-    buildInput: (query, maxItems) => ({
-      startUrls: [{ url: "https://shop.advanceautoparts.com/p/carquest-professional-platinum-ceramic-brake-pads-4-pad-set-pxd1624h/10413539-P" }],
-      maxRetries: 1,
-    }),
-  },
-  // TEMPORARY test-only config — not wired into the results page UI.
-  // No proxy required per docs.
+  // Skipped: moving_beacon-owner1/advance-auto-parts-scraper only accepts
+  // a specific product URL (no keyword search — can't do "type a part
+  // name, get results" at all), and even then a real test run came back
+  // with price: null despite title/brand/rating/image all working. Not
+  // usable as-is regardless of the (otherwise fine, no-proxy-needed) cost.
+  advanceautoparts: null,
   autozone: {
+    // No proxy required per docs. Real test run: ~$5.70/1,000 overview
+    // results, and this specific test even landed in the Actor's free
+    // tier ("userTier": "FREE"). Real prices, titles, images, part
+    // numbers all came back correctly.
     actorId: "sian.agency/autozone-product-scraper",
     buildInput: (query, maxItems) => ({
       keywords: [query],
