@@ -1,7 +1,11 @@
-// Secure middleman between ariashop.pe and Apify's retailer scraper Actors.
+// Starts an Apify Actor run for a retailer scrape and returns immediately
+// with the run ID. Netlify Functions have a hard execution/gateway timeout
+// well under how long a real scrape can take (20-90s+), so this deliberately
+// does NOT wait for the run to finish — see apify-scrape-status.js, which
+// the client polls until the run is done.
+//
 // Each Actor has its own input schema, so `buildInput` maps our generic
 // { retailer, query } request to whatever that specific Actor expects.
-//
 // Actor IDs and input fields verified against each Actor's own API docs
 // on apify.com as of writing — re-check there if a retailer starts
 // returning empty results, since Actors and their schemas can change.
@@ -91,32 +95,29 @@ export async function handler(event) {
     const actorInput = config.buildInput(query.trim(), cappedMaxItems);
     const actorPath = config.actorId.replace("/", "~");
 
-    const runResponse = await fetch(
-      `https://api.apify.com/v2/actors/${actorPath}/run-sync-get-dataset-items?timeout=90`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.APIFY_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(actorInput),
-      }
-    );
+    const runResponse = await fetch(`https://api.apify.com/v2/actors/${actorPath}/runs`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.APIFY_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(actorInput),
+    });
 
-    const items = await runResponse.json();
+    const runData = await runResponse.json();
 
     if (!runResponse.ok) {
       return {
         statusCode: runResponse.status,
         headers,
-        body: JSON.stringify({ error: items?.error?.message || "Apify Actor run failed" }),
+        body: JSON.stringify({ error: runData?.error?.message || "Failed to start Apify Actor run" }),
       };
     }
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ retailer, items }),
+      body: JSON.stringify({ retailer, runId: runData.data.id }),
     };
   } catch (error) {
     return {

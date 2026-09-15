@@ -1237,17 +1237,16 @@ function liveRetailerSkeleton(retailer){
   </div>`;
 }
 
-function renderLiveRetailerBlock(retailer, settled){
+function renderLiveRetailerBlock(retailer, result){
   const label = LIVE_RETAILER_LABEL[retailer];
-  if (settled.status !== 'fulfilled' || !settled.value.ok){
-    const msg = settled.status === 'fulfilled' ? (settled.value.data?.error || 'Error al consultar') : 'No se pudo conectar';
+  if (!result.ok){
     return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
       <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${label}</div>
-      <div class="text-[12px]" style="color:#C0392B">${escapeHtml(msg)}</div>
+      <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
     </div>`;
   }
 
-  const items = Array.isArray(settled.value.data?.items) ? settled.value.data.items.slice(0, 5).map(normalizeLiveItem) : [];
+  const items = Array.isArray(result.items) ? result.items.slice(0, 5).map(normalizeLiveItem) : [];
   if (!items.length){
     return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
       <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${label}</div>
@@ -1272,6 +1271,34 @@ function renderLiveRetailerBlock(retailer, settled){
   </div>`;
 }
 
+const LIVE_POLL_INTERVAL_MS = 3000;
+const LIVE_POLL_MAX_MS = 120000; // give up after 2 minutes of polling
+
+function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
+
+// Actor runs take too long for a single request/response, so the flow is:
+// start the run (fast, returns a runId) → poll status until it finishes.
+async function scrapeRetailer(retailer, query, maxItems){
+  const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ retailer, query, maxItems }),
+  });
+  const startData = await startRes.json();
+  if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda');
+
+  const deadline = Date.now() + LIVE_POLL_MAX_MS;
+  while (Date.now() < deadline){
+    const statusRes = await fetch(`/.netlify/functions/apify-scrape-status?runId=${encodeURIComponent(startData.runId)}`);
+    const statusData = await statusRes.json();
+    if (!statusRes.ok) throw new Error(statusData.error || 'Error al consultar el estado');
+    if (statusData.status === 'SUCCEEDED') return statusData.items || [];
+    if (statusData.error) throw new Error(statusData.error);
+    await wait(LIVE_POLL_INTERVAL_MS);
+  }
+  throw new Error('La búsqueda tardó demasiado — intenta de nuevo.');
+}
+
 async function runLiveScrape(){
   const btn = document.getElementById('liveScrapeBtn');
   const wrap = document.getElementById('liveResultsWrap');
@@ -1281,19 +1308,17 @@ async function runLiveScrape(){
   btn.disabled = true;
   btn.textContent = 'Buscando en vivo…';
   wrap.classList.remove('hidden');
-  wrap.innerHTML = LIVE_RETAILERS.map(liveRetailerSkeleton).join('');
+  wrap.innerHTML = LIVE_RETAILERS.map(r => `<div id="liveBlock-${r}">${liveRetailerSkeleton(r)}</div>`).join('');
 
-  const settledResults = await Promise.allSettled(
-    LIVE_RETAILERS.map(retailer =>
-      fetch('/.netlify/functions/apify-scrape', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ retailer, query, maxItems: 5 }),
-      }).then(res => res.json().then(data => ({ ok: res.ok, data })))
-    )
-  );
-
-  wrap.innerHTML = LIVE_RETAILERS.map((retailer, i) => renderLiveRetailerBlock(retailer, settledResults[i])).join('');
+  await Promise.allSettled(LIVE_RETAILERS.map(async (retailer) => {
+    const blockEl = document.getElementById(`liveBlock-${retailer}`);
+    try {
+      const items = await scrapeRetailer(retailer, query, 5);
+      blockEl.innerHTML = renderLiveRetailerBlock(retailer, { ok: true, items });
+    } catch (err) {
+      blockEl.innerHTML = renderLiveRetailerBlock(retailer, { ok: false, error: err.message });
+    }
+  }));
 
   btn.disabled = false;
   btn.textContent = 'Buscar precios en vivo';
