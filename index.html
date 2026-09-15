@@ -1681,6 +1681,25 @@ function speakWithAria(audioBase64, ariaText){
   btn.addEventListener('click', () => { if (AC.state==='suspended') AC.resume(); pop(); setTimeout(twinkle,120); });
 })();
 </script>
-
+<!-- ARIA CHECKOUT - SHOP.PE - CUSTOMER ONLY SEES $13/kg -->
+<div id="checkoutView" class="view hidden" style="max-width:600px; margin:0 auto; padding:24px;">
+  <h2 style="font-weight:800; font-size:24px;">Checkout - ARIA</h2>
+  <div style="background:white; border:1px solid #E4E6EC; padding:20px; border-radius:12px; margin-top:16px;">
+    <h3 style="font-weight:700;">📦 Cálculo de Envío</h3>
+    <div style="margin-top:10px;">Peso (kg): <input id="kgInput" type="number" value="1" step="0.1" style="padding:8px; width:90px; border:1px solid #ccc; border-radius:8px;"></div>
+    <div style="margin-top:12px; font-size:18px;">Costo de envío: <b id="shippingCost">$13.00</b></div>
+  </div>
+  <form style="display:flex; flex-direction:column; gap:10px; margin-top:20px;">
+    <input placeholder="Nombre" required style="padding:12px; border:1px solid #ccc; border-radius:8px;">
+    <input placeholder="Dirección Perú" required style="padding:12px; border:1px solid #ccc; border-radius:8px;">
+    <button style="background:black; color:white; padding:14px; border-radius:10px; font-weight:800;">PAGAR AHORA</button>
+  </form>
+</div>
+<script type="module">
+import { CHARGE_PER_KG } from './weight-data.js';
+const i=document.getElementById('kgInput'), s=document.getElementById('shippingCost');
+function u(){ s.textContent='$'+((parseFloat(i.value)||0)*CHARGE_PER_KG).toFixed(2); }
+if(i){ i.addEventListener('input',u); u(); }
+</script>
 </body>
 </html>
