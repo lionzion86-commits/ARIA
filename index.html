@@ -96,79 +96,6 @@
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
 
-  <!-- SHIPPING WEIGHT CALCULATOR -->
-  <section class="bg-white border-b" style="border-color:var(--line)">
-    <div class="max-w-[1240px] mx-auto px-5 py-6 sm:py-8">
-      <div class="rounded-3xl p-5 sm:p-8" style="background:linear-gradient(135deg,var(--sky) 0%,#fff 60%); border:1px solid var(--line)">
-        <span class="inline-block text-[11px] font-extrabold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-2.5" style="background:var(--green-bg); color:var(--green)">Calculadora</span>
-        <h2 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.02em] mb-1.5" style="color:var(--navy)">Calcula el costo de tu envío</h2>
-        <p class="text-[13.5px] leading-relaxed mb-5" style="color:#5B6478">Ingresa el peso en kilogramos y mira el precio, tu costo y tu ganancia al instante.</p>
-
-        <div class="grid sm:grid-cols-[220px_1fr] gap-4 sm:gap-6 items-start">
-          <div>
-            <label for="kgInput" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Peso (KG)</label>
-            <div class="relative">
-              <input id="kgInput" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00"
-                class="w-full h-[54px] bg-white border rounded-2xl pl-4 pr-11 text-[20px] font-bold outline-none focus-ring tabular"
-                style="border-color:var(--line); color:var(--navy)">
-              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold" style="color:#9AA3B8">kg</span>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
-            <div class="rounded-2xl px-2 py-4 sm:p-4 text-center" style="background:var(--sky)">
-              <div class="text-[9.5px] sm:text-[10.5px] font-bold uppercase tracking-[0.04em] mb-1" style="color:#5B6EA8">Precio cliente</div>
-              <div id="resCustomer" class="text-[18px] sm:text-[28px] font-extrabold tabular" style="color:var(--blue)">$0.00</div>
-            </div>
-            <div class="rounded-2xl px-2 py-4 sm:p-4 text-center" style="background:#F4F1EA">
-              <div class="text-[9.5px] sm:text-[10.5px] font-bold uppercase tracking-[0.04em] mb-1" style="color:#8A7A4C">Mi costo</div>
-              <div id="resCost" class="text-[18px] sm:text-[28px] font-extrabold tabular" style="color:var(--amber)">$0.00</div>
-            </div>
-            <div class="rounded-2xl px-2 py-4 sm:p-4 text-center" style="background:var(--green-bg)">
-              <div class="text-[9.5px] sm:text-[10.5px] font-bold uppercase tracking-[0.04em] mb-1" style="color:#2E9C5C">Mi ganancia</div>
-              <div id="resProfit" class="text-[18px] sm:text-[28px] font-extrabold tabular" style="color:var(--green)">$0.00</div>
-            </div>
-          </div>
-        </div>
-        <div class="mt-5 flex justify-end">
-          <a id="goCheckoutBtn" href="checkout.html" class="inline-flex items-center gap-2 h-11 px-5 rounded-full text-white text-[13.5px] font-bold focus-ring transition opacity-40 pointer-events-none" style="background:var(--blue)">
-            Continuar al pago
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
-          </a>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <script type="module">
-    import { COST_PER_KG, CHARGE_PER_KG, PROFIT_PER_KG, BASE_FEE } from './weight-data.js';
-
-    const kgInput = document.getElementById('kgInput');
-    const resCustomer = document.getElementById('resCustomer');
-    const resCost = document.getElementById('resCost');
-    const resProfit = document.getElementById('resProfit');
-    const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
-
-    const goCheckoutBtn = document.getElementById('goCheckoutBtn');
-
-    function calcWeightShipping() {
-      const raw = parseFloat(kgInput.value);
-      const kg = Number.isFinite(raw) && raw > 0 ? raw : 0;
-      const customerPrice = kg * CHARGE_PER_KG + BASE_FEE;
-      const myCost = kg * COST_PER_KG;
-      const myProfit = kg * PROFIT_PER_KG + BASE_FEE;
-      resCustomer.textContent = usd.format(customerPrice);
-      resCost.textContent = usd.format(myCost);
-      resProfit.textContent = usd.format(myProfit);
-      goCheckoutBtn.classList.toggle('opacity-40', kg <= 0);
-      goCheckoutBtn.classList.toggle('pointer-events-none', kg <= 0);
-      goCheckoutBtn.href = kg > 0 ? `checkout.html?kg=${kg}` : 'checkout.html';
-    }
-
-    kgInput.addEventListener('input', calcWeightShipping);
-    calcWeightShipping();
-  </script>
-
   <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
     <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
       <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
@@ -1229,14 +1156,17 @@ function showResults(product){
       <div class="${isBest ? 'text-[16px]' : 'text-[14.5px]'} font-extrabold tabular" style="color:${isBest ? 'var(--green)' : 'var(--navy)'}">${fmtPEN(totalPEN)}</div>
       <div class="text-[12px] text-zinc-500">${o.days}</div>
       <div>
-        <button onclick="orderProduct('${product.name.replace(/'/g,"\\'")}')" class="w-full sm:w-auto h-9 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition ${isBest ? 'shadow-md' : ''}" style="background:var(--blue)">Pedir con Aria</button>
+        <button onclick="orderProduct('${product.name.replace(/'/g,"\\'")}', ${total})" class="w-full sm:w-auto h-9 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition ${isBest ? 'shadow-md' : ''}" style="background:var(--blue)">Pedir con Aria</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function orderProduct(name){
-  showToast('Esto es un prototipo — el checkout todavía no está conectado.');
+function orderProduct(name, totalUsd){
+  const params = new URLSearchParams();
+  if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
+  if (name) params.set('desc', name);
+  window.location.href = 'checkout.html' + (params.toString() ? '?' + params.toString() : '');
 }
 
 let toastTimer;

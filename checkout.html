@@ -345,6 +345,10 @@
   const params = new URLSearchParams(location.search);
   const prefillKg = parseFloat(params.get('kg'));
   if (Number.isFinite(prefillKg) && prefillKg > 0) kgInput.value = prefillKg.toFixed(2);
+  const prefillValor = parseFloat(params.get('valor'));
+  if (Number.isFinite(prefillValor) && prefillValor > 0) valorInput.value = prefillValor.toFixed(2);
+  const prefillDesc = params.get('desc');
+  if (prefillDesc) descInput.value = prefillDesc;
   renderSummary();
 
   let toastTimer;
