@@ -59,7 +59,23 @@ export async function handler(event) {
       }),
     });
 
-    const quoteData = await quoteResponse.json();
+    const rawBody = await quoteResponse.text();
+    let quoteData;
+    try {
+      quoteData = JSON.parse(rawBody);
+    } catch {
+      // AVI Courier returned something that isn't JSON (e.g. a proxy/WAF
+      // block page) — surface the real status and a body snippet instead
+      // of a generic "not valid JSON" error, so this is actually debuggable.
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          error: `AVI Courier returned a non-JSON response (HTTP ${quoteResponse.status})`,
+          bodySnippet: rawBody.slice(0, 300),
+        }),
+      };
+    }
 
     if (!quoteResponse.ok) {
       return {
