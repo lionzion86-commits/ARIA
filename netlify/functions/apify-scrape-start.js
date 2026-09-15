@@ -40,7 +40,9 @@ const RETAILER_CONFIG = {
   nordstrom: {
     actorId: "moving_beacon-owner1/nordstrom-search-scraper",
     buildInput: (query) => ({
-      searchUrls: [`https://www.nordstrom.com/sr?keyword=${encodeURIComponent(query)}`],
+      // A real run with %20-encoded spaces came back with 0 items; the
+      // Actor's own documented example uses + for spaces, so match that.
+      searchUrls: [`https://www.nordstrom.com/sr?keyword=${encodeURIComponent(query).replace(/%20/g, "+")}`],
       maxPagesPerUrl: 1,
     }),
   },
