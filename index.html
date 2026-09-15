@@ -95,28 +95,7 @@
 
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
-<!-- SHIPPING WEIGHT CALCULATOR - $13/kg -->
-<div style="background:white; border:1px solid #E4E6EC; padding:24px; margin:20px; border-radius:12px; max-width:600px; margin-left:auto; margin-right:auto;">
-  <h3 style="font-size:22px; font-weight:800; margin-bottom:12px;">📦 Calculadora de Peso</h3>
-  <div style="display:flex; gap:12px; align-items:center; margin-bottom:16px;">
-    <label style="font-weight:600;">Peso (kg):</label>
-    <input id="kgInput" type="number" min="0" step="0.1" value="1" style="border:1px solid #ccc; border-radius:8px; padding:8px 12px; width:100px;">
-  </div>
-  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
-    <div style="background:#F9FAFB; padding:12px; border-radius:8px;"><div style="font-size:12px; color:#666;">Cliente Paga</div><div id="resCustomer" style="font-size:18px; font-weight:700;"></div></div>
-    <div style="background:#F9FAFB; padding:12px; border-radius:8px;"><div style="font-size:12px; color:#666;">Mi Costo ($9)</div><div id="resCost" style="font-size:18px; font-weight:700;"></div></div>
-    <div style="background:#EAF7EF; padding:12px; border-radius:8px;"><div style="font-size:12px; color:#1C8A4B;">Mi Ganancia ($4)</div><div id="resProfit" style="font-size:18px; font-weight:700; color:#1C8A4B;"></div></div>
-  </div>
-</div>
-<script>
-const COST_PER_KG = 9; const CHARGE_PER_KG = 13; const PROFIT_PER_KG = 4; const BASE_FEE = 0;
-const kgInput = document.getElementById('kgInput');
-const resCustomer = document.getElementById('resCustomer');
-const resCost = document.getElementById('resCost');
-const resProfit = document.getElementById('resProfit');
-function calc(){ const kg = parseFloat(kgInput.value)||0; resCustomer.textContent = '$'+(kg*CHARGE_PER_KG+BASE_FEE).toFixed(2); resCost.textContent = '$'+(kg*COST_PER_KG).toFixed(2); resProfit.textContent = '$'+(kg*PROFIT_PER_KG+BASE_FEE).toFixed(2); }
-kgInput.addEventListener('input', calc); calc();
-</script>
+
   <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
     <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
       <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
