@@ -31,6 +31,9 @@ const RETAILER_CONFIG = {
     buildInput: (query, maxItems) => ({
       searchQuery: query,
       maxResults: maxItems,
+      // Target's search results are localized by store; without a zip a
+      // real run came back with 0 items even for a common search term.
+      zip: "10001",
     }),
   },
   nordstrom: {
