@@ -149,14 +149,29 @@
               </select>
             </div>
           </div>
-          <div>
-            <label for="kgInput" class="block text-[12px] font-bold mb-1.5">Peso del paquete</label>
-            <div class="relative max-w-[220px]">
-              <input id="kgInput" name="kgInput" type="number" inputmode="decimal" step="0.01" min="0.01" required placeholder="0.00"
-                class="w-full h-[54px] bg-white border rounded-2xl pl-4 pr-11 text-[20px] font-bold outline-none focus-ring tabular" style="border-color:var(--line); color:var(--navy)">
-              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold" style="color:#9AA3B8">kg</span>
+          <div class="grid sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label for="kgInput" class="block text-[12px] font-bold mb-1.5">Peso del paquete</label>
+              <div class="relative">
+                <input id="kgInput" name="kgInput" type="number" inputmode="decimal" step="0.01" min="0.01" required placeholder="0.00"
+                  class="w-full h-[54px] bg-white border rounded-2xl pl-4 pr-11 text-[20px] font-bold outline-none focus-ring tabular" style="border-color:var(--line); color:var(--navy)">
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold" style="color:#9AA3B8">kg</span>
+              </div>
             </div>
-            <p class="text-[12px] mt-2" style="color:#8A93A8">Tarifa de envío: <span id="rateLbl" class="font-semibold tabular">$0.00</span> por kg.</p>
+            <div>
+              <label for="valorInput" class="block text-[12px] font-bold mb-1.5">Valor declarado</label>
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-bold" style="color:#9AA3B8">$</span>
+                <input id="valorInput" name="valorInput" type="number" inputmode="decimal" step="0.01" min="0.01" required placeholder="0.00"
+                  class="w-full h-[54px] bg-white border rounded-2xl pl-8 pr-4 text-[20px] font-bold outline-none focus-ring tabular" style="border-color:var(--line); color:var(--navy)">
+              </div>
+            </div>
+          </div>
+          <div>
+            <label for="descInput" class="block text-[12px] font-bold mb-1.5">Descripción del contenido</label>
+            <input id="descInput" name="descInput" type="text" required placeholder="Ej. Ropa y zapatillas"
+              class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Completa peso, valor y descripción para cotizar con AVI Courier.</p>
           </div>
         </section>
       </div>
@@ -166,18 +181,19 @@
         <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
         <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
           <div class="flex justify-between"><span>Peso declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
-          <div class="flex justify-between"><span>Tarifa por kg</span><span id="sumRate" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
-          <div class="flex justify-between"><span>Cargo base</span><span id="sumBase" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
+          <div class="flex justify-between"><span>Valor declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
+          <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
         </div>
         <div class="h-px" style="background:var(--line)"></div>
         <div class="flex justify-between items-baseline">
           <span class="text-[13.5px] font-bold" style="color:var(--navy)">Total a pagar</span>
           <span id="sumTotal" class="text-[26px] font-extrabold tabular" style="color:var(--blue)">$0.00</span>
         </div>
+        <div id="sumPenWrap" class="text-[12px] text-right -mt-2" style="color:#9AA3B8" hidden>≈ <span id="sumPen" class="tabular"></span></div>
         <button id="payBtn" type="submit" disabled
           class="w-full h-[52px] rounded-2xl text-white text-[14.5px] font-bold focus-ring transition disabled:opacity-40 disabled:cursor-not-allowed"
           style="background:var(--blue)">
-          Ingresa el peso para continuar
+          Completa el formulario para cotizar
         </button>
         <p class="text-[11.5px] flex items-center gap-1.5 justify-center" style="color:#9AA3B8">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -210,48 +226,126 @@
   import { CHARGE_PER_KG, BASE_FEE } from './weight-data.js';
 
   const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  const pen = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
 
   const kgInput = document.getElementById('kgInput');
-  const rateLbl = document.getElementById('rateLbl');
+  const valorInput = document.getElementById('valorInput');
+  const descInput = document.getElementById('descInput');
+  const quoteStatus = document.getElementById('quoteStatus');
   const sumWeight = document.getElementById('sumWeight');
-  const sumRate = document.getElementById('sumRate');
-  const sumBase = document.getElementById('sumBase');
+  const sumValor = document.getElementById('sumValor');
+  const sumFlete = document.getElementById('sumFlete');
   const sumTotal = document.getElementById('sumTotal');
+  const sumPenWrap = document.getElementById('sumPenWrap');
+  const sumPen = document.getElementById('sumPen');
   const payBtn = document.getElementById('payBtn');
-
-  rateLbl.textContent = usd.format(CHARGE_PER_KG);
-  sumRate.textContent = usd.format(CHARGE_PER_KG);
-  sumBase.textContent = usd.format(BASE_FEE);
 
   function currentKg(){
     const raw = parseFloat(kgInput.value);
     return Number.isFinite(raw) && raw > 0 ? raw : 0;
   }
 
-  function currentTotal(){
-    return currentKg() * CHARGE_PER_KG + BASE_FEE;
+  function currentValor(){
+    const raw = parseFloat(valorInput.value);
+    return Number.isFinite(raw) && raw > 0 ? raw : 0;
   }
 
-  function refreshSummary(){
+  // Flat local estimate — only used if the live AVI Courier quote can't be reached.
+  function fallbackQuote(kg){
+    const total = kg * CHARGE_PER_KG + BASE_FEE;
+    return { total_usd: total, total_pen: null, flete_usd: total, source: 'fallback' };
+  }
+
+  async function fetchQuote(kg, valorUsd, description){
+    const res = await fetch('/.netlify/functions/avi-courier-quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ peso_kg: kg, valor_usd: valorUsd, description }),
+    });
+    const data = await res.json();
+    if (!res.ok || typeof data.total_usd !== 'number') throw new Error(data.error || 'Cotización inválida');
+    return { ...data, source: 'live' };
+  }
+
+  let latestQuote = null;
+  let requestSeq = 0;
+  let debounceTimer;
+
+  function renderSummary({ loading = false } = {}){
     const kg = currentKg();
-    const total = currentTotal();
+    const valor = currentValor();
     sumWeight.textContent = kg.toFixed(2) + ' kg';
-    sumTotal.textContent = usd.format(total);
-    if (kg > 0){
-      payBtn.disabled = false;
-      payBtn.textContent = 'Pagar ' + usd.format(total);
-    } else {
+    sumValor.textContent = usd.format(valor);
+
+    if (loading){
+      sumFlete.textContent = 'Cotizando…';
+      sumTotal.textContent = '—';
+      sumPenWrap.hidden = true;
       payBtn.disabled = true;
-      payBtn.textContent = 'Ingresa el peso para continuar';
+      payBtn.textContent = 'Cotizando con AVI Courier…';
+      return;
     }
+
+    if (!latestQuote){
+      sumFlete.textContent = '—';
+      sumTotal.textContent = usd.format(0);
+      sumPenWrap.hidden = true;
+      payBtn.disabled = true;
+      payBtn.textContent = 'Completa el formulario para cotizar';
+      return;
+    }
+
+    sumFlete.textContent = usd.format(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
+    sumTotal.textContent = usd.format(latestQuote.total_usd);
+    if (latestQuote.total_pen != null){
+      sumPen.textContent = pen.format(latestQuote.total_pen);
+      sumPenWrap.hidden = false;
+    } else {
+      sumPenWrap.hidden = true;
+    }
+    payBtn.disabled = false;
+    payBtn.textContent = 'Pagar ' + usd.format(latestQuote.total_usd);
   }
 
-  kgInput.addEventListener('input', refreshSummary);
+  function requestQuote(){
+    clearTimeout(debounceTimer);
+    const kg = currentKg();
+    const valor = currentValor();
+    const description = descInput.value.trim();
+
+    if (kg <= 0 || valor <= 0 || !description){
+      latestQuote = null;
+      quoteStatus.textContent = 'Completa peso, valor y descripción para cotizar con AVI Courier.';
+      renderSummary();
+      return;
+    }
+
+    renderSummary({ loading: true });
+    quoteStatus.textContent = 'Consultando tarifa en tiempo real…';
+
+    const seq = ++requestSeq;
+    debounceTimer = setTimeout(async () => {
+      try {
+        const quote = await fetchQuote(kg, valor, description);
+        if (seq !== requestSeq) return;
+        latestQuote = quote;
+        quoteStatus.textContent = 'Cotización de AVI Courier actualizada.';
+      } catch (err) {
+        if (seq !== requestSeq) return;
+        latestQuote = fallbackQuote(kg);
+        quoteStatus.textContent = 'No pudimos conectar con AVI Courier — usando un estimado.';
+        showToast('No pudimos conectar con AVI Courier — usando un estimado.');
+      }
+      renderSummary();
+    }, 500);
+  }
+
+  [kgInput, valorInput, descInput].forEach(el => el.addEventListener('input', requestQuote));
 
   const params = new URLSearchParams(location.search);
   const prefillKg = parseFloat(params.get('kg'));
   if (Number.isFinite(prefillKg) && prefillKg > 0) kgInput.value = prefillKg.toFixed(2);
-  refreshSummary();
+  renderSummary();
 
   let toastTimer;
   function showToast(msg){
@@ -265,13 +359,13 @@
   document.getElementById('checkoutForm').addEventListener('submit', (e) => {
     e.preventDefault();
     const form = e.target;
-    if (!form.checkValidity() || currentKg() <= 0){
+    if (!form.checkValidity() || !latestQuote){
       form.reportValidity();
-      showToast('Completa todos los campos obligatorios.');
+      showToast(latestQuote ? 'Completa todos los campos obligatorios.' : 'Espera a que termine la cotización antes de pagar.');
       return;
     }
 
-    const total = currentTotal();
+    const total = latestQuote.total_usd;
     const name = document.getElementById('custName').value.trim();
     const email = document.getElementById('custEmail').value.trim();
 
