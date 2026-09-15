@@ -376,6 +376,15 @@
 
         <div id="resultCount" class="text-[13px] text-zinc-500 mb-3"></div>
 
+        <div class="mb-4 rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="border-color:var(--line); background:#fff">
+          <div>
+            <div class="font-bold text-[13.5px]" style="color:var(--navy)">¿Quieres precios reales ahora mismo?</div>
+            <div class="text-[12px] text-zinc-500 mt-0.5">Busca en vivo en Best Buy, Walmart, Target y Nordstrom — puede tardar hasta un minuto.</div>
+          </div>
+          <button id="liveScrapeBtn" onclick="runLiveScrape()" class="h-10 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition flex-shrink-0" style="background:var(--navy)">Buscar precios en vivo</button>
+        </div>
+        <div id="liveResultsWrap" class="mb-6 hidden"></div>
+
         <div class="rounded-2xl border overflow-hidden" style="border-color:var(--line)">
           <div class="hidden sm:grid grid-cols-[1.6fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1fr] gap-2 px-4 py-3 text-[11.5px] font-bold uppercase tracking-wide text-zinc-400 border-b" style="border-color:var(--line); background:#FBFBFA">
             <div>Tienda</div><div>Precio</div><div>Envío</div><div>Aranceles</div><div>Total a Perú</div><div>Entrega</div><div></div>
@@ -1123,6 +1132,14 @@ function showResults(product){
   document.getElementById('storeCount').textContent = product.offers.length;
   document.getElementById('resultCount').textContent = `${product.offers.length} tiendas comparadas · precios convertidos a PEN · incluye envío, aranceles a Perú`;
 
+  liveScrapeQuery = product.name;
+  const liveWrap = document.getElementById('liveResultsWrap');
+  liveWrap.classList.add('hidden');
+  liveWrap.innerHTML = '';
+  const liveBtn = document.getElementById('liveScrapeBtn');
+  liveBtn.disabled = false;
+  liveBtn.textContent = 'Buscar precios en vivo';
+
   const totals = product.offers.map(o => o.price + o.ship + o.duties);
   const totalsPEN = totals.map(t => t * FX);
   document.getElementById('priceMinLbl').textContent = fmtPEN(Math.min(...totalsPEN));
@@ -1156,7 +1173,7 @@ function showResults(product){
       <div class="${isBest ? 'text-[16px]' : 'text-[14.5px]'} font-extrabold tabular" style="color:${isBest ? 'var(--green)' : 'var(--navy)'}">${fmtPEN(totalPEN)}</div>
       <div class="text-[12px] text-zinc-500">${o.days}</div>
       <div>
-        <button onclick="orderProduct('${product.name.replace(/'/g,"\\'")}', ${total})" class="w-full sm:w-auto h-9 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition ${isBest ? 'shadow-md' : ''}" style="background:var(--blue)">Pedir con Aria</button>
+        <button onclick="orderProduct('${jsAttr(product.name)}', ${total})" class="w-full sm:w-auto h-9 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition ${isBest ? 'shadow-md' : ''}" style="background:var(--blue)">Pedir con Aria</button>
       </div>
     </div>`;
   }).join('');
@@ -1167,6 +1184,119 @@ function orderProduct(name, totalUsd){
   if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
   if (name) params.set('desc', name);
   window.location.href = 'checkout.html' + (params.toString() ? '?' + params.toString() : '');
+}
+
+/* ============================================================
+   LIVE APIFY SCRAPING — real-time prices via netlify/functions/apify-scrape.js
+   Triggered on demand (not on every search) since each run costs
+   money on the Apify plan and can take up to ~60s per retailer.
+   ============================================================ */
+const LIVE_RETAILERS = ['bestbuy', 'walmart', 'target', 'nordstrom'];
+const LIVE_RETAILER_LABEL = { bestbuy: 'Best Buy', walmart: 'Walmart', target: 'Target', nordstrom: 'Nordstrom' };
+let liveScrapeQuery = '';
+
+function escapeHtml(str){
+  return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// For interpolating a string as an argument inside onclick="fn('...')":
+// browsers HTML-decode an attribute's value before running it as JS, so
+// escapeHtml alone doesn't stop a raw ' or " in the source string from
+// breaking out of the JS string literal — this escapes for JS first, then
+// HTML-escapes the result so the decode step lands back on valid JS.
+function jsAttr(str){
+  const jsEscaped = String(str)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\n/g, '\\n')
+    .replace(/\r/g, '\\r');
+  return escapeHtml(jsEscaped);
+}
+
+function safeUrl(u){
+  return typeof u === 'string' && /^https?:\/\//i.test(u) ? u : null;
+}
+
+// Each Actor's dataset items use different field names — try the common
+// variants seen across these retailers' scrapers rather than assuming one.
+function normalizeLiveItem(item){
+  const title = item.title || item.name || item.productTitle || 'Producto sin título';
+  const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
+  const price = typeof priceRaw === 'number' ? priceRaw : (typeof priceRaw === 'string' ? parseFloat(priceRaw.replace(/[^0-9.]/g, '')) : NaN);
+  const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
+  const rating = item.rating ?? item.stars ?? null;
+  const url = safeUrl(item.url || item.productUrl || item.link || (item.webPath ? `https://www.nordstrom.com${item.webPath}` : null));
+  return { title, price: Number.isFinite(price) ? price : null, image, rating, url };
+}
+
+function liveRetailerSkeleton(retailer){
+  return `<div class="rounded-2xl border p-4 mb-3 animate-pulse" style="border-color:var(--line)">
+    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${LIVE_RETAILER_LABEL[retailer]}</div>
+    <div class="h-4 rounded w-2/3 mb-2" style="background:var(--line)"></div>
+    <div class="h-4 rounded w-1/3" style="background:var(--line)"></div>
+  </div>`;
+}
+
+function renderLiveRetailerBlock(retailer, settled){
+  const label = LIVE_RETAILER_LABEL[retailer];
+  if (settled.status !== 'fulfilled' || !settled.value.ok){
+    const msg = settled.status === 'fulfilled' ? (settled.value.data?.error || 'Error al consultar') : 'No se pudo conectar';
+    return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
+      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${label}</div>
+      <div class="text-[12px]" style="color:#C0392B">${escapeHtml(msg)}</div>
+    </div>`;
+  }
+
+  const items = Array.isArray(settled.value.data?.items) ? settled.value.data.items.slice(0, 5).map(normalizeLiveItem) : [];
+  if (!items.length){
+    return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
+      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${label}</div>
+      <div class="text-[12px] text-zinc-400">Sin resultados en vivo.</div>
+    </div>`;
+  }
+
+  return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
+    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${label}</div>
+    <div class="space-y-2.5">
+      ${items.map(it => `
+        <div class="flex items-center gap-3">
+          ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
+          <div class="min-w-0 flex-1">
+            <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${it.url ? `<a href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHtml(it.title)}</a>` : escapeHtml(it.title)}</div>
+            <div class="text-[12px] text-zinc-500">${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
+          </div>
+          <button onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0" style="background:var(--blue)">Pedir</button>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+async function runLiveScrape(){
+  const btn = document.getElementById('liveScrapeBtn');
+  const wrap = document.getElementById('liveResultsWrap');
+  const query = liveScrapeQuery;
+  if (!query) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Buscando en vivo…';
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = LIVE_RETAILERS.map(liveRetailerSkeleton).join('');
+
+  const settledResults = await Promise.allSettled(
+    LIVE_RETAILERS.map(retailer =>
+      fetch('/.netlify/functions/apify-scrape', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ retailer, query, maxItems: 5 }),
+      }).then(res => res.json().then(data => ({ ok: res.ok, data })))
+    )
+  );
+
+  wrap.innerHTML = LIVE_RETAILERS.map((retailer, i) => renderLiveRetailerBlock(retailer, settledResults[i])).join('');
+
+  btn.disabled = false;
+  btn.textContent = 'Buscar precios en vivo';
 }
 
 let toastTimer;
