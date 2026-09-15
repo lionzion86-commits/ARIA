@@ -10,22 +10,17 @@
 // on apify.com as of writing — re-check there if a retailer starts
 // returning empty results, since Actors and their schemas can change.
 const RETAILER_CONFIG = {
-  bestbuy: {
-    actorId: "mrdoe/bestbuy-product-scraper",
-    buildInput: (query, maxItems) => ({
-      operation: "search",
-      query,
-      maxItems,
-      // Was apifyProxyGroups: ["RESIDENTIAL"] — that proxy bandwidth, billed
-      // separately from the Actor's own ~$1/1,000-results fee, was the real
-      // driver behind this costing ~40c/run vs 1-2c for Walmart/Target.
-      // Explicit ["DATACENTER"] isn't available on this account's plan, so
-      // omitting apifyProxyGroups to let Apify pick this account's default
-      // tier. Revert to RESIDENTIAL if results come back empty (the Actor's
-      // docs warn non-US proxies can get geo-redirected on Best Buy).
-      proxyConfiguration: { useApifyProxy: true, apifyProxyCountry: "US" },
-    }),
-  },
+  // Removed: mrdoe/bestbuy-product-scraper required RESIDENTIAL proxy to
+  // return results reliably (dropping it made runs hang instead of
+  // completing), and that proxy bandwidth cost ~40c/run vs 1-2c for
+  // Walmart/Target. Target and Walmart already cover electronics, so
+  // dropped rather than eating that cost. Last known-good shape:
+  //   actorId: "mrdoe/bestbuy-product-scraper",
+  //   buildInput: (query, maxItems) => ({
+  //     operation: "search", query, maxItems,
+  //     proxyConfiguration: { useApifyProxy: true, apifyProxyGroups: ["RESIDENTIAL"], apifyProxyCountry: "US" },
+  //   }),
+  bestbuy: null,
   walmart: {
     actorId: "devcake/walmart-product-scraper",
     buildInput: (query, maxItems) => ({
@@ -41,6 +36,26 @@ const RETAILER_CONFIG = {
     actorId: "rigelbytes/target-scraper",
     buildInput: (query, maxItems) => ({
       searchQueries: [query],
+      maxItems,
+    }),
+  },
+  oldnavy: {
+    // Covers Gap, Gap Factory, Old Navy, and Banana Republic/Athleta via
+    // the `brand` field — "on" targets Old Navy specifically. No proxy
+    // required per the Actor's docs (public search API, datacenter IPs).
+    actorId: "crawlerbros/gap-inc-scraper",
+    buildInput: (query, maxItems) => ({
+      brand: "on",
+      searchQuery: query,
+      maxItems,
+    }),
+  },
+  footlocker: {
+    // No proxy mandatory per the Actor's docs.
+    actorId: "crawlerbros/footlocker-product-scraper",
+    buildInput: (query, maxItems) => ({
+      mode: "search",
+      searchQuery: query,
       maxItems,
     }),
   },
