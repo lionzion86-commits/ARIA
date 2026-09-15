@@ -379,7 +379,7 @@
         <div class="mb-4 rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="border-color:var(--line); background:#fff">
           <div>
             <div class="font-bold text-[13.5px]" style="color:var(--navy)">¿Quieres precios reales ahora mismo?</div>
-            <div class="text-[12px] text-zinc-500 mt-0.5">Busca en vivo en Best Buy, Walmart, Target y Nordstrom — puede tardar hasta un minuto.</div>
+            <div class="text-[12px] text-zinc-500 mt-0.5">Busca en vivo en Best Buy, Walmart y Target — puede tardar hasta un minuto.</div>
           </div>
           <button id="liveScrapeBtn" onclick="runLiveScrape()" class="h-10 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition flex-shrink-0" style="background:var(--navy)">Buscar precios en vivo</button>
         </div>
@@ -1191,7 +1191,7 @@ function orderProduct(name, totalUsd){
    Triggered on demand (not on every search) since each run costs
    money on the Apify plan and can take up to ~60s per retailer.
    ============================================================ */
-const LIVE_RETAILERS = ['bestbuy', 'walmart', 'target', 'nordstrom'];
+const LIVE_RETAILERS = ['bestbuy', 'walmart', 'target']; // nordstrom paused — see apify-scrape-start.js
 const LIVE_RETAILER_LABEL = { bestbuy: 'Best Buy', walmart: 'Walmart', target: 'Target', nordstrom: 'Nordstrom' };
 let liveScrapeQuery = '';
 

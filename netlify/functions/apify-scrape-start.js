@@ -37,15 +37,17 @@ const RETAILER_CONFIG = {
       maxItems,
     }),
   },
-  nordstrom: {
-    actorId: "moving_beacon-owner1/nordstrom-search-scraper",
-    buildInput: (query) => ({
-      // A real run with %20-encoded spaces came back with 0 items; the
-      // Actor's own documented example uses + for spaces, so match that.
-      searchUrls: [`https://www.nordstrom.com/sr?keyword=${encodeURIComponent(query).replace(/%20/g, "+")}`],
-      maxPagesPerUrl: 1,
-    }),
-  },
+  // Paused: two real test runs against moving_beacon-owner1/nordstrom-search-scraper
+  // (with both %20 and + keyword encoding) completed "successfully" after ~55s
+  // but returned 0 items each time — looks like Nordstrom's PerimeterX bot
+  // protection is blocking the scrape rather than an input formatting issue.
+  // Revisit with Apify run logs before re-enabling. Last known-good shape:
+  //   actorId: "moving_beacon-owner1/nordstrom-search-scraper",
+  //   buildInput: (query) => ({
+  //     searchUrls: [`https://www.nordstrom.com/sr?keyword=${encodeURIComponent(query).replace(/%20/g, "+")}`],
+  //     maxPagesPerUrl: 1,
+  //   }),
+  nordstrom: null,
   // No vetted Apify Actor found for Victoria's Secret at the time this was written.
   // Pick one from https://apify.com/store, then add its actorId + buildInput here
   // the same way as the retailers above.
