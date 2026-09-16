@@ -1672,12 +1672,31 @@ function autoPartSkeleton(label){
 // are handled separately below (estimateBrakePadWeightKg) since a flat
 // number is wrong: front and rear pads differ substantially, and pad
 // mass scales with vehicle size.
+// CONFIDENCE-BASED SAFETY BUFFER
+// -----------------------------------------------------------------
+// Every part-weight estimate below is tagged 'cited' (a real, sourced
+// weight was found — see the comment above each table) or 'reasoned' (no
+// citation was found; the number comes from general engineering
+// knowledge/dimensional reasoning, disclosed as such at the time). To
+// keep checkout from ever undercharging shipping when an estimate turns
+// out low, a safety buffer is applied on top of every number before it
+// reaches checkout: +10% for 'cited' categories, +20% for 'reasoned'
+// ones (wider buffer because those numbers carry no external source to
+// check against). Applied in exactly one place (withBuffer, called at
+// every return point in estimatePartWeightKg) so it can't be missed or
+// double-applied, and so the underlying table values above stay as the
+// original researched/reasoned numbers, not pre-inflated ones.
+const CONFIDENCE_BUFFER = { cited: 1.10, reasoned: 1.20 };
+function withBuffer(kg, tier){
+  return Math.round(kg * CONFIDENCE_BUFFER[tier] * 100) / 100;
+}
+
 const PART_WEIGHT_ESTIMATES_KG = [
-  { match: /bujía|bujia|spark plug/i, kg: 0.4 }, // no verified real citation found (Sept 2026 research) — reasoned from typical plug dimensions, lower confidence than brake pads below
-  { match: /filtro de aceite|oil filter/i, kg: 0.5 }, // no verified real citation found — one Amazon listing claimed 0.01oz, which is a physically-impossible data error and was discarded; reasoned from typical spin-on canister size, lower confidence
-  { match: /limpiaparabrisas|wiper/i, kg: 0.36 }, // real citation: Rain-X Latitude 22" blade = 6.4oz/181g each, pair = ~362g
+  { match: /bujía|bujia|spark plug/i, kg: 0.4, tier: 'reasoned' }, // no verified real citation found (Sept 2026 research) — reasoned from typical plug dimensions, lower confidence than brake pads below
+  { match: /filtro de aceite|oil filter/i, kg: 0.5, tier: 'reasoned' }, // no verified real citation found — one Amazon listing claimed 0.01oz, which is a physically-impossible data error and was discarded; reasoned from typical spin-on canister size, lower confidence
+  { match: /limpiaparabrisas|wiper/i, kg: 0.36, tier: 'cited' }, // real citation: Rain-X Latitude 22" blade = 6.4oz/181g each, pair = ~362g
 ];
-const DEFAULT_PART_WEIGHT_KG = 1.0;
+const DEFAULT_PART_WEIGHT_KG = 1.0; // flat fallback for anything unmatched — always 'reasoned' tier, see estimatePartWeightKg
 
 // FRONT/REAR BRAKE PAD WEIGHT BY VEHICLE CLASS (kg per axle set)
 // -----------------------------------------------------------------
@@ -1743,13 +1762,15 @@ function detectAxle(query){
 }
 
 // Looks up a class-scaled, axle-aware weight table (BRAKE_PAD_WEIGHT_KG,
-// BRAKE_ROTOR_WEIGHT_KG, BRAKE_CALIPER_WEIGHT_KG). When the query doesn't
-// specify an axle, averages front+rear rather than silently assuming one.
-function lookupAxleWeightKg(table, query, vehicle){
+// BRAKE_ROTOR_WEIGHT_KG, BRAKE_CALIPER_WEIGHT_KG, STRUT_WEIGHT_KG). When
+// the query doesn't specify an axle, averages front+rear rather than
+// silently assuming one. Applies the confidence buffer (see
+// CONFIDENCE_BUFFER/withBuffer above) for the given tier before returning.
+function lookupAxleWeightKg(table, query, vehicle, tier){
   const weights = table[vehicleWeightClass(vehicle?.make, vehicle?.model)];
   const axle = detectAxle(query);
-  if (axle) return weights[axle];
-  return Math.round(((weights.front + weights.rear) / 2) * 100) / 100;
+  const raw = axle ? weights[axle] : (weights.front + weights.rear) / 2;
+  return withBuffer(raw, tier);
 }
 
 // BRAKE ROTORS (kg per rotor) — real citations found for front weight by
@@ -1917,32 +1938,38 @@ const MIRROR_WEIGHT_KG = { compact: 1.0, sedan: 1.2, suv: 1.4, truck: 1.8 };
 // shell).
 const GRILLE_WEIGHT_KG = { compact: 1.0, sedan: 1.3, suv: 1.8, truck: 2.5 };
 
+// Confidence tier per category, exactly as reviewed and confirmed:
+// 'cited' (real sourced weight found) -> +10% buffer: brake pads, wiper
+// blades, rotors, calipers, batteries, alternators, water pump, cabin air
+// filter, mirrors, control arm. 'reasoned' (no citation found) -> +20%
+// buffer: radiators, starters, CV axle, struts, engine air filter, belts,
+// grilles, spark plugs, oil filter, and the flat default fallback.
 function estimatePartWeightKg(query, vehicle){
   const q = query || '';
   const cls = () => vehicleWeightClass(vehicle?.make, vehicle?.model);
-  if (/pastillas de freno|brake pad/i.test(q)) return lookupAxleWeightKg(BRAKE_PAD_WEIGHT_KG, q, vehicle);
-  if (/rotor de freno|disco de freno|brake rotor|brake disc/i.test(q)) return lookupAxleWeightKg(BRAKE_ROTOR_WEIGHT_KG, q, vehicle);
-  if (/cal[ií]per|calibre de freno|mordaza de freno/i.test(q)) return lookupAxleWeightKg(BRAKE_CALIPER_WEIGHT_KG, q, vehicle);
-  if (/bater[ií]a|\bbattery\b/i.test(q)) return BATTERY_WEIGHT_KG[cls()];
-  if (/alternador|\balternator\b/i.test(q)) return ALTERNATOR_WEIGHT_KG[cls()];
-  if (/radiador|\bradiator\b/i.test(q)) return RADIATOR_WEIGHT_KG[cls()];
-  if (/motor de arranque|\bstarter\b/i.test(q)) return STARTER_WEIGHT_KG[cls()];
-  if (/bomba de agua|water pump/i.test(q)) return WATER_PUMP_WEIGHT_KG[cls()];
-  if (/brazo de control|control arm/i.test(q)) return CONTROL_ARM_WEIGHT_KG[cls()];
-  if (/eje homocin[eé]tico|homocin[eé]tica|\bcv axle\b|axle shaft/i.test(q)) return CV_AXLE_WEIGHT_KG[cls()];
-  if (/amortiguador|\bstrut\b|shock absorber/i.test(q)) return lookupAxleWeightKg(STRUT_WEIGHT_KG, q, vehicle);
+  if (/pastillas de freno|brake pad/i.test(q)) return lookupAxleWeightKg(BRAKE_PAD_WEIGHT_KG, q, vehicle, 'cited');
+  if (/rotor de freno|disco de freno|brake rotor|brake disc/i.test(q)) return lookupAxleWeightKg(BRAKE_ROTOR_WEIGHT_KG, q, vehicle, 'cited');
+  if (/cal[ií]per|calibre de freno|mordaza de freno/i.test(q)) return lookupAxleWeightKg(BRAKE_CALIPER_WEIGHT_KG, q, vehicle, 'cited');
+  if (/bater[ií]a|\bbattery\b/i.test(q)) return withBuffer(BATTERY_WEIGHT_KG[cls()], 'cited');
+  if (/alternador|\balternator\b/i.test(q)) return withBuffer(ALTERNATOR_WEIGHT_KG[cls()], 'cited');
+  if (/radiador|\bradiator\b/i.test(q)) return withBuffer(RADIATOR_WEIGHT_KG[cls()], 'reasoned');
+  if (/motor de arranque|\bstarter\b/i.test(q)) return withBuffer(STARTER_WEIGHT_KG[cls()], 'reasoned');
+  if (/bomba de agua|water pump/i.test(q)) return withBuffer(WATER_PUMP_WEIGHT_KG[cls()], 'cited');
+  if (/brazo de control|control arm/i.test(q)) return withBuffer(CONTROL_ARM_WEIGHT_KG[cls()], 'cited');
+  if (/eje homocin[eé]tico|homocin[eé]tica|\bcv axle\b|axle shaft/i.test(q)) return withBuffer(CV_AXLE_WEIGHT_KG[cls()], 'reasoned');
+  if (/amortiguador|\bstrut\b|shock absorber/i.test(q)) return lookupAxleWeightKg(STRUT_WEIGHT_KG, q, vehicle, 'reasoned');
   // Cabin filter checked before the generic air-filter pattern below,
   // since "cabin air filter" also matches "air filter".
-  if (/filtro de (cabina|habitáculo)|cabin (air )?filter/i.test(q)) return CABIN_FILTER_WEIGHT_KG;
-  if (/filtro de aire|air filter/i.test(q)) return ENGINE_AIR_FILTER_WEIGHT_KG;
+  if (/filtro de (cabina|habitáculo)|cabin (air )?filter/i.test(q)) return withBuffer(CABIN_FILTER_WEIGHT_KG, 'cited');
+  if (/filtro de aire|air filter/i.test(q)) return withBuffer(ENGINE_AIR_FILTER_WEIGHT_KG, 'reasoned');
   // Serpentine belt checked before the generic "belt" phrasing would ever
   // need one — timing belt has its own distinct term so no overlap.
-  if (/correa (serpentina|de accesorios)|serpentine belt|drive belt/i.test(q)) return SERPENTINE_BELT_WEIGHT_KG;
-  if (/correa de (distribuci[oó]n|tiempo)|timing belt/i.test(q)) return TIMING_BELT_WEIGHT_KG;
-  if (/espejo|\bmirror\b/i.test(q)) return MIRROR_WEIGHT_KG[cls()];
-  if (/parrilla|\bgrille?\b/i.test(q)) return GRILLE_WEIGHT_KG[cls()];
+  if (/correa (serpentina|de accesorios)|serpentine belt|drive belt/i.test(q)) return withBuffer(SERPENTINE_BELT_WEIGHT_KG, 'reasoned');
+  if (/correa de (distribuci[oó]n|tiempo)|timing belt/i.test(q)) return withBuffer(TIMING_BELT_WEIGHT_KG, 'reasoned');
+  if (/espejo|\bmirror\b/i.test(q)) return withBuffer(MIRROR_WEIGHT_KG[cls()], 'cited');
+  if (/parrilla|\bgrille?\b/i.test(q)) return withBuffer(GRILLE_WEIGHT_KG[cls()], 'reasoned');
   const found = PART_WEIGHT_ESTIMATES_KG.find(p => p.match.test(q));
-  return found ? found.kg : DEFAULT_PART_WEIGHT_KG;
+  return found ? withBuffer(found.kg, found.tier) : withBuffer(DEFAULT_PART_WEIGHT_KG, 'reasoned');
 }
 
 function renderAutoPartBlock(label, result, query){
