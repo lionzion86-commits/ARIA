@@ -1880,6 +1880,43 @@ const CABIN_FILTER_WEIGHT_KG = 0.25;
 // Not class-scaled for the same reason as the cabin filter.
 const ENGINE_AIR_FILTER_WEIGHT_KG = 0.35;
 
+// --- PRIORITY 3 CATEGORIES ---
+// Lower financial risk than Priority 1/2 (these are light parts currently
+// *over*-charged by the generic 1.0kg default, not undercharged), but
+// covered for completeness. Source quality is the weakest of all three
+// batches: belts and grilles returned zero usable citations across
+// multiple real search attempts (Gates/Dayco's own spec sheets don't
+// publish belt weight; no retailer listing exposed a grille weight
+// field), so both are pure reasoned estimates. Mirrors got a partial real
+// citation.
+
+// BELTS (kg) — no reliable citation found anywhere (manufacturer spec
+// sheets, retailer listings) despite multiple search attempts. Reasoned
+// from general knowledge of belt material and typical size: a thin
+// ribbed/toothed rubber loop a few feet long. Not class-scaled — belt
+// length tracks engine bay layout, not overall vehicle size, so a
+// compact's belt isn't reliably lighter than a truck's.
+const SERPENTINE_BELT_WEIGHT_KG = 0.25;
+const TIMING_BELT_WEIGHT_KG = 0.2;
+
+// MIRRORS (kg) — partial real citation: a powered mirror assembly weighs
+// 48.2oz/1.37kg per a real listing; a mirror-glass-only replacement (not
+// the full housing) weighs 0.5lb/0.23kg. A forum estimate of "5-7lb per
+// side" for a full assembly is weaker/unsourced and used only as a loose
+// sanity check, not a citation. Graduated by class since larger vehicles
+// (especially trucks, which often get extended tow mirrors) commonly
+// carry bigger mirror housings — that class trend is reasoned, not cited.
+const MIRROR_WEIGHT_KG = { compact: 1.0, sedan: 1.2, suv: 1.4, truck: 1.8 };
+
+// GRILLES (kg) — no reliable citation found despite multiple real search
+// attempts (retailer listings for sedan, truck, and chrome/plastic
+// grilles don't expose a weight field). Pure reasoned estimate from
+// typical grille dimensions and mostly-hollow plastic construction,
+// graduated by class since a truck's grille is a visibly larger panel
+// than a compact car's (and more often has a heavier chrome-plated
+// shell).
+const GRILLE_WEIGHT_KG = { compact: 1.0, sedan: 1.3, suv: 1.8, truck: 2.5 };
+
 function estimatePartWeightKg(query, vehicle){
   const q = query || '';
   const cls = () => vehicleWeightClass(vehicle?.make, vehicle?.model);
@@ -1898,6 +1935,12 @@ function estimatePartWeightKg(query, vehicle){
   // since "cabin air filter" also matches "air filter".
   if (/filtro de (cabina|habitáculo)|cabin (air )?filter/i.test(q)) return CABIN_FILTER_WEIGHT_KG;
   if (/filtro de aire|air filter/i.test(q)) return ENGINE_AIR_FILTER_WEIGHT_KG;
+  // Serpentine belt checked before the generic "belt" phrasing would ever
+  // need one — timing belt has its own distinct term so no overlap.
+  if (/correa (serpentina|de accesorios)|serpentine belt|drive belt/i.test(q)) return SERPENTINE_BELT_WEIGHT_KG;
+  if (/correa de (distribuci[oó]n|tiempo)|timing belt/i.test(q)) return TIMING_BELT_WEIGHT_KG;
+  if (/espejo|\bmirror\b/i.test(q)) return MIRROR_WEIGHT_KG[cls()];
+  if (/parrilla|\bgrille?\b/i.test(q)) return GRILLE_WEIGHT_KG[cls()];
   const found = PART_WEIGHT_ESTIMATES_KG.find(p => p.match.test(q));
   return found ? found.kg : DEFAULT_PART_WEIGHT_KG;
 }
