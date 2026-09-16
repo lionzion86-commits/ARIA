@@ -101,9 +101,16 @@ async function loadExistingCache() {
   }
 }
 
-async function saveCache() {
-  cache.generatedAt = new Date().toISOString();
-  await fs.writeFile(OUT_FILE, JSON.stringify(cache, null, 2));
+// Serialized through a promise chain — with concurrency-4 AutoZone workers
+// now each calling this per-combo, overlapping writes to the same file
+// could otherwise interleave/corrupt it.
+let saveQueue = Promise.resolve();
+function saveCache() {
+  saveQueue = saveQueue.then(async () => {
+    cache.generatedAt = new Date().toISOString();
+    await fs.writeFile(OUT_FILE, JSON.stringify(cache, null, 2));
+  });
+  return saveQueue;
 }
 
 // A first real run hit "usage_exceeded" on every call after the second —
@@ -275,21 +282,24 @@ async function main() {
     return !cache.partSearches[key]?.autozone;
   });
   console.log(`Fetching AutoZone results for ${autozoneCombos.length} combos (${pendingAutozone.length} not yet cached, concurrency 4)...`);
-  const autozoneResults = await mapWithConcurrency(pendingAutozone, 4, async (combo) => {
-    const query = `${combo.year} ${combo.make} ${combo.model} ${combo.part}`;
-    return callAutoZone(query, 5);
-  });
-  pendingAutozone.forEach((combo, i) => {
+  // Saves after every combo (not just once at the end) — a previous run
+  // that crashed/was killed mid-batch would have lost everything gathered
+  // so far, since nothing was persisted until the whole batch finished.
+  let autozoneDone = 0;
+  await mapWithConcurrency(pendingAutozone, 4, async (combo) => {
     const key = `${combo.year}|${combo.make}|${combo.model}|${combo.part}`.toLowerCase();
-    cache.partSearches[key] = cache.partSearches[key] || {};
-    const result = autozoneResults[i];
-    if (result.ok) {
-      cache.partSearches[key].autozone = result.value.slice(0, 5);
-    } else {
-      console.error(`  autozone search(${key}) failed: ${result.error}`);
+    const query = `${combo.year} ${combo.make} ${combo.model} ${combo.part}`;
+    try {
+      const items = await callAutoZone(query, 5);
+      cache.partSearches[key] = cache.partSearches[key] || {};
+      cache.partSearches[key].autozone = items.slice(0, 5);
+      await saveCache();
+    } catch (err) {
+      console.error(`  autozone search(${key}) failed: ${err.message}`);
     }
+    autozoneDone++;
+    if (autozoneDone % 50 === 0) console.log(`  ...${autozoneDone}/${pendingAutozone.length} AutoZone combos processed`);
   });
-  await saveCache();
 
   console.log(`\nWrote ${OUT_FILE.pathname}`);
   console.log(`years: ${cache.years.length}, makes: ${Object.keys(cache.makes).length} years, models: ${Object.keys(cache.models).length} combos, partSearches: ${Object.keys(cache.partSearches).length} combos`);
