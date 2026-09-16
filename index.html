@@ -1287,8 +1287,11 @@ function safeUrl(u){
 // Applied here (not in apify-scrape-start.js) so the raw retailer cost never
 // leaves the server response — the price shown on the results page, and the
 // value later sent to checkout as the declared value, are always this same
-// marked-up number, never the original scraped price.
-const LIVE_PRICE_MARKUP = 1.22;
+// marked-up number, never the original scraped price. Also covers
+// auto-cache.json: cached items store the raw retailer price and pass
+// through this same markup on every read, so bumping this constant repriced
+// every already-cached product too — no cache regeneration needed.
+const LIVE_PRICE_MARKUP = 1.24;
 
 // Deliberately does NOT expose a clickthrough URL to the retailer's site —
 // product cards must never link off-site (see RULE comments at each
