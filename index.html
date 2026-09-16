@@ -1816,6 +1816,70 @@ const RADIATOR_WEIGHT_KG = { compact: 4.5, sedan: 5.7, suv: 8.2, truck: 11.8 };
 // larger engines need more starting torque.
 const STARTER_WEIGHT_KG = { compact: 4.5, sedan: 4.5, suv: 4.5, truck: 5.5 };
 
+// --- PRIORITY 2 CATEGORIES ---
+// Source quality here is noticeably weaker than Priority 1 (brakes/battery/
+// alternator/radiator/starter) despite the same research effort — flagged
+// per-category below rather than presented as uniformly well-sourced.
+
+// WATER PUMPS (kg) — real cited range across pump types (460ford.com,
+// chevyhardcore.com forums): iron mechanical ~14.8lb/6.7kg, aluminum
+// mechanical ~8lb/3.6kg, electric universal ~3.25lb/1.5kg, small-block/
+// big-block electric ~6.9-7.2lb/3.1-3.3kg. No source ties a specific
+// weight to "compact car" vs "truck" directly, so this graduates within
+// that real 1.5-6.7kg range on the reasoned assumption that smaller
+// 4-cyl engines commonly use lighter aluminum/composite-impeller pumps
+// and larger V6/V8s more often use iron ones.
+const WATER_PUMP_WEIGHT_KG = { compact: 3.0, sedan: 3.8, suv: 4.5, truck: 6.0 };
+
+// FRONT LOWER CONTROL ARMS (kg) — mixed evidence: a real, direct citation
+// for a Honda Civic (our "compact" class) front lower control arm is
+// 19.0lb/8.6kg (ebay listing), but the only other real figure found — a
+// G-body (older mid-size RWD car) front lower control arm at 11.5-15lb/
+// 5.2-6.8kg — is actually LIGHTER, which contradicts a clean "heavier
+// vehicle = heavier arm" trend (likely driven by arm design/material
+// differences, not vehicle class). Rather than force a trend the data
+// doesn't support, compact and sedan are both anchored near the Civic
+// figure, and only SUV/truck get a reasoned (not cited) increase, based
+// on general knowledge that these do get more robust suspension arms.
+const CONTROL_ARM_WEIGHT_KG = { compact: 8.6, sedan: 8.6, suv: 10.0, truck: 13.0 };
+
+// CV AXLES (kg per shaft) — no reliable direct citation found despite
+// multiple search attempts (Amazon/eBay listings for Civic and Camry CV
+// axles don't expose a weight field in what's crawlable). Reasoned from
+// typical CV axle shaft dimensions and mass of comparable steel automotive
+// driveshaft components — lower confidence than the water pump/control
+// arm rows above.
+const CV_AXLE_WEIGHT_KG = { compact: 3.0, sedan: 3.5, suv: 4.0, truck: 5.0 };
+
+// STRUTS/SHOCKS (kg) — one number surfaced during research ("75+ lbs
+// each") was discarded as an implausible data error, the same call made
+// on the oil filter's "0.01oz" figure previously — no complete strut
+// assembly (spring + shock in one unit) weighs anywhere near that for a
+// passenger vehicle. No reliable direct citation replaced it, so these
+// are reasoned from general knowledge of typical strut-assembly bulk.
+// Front = complete strut assembly (shock + coil spring + mounts); rear =
+// shock absorber alone, reasoned lighter since most vehicles in our
+// selector don't run a spring-integrated rear strut.
+const STRUT_WEIGHT_KG = {
+  compact: { front: 8.5, rear: 5.5 },
+  sedan:   { front: 9.5, rear: 6.0 },
+  suv:     { front: 12.0, rear: 8.0 },
+  truck:   { front: 15.0, rear: 10.0 },
+};
+
+// CABIN AIR FILTERS (kg) — real citation: an activated-carbon cabin air
+// filter listing weighs 8.8oz/249g. Not class-scaled: cabin filter size
+// tracks HVAC housing packaging, not overall vehicle mass, and no
+// evidence was found that it correlates with vehicle class.
+const CABIN_FILTER_WEIGHT_KG = 0.25;
+
+// ENGINE AIR FILTERS (kg) — no reliable citation found (FRAM's own product
+// page and multiple retailer listings don't expose a weight spec).
+// Reasoned from typical panel-filter dimensions, similar order of
+// magnitude to the cabin filter above but usually a larger pleated panel.
+// Not class-scaled for the same reason as the cabin filter.
+const ENGINE_AIR_FILTER_WEIGHT_KG = 0.35;
+
 function estimatePartWeightKg(query, vehicle){
   const q = query || '';
   const cls = () => vehicleWeightClass(vehicle?.make, vehicle?.model);
@@ -1826,6 +1890,14 @@ function estimatePartWeightKg(query, vehicle){
   if (/alternador|\balternator\b/i.test(q)) return ALTERNATOR_WEIGHT_KG[cls()];
   if (/radiador|\bradiator\b/i.test(q)) return RADIATOR_WEIGHT_KG[cls()];
   if (/motor de arranque|\bstarter\b/i.test(q)) return STARTER_WEIGHT_KG[cls()];
+  if (/bomba de agua|water pump/i.test(q)) return WATER_PUMP_WEIGHT_KG[cls()];
+  if (/brazo de control|control arm/i.test(q)) return CONTROL_ARM_WEIGHT_KG[cls()];
+  if (/eje homocin[eé]tico|homocin[eé]tica|\bcv axle\b|axle shaft/i.test(q)) return CV_AXLE_WEIGHT_KG[cls()];
+  if (/amortiguador|\bstrut\b|shock absorber/i.test(q)) return lookupAxleWeightKg(STRUT_WEIGHT_KG, q, vehicle);
+  // Cabin filter checked before the generic air-filter pattern below,
+  // since "cabin air filter" also matches "air filter".
+  if (/filtro de (cabina|habitáculo)|cabin (air )?filter/i.test(q)) return CABIN_FILTER_WEIGHT_KG;
+  if (/filtro de aire|air filter/i.test(q)) return ENGINE_AIR_FILTER_WEIGHT_KG;
   const found = PART_WEIGHT_ESTIMATES_KG.find(p => p.match.test(q));
   return found ? found.kg : DEFAULT_PART_WEIGHT_KG;
 }
