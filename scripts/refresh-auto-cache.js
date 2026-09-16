@@ -38,12 +38,25 @@ const POPULAR_PARTS = ["pastillas de freno", "bujías", "filtro de aceite"];
 // AutoZone doesn't need O'Reilly's numeric make/model IDs at all — its
 // search just takes a free-text query, so this is decoupled from O'Reilly
 // entirely and can run at full scope regardless of O'Reilly's blocking.
-const AUTOZONE_YEARS = [String(CURRENT_YEAR - 2), String(CURRENT_YEAR - 6)];
+// Keeps the two years from the first seed (so that data stays valid) and
+// adds a third, older year for broader coverage.
+const AUTOZONE_YEARS = [String(CURRENT_YEAR - 2), String(CURRENT_YEAR - 6), String(CURRENT_YEAR - 10)];
 const AUTOZONE_VEHICLES = [
   { make: "Toyota", model: "Camry" }, { make: "Toyota", model: "Corolla" },
   { make: "Honda", model: "Accord" }, { make: "Honda", model: "Civic" },
   { make: "Ford", model: "F-150" }, { make: "Ford", model: "Escape" },
+  { make: "Kia", model: "Optima" }, { make: "Kia", model: "Sportage" },
+  { make: "Hyundai", model: "Elantra" }, { make: "Hyundai", model: "Tucson" },
+  { make: "Chevrolet", model: "Silverado 1500" }, { make: "Chevrolet", model: "Malibu" },
+  { make: "Nissan", model: "Altima" }, { make: "Nissan", model: "Rogue" },
+  { make: "Subaru", model: "Outback" }, { make: "Subaru", model: "Forester" },
+  { make: "Volvo", model: "XC90" }, { make: "Volvo", model: "S60" },
+  { make: "BMW", model: "3 Series" }, { make: "BMW", model: "X5" },
+  { make: "Mercedes-Benz", model: "C-Class" }, { make: "Mercedes-Benz", model: "E-Class" },
+  { make: "Audi", model: "A4" }, { make: "Audi", model: "Q5" },
+  { make: "Jeep", model: "Grand Cherokee" }, { make: "Jeep", model: "Wrangler" },
 ];
+const AUTOZONE_PARTS = ["pastillas de freno", "bujías", "filtro de aceite", "batería"];
 
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -162,7 +175,7 @@ async function main() {
   const oreillyPartSearchCombos = PART_SEARCH_YEARS.length * modelsPerMake * POPULAR_PARTS.length;
   const estimatedOreillyCredits = 2 + SELECTOR_YEARS.length * 2 + SELECTOR_YEARS.length * POPULAR_MAKES.length * 1
     + oreillyPartSearchCombos * 5;
-  const autozoneComboCount = AUTOZONE_YEARS.length * AUTOZONE_VEHICLES.length * POPULAR_PARTS.length;
+  const autozoneComboCount = AUTOZONE_YEARS.length * AUTOZONE_VEHICLES.length * AUTOZONE_PARTS.length;
   console.log(`Estimated parse.bot cost: ~${estimatedOreillyCredits} credits (~$${(estimatedOreillyCredits * 0.01).toFixed(2)}-$${(estimatedOreillyCredits * 0.03).toFixed(2)})`);
   console.log(`Plus ~${autozoneComboCount} AutoZone Apify runs (~$0.01-0.03 each, decoupled from O'Reilly).\n`);
 
@@ -250,7 +263,7 @@ async function main() {
   const autozoneCombos = [];
   for (const year of AUTOZONE_YEARS) {
     for (const { make, model } of AUTOZONE_VEHICLES) {
-      for (const part of POPULAR_PARTS) {
+      for (const part of AUTOZONE_PARTS) {
         autozoneCombos.push({ year, make, model, part });
       }
     }
