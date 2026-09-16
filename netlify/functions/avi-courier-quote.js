@@ -46,7 +46,7 @@ export async function handler(event) {
       };
     }
 
-    const quoteResponse = await fetch("https://avicourier.com/api/v1/cotizar", {
+    const quoteResponse = await fetch("https://avi-courier.avicourier.workers.dev/api/v1/cotizar", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.AVI_API_KEY}`,
