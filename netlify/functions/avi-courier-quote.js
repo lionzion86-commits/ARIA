@@ -1,4 +1,6 @@
 // Secure middleman between ariashop.pe and AVI Courier's shipping quote API
+import { COST_PER_KG, CHARGE_PER_KG } from "../../weight-data.js";
+
 export async function handler(event) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -87,10 +89,28 @@ export async function handler(event) {
 
     const { total_usd, total_pen, flete_usd } = quoteData;
 
+    // BUG FOUND VIA LIVE TESTING (2026-09-16): AVI's own quote API prices
+    // freight at their real internal cost (COST_PER_KG, $9/kg) — it has no
+    // concept of our customer-facing markup. Passing flete_usd/total_usd
+    // straight through, as this function did before, silently charged
+    // every live-quoted customer AVI's raw cost rate instead of
+    // CHARGE_PER_KG ($13/kg), violating the pricing rule in weight-data.js.
+    // Fixed by rescaling just the freight component to the customer rate,
+    // then rebuilding total_usd/total_pen around that — everything else
+    // AVI added beyond value+freight (e.g. Peru customs/duties, which
+    // scale with declared value, not weight) is preserved unchanged since
+    // that's a real cost, not something this markup should touch.
+    const markupRatio = CHARGE_PER_KG / COST_PER_KG;
+    const customerFleteUsd = Math.round(flete_usd * markupRatio * 100) / 100;
+    const extraUsd = total_usd - valorUsd - flete_usd; // taxes/duties AVI already included beyond value+freight
+    const customerTotalUsd = Math.round((valorUsd + customerFleteUsd + extraUsd) * 100) / 100;
+    const fxRate = total_pen != null && total_usd > 0 ? total_pen / total_usd : null;
+    const customerTotalPen = fxRate != null ? Math.round(customerTotalUsd * fxRate * 100) / 100 : null;
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ total_usd, total_pen, flete_usd }),
+      body: JSON.stringify({ total_usd: customerTotalUsd, total_pen: customerTotalPen, flete_usd: customerFleteUsd }),
     };
   } catch (error) {
     return {
