@@ -56,7 +56,8 @@ const AUTOZONE_VEHICLES = [
   { make: "Audi", model: "A4" }, { make: "Audi", model: "Q5" },
   { make: "Jeep", model: "Grand Cherokee" }, { make: "Jeep", model: "Wrangler" },
 ];
-const AUTOZONE_PARTS = ["pastillas de freno", "bujías", "filtro de aceite", "batería"];
+// Battery dropped — too heavy to ship internationally for this business.
+const AUTOZONE_PARTS = ["pastillas de freno", "bujías", "filtro de aceite", "limpiaparabrisas"];
 
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 

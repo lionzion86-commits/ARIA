@@ -1420,6 +1420,13 @@ function loadAutoCache(){
   return autoCachePromise;
 }
 
+function oreillyErrorText(value, fallback){
+  if (!value) return fallback;
+  if (typeof value === 'string') return value;
+  if (typeof value === 'object' && value.message) return value.message;
+  try { return JSON.stringify(value); } catch { return fallback; }
+}
+
 async function callOreilly(action, params){
   const res = await fetch('/.netlify/functions/oreilly-parts', {
     method: 'POST',
@@ -1427,7 +1434,12 @@ async function callOreilly(action, params){
     body: JSON.stringify({ action, ...params }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || `Error al consultar O'Reilly (${action})`);
+  if (!res.ok){
+    const message = oreillyErrorText(data.error, `Error al consultar O'Reilly (${action})`);
+    const err = new Error(message);
+    err.isRateLimit = res.status === 429 || /daily|rate.?limit|usage_exceeded/i.test(message);
+    throw err;
+  }
   return data;
 }
 
@@ -1457,8 +1469,13 @@ async function initAutoYearSelect(){
     yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
       years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
   } catch (err) {
-    yearSel.innerHTML = '<option value="">Error al cargar años</option>';
-    showToast(err.message);
+    if (err.isRateLimit){
+      yearSel.innerHTML = '<option value="">No disponible por ahora</option>';
+      showToast('Alcanzamos el límite de consultas por hoy — vuelve a intentarlo más tarde.');
+    } else {
+      yearSel.innerHTML = '<option value="">Error al cargar años</option>';
+      showToast(err.message);
+    }
   }
 }
 
@@ -1500,8 +1517,13 @@ document.getElementById('autoYearSelect').addEventListener('change', async funct
       makes.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
     makeSel.disabled = false;
   } catch (err) {
-    makeSel.innerHTML = '<option value="">Error al cargar marcas</option>';
-    showToast(err.message);
+    if (err.isRateLimit){
+      makeSel.innerHTML = '<option value="">No disponible por ahora</option>';
+      showToast('Alcanzamos el límite de consultas por hoy — prueba con un año reciente (2024-2026) o vuelve más tarde.');
+    } else {
+      makeSel.innerHTML = '<option value="">Error al cargar marcas</option>';
+      showToast(err.message);
+    }
   }
 });
 
@@ -1530,8 +1552,13 @@ document.getElementById('autoMakeSelect').addEventListener('change', async funct
       models.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
     modelSel.disabled = false;
   } catch (err) {
-    modelSel.innerHTML = '<option value="">Error al cargar modelos</option>';
-    showToast(err.message);
+    if (err.isRateLimit){
+      modelSel.innerHTML = '<option value="">No disponible por ahora</option>';
+      showToast('Alcanzamos el límite de consultas por hoy — vuelve a intentarlo más tarde.');
+    } else {
+      modelSel.innerHTML = '<option value="">Error al cargar modelos</option>';
+      showToast(err.message);
+    }
   }
 });
 
