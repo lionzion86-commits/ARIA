@@ -40,7 +40,8 @@ const POPULAR_PARTS = ["pastillas de freno", "bujías", "filtro de aceite"];
 // entirely and can run at full scope regardless of O'Reilly's blocking.
 // Keeps the two years from the first seed (so that data stays valid) and
 // adds a third, older year for broader coverage.
-const AUTOZONE_YEARS = [String(CURRENT_YEAR - 2), String(CURRENT_YEAR - 6), String(CURRENT_YEAR - 10)];
+// Full 2009-2026 range — 18 years x 26 vehicles x 4 parts = 1,872 combos.
+const AUTOZONE_YEARS = Array.from({ length: 2026 - 2009 + 1 }, (_, i) => String(2009 + i));
 const AUTOZONE_VEHICLES = [
   { make: "Toyota", model: "Camry" }, { make: "Toyota", model: "Corolla" },
   { make: "Honda", model: "Accord" }, { make: "Honda", model: "Civic" },
