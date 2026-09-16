@@ -57,6 +57,7 @@
     <nav class="hidden lg:flex items-center gap-7 text-[14px] font-medium flex-1" style="color:var(--navy)">
       <a href="#" onclick="showPage('howView');return false;" class="opacity-70 hover:opacity-100 transition">Cómo funciona</a>
       <a href="#cats" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Categorías</a>
+      <a href="#" onclick="showPage('ariaAutoView');return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
       <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
       <a href="#whyUs" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">¿Por qué Aria?</a>
       <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
@@ -77,6 +78,7 @@
   <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
     <a href="#cats" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
+    <a href="#" onclick="showPage('ariaAutoView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
     <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">🔥 Ofertas</a>
     <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
@@ -769,6 +771,59 @@
   </div>
 </div>
 
+<!-- ============ ARIA AUTO VIEW ============ -->
+<div id="ariaAutoView" class="view">
+  <div class="max-w-[900px] mx-auto px-5 py-12 sm:py-14">
+    <div class="text-center mb-10">
+      <span class="inline-block text-[11px] font-extrabold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-3" style="background:var(--green-bg); color:var(--green)">🚗 Aria Auto</span>
+      <h1 class="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.03em] mb-3" style="color:var(--navy)">Encuentra el repuesto exacto para tu auto</h1>
+      <p class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[52ch] mx-auto">Elige tu vehículo y busca la pieza que necesitas — comparamos precios en tiendas de repuestos de EE. UU. en tiempo real.</p>
+    </div>
+
+    <!-- VEHICLE SELECTOR -->
+    <div class="rounded-3xl border p-5 sm:p-7" style="border-color:var(--line); background:linear-gradient(135deg,var(--sky) 0%,#fff 60%)">
+      <div class="font-bold text-[15px] mb-4" style="color:var(--navy)">1. Elige tu vehículo</div>
+      <div class="grid sm:grid-cols-3 gap-3">
+        <div>
+          <label for="autoMakeSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Marca</label>
+          <select id="autoMakeSelect" class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+            <option value="">Selecciona una marca</option>
+          </select>
+        </div>
+        <div>
+          <label for="autoModelSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Modelo</label>
+          <select id="autoModelSelect" disabled class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed" style="border-color:var(--line)">
+            <option value="">Primero elige una marca</option>
+          </select>
+        </div>
+        <div>
+          <label for="autoYearSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Año</label>
+          <select id="autoYearSelect" disabled class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed" style="border-color:var(--line)">
+            <option value="">Primero elige un modelo</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- PART SEARCH (revealed once make + model + year are chosen) -->
+    <div id="autoPartSearchWrap" class="mt-6 hidden">
+      <div class="rounded-3xl border p-5 sm:p-7" style="border-color:var(--line); background:#fff">
+        <div class="font-bold text-[15px] mb-1" style="color:var(--navy)">2. Busca la pieza que necesitas</div>
+        <div id="autoVehicleSummary" class="text-[12.5px] text-zinc-500 mb-4"></div>
+        <div class="relative">
+          <input id="autoPartQuery" type="text" placeholder="Ej. pastillas de freno, alternador, filtro de aceite"
+            onkeydown="if(event.key==='Enter')searchAutoParts()"
+            class="w-full h-[52px] bg-white border rounded-2xl pl-4 pr-[110px] text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+          <button onclick="searchAutoParts()" class="absolute right-1.5 top-1.5 h-9 px-4 rounded-xl text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Buscar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="autoPartsResultsWrap" class="mt-6 hidden"></div>
+  </div>
+</div>
+
 <!-- ============ ABOUT VIEW ============ -->
 <div id="aboutView" class="view">
 
@@ -1093,7 +1148,7 @@ function fmtPEN(n){ return 'S/ ' + Math.round(n).toLocaleString('es-PE'); }
 function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
 const FX = 3.78; // demo USD->PEN rate
 
-const ALL_VIEWS = ['homeView','resultsView','salesView','howView','storesView','aboutView','returnsView'];
+const ALL_VIEWS = ['homeView','resultsView','salesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -1339,6 +1394,226 @@ async function runLiveScrape(){
 
   btn.disabled = false;
   btn.textContent = 'Buscar precios en vivo';
+}
+
+/* ============================================================
+   ARIA AUTO — vehicle-scoped auto parts search across multiple sources.
+   Adding a future retailer/source only requires one new entry in
+   AUTO_PARTS_SOURCES with its own async search(vehicle, query, maxItems)
+   — nothing else here needs to change.
+   ============================================================ */
+const AUTO_VEHICLES = [
+  { make: 'Toyota', models: [
+    { model: 'Corolla', generations: [{ years: [2014, 2019] }, { years: [2020, 2026] }] },
+    { model: 'Camry', generations: [{ years: [2012, 2017] }, { years: [2018, 2026] }] },
+    { model: 'RAV4', generations: [{ years: [2013, 2018] }, { years: [2019, 2026] }] },
+  ]},
+  { make: 'Honda', models: [
+    { model: 'Civic', generations: [{ years: [2012, 2015] }, { years: [2016, 2021] }, { years: [2022, 2026] }] },
+    { model: 'Accord', generations: [{ years: [2013, 2017] }, { years: [2018, 2026] }] },
+    { model: 'CR-V', generations: [{ years: [2012, 2016] }, { years: [2017, 2022] }, { years: [2023, 2026] }] },
+  ]},
+  { make: 'Ford', models: [
+    { model: 'F-150', generations: [{ years: [2009, 2014] }, { years: [2015, 2020] }, { years: [2021, 2026] }] },
+    { model: 'Escape', generations: [{ years: [2013, 2019] }, { years: [2020, 2026] }] },
+    { model: 'Explorer', generations: [{ years: [2011, 2019] }, { years: [2020, 2026] }] },
+  ]},
+  { make: 'Chevrolet', models: [
+    { model: 'Silverado 1500', generations: [{ years: [2014, 2018] }, { years: [2019, 2026] }] },
+    { model: 'Malibu', generations: [{ years: [2013, 2015] }, { years: [2016, 2026] }] },
+    { model: 'Equinox', generations: [{ years: [2010, 2017] }, { years: [2018, 2026] }] },
+  ]},
+  { make: 'Nissan', models: [
+    { model: 'Altima', generations: [{ years: [2013, 2018] }, { years: [2019, 2026] }] },
+    { model: 'Sentra', generations: [{ years: [2013, 2019] }, { years: [2020, 2026] }] },
+    { model: 'Rogue', generations: [{ years: [2014, 2020] }, { years: [2021, 2026] }] },
+  ]},
+  { make: 'Hyundai', models: [
+    { model: 'Elantra', generations: [{ years: [2011, 2016] }, { years: [2017, 2020] }, { years: [2021, 2026] }] },
+    { model: 'Sonata', generations: [{ years: [2015, 2019] }, { years: [2020, 2026] }] },
+    { model: 'Tucson', generations: [{ years: [2016, 2021] }, { years: [2022, 2026] }] },
+  ]},
+  { make: 'Jeep', models: [
+    { model: 'Grand Cherokee', generations: [{ years: [2011, 2021] }, { years: [2022, 2026] }] },
+    { model: 'Wrangler', generations: [{ years: [2007, 2017] }, { years: [2018, 2026] }] },
+  ]},
+  { make: 'BMW', models: [
+    { model: '3 Series', generations: [{ years: [2012, 2018] }, { years: [2019, 2026] }] },
+    { model: '5 Series', generations: [{ years: [2011, 2016] }, { years: [2017, 2023] }, { years: [2024, 2026] }] },
+  ]},
+];
+
+let selectedVehicle = null;
+
+function populateAutoMakes(){
+  const sel = document.getElementById('autoMakeSelect');
+  sel.innerHTML = '<option value="">Selecciona una marca</option>' +
+    AUTO_VEHICLES.map(m => `<option value="${escapeHtml(m.make)}">${escapeHtml(m.make)}</option>`).join('');
+}
+populateAutoMakes();
+
+function hideAutoPartSearch(){
+  selectedVehicle = null;
+  document.getElementById('autoPartSearchWrap').classList.add('hidden');
+  document.getElementById('autoPartsResultsWrap').classList.add('hidden');
+  document.getElementById('autoPartsResultsWrap').innerHTML = '';
+}
+
+document.getElementById('autoMakeSelect').addEventListener('change', function(){
+  const make = this.value;
+  const modelSel = document.getElementById('autoModelSelect');
+  const yearSel = document.getElementById('autoYearSelect');
+  yearSel.innerHTML = '<option value="">Primero elige un modelo</option>';
+  yearSel.disabled = true;
+  hideAutoPartSearch();
+
+  const makeData = AUTO_VEHICLES.find(m => m.make === make);
+  if (!makeData){
+    modelSel.innerHTML = '<option value="">Primero elige una marca</option>';
+    modelSel.disabled = true;
+    return;
+  }
+  modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
+    makeData.models.map(m => `<option value="${escapeHtml(m.model)}">${escapeHtml(m.model)}</option>`).join('');
+  modelSel.disabled = false;
+});
+
+document.getElementById('autoModelSelect').addEventListener('change', function(){
+  const make = document.getElementById('autoMakeSelect').value;
+  const model = this.value;
+  const yearSel = document.getElementById('autoYearSelect');
+  hideAutoPartSearch();
+
+  const makeData = AUTO_VEHICLES.find(m => m.make === make);
+  const modelData = makeData && makeData.models.find(m => m.model === model);
+  if (!modelData){
+    yearSel.innerHTML = '<option value="">Primero elige un modelo</option>';
+    yearSel.disabled = true;
+    return;
+  }
+  const years = [];
+  modelData.generations.forEach(g => {
+    for (let y = g.years[1]; y >= g.years[0]; y--) years.push(y);
+  });
+  yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
+    years.map(y => `<option value="${y}">${y}</option>`).join('');
+  yearSel.disabled = false;
+});
+
+document.getElementById('autoYearSelect').addEventListener('change', function(){
+  const make = document.getElementById('autoMakeSelect').value;
+  const model = document.getElementById('autoModelSelect').value;
+  const year = this.value;
+  if (!make || !model || !year){ hideAutoPartSearch(); return; }
+  selectedVehicle = { make, model, year };
+  document.getElementById('autoVehicleSummary').textContent = `Buscando para: ${year} ${make} ${model}`;
+  document.getElementById('autoPartSearchWrap').classList.remove('hidden');
+  document.getElementById('autoPartsResultsWrap').classList.add('hidden');
+  document.getElementById('autoPartsResultsWrap').innerHTML = '';
+});
+
+// Amayama's search_parts result fields differ from the retail-scraper shape
+// normalizeLiveItem() expects, so it gets its own mapping; every other
+// source can just reuse normalizeLiveItem() directly.
+function normalizeAutoPartItem(sourceId, item){
+  if (sourceId === 'amayama'){
+    const rawPrice = typeof item.price_from_usd === 'number' ? item.price_from_usd : parseFloat(item.price_from_usd);
+    const price = Number.isFinite(rawPrice) ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
+    return {
+      title: item.name || item.part_number || 'Repuesto sin título',
+      price,
+      image: safeUrl(item.image_url),
+      rating: null,
+      url: safeUrl(item.url || null),
+    };
+  }
+  return normalizeLiveItem(item);
+}
+
+const AUTO_PARTS_SOURCES = [
+  {
+    id: 'autozone',
+    label: 'AutoZone',
+    search: async (vehicle, query, maxItems) => {
+      const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
+      const rawItems = await scrapeRetailer('autozone', combined, maxItems);
+      return rawItems.map(it => normalizeAutoPartItem('autozone', it));
+    },
+  },
+  {
+    id: 'amayama',
+    label: 'Amayama (repuestos OEM)',
+    search: async (vehicle, query, maxItems) => {
+      const combined = `${vehicle.make} ${vehicle.model} ${query}`.trim();
+      const res = await fetch(`/.netlify/functions/amayama?action=search_parts&query=${encodeURIComponent(combined)}&page=1`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Error al consultar Amayama');
+      const results = Array.isArray(data.results) ? data.results.slice(0, maxItems) : [];
+      return results.map(it => normalizeAutoPartItem('amayama', it));
+    },
+  },
+  // Add future auto parts sources here — just id, label, and an async
+  // search(vehicle, query, maxItems) returning normalized items via
+  // normalizeAutoPartItem(). No other code needs to change.
+];
+
+function autoPartSkeleton(label){
+  return `<div class="rounded-2xl border p-4 mb-3 animate-pulse" style="border-color:var(--line)">
+    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
+    <div class="h-4 rounded w-2/3 mb-2" style="background:var(--line)"></div>
+    <div class="h-4 rounded w-1/3" style="background:var(--line)"></div>
+  </div>`;
+}
+
+function renderAutoPartBlock(label, result){
+  if (!result.ok){
+    return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
+      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(label)}</div>
+      <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
+    </div>`;
+  }
+  const items = Array.isArray(result.items) ? result.items : [];
+  if (!items.length){
+    return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
+      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(label)}</div>
+      <div class="text-[12px] text-zinc-400">Sin resultados.</div>
+    </div>`;
+  }
+  return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
+    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
+    <div class="space-y-2.5">
+      ${items.map(it => `
+        <div class="flex items-center gap-3">
+          ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
+          <div class="min-w-0 flex-1">
+            <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${it.url ? `<a href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHtml(it.title)}</a>` : escapeHtml(it.title)}</div>
+            <div class="text-[12px] text-zinc-500">${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
+          </div>
+          <button onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0" style="background:var(--blue)">Pedir</button>
+        </div>
+      `).join('')}
+    </div>
+  </div>`;
+}
+
+async function searchAutoParts(){
+  if (!selectedVehicle){ showToast('Elige marca, modelo y año primero.'); return; }
+  const query = document.getElementById('autoPartQuery').value.trim();
+  if (!query){ showToast('Escribe qué repuesto buscas.'); return; }
+
+  const wrap = document.getElementById('autoPartsResultsWrap');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${autoPartSkeleton(s.label)}</div>`).join('');
+
+  await Promise.allSettled(AUTO_PARTS_SOURCES.map(async (source) => {
+    const blockEl = document.getElementById(`autoBlock-${source.id}`);
+    try {
+      const items = await source.search(selectedVehicle, query, 5);
+      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items });
+    } catch (err) {
+      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: false, error: err.message });
+    }
+  }));
 }
 
 let toastTimer;
