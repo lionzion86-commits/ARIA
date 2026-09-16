@@ -1409,6 +1409,17 @@ let selectedVehicle = null;
 let autoYearsLoaded = false;
 const oreillyMakesCache = {}; // year -> makes[], avoids re-fetching if the customer goes back and forth
 
+// Static, periodically-refreshed cache (see scripts/refresh-auto-cache.js)
+// served as a free file — checked before any paid O'Reilly/AutoZone call.
+// Only fetched once per page load, and only if Aria Auto is actually opened.
+let autoCachePromise = null;
+function loadAutoCache(){
+  if (!autoCachePromise){
+    autoCachePromise = fetch('/auto-cache.json').then(r => r.ok ? r.json() : null).catch(() => null);
+  }
+  return autoCachePromise;
+}
+
 async function callOreilly(action, params){
   const res = await fetch('/.netlify/functions/oreilly-parts', {
     method: 'POST',
@@ -1433,6 +1444,13 @@ function openAriaAuto(){
 
 async function initAutoYearSelect(){
   const yearSel = document.getElementById('autoYearSelect');
+  const cache = await loadAutoCache();
+  if (cache?.years?.length){
+    const years = cache.years;
+    yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
+      years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+    return;
+  }
   try {
     const data = await callOreilly('get_vehicle_years', {});
     const years = data?.data?.items || [];
@@ -1470,10 +1488,14 @@ document.getElementById('autoYearSelect').addEventListener('change', async funct
   try {
     let makes = oreillyMakesCache[year];
     if (!makes){
+      const cache = await loadAutoCache();
+      makes = cache?.makes?.[year];
+    }
+    if (!makes){
       const data = await callOreilly('get_vehicle_makes', { year });
       makes = data?.data?.items || [];
-      oreillyMakesCache[year] = makes;
     }
+    oreillyMakesCache[year] = makes;
     makeSel.innerHTML = '<option value="">Selecciona una marca</option>' +
       makes.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
     makeSel.disabled = false;
@@ -1498,8 +1520,12 @@ document.getElementById('autoMakeSelect').addEventListener('change', async funct
   modelSel.innerHTML = '<option value="">Cargando modelos…</option>';
   modelSel.disabled = true;
   try {
-    const data = await callOreilly('get_vehicle_models', { year, make_id: makeId });
-    const models = data?.data?.items || [];
+    const cache = await loadAutoCache();
+    let models = cache?.models?.[`${year}:${makeId}`];
+    if (!models){
+      const data = await callOreilly('get_vehicle_models', { year, make_id: makeId });
+      models = data?.data?.items || [];
+    }
     modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
       models.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
     modelSel.disabled = false;
@@ -1540,11 +1566,19 @@ function normalizeAutoPartItem(sourceId, item){
   return normalizeLiveItem(item);
 }
 
+// Cache key must exactly match scripts/refresh-auto-cache.js's format.
+function autoPartCacheKey(vehicle, query){
+  return `${vehicle.year}|${vehicle.make}|${vehicle.model}|${query}`.toLowerCase();
+}
+
 const AUTO_PARTS_SOURCES = [
   {
     id: 'autozone',
     label: 'AutoZone',
     search: async (vehicle, query, maxItems) => {
+      const cache = await loadAutoCache();
+      const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.autozone;
+      if (cached?.length) return cached.map(it => normalizeAutoPartItem('autozone', it));
       const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
       const rawItems = await scrapeRetailer('autozone', combined, maxItems);
       return rawItems.map(it => normalizeAutoPartItem('autozone', it));
@@ -1554,6 +1588,9 @@ const AUTO_PARTS_SOURCES = [
     id: 'oreilly',
     label: "O'Reilly Auto Parts",
     search: async (vehicle, query, maxItems) => {
+      const cache = await loadAutoCache();
+      const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.oreilly;
+      if (cached?.length) return cached.map(it => normalizeAutoPartItem('oreilly', it));
       const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
       const data = await callOreilly('search_products', { query: combined });
       const items = Array.isArray(data?.data?.items) ? data.data.items.slice(0, maxItems) : [];
