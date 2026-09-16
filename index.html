@@ -1402,12 +1402,30 @@ async function runLiveScrape(){
    AUTO_PARTS_SOURCES with its own async search(vehicle, query, maxItems)
    — nothing else here needs to change.
    ============================================================ */
-// Vehicle data is fetched live from O'Reilly's Year->Make->Model chain
-// (that's the order their API requires — makes need a year, models need a
-// make) rather than a static list, so it stays accurate without upkeep.
+// Vehicle selector is a static list, not a live API call — AutoZone's
+// scraper has no vehicle year/make/model lookup at all (it's a pure
+// product-search actor), and O'Reilly's equivalent API kept hitting its
+// daily request cap and going down. The selector must never depend on an
+// external API being up; O'Reilly stays purely as an optional secondary
+// result source in AUTO_PARTS_SOURCES below, same as before.
+const STATIC_YEARS = Array.from({ length: 2026 - 2009 + 1 }, (_, i) => String(2026 - i)); // newest first
+const STATIC_VEHICLES = [
+  { make: 'Toyota', models: ['Camry', 'Corolla'] },
+  { make: 'Honda', models: ['Accord', 'Civic'] },
+  { make: 'Ford', models: ['F-150', 'Escape'] },
+  { make: 'Kia', models: ['Optima', 'Sportage'] },
+  { make: 'Hyundai', models: ['Elantra', 'Tucson'] },
+  { make: 'Chevrolet', models: ['Silverado 1500', 'Malibu'] },
+  { make: 'Nissan', models: ['Altima', 'Rogue'] },
+  { make: 'Subaru', models: ['Outback', 'Forester'] },
+  { make: 'Volvo', models: ['XC90', 'S60'] },
+  { make: 'BMW', models: ['3 Series', 'X5'] },
+  { make: 'Mercedes-Benz', models: ['C-Class', 'E-Class'] },
+  { make: 'Audi', models: ['A4', 'Q5'] },
+  { make: 'Jeep', models: ['Grand Cherokee', 'Wrangler'] },
+];
+
 let selectedVehicle = null;
-let autoYearsLoaded = false;
-const oreillyMakesCache = {}; // year -> makes[], avoids re-fetching if the customer goes back and forth
 
 // Static, periodically-refreshed cache (see scripts/refresh-auto-cache.js)
 // served as a free file — checked before any paid O'Reilly/AutoZone call.
@@ -1445,38 +1463,24 @@ async function callOreilly(action, params){
 
 function openAriaAuto(){
   showPage('ariaAutoView');
-  // Lazy-loaded on first visit rather than at page load, since every call
-  // here spends real parse.bot credits — no reason to spend them on
-  // visitors who never open Aria Auto.
-  if (!autoYearsLoaded){
-    autoYearsLoaded = true;
-    initAutoYearSelect();
-  }
+  // Kick off the part-search cache fetch early (used later by
+  // AUTO_PARTS_SOURCES) — harmless to call more than once, the promise
+  // is shared, and the selector below never waits on it.
+  loadAutoCache();
+  initAutoSelector();
 }
 
-async function initAutoYearSelect(){
+let autoSelectorInitialized = false;
+function initAutoSelector(){
+  if (autoSelectorInitialized) return;
+  autoSelectorInitialized = true;
   const yearSel = document.getElementById('autoYearSelect');
-  const cache = await loadAutoCache();
-  if (cache?.years?.length){
-    const years = cache.years;
-    yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
-      years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
-    return;
-  }
-  try {
-    const data = await callOreilly('get_vehicle_years', {});
-    const years = data?.data?.items || [];
-    yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
-      years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
-  } catch (err) {
-    if (err.isRateLimit){
-      yearSel.innerHTML = '<option value="">No disponible por ahora</option>';
-      showToast('Alcanzamos el límite de consultas por hoy — vuelve a intentarlo más tarde.');
-    } else {
-      yearSel.innerHTML = '<option value="">Error al cargar años</option>';
-      showToast(err.message);
-    }
-  }
+  yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
+    STATIC_YEARS.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+  const makeSel = document.getElementById('autoMakeSelect');
+  makeSel.innerHTML = '<option value="">Selecciona una marca</option>' +
+    STATIC_VEHICLES.map(v => `<option value="${escapeHtml(v.make)}">${escapeHtml(v.make)}</option>`).join('');
+  makeSel.disabled = false;
 }
 
 function hideAutoPartSearch(){
@@ -1486,94 +1490,39 @@ function hideAutoPartSearch(){
   document.getElementById('autoPartsResultsWrap').innerHTML = '';
 }
 
-document.getElementById('autoYearSelect').addEventListener('change', async function(){
-  const year = this.value;
-  const makeSel = document.getElementById('autoMakeSelect');
-  const modelSel = document.getElementById('autoModelSelect');
-  modelSel.innerHTML = '<option value="">Primero elige una marca</option>';
-  modelSel.disabled = true;
+function maybeRevealPartSearch(){
+  const year = document.getElementById('autoYearSelect').value;
+  const make = document.getElementById('autoMakeSelect').value;
+  const model = document.getElementById('autoModelSelect').value;
+  if (!year || !make || !model){ hideAutoPartSearch(); return; }
+  selectedVehicle = { year, make, model };
+  document.getElementById('autoVehicleSummary').textContent = `Buscando para: ${year} ${make} ${model}`;
+  document.getElementById('autoPartSearchWrap').classList.remove('hidden');
+  document.getElementById('autoPartsResultsWrap').classList.add('hidden');
+  document.getElementById('autoPartsResultsWrap').innerHTML = '';
+}
+
+document.getElementById('autoYearSelect').addEventListener('change', function(){
   hideAutoPartSearch();
-
-  if (!year){
-    makeSel.innerHTML = '<option value="">Primero elige un año</option>';
-    makeSel.disabled = true;
-    return;
-  }
-
-  makeSel.innerHTML = '<option value="">Cargando marcas…</option>';
-  makeSel.disabled = true;
-  try {
-    let makes = oreillyMakesCache[year];
-    if (!makes){
-      const cache = await loadAutoCache();
-      makes = cache?.makes?.[year];
-    }
-    if (!makes){
-      const data = await callOreilly('get_vehicle_makes', { year });
-      makes = data?.data?.items || [];
-    }
-    oreillyMakesCache[year] = makes;
-    makeSel.innerHTML = '<option value="">Selecciona una marca</option>' +
-      makes.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
-    makeSel.disabled = false;
-  } catch (err) {
-    if (err.isRateLimit){
-      makeSel.innerHTML = '<option value="">No disponible por ahora</option>';
-      showToast('Alcanzamos el límite de consultas por hoy — prueba con un año reciente (2024-2026) o vuelve más tarde.');
-    } else {
-      makeSel.innerHTML = '<option value="">Error al cargar marcas</option>';
-      showToast(err.message);
-    }
-  }
+  maybeRevealPartSearch();
 });
 
-document.getElementById('autoMakeSelect').addEventListener('change', async function(){
-  const year = document.getElementById('autoYearSelect').value;
-  const makeId = this.value;
+document.getElementById('autoMakeSelect').addEventListener('change', function(){
+  const make = this.value;
   const modelSel = document.getElementById('autoModelSelect');
   hideAutoPartSearch();
-
-  if (!makeId){
+  const vehicle = STATIC_VEHICLES.find(v => v.make === make);
+  if (!vehicle){
     modelSel.innerHTML = '<option value="">Primero elige una marca</option>';
     modelSel.disabled = true;
     return;
   }
-
-  modelSel.innerHTML = '<option value="">Cargando modelos…</option>';
-  modelSel.disabled = true;
-  try {
-    const cache = await loadAutoCache();
-    let models = cache?.models?.[`${year}:${makeId}`];
-    if (!models){
-      const data = await callOreilly('get_vehicle_models', { year, make_id: makeId });
-      models = data?.data?.items || [];
-    }
-    modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
-      models.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
-    modelSel.disabled = false;
-  } catch (err) {
-    if (err.isRateLimit){
-      modelSel.innerHTML = '<option value="">No disponible por ahora</option>';
-      showToast('Alcanzamos el límite de consultas por hoy — vuelve a intentarlo más tarde.');
-    } else {
-      modelSel.innerHTML = '<option value="">Error al cargar modelos</option>';
-      showToast(err.message);
-    }
-  }
+  modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
+    vehicle.models.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+  modelSel.disabled = false;
 });
 
-document.getElementById('autoModelSelect').addEventListener('change', function(){
-  const year = document.getElementById('autoYearSelect').value;
-  const makeSel = document.getElementById('autoMakeSelect');
-  const makeName = makeSel.options[makeSel.selectedIndex]?.dataset.name || '';
-  const modelName = this.options[this.selectedIndex]?.dataset.name || '';
-  if (!year || !makeSel.value || !this.value){ hideAutoPartSearch(); return; }
-  selectedVehicle = { year, make: makeName, model: modelName };
-  document.getElementById('autoVehicleSummary').textContent = `Buscando para: ${year} ${makeName} ${modelName}`;
-  document.getElementById('autoPartSearchWrap').classList.remove('hidden');
-  document.getElementById('autoPartsResultsWrap').classList.add('hidden');
-  document.getElementById('autoPartsResultsWrap').innerHTML = '';
-});
+document.getElementById('autoModelSelect').addEventListener('change', maybeRevealPartSearch);
 
 // O'Reilly's search_products result fields differ from the retail-scraper
 // shape normalizeLiveItem() expects, so it gets its own mapping; every
