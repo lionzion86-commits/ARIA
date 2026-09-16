@@ -1300,6 +1300,26 @@ function safeUrl(u){
 // every already-cached product too — no cache regeneration needed.
 const LIVE_PRICE_MARKUP = 1.24;
 
+// CONFIDENCE-BASED SAFETY BUFFER — shared by every weight estimate on the
+// site that feeds into checkout, both general retail (RETAIL_WEIGHT_ESTIMATES_KG,
+// estimateTvWeightKg, DEFAULT_RETAIL_WEIGHT_KG below) and Aria Auto parts
+// (PART_WEIGHT_ESTIMATES_KG and friends, further down this file). Each
+// estimate is tagged 'cited' (a real, sourced weight was found — see the
+// comment on that specific row/table) or 'reasoned' (no citation was
+// found; the number comes from general reasoning, disclosed as such at
+// the time). To keep checkout from ever undercharging shipping when an
+// estimate turns out low, a safety buffer is applied on top of every
+// number before it reaches checkout: +10% for 'cited', +20% for
+// 'reasoned' (wider buffer because those numbers carry no external source
+// to check against). Applied in exactly one place — withBuffer(), called
+// at every return point of estimateRetailWeightKg() and
+// estimatePartWeightKg() — so it can't be missed on a given category and
+// isn't pre-baked into the researched table values themselves.
+const CONFIDENCE_BUFFER = { cited: 1.10, reasoned: 1.20 };
+function withBuffer(kg, tier){
+  return Math.round(kg * CONFIDENCE_BUFFER[tier] * 100) / 100;
+}
+
 // GENERAL RETAIL WEIGHT ESTIMATES (kg) — Target/Walmart/Old Navy/Foot Locker
 // -----------------------------------------------------------------
 // Confirmed via real live scrapes (2026-09-16: "mens jeans" on Target,
@@ -1315,37 +1335,39 @@ const LIVE_PRICE_MARKUP = 1.24;
 // Real-world average citations noted per row; anything unmatched falls
 // back to DEFAULT_RETAIL_WEIGHT_KG, a rough generic placeholder.
 const RETAIL_WEIGHT_ESTIMATES_KG = [
-  { match: /\bjeans?\b|denim/i, kg: 0.8 },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
-  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.15 },   // std cotton tee ~140-200g (printful.com, printkk.com)
-  { match: /hoodie|sweatshirt/i, kg: 0.6 },              // cotton hoodie ~450-680g (printful.com)
-  { match: /jacket|\bcoat\b/i, kg: 0.9 },                // heavier outerwear than a hoodie — reasoned estimate, no single citation
-  { match: /sneaker|\bshoe|\bboot/i, kg: 1.1 },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
-  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.05 }, // ~30-70g/pair (crescendoapparel.com)
-  { match: /\bsocks?\b/i, kg: 0.06 },                    // ~40-60g/pair (deadsoxy.com)
-  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2 }, // mainstream phones ~160-220g (devicetests.com)
-  { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8 }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
+  { match: /\bjeans?\b|denim/i, kg: 0.8, tier: 'cited' },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
+  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.15, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
+  { match: /hoodie|sweatshirt/i, kg: 0.6, tier: 'cited' },              // cotton hoodie ~450-680g (printful.com)
+  { match: /jacket|\bcoat\b/i, kg: 0.9, tier: 'reasoned' },             // heavier outerwear than a hoodie — reasoned estimate, no single citation
+  { match: /sneaker|\bshoe|\bboot/i, kg: 1.1, tier: 'cited' },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
+  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.05, tier: 'cited' }, // ~30-70g/pair (crescendoapparel.com)
+  { match: /\bsocks?\b/i, kg: 0.06, tier: 'cited' },                    // ~40-60g/pair (deadsoxy.com)
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2, tier: 'cited' }, // mainstream phones ~160-220g (devicetests.com)
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8, tier: 'cited' }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
 ];
-const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced
+const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced ('reasoned' tier)
 
 // TVs vary too much by screen size for one flat number — parse an inch
 // figure out of the title when present. Buckets from weightofstuff.com /
 // blinksandbuttons.net size-to-weight ranges (using each bucket's midpoint).
+// All cited — including the no-size-found default, a blend of those same
+// cited ranges.
 function estimateTvWeightKg(text){
   const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(text || '');
-  if (!m) return 12; // no size in the title — blended default across common sizes
+  if (!m) return withBuffer(12, 'cited'); // no size in the title — blended default across common sizes
   const inches = parseInt(m[1], 10);
-  if (inches <= 32) return 7;
-  if (inches <= 43) return 10;
-  if (inches <= 50) return 17;
-  if (inches <= 55) return 20;
-  if (inches <= 65) return 28;
-  return 35; // 70"+
+  if (inches <= 32) return withBuffer(7, 'cited');
+  if (inches <= 43) return withBuffer(10, 'cited');
+  if (inches <= 50) return withBuffer(17, 'cited');
+  if (inches <= 55) return withBuffer(20, 'cited');
+  if (inches <= 65) return withBuffer(28, 'cited');
+  return withBuffer(35, 'cited'); // 70"+
 }
 
 function estimateRetailWeightKg(text){
   if (/\btv\b|television/i.test(text || '')) return estimateTvWeightKg(text);
   const found = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(text || ''));
-  return found ? found.kg : DEFAULT_RETAIL_WEIGHT_KG;
+  return found ? withBuffer(found.kg, found.tier) : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
 }
 
 // Deliberately does NOT expose a clickthrough URL to the retailer's site —
@@ -1672,25 +1694,10 @@ function autoPartSkeleton(label){
 // are handled separately below (estimateBrakePadWeightKg) since a flat
 // number is wrong: front and rear pads differ substantially, and pad
 // mass scales with vehicle size.
-// CONFIDENCE-BASED SAFETY BUFFER
-// -----------------------------------------------------------------
-// Every part-weight estimate below is tagged 'cited' (a real, sourced
-// weight was found — see the comment above each table) or 'reasoned' (no
-// citation was found; the number comes from general engineering
-// knowledge/dimensional reasoning, disclosed as such at the time). To
-// keep checkout from ever undercharging shipping when an estimate turns
-// out low, a safety buffer is applied on top of every number before it
-// reaches checkout: +10% for 'cited' categories, +20% for 'reasoned'
-// ones (wider buffer because those numbers carry no external source to
-// check against). Applied in exactly one place (withBuffer, called at
-// every return point in estimatePartWeightKg) so it can't be missed or
-// double-applied, and so the underlying table values above stay as the
-// original researched/reasoned numbers, not pre-inflated ones.
-const CONFIDENCE_BUFFER = { cited: 1.10, reasoned: 1.20 };
-function withBuffer(kg, tier){
-  return Math.round(kg * CONFIDENCE_BUFFER[tier] * 100) / 100;
-}
-
+// CONFIDENCE-BASED SAFETY BUFFER (withBuffer/CONFIDENCE_BUFFER) is defined
+// once, up near LIVE_PRICE_MARKUP, and shared with the general-retail
+// weight estimates above — see the comment there. Every part-weight
+// estimate below is tagged 'cited' or 'reasoned' the same way.
 const PART_WEIGHT_ESTIMATES_KG = [
   { match: /bujía|bujia|spark plug/i, kg: 0.4, tier: 'reasoned' }, // no verified real citation found (Sept 2026 research) — reasoned from typical plug dimensions, lower confidence than brake pads below
   { match: /filtro de aceite|oil filter/i, kg: 0.5, tier: 'reasoned' }, // no verified real citation found — one Amazon listing claimed 0.01oz, which is a physically-impossible data error and was discarded; reasoned from typical spin-on canister size, lower confidence
