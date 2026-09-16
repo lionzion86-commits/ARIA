@@ -1420,20 +1420,26 @@ async function runLiveScrape(){
 // external API being up; O'Reilly stays purely as an optional secondary
 // result source in AUTO_PARTS_SOURCES below, same as before.
 const STATIC_YEARS = Array.from({ length: 2026 - 2009 + 1 }, (_, i) => String(2026 - i)); // newest first
+// Full lineup per make, researched against AutoZone's own supported
+// models for 2009-2026. Each brand's original 2 models (the ones the
+// part-search pre-cache actually has data for — see
+// scripts/refresh-auto-cache.js) are kept first in the list; everything
+// after them is selector-only for now and falls through to a live call
+// on part search, same as any other cache miss.
 const STATIC_VEHICLES = [
-  { make: 'Toyota', models: ['Camry', 'Corolla'] },
-  { make: 'Honda', models: ['Accord', 'Civic'] },
-  { make: 'Ford', models: ['F-150', 'Escape'] },
-  { make: 'Kia', models: ['Optima', 'Sportage'] },
-  { make: 'Hyundai', models: ['Elantra', 'Tucson'] },
-  { make: 'Chevrolet', models: ['Silverado 1500', 'Malibu'] },
-  { make: 'Nissan', models: ['Altima', 'Rogue'] },
-  { make: 'Subaru', models: ['Outback', 'Forester'] },
-  { make: 'Volvo', models: ['XC90', 'S60'] },
-  { make: 'BMW', models: ['3 Series', 'X5'] },
-  { make: 'Mercedes-Benz', models: ['C-Class', 'E-Class'] },
-  { make: 'Audi', models: ['A4', 'Q5'] },
-  { make: 'Jeep', models: ['Grand Cherokee', 'Wrangler'] },
+  { make: 'Toyota', models: ['Camry', 'Corolla', 'Avalon', 'Yaris', 'Prius', 'Prius C', 'Prius V', 'RAV4', 'Highlander', '4Runner', 'Sequoia', 'Land Cruiser', 'Tacoma', 'Tundra', 'Sienna', 'Venza', 'C-HR', 'Corolla Cross', 'GR86', 'Supra', 'FJ Cruiser', 'Matrix'] },
+  { make: 'Honda', models: ['Accord', 'Civic', 'Insight', 'Fit', 'CR-V', 'HR-V', 'Pilot', 'Passport', 'Ridgeline', 'Odyssey', 'Element', 'Crosstour', 'Clarity'] },
+  { make: 'Ford', models: ['F-150', 'Escape', 'F-250', 'F-350', 'Ranger', 'Maverick', 'Explorer', 'Edge', 'Expedition', 'Bronco', 'Bronco Sport', 'EcoSport', 'Fusion', 'Focus', 'Fiesta', 'Taurus', 'Mustang', 'Flex', 'C-Max', 'Transit Connect'] },
+  { make: 'Kia', models: ['Optima', 'Sportage', 'K5', 'Forte', 'Rio', 'Soul', 'Sorento', 'Telluride', 'Seltos', 'Niro', 'Sedona', 'Carnival', 'Cadenza', 'K900', 'Amanti', 'Borrego', 'Stinger', 'EV6', 'EV9', 'K4'] },
+  { make: 'Hyundai', models: ['Elantra', 'Tucson', 'Sonata', 'Accent', 'Veloster', 'Ioniq', 'Santa Fe', 'Santa Cruz', 'Kona', 'Palisade', 'Venue', 'Azera', 'Genesis Coupe', 'Entourage'] },
+  { make: 'Chevrolet', models: ['Silverado 1500', 'Malibu', 'Silverado 2500HD', 'Colorado', 'Cruze', 'Impala', 'Sonic', 'Spark', 'Cobalt', 'HHR', 'Equinox', 'Traverse', 'Trailblazer', 'Trax', 'Tahoe', 'Suburban', 'Blazer', 'Camaro', 'Corvette', 'Bolt EV', 'Bolt EUV'] },
+  { make: 'Nissan', models: ['Altima', 'Rogue', 'Sentra', 'Versa', 'Maxima', 'Rogue Sport', 'Murano', 'Pathfinder', 'Armada', 'Xterra', 'Frontier', 'Titan', 'Kicks', 'Juke', 'Cube', 'Leaf', '370Z', 'GT-R', 'Quest'] },
+  { make: 'Subaru', models: ['Outback', 'Forester', 'Legacy', 'Impreza', 'Crosstrek', 'Ascent', 'WRX', 'BRZ', 'Tribeca', 'Baja'] },
+  { make: 'Volvo', models: ['XC90', 'S60', 'S80', 'S90', 'V60', 'V70', 'V90', 'XC40', 'XC60', 'XC70', 'C30', 'C70'] },
+  { make: 'BMW', models: ['3 Series', 'X5', '1 Series', '2 Series', '4 Series', '5 Series', '6 Series', '7 Series', '8 Series', 'X1', 'X2', 'X3', 'X4', 'X6', 'X7', 'Z4', 'i3', 'i4', 'iX'] },
+  { make: 'Mercedes-Benz', models: ['C-Class', 'E-Class', 'A-Class', 'S-Class', 'CLA', 'CLS', 'GLA', 'GLB', 'GLC', 'GLE', 'GLS', 'G-Class', 'SLK', 'SL-Class', 'Metris', 'Sprinter'] },
+  { make: 'Audi', models: ['A4', 'Q5', 'A3', 'A5', 'A6', 'A7', 'A8', 'Q3', 'Q7', 'Q8', 'TT', 'S4', 'S5', 'allroad', 'e-tron'] },
+  { make: 'Jeep', models: ['Grand Cherokee', 'Wrangler', 'Cherokee', 'Compass', 'Patriot', 'Renegade', 'Gladiator', 'Liberty', 'Commander'] },
 ];
 
 let selectedVehicle = null;
