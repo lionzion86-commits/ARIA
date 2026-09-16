@@ -1435,7 +1435,7 @@ async function initAutoYearSelect(){
   const yearSel = document.getElementById('autoYearSelect');
   try {
     const data = await callOreilly('get_vehicle_years', {});
-    const years = Array.isArray(data) ? data : (data.years || []);
+    const years = data?.data?.items || [];
     yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
       years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
   } catch (err) {
@@ -1471,7 +1471,7 @@ document.getElementById('autoYearSelect').addEventListener('change', async funct
     let makes = oreillyMakesCache[year];
     if (!makes){
       const data = await callOreilly('get_vehicle_makes', { year });
-      makes = Array.isArray(data) ? data : (data.makes || []);
+      makes = data?.data?.items || [];
       oreillyMakesCache[year] = makes;
     }
     makeSel.innerHTML = '<option value="">Selecciona una marca</option>' +
@@ -1499,7 +1499,7 @@ document.getElementById('autoMakeSelect').addEventListener('change', async funct
   modelSel.disabled = true;
   try {
     const data = await callOreilly('get_vehicle_models', { year, make_id: makeId });
-    const models = Array.isArray(data) ? data : (data.models || []);
+    const models = data?.data?.items || [];
     modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
       models.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
     modelSel.disabled = false;
@@ -1556,7 +1556,7 @@ const AUTO_PARTS_SOURCES = [
     search: async (vehicle, query, maxItems) => {
       const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
       const data = await callOreilly('search_products', { query: combined });
-      const items = Array.isArray(data.items) ? data.items.slice(0, maxItems) : [];
+      const items = Array.isArray(data?.data?.items) ? data.data.items.slice(0, maxItems) : [];
       return items.map(it => normalizeAutoPartItem('oreilly', it));
     },
   },
