@@ -1248,10 +1248,12 @@ function orderProduct(name, totalUsd, weightKg){
   const params = new URLSearchParams();
   if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
   if (name) params.set('desc', name);
-  // Only auto parts currently pass a weightKg (estimated by category —
-  // see PART_WEIGHT_ESTIMATES_KG). General retail products have no
-  // weight source yet, so they fall through to checkout's existing
-  // manual-entry field unchanged.
+  // Both auto parts (PART_WEIGHT_ESTIMATES_KG / estimateBrakePadWeightKg)
+  // and general retail products (RETAIL_WEIGHT_ESTIMATES_KG) pass a
+  // category-estimated weightKg here, since no source retailer publishes
+  // real per-SKU weight — see comments at each table. No path should ever
+  // fall back to manual entry silently; if weightKg is somehow missing,
+  // checkout's manual field is the only fallback, but that's not expected.
   if (Number.isFinite(weightKg) && weightKg > 0) params.set('kg', weightKg.toFixed(2));
   window.location.href = 'checkout.html' + (params.toString() ? '?' + params.toString() : '');
 }
@@ -1298,10 +1300,58 @@ function safeUrl(u){
 // every already-cached product too — no cache regeneration needed.
 const LIVE_PRICE_MARKUP = 1.24;
 
+// GENERAL RETAIL WEIGHT ESTIMATES (kg) — Target/Walmart/Old Navy/Foot Locker
+// -----------------------------------------------------------------
+// Confirmed via real live scrapes (2026-09-16: "mens jeans" on Target,
+// "mens t shirt" on Walmart) that neither retailer's search-result payload
+// includes a weight or dimensions field. Target's items carry no specs
+// object at all; Walmart's schema has a `specifications` array field but
+// it comes back empty ([]) at listing level for every item (detail-mode
+// scrapes might populate it, at extra cost per item — not pursued here).
+// Same conclusion as Aria Auto: a genuine data-availability/cost gap, not
+// a scraper bug — normalizeLiveItem() does not invent a weight field from
+// thin air. Matched against the item's own title (more accurate per-item
+// than the shared search query, since one search can mix categories).
+// Real-world average citations noted per row; anything unmatched falls
+// back to DEFAULT_RETAIL_WEIGHT_KG, a rough generic placeholder.
+const RETAIL_WEIGHT_ESTIMATES_KG = [
+  { match: /\bjeans?\b|denim/i, kg: 0.8 },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
+  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.15 },   // std cotton tee ~140-200g (printful.com, printkk.com)
+  { match: /hoodie|sweatshirt/i, kg: 0.6 },              // cotton hoodie ~450-680g (printful.com)
+  { match: /jacket|\bcoat\b/i, kg: 0.9 },                // heavier outerwear than a hoodie — reasoned estimate, no single citation
+  { match: /sneaker|\bshoe|\bboot/i, kg: 1.1 },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
+  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.05 }, // ~30-70g/pair (crescendoapparel.com)
+  { match: /\bsocks?\b/i, kg: 0.06 },                    // ~40-60g/pair (deadsoxy.com)
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2 }, // mainstream phones ~160-220g (devicetests.com)
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8 }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
+];
+const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced
+
+// TVs vary too much by screen size for one flat number — parse an inch
+// figure out of the title when present. Buckets from weightofstuff.com /
+// blinksandbuttons.net size-to-weight ranges (using each bucket's midpoint).
+function estimateTvWeightKg(text){
+  const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(text || '');
+  if (!m) return 12; // no size in the title — blended default across common sizes
+  const inches = parseInt(m[1], 10);
+  if (inches <= 32) return 7;
+  if (inches <= 43) return 10;
+  if (inches <= 50) return 17;
+  if (inches <= 55) return 20;
+  if (inches <= 65) return 28;
+  return 35; // 70"+
+}
+
+function estimateRetailWeightKg(text){
+  if (/\btv\b|television/i.test(text || '')) return estimateTvWeightKg(text);
+  const found = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(text || ''));
+  return found ? found.kg : DEFAULT_RETAIL_WEIGHT_KG;
+}
+
 // Deliberately does NOT expose a clickthrough URL to the retailer's site —
 // product cards must never link off-site (see RULE comments at each
-// render function). Only image/title/price/rating make it into the
-// normalized item on purpose.
+// render function). Only image/title/price/rating/weightKg make it into
+// the normalized item on purpose.
 function normalizeLiveItem(item){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
@@ -1309,7 +1359,8 @@ function normalizeLiveItem(item){
   const price = Number.isFinite(rawPrice) ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
   const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
-  return { title, price, image, rating };
+  const weightKg = estimateRetailWeightKg(title);
+  return { title, price, image, rating, weightKg };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -1346,7 +1397,7 @@ function renderLiveRetailerBlock(retailer, result){
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${label}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
@@ -1617,16 +1668,82 @@ function autoPartSkeleton(label){
 // (from the search query itself, which is retailer-agnostic and always
 // known) so checkout can still auto-calculate shipping with zero manual
 // entry, as required. These are real-world plausible averages, not
-// scraped facts — checkout labels the field as an estimate.
+// scraped facts — checkout labels the field as an estimate. Brake pads
+// are handled separately below (estimateBrakePadWeightKg) since a flat
+// number is wrong: front and rear pads differ substantially, and pad
+// mass scales with vehicle size.
 const PART_WEIGHT_ESTIMATES_KG = [
-  { match: /pastillas de freno|brake pad/i, kg: 1.5 },
-  { match: /bujía|bujia|spark plug/i, kg: 0.4 },
-  { match: /filtro de aceite|oil filter/i, kg: 0.5 },
-  { match: /limpiaparabrisas|wiper/i, kg: 0.6 },
+  { match: /bujía|bujia|spark plug/i, kg: 0.4 }, // no verified real citation found (Sept 2026 research) — reasoned from typical plug dimensions, lower confidence than brake pads below
+  { match: /filtro de aceite|oil filter/i, kg: 0.5 }, // no verified real citation found — one Amazon listing claimed 0.01oz, which is a physically-impossible data error and was discarded; reasoned from typical spin-on canister size, lower confidence
+  { match: /limpiaparabrisas|wiper/i, kg: 0.36 }, // real citation: Rain-X Latitude 22" blade = 6.4oz/181g each, pair = ~362g
 ];
 const DEFAULT_PART_WEIGHT_KG = 1.0;
 
-function estimatePartWeightKg(query){
+// FRONT/REAR BRAKE PAD WEIGHT BY VEHICLE CLASS (kg per axle set)
+// -----------------------------------------------------------------
+// Compact anchor is real, user-verified data: a 2021 Toyota Corolla's
+// front pads run ~1.8-2.5kg and rear pads ~0.8-1kg per real parts listings
+// (Google Shopping, Sept 2026). Midpoints used: front 2.0kg, rear 0.9kg.
+// This lines up with two independently-found real aftermarket product
+// weights for compact/midsize front pad sets: Akebono ACT730 ProACT
+// Ultra-Premium = 4.6lb/2.09kg, Raybestos R-Line Ceramic = 3.8lb/1.72kg
+// (avg 1.9kg) — both close to the Corolla front figure.
+//
+// Front pads are always meaningfully heavier than rear on the same
+// vehicle: automotive engineering sources confirm front brakes handle
+// roughly 60-80% of total braking force during a stop (weight transfers
+// onto the front axle), so they're built physically larger/thicker. The
+// Corolla data reflects about a 2.2x front:rear mass ratio, held roughly
+// constant across classes below.
+//
+// Sedan/SUV/truck rows are NOT independently priced per model — that
+// would mean sourcing hundreds of individual SKUs. Instead they scale the
+// compact anchor by typical curb weight for that class, since brake pad
+// sizing is fundamentally driven by the mass the brakes must stop.
+// Reference curb weights behind the scaling factor: compact ~1,300kg
+// (Corolla/Civic), midsize sedan ~1,500kg (Camry/Accord, 1.15x), SUV/
+// crossover ~1,800kg (RAV4/Explorer, 1.38x), truck/full-size SUV ~2,500kg
+// (F-150/Tahoe, 1.9x). This is a disclosed, reasoned approximation, not a
+// per-model verified figure — flag for correction if a specific vehicle's
+// estimate looks obviously wrong.
+const BRAKE_PAD_WEIGHT_KG = {
+  compact: { front: 2.0, rear: 0.9 },
+  sedan:   { front: 2.3, rear: 1.0 },
+  suv:     { front: 2.8, rear: 1.2 },
+  truck:   { front: 3.8, rear: 1.7 },
+};
+
+// Classifies a vehicle into a curb-weight class from its model name.
+// Keyword-based, not independently verified per model — see comment above
+// BRAKE_PAD_WEIGHT_KG. Defaults to 'sedan' when nothing matches (safest
+// middle-of-the-road guess for an unlisted/unusual model).
+function vehicleWeightClass(make, model){
+  const m = `${make || ''} ${model || ''}`;
+  // Body-on-frame pickups and full-size/off-road SUVs — largest brakes.
+  if (/\bF-?150\b|\bF-?250\b|\bF-?350\b|Silverado|\bColorado\b|\bRanger\b|Maverick|Tacoma|Tundra|Ridgeline|Frontier|\bTitan\b|Gladiator|Sequoia|\bTahoe\b|Suburban|Expedition|\bArmada\b|Land Cruiser|4Runner|Sprinter|Wrangler|\bBronco\b(?!\s*Sport)/i.test(m)) return 'truck';
+  // Crossovers, mid-size SUVs, minivans — heavier than sedans, lighter than trucks.
+  if (/RAV4|CR-V|HR-V|Highlander|\bEscape\b|Explorer|\bEdge\b|Sportage|Sorento|Telluride|Seltos|\bNiro\b|\bSoul\b|Tucson|Santa Fe|Santa Cruz|\bKona\b|Palisade|\bVenue\b|Equinox|Traverse|\bBlazer\b|Trailblazer|\bTrax\b|\bRogue\b|Murano|Pathfinder|Xterra|\bKicks\b|\bJuke\b|Forester|Outback|Crosstrek|\bAscent\b|XC90|XC60|XC70|XC40|\bX[1-7]\b|GLA|GLB|GLC|GLE|GLS|G-Class|\bQ[3578]\b|Grand Cherokee|\bCherokee\b|Compass|Patriot|Renegade|\bLiberty\b|Commander|Bronco Sport|EcoSport|C-HR|Corolla Cross|\bVenza\b|Pilot|Passport|Odyssey|\bElement\b|Sienna|Sedona|Carnival/i.test(m)) return 'suv';
+  // Small/compact cars and hatchbacks — lightest class.
+  if (/Corolla\b|Civic|Focus|Fiesta|Cruze|Sonic\b|\bSpark\b|Cobalt|\bHHR\b|Sentra|Versa|\bCube\b|\bLeaf\b|Forte|\bRio\b|Accent|Veloster|Ioniq|Impreza|Yaris|\bFit\b|Insight|Prius|\bMatrix\b|1 Series|2 Series|\bA3\b|CLA\b|\bMini\b/i.test(m)) return 'compact';
+  // Everything else defaults to midsize sedan/coupe (Camry, Accord, Sonata,
+  // Altima, Malibu, 3 Series, C-Class, A4, Mustang, Camaro, etc.).
+  return 'sedan';
+}
+
+function estimateBrakePadWeightKg(query, vehicle){
+  const q = query || '';
+  const isRear = /\btrasera|trasero|rear\b/i.test(q);
+  const isFront = /\bdelantera|delantero|front\b/i.test(q);
+  const weights = BRAKE_PAD_WEIGHT_KG[vehicleWeightClass(vehicle?.make, vehicle?.model)];
+  if (isRear && !isFront) return weights.rear;
+  if (isFront && !isRear) return weights.front;
+  // Axle isn't specified in the query — average front+rear rather than
+  // silently assuming one, since we don't know which the customer needs.
+  return Math.round(((weights.front + weights.rear) / 2) * 100) / 100;
+}
+
+function estimatePartWeightKg(query, vehicle){
+  if (/pastillas de freno|brake pad/i.test(query || '')) return estimateBrakePadWeightKg(query, vehicle);
   const found = PART_WEIGHT_ESTIMATES_KG.find(p => p.match.test(query || ''));
   return found ? found.kg : DEFAULT_PART_WEIGHT_KG;
 }
@@ -1654,7 +1771,7 @@ function renderAutoPartBlock(label, result, query){
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query)})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query, selectedVehicle)})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
