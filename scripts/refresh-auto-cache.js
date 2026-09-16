@@ -20,11 +20,15 @@ const OUT_FILE = new URL("../auto-cache.json", import.meta.url);
 const FETCH_TIMEOUT_MS = 25000;
 
 const CURRENT_YEAR = new Date().getFullYear();
-const SELECTOR_YEARS = Array.from({ length: 10 }, (_, i) => String(CURRENT_YEAR - i)); // last 10 years
-const POPULAR_MAKES = ["Toyota", "Honda", "Ford"];
-const POPULAR_MODELS = { Toyota: ["Camry", "Corolla"], Honda: ["Accord", "Civic"], Ford: ["F-150", "Escape"] };
-const PART_SEARCH_YEARS = [String(CURRENT_YEAR - 3), String(CURRENT_YEAR - 8)]; // 2 representative years
-const POPULAR_PARTS = ["pastillas de freno", "bujías", "filtro de aceite"];
+// Drastically reduced scope after O'Reilly's site protection started
+// blocking parse.bot's proxies mid-run ("site protection blocking all
+// proxies") — minimizing cost-at-risk and blocking-trigger surface while
+// confirming the API is usable at all before scaling back up.
+const SELECTOR_YEARS = Array.from({ length: 3 }, (_, i) => String(CURRENT_YEAR - i)); // last 3 years
+const POPULAR_MAKES = ["Toyota"];
+const POPULAR_MODELS = { Toyota: ["Camry"] };
+const PART_SEARCH_YEARS = [SELECTOR_YEARS[0]]; // must be one of SELECTOR_YEARS so model data exists to match against
+const POPULAR_PARTS = ["pastillas de freno"];
 
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -45,6 +49,27 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = FETCH_TIMEOUT_MS)
 }
 
 let cache = { generatedAt: new Date().toISOString(), years: [], makes: {}, models: {}, partSearches: {} };
+
+// BUG (fixed): the resume-skip checks throughout this file only work if
+// the previous run's output is actually loaded first — without this, the
+// script always started from this empty object, silently overwriting any
+// previously-cached data with the new (possibly incomplete) run's results.
+async function loadExistingCache() {
+  try {
+    const raw = await fs.readFile(OUT_FILE, "utf8");
+    const existing = JSON.parse(raw);
+    cache = {
+      generatedAt: existing.generatedAt || cache.generatedAt,
+      years: existing.years || [],
+      makes: existing.makes || {},
+      models: existing.models || {},
+      partSearches: existing.partSearches || {},
+    };
+    console.log(`Loaded existing cache: ${Object.keys(cache.makes).length} make-years, ${Object.keys(cache.models).length} model combos, ${Object.keys(cache.partSearches).length} part searches`);
+  } catch {
+    console.log("No existing cache file found, starting fresh.");
+  }
+}
 
 async function saveCache() {
   cache.generatedAt = new Date().toISOString();
@@ -116,10 +141,14 @@ async function mapWithConcurrency(items, limit, fn) {
 }
 
 async function main() {
+  await loadExistingCache();
+
+  const modelsPerMake = POPULAR_MAKES.reduce((sum, m) => sum + (POPULAR_MODELS[m]?.length || 0), 0);
+  const partSearchCombos = PART_SEARCH_YEARS.length * modelsPerMake * POPULAR_PARTS.length;
   const estimatedOreillyCredits = 2 + SELECTOR_YEARS.length * 2 + SELECTOR_YEARS.length * POPULAR_MAKES.length * 1
-    + PART_SEARCH_YEARS.length * POPULAR_MAKES.length * 2 * POPULAR_PARTS.length * 5;
+    + partSearchCombos * 5;
   console.log(`Estimated parse.bot cost: ~${estimatedOreillyCredits} credits (~$${(estimatedOreillyCredits * 0.01).toFixed(2)}-$${(estimatedOreillyCredits * 0.03).toFixed(2)})`);
-  console.log(`Plus ~${PART_SEARCH_YEARS.length * POPULAR_MAKES.length * 2 * POPULAR_PARTS.length} AutoZone Apify runs (~$0.01-0.03 each).\n`);
+  console.log(`Plus ~${partSearchCombos} AutoZone Apify runs (~$0.01-0.03 each).\n`);
 
   console.log("Fetching vehicle years...");
   try {
