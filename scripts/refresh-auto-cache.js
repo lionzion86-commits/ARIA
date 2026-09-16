@@ -25,15 +25,25 @@ const OUT_FILE = new URL("../auto-cache.json", import.meta.url);
 const FETCH_TIMEOUT_MS = 60000;
 
 const CURRENT_YEAR = new Date().getFullYear();
-// Drastically reduced scope after O'Reilly's site protection started
-// blocking parse.bot's proxies mid-run ("site protection blocking all
-// proxies") — minimizing cost-at-risk and blocking-trigger surface while
-// confirming the API is usable at all before scaling back up.
+// Reduced scope for anything that depends on O'Reilly's own vehicle data,
+// since their site protection has been intermittently blocking parse.bot's
+// proxies ("site protection blocking all proxies") — kept small to limit
+// cost-at-risk while that's unresolved.
 const SELECTOR_YEARS = Array.from({ length: 3 }, (_, i) => String(CURRENT_YEAR - i)); // last 3 years
 const POPULAR_MAKES = ["Toyota"];
 const POPULAR_MODELS = { Toyota: ["Camry"] };
 const PART_SEARCH_YEARS = [SELECTOR_YEARS[0]]; // must be one of SELECTOR_YEARS so model data exists to match against
-const POPULAR_PARTS = ["pastillas de freno"];
+const POPULAR_PARTS = ["pastillas de freno", "bujías", "filtro de aceite"];
+
+// AutoZone doesn't need O'Reilly's numeric make/model IDs at all — its
+// search just takes a free-text query, so this is decoupled from O'Reilly
+// entirely and can run at full scope regardless of O'Reilly's blocking.
+const AUTOZONE_YEARS = [String(CURRENT_YEAR - 2), String(CURRENT_YEAR - 6)];
+const AUTOZONE_VEHICLES = [
+  { make: "Toyota", model: "Camry" }, { make: "Toyota", model: "Corolla" },
+  { make: "Honda", model: "Accord" }, { make: "Honda", model: "Civic" },
+  { make: "Ford", model: "F-150" }, { make: "Ford", model: "Escape" },
+];
 
 function wait(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
@@ -149,11 +159,12 @@ async function main() {
   await loadExistingCache();
 
   const modelsPerMake = POPULAR_MAKES.reduce((sum, m) => sum + (POPULAR_MODELS[m]?.length || 0), 0);
-  const partSearchCombos = PART_SEARCH_YEARS.length * modelsPerMake * POPULAR_PARTS.length;
+  const oreillyPartSearchCombos = PART_SEARCH_YEARS.length * modelsPerMake * POPULAR_PARTS.length;
   const estimatedOreillyCredits = 2 + SELECTOR_YEARS.length * 2 + SELECTOR_YEARS.length * POPULAR_MAKES.length * 1
-    + partSearchCombos * 5;
+    + oreillyPartSearchCombos * 5;
+  const autozoneComboCount = AUTOZONE_YEARS.length * AUTOZONE_VEHICLES.length * POPULAR_PARTS.length;
   console.log(`Estimated parse.bot cost: ~${estimatedOreillyCredits} credits (~$${(estimatedOreillyCredits * 0.01).toFixed(2)}-$${(estimatedOreillyCredits * 0.03).toFixed(2)})`);
-  console.log(`Plus ~${partSearchCombos} AutoZone Apify runs (~$0.01-0.03 each).\n`);
+  console.log(`Plus ~${autozoneComboCount} AutoZone Apify runs (~$0.01-0.03 each, decoupled from O'Reilly).\n`);
 
   console.log("Fetching vehicle years...");
   try {
@@ -233,12 +244,27 @@ async function main() {
     await wait(OREILLY_DELAY_MS);
   }
 
-  console.log(`Fetching AutoZone results for the same ${combos.length} combos (concurrency 4)...`);
-  const autozoneResults = await mapWithConcurrency(combos, 4, async (combo) => {
+  // Decoupled from the O'Reilly-dependent combos above — pure name-based
+  // queries, no O'Reilly model IDs needed, so this runs at full scope
+  // regardless of whether O'Reilly's API is currently being blocked.
+  const autozoneCombos = [];
+  for (const year of AUTOZONE_YEARS) {
+    for (const { make, model } of AUTOZONE_VEHICLES) {
+      for (const part of POPULAR_PARTS) {
+        autozoneCombos.push({ year, make, model, part });
+      }
+    }
+  }
+  const pendingAutozone = autozoneCombos.filter((c) => {
+    const key = `${c.year}|${c.make}|${c.model}|${c.part}`.toLowerCase();
+    return !cache.partSearches[key]?.autozone;
+  });
+  console.log(`Fetching AutoZone results for ${autozoneCombos.length} combos (${pendingAutozone.length} not yet cached, concurrency 4)...`);
+  const autozoneResults = await mapWithConcurrency(pendingAutozone, 4, async (combo) => {
     const query = `${combo.year} ${combo.make} ${combo.model} ${combo.part}`;
     return callAutoZone(query, 5);
   });
-  combos.forEach((combo, i) => {
+  pendingAutozone.forEach((combo, i) => {
     const key = `${combo.year}|${combo.make}|${combo.model}|${combo.part}`.toLowerCase();
     cache.partSearches[key] = cache.partSearches[key] || {};
     const result = autozoneResults[i];
