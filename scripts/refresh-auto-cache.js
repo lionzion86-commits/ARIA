@@ -17,7 +17,12 @@ import fs from "node:fs/promises";
 
 const SITE = "https://ariashop.pe";
 const OUT_FILE = new URL("../auto-cache.json", import.meta.url);
-const FETCH_TIMEOUT_MS = 25000;
+// O'Reilly calls that hit site-protection blocking include their own
+// internal retry cycle ("attempts":3) before returning an error — a 25s
+// timeout was likely cutting that off before it could finish and report
+// what actually happened, showing up as a generic "operation was aborted"
+// instead of the real error.
+const FETCH_TIMEOUT_MS = 60000;
 
 const CURRENT_YEAR = new Date().getFullYear();
 // Drastically reduced scope after O'Reilly's site protection started
