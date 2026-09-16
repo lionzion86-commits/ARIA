@@ -71,9 +71,9 @@ const RETAILER_CONFIG = {
     // tier ("userTier": "FREE"). Real prices, titles, images, part
     // numbers all came back correctly.
     actorId: "sian.agency/autozone-product-scraper",
-    buildInput: (query, maxItems, extra) => ({
+    buildInput: (query, maxItems) => ({
       keywords: [query],
-      scrapeMode: extra?.scrapeMode || "overview",
+      scrapeMode: "overview",
       maxResults: maxItems,
     }),
   },
@@ -116,7 +116,7 @@ export async function handler(event) {
   }
 
   try {
-    const { retailer, query, maxItems, _testExtra } = JSON.parse(event.body || "{}");
+    const { retailer, query, maxItems } = JSON.parse(event.body || "{}");
 
     const config = RETAILER_CONFIG[retailer];
     if (!config) {
@@ -140,7 +140,7 @@ export async function handler(event) {
     }
 
     const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 50);
-    const actorInput = config.buildInput(query.trim(), cappedMaxItems, _testExtra);
+    const actorInput = config.buildInput(query.trim(), cappedMaxItems);
     const actorPath = config.actorId.replace("/", "~");
 
     const runResponse = await fetch(`https://api.apify.com/v2/actors/${actorPath}/runs`, {

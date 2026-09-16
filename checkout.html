@@ -154,9 +154,10 @@
               <label for="kgInput" class="block text-[12px] font-bold mb-1.5">Peso del paquete</label>
               <div class="relative">
                 <input id="kgInput" name="kgInput" type="number" inputmode="decimal" step="0.01" min="0.01" required placeholder="0.00"
-                  class="w-full h-[54px] bg-white border rounded-2xl pl-4 pr-11 text-[20px] font-bold outline-none focus-ring tabular" style="border-color:var(--line); color:var(--navy)">
+                  class="w-full h-[54px] bg-white border rounded-2xl pl-4 pr-11 text-[20px] font-bold outline-none focus-ring tabular disabled:opacity-70 disabled:cursor-not-allowed" style="border-color:var(--line); color:var(--navy)">
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold" style="color:#9AA3B8">kg</span>
               </div>
+              <p id="kgAutoNote" class="text-[11px] mt-1.5" style="color:#8A93A8" hidden>Peso estimado automáticamente según el tipo de producto.</p>
             </div>
             <div>
               <label for="valorInput" class="block text-[12px] font-bold mb-1.5">Valor declarado</label>
@@ -346,12 +347,23 @@
 
   const params = new URLSearchParams(location.search);
   const prefillKg = parseFloat(params.get('kg'));
-  if (Number.isFinite(prefillKg) && prefillKg > 0) kgInput.value = prefillKg.toFixed(2);
+  if (Number.isFinite(prefillKg) && prefillKg > 0){
+    kgInput.value = prefillKg.toFixed(2);
+    // Weight came from the product itself (category-based estimate — no
+    // retailer exposes a real per-SKU weight) — lock it so the customer
+    // can't override it with a guess of their own.
+    kgInput.disabled = true;
+    document.getElementById('kgAutoNote').hidden = false;
+  }
   const prefillValor = parseFloat(params.get('valor'));
   if (Number.isFinite(prefillValor) && prefillValor > 0) valorInput.value = prefillValor.toFixed(2);
   const prefillDesc = params.get('desc');
   if (prefillDesc) descInput.value = prefillDesc;
   renderSummary();
+  // Prefilled fields don't fire 'input' events, so the quote never
+  // starts on its own — kick it off directly when everything needed is
+  // already here (i.e. arrived from Aria Auto with weight+value+desc).
+  if (currentKg() > 0 && currentValor() > 0 && descInput.value.trim()) requestQuote();
 
   let toastTimer;
   function showToast(msg){

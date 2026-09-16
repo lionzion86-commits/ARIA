@@ -1244,10 +1244,15 @@ function showResults(product){
   }).join('');
 }
 
-function orderProduct(name, totalUsd){
+function orderProduct(name, totalUsd, weightKg){
   const params = new URLSearchParams();
   if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
   if (name) params.set('desc', name);
+  // Only auto parts currently pass a weightKg (estimated by category —
+  // see PART_WEIGHT_ESTIMATES_KG). General retail products have no
+  // weight source yet, so they fall through to checkout's existing
+  // manual-entry field unchanged.
+  if (Number.isFinite(weightKg) && weightKg > 0) params.set('kg', weightKg.toFixed(2));
   window.location.href = 'checkout.html' + (params.toString() ? '?' + params.toString() : '');
 }
 
@@ -1604,7 +1609,29 @@ function autoPartSkeleton(label){
   </div>`;
 }
 
-function renderAutoPartBlock(label, result){
+// Neither AutoZone (confirmed in both "overview" and full "detail" scrape
+// modes — the detail mode returns full specs/dimensions/materials and
+// still no weight field) nor O'Reilly's search_products expose a real
+// per-SKU shipping weight anywhere. With no real weight data available
+// from either retailer, live or cached, this estimates by part category
+// (from the search query itself, which is retailer-agnostic and always
+// known) so checkout can still auto-calculate shipping with zero manual
+// entry, as required. These are real-world plausible averages, not
+// scraped facts — checkout labels the field as an estimate.
+const PART_WEIGHT_ESTIMATES_KG = [
+  { match: /pastillas de freno|brake pad/i, kg: 1.5 },
+  { match: /bujía|bujia|spark plug/i, kg: 0.4 },
+  { match: /filtro de aceite|oil filter/i, kg: 0.5 },
+  { match: /limpiaparabrisas|wiper/i, kg: 0.6 },
+];
+const DEFAULT_PART_WEIGHT_KG = 1.0;
+
+function estimatePartWeightKg(query){
+  const found = PART_WEIGHT_ESTIMATES_KG.find(p => p.match.test(query || ''));
+  return found ? found.kg : DEFAULT_PART_WEIGHT_KG;
+}
+
+function renderAutoPartBlock(label, result, query){
   if (!result.ok){
     return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
       <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(label)}</div>
@@ -1627,7 +1654,7 @@ function renderAutoPartBlock(label, result){
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query)})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
@@ -1653,9 +1680,9 @@ async function searchAutoParts(){
     const blockEl = document.getElementById(`autoBlock-${source.id}`);
     try {
       const items = await source.search(selectedVehicle, query, 5);
-      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items });
+      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query);
     } catch (err) {
-      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: false, error: err.message });
+      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: false, error: err.message }, query);
     }
   }));
 }
