@@ -1290,6 +1290,10 @@ function safeUrl(u){
 // marked-up number, never the original scraped price.
 const LIVE_PRICE_MARKUP = 1.22;
 
+// Deliberately does NOT expose a clickthrough URL to the retailer's site —
+// product cards must never link off-site (see RULE comments at each
+// render function). Only image/title/price/rating make it into the
+// normalized item on purpose.
 function normalizeLiveItem(item){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
@@ -1297,8 +1301,7 @@ function normalizeLiveItem(item){
   const price = Number.isFinite(rawPrice) ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
   const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
-  const url = safeUrl(item.url || item.productUrl || item.link || (item.webPath ? `https://www.nordstrom.com${item.webPath}` : null));
-  return { title, price, image, rating, url };
+  return { title, price, image, rating };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -1326,18 +1329,23 @@ function renderLiveRetailerBlock(retailer, result){
     </div>`;
   }
 
+  // RULE: never link any part of a product card to the retailer's own
+  // site — the whole card is one button that routes into our own
+  // checkout flow via orderProduct(), same as every other buy action on
+  // this site. Do not add an <a href> to a scraped item.url here or
+  // anywhere else a product card is rendered.
   return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${label}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <div class="flex items-center gap-3">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
-            <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${it.url ? `<a href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHtml(it.title)}</a>` : escapeHtml(it.title)}</div>
+            <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
             <div class="text-[12px] text-zinc-500">${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
           </div>
-          <button onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0" style="background:var(--blue)">Pedir</button>
-        </div>
+          <span class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0 grid place-items-center" style="background:var(--blue)">Pedir</span>
+        </button>
       `).join('')}
     </div>
   </div>`;
@@ -1526,7 +1534,9 @@ document.getElementById('autoModelSelect').addEventListener('change', maybeRevea
 
 // O'Reilly's search_products result fields differ from the retail-scraper
 // shape normalizeLiveItem() expects, so it gets its own mapping; every
-// other source can just reuse normalizeLiveItem() directly.
+// other source can just reuse normalizeLiveItem() directly. Deliberately
+// no url field — see RULE comments at each render function: product
+// cards must never link off-site to the retailer.
 function normalizeAutoPartItem(sourceId, item){
   if (sourceId === 'oreilly'){
     const rawPrice = item?.pricing?.price;
@@ -1536,7 +1546,6 @@ function normalizeAutoPartItem(sourceId, item){
       price,
       image: safeUrl(item.image),
       rating: null,
-      url: safeUrl(item.url || null),
     };
   }
   return normalizeLiveItem(item);
@@ -1600,18 +1609,23 @@ function renderAutoPartBlock(label, result){
       <div class="text-[12px] text-zinc-400">Sin resultados.</div>
     </div>`;
   }
+  // RULE: never link any part of a product card to the retailer's own
+  // site — the whole card is one button that routes into our own
+  // checkout flow via orderProduct(), same as every other buy action on
+  // this site. Do not add an <a href> to a scraped item.url here or
+  // anywhere else a product card is rendered.
   return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <div class="flex items-center gap-3">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
-            <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${it.url ? `<a href="${escapeHtml(it.url)}" target="_blank" rel="noopener noreferrer" class="hover:underline">${escapeHtml(it.title)}</a>` : escapeHtml(it.title)}</div>
+            <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
             <div class="text-[12px] text-zinc-500">${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
           </div>
-          <button onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0})" class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0" style="background:var(--blue)">Pedir</button>
-        </div>
+          <span class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0 grid place-items-center" style="background:var(--blue)">Pedir</span>
+        </button>
       `).join('')}
     </div>
   </div>`;
