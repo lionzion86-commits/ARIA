@@ -57,7 +57,7 @@
     <nav class="hidden lg:flex items-center gap-7 text-[14px] font-medium flex-1" style="color:var(--navy)">
       <a href="#" onclick="showPage('howView');return false;" class="opacity-70 hover:opacity-100 transition">Cómo funciona</a>
       <a href="#cats" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Categorías</a>
-      <a href="#" onclick="showPage('ariaAutoView');return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
+      <a href="#" onclick="openAriaAuto();return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
       <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
       <a href="#whyUs" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">¿Por qué Aria?</a>
       <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
@@ -78,7 +78,7 @@
   <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
     <a href="#cats" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
-    <a href="#" onclick="showPage('ariaAutoView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
+    <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
     <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">🔥 Ofertas</a>
     <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
@@ -785,21 +785,21 @@
       <div class="font-bold text-[15px] mb-4" style="color:var(--navy)">1. Elige tu vehículo</div>
       <div class="grid sm:grid-cols-3 gap-3">
         <div>
+          <label for="autoYearSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Año</label>
+          <select id="autoYearSelect" class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+            <option value="">Cargando años…</option>
+          </select>
+        </div>
+        <div>
           <label for="autoMakeSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Marca</label>
-          <select id="autoMakeSelect" class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
-            <option value="">Selecciona una marca</option>
+          <select id="autoMakeSelect" disabled class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed" style="border-color:var(--line)">
+            <option value="">Primero elige un año</option>
           </select>
         </div>
         <div>
           <label for="autoModelSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Modelo</label>
           <select id="autoModelSelect" disabled class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed" style="border-color:var(--line)">
             <option value="">Primero elige una marca</option>
-          </select>
-        </div>
-        <div>
-          <label for="autoYearSelect" class="block text-[12px] font-bold mb-1.5" style="color:var(--navy)">Año</label>
-          <select id="autoYearSelect" disabled class="w-full h-[48px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring disabled:opacity-50 disabled:cursor-not-allowed" style="border-color:var(--line)">
-            <option value="">Primero elige un modelo</option>
           </select>
         </div>
       </div>
@@ -1402,55 +1402,47 @@ async function runLiveScrape(){
    AUTO_PARTS_SOURCES with its own async search(vehicle, query, maxItems)
    — nothing else here needs to change.
    ============================================================ */
-const AUTO_VEHICLES = [
-  { make: 'Toyota', models: [
-    { model: 'Corolla', generations: [{ years: [2014, 2019] }, { years: [2020, 2026] }] },
-    { model: 'Camry', generations: [{ years: [2012, 2017] }, { years: [2018, 2026] }] },
-    { model: 'RAV4', generations: [{ years: [2013, 2018] }, { years: [2019, 2026] }] },
-  ]},
-  { make: 'Honda', models: [
-    { model: 'Civic', generations: [{ years: [2012, 2015] }, { years: [2016, 2021] }, { years: [2022, 2026] }] },
-    { model: 'Accord', generations: [{ years: [2013, 2017] }, { years: [2018, 2026] }] },
-    { model: 'CR-V', generations: [{ years: [2012, 2016] }, { years: [2017, 2022] }, { years: [2023, 2026] }] },
-  ]},
-  { make: 'Ford', models: [
-    { model: 'F-150', generations: [{ years: [2009, 2014] }, { years: [2015, 2020] }, { years: [2021, 2026] }] },
-    { model: 'Escape', generations: [{ years: [2013, 2019] }, { years: [2020, 2026] }] },
-    { model: 'Explorer', generations: [{ years: [2011, 2019] }, { years: [2020, 2026] }] },
-  ]},
-  { make: 'Chevrolet', models: [
-    { model: 'Silverado 1500', generations: [{ years: [2014, 2018] }, { years: [2019, 2026] }] },
-    { model: 'Malibu', generations: [{ years: [2013, 2015] }, { years: [2016, 2026] }] },
-    { model: 'Equinox', generations: [{ years: [2010, 2017] }, { years: [2018, 2026] }] },
-  ]},
-  { make: 'Nissan', models: [
-    { model: 'Altima', generations: [{ years: [2013, 2018] }, { years: [2019, 2026] }] },
-    { model: 'Sentra', generations: [{ years: [2013, 2019] }, { years: [2020, 2026] }] },
-    { model: 'Rogue', generations: [{ years: [2014, 2020] }, { years: [2021, 2026] }] },
-  ]},
-  { make: 'Hyundai', models: [
-    { model: 'Elantra', generations: [{ years: [2011, 2016] }, { years: [2017, 2020] }, { years: [2021, 2026] }] },
-    { model: 'Sonata', generations: [{ years: [2015, 2019] }, { years: [2020, 2026] }] },
-    { model: 'Tucson', generations: [{ years: [2016, 2021] }, { years: [2022, 2026] }] },
-  ]},
-  { make: 'Jeep', models: [
-    { model: 'Grand Cherokee', generations: [{ years: [2011, 2021] }, { years: [2022, 2026] }] },
-    { model: 'Wrangler', generations: [{ years: [2007, 2017] }, { years: [2018, 2026] }] },
-  ]},
-  { make: 'BMW', models: [
-    { model: '3 Series', generations: [{ years: [2012, 2018] }, { years: [2019, 2026] }] },
-    { model: '5 Series', generations: [{ years: [2011, 2016] }, { years: [2017, 2023] }, { years: [2024, 2026] }] },
-  ]},
-];
-
+// Vehicle data is fetched live from O'Reilly's Year->Make->Model chain
+// (that's the order their API requires — makes need a year, models need a
+// make) rather than a static list, so it stays accurate without upkeep.
 let selectedVehicle = null;
+let autoYearsLoaded = false;
+const oreillyMakesCache = {}; // year -> makes[], avoids re-fetching if the customer goes back and forth
 
-function populateAutoMakes(){
-  const sel = document.getElementById('autoMakeSelect');
-  sel.innerHTML = '<option value="">Selecciona una marca</option>' +
-    AUTO_VEHICLES.map(m => `<option value="${escapeHtml(m.make)}">${escapeHtml(m.make)}</option>`).join('');
+async function callOreilly(action, params){
+  const res = await fetch('/.netlify/functions/oreilly-parts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, ...params }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || `Error al consultar O'Reilly (${action})`);
+  return data;
 }
-populateAutoMakes();
+
+function openAriaAuto(){
+  showPage('ariaAutoView');
+  // Lazy-loaded on first visit rather than at page load, since every call
+  // here spends real parse.bot credits — no reason to spend them on
+  // visitors who never open Aria Auto.
+  if (!autoYearsLoaded){
+    autoYearsLoaded = true;
+    initAutoYearSelect();
+  }
+}
+
+async function initAutoYearSelect(){
+  const yearSel = document.getElementById('autoYearSelect');
+  try {
+    const data = await callOreilly('get_vehicle_years', {});
+    const years = Array.isArray(data) ? data : (data.years || []);
+    yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
+      years.map(y => `<option value="${escapeHtml(y)}">${escapeHtml(y)}</option>`).join('');
+  } catch (err) {
+    yearSel.innerHTML = '<option value="">Error al cargar años</option>';
+    showToast(err.message);
+  }
+}
 
 function hideAutoPartSearch(){
   selectedVehicle = null;
@@ -1459,70 +1451,88 @@ function hideAutoPartSearch(){
   document.getElementById('autoPartsResultsWrap').innerHTML = '';
 }
 
-document.getElementById('autoMakeSelect').addEventListener('change', function(){
-  const make = this.value;
+document.getElementById('autoYearSelect').addEventListener('change', async function(){
+  const year = this.value;
+  const makeSel = document.getElementById('autoMakeSelect');
   const modelSel = document.getElementById('autoModelSelect');
-  const yearSel = document.getElementById('autoYearSelect');
-  yearSel.innerHTML = '<option value="">Primero elige un modelo</option>';
-  yearSel.disabled = true;
+  modelSel.innerHTML = '<option value="">Primero elige una marca</option>';
+  modelSel.disabled = true;
   hideAutoPartSearch();
 
-  const makeData = AUTO_VEHICLES.find(m => m.make === make);
-  if (!makeData){
+  if (!year){
+    makeSel.innerHTML = '<option value="">Primero elige un año</option>';
+    makeSel.disabled = true;
+    return;
+  }
+
+  makeSel.innerHTML = '<option value="">Cargando marcas…</option>';
+  makeSel.disabled = true;
+  try {
+    let makes = oreillyMakesCache[year];
+    if (!makes){
+      const data = await callOreilly('get_vehicle_makes', { year });
+      makes = Array.isArray(data) ? data : (data.makes || []);
+      oreillyMakesCache[year] = makes;
+    }
+    makeSel.innerHTML = '<option value="">Selecciona una marca</option>' +
+      makes.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
+    makeSel.disabled = false;
+  } catch (err) {
+    makeSel.innerHTML = '<option value="">Error al cargar marcas</option>';
+    showToast(err.message);
+  }
+});
+
+document.getElementById('autoMakeSelect').addEventListener('change', async function(){
+  const year = document.getElementById('autoYearSelect').value;
+  const makeId = this.value;
+  const modelSel = document.getElementById('autoModelSelect');
+  hideAutoPartSearch();
+
+  if (!makeId){
     modelSel.innerHTML = '<option value="">Primero elige una marca</option>';
     modelSel.disabled = true;
     return;
   }
-  modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
-    makeData.models.map(m => `<option value="${escapeHtml(m.model)}">${escapeHtml(m.model)}</option>`).join('');
-  modelSel.disabled = false;
+
+  modelSel.innerHTML = '<option value="">Cargando modelos…</option>';
+  modelSel.disabled = true;
+  try {
+    const data = await callOreilly('get_vehicle_models', { year, make_id: makeId });
+    const models = Array.isArray(data) ? data : (data.models || []);
+    modelSel.innerHTML = '<option value="">Selecciona un modelo</option>' +
+      models.map(m => `<option value="${escapeHtml(m.id)}" data-name="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`).join('');
+    modelSel.disabled = false;
+  } catch (err) {
+    modelSel.innerHTML = '<option value="">Error al cargar modelos</option>';
+    showToast(err.message);
+  }
 });
 
 document.getElementById('autoModelSelect').addEventListener('change', function(){
-  const make = document.getElementById('autoMakeSelect').value;
-  const model = this.value;
-  const yearSel = document.getElementById('autoYearSelect');
-  hideAutoPartSearch();
-
-  const makeData = AUTO_VEHICLES.find(m => m.make === make);
-  const modelData = makeData && makeData.models.find(m => m.model === model);
-  if (!modelData){
-    yearSel.innerHTML = '<option value="">Primero elige un modelo</option>';
-    yearSel.disabled = true;
-    return;
-  }
-  const years = [];
-  modelData.generations.forEach(g => {
-    for (let y = g.years[1]; y >= g.years[0]; y--) years.push(y);
-  });
-  yearSel.innerHTML = '<option value="">Selecciona un año</option>' +
-    years.map(y => `<option value="${y}">${y}</option>`).join('');
-  yearSel.disabled = false;
-});
-
-document.getElementById('autoYearSelect').addEventListener('change', function(){
-  const make = document.getElementById('autoMakeSelect').value;
-  const model = document.getElementById('autoModelSelect').value;
-  const year = this.value;
-  if (!make || !model || !year){ hideAutoPartSearch(); return; }
-  selectedVehicle = { make, model, year };
-  document.getElementById('autoVehicleSummary').textContent = `Buscando para: ${year} ${make} ${model}`;
+  const year = document.getElementById('autoYearSelect').value;
+  const makeSel = document.getElementById('autoMakeSelect');
+  const makeName = makeSel.options[makeSel.selectedIndex]?.dataset.name || '';
+  const modelName = this.options[this.selectedIndex]?.dataset.name || '';
+  if (!year || !makeSel.value || !this.value){ hideAutoPartSearch(); return; }
+  selectedVehicle = { year, make: makeName, model: modelName };
+  document.getElementById('autoVehicleSummary').textContent = `Buscando para: ${year} ${makeName} ${modelName}`;
   document.getElementById('autoPartSearchWrap').classList.remove('hidden');
   document.getElementById('autoPartsResultsWrap').classList.add('hidden');
   document.getElementById('autoPartsResultsWrap').innerHTML = '';
 });
 
-// Amayama's search_parts result fields differ from the retail-scraper shape
-// normalizeLiveItem() expects, so it gets its own mapping; every other
-// source can just reuse normalizeLiveItem() directly.
+// O'Reilly's search_products result fields differ from the retail-scraper
+// shape normalizeLiveItem() expects, so it gets its own mapping; every
+// other source can just reuse normalizeLiveItem() directly.
 function normalizeAutoPartItem(sourceId, item){
-  if (sourceId === 'amayama'){
-    const rawPrice = typeof item.price_from_usd === 'number' ? item.price_from_usd : parseFloat(item.price_from_usd);
-    const price = Number.isFinite(rawPrice) ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
+  if (sourceId === 'oreilly'){
+    const rawPrice = item?.pricing?.price;
+    const price = typeof rawPrice === 'number' ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
     return {
-      title: item.name || item.part_number || 'Repuesto sin título',
+      title: item.name || 'Repuesto sin título',
       price,
-      image: safeUrl(item.image_url),
+      image: safeUrl(item.image),
       rating: null,
       url: safeUrl(item.url || null),
     };
@@ -1541,15 +1551,13 @@ const AUTO_PARTS_SOURCES = [
     },
   },
   {
-    id: 'amayama',
-    label: 'Amayama (repuestos OEM)',
+    id: 'oreilly',
+    label: "O'Reilly Auto Parts",
     search: async (vehicle, query, maxItems) => {
-      const combined = `${vehicle.make} ${vehicle.model} ${query}`.trim();
-      const res = await fetch(`/.netlify/functions/amayama?action=search_parts&query=${encodeURIComponent(combined)}&page=1`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Error al consultar Amayama');
-      const results = Array.isArray(data.results) ? data.results.slice(0, maxItems) : [];
-      return results.map(it => normalizeAutoPartItem('amayama', it));
+      const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
+      const data = await callOreilly('search_products', { query: combined });
+      const items = Array.isArray(data.items) ? data.items.slice(0, maxItems) : [];
+      return items.map(it => normalizeAutoPartItem('oreilly', it));
     },
   },
   // Add future auto parts sources here — just id, label, and an async
