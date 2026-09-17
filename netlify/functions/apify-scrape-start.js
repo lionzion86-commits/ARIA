@@ -90,7 +90,15 @@ const DEPARTMENT_CONFIG = {
 // test-confirmed" status as DEPARTMENT_CONFIG above.
 const BRAND_CONFIG = {
   target: {
-    nike: { startUrl: "https://www.target.com/c/shoes/nike/-/N-55b0tZ5r231" }, // UNCONFIRMED — a prior check on this exact URL 404'd; needs a fresh real lookup before relying on it
+    // REAL-TEST CONFIRMED NULL (2026-09-17): Target does not carry Nike.
+    // The old startUrl (a stale category facet ID) doesn't 404 — worse,
+    // it silently resolves to a generic shoes page (Reebok/Universal
+    // Thread/etc, zero Nike items). Three separate real keyword searches
+    // ("nike shoes", "nike", "jordan") against this exact actor also
+    // returned zero Nike-branded items. Matches Nike's real-world 2005
+    // split from Target's wholesale channel — not a scraper bug. Left
+    // unset so brand="nike" falls back to a plain keyword search per the
+    // plan's fallback rule, same as Walmart's no-brand-mode case.
   },
   footlocker: {
     nike: { brand: "Nike" },
