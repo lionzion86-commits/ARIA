@@ -9,6 +9,72 @@
 // Actor IDs and input fields verified against each Actor's own API docs
 // on apify.com as of writing — re-check there if a retailer starts
 // returning empty results, since Actors and their schemas can change.
+// Department/category browsing (Phase 0/1 of the department-store
+// restructuring). PHASE 0 STATUS: these are real candidate URLs found via
+// live web search — NOT yet all confirmed against the actual scraper
+// actor (WebFetch can't reliably verify Walmart at all, it's blocked by
+// bot detection, and Target's verification was inconsistent — broad
+// top-level category URLs render as navigation hubs even when a narrower
+// leaf category is a real product grid). Real Apify test calls through
+// this exact buildInput are the authoritative check — see the dated
+// comment on each entry once tested. An entry that fails real testing
+// should be set to null (falls back to plain keyword search for that
+// department, per the plan's explicit fallback rule) rather than left
+// pointing at a URL that silently returns nothing useful.
+const DEPARTMENT_CONFIG = {
+  walmart: {
+    electronics:      { categoryUrl: "https://www.walmart.com/cp/laptops/1089430" },
+    clothing:         { categoryUrl: "https://www.walmart.com/cp/mens-clothing/133197" },
+    candy_chocolate:  { categoryUrl: "https://www.walmart.com/cp/candy/1096070" },
+    sporting_goods:   { categoryUrl: "https://www.walmart.com/cp/sports-outdoors/4125" },
+    home_goods:       { categoryUrl: "https://www.walmart.com/cp/bedding/539103" },
+    pharmacy:         { categoryUrl: "https://www.walmart.com/cp/vitamins-supplements/1005863" },
+  },
+  target: {
+    electronics:      { startUrl: "https://www.target.com/c/electronics/-/N-5xtg6" },
+    clothing:         { startUrl: "https://www.target.com/c/men/-/N-18y1l" },
+    candy_chocolate:  { startUrl: "https://www.target.com/c/chocolate-candy-grocery/candy-bars/-/N-5xt0bZh20t5" },
+    sporting_goods:   { startUrl: "https://www.target.com/c/sports-equipment-outdoors/-/N-5xt52" },
+    home_goods:       { startUrl: "https://www.target.com/c/bedding-home-decor/-/N-5xtv4" },
+    pharmacy:         { startUrl: "https://www.target.com/c/vitamins-supplements-health/-/N-5xu07" },
+  },
+  oldnavy: {
+    // No real category-URL mechanism on this actor (confirmed via its
+    // own input schema) — only a `department` facet layered on a
+    // required keyword. Real, confirmed enum values from the schema:
+    // Women / Men / Girls / Boys / Toddler Girls / Toddler Boys /
+    // Baby Girls / Baby Boys / Gender Neutral / Maternity. "kids" here
+    // covers both Girls and Boys — see refresh-department-cache.js,
+    // which runs both and merges results, rather than picking one.
+    men:   { searchQuery: "shirts", department: "Men" },
+    women: { searchQuery: "shirts", department: "Women" },
+    kids:  { searchQuery: "shirts", department: "Boys" },   // paired with a second "Girls" run in the refresh script
+    sale:  { searchQuery: "clothing", onSaleOnly: true },
+  },
+  footlocker: {
+    // Real, confirmed enum (actor's own OpenAPI schema) — gender+type
+    // based, NOT sport-based. There is no "running"/"basketball" category
+    // to browse; onSaleOnly is a real filter combinable with any category.
+    men:   { category: "mens-shoes" },
+    women: { category: "womens-shoes" },
+    kids:  { category: "kids-shoes" },
+    sale:  { category: "mens-shoes", onSaleOnly: true }, // one representative category + the sale filter, not a dedicated sale category (none exists)
+  },
+};
+
+// Cross-retailer brand search (Phase 4) — same "real candidate, not yet
+// test-confirmed" status as DEPARTMENT_CONFIG above.
+const BRAND_CONFIG = {
+  target: {
+    nike: { startUrl: "https://www.target.com/c/shoes/nike/-/N-55b0tZ5r231" }, // UNCONFIRMED — a prior check on this exact URL 404'd; needs a fresh real lookup before relying on it
+  },
+  footlocker: {
+    nike: { brand: "Nike" },
+  },
+  // walmart: no dedicated brand-mode confirmed on this actor — brand
+  // search there stays a plain keyword search using the brand name itself.
+};
+
 const RETAILER_CONFIG = {
   // Removed: mrdoe/bestbuy-product-scraper required RESIDENTIAL proxy to
   // return results reliably (dropping it made runs hang instead of
@@ -23,10 +89,16 @@ const RETAILER_CONFIG = {
   bestbuy: null,
   walmart: {
     actorId: "devcake/walmart-product-scraper",
-    buildInput: (query, maxItems) => ({
-      targets: [query],
-      maxResults: maxItems,
-    }),
+    // The actor's `targets` field accepts a keyword OR a real Walmart
+    // product/search/browse/category URL — a department/brand entry just
+    // substitutes a category URL in for the keyword. Per the actor's own
+    // docs, a category URL must be an actual product-grid page, not a
+    // "shop by category" landing hub, or it errors with CATEGORY_LANDING_PAGE.
+    buildInput: (query, maxItems, department, brand) => {
+      const dept = department && DEPARTMENT_CONFIG.walmart[department];
+      const target = dept ? dept.categoryUrl : query;
+      return { targets: [target], maxResults: maxItems };
+    },
   },
   target: {
     // Switched from scrapers_lat/target-scraper: real test runs against it
@@ -34,30 +106,46 @@ const RETAILER_CONFIG = {
     // charger") regardless of zip. This one defaults to Target's online
     // catalog store rather than requiring a specific local store to match.
     actorId: "rigelbytes/target-scraper",
-    buildInput: (query, maxItems) => ({
-      searchQueries: [query],
-      maxItems,
-    }),
+    buildInput: (query, maxItems, department, brand) => {
+      const dept = department && DEPARTMENT_CONFIG.target[department];
+      const brandCfg = brand && BRAND_CONFIG.target?.[brand];
+      if (dept) return { startUrls: [dept.startUrl], maxItems };
+      if (brandCfg) return { startUrls: [brandCfg.startUrl], maxItems };
+      return { searchQueries: [query], maxItems };
+    },
   },
   oldnavy: {
     // Covers Gap, Gap Factory, Old Navy, and Banana Republic/Athleta via
     // the `brand` field — "on" targets Old Navy specifically. No proxy
     // required per the Actor's docs (public search API, datacenter IPs).
+    // No true category-browse mechanism on this actor (confirmed via its
+    // schema) — `department` is only a facet filter layered on a required
+    // keyword, so a "department" here is always an approximation, not
+    // real category browsing like Walmart/Target/Foot Locker get.
     actorId: "crawlerbros/gap-inc-scraper",
-    buildInput: (query, maxItems) => ({
-      brand: "on",
-      searchQuery: query,
-      maxItems,
-    }),
+    buildInput: (query, maxItems, department, brand) => {
+      const dept = department && DEPARTMENT_CONFIG.oldnavy[department];
+      return {
+        brand: "on",
+        searchQuery: dept ? dept.searchQuery : query,
+        maxItems,
+        ...(dept?.department ? { department: dept.department } : {}),
+        ...(dept?.onSaleOnly ? { onSaleOnly: true } : {}),
+      };
+    },
   },
   footlocker: {
-    // No proxy mandatory per the Actor's docs.
+    // No proxy mandatory per the Actor's docs. Real category browsing
+    // (mode: "browseByCategory") and real brand browsing (mode:
+    // "browseByBrand") both confirmed via the actor's own OpenAPI schema.
     actorId: "crawlerbros/footlocker-product-scraper",
-    buildInput: (query, maxItems) => ({
-      mode: "search",
-      searchQuery: query,
-      maxItems,
-    }),
+    buildInput: (query, maxItems, department, brand) => {
+      const dept = department && DEPARTMENT_CONFIG.footlocker[department];
+      const brandCfg = brand && BRAND_CONFIG.footlocker?.[brand];
+      if (dept) return { mode: "browseByCategory", category: dept.category, maxItems, ...(dept.onSaleOnly ? { onSaleOnly: true } : {}) };
+      if (brandCfg) return { mode: "browseByBrand", brand: brandCfg.brand, maxItems };
+      return { mode: "search", searchQuery: query, maxItems };
+    },
   },
   // Skipped: moving_beacon-owner1/advance-auto-parts-scraper only accepts
   // a specific product URL (no keyword search — can't do "type a part
@@ -116,7 +204,7 @@ export async function handler(event) {
   }
 
   try {
-    const { retailer, query, maxItems } = JSON.parse(event.body || "{}");
+    const { retailer, query, maxItems, department, brand } = JSON.parse(event.body || "{}");
 
     const config = RETAILER_CONFIG[retailer];
     if (!config) {
@@ -131,7 +219,14 @@ export async function handler(event) {
       };
     }
 
-    if (typeof query !== "string" || !query.trim()) {
+    // A real department/brand browse needs no keyword at all — only
+    // require `query` when neither resolves to a real config entry for
+    // this retailer. Walmart has no dedicated brand mode (confirmed), so
+    // brand search there is just a normal keyword query (the brand name
+    // itself) — no special case needed here for it.
+    const hasDepartment = Boolean(department && DEPARTMENT_CONFIG[retailer]?.[department]);
+    const hasBrand = Boolean(brand && BRAND_CONFIG[retailer]?.[brand]);
+    if (!hasDepartment && !hasBrand && (typeof query !== "string" || !query.trim())) {
       return {
         statusCode: 400,
         headers,
@@ -140,7 +235,7 @@ export async function handler(event) {
     }
 
     const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 50);
-    const actorInput = config.buildInput(query.trim(), cappedMaxItems);
+    const actorInput = config.buildInput((query || "").trim(), cappedMaxItems, department, brand);
     const actorPath = config.actorId.replace("/", "~");
 
     const runResponse = await fetch(`https://api.apify.com/v2/actors/${actorPath}/runs`, {
