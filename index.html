@@ -22,6 +22,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
   @keyframes blink{50%{opacity:0}}
+  @keyframes marqueeScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
+  .marquee-track{ display:flex; width:max-content; animation:marqueeScroll 16s linear infinite; }
+  .marquee-track:hover{ animation-play-state:paused; }
+  .marquee-content{ display:inline-flex; align-items:center; white-space:nowrap; padding-right:2.5rem; }
   :root{
     --navy:#0A1F44;
     --blue:#2F5FEE;
@@ -88,10 +92,15 @@
 </header>
 
 <!-- SALES PROMO BANNER -->
-<button onclick="goSales()" class="w-full block text-left focus-ring" style="background:var(--yellow)">
-  <div class="max-w-[1240px] mx-auto px-5 h-10 flex items-center justify-center gap-2 text-[12.5px] sm:text-[13px] font-bold" style="color:var(--navy)">
-    🔥 Ofertas de hoy — hasta <span class="font-extrabold">40% OFF</span> en productos seleccionados
-    <span class="underline underline-offset-2">Ver todas →</span>
+<!-- No specific discount % claimed here — we don't have a real live feed
+     of sale/discount data at page-load time (real per-item discounts, when
+     a retailer's own scrape data reports one, only surface inside the
+     Ofertas section itself — see goSales()/renderSalesGrid()). This banner
+     is just an invitation to check today's real deals, not a number. -->
+<button onclick="goSales()" class="w-full block text-left focus-ring overflow-hidden" style="background:var(--yellow)" aria-label="Ver ofertas de hoy">
+  <div class="marquee-track h-10" style="color:var(--navy)">
+    <span class="marquee-content text-[12.5px] sm:text-[13px] font-extrabold">🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;</span>
+    <span class="marquee-content text-[12.5px] sm:text-[13px] font-extrabold" aria-hidden="true">🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;</span>
   </div>
 </button>
 
@@ -139,7 +148,7 @@
   <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-6 pb-14">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-[20px] font-bold tracking-[-0.02em]">Comprar por categoría</h2>
-      <span class="text-[12.5px] text-zinc-400">7 tiendas comparadas en cada búsqueda</span>
+      <span class="text-[12.5px] text-zinc-400">4 tiendas comparadas en cada búsqueda</span>
     </div>
     <div class="grid grid-cols-3 md:grid-cols-6 gap-3" id="catGrid"></div>
   </div>
@@ -210,9 +219,8 @@
         <div>
           <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">2</div>
           <div class="rounded-2xl border p-4 h-[110px] mb-4 space-y-1.5" style="border-color:var(--line); background:var(--paper)">
-            <div class="h-6 rounded bg-white border flex items-center justify-between px-2 text-[10.5px] text-zinc-500" style="border-color:var(--line)"><span>Target</span><span>$1,099</span></div>
             <div class="h-6 rounded bg-white border flex items-center justify-between px-2 text-[10.5px] text-zinc-500" style="border-color:var(--line)"><span>Walmart</span><span>$1,142</span></div>
-            <div class="h-6 rounded-md flex items-center justify-between px-2 text-[10.5px] font-bold" style="background:var(--green-bg); border:1px solid #BFE6CC; color:#1C8A4B"><span>Costco · mejor precio</span><span>$958</span></div>
+            <div class="h-6 rounded-md flex items-center justify-between px-2 text-[10.5px] font-bold" style="background:var(--green-bg); border:1px solid #BFE6CC; color:#1C8A4B"><span>Target · mejor precio</span><span>$1,099</span></div>
           </div>
           <div class="font-bold text-[15px]">Compara precios</div>
           <div class="text-[13px] text-zinc-500 mt-1 leading-relaxed">Te mostramos el mejor precio total, con todo lo que cuesta llegar a Perú incluido.</div>
@@ -258,19 +266,18 @@
   <!-- RETAILERS STRIP -->
   <div class="border-t" style="border-color:var(--line); background:var(--paper)">
     <div class="max-w-[1240px] mx-auto px-5 py-10 text-center">
-      <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU. de confianza</div>
+      <!-- RULE: only list retailers actually wired up in LIVE_RETAILERS/
+           apify-scrape-start.js — this list was previously full of
+           retailers we don't (or no longer) search live (Costco,
+           Nordstrom, Victoria's Secret, Bath & Body Works, Coach, Michael
+           Kors, Kate Spade), which misrepresented site capability. Update
+           this alongside LIVE_RETAILERS if a retailer is added/removed. -->
+      <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU. en vivo</div>
       <div class="flex items-center justify-center flex-wrap gap-x-3 gap-y-3">
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#000">NORDSTROM</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#E31837">COSTCO</span>
         <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#0071CE">Walmart</span>
+        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#CC0000">Target</span>
         <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#001E62">Old Navy</span>
         <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#000">Foot Locker</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#CC0000">Target</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#EC008C">Victoria's Secret</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#4A2E83">Bath &amp; Body Works</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#000">COACH</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#000">MICHAEL KORS</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-semibold tracking-[-0.01em] lowercase" style="border-color:var(--line); color:#CE0058">kate spade</span>
       </div>
     </div>
   </div>
@@ -309,11 +316,11 @@
     <div class="rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 mb-6" style="background:var(--sky); border:1px solid #D6E1FF">
       <div class="flex items-center gap-2 text-[13px] font-semibold" style="color:var(--navy)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2 15 5 19 5 19 9 22 12 19 15 19 19 15 19 12 22 9 19 5 19 5 15 2 12 5 9 5 5 9 5Z"/><path d="M9.5 12l1.8 1.8L15 10" stroke="#fff" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        Cada precio incluye envío, aranceles y entrega. Sin cargos ocultos.
+        Precios reales de tienda, en vivo. Envío y aranceles a Perú se calculan en el checkout.
       </div>
       <div class="flex items-center gap-1.5 text-[12px] text-zinc-500">
         <span class="w-1.5 h-1.5 rounded-full" style="background:var(--green)"></span>
-        Búsqueda inteligente activa · comparando <span id="storeCount" class="tabular font-semibold" style="color:var(--navy)">5</span> tiendas
+        Búsqueda en vivo activa · comparando <span id="storeCount" class="tabular font-semibold" style="color:var(--navy)">4</span> tiendas
       </div>
     </div>
 
@@ -327,7 +334,7 @@
           Aria Smart Search <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" style="background:var(--sky); color:var(--blue)">BETA</span>
         </div>
         <h2 id="prodNameBig" class="text-[18px] font-bold tracking-[-0.02em] leading-tight"></h2>
-        <p class="text-[13px] text-zinc-500 mt-1 max-w-[56ch]">Comparamos precio, envío, aranceles y tiempo de entrega en varias tiendas para encontrarte el mejor costo total puesto en tu puerta.</p>
+        <p class="text-[13px] text-zinc-500 mt-1 max-w-[56ch]">Comparamos precios reales entre varias tiendas de EE. UU. en vivo para encontrarte la mejor opción.</p>
       </div>
     </div>
 
@@ -337,32 +344,11 @@
       <aside class="hidden lg:block">
         <div class="flex items-center justify-between mb-4">
           <div class="font-bold text-[14px]">Filtros</div>
-          <button class="text-[12px] font-semibold" style="color:var(--blue)">Limpiar todo</button>
         </div>
         <div class="space-y-6 text-[13px]">
           <div>
-            <div class="font-semibold mb-2.5">Precio total (PEN)</div>
-            <div class="h-1.5 rounded-full bg-zinc-100 relative">
-              <div class="absolute inset-y-0 left-[15%] right-[10%] rounded-full" style="background:var(--blue)"></div>
-            </div>
-            <div class="flex justify-between text-[12px] text-zinc-500 mt-2">
-              <span id="priceMinLbl">S/ 0</span><span id="priceMaxLbl">S/ 0</span>
-            </div>
-          </div>
-          <div>
             <div class="font-semibold mb-2.5">Tienda</div>
             <div id="filterStores" class="space-y-2 text-zinc-600"></div>
-          </div>
-          <div>
-            <div class="font-semibold mb-2.5">Tiempo de entrega</div>
-            <label class="flex items-center gap-2 text-zinc-600"><input type="radio" name="speed" checked class="accent-[#2F5FEE]"> Cualquiera</label>
-            <label class="flex items-center gap-2 text-zinc-600 mt-2"><input type="radio" name="speed" class="accent-[#2F5FEE]"> 3–7 días</label>
-            <label class="flex items-center gap-2 text-zinc-600 mt-2"><input type="radio" name="speed" class="accent-[#2F5FEE]"> 1–2 semanas</label>
-          </div>
-          <div>
-            <div class="font-semibold mb-2.5">Calificación</div>
-            <label class="flex items-center gap-2 text-zinc-600"><input type="radio" name="rating" checked class="accent-[#2F5FEE]"> Cualquiera</label>
-            <label class="flex items-center gap-2 text-zinc-600 mt-2"><input type="radio" name="rating" class="accent-[#2F5FEE]"> ★★★★ y más</label>
           </div>
         </div>
       </aside>
@@ -379,28 +365,12 @@
 
         <div id="resultCount" class="text-[13px] text-zinc-500 mb-3"></div>
 
-        <div class="mb-4 rounded-2xl border p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="border-color:var(--line); background:#fff">
-          <div>
-            <div class="font-bold text-[13.5px]" style="color:var(--navy)">¿Quieres precios reales ahora mismo?</div>
-            <div class="text-[12px] text-zinc-500 mt-0.5">Busca en vivo en Walmart, Target, Old Navy, Foot Locker y AutoZone — puede tardar hasta un minuto.</div>
-          </div>
-          <button id="liveScrapeBtn" onclick="runLiveScrape()" class="h-10 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition flex-shrink-0" style="background:var(--navy)">Buscar precios en vivo</button>
-        </div>
         <div id="liveResultsWrap" class="mb-6 hidden"></div>
-
-        <div class="rounded-2xl border overflow-hidden" style="border-color:var(--line)">
-          <div class="hidden sm:grid grid-cols-[1.6fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1fr] gap-2 px-4 py-3 text-[11.5px] font-bold uppercase tracking-wide text-zinc-400 border-b" style="border-color:var(--line); background:#FBFBFA">
-            <div>Tienda</div><div>Precio</div><div>Envío</div><div>Aranceles</div><div>Total a Perú</div><div>Entrega</div><div></div>
-          </div>
-          <div id="offerRows"></div>
-        </div>
-
-        <div class="mt-3 text-[11.5px] text-zinc-400">* Los precios incluyen aranceles e IGV estimados para importación a Perú. Entrega puerta a puerta, sin costos adicionales al recibir.</div>
 
         <div class="mt-6 rounded-2xl border p-5 flex items-start gap-3" style="border-color:#BFD4FF; background:#F0F5FF">
           <svg class="flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
           <div class="text-[13px] leading-relaxed" style="color:var(--navy)">
-            Los envíos de <span class="font-bold">hasta 200 dólares</span> ingresan a Perú sin pagar impuestos ni aranceles. Los envíos que superan los 200 dólares tienen un cargo adicional de <span class="font-bold">aproximadamente 23 por ciento</span> por aranceles e IGV, calculado sobre el costo total incluyendo el envío. Este cargo ya está incluido en el precio total que te mostramos, sin sorpresas al recibir tu pedido.
+            Los envíos de <span class="font-bold">hasta 200 dólares</span> ingresan a Perú sin pagar impuestos ni aranceles. Los envíos que superan los 200 dólares tienen un cargo adicional de <span class="font-bold">aproximadamente 23 por ciento</span> por aranceles e IGV, calculado sobre el costo total incluyendo el envío. Este cargo se calcula y se muestra en el checkout, antes de pagar — sin sorpresas al recibir tu pedido.
           </div>
         </div>
 
@@ -447,7 +417,7 @@
         <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2">🔥 Ofertas y liquidación</h1>
         <p id="salesCount" class="text-[12.5px] mt-1" style="color:#B9C6E8"></p>
       </div>
-      <div class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)">Precios actualizados constantemente</div>
+      <div class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)">Búsqueda en vivo, en tiempo real</div>
     </div>
 
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
@@ -459,19 +429,8 @@
         </div>
         <div class="space-y-6 text-[13px]">
           <div>
-            <div class="font-semibold mb-2.5">Categoría</div>
-            <select id="salesCatFilter" onchange="renderSalesGrid()" class="w-full h-9 rounded-lg border px-2 text-[13px] focus-ring" style="border-color:var(--line)">
-              <option value="all">Todas las categorías</option>
-            </select>
-          </div>
-          <div>
             <div class="font-semibold mb-2.5">Tienda</div>
             <div id="salesStoreFilters" class="space-y-2 text-zinc-600"></div>
-          </div>
-          <div>
-            <div class="font-semibold mb-2.5">Precio máximo (PEN)</div>
-            <input id="salesPriceMax" type="range" min="0" max="20000" step="100" value="20000" oninput="document.getElementById('salesPriceMaxLbl').textContent=fmtPEN(this.value); renderSalesGrid()" class="w-full accent-[#2F5FEE]">
-            <div id="salesPriceMaxLbl" class="text-[12px] text-zinc-500 mt-1 tabular">S/ 20,000</div>
           </div>
         </div>
       </aside>
@@ -518,7 +477,6 @@
             </div>
           </div>
           <div class="flex gap-2 mt-3">
-            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Costco</span>
             <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Target</span>
             <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Walmart</span>
             <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">+2</span>
@@ -539,18 +497,11 @@
           </div>
           <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--line); background:var(--green-bg)">
             <div class="flex items-center gap-2.5">
-              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#E31837">COST</span>
-              <span class="text-[12.5px] font-bold">Costco</span>
+              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#CC0000">TGT</span>
+              <span class="text-[12.5px] font-bold">Target</span>
               <span class="text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full" style="background:var(--green)">Mejor precio</span>
             </div>
             <span class="text-[13px] font-bold tabular" style="color:var(--navy)">S/ 4,553</span>
-          </div>
-          <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--line)">
-            <div class="flex items-center gap-2.5">
-              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#CC0000">TGT</span>
-              <span class="text-[12.5px] font-bold text-zinc-600">Target</span>
-            </div>
-            <span class="text-[13px] tabular text-zinc-500">S/ 4,782</span>
           </div>
           <div class="px-4 py-3 flex items-center justify-between">
             <div class="flex items-center gap-2.5">
@@ -574,7 +525,7 @@
             <div class="w-14 h-14 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>
             <div>
               <div class="text-[13.5px] font-bold">MacBook Air 13" M4</div>
-              <div class="text-[11.5px] text-zinc-500">Costco · Verificado</div>
+              <div class="text-[11.5px] text-zinc-500">Target · Verificado</div>
             </div>
           </div>
           <button class="w-full h-11 rounded-full text-white text-[13px] font-bold" style="background:var(--blue)">Pedir con Aria</button>
@@ -657,14 +608,31 @@
     <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mb-10">
       Compramos directamente en tiendas oficiales de Estados Unidos. Nunca a través de un revendedor externo, así que sabes exactamente de dónde viene tu producto.
     </p>
+    <!-- RULE: only list retailers actually wired up for live search — see
+         LIVE_RETAILERS in index.html's script and RETAILER_CONFIG in
+         netlify/functions/apify-scrape-start.js. This list previously
+         included several retailers that were never integrated or were
+         later disabled (Costco, Nordstrom, Victoria's Secret, Bath & Body
+         Works, Coach, Michael Kors, Kate Spade, Vitamin Shoppe),
+         misrepresenting what Aria can actually search. Update this
+         alongside those two places if a retailer is added or removed. -->
     <div class="grid sm:grid-cols-2 gap-4">
       <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#E31837">
-          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]">COSTCO</span>
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#0071CE">
+          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]">Walmart</span>
         </div>
         <div>
-          <div class="font-bold text-[15px]">Costco</div>
-          <div class="text-[12.5px] text-zinc-500">Electrónica, hogar y más al por mayor</div>
+          <div class="font-bold text-[15px]">Walmart</div>
+          <div class="text-[12.5px] text-zinc-500">De todo, a buen precio</div>
+        </div>
+      </div>
+      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#CC0000">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="11"/><circle cx="12" cy="12" r="6.2" fill="#CC0000"/><circle cx="12" cy="12" r="2.2" fill="#fff"/></svg>
+        </div>
+        <div>
+          <div class="font-bold text-[15px]">Target</div>
+          <div class="text-[12.5px] text-zinc-500">Ropa, hogar y belleza</div>
         </div>
       </div>
       <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
@@ -686,88 +654,16 @@
         </div>
       </div>
       <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#0071CE">
-          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]">Walmart</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Walmart</div>
-          <div class="text-[12.5px] text-zinc-500">De todo, a buen precio</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
-          <span class="text-black font-extrabold text-[14px] tracking-[-0.01em]">NORDSTROM</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Nordstrom</div>
-          <div class="text-[12.5px] text-zinc-500">Moda premium y marcas de diseñador</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#CC0000">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="11"/><circle cx="12" cy="12" r="6.2" fill="#CC0000"/><circle cx="12" cy="12" r="2.2" fill="#fff"/></svg>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Target</div>
-          <div class="text-[12.5px] text-zinc-500">Ropa, hogar y belleza</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
-          <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:#EC008C">VS</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Victoria's Secret</div>
-          <div class="text-[12.5px] text-zinc-500">Ropa interior y belleza</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#4A2E83">
-          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">B&amp;BW</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Bath &amp; Body Works</div>
-          <div class="text-[12.5px] text-zinc-500">Fragancias y cuidado personal</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
         <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#1C8A4B">
-          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">Vitamin Shoppe</span>
+          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">AutoZone</span>
         </div>
         <div>
-          <div class="font-bold text-[15px]">Vitamin Shoppe</div>
-          <div class="text-[12.5px] text-zinc-500">Suplementos y salud</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
-          <span class="font-extrabold text-[16px] tracking-[-0.01em]" style="color:#000">COACH</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Coach</div>
-          <div class="text-[12.5px] text-zinc-500">Bolsos, carteras y accesorios de lujo</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 border" style="background:#fff; border-color:var(--line)">
-          <span class="font-extrabold text-[12px] tracking-[-0.01em]" style="color:#000">MICHAEL KORS</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Michael Kors</div>
-          <div class="text-[12.5px] text-zinc-500">Moda y accesorios premium</div>
-        </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#F5D3E3">
-          <span class="font-semibold text-[13px] tracking-[-0.01em] lowercase" style="color:#000">kate spade</span>
-        </div>
-        <div>
-          <div class="font-bold text-[15px]">Kate Spade</div>
-          <div class="text-[12.5px] text-zinc-500">Carteras y accesorios con estilo</div>
+          <div class="font-bold text-[15px]">AutoZone</div>
+          <div class="text-[12.5px] text-zinc-500">Repuestos y autopartes — vía Aria Auto</div>
         </div>
       </div>
     </div>
-    <div class="mt-8 text-[13px] text-zinc-500">Estamos sumando más tiendas constantemente. ¿Buscas algo de una tienda que no está en la lista? Escríbenos.</div>
+    <div class="mt-8 text-[13px] text-zinc-500">Estamos evaluando sumar más tiendas. ¿Buscas algo de una tienda que no está en la lista? Escríbenos.</div>
   </div>
 </div>
 
@@ -1063,90 +959,14 @@ document.getElementById('catGrid').innerHTML = CATS.map(c=>`
   </button>
 `).join('');
 
-const PRODUCTS = [
-  {
-    id:'macbook', name:'MacBook Air 13" M4', spec:'16GB RAM · 256GB SSD · Medianoche', cat:'tech',
-    img:'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=500&auto=format&fit=crop&q=80',
-    keywords:['macbook','laptop','apple','computadora'],
-    offers:[
-      {r:'Costco', init:'COST', price:4420, ship:0, duties:84, days:'Gratis · 5–7 días', rating:'4.9 (1.2k)', best:true},
-      {r:'Best Buy', init:'BBY', price:4485, ship:0, duties:90, days:'6–8 días', rating:'4.7 (980)'},
-      {r:'Walmart', init:'WMT', price:4550, ship:0, duties:92, days:'2–5 días', rating:'4.5 (742)'},
-      {r:'Nordstrom', init:'NORD', price:4590, ship:0, duties:96, days:'5–7 días', rating:'4.6 (2.1k)'},
-      {r:'Target', init:'TGT', price:4625, ship:0, duties:98, days:'3–7 días', rating:'4.4 (540)'},
-    ]
-  },
-  {
-    id:'airpods', name:'AirPods Pro 2, USB-C', spec:'Cancelación de ruido activa · Estuche MagSafe', cat:'tech',
-    img:'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&auto=format&fit=crop&q=80',
-    keywords:['airpods','audifonos','apple'],
-    offers:[
-      {r:'Best Buy', init:'BBY', price:1099, ship:45, duties:98, days:'6–8 días', rating:'4.8 (3.4k)', best:true},
-      {r:'Nordstrom', init:'NORD', price:1129, ship:42, duties:101, days:'5–7 días', rating:'4.7 (9.1k)'},
-      {r:'Walmart', init:'WMT', price:1149, ship:44, duties:103, days:'7–9 días', rating:'4.5 (620)'},
-      {r:'Target', init:'TGT', price:1179, ship:46, duties:106, days:'6–8 días', rating:'4.6 (410)'},
-    ]
-  },
-  {
-    id:'nike', name:'Nike Air Force 1 White, Talla 42', spec:'Cuero · Nuevo · Unisex', cat:'shoes',
-    img:'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
-    keywords:['nike','air force','zapatillas','zapatos'],
-    offers:[
-      {r:'Costco', init:'COST', price:320, ship:0, duties:25, days:'Gratis · 5–7 días', rating:'4.8 (890)', best:true},
-      {r:'Walmart', init:'WMT', price:345, ship:25, duties:27, days:'6–8 días', rating:'4.5 (410)'},
-      {r:'Nordstrom', init:'NORD', price:365, ship:25, duties:29, days:'5–7 días', rating:'4.6 (2.8k)'},
-      {r:'Target', init:'TGT', price:380, ship:25, duties:30, days:'7–9 días', rating:'4.4 (300)'},
-    ]
-  },
-  {
-    id:'boxing-gloves', name:'Guantes de Boxeo Profesionales 12oz', spec:'Cuero sintetico . Acolchado de alta densidad', cat:'sports',
-    img:'data:image/jpeg;base64,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',
-    keywords:['guantes','boxeo','box','gimnasio','deporte'],
-    offers:[
-      {r:'Costco', init:'COST', price:145, ship:28, duties:25, days:'5–7 días', rating:'4.9 (1.6k)', best:true},
-      {r:'Walmart', init:'WMT', price:168, ship:25, duties:28, days:'6–8 días', rating:'4.5 (520)'},
-      {r:'Nordstrom', init:'NORD', price:175, ship:25, duties:29, days:'5–7 días', rating:'4.6 (4.2k)'},
-      {r:'Target', init:'TGT', price:182, ship:25, duties:30, days:'7–9 días', rating:'4.4 (380)'},
-    ]
-  },
-  {
-    id:'vitaminD', name:'Vitamina D3 5000 UI, 360 cápsulas', spec:'Suplemento diario · Sin gluten', cat:'health',
-    img:'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=500&auto=format&fit=crop&q=80',
-    keywords:['vitamina','suplemento','salud','d3'],
-    offers:[
-      {r:'Vitamin Shoppe', init:'VS', price:98, ship:22, duties:9, days:'6–8 días', rating:'4.8 (1.1k)', best:true},
-      {r:'Walmart', init:'WMT', price:105, ship:24, duties:9, days:'6–8 días', rating:'4.5 (340)'},
-      {r:'Nordstrom', init:'NORD', price:112, ship:24, duties:10, days:'5–7 días', rating:'4.7 (2.9k)'},
-    ]
-  },
-  {
-    id:'teddy', name:'Oso de peluche clásico, 40cm', spec:'Suave · Apto desde 0 años', cat:'toys',
-    img:'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=500&auto=format&fit=crop&q=80',
-    keywords:['peluche','oso','juguete'],
-    offers:[
-      {r:'Target', init:'TGT', price:45, ship:18, duties:4, days:'6–8 días', rating:'4.7 (610)', best:true},
-      {r:'Walmart', init:'WMT', price:49, ship:18, duties:4, days:'7–9 días', rating:'4.5 (280)'},
-      {r:'Nordstrom', init:'NORD', price:52, ship:18, duties:5, days:'5–7 días', rating:'4.6 (1.4k)'},
-    ]
-  },
-  {
-    id:'hoodie', name:'Sudadera esencial con capucha', spec:'Algodón mezclado · Unisex', cat:'clothing',
-    img:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&auto=format&fit=crop&q=80',
-    keywords:['sudadera','hoodie','ropa','polera'],
-    offers:[
-      {r:'Walmart', init:'WMT', price:59, ship:20, duties:6, days:'6–8 días', rating:'4.4 (220)', best:true},
-      {r:'Target', init:'TGT', price:65, ship:20, duties:6, days:'7–9 días', rating:'4.5 (390)'},
-      {r:'Nordstrom', init:'NORD', price:69, ship:20, duties:7, days:'5–7 días', rating:'4.6 (1.9k)'},
-    ]
-  },
-];
-
-const RETAIL_COLORS = {COST:'#E31837', BBY:'#0A4CA0', WMT:'#0071CE', NORD:'#000', TGT:'#CC0000', VS:'#EC008C', BBW:'#4A2E83'};
-const RETAIL_LABEL = {COST:'COSTCO', BBY:'BEST BUY', WMT:'Walmart', NORD:'NORDSTROM', TGT:'Target', VS:"VS", BBW:'B&BW'};
-
-function fmtPEN(n){ return 'S/ ' + Math.round(n).toLocaleString('es-PE'); }
+// RULE: no hardcoded/demo product catalog belongs here — every product
+// shown anywhere on the site comes from a real live retailer search
+// (see LIVE_RETAILERS/scrapeRetailer/normalizeLiveItem) or the real
+// Aria Auto cache/live pipeline. This was violated before (a fake
+// PRODUCTS array with invented prices/ratings/shipping across retailers
+// we don't even search drove the homepage search, category tiles, sales
+// page and assistant cards) — don't reintroduce a static product array.
 function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
-const FX = 3.78; // demo USD->PEN rate
 
 const ALL_VIEWS = ['homeView','resultsView','salesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
 
@@ -1171,77 +991,95 @@ function searchFor(q){
   doSearch();
 }
 
+// Maps a homepage category tile to a real search term run against the
+// live retailer pipeline — there is no separate "category catalog" to
+// browse; browsing a category just runs the same real live search as
+// typing that term in manually.
+const CATEGORY_QUERY = {
+  tech: 'electronics',
+  clothing: 'clothing',
+  shoes: 'shoes',
+  home: 'home and kitchen',
+  health: 'health and wellness',
+  toys: 'toys',
+};
+
 function searchCategory(cat){
-  const match = PRODUCTS.find(p=>p.cat===cat);
-  if(match) showResults(match);
-  else showToast('Aún no tenemos productos de ejemplo en esta categoría.');
+  const q = CATEGORY_QUERY[cat] || cat;
+  document.getElementById('searchInput').value = q;
+  showResults(q);
 }
 
 function doSearch(which){
-  const q = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).toLowerCase().trim();
+  const q = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).trim();
   if(!q){ showToast('Escribe algo para buscar.'); return; }
-  const match = PRODUCTS.find(p => p.name.toLowerCase().includes(q) || p.keywords.some(k=>k.includes(q) || q.includes(k)));
-  if(match){ showResults(match); }
-  else { showResults(PRODUCTS[0]); showToast(`No encontramos "${q}" — te mostramos un producto de ejemplo.`); }
+  showResults(q);
 }
 
-function showResults(product){
+// Real retailers actually wired up for general shopping (excludes
+// AutoZone, which is Aria Auto's part-search source, not a general
+// storefront) — used anywhere the UI needs to state how many stores a
+// search covers, so that number can never drift from what's real.
+const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => r !== 'autozone');
+
+function initResultsFilters(){
+  document.getElementById('filterStores').innerHTML = GENERAL_RETAILERS.map(r => `
+    <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[#2F5FEE]" onchange="toggleRetailerBlock('${r}', this.checked)"> ${LIVE_RETAILER_LABEL[r]}</label>
+  `).join('');
+}
+
+function toggleRetailerBlock(retailer, visible){
+  const el = document.getElementById(`liveBlock-${retailer}`);
+  if (el) el.classList.toggle('hidden', !visible);
+}
+
+// Runs a real live search across every configured general retailer and
+// renders each one's real results — no fake per-retailer catalog, no
+// canned offer table. This is the ONLY search/results path on the site;
+// there is no fallback "sample product" shown when a query comes back
+// empty, since misrepresenting that as a match would be exactly the kind
+// of fake data this flow was rebuilt to remove.
+async function showResults(query){
   showPage('resultsView');
 
-  document.getElementById('searchInput2').value = product.name;
-  document.getElementById('prodImg').src = product.img;
-  document.getElementById('prodName').textContent = product.name;
-  document.getElementById('prodSpec').textContent = product.spec;
-  document.getElementById('prodImgBig').src = product.img;
-  document.getElementById('prodNameBig').textContent = product.name;
-  document.getElementById('storeCount').textContent = product.offers.length;
-  document.getElementById('resultCount').textContent = `${product.offers.length} tiendas comparadas · precios convertidos a PEN · incluye envío, aranceles a Perú`;
+  document.getElementById('searchInput2').value = query;
+  document.getElementById('prodName').textContent = query;
+  document.getElementById('prodSpec').textContent = '';
+  document.getElementById('prodNameBig').textContent = query;
+  document.getElementById('prodImg').removeAttribute('src');
+  document.getElementById('prodImgBig').removeAttribute('src');
+  document.getElementById('storeCount').textContent = GENERAL_RETAILERS.length;
+  document.getElementById('resultCount').textContent = `Buscando en vivo en ${GENERAL_RETAILERS.length} tiendas…`;
 
-  liveScrapeQuery = product.name;
-  const liveWrap = document.getElementById('liveResultsWrap');
-  liveWrap.classList.add('hidden');
-  liveWrap.innerHTML = '';
-  const liveBtn = document.getElementById('liveScrapeBtn');
-  liveBtn.disabled = false;
-  liveBtn.textContent = 'Buscar precios en vivo';
+  liveScrapeQuery = query;
+  const wrap = document.getElementById('liveResultsWrap');
+  wrap.classList.remove('hidden');
+  wrap.innerHTML = GENERAL_RETAILERS.map(r => `<div id="liveBlock-${r}">${liveRetailerSkeleton(r)}</div>`).join('');
 
-  const totals = product.offers.map(o => o.price + o.ship + o.duties);
-  const totalsPEN = totals.map(t => t * FX);
-  document.getElementById('priceMinLbl').textContent = fmtPEN(Math.min(...totalsPEN));
-  document.getElementById('priceMaxLbl').textContent = fmtPEN(Math.max(...totalsPEN));
+  let heroSet = false;
+  const settled = await Promise.allSettled(GENERAL_RETAILERS.map(async (retailer) => {
+    const blockEl = document.getElementById(`liveBlock-${retailer}`);
+    const items = await scrapeRetailer(retailer, query, 5);
+    blockEl.innerHTML = renderLiveRetailerBlock(retailer, { ok: true, items });
+    if (!heroSet && items.length){
+      const first = normalizeLiveItem(items[0]);
+      if (first.image){
+        document.getElementById('prodImg').src = first.image;
+        document.getElementById('prodImgBig').src = first.image;
+        heroSet = true;
+      }
+    }
+    return items.length;
+  }).map((p, i) => p.catch(err => {
+    const retailer = GENERAL_RETAILERS[i];
+    document.getElementById(`liveBlock-${retailer}`).innerHTML = renderLiveRetailerBlock(retailer, { ok: false, error: err.message });
+    return 0;
+  })));
 
-  document.getElementById('filterStores').innerHTML = product.offers.map(o=>
-    `<label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[#2F5FEE]"> ${o.r}</label>`
-  ).join('');
-
-  const sorted = [...product.offers].sort((a,b)=>(a.price+a.ship+a.duties)-(b.price+b.ship+b.duties));
-
-  document.getElementById('offerRows').innerHTML = sorted.map((o,i)=>{
-    const total = o.price + o.ship + o.duties;
-    const totalPEN = total * FX;
-    const isBest = i === 0;
-    const color = RETAIL_COLORS[o.init] || '#333';
-    return `
-    <div class="grid grid-cols-2 sm:grid-cols-[1.6fr_0.8fr_0.8fr_0.9fr_1fr_0.9fr_1fr] gap-2 sm:gap-3 items-center px-4 sm:px-5 py-5 sm:py-6 border-b last:border-0 ${isBest ? 'relative' : ''}"
-      style="border-color:var(--line); ${isBest ? 'background:var(--green-bg); border-left:4px solid var(--green); box-shadow:0 4px 16px rgba(28,138,75,0.10)' : 'border-left:4px solid transparent'}">
-      ${isBest ? `<span class="absolute -top-3 left-4 text-[10.5px] font-bold text-white px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm" style="background:var(--green)"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 15 5 19 5 19 9 22 12 19 15 19 19 15 19 12 22 9 19 5 19 5 15 2 12 5 9 5 5 9 5Z"/></svg>Mejor precio</span>` : ''}
-      <div class="col-span-2 sm:col-span-1 flex items-center gap-3">
-        <span class="h-9 px-3 rounded-lg grid place-items-center text-[11px] font-extrabold flex-shrink-0 border" style="color:${color}; border-color:${color}22; background:${color}0D">${RETAIL_LABEL[o.init] || o.init}</span>
-        <div class="min-w-0">
-          <div class="${isBest ? 'text-[16px]' : 'text-[15px]'} font-extrabold tracking-[-0.01em] truncate" style="color:var(--navy)">${o.r}</div>
-          <div class="text-[11.5px] text-zinc-400 flex items-center gap-1 mt-0.5"><svg width="10" height="10" viewBox="0 0 24 24" fill="#F5A623"><path d="M12 2 15 9 22 9 16.5 13.5 18.5 21 12 16.8 5.5 21 7.5 13.5 2 9 9 9Z"/></svg> ${o.rating}</div>
-        </div>
-      </div>
-      <div class="text-[13.5px] tabular">${fmtUSD(o.price)}</div>
-      <div class="text-[13.5px] tabular text-zinc-500">${o.ship===0 ? 'Gratis' : fmtUSD(o.ship)}</div>
-      <div class="text-[13.5px] tabular text-zinc-500">${fmtUSD(o.duties)}</div>
-      <div class="${isBest ? 'text-[16px]' : 'text-[14.5px]'} font-extrabold tabular" style="color:${isBest ? 'var(--green)' : 'var(--navy)'}">${fmtPEN(totalPEN)}</div>
-      <div class="text-[12px] text-zinc-500">${o.days}</div>
-      <div>
-        <button onclick="orderProduct('${jsAttr(product.name)}', ${total})" class="w-full sm:w-auto h-9 px-4 rounded-full text-white text-[12.5px] font-bold focus-ring transition ${isBest ? 'shadow-md' : ''}" style="background:var(--blue)">Pedir con Aria</button>
-      </div>
-    </div>`;
-  }).join('');
+  const totalFound = settled.reduce((sum, r) => sum + (r.value || 0), 0);
+  document.getElementById('resultCount').textContent = totalFound
+    ? `Resultados en vivo de ${GENERAL_RETAILERS.length} tiendas · el envío y los aranceles a Perú se calculan en el checkout`
+    : `Sin resultados en vivo para "${query}" en este momento — intenta con otra búsqueda.`;
 }
 
 function orderProduct(name, totalUsd, weightKg){
@@ -1382,7 +1220,22 @@ function normalizeLiveItem(item){
   const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
   const weightKg = estimateRetailWeightKg(title);
-  return { title, price, image, rating, weightKg };
+
+  // Real on-sale signal, only when the retailer's own scrape data reports
+  // one — confirmed present on live Target (isOnSale/regularPrice/
+  // savingsPercent), Walmart (onSale/savingsAmount) and Old Navy (onSale/
+  // regularPrice/percentageOff) payloads. Never fabricated: if none of
+  // these fields are present, onSale stays false and originalPrice null.
+  const onSaleFlag = item.onSale === true || item.isOnSale === true
+    || (typeof item.savingsAmount === 'number' && item.savingsAmount > 0)
+    || (typeof item.savingsPercent === 'number' && item.savingsPercent > 0)
+    || (typeof item.percentageOff === 'number' && item.percentageOff > 0);
+  const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice;
+  const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
+  const hasRealDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
+  const originalPrice = hasRealDiscount ? Math.round(rawOriginalNum * LIVE_PRICE_MARKUP * 100) / 100 : null;
+
+  return { title, price, image, rating, weightKg, onSale: hasRealDiscount, originalPrice };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -1423,7 +1276,9 @@ function renderLiveRetailerBlock(retailer, result){
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
-            <div class="text-[12px] text-zinc-500">${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
+            <div class="text-[12px] text-zinc-500">
+              ${it.onSale ? `<span class="line-through text-zinc-400">${fmtUSD(it.originalPrice)}</span> ` : ''}${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}
+            </div>
           </div>
           <span class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0 grid place-items-center" style="background:var(--blue)">Pedir</span>
         </button>
@@ -1458,31 +1313,6 @@ async function scrapeRetailer(retailer, query, maxItems){
     await wait(LIVE_POLL_INTERVAL_MS);
   }
   throw new Error('La búsqueda tardó demasiado — intenta de nuevo.');
-}
-
-async function runLiveScrape(){
-  const btn = document.getElementById('liveScrapeBtn');
-  const wrap = document.getElementById('liveResultsWrap');
-  const query = liveScrapeQuery;
-  if (!query) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Buscando en vivo…';
-  wrap.classList.remove('hidden');
-  wrap.innerHTML = LIVE_RETAILERS.map(r => `<div id="liveBlock-${r}">${liveRetailerSkeleton(r)}</div>`).join('');
-
-  await Promise.allSettled(LIVE_RETAILERS.map(async (retailer) => {
-    const blockEl = document.getElementById(`liveBlock-${retailer}`);
-    try {
-      const items = await scrapeRetailer(retailer, query, 5);
-      blockEl.innerHTML = renderLiveRetailerBlock(retailer, { ok: true, items });
-    } catch (err) {
-      blockEl.innerHTML = renderLiveRetailerBlock(retailer, { ok: false, error: err.message });
-    }
-  }));
-
-  btn.disabled = false;
-  btn.textContent = 'Buscar precios en vivo';
 }
 
 /* ============================================================
@@ -2046,125 +1876,100 @@ function showToast(msg){
 
 /* ============================================================
    SALES / DEALS SECTION
-   Demo dataset below — once the live scraped catalog is wired
-   up, generate this from real retailer sale/clearance flags
-   instead of this static array.
+   No fake dataset. Runs real live searches across a small, fixed set of
+   representative queries and keeps only items the retailer's own scrape
+   data actually flags as on sale (see normalizeLiveItem's onSale/
+   originalPrice fields, sourced from real isOnSale/onSale/percentageOff
+   fields — never fabricated). Bounded to a few queries rather than
+   scanning every category, since each one is a real paid Apify run per
+   retailer — visiting this page has a real cost, unlike the old fake
+   array which was free because it wasn't real.
    ============================================================ */
+const SALES_QUERIES = ['clothing', 'shoes', 'electronics'];
 
-const SALE_PRODUCTS = [
-  { baseId:'macbook', name:'MacBook Air 13" M4', cat:'tech', storeInit:'COST', store:'Costco',
-    img:'https://images.unsplash.com/photo-1541807084-5c52b6b3adef?w=500&auto=format&fit=crop&q=80',
-    originalPrice:4420, salePrice:3980, tag:'limited' },
-  { baseId:'airpods', name:'AirPods Pro 2, USB-C', cat:'tech', storeInit:'BBY', store:'Best Buy',
-    img:'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=500&auto=format&fit=crop&q=80',
-    originalPrice:1099, salePrice:879, tag:'limited' },
-  { baseId:'nike', name:'Nike Air Force 1 White, Talla 42', cat:'shoes', storeInit:'COST', store:'Costco',
-    img:'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=500&auto=format&fit=crop&q=80',
-    originalPrice:320, salePrice:192, tag:'clearance' },
-  { baseId:'boxing-gloves', name:'Guantes de Boxeo Profesionales 12oz', cat:'sports', storeInit:'COST', store:'Costco',
-    img:'data:image/jpeg;base64,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',
-    originalPrice:145, salePrice:101, tag:'clearance' },
-  { baseId:'vitaminD', name:'Vitamina D3 5000 UI, 360 cápsulas', cat:'health', storeInit:'VS', store:'Vitamin Shoppe',
-    img:'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=500&auto=format&fit=crop&q=80',
-    originalPrice:98, salePrice:78, tag:'limited' },
-  { baseId:'teddy', name:'Oso de peluche clásico, 40cm', cat:'toys', storeInit:'TGT', store:'Target',
-    img:'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=500&auto=format&fit=crop&q=80',
-    originalPrice:45, salePrice:27, tag:'clearance' },
-  { baseId:'hoodie', name:'Sudadera esencial con capucha', cat:'clothing', storeInit:'WMT', store:'Walmart',
-    img:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=500&auto=format&fit=crop&q=80',
-    originalPrice:59, salePrice:41, tag:'clearance' },
-];
-
-function discountPct(p){ return Math.round((1 - p.salePrice / p.originalPrice) * 100); }
+let saleItemsCache = [];
 
 function goSales(){
   showPage('salesView');
-  renderSalesGrid();
+  runSalesScan();
 }
 
 function initSalesFilters(){
-  const catSelect = document.getElementById('salesCatFilter');
-  const uniqueCats = [...new Set(SALE_PRODUCTS.map(p => p.cat))];
-  const catLabels = Object.fromEntries(CATS.map(c => [c.k, c.label]));
-  uniqueCats.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c;
-    opt.textContent = catLabels[c] || c;
-    catSelect.appendChild(opt);
-  });
-
-  const uniqueStores = [...new Set(SALE_PRODUCTS.map(p => p.storeInit))];
-  document.getElementById('salesStoreFilters').innerHTML = uniqueStores.map(init => {
-    const store = SALE_PRODUCTS.find(p => p.storeInit === init).store;
-    return `<label class="flex items-center gap-2"><input type="checkbox" checked value="${init}" class="salesStoreFilter accent-[#2F5FEE]" onchange="renderSalesGrid()"> ${store}</label>`;
-  }).join('');
-
-  const maxPENPrice = Math.ceil(Math.max(...SALE_PRODUCTS.map(p => p.salePrice)) * FX / 100) * 100;
-  const slider = document.getElementById('salesPriceMax');
-  slider.max = maxPENPrice;
-  slider.value = maxPENPrice;
-  document.getElementById('salesPriceMaxLbl').textContent = fmtPEN(maxPENPrice);
+  document.getElementById('salesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
+    `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="salesStoreFilter accent-[#2F5FEE]" onchange="renderSalesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
+  ).join('');
 }
+
+async function runSalesScan(){
+  document.getElementById('salesCount').textContent = 'Buscando ofertas reales en vivo…';
+  document.getElementById('salesGrid').innerHTML = `<div class="col-span-full text-center text-zinc-400 py-16">Buscando ofertas reales en vivo…</div>`;
+
+  const found = [];
+  const tasks = [];
+  SALES_QUERIES.forEach(query => {
+    GENERAL_RETAILERS.forEach(retailer => {
+      tasks.push(
+        scrapeRetailer(retailer, query, 10)
+          .then(rawItems => rawItems.map(normalizeLiveItem).forEach(it => { if (it.onSale) found.push({ ...it, retailer }); }))
+          .catch(() => {}) // one retailer/query failing shouldn't block the rest
+      );
+    });
+  });
+  await Promise.allSettled(tasks);
+
+  saleItemsCache = found;
+  renderSalesGrid();
+}
+
+function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100); }
 
 function saleCardHTML(p){
   const pct = discountPct(p);
-  const color = RETAIL_COLORS[p.storeInit] || '#333';
-  const isClearance = p.tag === 'clearance';
-  const tagLabel = isClearance ? 'Liquidación' : 'Oferta por tiempo limitado';
-  const tagColor = isClearance ? '#CC0000' : 'var(--blue)';
   return `
-  <button onclick="showResults(PRODUCTS.find(x=>x.id==='${p.baseId}'))" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price}, ${p.weightKg})" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
     <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
-      <img src="${p.img}" alt="${p.name}" class="w-full h-full object-cover">
+      ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
       <span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${pct}%</span>
-      <span class="absolute top-2 right-2 text-[9px] font-bold px-2 py-1 rounded-full text-white" style="background:${tagColor}">${tagLabel}</span>
     </div>
     <div class="p-3">
-      <span class="text-[10px] font-extrabold" style="color:${color}">${RETAIL_LABEL[p.storeInit] || p.storeInit}</span>
-      <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${p.name}</div>
+      <span class="text-[10px] font-extrabold" style="color:var(--navy)">${LIVE_RETAILER_LABEL[p.retailer] || p.retailer}</span>
+      <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${escapeHtml(p.title)}</div>
       <div class="flex items-center gap-2 mt-1.5">
         <span class="text-[11px] text-zinc-400 line-through tabular">${fmtUSD(p.originalPrice)}</span>
-        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${fmtUSD(p.salePrice)}</span>
+        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${fmtUSD(p.price)}</span>
       </div>
     </div>
   </button>`;
 }
 
 function renderSalesGrid(){
-  const catFilter = document.getElementById('salesCatFilter').value;
   const activeStores = Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value);
-  const maxPEN = parseFloat(document.getElementById('salesPriceMax').value);
   const sortBy = document.getElementById('salesSort').value;
 
-  let items = SALE_PRODUCTS.filter(p =>
-    (catFilter === 'all' || p.cat === catFilter) &&
-    activeStores.includes(p.storeInit) &&
-    (p.salePrice * FX) <= maxPEN
-  );
+  let items = saleItemsCache.filter(p => activeStores.includes(p.retailer));
 
   if (sortBy === 'discount') items.sort((a, b) => discountPct(b) - discountPct(a));
-  else if (sortBy === 'priceAsc') items.sort((a, b) => a.salePrice - b.salePrice);
-  else if (sortBy === 'priceDesc') items.sort((a, b) => b.salePrice - a.salePrice);
+  else if (sortBy === 'priceAsc') items.sort((a, b) => a.price - b.price);
+  else if (sortBy === 'priceDesc') items.sort((a, b) => b.price - a.price);
 
   document.getElementById('salesGrid').innerHTML = items.length
     ? items.map(saleCardHTML).join('')
-    : `<div class="col-span-full text-center text-zinc-400 py-16">No hay ofertas con estos filtros.</div>`;
-  document.getElementById('salesCount').textContent = `${items.length} ofertas activas`;
+    : `<div class="col-span-full text-center text-zinc-400 py-16">No encontramos ofertas reales en este momento — vuelve a intentarlo más tarde.</div>`;
+  document.getElementById('salesCount').textContent = `${items.length} ofertas reales encontradas en vivo`;
 }
 
 initSalesFilters();
+initResultsFilters();
 
 /* ============================================================
-   AI SHOPPING ASSISTANT (prototype)
+   AI SHOPPING ASSISTANT
    Voice in/out runs entirely in the browser (free, built-in
-   Web Speech API) — no cost for the voice layer itself.
-   The "brain" below is a local stand-in that searches the
-   PRODUCTS array so the flow is demoable today. To go live,
-   replace runAssistantBrain() with a call to YOUR OWN backend
-   endpoint (e.g. POST /api/assistant), which then calls the
-   Claude API server-side. The Claude API key must never be
-   placed in this front-end file — it would be visible to
-   anyone who views the page source.
+   Web Speech API) — no cost for the voice layer itself. The chat reply
+   itself is real: runAssistantBrain() calls netlify/functions/aria-chat-groq.js
+   (Groq/Llama for text, Grok for TTS), never a local stand-in — API keys
+   stay server-side, never in this front-end file. Any product cards shown
+   alongside a reply come from a real live retailer search (see the
+   scrapeRetailer() call below), not a local catalog.
    ============================================================ */
 
 let assistantOpen = false;
@@ -2248,17 +2053,17 @@ function addAssistantMessage(role, text, audioBase64){
   }
 }
 
-function addAssistantProductCard(product){
+function addAssistantProductCard(item, retailer){
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); showResults(product); };
+  card.onclick = () => { toggleAssistant(); orderProduct(item.title, item.price, item.weightKg); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
-    <img src="${product.img}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">
-    <div class="min-w-0">
-      <div class="text-[12.5px] font-bold truncate">${product.name}</div>
-      <div class="text-[11.5px] text-zinc-500 truncate">${product.spec}</div>
+    ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
+    <div class="min-w-0 flex-1">
+      <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
+      <div class="text-[11.5px] text-zinc-500 truncate">${LIVE_RETAILER_LABEL[retailer] || retailer}${item.price != null ? ' · ' + fmtUSD(item.price) : ''}</div>
     </div>`;
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
@@ -2319,15 +2124,19 @@ async function runAssistantBrain(text){
 
     addAssistantMessage('bot', reply, data.audio);
 
-    // Still surface product cards from the local demo catalog when relevant,
-    // until Aria is wired to the real live product database.
-    const q = text.toLowerCase();
-    const matches = PRODUCTS.filter(p =>
-      p.keywords.some(k => q.includes(k)) ||
-      q.includes(p.cat) ||
-      p.name.toLowerCase().split(' ').some(w => w.length > 3 && q.includes(w))
-    );
-    if (matches.length) matches.slice(0, 3).forEach(addAssistantProductCard);
+    // Surfaces real product cards from a real live search — no local fake
+    // catalog. Bounded to a single retailer (Walmart, the broadest general
+    // catalog of the ones we search) and 3 items, so every chat turn only
+    // costs one Apify run instead of scanning all retailers like the main
+    // search flow does; a full multi-retailer comparison is what the
+    // "Pedir con Aria" search bar itself is for.
+    try {
+      const rawItems = await scrapeRetailer('walmart', text, 3);
+      rawItems.map(it => normalizeLiveItem(it)).forEach(it => addAssistantProductCard(it, 'walmart'));
+    } catch (e) {
+      // A failed/empty live lookup shouldn't block the chat reply that
+      // already succeeded above — just skip showing product cards.
+    }
 
   } catch (err) {
     addAssistantMessage('bot', 'Ups, no pude conectarme. Revisa tu conexión e intenta de nuevo.');
