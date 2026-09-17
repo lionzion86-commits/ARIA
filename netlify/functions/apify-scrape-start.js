@@ -22,13 +22,25 @@
 // department, per the plan's explicit fallback rule) rather than left
 // pointing at a URL that silently returns nothing useful.
 const DEPARTMENT_CONFIG = {
+  // All 6 Walmart URLs and all 6 Target URLs below are REAL-TEST CONFIRMED
+  // (2026-09-17) — actual Apify runs against this exact actor+URL,
+  // verified to return real, non-empty product data. Not guesses.
+  //
+  // Walmart-specific finding: the actor's own docs say `targets` accepts
+  // either a keyword or a category URL, but real testing showed this only
+  // works with Walmart's `/browse/<slug>/<id>_<id>...` URL format — every
+  // `/cp/<slug>/<id>` URL (the "clean"/marketing-friendly category URL
+  // format, e.g. walmart.com/cp/electronics/3944) failed on all 6
+  // departments tested, uniformly. `/browse/` URLs are the real
+  // catalog-grid page format; `/cp/` pages are landing/hub pages even
+  // when they look like a specific category.
   walmart: {
-    electronics:      { categoryUrl: "https://www.walmart.com/cp/laptops/1089430" },
-    clothing:         { categoryUrl: "https://www.walmart.com/cp/mens-clothing/133197" },
-    candy_chocolate:  { categoryUrl: "https://www.walmart.com/cp/candy/1096070" },
-    sporting_goods:   { categoryUrl: "https://www.walmart.com/cp/sports-outdoors/4125" },
-    home_goods:       { categoryUrl: "https://www.walmart.com/cp/bedding/539103" },
-    pharmacy:         { categoryUrl: "https://www.walmart.com/cp/vitamins-supplements/1005863" },
+    electronics:      { categoryUrl: "https://www.walmart.com/browse/electronics/tv-video/3944_1060825" },
+    clothing:         { categoryUrl: "https://www.walmart.com/browse/clothing/mens-clothing/5438_133197_7185501" },
+    candy_chocolate:  { categoryUrl: "https://www.walmart.com/browse/food/candy/976759_1096070" },
+    sporting_goods:   { categoryUrl: "https://www.walmart.com/browse/sports/4125_4161" },
+    home_goods:       { categoryUrl: "https://www.walmart.com/browse/home/kitchen-towels-dish-towels/4044_623679_8055732_5591719_7723882" },
+    pharmacy:         { categoryUrl: "https://www.walmart.com/browse/health/vitamins/976760_1005863" },
   },
   target: {
     electronics:      { startUrl: "https://www.target.com/c/electronics/-/N-5xtg6" },
