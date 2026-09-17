@@ -265,7 +265,23 @@
           <span class="text-[13.5px] font-bold" style="color:var(--navy)">Total a pagar</span>
           <span id="sumTotal" class="text-[26px] font-extrabold tabular" style="color:var(--blue)">$0.00</span>
         </div>
-        <div id="sumPenWrap" class="text-[12px] text-right -mt-2" style="color:#9AA3B8" hidden>≈ <span id="sumPen" class="tabular"></span></div>
+        <div id="sumPenWrap" class="text-[12px] text-right -mt-2" style="color:#9AA3B8" hidden>≈ <span id="sumPen" class="tabular font-semibold"></span></div>
+        <!-- BUG FIX (2026-09-17): this used to rely on a hardcoded 3.8
+             USD/PEN rate. Now fetches real compra/venta rates from SUNAT
+             (netlify/functions/exchange-rate.js) — venta is what's used
+             to compute the soles amount above; both are shown here with
+             plain-language labels so the customer knows which applies. -->
+        <div id="fxRatesWrap" class="rounded-xl px-3.5 py-3 space-y-2.5" style="background:var(--sky)" hidden>
+          <div class="text-[10px] font-extrabold uppercase tracking-wide" style="color:var(--navy)">Tipo de cambio del día <span id="fxOrigen"></span></div>
+          <div>
+            <div class="text-[12.5px] font-bold" style="color:var(--navy)">Compra: <span id="fxCompra" class="tabular"></span></div>
+            <div class="text-[10.5px] leading-snug" style="color:#6B7280">Precio al que se compran dólares — no es lo que pagas tú.</div>
+          </div>
+          <div>
+            <div class="text-[12.5px] font-bold" style="color:var(--navy)">Venta: <span id="fxVenta" class="tabular"></span></div>
+            <div class="text-[10.5px] leading-snug" style="color:#6B7280">Precio al que se venden dólares — con este calculamos tu total en soles.</div>
+          </div>
+        </div>
         <button id="payBtn" type="submit" disabled
           class="w-full h-[52px] rounded-2xl text-white text-[14.5px] font-bold focus-ring transition disabled:opacity-40 disabled:cursor-not-allowed"
           style="background:var(--blue)">
@@ -318,7 +334,62 @@
   const sumTotal = document.getElementById('sumTotal');
   const sumPenWrap = document.getElementById('sumPenWrap');
   const sumPen = document.getElementById('sumPen');
+  const fxRatesWrap = document.getElementById('fxRatesWrap');
+  const fxCompra = document.getElementById('fxCompra');
+  const fxVenta = document.getElementById('fxVenta');
+  const fxOrigen = document.getElementById('fxOrigen');
   const payBtn = document.getElementById('payBtn');
+
+  // BUG FIX (2026-09-17): checkout used to convert to soles with a
+  // hardcoded 3.8 rate. Real compra/venta rates now come from SUNAT via
+  // netlify/functions/exchange-rate.js, cached client-side for 24h so a
+  // returning customer within the same day doesn't re-fetch. venta is the
+  // rate actually used to compute the soles amount charged (see
+  // renderSummary below) — compra is shown for reference only.
+  const FX_CACHE_KEY = 'aria_fx_rate_v1';
+  const FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+  let fxRates = null;
+
+  async function loadFxRates(){
+    try {
+      const cachedRaw = localStorage.getItem(FX_CACHE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && typeof cached.venta === 'number' && typeof cached.fetchedAt === 'number'
+            && Date.now() - cached.fetchedAt < FX_CACHE_TTL_MS) {
+          return cached;
+        }
+      }
+    } catch {
+      // localStorage unavailable (private browsing) or corrupt cache entry
+      // — fall through to a fresh fetch rather than failing.
+    }
+
+    const res = await fetch('/.netlify/functions/exchange-rate');
+    const data = await res.json();
+    if (!res.ok || typeof data.venta !== 'number' || typeof data.compra !== 'number') {
+      throw new Error(data.error || 'No se pudo obtener el tipo de cambio');
+    }
+    const withTimestamp = { ...data, fetchedAt: Date.now() };
+    try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify(withTimestamp)); } catch { /* storage full/unavailable — non-fatal, just won't cache */ }
+    return withTimestamp;
+  }
+
+  async function initFxRates(){
+    try {
+      fxRates = await loadFxRates();
+      fxCompra.textContent = pen.format(fxRates.compra);
+      fxVenta.textContent = pen.format(fxRates.venta);
+      fxOrigen.textContent = fxRates.origen ? `(${fxRates.origen})` : '';
+      fxRatesWrap.hidden = false;
+    } catch (err) {
+      // No real rate available — leave fxRates null. renderSummary falls
+      // back to AVI's own total_pen (when it has one) rather than
+      // blocking checkout on a currency-display feature.
+      fxRatesWrap.hidden = true;
+    }
+    renderSummary();
+  }
 
   function currentKg(){
     const raw = parseFloat(kgInput.value);
@@ -404,8 +475,16 @@
 
     sumFlete.textContent = usd.format(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
     sumTotal.textContent = usd.format(latestQuote.total_usd);
-    if (latestQuote.total_pen != null){
-      sumPen.textContent = pen.format(latestQuote.total_pen);
+
+    // BUG FIX (2026-09-17): the soles amount used to come from AVI's own
+    // total_pen (an internal rate we don't control) or a hardcoded 3.8
+    // rate. Now computed with our own live venta rate from SUNAT — the
+    // rate at which dollars are actually sold, which is what determines
+    // how many soles the customer needs. Falls back to AVI's own
+    // total_pen only if our own rate fetch failed entirely.
+    const totalPen = fxRates ? latestQuote.total_usd * fxRates.venta : latestQuote.total_pen;
+    if (totalPen != null){
+      sumPen.textContent = pen.format(totalPen);
       sumPenWrap.hidden = false;
     } else {
       sumPenWrap.hidden = true;
@@ -579,6 +658,7 @@
   }
 
   renderSummary();
+  initFxRates();
   // Prefilled fields don't fire 'input' events, so the quote never
   // starts on its own — kick it off directly when everything needed is
   // already here (i.e. arrived from Aria Auto with weight+value+desc).
