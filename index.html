@@ -1016,12 +1016,6 @@ function doSearch(which){
   showResults(q);
 }
 
-// Real retailers actually wired up for general shopping (excludes
-// AutoZone, which is Aria Auto's part-search source, not a general
-// storefront) — used anywhere the UI needs to state how many stores a
-// search covers, so that number can never drift from what's real.
-const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => r !== 'autozone');
-
 function initResultsFilters(){
   document.getElementById('filterStores').innerHTML = GENERAL_RETAILERS.map(r => `
     <label class="flex items-center gap-2"><input type="checkbox" checked class="accent-[#2F5FEE]" onchange="toggleRetailerBlock('${r}', this.checked)"> ${LIVE_RETAILER_LABEL[r]}</label>
@@ -1103,6 +1097,19 @@ function orderProduct(name, totalUsd, weightKg){
    ============================================================ */
 const LIVE_RETAILERS = ['walmart', 'target', 'oldnavy', 'footlocker', 'autozone']; // bestbuy dropped, nordstrom paused — see apify-scrape-start.js
 const LIVE_RETAILER_LABEL = { bestbuy: 'Best Buy', walmart: 'Walmart', target: 'Target', nordstrom: 'Nordstrom', oldnavy: 'Old Navy', footlocker: 'Foot Locker', autozone: 'AutoZone' };
+
+// Real retailers actually wired up for general shopping (excludes
+// AutoZone, which is Aria Auto's part-search source, not a general
+// storefront) — used anywhere the UI needs to state how many stores a
+// search covers, so that number can never drift from what's real.
+// BUG FIX (2026-09-17): this was previously declared much earlier in the
+// file (right after doSearch/searchCategory), before LIVE_RETAILERS
+// existed yet — referencing a const before its declaration throws a
+// ReferenceError (temporal dead zone), which permanently poisoned this
+// const and silently crashed every showResults() call the instant it
+// touched GENERAL_RETAILERS.length, before the live results container was
+// ever unhidden or populated. Must stay below LIVE_RETAILERS.
+const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => r !== 'autozone');
 let liveScrapeQuery = '';
 
 function escapeHtml(str){
