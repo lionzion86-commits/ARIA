@@ -20,7 +20,10 @@
 // should be set to null (falls back to plain keyword search for that
 // department, per the plan's explicit fallback rule) rather than left
 // pointing at a URL that silently returns nothing useful.
-const DEPARTMENT_CONFIG = {
+// Exported (alongside BRAND_CONFIG below) so refresh-department-cache.js
+// can import the exact same department/brand keys rather than
+// hand-duplicating this list and risking drift.
+export const DEPARTMENT_CONFIG = {
   // All 6 Walmart URLs and all 6 Target URLs below are REAL-TEST CONFIRMED
   // (2026-09-17) — actual Apify runs against this exact actor+URL,
   // verified to return real, non-empty product data. Not guesses.
@@ -66,7 +69,12 @@ const DEPARTMENT_CONFIG = {
     // rather than picking one.
     men:   { searchQuery: "shirts", department: "Men" },
     women: { searchQuery: "shirts", department: "Women" },
-    kids:  { searchQuery: "shirts", department: "Boys" },   // paired with a second "Girls" run in the refresh script
+    kids:  { searchQuery: "shirts", department: "Boys" },   // paired with kids_girls below in the refresh script
+    // Not a real standalone department — `internal: true` means
+    // refresh-department-cache.js fetches it and merges it into the
+    // "kids" cache bucket alongside Boys, but no frontend nav tile
+    // points at "kids_girls" directly.
+    kids_girls: { searchQuery: "shirts", department: "Girls", internal: true },
     sale:  { searchQuery: "clothing", onSaleOnly: true },
   },
   footlocker: {
@@ -88,7 +96,7 @@ const DEPARTMENT_CONFIG = {
 
 // Cross-retailer brand search (Phase 4) — same "real candidate, not yet
 // test-confirmed" status as DEPARTMENT_CONFIG above.
-const BRAND_CONFIG = {
+export const BRAND_CONFIG = {
   target: {
     // REAL-TEST CONFIRMED NULL (2026-09-17): Target does not carry Nike.
     // The old startUrl (a stale category facet ID) doesn't 404 — worse,
