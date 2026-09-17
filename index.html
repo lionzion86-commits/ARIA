@@ -144,13 +144,23 @@
     </div>
   </div>
 
-  <!-- CATEGORIES -->
-  <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-6 pb-14">
+  <!-- DEPARTMENTS (real per-retailer department data, see department-cache.json) -->
+  <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-6 pb-8">
     <div class="flex items-center justify-between mb-4">
-      <h2 class="text-[20px] font-bold tracking-[-0.02em]">Comprar por categoría</h2>
-      <span class="text-[12.5px] text-zinc-400">4 tiendas comparadas en cada búsqueda</span>
+      <h2 class="text-[20px] font-bold tracking-[-0.02em]">Comprar por departamento</h2>
+      <span class="text-[12.5px] text-zinc-400">Inventario real de nuestras tiendas</span>
     </div>
     <div class="grid grid-cols-3 md:grid-cols-6 gap-3" id="catGrid"></div>
+  </div>
+
+  <!-- BRANDS (data-driven — see BRAND_CONFIG in apify-scrape-start.js /
+       BRAND_META in this file; hidden automatically when no brand data
+       exists yet, appears on its own once one does) -->
+  <div id="brandSection" class="max-w-[1240px] mx-auto px-5 pb-14 hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-[20px] font-bold tracking-[-0.02em]">Comprar por marca</h2>
+    </div>
+    <div class="grid grid-cols-3 md:grid-cols-6 gap-3" id="brandGrid"></div>
   </div>
 
   <!-- WHY SHOP WITH US -->
@@ -409,6 +419,27 @@
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ============ DEPARTMENT / BRAND CATALOG VIEW ============ -->
+<!-- Generic — reused for both a department tile and a brand tile click
+     (see openCatalog(kind, key) in the script below). Renders one
+     section per retailer that actually carries that department/brand,
+     sourced entirely from department-cache.json (real scraped data, same
+     RULE as everywhere else on this site — no invented products). -->
+<div id="catalogView" class="view">
+  <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <button onclick="goHome()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      Volver
+    </button>
+    <div class="flex items-center gap-3 mb-2">
+      <span id="catalogIcon" class="text-[28px]"></span>
+      <h1 id="catalogTitle" class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em]"></h1>
+    </div>
+    <p id="catalogSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
+    <div id="catalogSections"></div>
   </div>
 </div>
 
@@ -942,37 +973,172 @@
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
 
 <script>
-const CATS = [
-  {k:'tech', label:'Electrónica', img:'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&auto=format&fit=crop&q=70'},
-  {k:'clothing', label:'Ropa', img:'https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=400&auto=format&fit=crop&q=70'},
-  {k:'shoes', label:'Zapatillas', img:'https://images.unsplash.com/photo-1600185365483-26d7a4cc7519?w=400&auto=format&fit=crop&q=70'},
-  {k:'home', label:'Hogar y Cocina', img:'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?w=400&auto=format&fit=crop&q=70'},
-  {k:'health', label:'Salud', img:'https://images.unsplash.com/photo-1584017911766-d451b3d0e843?w=400&auto=format&fit=crop&q=70'},
-  {k:'toys', label:'Juguetes', img:'https://images.unsplash.com/photo-1558877385-81a1c7e67d72?w=400&auto=format&fit=crop&q=70'},
-];
-
-document.getElementById('catGrid').innerHTML = CATS.map(c=>`
-  <button onclick="searchCategory('${c.k}')" class="group text-left bg-white border rounded-2xl p-3 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-    <div class="h-[86px] rounded-xl overflow-hidden mb-2.5" style="background:var(--sky)">
-      <img src="${c.img}" alt="${c.label}" class="w-full h-full object-cover group-hover:scale-[1.06] transition duration-500">
-    </div>
-    <div class="text-[12.5px] font-bold flex items-center justify-between">
-      ${c.label}
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
-    </div>
-  </button>
-`).join('');
-
 // RULE: no hardcoded/demo product catalog belongs here — every product
 // shown anywhere on the site comes from a real live retailer search
-// (see LIVE_RETAILERS/scrapeRetailer/normalizeLiveItem) or the real
-// Aria Auto cache/live pipeline. This was violated before (a fake
-// PRODUCTS array with invented prices/ratings/shipping across retailers
-// we don't even search drove the homepage search, category tiles, sales
-// page and assistant cards) — don't reintroduce a static product array.
+// (see LIVE_RETAILERS/scrapeRetailer/normalizeLiveItem), the real Aria
+// Auto cache/live pipeline, or department-cache.json below (also real
+// scraped data — see scripts/refresh-department-cache.js). This was
+// violated before (a fake PRODUCTS array with invented prices/ratings/
+// shipping across retailers we don't even search drove the homepage
+// search, category tiles, sales page and assistant cards) — don't
+// reintroduce a static product array.
 function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
 
-const ALL_VIEWS = ['homeView','resultsView','salesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
+/* ============================================================
+   DEPARTMENT / BRAND BROWSING — homepage tiles + catalogView, driven
+   entirely by department-cache.json (see scripts/refresh-department-
+   cache.js, itself sourced from DEPARTMENT_CONFIG/BRAND_CONFIG in
+   apify-scrape-start.js). Adding a new department or brand there and
+   re-running the refresh script is all it takes for it to appear here
+   automatically — the only thing that ever needs a manual edit in this
+   file is a Spanish label/icon in DEPARTMENT_META/BRAND_META below (a
+   missing one just falls back to a title-cased raw key, so nothing
+   breaks either way).
+   ============================================================ */
+let departmentCacheData = { retailers: {} };
+let departmentCachePromise = null;
+function loadDepartmentCache(){
+  if (!departmentCachePromise){
+    departmentCachePromise = fetch('/department-cache.json').then(r => r.json()).catch(() => ({ retailers: {} }));
+  }
+  return departmentCachePromise;
+}
+
+const DEPARTMENT_META = {
+  electronics: { label: 'Electrónica', icon: '💻' },
+  clothing: { label: 'Ropa', icon: '👕' },
+  candy_chocolate: { label: 'Dulces y Chocolates', icon: '🍫' },
+  sporting_goods: { label: 'Deportes', icon: '🏀' },
+  home_goods: { label: 'Hogar', icon: '🏠' },
+  pharmacy: { label: 'Salud y Farmacia', icon: '💊' },
+  men: { label: 'Moda Hombre', icon: '👔' },
+  women: { label: 'Moda Mujer', icon: '👗' },
+  kids: { label: 'Moda Niños', icon: '🧒' },
+  sale: { label: 'Ofertas', icon: '🔥' },
+};
+const BRAND_META = {
+  nike: { label: 'Nike', icon: '✔️' },
+};
+function metaFor(map, key){
+  return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '🛍️' };
+}
+
+// One tile per unique department/brand key found anywhere in the cache
+// — a key can exist for more than one retailer (e.g. "men" for both Old
+// Navy and Foot Locker), and one tile covers all of them at once.
+function collectTiles(kind){
+  const bucketName = kind === 'brand' ? 'brands' : 'departments';
+  const metaMap = kind === 'brand' ? BRAND_META : DEPARTMENT_META;
+  const byKey = {};
+  for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
+    for (const [key, entry] of Object.entries(data[bucketName] || {})){
+      if (!byKey[key]) byKey[key] = { key, retailers: [], thumb: null, count: 0 };
+      byKey[key].retailers.push(retailer);
+      byKey[key].count += (entry.items || []).length;
+      if (!byKey[key].thumb){
+        const withImage = (entry.items || []).map(normalizeLiveItem).find(it => it.image);
+        if (withImage) byKey[key].thumb = withImage.image;
+      }
+    }
+  }
+  return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
+}
+
+function deptTileHTML(t, kind){
+  return `<button onclick="openCatalog('${kind}','${t.key}')" class="group text-left bg-white border rounded-2xl p-3 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+    <div class="h-[86px] rounded-xl overflow-hidden mb-2.5 grid place-items-center text-[30px]" style="background:var(--sky)">
+      ${t.thumb ? `<img src="${escapeHtml(t.thumb)}" alt="${escapeHtml(t.label)}" class="w-full h-full object-cover group-hover:scale-[1.06] transition duration-500">` : t.icon}
+    </div>
+    <div class="text-[12.5px] font-bold flex items-center justify-between">
+      ${escapeHtml(t.label)}
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg>
+    </div>
+    <div class="text-[10.5px] text-zinc-400 mt-0.5 truncate">${t.retailers.map(r => LIVE_RETAILER_LABEL[r] || r).join(' · ')}</div>
+  </button>`;
+}
+
+function initDepartmentTiles(){
+  loadDepartmentCache().then(data => {
+    departmentCacheData = data;
+    const deptTiles = collectTiles('department');
+    const brandTiles = collectTiles('brand');
+    const catGrid = document.getElementById('catGrid');
+    catGrid.innerHTML = deptTiles.length
+      ? deptTiles.map(t => deptTileHTML(t, 'department')).join('')
+      : '<div class="col-span-full text-[13px] text-zinc-400">No hay departamentos disponibles por ahora.</div>';
+    if (brandTiles.length){
+      document.getElementById('brandSection').classList.remove('hidden');
+      document.getElementById('brandGrid').innerHTML = brandTiles.map(t => deptTileHTML(t, 'brand')).join('');
+    }
+  });
+}
+window.addEventListener('DOMContentLoaded', initDepartmentTiles);
+
+// Generic department/brand catalog page — reused for any tile from
+// either grid above. `key` must be a real key present in
+// department-cache.json (department-store keys like "electronics", or a
+// brand key like "nike") — see DEPARTMENT_CONFIG/BRAND_CONFIG in
+// apify-scrape-start.js for the source of truth.
+async function openCatalog(kind, key){
+  showPage('catalogView');
+  const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
+  document.getElementById('catalogIcon').textContent = meta.icon;
+  document.getElementById('catalogTitle').textContent = meta.label;
+  document.getElementById('catalogSubtitle').textContent = 'Buscando en nuestras tiendas…';
+  document.getElementById('catalogSections').innerHTML = GENERAL_RETAILERS.map(r => liveRetailerSkeleton(r)).join('');
+
+  const data = await loadDepartmentCache();
+  departmentCacheData = data;
+  const bucketName = kind === 'brand' ? 'brands' : 'departments';
+  const retailers = GENERAL_RETAILERS.filter(r => data.retailers[r]?.[bucketName]?.[key]);
+
+  if (!retailers.length){
+    document.getElementById('catalogSubtitle').textContent = 'Sin resultados por ahora.';
+    document.getElementById('catalogSections').innerHTML = '';
+    return;
+  }
+  document.getElementById('catalogSubtitle').textContent = `Disponible en ${retailers.length} tienda${retailers.length > 1 ? 's' : ''}: ${retailers.map(r => LIVE_RETAILER_LABEL[r]).join(', ')}`;
+  document.getElementById('catalogSections').innerHTML = retailers.map(r => {
+    const entry = data.retailers[r][bucketName][key];
+    return renderCatalogSection(r, entry.items || []);
+  }).join('');
+}
+
+function renderCatalogSection(retailer, rawItems){
+  const items = rawItems.map(normalizeLiveItem);
+  if (!items.length) return '';
+  return `<div class="mb-10">
+    <div class="text-[15px] font-bold mb-3" style="color:var(--navy)">${LIVE_RETAILER_LABEL[retailer]}</div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+      ${items.map(it => catalogTileHTML(it, retailer)).join('')}
+    </div>
+  </div>`;
+}
+
+// Same visual shape as saleCardHTML()'s grid tile, but works for any
+// item (not just ones already known to be on sale) — shows the
+// discount badge only when the item's own real onSale flag is true.
+// RULE: single button into orderProduct()/checkout.html, same as every
+// other product card on the site — never link out to the retailer.
+function catalogTileHTML(p, retailer){
+  return `
+  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(retailer, p.title)}, '${sizeCategoryFor(retailer, p.title)}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+    <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
+      ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
+      ${p.onSale ? `<span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${Math.round((1 - p.price / p.originalPrice) * 100)}%</span>` : ''}
+    </div>
+    <div class="p-3">
+      <span class="text-[10px] font-extrabold" style="color:var(--navy)">${LIVE_RETAILER_LABEL[retailer] || retailer}</span>
+      <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${escapeHtml(p.title)}</div>
+      <div class="flex items-center gap-2 mt-1.5">
+        ${p.onSale ? `<span class="text-[11px] text-zinc-400 line-through tabular">${fmtUSD(p.originalPrice)}</span>` : ''}
+        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${p.price != null ? fmtUSD(p.price) : 'N/D'}</span>
+      </div>
+    </div>
+  </button>`;
+}
+
+const ALL_VIEWS = ['homeView','resultsView','catalogView','salesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -993,25 +1159,6 @@ function closeMobileMenu(){
 function searchFor(q){
   document.getElementById('searchInput').value = q;
   doSearch();
-}
-
-// Maps a homepage category tile to a real search term run against the
-// live retailer pipeline — there is no separate "category catalog" to
-// browse; browsing a category just runs the same real live search as
-// typing that term in manually.
-const CATEGORY_QUERY = {
-  tech: 'electronics',
-  clothing: 'clothing',
-  shoes: 'shoes',
-  home: 'home and kitchen',
-  health: 'health and wellness',
-  toys: 'toys',
-};
-
-function searchCategory(cat){
-  const q = CATEGORY_QUERY[cat] || cat;
-  document.getElementById('searchInput').value = q;
-  showResults(q);
 }
 
 function doSearch(which){

@@ -60,6 +60,34 @@ const LABELS = {
   nike: "Nike",
 };
 
+// Raw Apify dataset items carry a lot of scraper-internal metadata
+// (scrapedAt, proxyCountry, full image-URL arrays, etc.) the frontend's
+// normalizeLiveItem() never reads — keeping only the fields it and the
+// rest of index.html's rendering actually use cuts the cache file size
+// drastically (was ~1.2MB unslimmed for ~500 items) with no loss of real
+// data. Field list must stay in sync with normalizeLiveItem() in
+// index.html.
+const KEEP_FIELDS = [
+  "title", "name", "productTitle", "productName",
+  "price", "currentPrice", "salePrice", "effectivePrice",
+  "image", "imageUrl", "thumbnail",
+  "rating", "stars", "reviewScore", "averageRating",
+  "availableSizes",
+  "onSale", "isOnSale", "savingsAmount", "savingsPercent", "percentageOff", "percentOff",
+  "regularPrice", "wasPrice", "was_price", "originalPrice",
+];
+function slimItem(item) {
+  const slim = {};
+  for (const k of KEEP_FIELDS) {
+    if (item[k] !== undefined) slim[k] = item[k];
+  }
+  if (item.priceInfo && (item.priceInfo.price !== undefined || item.priceInfo.currentPrice !== undefined)) {
+    slim.priceInfo = { price: item.priceInfo.price, currentPrice: item.priceInfo.currentPrice };
+  }
+  if (Array.isArray(item.images) && item.images.length) slim.images = [item.images[0]];
+  return slim;
+}
+
 function labelFor(key) {
   return LABELS[key] || key.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 }
@@ -201,7 +229,7 @@ async function main() {
         ? await fetchDepartment(task.retailer, task.key)
         : await fetchBrand(task.retailer, task.key);
       const target = task.type === "department" ? bucket.departments : bucket.brands;
-      target[task.key] = { label: labelFor(task.key), items, fetchedAt: new Date().toISOString() };
+      target[task.key] = { label: labelFor(task.key), items: items.map(slimItem), fetchedAt: new Date().toISOString() };
       await saveCache();
     } catch (err) {
       console.error(`  ${task.retailer}/${task.type}/${task.key} failed: ${err.message}`);
@@ -228,7 +256,7 @@ async function main() {
         if (girls[i]) merged.push(girls[i]);
       }
       const bucket = retailerBucket("oldnavy");
-      bucket.departments.kids = { label: labelFor("kids"), items: merged, fetchedAt: new Date().toISOString() };
+      bucket.departments.kids = { label: labelFor("kids"), items: merged.map(slimItem), fetchedAt: new Date().toISOString() };
       await saveCache();
       console.log(`  [merge] oldnavy kids: ${boys.length} boys + ${girls.length} girls = ${merged.length} items`);
     } catch (err) {
