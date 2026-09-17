@@ -10,14 +10,13 @@
 // on apify.com as of writing — re-check there if a retailer starts
 // returning empty results, since Actors and their schemas can change.
 // Department/category browsing (Phase 0/1 of the department-store
-// restructuring). PHASE 0 STATUS: these are real candidate URLs found via
-// live web search — NOT yet all confirmed against the actual scraper
-// actor (WebFetch can't reliably verify Walmart at all, it's blocked by
-// bot detection, and Target's verification was inconsistent — broad
-// top-level category URLs render as navigation hubs even when a narrower
-// leaf category is a real product grid). Real Apify test calls through
-// this exact buildInput are the authoritative check — see the dated
-// comment on each entry once tested. An entry that fails real testing
+// restructuring). PHASE 0 STATUS (2026-09-17): all four retailers below
+// (walmart, target, oldnavy, footlocker) are now REAL-TEST CONFIRMED —
+// actual Apify runs through this exact buildInput, verified to return
+// real, non-empty product data (see the dated comment on each section).
+// Still open: BRAND_CONFIG.target.nike (unconfirmed, prior 404), plus
+// refresh-department-cache.js and the frontend UI to actually call any
+// of this haven't been built yet. An entry that fails real testing
 // should be set to null (falls back to plain keyword search for that
 // department, per the plan's explicit fallback rule) rather than left
 // pointing at a URL that silently returns nothing useful.
@@ -51,19 +50,32 @@ const DEPARTMENT_CONFIG = {
     pharmacy:         { startUrl: "https://www.target.com/c/vitamins-supplements-health/-/N-5xu07" },
   },
   oldnavy: {
+    // All 4 entries REAL-TEST CONFIRMED (2026-09-17) — actual Apify runs
+    // returned real, non-empty product data for each. onSaleOnly
+    // specifically confirmed: returned items all had onSale: true with
+    // effectivePrice < regularPrice and a real percentageOff, not just
+    // the unfiltered category ignoring the flag.
+    //
     // No real category-URL mechanism on this actor (confirmed via its
     // own input schema) — only a `department` facet layered on a
     // required keyword. Real, confirmed enum values from the schema:
     // Women / Men / Girls / Boys / Toddler Girls / Toddler Boys /
     // Baby Girls / Baby Boys / Gender Neutral / Maternity. "kids" here
-    // covers both Girls and Boys — see refresh-department-cache.js,
-    // which runs both and merges results, rather than picking one.
+    // covers both Girls and Boys — see refresh-department-cache.js
+    // (not yet written), which should run both and merge results,
+    // rather than picking one.
     men:   { searchQuery: "shirts", department: "Men" },
     women: { searchQuery: "shirts", department: "Women" },
     kids:  { searchQuery: "shirts", department: "Boys" },   // paired with a second "Girls" run in the refresh script
     sale:  { searchQuery: "clothing", onSaleOnly: true },
   },
   footlocker: {
+    // All 4 entries REAL-TEST CONFIRMED (2026-09-17) — actual Apify runs
+    // returned real, non-empty product data for each. onSaleOnly
+    // specifically confirmed: returned items all had onSale: true with
+    // price < originalPrice and a real percentOff, not just the
+    // unfiltered category ignoring the flag.
+    //
     // Real, confirmed enum (actor's own OpenAPI schema) — gender+type
     // based, NOT sport-based. There is no "running"/"basketball" category
     // to browse; onSaleOnly is a real filter combinable with any category.
