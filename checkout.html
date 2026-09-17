@@ -88,6 +88,16 @@
             <input id="sizeInput" name="sizeInput" type="text" hidden placeholder="Ej. M, 42, 9.5 US"
               class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
             <p id="sizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
+            <!-- BUG FIX (2026-09-17): typing/selecting a size gave zero
+                 visible confirmation — the only feedback was a debounced
+                 shipping re-quote that shows the exact same numbers (size
+                 doesn't change weight or price), so it looked like nothing
+                 happened. This updates the instant a value is entered,
+                 with no network round-trip involved. -->
+            <p id="sizeConfirm" class="text-[11.5px] mt-1.5 font-semibold flex items-center gap-1.5" style="color:var(--green)" hidden>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
+              <span id="sizeConfirmText"></span>
+            </p>
           </div>
         </section>
 
@@ -213,8 +223,15 @@
       <aside class="lg:sticky lg:top-24 bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
         <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
         <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
+          <div id="sumSizeRow" class="flex justify-between" hidden><span>Talla</span><span id="sumSize" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
           <div class="flex justify-between"><span>Peso declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
           <div class="flex justify-between"><span>Valor declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
+          <!-- BUG FIX (2026-09-17): the total previously included AVI's
+               real Peru import duty/IGV charge (applies automatically over
+               a $200 declared value) with no line item showing it, so the
+               total looked unexplained/wrong even though the math was
+               correct. This row makes that charge visible and auditable. -->
+          <div id="sumDutyRow" class="flex justify-between" hidden><span>Aranceles e impuestos</span><span id="sumDuty" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
           <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
         </div>
         <div class="h-px" style="background:var(--line)"></div>
@@ -256,7 +273,7 @@
 </div>
 
 <script type="module">
-  import { CHARGE_PER_KG, BASE_FEE } from './weight-data.js';
+  import { CHARGE_PER_KG, BASE_FEE, DUTY_THRESHOLD_USD, DUTY_RATE } from './weight-data.js';
 
   const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const pen = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
@@ -265,8 +282,12 @@
   const valorInput = document.getElementById('valorInput');
   const descInput = document.getElementById('descInput');
   const quoteStatus = document.getElementById('quoteStatus');
+  const sumSizeRow = document.getElementById('sumSizeRow');
+  const sumSize = document.getElementById('sumSize');
   const sumWeight = document.getElementById('sumWeight');
   const sumValor = document.getElementById('sumValor');
+  const sumDutyRow = document.getElementById('sumDutyRow');
+  const sumDuty = document.getElementById('sumDuty');
   const sumFlete = document.getElementById('sumFlete');
   const sumTotal = document.getElementById('sumTotal');
   const sumPenWrap = document.getElementById('sumPenWrap');
@@ -288,7 +309,15 @@
   // live quote's total_usd represents (flete_usd is shipping alone).
   function fallbackQuote(kg, valorUsd){
     const flete = kg * CHARGE_PER_KG + BASE_FEE;
-    return { total_usd: valorUsd + flete, total_pen: null, flete_usd: flete, source: 'fallback' };
+    // Same real, publicly disclosed Peru duty/IGV policy AVI's live quote
+    // already applies (see DUTY_THRESHOLD_USD/DUTY_RATE in weight-data.js)
+    // — added here so the fallback (only used when AVI's API is
+    // unreachable) doesn't silently under-quote an order that's actually
+    // over the duty threshold, which would have made the real charge at
+    // AVI's next successful quote look like a bug rather than a real cost
+    // that was simply missing from the estimate.
+    const duty = valorUsd > DUTY_THRESHOLD_USD ? Math.round(valorUsd * DUTY_RATE * 100) / 100 : 0;
+    return { total_usd: valorUsd + flete + duty, total_pen: null, flete_usd: flete, source: 'fallback' };
   }
 
   async function fetchQuote(kg, valorUsd, description){
@@ -313,6 +342,7 @@
     sumValor.textContent = usd.format(valor);
 
     if (loading){
+      sumDutyRow.hidden = true;
       sumFlete.textContent = 'Cotizando…';
       sumTotal.textContent = '—';
       sumPenWrap.hidden = true;
@@ -322,12 +352,28 @@
     }
 
     if (!latestQuote){
+      sumDutyRow.hidden = true;
       sumFlete.textContent = '—';
       sumTotal.textContent = usd.format(0);
       sumPenWrap.hidden = true;
       payBtn.disabled = true;
       payBtn.textContent = 'Completa el formulario para cotizar';
       return;
+    }
+
+    // BUG FIX (2026-09-17): total_usd from AVI (or the fallback estimate)
+    // includes a real Peru duty/IGV charge whenever the declared value is
+    // over $200 — previously this was folded silently into the total with
+    // no line item, so the total didn't visibly add up from Peso+Valor+
+    // Flete alone even though the math was correct. Deriving it back out
+    // here (rather than hardcoding the rate) keeps this exactly in sync
+    // with whatever AVI's real quote actually charged.
+    const duty = Math.round((latestQuote.total_usd - valor - latestQuote.flete_usd) * 100) / 100;
+    if (duty > 0.01){
+      sumDuty.textContent = usd.format(duty) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
+      sumDutyRow.hidden = false;
+    } else {
+      sumDutyRow.hidden = true;
     }
 
     sumFlete.textContent = usd.format(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
@@ -391,8 +437,30 @@
     }, 500);
   }
 
+  // BUG FIX (2026-09-17): typing/selecting a size only ever triggered a
+  // debounced shipping re-quote — since size doesn't change weight or
+  // price, the numbers on screen stayed identical, so there was no way to
+  // tell the size had actually registered. This updates immediately, with
+  // no network round-trip, the instant a value is entered or picked.
+  function updateSizeFeedback(){
+    const size = currentSize();
+    const sizeConfirm = document.getElementById('sizeConfirm');
+    const sizeConfirmText = document.getElementById('sizeConfirmText');
+    if (size){
+      sizeConfirmText.textContent = `Talla registrada: ${size}`;
+      sizeConfirm.hidden = false;
+      sumSize.textContent = size;
+      sumSizeRow.hidden = false;
+    } else {
+      sizeConfirm.hidden = true;
+      sumSizeRow.hidden = true;
+    }
+  }
+
   [kgInput, valorInput, descInput, sizeInput].forEach(el => el.addEventListener('input', requestQuote));
   sizeSelect.addEventListener('change', requestQuote);
+  sizeInput.addEventListener('input', updateSizeFeedback);
+  sizeSelect.addEventListener('change', updateSizeFeedback);
 
   // BUG FIX (2026-09-17): clicking a product used to land here with only a
   // price — no image, title, or size, so the customer had no way to
