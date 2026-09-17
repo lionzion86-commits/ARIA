@@ -109,8 +109,12 @@ const RETAILER_CONFIG = {
     buildInput: (query, maxItems, department, brand) => {
       const dept = department && DEPARTMENT_CONFIG.target[department];
       const brandCfg = brand && BRAND_CONFIG.target?.[brand];
-      if (dept) return { startUrls: [dept.startUrl], maxItems };
-      if (brandCfg) return { startUrls: [brandCfg.startUrl], maxItems };
+      // BUG FIX (found via real test call): startUrls needs an array of
+      // {url} objects, not bare strings — confirmed via the actor's own
+      // input schema example after a real call failed with "do not
+      // contain valid URLs".
+      if (dept) return { startUrls: [{ url: dept.startUrl }], maxItems };
+      if (brandCfg) return { startUrls: [{ url: brandCfg.startUrl }], maxItems };
       return { searchQueries: [query], maxItems };
     },
   },
