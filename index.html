@@ -1076,10 +1076,22 @@ async function showResults(query){
     : `Sin resultados en vivo para "${query}" en este momento — intenta con otra búsqueda.`;
 }
 
-function orderProduct(name, totalUsd, weightKg){
+// RULE: every "Pedir/Comprar" action on the site must route through this
+// function so the customer always lands on checkout with a real product
+// image and title, never a bare price. Fixed 2026-09-17 after a bug
+// report: clicking a result went straight to checkout showing only a
+// number, with no way to know what was actually being bought. image and
+// sizes are both real data straight from the retailer's own scrape
+// payload — never invented. sizes is only ever a real availableSizes-type
+// list (currently only Old Navy's listing data includes one); when a
+// retailer doesn't expose real sizes, checkout.html falls back to asking
+// the customer to type their size (gated by needsSizeSelection()) rather
+// than showing a fabricated list.
+function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize){
   const params = new URLSearchParams();
   if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
   if (name) params.set('desc', name);
+  if (needsSize) params.set('needsSize', '1');
   // Both auto parts (PART_WEIGHT_ESTIMATES_KG / estimateBrakePadWeightKg)
   // and general retail products (RETAIL_WEIGHT_ESTIMATES_KG) pass a
   // category-estimated weightKg here, since no source retailer publishes
@@ -1087,6 +1099,8 @@ function orderProduct(name, totalUsd, weightKg){
   // fall back to manual entry silently; if weightKg is somehow missing,
   // checkout's manual field is the only fallback, but that's not expected.
   if (Number.isFinite(weightKg) && weightKg > 0) params.set('kg', weightKg.toFixed(2));
+  if (imageUrl) params.set('img', imageUrl);
+  if (Array.isArray(sizes) && sizes.length) params.set('sizes', sizes.join(','));
   window.location.href = 'checkout.html' + (params.toString() ? '?' + params.toString() : '');
 }
 
@@ -1110,6 +1124,19 @@ const LIVE_RETAILER_LABEL = { bestbuy: 'Best Buy', walmart: 'Walmart', target: '
 // touched GENERAL_RETAILERS.length, before the live results container was
 // ever unhidden or populated. Must stay below LIVE_RETAILERS.
 const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => r !== 'autozone');
+
+// Retailers whose entire catalog is apparel/footwear — used so a real
+// shoe like "Nike Kobe Air Force 1 Low" (Foot Locker) or "Rotation
+// Full-Zip Hoodie" (Old Navy) is flagged as needing a size even though
+// its title has no generic word like "shoe" or "jacket" for a keyword
+// match to catch. Target/Walmart sell everything, so those rely on the
+// title keyword match instead (see APPAREL_KEYWORDS below).
+const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
+const APPAREL_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
+function needsSizeSelection(retailer, title){
+  return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
+}
+
 let liveScrapeQuery = '';
 
 function escapeHtml(str){
@@ -1217,8 +1244,9 @@ function estimateRetailWeightKg(text){
 
 // Deliberately does NOT expose a clickthrough URL to the retailer's site —
 // product cards must never link off-site (see RULE comments at each
-// render function). Only image/title/price/rating/weightKg make it into
-// the normalized item on purpose.
+// render function). image/title/price/rating/weightKg/sizes make it into
+// the normalized item; sizes is only populated from a real retailer field
+// (see below), never invented.
 function normalizeLiveItem(item){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
@@ -1228,21 +1256,31 @@ function normalizeLiveItem(item){
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
   const weightKg = estimateRetailWeightKg(title);
 
+  // Real available-sizes list, only when the retailer's own scrape data
+  // reports one (confirmed present on live Old Navy listing data as
+  // availableSizes; Target has no such field, Walmart's equivalent
+  // `variants` array is empty at our listing-level scrape depth, Foot
+  // Locker has no such field either). Never fabricated — checkout.html
+  // asks the customer to type their size instead when this is empty.
+  const sizes = Array.isArray(item.availableSizes) ? item.availableSizes.filter(s => typeof s === 'string' && s.trim()) : [];
+
   // Real on-sale signal, only when the retailer's own scrape data reports
   // one — confirmed present on live Target (isOnSale/regularPrice/
-  // savingsPercent), Walmart (onSale/savingsAmount) and Old Navy (onSale/
-  // regularPrice/percentageOff) payloads. Never fabricated: if none of
-  // these fields are present, onSale stays false and originalPrice null.
+  // savingsPercent), Walmart (onSale/savingsAmount), Old Navy (onSale/
+  // regularPrice/percentageOff) and Foot Locker (onSale/originalPrice/
+  // percentOff) payloads. Never fabricated: if none of these fields are
+  // present, onSale stays false and originalPrice null.
   const onSaleFlag = item.onSale === true || item.isOnSale === true
     || (typeof item.savingsAmount === 'number' && item.savingsAmount > 0)
     || (typeof item.savingsPercent === 'number' && item.savingsPercent > 0)
-    || (typeof item.percentageOff === 'number' && item.percentageOff > 0);
+    || (typeof item.percentageOff === 'number' && item.percentageOff > 0)
+    || (typeof item.percentOff === 'number' && item.percentOff > 0);
   const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice;
   const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
   const hasRealDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
   const originalPrice = hasRealDiscount ? Math.round(rawOriginalNum * LIVE_PRICE_MARKUP * 100) / 100 : null;
 
-  return { title, price, image, rating, weightKg, onSale: hasRealDiscount, originalPrice };
+  return { title, price, image, rating, weightKg, sizes, onSale: hasRealDiscount, originalPrice };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -1279,7 +1317,7 @@ function renderLiveRetailerBlock(retailer, result){
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${label}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg}, '${jsAttr(it.image || '')}', ${escapeHtml(JSON.stringify(it.sizes || []))}, ${needsSizeSelection(retailer, it.title)})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
@@ -1839,7 +1877,7 @@ function renderAutoPartBlock(label, result, query){
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query, selectedVehicle)})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query, selectedVehicle)}, '${jsAttr(it.image || '')}')" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
@@ -1933,7 +1971,7 @@ function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100
 function saleCardHTML(p){
   const pct = discountPct(p);
   return `
-  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price}, ${p.weightKg})" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(p.retailer, p.title)})" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
     <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
       ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
       <span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${pct}%</span>
@@ -2063,7 +2101,7 @@ function addAssistantMessage(role, text, audioBase64){
 function addAssistantProductCard(item, retailer){
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); orderProduct(item.title, item.price, item.weightKg); };
+  card.onclick = () => { toggleAssistant(); orderProduct(item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title)); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
