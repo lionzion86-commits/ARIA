@@ -1088,14 +1088,16 @@ async function showResults(query){
 // sizes are both real data straight from the retailer's own scrape
 // payload — never invented. sizes is only ever a real availableSizes-type
 // list (currently only Old Navy's listing data includes one); when a
-// retailer doesn't expose real sizes, checkout.html falls back to asking
-// the customer to type their size (gated by needsSizeSelection()) rather
-// than showing a fabricated list.
-function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize){
+// retailer doesn't expose real sizes, checkout.html offers a standard
+// industry size-scale dropdown instead (gated by needsSizeSelection(),
+// shoe-vs-clothing chosen by sizeCategoryFor()) rather than a fabricated
+// per-item list or free text.
+function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory){
   const params = new URLSearchParams();
   if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
   if (name) params.set('desc', name);
   if (needsSize) params.set('needsSize', '1');
+  if (sizeCategory) params.set('sizeCategory', sizeCategory);
   // Both auto parts (PART_WEIGHT_ESTIMATES_KG / estimateBrakePadWeightKg)
   // and general retail products (RETAIL_WEIGHT_ESTIMATES_KG) pass a
   // category-estimated weightKg here, since no source retailer publishes
@@ -1136,9 +1138,25 @@ const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => r !== 'autozone');
 // match to catch. Target/Walmart sell everything, so those rely on the
 // title keyword match instead (see APPAREL_KEYWORDS below).
 const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
-const APPAREL_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b/i;
+const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
 function needsSizeSelection(retailer, title){
   return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
+}
+
+// Retailers whose catalog defaults to footwear when a title has no
+// generic clothing word either — real shoe/sneaker names (e.g. "Jordan
+// Retro 8", "Nike Kobe Air Force 1 Low") almost never contain a literal
+// word like "shoe" for SHOE_KEYWORDS to catch, and Foot Locker's catalog
+// is overwhelmingly footwear, so that's the safer default there.
+const SHOE_DEFAULT_RETAILERS = new Set(['footlocker']);
+function sizeCategoryFor(retailer, title){
+  const t = title || '';
+  if (SHOE_KEYWORDS.test(t)) return 'shoe';
+  if (CLOTHING_KEYWORDS.test(t)) return 'clothing';
+  if (SHOE_DEFAULT_RETAILERS.has(retailer)) return 'shoe';
+  return 'clothing';
 }
 
 let liveScrapeQuery = '';
@@ -1321,7 +1339,7 @@ function renderLiveRetailerBlock(retailer, result){
     <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${label}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg}, '${jsAttr(it.image || '')}', ${escapeHtml(JSON.stringify(it.sizes || []))}, ${needsSizeSelection(retailer, it.title)})" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg}, '${jsAttr(it.image || '')}', ${escapeHtml(JSON.stringify(it.sizes || []))}, ${needsSizeSelection(retailer, it.title)}, '${sizeCategoryFor(retailer, it.title)}')" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
@@ -1975,7 +1993,7 @@ function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100
 function saleCardHTML(p){
   const pct = discountPct(p);
   return `
-  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(p.retailer, p.title)})" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(p.retailer, p.title)}, '${sizeCategoryFor(p.retailer, p.title)}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
     <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
       ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
       <span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${pct}%</span>
@@ -2105,7 +2123,7 @@ function addAssistantMessage(role, text, audioBase64){
 function addAssistantProductCard(item, retailer){
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); orderProduct(item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title)); };
+  card.onclick = () => { toggleAssistant(); orderProduct(item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title)); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `

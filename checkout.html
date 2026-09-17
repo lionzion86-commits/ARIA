@@ -85,10 +85,16 @@
           </div>
           <div id="sizeWrap" class="mt-4" hidden>
             <label id="sizeLabel" for="sizeSelect" class="block text-[12px] font-bold mb-1.5">Talla</label>
-            <select id="sizeSelect" name="sizeSelect" hidden
+            <!-- BUG FIX (2026-09-18): a free-text box let customers type
+                 any value, including sizes that don't realistically exist
+                 for the item (since we can't validate real availability
+                 either way). Always a <select> now — either the
+                 retailer's real available sizes, or (see
+                 standardSizeOptions() below) a standard industry size
+                 scale chosen by category/gender/kids detection from the
+                 title, never free text. -->
+            <select id="sizeSelect" name="sizeSelect"
               class="w-full h-[46px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)"></select>
-            <input id="sizeInput" name="sizeInput" type="text" hidden placeholder="Ej. M, 42, 9.5 US"
-              class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
             <p id="sizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
             <!-- BUG FIX (2026-09-17): typing/selecting a size gave zero
                  visible confirmation — the only feedback was a debounced
@@ -409,14 +415,9 @@
   }
 
   const sizeSelect = document.getElementById('sizeSelect');
-  const sizeInput = document.getElementById('sizeInput');
 
-  // Whichever size field is actually visible (real dropdown from the
-  // retailer's own data, or the honest free-text fallback) — never both.
   function currentSize(){
-    if (!sizeSelect.hidden) return sizeSelect.value.trim();
-    if (!sizeInput.hidden) return sizeInput.value.trim();
-    return '';
+    return sizeSelect.value.trim();
   }
 
   function requestQuote(){
@@ -477,9 +478,8 @@
     }
   }
 
-  [kgInput, valorInput, descInput, sizeInput].forEach(el => el.addEventListener('input', requestQuote));
+  [kgInput, valorInput, descInput].forEach(el => el.addEventListener('input', requestQuote));
   sizeSelect.addEventListener('change', requestQuote);
-  sizeInput.addEventListener('input', updateSizeFeedback);
   sizeSelect.addEventListener('change', updateSizeFeedback);
 
   // BUG FIX (2026-09-17): clicking a product used to land here with only a
@@ -513,35 +513,69 @@
   const productTitle = document.getElementById('productTitle');
   if (prefillDesc) productTitle.textContent = prefillDesc;
 
-  // Real retailer data only: a size dropdown is populated ONLY from a real
-  // availableSizes-type list passed in the URL (see normalizeLiveItem in
-  // index.html — currently only Old Navy's listing data includes one). No
-  // retailer's real sizes means no fabricated dropdown; instead, when
-  // needsSizeSelection() (index.html) flagged this product as apparel/
-  // footwear — either because the retailer sells nothing else (e.g. Foot
-  // Locker's real shoe titles often don't contain a generic word like
-  // "shoe" for a keyword match to catch) or the title itself matched a
-  // clothing keyword — we ask the customer to type their size rather than
-  // guess a list that might not match what's actually in stock. The
-  // keyword check is repeated here too as defense-in-depth for any
-  // checkout URL built without the needsSize flag.
+  // Real retailer data first: a size dropdown is populated from a real
+  // availableSizes-type list passed in the URL when the retailer's own
+  // data includes one (see normalizeLiveItem in index.html — currently
+  // only Old Navy's listing data includes one). Otherwise — flagged by
+  // needsSizeSelection() (index.html) because the retailer sells nothing
+  // but apparel/footwear, e.g. Foot Locker, or the title matched a
+  // clothing keyword — BUG FIX (2026-09-18): this used to be a free-text
+  // box, letting a customer type any value including sizes that don't
+  // realistically exist for the item, with nothing validating either way.
+  // Replaced with a standard industry size-scale dropdown, chosen by
+  // category/gender/kids detection from the title (standardSizeOptions
+  // below) — a real, standard convention, not a fabricated per-item list,
+  // and disclosed as such in the note under the field. The keyword check
+  // is repeated here too as defense-in-depth for any checkout URL built
+  // without the needsSize flag.
   const APPAREL_SIZE_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
+  const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+  const KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
+  const MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
+  const WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
+  const ADULT_CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  const ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
+  const ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
+  const ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
+  const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
+  const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
+
+  // sizeCategory ('shoe'/'clothing') comes from sizeCategoryFor() in
+  // index.html, which knows the retailer — real shoe names like "Jordan
+  // Retro 8" or "Nike Kobe Air Force 1 Low" don't contain a literal word
+  // like "shoe" for a title-only keyword check to catch, so a retailer
+  // that's predominantly footwear (Foot Locker) defaults to shoe sizing
+  // there. Falls back to this file's own SHOE_KEYWORDS check only when
+  // the param is missing (e.g. a checkout URL built without it).
+  function standardSizeOptions(title, sizeCategory){
+    const isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title);
+    const isKids = KIDS_KEYWORDS.test(title);
+    if (isShoe && isKids) return KIDS_SHOE_SIZES;
+    if (isShoe && MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
+    if (isShoe && WOMENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_WOMEN;
+    if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
+    if (isKids) return KIDS_CLOTHING_SIZES;
+    return ADULT_CLOTHING_SIZES;
+  }
+
   const rawSizes = (params.get('sizes') || '').split(',').map(s => s.trim()).filter(Boolean);
+  const prefillSizeCategory = params.get('sizeCategory') || '';
   const flaggedNeedsSize = params.get('needsSize') === '1';
   const sizeWrap = document.getElementById('sizeWrap');
   const sizeNote = document.getElementById('sizeNote');
   if (rawSizes.length){
     sizeWrap.hidden = false;
-    sizeSelect.hidden = false;
     sizeSelect.required = true;
     sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
       + rawSizes.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s.toUpperCase()}</option>`).join('');
     sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
   } else if (flaggedNeedsSize || (prefillDesc && APPAREL_SIZE_KEYWORDS.test(prefillDesc))){
     sizeWrap.hidden = false;
-    sizeInput.hidden = false;
-    sizeInput.required = true;
-    sizeNote.textContent = 'No pudimos obtener las tallas exactas de esta tienda — escribe la talla que necesitas.';
+    sizeSelect.required = true;
+    const options = standardSizeOptions(prefillDesc || '', prefillSizeCategory);
+    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+      + options.map(s => `<option value="${s}">${s}</option>`).join('');
+    sizeNote.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
   }
 
   renderSummary();
