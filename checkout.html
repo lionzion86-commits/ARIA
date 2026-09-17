@@ -20,6 +20,8 @@
     --green-bg:#EAF7EF;
     --line:#E4E6EC;
     --amber:#B8860B;
+    --yellow:#FFC72C;
+    --yellow-dark:#E0A800;
   }
   body{font-family:'Manrope',sans-serif; background:var(--paper); color:var(--navy); -webkit-font-smoothing:antialiased}
   .tabular{font-variant-numeric:tabular-nums}
@@ -226,13 +228,31 @@
           <div id="sumSizeRow" class="flex justify-between" hidden><span>Talla</span><span id="sumSize" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
           <div class="flex justify-between"><span>Peso declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
           <div class="flex justify-between"><span>Valor declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
-          <!-- BUG FIX (2026-09-17): the total previously included AVI's
-               real Peru import duty/IGV charge (applies automatically over
-               a $200 declared value) with no line item showing it, so the
-               total looked unexplained/wrong even though the math was
-               correct. This row makes that charge visible and auditable. -->
-          <div id="sumDutyRow" class="flex justify-between" hidden><span>Aranceles e impuestos</span><span id="sumDuty" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
           <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+        </div>
+        <!-- BUG FIX (2026-09-17): the total previously included AVI's real
+             Peru import duty/IGV charge (applies automatically over a $200
+             declared value) with no line item showing it, so the total
+             looked unexplained/wrong even though the math was correct.
+             VISUAL UPDATE (2026-09-17): pulled out of the plain price list
+             and given its own amber highlight so it visually reads as a
+             separate government charge, not part of what Aria charges. -->
+        <div id="sumDutyRow" class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
+          <span class="flex flex-col">
+            <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#8A6B1F">Cargo del gobierno de Perú</span>
+            <span class="text-[12.5px] font-bold" style="color:#5C4813">Aranceles e impuestos</span>
+          </span>
+          <span id="sumDuty" class="tabular font-extrabold text-[15px]" style="color:#8A6B1F">$0.00</span>
+        </div>
+        <!-- VISUAL UPDATE (2026-09-17): this policy note used to be easy
+             to miss (small, gray text) — made it pop with a strong yellow
+             background and bold text so customers actually notice they
+             can avoid the duty charge entirely by staying under $200. -->
+        <div class="rounded-xl px-3.5 py-3 flex items-start gap-2" style="background:var(--yellow); border:1px solid var(--yellow-dark)">
+          <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+          <p class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)">
+            Envíos de hasta $200 no pagan aranceles ni impuestos. Por encima de $200 aplica ~23% de aranceles e IGV sobre el valor declarado.
+          </p>
         </div>
         <div class="h-px" style="background:var(--line)"></div>
         <div class="flex justify-between items-baseline">

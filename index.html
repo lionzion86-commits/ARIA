@@ -367,10 +367,14 @@
 
         <div id="liveResultsWrap" class="mb-6 hidden"></div>
 
-        <div class="mt-6 rounded-2xl border p-5 flex items-start gap-3" style="border-color:#BFD4FF; background:#F0F5FF">
-          <svg class="flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-          <div class="text-[13px] leading-relaxed" style="color:var(--navy)">
-            Los envíos de <span class="font-bold">hasta 200 dólares</span> ingresan a Perú sin pagar impuestos ni aranceles. Los envíos que superan los 200 dólares tienen un cargo adicional de <span class="font-bold">aproximadamente 23 por ciento</span> por aranceles e IGV, calculado sobre el costo total incluyendo el envío. Este cargo se calcula y se muestra en el checkout, antes de pagar — sin sorpresas al recibir tu pedido.
+        <!-- VISUAL UPDATE (2026-09-17): this used to be pale blue with
+             regular-weight navy text — easy to skim past. Made it pop
+             (strong yellow background, bold text) so customers actually
+             notice they can avoid the duty charge by staying under $200. -->
+        <div class="mt-6 rounded-2xl border-2 p-5 flex items-start gap-3" style="border-color:var(--yellow-dark); background:var(--yellow)">
+          <svg class="flex-shrink-0 mt-0.5" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+          <div class="text-[13.5px] leading-relaxed font-bold" style="color:var(--navy)">
+            Los envíos de hasta 200 dólares no pagan impuestos ni aranceles. Los envíos que superan los 200 dólares tienen un cargo adicional de aproximadamente 23 por ciento por aranceles e IGV, calculado sobre el valor declarado. Este cargo se calcula y se muestra en el checkout, antes de pagar — sin sorpresas al recibir tu pedido.
           </div>
         </div>
 
