@@ -91,6 +91,21 @@ export async function getSessionEmail(event) {
   }
 }
 
+// Admin gating for the margin-test view (admin-*.js functions) — reads a
+// comma-separated ADMIN_EMAILS environment variable you set in the
+// Netlify dashboard, never hardcoded/committed. isAdmin(email) alone
+// isn't a security check — always combine with getSessionEmail(event)
+// (a real logged-in session) so a caller can't just claim to be an
+// admin email in a request body.
+export function isAdmin(email) {
+  if (!email) return false;
+  const allowlist = String(process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((e) => e.trim().toLowerCase())
+    .filter(Boolean);
+  return allowlist.includes(email.toLowerCase());
+}
+
 // Same-origin only (the frontend calls these from ariashop.pe itself), so
 // no Access-Control-Allow-Credentials is needed for the httpOnly cookie to
 // flow — that header is both unnecessary and invalid to pair with a

@@ -1073,6 +1073,37 @@
   </div>
 </div>
 
+<!-- ============ ADMIN VIEW (Test Orders) ============ -->
+<!-- Never linked in main nav — a low-key footer link, since access is
+     enforced server-side anyway (every admin-*.js function checks the
+     caller's real session email against ADMIN_EMAILS, a Netlify env var
+     you set — never hardcoded/committed). The operator enters only the
+     5 real-world actuals per order; everything else auto-fills from the
+     order record orders-create.js already captured at checkout time. -->
+<div id="adminView" class="view">
+  <div class="max-w-[1100px] mx-auto px-5 py-10">
+    <h1 class="text-[26px] font-extrabold tracking-[-0.02em] mb-6">Test Orders — Admin</h1>
+    <div id="adminGate"></div>
+    <div id="adminContent" hidden>
+      <div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line)">
+        <div class="font-bold text-[14px] mb-3">Control de lanzamiento</div>
+        <div class="flex flex-wrap items-end gap-4">
+          <label class="flex items-center gap-2 text-[13px] font-semibold">
+            <input type="checkbox" id="adminPaused" class="accent-[#2F5FEE] w-4 h-4"> Pausar todos los checkouts (kill switch)
+          </label>
+          <div>
+            <label for="adminDailyCap" class="block text-[12px] font-bold mb-1">Cupo diario</label>
+            <input type="number" id="adminDailyCap" min="0" class="w-24 h-9 border rounded-lg px-2 text-[13px]" style="border-color:var(--line)">
+          </div>
+          <button onclick="saveAdminSettings()" class="h-9 px-4 rounded-full text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Guardar</button>
+          <span id="adminSettingsStatus" class="text-[12px] text-zinc-500"></span>
+        </div>
+      </div>
+      <div id="adminOrdersList"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ SITE FOOTER ============ -->
 <!-- Global — a sibling after every view div (not nested inside homeView
      like before), so it renders on every page, including checkout.html
@@ -1098,8 +1129,9 @@
         <button onclick="toggleAssistant()" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Chatea con nosotros</button>
       </div>
     </div>
-    <div class="pt-5 border-t text-[11.5px] text-zinc-400 leading-relaxed" style="border-color:var(--line)">
-      Entidad legal en trámite de registro — RUC y datos legales completos próximamente.
+    <div class="pt-5 border-t text-[11.5px] text-zinc-400 leading-relaxed flex items-center justify-between gap-3" style="border-color:var(--line)">
+      <span>Entidad legal en trámite de registro — RUC y datos legales completos próximamente.</span>
+      <a href="#" onclick="openAdmin();return false;" class="text-zinc-300 hover:text-zinc-400 transition flex-shrink-0">Admin</a>
     </div>
   </div>
 </footer>
@@ -1636,7 +1668,7 @@ function catalogTileHTML(p, retailer){
   </button>`;
 }
 
-const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView'];
+const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView','adminView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -3246,6 +3278,155 @@ async function loadOrderCapStatus(){
     }
   } catch {
     banner.hidden = true; // best-effort — never block the cart on this
+  }
+}
+
+/* ============================================================
+   ADMIN — Test Orders margin-test view. Access is enforced server-side
+   (every admin-*.js function checks getSessionEmail() against
+   ADMIN_EMAILS) — this client-side code just reflects whatever the
+   server actually allowed; a 403 here just shows "no access", it isn't
+   the real gate.
+   ============================================================ */
+let adminOrdersCache = [];
+
+async function openAdmin(){
+  showPage('adminView');
+  document.getElementById('adminContent').hidden = true;
+  document.getElementById('adminGate').innerHTML = '<p class="text-[13px] text-zinc-500">Verificando acceso…</p>';
+  try {
+    const res = await fetch('/.netlify/functions/admin-settings');
+    if (res.status === 403){
+      document.getElementById('adminGate').innerHTML = '<p class="text-[13px] text-zinc-500">No tienes acceso a esta página.</p>';
+      return;
+    }
+    const settings = await res.json();
+    if (!res.ok) throw new Error(settings.error || 'Error');
+    document.getElementById('adminPaused').checked = Boolean(settings.paused);
+    document.getElementById('adminDailyCap').value = settings.dailyCap;
+    document.getElementById('adminGate').innerHTML = '';
+    document.getElementById('adminContent').hidden = false;
+    await loadAdminOrders();
+  } catch {
+    document.getElementById('adminGate').innerHTML = '<p class="text-[13px] text-zinc-500">No se pudo cargar — intenta de nuevo.</p>';
+  }
+}
+
+async function saveAdminSettings(){
+  const statusEl = document.getElementById('adminSettingsStatus');
+  statusEl.textContent = 'Guardando…';
+  try {
+    const res = await fetch('/.netlify/functions/admin-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paused: document.getElementById('adminPaused').checked,
+        dailyCap: parseInt(document.getElementById('adminDailyCap').value, 10) || 0,
+      }),
+    });
+    if (!res.ok) throw new Error();
+    statusEl.textContent = 'Guardado ✓';
+  } catch {
+    statusEl.textContent = 'Error al guardar.';
+  }
+}
+
+async function loadAdminOrders(){
+  const listEl = document.getElementById('adminOrdersList');
+  listEl.innerHTML = '<p class="text-[13px] text-zinc-500">Cargando pedidos…</p>';
+  try {
+    const res = await fetch('/.netlify/functions/admin-orders-list');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    adminOrdersCache = data.orders || [];
+    renderAdminOrders();
+  } catch {
+    listEl.innerHTML = '<p class="text-[13px] text-zinc-500">No se pudieron cargar los pedidos.</p>';
+  }
+}
+
+// precio scrapeado is derived, not stored — same known SALES_TAX_RATE/
+// LIVE_PRICE_MARKUP constants used at scrape time (see normalizeLiveItem
+// above) back out the pre-markup price from what was actually charged.
+function computeMargin(order, actuals){
+  const priceUsdTotal = (order.items || []).reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
+  const priceScrapedUsd = round2(priceUsdTotal / (SALES_TAX_RATE * LIVE_PRICE_MARKUP));
+  const fx = order.fxRateUsed || 0;
+  const montoNetoPen = order.pricePenCharged || 0;
+  const hasActuals = actuals.precioRealPagadoUsd != null && actuals.costoRealCourierUsd != null && fx;
+  const costoTotalPen = hasActuals
+    ? round2(actuals.precioRealPagadoUsd * fx + actuals.costoRealCourierUsd * fx + (order.gatewayFeeEstimatePen || 0))
+    : null;
+  const margenPen = costoTotalPen != null ? round2(montoNetoPen - costoTotalPen) : null;
+  const margenPct = (margenPen != null && montoNetoPen) ? round2((margenPen / montoNetoPen) * 100) : null;
+  return { priceScrapedUsd, montoNetoPen, costoTotalPen, margenPen, margenPct };
+}
+
+function renderAdminOrders(){
+  const listEl = document.getElementById('adminOrdersList');
+  if (!adminOrdersCache.length){
+    listEl.innerHTML = '<p class="text-[13px] text-zinc-500">No hay pedidos todavía.</p>';
+    return;
+  }
+  listEl.innerHTML = adminOrdersCache.map((order, i) => adminOrderCardHTML(order, i)).join('');
+}
+
+function adminOrderCardHTML(order, idx){
+  const a = order.actuals || {};
+  const m = computeMargin(order, a);
+  const flagRed = m.margenPct != null && m.margenPct < 10;
+  return `<div class="rounded-2xl border p-5 mb-4" style="border-color:${flagRed ? '#C0392B' : 'var(--line)'}; ${flagRed ? 'background:#FFF5F5' : '#fff'}">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div>
+        <div class="font-bold text-[14px]" style="color:var(--navy)">#${escapeHtml(order.orderId)}</div>
+        <div class="text-[11.5px] text-zinc-500">${escapeHtml(new Date(order.createdAt).toLocaleString('es-PE'))} · ${escapeHtml(order.customer?.email || '')}</div>
+      </div>
+      ${m.margenPct != null ? `<div class="text-[13px] font-extrabold" style="color:${flagRed ? '#C0392B' : 'var(--green)'}">Margen: ${m.margenPct}%${flagRed ? ' ⚠' : ''}</div>` : ''}
+    </div>
+    <div class="grid sm:grid-cols-3 gap-x-4 gap-y-1.5 text-[12px] mb-4" style="color:#5B6478">
+      <div>Precio scrapeado (est.): <b class="tabular">$${m.priceScrapedUsd.toFixed(2)}</b></div>
+      <div>Precio cobrado: <b class="tabular">${order.pricePenCharged != null ? 'S/ ' + order.pricePenCharged.toFixed(2) : '—'}</b></div>
+      <div>Tipo de cambio: <b class="tabular">${order.fxRateUsed || '—'}</b></div>
+      <div>Peso estimado: <b class="tabular">${order.weightEstimatedKg} kg</b></div>
+      <div>Flete cobrado: <b class="tabular">${order.freteChargedUsd != null ? '$' + order.freteChargedUsd.toFixed(2) : '—'}</b></div>
+      <div>Comisión pasarela (est.): <b class="tabular">${order.gatewayFeeEstimatePen != null ? 'S/ ' + order.gatewayFeeEstimatePen.toFixed(2) : '—'}</b></div>
+    </div>
+    <div class="grid sm:grid-cols-5 gap-3 mb-3">
+      <div><label class="block text-[11px] font-bold mb-1">Precio real pagado (USD)</label><input type="number" step="0.01" id="admin-precio-${idx}" value="${a.precioRealPagadoUsd ?? ''}" class="w-full h-9 border rounded-lg px-2 text-[12.5px]" style="border-color:var(--line)"></div>
+      <div><label class="block text-[11px] font-bold mb-1">Peso real (kg)</label><input type="number" step="0.01" id="admin-peso-${idx}" value="${a.pesoRealKg ?? ''}" class="w-full h-9 border rounded-lg px-2 text-[12.5px]" style="border-color:var(--line)"></div>
+      <div><label class="block text-[11px] font-bold mb-1">Costo courier (USD)</label><input type="number" step="0.01" id="admin-courier-${idx}" value="${a.costoRealCourierUsd ?? ''}" class="w-full h-9 border rounded-lg px-2 text-[12.5px]" style="border-color:var(--line)"></div>
+      <div><label class="block text-[11px] font-bold mb-1">Días puerta a puerta</label><input type="number" id="admin-dias-${idx}" value="${a.diasPuertaAPuerta ?? ''}" class="w-full h-9 border rounded-lg px-2 text-[12.5px]" style="border-color:var(--line)"></div>
+      <div><label class="block text-[11px] font-bold mb-1">Notas</label><input type="text" id="admin-notas-${idx}" value="${escapeHtml(a.notas || '')}" class="w-full h-9 border rounded-lg px-2 text-[12.5px]" style="border-color:var(--line)"></div>
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div class="text-[12px] text-zinc-500">${m.costoTotalPen != null ? `Costo total: S/ ${m.costoTotalPen.toFixed(2)} · Margen: S/ ${m.margenPen.toFixed(2)}` : 'Completa los datos reales para calcular el margen.'}</div>
+      <button onclick="saveAdminOrderActuals(${idx})" class="h-8 px-4 rounded-full text-white text-[12px] font-bold flex-shrink-0 focus-ring" style="background:var(--blue)">Guardar</button>
+    </div>
+  </div>`;
+}
+
+async function saveAdminOrderActuals(idx){
+  const order = adminOrdersCache[idx];
+  if (!order) return;
+  const actuals = {
+    precioRealPagadoUsd: parseFloat(document.getElementById(`admin-precio-${idx}`).value) || null,
+    pesoRealKg: parseFloat(document.getElementById(`admin-peso-${idx}`).value) || null,
+    costoRealCourierUsd: parseFloat(document.getElementById(`admin-courier-${idx}`).value) || null,
+    diasPuertaAPuerta: parseInt(document.getElementById(`admin-dias-${idx}`).value, 10) || null,
+    notas: document.getElementById(`admin-notas-${idx}`).value,
+  };
+  try {
+    const res = await fetch('/.netlify/functions/admin-orders-update', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ orderId: order.orderId, actuals }),
+    });
+    if (!res.ok) throw new Error();
+    order.actuals = actuals;
+    showToast('Guardado.');
+    renderAdminOrders();
+  } catch {
+    showToast('Error al guardar.');
   }
 }
 
