@@ -4124,10 +4124,15 @@ async function liveSalesScan(){
 // Donates a completed scan back to the shared server cache so the next
 // visitor doesn't have to wait for one. Best-effort and deliberately
 // silent: the scan already succeeded for THIS visitor, so a failed
-// publish is not something to interrupt them about. The function
-// validates everything it stores — see the trust-boundary comment there.
+// publish is not something to interrupt them about. The endpoint requires
+// a session and validates everything it stores — see the authentication
+// note there.
 async function publishSalesCache(items){
   if (!items.length) return;
+  // POST /sales-cache requires a session (no anonymous writes). Logged-out
+  // visitors would just collect a 401, so don't send the request at all —
+  // they still benefit from whatever a logged-in visitor last donated.
+  if (!currentUser) return;
   try {
     const res = await fetch('/.netlify/functions/sales-cache', {
       method: 'POST',

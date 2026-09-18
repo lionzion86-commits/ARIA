@@ -11,24 +11,30 @@
 // first visitor to hit a cold/stale cache donates their completed scan
 // back here for everyone else. Every later visitor gets it instantly.
 //
-// TRUST BOUNDARY — READ THIS BEFORE CHANGING IT
-// That makes POST a public, unauthenticated write to shared state, which
-// is a real abuse vector: a determined attacker can publish deal entries
-// that every visitor then sees. It is NOT secured by obscurity, and the
-// validation below is a mitigation, not a fix. What it does enforce:
-//   - retailer must be one of the known live retailers
-//   - every field is type/range checked; unknown fields are dropped, so
-//     nothing an attacker adds survives into the stored object
-//   - image must be an https:// URL (no data:/javascript: payloads)
-//   - hard cap on item count and on string lengths
-//   - writes are only accepted when the cache is actually stale, so this
-//     cannot be hammered to churn the stored value
-// What it does NOT prevent: a valid-shaped but fabricated deal (wrong
-// price, misleading title) from a hostile client, within the stale window.
-// The real fix is a scheduled server-side refresh with no public write
-// path at all — worth doing before this page carries real traffic.
+// AUTHENTICATION (2026-09-18)
+// POST used to be a PUBLIC, UNAUTHENTICATED write to shared state that
+// every visitor sees. Strict validation limited what could be stored, but
+// it did not stop an anonymous attacker publishing valid-shaped but
+// fabricated deals during any stale window. That write path is gone:
+// POST now requires a valid session, and the session's email is recorded
+// on the stored entry so any bad write is attributable.
+//
+// GET stays public on purpose — deals are public catalog data, and the
+// storefront has to render them for logged-out shoppers.
+//
+// CONSEQUENCE, worth knowing: the cache is populated by a client donating
+// its completed scan, so it now only refills when a LOGGED-IN visitor
+// opens Ofertas. Anonymous visitors still read whatever is cached; on a
+// cold cache they fall back to a live scan, which is the behaviour that
+// existed before the cache was added — slower and more Apify usage, never
+// wrong. Tighten to admin-only by swapping getSessionEmail for isAdmin if
+// you want the write surface smaller still; the real fix remains a
+// scheduled server-side refresh with no client write path at all.
+//
+// The validation below is retained regardless: authentication says who
+// may write, not that what they wrote is sane.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { corsHeaders } from "./_auth-helpers.js";
+import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
 
 // Mirrors GENERAL_RETAILERS in index.html (LIVE_RETAILERS minus autozone,
 // which is the auto-parts lane and never appears in Ofertas).
@@ -149,6 +155,13 @@ export async function handler(event) {
   }
 
   if (event.httpMethod === "POST") {
+    // No anonymous writes. Checked before the body is even parsed, so an
+    // unauthenticated caller learns nothing about the payload contract.
+    const email = await getSessionEmail(event);
+    if (!email) {
+      return { statusCode: 401, headers, body: JSON.stringify({ error: "Autenticación requerida" }) };
+    }
+
     let body;
     try {
       body = JSON.parse(event.body || "{}");
@@ -192,7 +205,8 @@ export async function handler(event) {
         }
       }
       const generatedAt = new Date().toISOString();
-      await store.setJSON("deals", { generatedAt, items });
+      // writtenBy makes a bad write traceable to an account.
+      await store.setJSON("deals", { generatedAt, items, writtenBy: email });
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, generatedAt, stored: items.length }) };
     } catch (error) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
