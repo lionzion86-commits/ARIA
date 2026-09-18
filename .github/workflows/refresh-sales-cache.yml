@@ -1,12 +1,15 @@
 # Keeps the Ofertas deals cache warm server-side, so no visitor's browser
 # ever has to write it.
 #
-# Every 4 hours against the cache's 6h TTL: the cache is replaced before it
-# can go stale, so a visitor arriving at any moment finds it warm. Cost is
-# 12 Apify actor runs per refresh, 6 refreshes a day = 72 runs/day at
-# roughly $0.01-0.03 each. Widen the cron if that is too much — at every
-# 6h it still works, with a short stale window before each run during which
-# visitors fall back to a live scan.
+# Once a day, 12:00 UTC (07:00 Peru time, before the day's traffic). Cost
+# is 12 Apify actor runs per refresh, so 12 runs/day at roughly $0.01-0.03
+# each.
+#
+# KNOWN AND ACCEPTED: the cache TTL is 6h, so from ~18:00 UTC each day the
+# cache reads stale and visitors fall back to a live browser scan until the
+# next run. That is deliberate pre-launch — it keeps Apify spend down while
+# traffic is minimal — and is to be revisited when ad traffic starts, by
+# moving back to a cron at or under the 6h TTL (e.g. "0 */6 * * *").
 #
 # Required repository secret:
 #   SALES_REFRESH_TOKEN   must match the SALES_REFRESH_TOKEN environment
@@ -15,7 +18,7 @@ name: Refresh Ofertas cache
 
 on:
   schedule:
-    - cron: "0 */4 * * *"
+    - cron: "0 12 * * *"
   workflow_dispatch: {}      # lets an operator run it by hand from the Actions tab
 
 concurrency:
