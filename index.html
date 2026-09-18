@@ -610,10 +610,31 @@
       <div id="salesFreshness" class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)"></div>
     </div>
 
+    <!-- Ofertas had no search of its own: the only search input on the way
+         here was the one on the store-picker page, which mobile used to
+         land on. Same input, same shared search path (translateSearchQuery
+         + showResults), now on the feed itself. The hint under it exists
+         because shoppers read a search box on a deals page as "filter what
+         is on screen" — it is actually a live scan across the US stores. -->
+    <div class="mb-6">
+      <div class="relative max-w-[520px]">
+        <input id="salesSearchInput" onkeydown="if(event.key==='Enter')salesSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
+          class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
+        <button onclick="salesSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+      <p id="salesSearchHint" class="text-[11.5px] mt-2 max-w-[520px]" style="color:#8A93A8">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en EE. UU.</p>
+    </div>
+
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
 
       <!-- SALES FILTERS -->
-      <aside class="hidden lg:block">
+      <!-- Was "hidden lg:block": below 1024px the store filter did not
+           exist at all, and picking a store on mobile meant going through
+           the store-picker page that Ofertas no longer lands on. Same fix
+           as categoriesView — it stacks above the grid instead of hiding. -->
+      <aside class="mb-2 lg:mb-0">
         <div class="flex items-center justify-between mb-4">
           <div class="font-bold text-[14px]">Filtros</div>
         </div>
@@ -628,7 +649,6 @@
       <!-- SALES GRID -->
       <div>
         <div class="flex items-center justify-between mb-4 gap-3">
-          <div class="lg:hidden text-[12.5px] text-zinc-500">Filtros disponibles en escritorio</div>
           <select id="salesSort" onchange="renderSalesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
             <option value="discount">Mayor descuento</option>
             <option value="priceAsc">Precio: menor a mayor</option>
@@ -1825,6 +1845,14 @@ function catalogGoBack(){
 }
 
 async function openCatalog(kind, key, opts = {}){
+  /* BUG FIX: the "Ofertas" department tile came through here and landed on
+     the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
+     so a shopper tapping Ofertas from the homepage got a store list while
+     the nav link got the deals feed. Ofertas is a feed with its own store
+     filter, not a department to pick a store for. Guarded here rather than
+     at each tile so every caller — homepage tiles, Categorías, any future
+     one — lands in the same place. */
+  if (kind === 'department' && key === 'sale'){ goSales(opts.retailerFilter); return; }
   const { retailerFilter } = opts;
   catalogReturnView = retailerFilter ? { view: 'storeView', retailer: retailerFilter } : null;
   showPage('catalogView');
@@ -4259,9 +4287,35 @@ let salesGeneratedAt = null;   // ISO string from the server cache, or null when
 let salesScanInFlight = false; // guards against goSales() being hit repeatedly
 let salesStatusTimer = null;
 
-function goSales(){
+/* The one Ofertas entry point. Desktop nav, mobile menu and the "Ofertas"
+   department tile all land here — see the guard in openCatalog().
+
+   retailer (optional) pre-selects a single store in the feed's own filter
+   instead of sending the shopper to a store-picker page first. */
+function goSales(retailer){
   showPage('salesView');
+  // Already built at load; rebuilt only if something cleared it.
+  if (!document.querySelector('.salesStoreFilter')) initSalesFilters();
+  applySalesStoreFilter(retailer);
   runSalesScan();
+}
+
+// null/undefined = every store checked (the default all-stores feed).
+function applySalesStoreFilter(retailer){
+  const boxes = Array.from(document.querySelectorAll('.salesStoreFilter'));
+  if (!boxes.length) return;
+  const wanted = retailer && boxes.some(cb => cb.value === retailer) ? retailer : null;
+  boxes.forEach(cb => { cb.checked = wanted ? cb.value === wanted : true; });
+}
+
+// The feed's search is the same shared search path as every other search
+// bar on the site (translateSearchQuery + showResults) — a live scan
+// across the US stores, not a filter over the cards already on screen,
+// which is exactly what the hint under the input tells the shopper.
+function salesSearchSubmit(){
+  const raw = document.getElementById('salesSearchInput').value.trim();
+  if (!raw){ showToast('Escribe algo para buscar.'); return; }
+  showResults(translateSearchQuery(raw));
 }
 
 /* ============================================================
