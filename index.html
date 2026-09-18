@@ -1569,7 +1569,12 @@ const DEPARTMENT_THUMB_EXCLUDE = {
 // (or vice versa). Brands are never gendered, so they pass straight
 // through.
 function bucketItems(entry, kind, key){
-  const items = entry?.items || [];
+  // A confirmed "quarantined" verdict means no image of this product could
+  // be cleared of price text, so it is withheld from the storefront until
+  // a human reviews it (see image-quarantine.json). "pending" items stay
+  // listed — they just render without an image until the scan clears them,
+  // since hiding everything after each refresh would empty the store.
+  const items = (entry?.items || []).filter(raw => raw?.imageReview !== 'quarantined');
   if (kind === 'brand') return items;
   return items.filter(raw => titleMatchesDepartment(
     raw.title || raw.name || raw.productTitle || raw.productName || '', key));
@@ -2510,9 +2515,25 @@ function normalizeLiveItem(item){
   // list simply means this retailer gave us one image (or none), and the
   // strip stays hidden rather than being padded with anything invented.
   const rawImages = Array.isArray(item.images) ? item.images : [];
-  const images = [...new Set(
+  let images = [...new Set(
     [item.image, item.imageUrl, item.thumbnail, ...rawImages].map(safeUrl).filter(Boolean)
   )].slice(0, 8);
+
+  /* IMAGE-QUALITY RULE (2026-09-18): never render an image that has not
+     been cleared of rendered price text. The image carries the US sticker
+     price while ours adds ~24% for shipping, duties and IGV, so a priced
+     image always understates what the customer pays and reads as
+     bait-and-switch.
+
+     `imageReview` is set by the ingest/scan pipeline (see
+     scripts/image-price-scan.js): "pending" means not screened yet,
+     "quarantined" means no clean image was found. Either way no image is
+     shown — every render path already handles a null image with a
+     placeholder, so dropping it here covers the whole site at once.
+
+     An item with NO imageReview field is a live scrape result, which this
+     pipeline cannot screen in the browser. Those are left as-is. */
+  if (item.imageReview && item.imageReview !== 'clean') images = [];
   const image = images[0] || null;
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
   const weightKg = estimateRetailWeightKg(title);
