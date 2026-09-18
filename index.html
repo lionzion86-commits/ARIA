@@ -68,6 +68,8 @@
       <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
         🇵🇪 Perú · PEN
       </span>
+      <button class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+      <button class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -210,8 +212,8 @@
         <div>
           <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-4" style="background:var(--blue)">2</div>
           <div class="rounded-2xl border p-4 h-[110px] mb-4 space-y-1.5" style="border-color:var(--line); background:var(--paper)">
-            <div class="h-6 rounded bg-white border flex items-center justify-between px-2 text-[10.5px] text-zinc-500" style="border-color:var(--line)"><span>Walmart</span><span>$1,142</span></div>
-            <div class="h-6 rounded-md flex items-center justify-between px-2 text-[10.5px] font-bold" style="background:var(--green-bg); border:1px solid #BFE6CC; color:#1C8A4B"><span>Target · mejor precio</span><span>$1,099</span></div>
+            <div class="h-6 rounded bg-white border flex items-center justify-between px-2 text-[10.5px] text-zinc-500" style="border-color:var(--line)"><span>Walmart</span><span>S/ 3,850</span></div>
+            <div class="h-6 rounded-md flex items-center justify-between px-2 text-[10.5px] font-bold" style="background:var(--green-bg); border:1px solid #BFE6CC; color:#1C8A4B"><span>Target · mejor precio</span><span>S/ 3,705</span></div>
           </div>
           <div class="font-bold text-[15px]">Compara precios</div>
           <div class="text-[13px] text-zinc-500 mt-1 leading-relaxed">Te mostramos el mejor precio total, con todo lo que cuesta llegar a Perú incluido.</div>
@@ -547,8 +549,15 @@
     <h1 class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em] mb-2">Categorías</h1>
     <p class="text-[13.5px] text-zinc-500 mb-8">Todos los departamentos y marcas disponibles, con inventario real de nuestras tiendas.</p>
 
+    <!-- BUG FIX (live audit): the filter sidebar used to be "hidden
+         lg:block" (same pattern as the Ofertas page) — invisible and
+         unreachable below the 1024px lg breakpoint, which is exactly
+         where the reported "checkboxes have no effect" showed up: they
+         weren't broken, they were never rendered at that viewport width.
+         Always visible now; it simply stacks above the grid on narrower
+         screens since it's the grid's first child. -->
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
-      <aside class="hidden lg:block">
+      <aside>
         <div class="flex items-center justify-between mb-4">
           <div class="font-bold text-[14px]">Filtros</div>
         </div>
@@ -962,6 +971,47 @@
   </div>
 </div>
 
+<!-- ============ TERMS VIEW ============ -->
+<!-- BUG FIX (live audit): footer needed a real Términos link. Describes
+     the actual, already-real service model documented elsewhere on this
+     site (live price comparison, direct purchase, Miami consolidation,
+     PEN pricing with real SUNAT rates, the real markup/tax/duty
+     mechanics, the real Devoluciones policy) — deliberately does not
+     invent specific legal clauses (liability limits, arbitration, etc.)
+     that would need real legal drafting once the entity is registered;
+     same honest "en trámite" framing as the footer and Nosotros page. -->
+<div id="termsView" class="view">
+  <div class="max-w-[860px] mx-auto px-5 py-14">
+    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3">Términos y condiciones</h1>
+    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[62ch] mb-10">
+      Así funciona el servicio, en términos simples. Los términos legales formales se completarán junto con el registro de la entidad — mientras tanto, esto es exactamente lo que hacemos y lo que puedes esperar.
+    </p>
+
+    <div class="space-y-8 text-[14px] text-zinc-600 leading-relaxed">
+      <div>
+        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Qué es Aria</h2>
+        <p>Aria compara precios en vivo en tiendas oficiales de Estados Unidos y compra directamente en tu nombre — nunca a través de un revendedor externo. Consolidamos tu pedido en nuestro almacén de Miami y lo entregamos en Perú.</p>
+      </div>
+      <div>
+        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Precios y pagos</h2>
+        <p>El precio que ves incluye el costo del producto más nuestro margen de servicio, mostrado en soles usando el tipo de cambio real del día (fuente: SUNAT). El envío y, si corresponde, los aranceles e impuestos de aduana de Perú se calculan y se muestran antes de pagar, nunca después.</p>
+      </div>
+      <div>
+        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Devoluciones y reembolsos</h2>
+        <p>Nuestra política completa de devoluciones — plazos, quién cubre el costo del retorno según el caso, y cómo se procesa tu reembolso — está en la página <a href="#" onclick="showPage('returnsView');return false;" class="font-semibold" style="color:var(--blue)">Devoluciones</a>.</p>
+      </div>
+      <div>
+        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Entidad legal</h2>
+        <p>Entidad legal en trámite de registro — RUC y datos legales completos próximamente. Estos términos se actualizarán con el detalle formal correspondiente una vez completado el registro.</p>
+      </div>
+      <div>
+        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Contacto</h2>
+        <p>¿Preguntas sobre estos términos? Escríbenos a <a href="mailto:contacto@ariashop.pe" class="font-semibold" style="color:var(--blue)">contacto@ariashop.pe</a> o <button onclick="toggleAssistant()" class="font-semibold underline" style="color:var(--blue)">chatea con nosotros</button>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ============ SITE FOOTER ============ -->
 <!-- Global — a sibling after every view div (not nested inside homeView
      like before), so it renders on every page, including checkout.html
@@ -978,10 +1028,12 @@
         <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
         <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
       </div>
-      <div class="flex items-center gap-6 text-[12.5px] text-zinc-500">
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
         <a href="#" onclick="showPage('howView');return false;" class="hover:text-[color:var(--navy)] transition">Cómo funciona</a>
         <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
         <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
+        <a href="#" onclick="showPage('termsView');return false;" class="hover:text-[color:var(--navy)] transition">Términos</a>
+        <a href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
         <button onclick="toggleAssistant()" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Chatea con nosotros</button>
       </div>
     </div>
@@ -1168,13 +1220,15 @@ function fmtPEN(usd){
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(round2(usd * fxRate));
 }
 
-// Primary price label for any product price shown on the site: PEN, bold,
-// with a small muted USD reference alongside it. Falls back to USD-only
-// (no fabricated conversion) if the live rate never loaded.
+// BUG FIX (live audit): dropped the "(≈ $X USD)" secondary reference —
+// PEN-only now, everywhere. Still falls back to USD-only display (never a
+// fabricated/zeroed PEN conversion) if the live rate never loaded; that's
+// a graceful-degradation case, not a reference price shown alongside a
+// real one.
 function fmtPriceLabel(usd){
   if (!Number.isFinite(usd)) return 'N/D';
   if (!fxRate) return fmtUSD(usd);
-  return `${fmtPEN(usd)} <span class="text-zinc-400 font-medium">(${fmtUSD(usd)})</span>`;
+  return fmtPEN(usd);
 }
 
 /* ============================================================
@@ -1483,7 +1537,7 @@ function catalogTileHTML(p, retailer){
   </button>`;
 }
 
-const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
+const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -1875,6 +1929,9 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /\bsocks?\b/i, kg: 0.06, tier: 'cited' },                    // ~40-60g/pair (deadsoxy.com)
   { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2, tier: 'cited' }, // mainstream phones ~160-220g (devicetests.com)
   { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8, tier: 'cited' }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
+  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.15, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
+  { match: /\bremote\b/i, kg: 0.1, tier: 'reasoned' },
+  { match: /\bwall mount\b|\btv mount\b/i, kg: 2.5, tier: 'reasoned' }, // typical TV wall-mount bracket, not the TV itself
 ];
 const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced ('reasoned' tier)
 
@@ -1895,9 +1952,20 @@ function estimateTvWeightKg(text){
   return withBuffer(35, 'cited'); // 70"+
 }
 
+// BUG FIX (live audit): a bare \btv\b match caught any title that merely
+// mentions TV *compatibility* — e.g. "4ft HDMI Cable for TV", "TV Wall
+// Mount", "TV Remote" — and routed it into the television weight
+// estimator, whose no-size-found default (~12kg before buffer) produced
+// a 13.2kg estimate for a cable that actually weighs a couple hundred
+// grams (S/ 578.64 freight on a S/ 57.90 product). Real TV listings are
+// the actual appliance; excluding common TV *accessories* explicitly is
+// more robust than trying to positively enumerate every real TV title
+// pattern (accessories now match their own real entries above instead).
+const TV_ACCESSORY_KEYWORDS = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
 function estimateRetailWeightKg(text){
-  if (/\btv\b|television/i.test(text || '')) return estimateTvWeightKg(text);
-  const found = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(text || ''));
+  const t = text || '';
+  if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t)) return estimateTvWeightKg(t);
+  const found = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t));
   return found ? withBuffer(found.kg, found.tier) : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
 }
 

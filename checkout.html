@@ -179,7 +179,6 @@
             <span class="text-[13.5px] font-bold" style="color:var(--navy)">Total a pagar</span>
             <span id="sumTotal" class="text-[26px] font-extrabold tabular" style="color:var(--blue)">S/ 0.00</span>
           </div>
-          <div id="sumUsdWrap" class="text-[12px] text-right -mt-2" style="color:#9AA3B8" hidden>≈ <span id="sumUsd" class="tabular font-semibold"></span> USD</div>
           <!-- BUG FIX (2026-09-17): this used to rely on a hardcoded 3.8
                USD/PEN rate. Now fetches real compra/venta rates from SUNAT
                (netlify/functions/exchange-rate.js) — venta is what's used
@@ -358,7 +357,9 @@
         <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
         <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
       </div>
-      <div class="flex items-center gap-6 text-[12.5px] text-zinc-500">
+      <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
+        <a href="index.html" class="hover:text-[color:var(--navy)] transition">Términos</a>
+        <a href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
         <a href="index.html" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Vuelve a la tienda para chatear con nosotros</a>
       </div>
     </div>
@@ -421,8 +422,6 @@
   const sumDuty = document.getElementById('sumDuty');
   const sumFlete = document.getElementById('sumFlete');
   const sumTotal = document.getElementById('sumTotal');
-  const sumUsdWrap = document.getElementById('sumUsdWrap');
-  const sumUsd = document.getElementById('sumUsd');
   const fxRatesWrap = document.getElementById('fxRatesWrap');
   const fxCompra = document.getElementById('fxCompra');
   const fxVenta = document.getElementById('fxVenta');
@@ -543,7 +542,6 @@
       sumDutyRow.hidden = true;
       sumFlete.textContent = 'Cotizando…';
       sumTotal.textContent = '—';
-      sumUsdWrap.hidden = true;
       payBtn.disabled = true;
       payBtn.textContent = 'Cotizando con AVI Courier…';
       return;
@@ -553,7 +551,6 @@
       sumDutyRow.hidden = true;
       sumFlete.textContent = '—';
       sumTotal.textContent = fmtPrimary(0);
-      sumUsdWrap.hidden = true;
       payBtn.disabled = true;
       payBtn.textContent = 'Completa el formulario para cotizar';
       return;
@@ -576,15 +573,6 @@
 
     sumFlete.textContent = fmtPrimary(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
     sumTotal.textContent = fmtPrimary(latestQuote.total_usd);
-
-    // Small secondary USD reference next to the (now PEN-primary) total —
-    // useful for price comparison, never the number read first.
-    if (fxRates){
-      sumUsd.textContent = usd.format(latestQuote.total_usd);
-      sumUsdWrap.hidden = false;
-    } else {
-      sumUsdWrap.hidden = true;
-    }
     payBtn.disabled = false;
     payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
   }
@@ -662,8 +650,13 @@
   // confirm what they were actually buying. img/sizes are both real data
   // straight from the retailer's own scrape payload (see orderProduct()/
   // normalizeLiveItem() in index.html) — never invented.
+  // BUG FIX (live audit): defensively round2() before toFixed() here too
+  // — belt-and-suspenders on top of the weight-estimator fix in
+  // index.html (see estimateRetailWeightKg), so a raw/imprecise float can
+  // never land in a checkout form control's value no matter what
+  // upstream computation produced it.
   const params = new URLSearchParams(location.search);
-  const prefillKg = parseFloat(params.get('kg'));
+  const prefillKg = round2(parseFloat(params.get('kg')));
   if (Number.isFinite(prefillKg) && prefillKg > 0){
     kgInput.value = prefillKg.toFixed(2);
     // Weight came from the product itself (category-based estimate — no
@@ -672,7 +665,7 @@
     kgInput.disabled = true;
     document.getElementById('kgAutoNote').hidden = false;
   }
-  const prefillValor = parseFloat(params.get('valor'));
+  const prefillValor = round2(parseFloat(params.get('valor')));
   if (Number.isFinite(prefillValor) && prefillValor > 0) valorInput.value = prefillValor.toFixed(2);
   const prefillDesc = params.get('desc');
   if (prefillDesc) descInput.value = prefillDesc;
