@@ -2,11 +2,15 @@
 // storage/hashing/session approach. Deliberately out of scope for this
 // pass: email verification, password reset, rate limiting — "minimal"
 // per the brief; full member perks come later.
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 import { hashPassword, normalizeEmail, sessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
 import { randomBytes } from "node:crypto";
 
 export async function handler(event) {
+  // Classic (event/context-style) Netlify Functions need this to wire up
+  // the ambient Blobs environment context — without it getStore() throws
+  // "environment has not been configured" even on a real deploy.
+  connectLambda(event);
   const headers = corsHeaders("POST, OPTIONS");
 
   if (event.httpMethod === "OPTIONS") {

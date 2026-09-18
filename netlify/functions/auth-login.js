@@ -1,11 +1,12 @@
 // Minimal real email/password login — see _auth-helpers.js. Always
 // returns the same generic error on a bad email or bad password (never
 // reveals which one was wrong) — standard practice, still simple.
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 import { verifyPassword, normalizeEmail, sessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
 import { randomBytes } from "node:crypto";
 
 export async function handler(event) {
+  connectLambda(event); // wires up the Blobs environment context for this classic-style function
   const headers = corsHeaders("POST, OPTIONS");
 
   if (event.httpMethod === "OPTIONS") {

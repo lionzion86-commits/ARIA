@@ -1,9 +1,10 @@
 // Deletes the session server-side (not just clearing the cookie) so a
 // stolen/old cookie can't still be used after logout.
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 import { parseCookies, SESSION_COOKIE_NAME, clearSessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
 
 export async function handler(event) {
+  connectLambda(event); // wires up the Blobs environment context for this classic-style function
   const headers = corsHeaders("POST, OPTIONS");
 
   if (event.httpMethod === "OPTIONS") {
