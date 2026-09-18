@@ -264,6 +264,29 @@ async function main() {
     }
   }
 
+  // Old Navy and Foot Locker use gendered department keys (men/women/kids)
+  // instead of a flat "clothing" key like Walmart/Target — so neither ever
+  // appeared under the site's "Ropa" (clothing) tile despite both being
+  // clothing retailers. No re-fetch needed: this merges the men/women/kids
+  // items already fetched above into a synthetic "clothing" bucket,
+  // interleaved the same way the oldnavy kids boys+girls merge above
+  // combines two real facets into one tile.
+  const CLOTHING_MERGE_RETAILERS = ["oldnavy", "footlocker"];
+  for (const retailer of CLOTHING_MERGE_RETAILERS) {
+    const bucket = retailerBucket(retailer);
+    const groups = ["men", "women", "kids"].map((k) => bucket.departments[k]?.items || []);
+    const merged = [];
+    const max = Math.max(0, ...groups.map((g) => g.length));
+    for (let i = 0; i < max; i++) {
+      for (const g of groups) if (g[i]) merged.push(g[i]);
+    }
+    if (merged.length) {
+      bucket.departments.clothing = { label: labelFor("clothing"), items: merged, fetchedAt: new Date().toISOString() };
+      console.log(`  [merge] ${retailer} clothing: men=${groups[0].length} women=${groups[1].length} kids=${groups[2].length} -> ${merged.length} items`);
+    }
+  }
+  await saveCache();
+
   console.log(`\nWrote ${OUT_FILE.pathname}`);
   for (const [retailer, bucket] of Object.entries(cache.retailers)) {
     console.log(`  ${retailer}: ${Object.keys(bucket.departments).length} departments, ${Object.keys(bucket.brands).length} brands`);

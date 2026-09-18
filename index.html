@@ -22,10 +22,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
   @keyframes blink{50%{opacity:0}}
-  @keyframes marqueeScroll{ from{ transform:translateX(0); } to{ transform:translateX(-50%); } }
-  .marquee-track{ display:flex; width:max-content; animation:marqueeScroll 16s linear infinite; }
-  .marquee-track:hover{ animation-play-state:paused; }
-  .marquee-content{ display:inline-flex; align-items:center; white-space:nowrap; padding-right:2.5rem; }
   :root{
     --navy:#0A1F44;
     --blue:#2F5FEE;
@@ -60,7 +56,7 @@
     </button>
     <nav class="hidden lg:flex items-center gap-7 text-[14px] font-medium flex-1" style="color:var(--navy)">
       <a href="#" onclick="showPage('howView');return false;" class="opacity-70 hover:opacity-100 transition">Cómo funciona</a>
-      <a href="#cats" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Categorías</a>
+      <a href="#" onclick="openCategories();return false;" class="opacity-70 hover:opacity-100 transition">Categorías</a>
       <a href="#" onclick="openAriaAuto();return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
       <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
       <a href="#whyUs" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">¿Por qué Aria?</a>
@@ -72,8 +68,6 @@
       <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
         🇵🇪 Perú · PEN
       </span>
-      <button class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Ingresar</button>
-      <button class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -81,7 +75,7 @@
   </div>
   <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
-    <a href="#cats" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
+    <a href="#" onclick="openCategories();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
     <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
     <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">🔥 Ofertas</a>
     <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
@@ -90,19 +84,6 @@
     <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5">Devoluciones</a>
   </nav>
 </header>
-
-<!-- SALES PROMO BANNER -->
-<!-- No specific discount % claimed here — we don't have a real live feed
-     of sale/discount data at page-load time (real per-item discounts, when
-     a retailer's own scrape data reports one, only surface inside the
-     Ofertas section itself — see goSales()/renderSalesGrid()). This banner
-     is just an invitation to check today's real deals, not a number. -->
-<button onclick="goSales()" class="w-full block text-left focus-ring overflow-hidden" style="background:var(--yellow)" aria-label="Ver ofertas de hoy">
-  <div class="marquee-track h-10" style="color:var(--navy)">
-    <span class="marquee-content text-[12.5px] sm:text-[13px] font-extrabold">🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;</span>
-    <span class="marquee-content text-[12.5px] sm:text-[13px] font-extrabold" aria-hidden="true">🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;🔥&nbsp; OFERTAS DE HOY!!! &nbsp;</span>
-  </div>
-</button>
 
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
@@ -148,7 +129,7 @@
   <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-6 pb-8">
     <div class="flex items-center justify-between mb-4">
       <h2 class="text-[20px] font-bold tracking-[-0.02em]">Comprar por departamento</h2>
-      <span class="text-[12.5px] text-zinc-400">Inventario real de nuestras tiendas</span>
+      <button onclick="openCategories()" class="text-[12.5px] font-semibold focus-ring rounded" style="color:var(--blue)">Ver todas las categorías →</button>
     </div>
     <div class="grid grid-cols-3 md:grid-cols-6 gap-3" id="catGrid"></div>
   </div>
@@ -292,21 +273,6 @@
     </div>
   </div>
 
-  <!-- FOOTER -->
-  <footer class="border-t" style="border-color:var(--line); background:#fff">
-    <div class="max-w-[1240px] mx-auto px-5 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
-        <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
-        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
-        <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
-      </div>
-      <div class="flex items-center gap-6 text-[12.5px] text-zinc-500">
-        <a href="#" onclick="showPage('howView');return false;" class="hover:text-[color:var(--navy)] transition">Cómo funciona</a>
-        <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
-        <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
-      </div>
-    </div>
-  </footer>
 
 </div>
 
@@ -375,7 +341,14 @@
 
         <div id="resultCount" class="text-[13px] text-zinc-500 mb-3"></div>
 
-        <div id="liveResultsWrap" class="mb-6 hidden"></div>
+        <!-- BUG FIX (2026-09-17): used to have no layout class at all, so
+             retailer blocks just stacked vertically — not a real
+             comparison. Now a horizontal-scroll row of fixed-width
+             columns (see showResults()/renderLiveRetailerBlock() below),
+             so the same searched item renders grouped by store, side by
+             side, matching the comparison experience promised in the
+             homepage copy. -->
+        <div id="liveResultsWrap" class="mb-6 hidden flex gap-4 overflow-x-auto pb-2 -mx-1 px-1 snap-x"></div>
 
         <!-- VISUAL UPDATE (2026-09-17): this used to be pale blue with
              regular-weight navy text — easy to skim past. Made it pop
@@ -430,7 +403,7 @@
      RULE as everywhere else on this site — no invented products). -->
 <div id="catalogView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
-    <button onclick="goHome()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+    <button onclick="catalogGoBack()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver
     </button>
@@ -440,6 +413,80 @@
     </div>
     <p id="catalogSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
     <div id="catalogSections"></div>
+  </div>
+</div>
+
+<!-- ============ STORE HOMEPAGE VIEW ============ -->
+<!-- One retailer's own branded homepage — real logo hero + a grid of that
+     store's own departments (never merged/aggregated like the homepage's
+     "Ropa" tile does). Entered via openStore(): from the Stores directory,
+     from a category page's store-logo tile, or from a comparison-view
+     column header — a direct logo click always lands here, on the full
+     store section (see the entry-point-scoping rule in the plan), never
+     pre-filtered to whatever department/search brought the shopper here. -->
+<div id="storeView" class="view">
+  <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <button onclick="goHome()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      Volver
+    </button>
+    <div id="storeViewHero" class="mb-3"></div>
+    <p id="storeViewSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
+    <div id="storeViewSections"></div>
+  </div>
+</div>
+
+<!-- ============ STORE-SCOPED SEARCH RESULTS VIEW ============ -->
+<!-- Only ever entered from a store-column click inside the comparison
+     view (openStoreResults(), see storeResultsHeaderHTML() in the script
+     below) — a live, single-retailer search for the exact term the
+     shopper already searched, never that store's full catalog. This is
+     the "search first, then click a store" half of the entry-point-
+     scoping rule; a direct logo click anywhere else on the site always
+     goes to openStore() (the full section) instead. -->
+<div id="storeResultsView" class="view">
+  <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <button onclick="storeResultsGoBack()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      Volver a resultados
+    </button>
+    <div id="storeResultsHero" class="mb-3"></div>
+    <p id="storeResultsSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
+    <div id="storeResultsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+  </div>
+</div>
+
+<!-- ============ PRODUCT DETAIL VIEW ============ -->
+<!-- BUG FIX (2026-09-17): every product card used to jump straight to
+     checkout.html with no page in between — no image, full title, or
+     store confirmation, just a bare price. This view is that missing
+     step: shown via showProduct() before checkout.html ever loads.
+     image/title/price/rating/sizes are all real fields straight from
+     normalizeLiveItem()'s output (see the RULE comments there) — no
+     retailer scraper anywhere in this codebase returns a description or
+     brand field, so this deliberately shows no generated marketing copy,
+     only real metadata. -->
+<div id="productView" class="view">
+  <div class="max-w-[720px] mx-auto px-5 py-10">
+    <button onclick="goBack()" class="text-[13px] font-semibold mb-6 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      Volver
+    </button>
+    <div class="bg-white border rounded-3xl p-6 sm:p-8" style="border-color:var(--line)">
+      <div id="productViewBadge" class="mb-4"></div>
+      <div class="grid sm:grid-cols-[220px_1fr] gap-6">
+        <div class="w-full h-[220px] rounded-2xl overflow-hidden grid place-items-center" style="background:var(--sky)">
+          <img id="productViewImg" class="w-full h-full object-cover hidden" alt="" onerror="this.classList.add('hidden'); document.getElementById('productViewImgFallback').classList.remove('hidden');">
+          <svg id="productViewImgFallback" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+        </div>
+        <div class="min-w-0">
+          <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-3"></h1>
+          <div id="productViewPrice" class="text-[26px] font-extrabold mb-3" style="color:var(--navy)"></div>
+          <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-6"></div>
+          <button onclick="confirmPurchase()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Comprar</button>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -486,6 +533,46 @@
   </div>
 </div>
 
+<!-- ============ CATEGORIES VIEW ============ -->
+<!-- BUG FIX (2026-09-17): "Categorías" in the nav used to just scroll to
+     the homepage's small teaser tile grid (#cats) — not a real page, no
+     way to sort or filter, and it only ever showed department tiles, not
+     the full real taxonomy (departments + brands together). This is a
+     dedicated page with real sort/filter controls, same pattern already
+     used on the Ofertas page (aside filters on desktop, a sort <select>
+     next to the grid) — built from the same real department-cache.json
+     data as the homepage tiles, never a separate/fake catalog. -->
+<div id="categoriesView" class="view">
+  <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <h1 class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em] mb-2">Categorías</h1>
+    <p class="text-[13.5px] text-zinc-500 mb-8">Todos los departamentos y marcas disponibles, con inventario real de nuestras tiendas.</p>
+
+    <div class="grid lg:grid-cols-[240px_1fr] gap-8">
+      <aside class="hidden lg:block">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-bold text-[14px]">Filtros</div>
+        </div>
+        <div class="space-y-6 text-[13px]">
+          <div>
+            <div class="font-semibold mb-2.5">Tienda</div>
+            <div id="categoriesStoreFilters" class="space-y-2 text-zinc-600"></div>
+          </div>
+        </div>
+      </aside>
+
+      <div>
+        <div class="flex items-center justify-between mb-4 gap-3">
+          <div id="categoriesCount" class="text-[13px] text-zinc-500"></div>
+          <select id="categoriesSort" onchange="renderCategoriesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
+            <option value="name">Nombre (A-Z)</option>
+            <option value="count">Más productos primero</option>
+          </select>
+        </div>
+        <div id="categoriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- ============ HOW IT WORKS VIEW ============ -->
 <div id="howView" class="view">
@@ -651,52 +738,62 @@
          Works, Coach, Michael Kors, Kate Spade, Vitamin Shoppe),
          misrepresenting what Aria can actually search. Update this
          alongside those two places if a retailer is added or removed. -->
+    <!-- BUG FIX (2026-09-17): these used to be plain, non-interactive
+         cards — clicking one did nothing. Each is now a real entry point
+         into that store's own branded homepage via openStore() (or, for
+         AutoZone, the existing Aria Auto flow), matching the "walk into
+         the store" mall metaphor. -->
     <div class="grid sm:grid-cols-2 gap-4">
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#0071CE">
-          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]">Walmart</span>
+      <button onclick="openStore('walmart')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#0071CE">
+          <img src="logos/walmart.svg" alt="Walmart" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
+          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]" style="display:none">Walmart</span>
         </div>
         <div>
           <div class="font-bold text-[15px]">Walmart</div>
           <div class="text-[12.5px] text-zinc-500">De todo, a buen precio</div>
         </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#CC0000">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="#fff"><circle cx="12" cy="12" r="11"/><circle cx="12" cy="12" r="6.2" fill="#CC0000"/><circle cx="12" cy="12" r="2.2" fill="#fff"/></svg>
+      </button>
+      <button onclick="openStore('target')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#fff; border:1px solid var(--line)">
+          <img src="logos/target.svg" alt="Target" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="#CC0000" style="display:none"><circle cx="12" cy="12" r="11" fill="#fff" stroke="#CC0000" stroke-width="1.5"/><circle cx="12" cy="12" r="6.2"/><circle cx="12" cy="12" r="2.2" fill="#fff"/></svg>
         </div>
         <div>
           <div class="font-bold text-[15px]">Target</div>
           <div class="text-[12.5px] text-zinc-500">Ropa, hogar y belleza</div>
         </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#001E62">
-          <span class="text-white font-extrabold text-[14px] tracking-[-0.01em]">Old Navy</span>
+      </button>
+      <button onclick="openStore('oldnavy')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#001E62">
+          <img src="logos/oldnavy.svg" alt="Old Navy" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
+          <span class="text-white font-extrabold text-[14px] tracking-[-0.01em]" style="display:none">Old Navy</span>
         </div>
         <div>
           <div class="font-bold text-[15px]">Old Navy</div>
           <div class="text-[12.5px] text-zinc-500">Ropa casual para toda la familia</div>
         </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#000">
-          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">Foot Locker</span>
+      </button>
+      <button onclick="openStore('footlocker')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#000">
+          <img src="logos/footlocker.svg" alt="Foot Locker" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
+          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]" style="display:none">Foot Locker</span>
         </div>
         <div>
           <div class="font-bold text-[15px]">Foot Locker</div>
           <div class="text-[12.5px] text-zinc-500">Zapatillas y ropa deportiva</div>
         </div>
-      </div>
-      <div class="rounded-2xl border p-5 flex items-center gap-4" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0" style="background:#1C8A4B">
-          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]">AutoZone</span>
+      </button>
+      <button onclick="openAriaAuto()" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#1C8A4B">
+          <img src="logos/autozone.svg" alt="AutoZone" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
+          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]" style="display:none">AutoZone</span>
         </div>
         <div>
           <div class="font-bold text-[15px]">AutoZone</div>
           <div class="text-[12.5px] text-zinc-500">Repuestos y autopartes — vía Aria Auto</div>
         </div>
-      </div>
+      </button>
     </div>
     <div class="mt-8 text-[13px] text-zinc-500">Estamos evaluando sumar más tiendas. ¿Buscas algo de una tienda que no está en la lista? Escríbenos.</div>
   </div>
@@ -808,46 +905,50 @@
 <div id="returnsView" class="view">
   <div class="max-w-[1000px] mx-auto px-5 py-14">
     <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3 text-center">Devoluciones y reembolsos</h1>
-    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[58ch] mx-auto text-center mb-12">
-      Como Aria compra directamente en la tienda de origen, las políticas de devolución de esa tienda aplican. Así es como lo hacemos simple para ti.
+    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[62ch] mx-auto text-center mb-12">
+      Te lo decimos de frente: devolver un producto a Estados Unidos es caro y lento. Así lo manejamos, sin letra pequeña.
     </p>
 
     <div class="grid md:grid-cols-5 gap-5 mb-14">
       <div>
         <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">1</div>
-        <div class="font-bold text-[14px] mb-1">Solicita tu devolución</div>
-        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Desde tu cuenta Aria, dentro de los 30 días de recibido tu pedido.</div>
+        <div class="font-bold text-[14px] mb-1">Repórtalo dentro de 7 días</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Dentro de 7 días de recibido, desde tu cuenta Aria, con fotos del producto y del empaque.</div>
       </div>
       <div>
         <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">2</div>
         <div class="font-bold text-[14px] mb-1">Verificamos la política</div>
-        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Revisamos si la tienda de origen acepta la devolución de ese producto.</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Verificamos la política de la tienda de origen — ojo, sus plazos cuentan desde la compra, no desde que lo recibiste en Perú.</div>
       </div>
       <div>
         <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">3</div>
-        <div class="font-bold text-[14px] mb-1">Envías a nuestro almacén</div>
-        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Lo mandas a nuestro almacén en Miami o a un punto de recojo en Perú.</div>
+        <div class="font-bold text-[14px] mb-1">Entrégalo en Lima</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Lo entregas en nuestro punto de recojo en Lima, nosotros lo consolidamos y lo enviamos a Miami. No lo envíes por tu cuenta — te saldría más caro que el producto.</div>
       </div>
       <div>
         <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">4</div>
         <div class="font-bold text-[14px] mb-1">Procesamos con la tienda</div>
-        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Como Aria hizo la compra, gestionamos la devolución directamente.</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Como la compra la hicimos nosotros, la devolución la gestionamos nosotros.</div>
       </div>
       <div>
         <div class="w-8 h-8 rounded-full text-white text-[13px] font-bold grid place-items-center mb-3" style="background:var(--blue)">5</div>
         <div class="font-bold text-[14px] mb-1">Recibes tu reembolso</div>
-        <div class="text-[12.5px] text-zinc-500 leading-relaxed">A tu método de pago original o como saldo Aria, tu eliges.</div>
+        <div class="text-[12.5px] text-zinc-500 leading-relaxed">Una vez que Miami recibe el producto y la tienda aprueba la devolución, a tu método de pago original o como saldo Aria — tú eliges.</div>
       </div>
     </div>
 
-    <div class="grid sm:grid-cols-2 gap-5">
+    <div class="grid sm:grid-cols-3 gap-5">
       <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
-        <div class="font-bold text-[15px] mb-2">Producto equivocado o defectuoso</div>
-        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Aria cubre el envío de vuelta a nuestro almacén y el reembolso es completo, sin costo para ti.</div>
+        <div class="font-bold text-[15px] mb-2">Si nos equivocamos nosotros</div>
+        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Producto equivocado o llegó dañado: todo corre por nuestra cuenta. Retorno gratis y reembolso completo, incluido el envío original.</div>
       </div>
       <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
-        <div class="font-bold text-[15px] mb-2">Cambio de decisión</div>
-        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Puedes devolverlo igual, pero el costo del envío de regreso a Miami corre por tu cuenta.</div>
+        <div class="font-bold text-[15px] mb-2">Si te arrepentiste o la talla no era</div>
+        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Puedes devolverlo, pero el retorno a Miami corre por tu cuenta — te cotizamos el costo real antes de que decidas. El reembolso cubre solo el producto, no el envío original.</div>
+      </div>
+      <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+        <div class="font-bold text-[15px] mb-2">Si la tienda se equivocó</div>
+        <div class="text-[13.5px] text-zinc-600 leading-relaxed">Lo resolvemos en Miami directamente con la tienda, sin costo para ti.</div>
       </div>
     </div>
 
@@ -856,10 +957,39 @@
         <div class="font-bold text-[15px] mb-1">¿Necesitas ayuda con una devolución?</div>
         <div class="text-[13.5px] text-zinc-600">Nuestro equipo te acompaña en todo el proceso.</div>
       </div>
-      <button onclick="showToast('Esto es un prototipo — el soporte todavía no está conectado.')" class="h-10 px-5 rounded-full text-white text-[13px] font-semibold focus-ring flex-shrink-0" style="background:var(--blue)">Contactar soporte</button>
+      <button onclick="toggleAssistant()" class="h-10 px-5 rounded-full text-white text-[13px] font-semibold focus-ring flex-shrink-0" style="background:var(--blue)">Contactar soporte</button>
     </div>
   </div>
 </div>
+
+<!-- ============ SITE FOOTER ============ -->
+<!-- Global — a sibling after every view div (not nested inside homeView
+     like before), so it renders on every page, including checkout.html
+     (which has its own matching copy of this block). Legal-status line is
+     honest about where things stand (LLC filed today, EIN pending) rather
+     than showing a fabricated RUC/address; "Contactar soporte" routes to
+     the real, working AI chat widget already on this page instead of an
+     email/phone that might not be monitored. -->
+<footer class="border-t" style="border-color:var(--line); background:#fff">
+  <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-2">
+        <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
+        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
+        <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
+      </div>
+      <div class="flex items-center gap-6 text-[12.5px] text-zinc-500">
+        <a href="#" onclick="showPage('howView');return false;" class="hover:text-[color:var(--navy)] transition">Cómo funciona</a>
+        <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
+        <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
+        <button onclick="toggleAssistant()" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Chatea con nosotros</button>
+      </div>
+    </div>
+    <div class="pt-5 border-t text-[11.5px] text-zinc-400 leading-relaxed" style="border-color:var(--line)">
+      Entidad legal en trámite de registro — RUC y datos legales completos próximamente.
+    </div>
+  </div>
+</footer>
 
 <!-- AI SHOPPING ASSISTANT WIDGET -->
 <style>
@@ -883,15 +1013,6 @@
   0%, 88%, 100% { transform: scaleY(1); }
   92% { transform: scaleY(0.1); }
 }
-@keyframes ariaDrift {
-  0%, 100% { transform: translate(0, 0); }
-  14% { transform: translate(-24px, -28px); }
-  28% { transform: translate(-42px, -6px); }
-  42% { transform: translate(-32px, 22px); }
-  58% { transform: translate(-8px, 30px); }
-  72% { transform: translate(14px, 6px); }
-  86% { transform: translate(-10px, -20px); }
-}
 .aria-eyelid.blink { animation: ariaBlinkMotion 0.38s cubic-bezier(.4,0,.2,1); }
 @keyframes ariaBlinkMotion {
   0%   { transform: scaleY(0); }
@@ -899,9 +1020,17 @@
   55%  { transform: scaleY(1); }
   100% { transform: scaleY(0); }
 }
+/* BUG FIX/VISUAL UPDATE (2026-09-17): the launcher used to physically
+   wander around the corner of the screen (ariaDrift, up to ~40px in any
+   direction) — a fixed control that keeps moving is a real click-target
+   problem, and it read as a novelty toy next to the rest of the site's
+   calm, trustworthy commerce styling (real logos, crisp cards, no other
+   moving chrome). Kept the gentle breathing pulse — still feels "alive" —
+   dropped the drift so the assistant stays exactly where a shopper expects
+   to find it. */
 #assistantBtn {
   background: transparent;
-  animation: ariaOrbBreathe 2.6s ease-in-out infinite, ariaDrift 17s ease-in-out infinite;
+  animation: ariaOrbBreathe 2.6s ease-in-out infinite;
   overflow: visible;
   filter: drop-shadow(0 6px 14px rgba(10,31,68,0.35));
 }
@@ -985,6 +1114,70 @@
 function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
 
 /* ============================================================
+   PEN CURRENCY DISPLAY — the nav badge says "🇵🇪 Perú · PEN", but until
+   now every product price on the site (catalog tiles, sale cards, live
+   search results, assistant cards) displayed in USD, with PEN only ever
+   shown at the very end of checkout. That's a real misread risk (soles
+   and dollars off by ~3.4x), so every price display on the site now
+   shows PEN as the primary, bold figure with the USD figure kept as a
+   small secondary reference — never dropped, since it's still useful for
+   price comparison, just no longer the number a shopper reads first.
+   Shares the exact same cache key/TTL and endpoint as checkout.html's
+   loadFxRates() so the two pages never double-fetch on the same day.
+   ============================================================ */
+const FX_CACHE_KEY = 'aria_fx_rate_v1';
+const FX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+let fxRate = null;
+let fxRatePromise = null;
+function loadFxRate(){
+  if (fxRatePromise) return fxRatePromise;
+  fxRatePromise = (async () => {
+    try {
+      const cachedRaw = localStorage.getItem(FX_CACHE_KEY);
+      if (cachedRaw) {
+        const cached = JSON.parse(cachedRaw);
+        if (cached && typeof cached.venta === 'number' && typeof cached.fetchedAt === 'number'
+            && Date.now() - cached.fetchedAt < FX_CACHE_TTL_MS) {
+          fxRate = cached.venta;
+          return fxRate;
+        }
+      }
+    } catch {
+      // localStorage unavailable/corrupt — fall through to a fresh fetch.
+    }
+    try {
+      const res = await fetch('/.netlify/functions/exchange-rate');
+      const data = await res.json();
+      if (!res.ok || typeof data.venta !== 'number') throw new Error(data.error || 'No se pudo obtener el tipo de cambio');
+      try { localStorage.setItem(FX_CACHE_KEY, JSON.stringify({ ...data, fetchedAt: Date.now() })); } catch { /* storage full/unavailable — non-fatal */ }
+      fxRate = data.venta;
+    } catch {
+      // No real rate available — fxRate stays null, and every price
+      // display below falls back to USD-only rather than showing a made-up
+      // conversion or blocking rendering.
+      fxRate = null;
+    }
+    return fxRate;
+  })();
+  return fxRatePromise;
+}
+
+function fmtPEN(usd){
+  if (!Number.isFinite(usd)) return 'N/D';
+  if (!fxRate) return fmtUSD(usd); // rate never loaded — never show a fabricated/zeroed PEN conversion
+  return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(round2(usd * fxRate));
+}
+
+// Primary price label for any product price shown on the site: PEN, bold,
+// with a small muted USD reference alongside it. Falls back to USD-only
+// (no fabricated conversion) if the live rate never loaded.
+function fmtPriceLabel(usd){
+  if (!Number.isFinite(usd)) return 'N/D';
+  if (!fxRate) return fmtUSD(usd);
+  return `${fmtPEN(usd)} <span class="text-zinc-400 font-medium">(${fmtUSD(usd)})</span>`;
+}
+
+/* ============================================================
    DEPARTMENT / BRAND BROWSING — homepage tiles + catalogView, driven
    entirely by department-cache.json (see scripts/refresh-department-
    cache.js, itself sourced from DEPARTMENT_CONFIG/BRAND_CONFIG in
@@ -1023,6 +1216,24 @@ function metaFor(map, key){
   return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '🛍️' };
 }
 
+// BUG FIX (2026-09-17): the department tile cover image used to be
+// "whichever item, in cache order, happens to be first and merely has a
+// non-empty image field" — no relevance check at all. Since Walmart is
+// first in cache order, its first item for a department won by luck alone
+// regardless of fit: electronics showed a TV wall-mount, pharmacy showed a
+// sparkling energy drink, sporting_goods showed a car first-aid kit — all
+// real scraped items, just not representative of the department. This
+// only excludes those specific known-bad categories (a denylist, not an
+// exhaustive allowlist of "good" titles, since we can't anticipate every
+// real product a live scrape might return) and only for the three
+// departments actually reported wrong — every other department keeps its
+// existing behavior unchanged.
+const DEPARTMENT_THUMB_EXCLUDE = {
+  electronics: /\bmount\b|\bcase\b|\bcable\b|\bcharger\b|\bscreen protector\b/i,
+  pharmacy: /\bsoda\b|\benergy drink\b|\bsparkling\b|\bcandy\b|\bchocolate\b/i,
+  sporting_goods: /\bfirst aid\b|\bbandage\b|\bband-?aid\b/i,
+};
+
 // One tile per unique department/brand key found anywhere in the cache
 // — a key can exist for more than one retailer (e.g. "men" for both Old
 // Navy and Foot Locker), and one tile covers all of them at once.
@@ -1032,14 +1243,25 @@ function collectTiles(kind){
   const byKey = {};
   for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
     for (const [key, entry] of Object.entries(data[bucketName] || {})){
-      if (!byKey[key]) byKey[key] = { key, retailers: [], thumb: null, count: 0 };
+      if (!byKey[key]) byKey[key] = { key, retailers: [], thumb: null, fallbackThumb: null, count: 0 };
       byKey[key].retailers.push(retailer);
       byKey[key].count += (entry.items || []).length;
-      if (!byKey[key].thumb){
-        const withImage = (entry.items || []).map(normalizeLiveItem).find(it => it.image);
-        if (withImage) byKey[key].thumb = withImage.image;
+      if (byKey[key].thumb) continue; // already found an acceptable image for this key
+      const excludePattern = DEPARTMENT_THUMB_EXCLUDE[key];
+      for (const it of (entry.items || []).map(normalizeLiveItem)){
+        if (!it.image) continue;
+        if (!byKey[key].fallbackThumb) byKey[key].fallbackThumb = it.image;
+        if (!excludePattern || !excludePattern.test(it.title)){
+          byKey[key].thumb = it.image;
+          break;
+        }
       }
     }
+  }
+  // Never show nothing: fall back to the first image found at all if
+  // every candidate happened to match the exclude pattern.
+  for (const t of Object.values(byKey)){
+    if (!t.thumb) t.thumb = t.fallbackThumb;
   }
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
 }
@@ -1073,42 +1295,165 @@ function initDepartmentTiles(){
   });
 }
 window.addEventListener('DOMContentLoaded', initDepartmentTiles);
+loadFxRate(); // kick off the fetch as early as possible; render paths below await the same memoized promise
 
-// Generic department/brand catalog page — reused for any tile from
-// either grid above. `key` must be a real key present in
-// department-cache.json (department-store keys like "electronics", or a
-// brand key like "nike") — see DEPARTMENT_CONFIG/BRAND_CONFIG in
-// apify-scrape-start.js for the source of truth.
-async function openCatalog(kind, key){
+// BUG FIX (2026-09-17): category pages (e.g. "Ropa") used to stack every
+// carrying retailer's full item grid in one long undifferentiated scroll.
+// With no retailerFilter, this now shows one large logo tile per carrying
+// retailer instead (storeLogoTileHTML) — a shopper picks a store first.
+// With a retailerFilter (only ever passed from openStore()'s own
+// department tiles), it renders the real item grid scoped to that one
+// store, same as the old always-show-everyone behavior just narrowed to
+// one retailer.
+// `key` must be a real key present in department-cache.json
+// (department-store keys like "electronics", or a brand key like "nike")
+// — see DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the
+// source of truth.
+let catalogReturnView = null;
+function catalogGoBack(){
+  if (catalogReturnView?.view === 'storeView') openStore(catalogReturnView.retailer);
+  else goHome();
+}
+
+async function openCatalog(kind, key, opts = {}){
+  const { retailerFilter } = opts;
+  catalogReturnView = retailerFilter ? { view: 'storeView', retailer: retailerFilter } : null;
   showPage('catalogView');
+  await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   document.getElementById('catalogIcon').textContent = meta.icon;
   document.getElementById('catalogTitle').textContent = meta.label;
   document.getElementById('catalogSubtitle').textContent = 'Buscando en nuestras tiendas…';
-  document.getElementById('catalogSections').innerHTML = GENERAL_RETAILERS.map(r => liveRetailerSkeleton(r)).join('');
+  document.getElementById('catalogSections').innerHTML = retailerFilter ? liveRetailerSkeleton(retailerFilter) : '';
 
   const data = await loadDepartmentCache();
   departmentCacheData = data;
   const bucketName = kind === 'brand' ? 'brands' : 'departments';
-  const retailers = GENERAL_RETAILERS.filter(r => data.retailers[r]?.[bucketName]?.[key]);
+  let retailers = GENERAL_RETAILERS.filter(r => data.retailers[r]?.[bucketName]?.[key]);
+  if (retailerFilter) retailers = retailers.filter(r => r === retailerFilter);
 
   if (!retailers.length){
     document.getElementById('catalogSubtitle').textContent = 'Sin resultados por ahora.';
     document.getElementById('catalogSections').innerHTML = '';
     return;
   }
-  document.getElementById('catalogSubtitle').textContent = `Disponible en ${retailers.length} tienda${retailers.length > 1 ? 's' : ''}: ${retailers.map(r => LIVE_RETAILER_LABEL[r]).join(', ')}`;
-  document.getElementById('catalogSections').innerHTML = retailers.map(r => {
-    const entry = data.retailers[r][bucketName][key];
-    return renderCatalogSection(r, entry.items || []);
-  }).join('');
+
+  if (retailerFilter){
+    document.getElementById('catalogSubtitle').textContent = `En ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter}`;
+    document.getElementById('catalogSections').innerHTML = retailers.map(r => {
+      const entry = data.retailers[r][bucketName][key];
+      return renderCatalogSection(r, entry.items || []);
+    }).join('');
+    return;
+  }
+
+  document.getElementById('catalogSubtitle').textContent = `Disponible en ${retailers.length} tienda${retailers.length > 1 ? 's' : ''} — elige una tienda, o busca algo más específico abajo.`;
+  document.getElementById('catalogSections').innerHTML = `
+    <div class="relative max-w-[520px] mb-8">
+      <input id="catalogSearchInput" onkeydown="if(event.key==='Enter')catalogSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
+        class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
+      <button onclick="catalogSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+      </button>
+    </div>
+    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
+      retailers.map(r => storeLogoTileHTML(r, (data.retailers[r][bucketName][key].items || []).length)).join('')
+    }</div>`;
+}
+
+// The category-page search bar feeds the exact same translated-query +
+// comparison-view path as every other search entry point on the site
+// (see translateSearchQuery()/showResults()) — no separate results UI.
+function catalogSearchSubmit(){
+  const raw = document.getElementById('catalogSearchInput').value.trim();
+  if (!raw){ showToast('Escribe algo para buscar.'); return; }
+  showResults(translateSearchQuery(raw));
+}
+
+// Large clickable store-logo entry block used on category/brand pages —
+// clicking always opens that store's full homepage via openStore(), never
+// just this one department (a direct logo click is "browsing", scoped
+// search results are the only thing that stay narrowed — see
+// openStoreResults()).
+function storeLogoTileHTML(retailer, count){
+  return `<button onclick="openStore('${retailer}')" class="rounded-3xl border p-8 flex flex-col items-center justify-center gap-3 text-center focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line); background:#fff; min-height:170px">
+    ${retailerBadgeHTML(retailer, 40)}
+    <div class="text-[12.5px] text-zinc-500">${count} producto${count === 1 ? '' : 's'}</div>
+  </button>`;
+}
+
+// One retailer's own branded homepage — real departments only (never the
+// cross-retailer merged view collectTiles() builds for the homepage's
+// "Ropa" tile). Old Navy/Foot Locker's synthetic "clothing" bucket (added
+// purely so they show up under the sitewide Ropa tile — see
+// scripts/refresh-department-cache.js) is hidden here in favor of their
+// real men/women/kids sections, so a shopper sees this store the way they
+// actually organize it, not a duplicate of the same items twice.
+async function openStore(retailer){
+  showPage('storeView');
+  await loadFxRate();
+  document.getElementById('storeViewHero').innerHTML = retailerBadgeHTML(retailer, 44);
+  document.getElementById('storeViewSubtitle').textContent = 'Cargando departamentos…';
+  document.getElementById('storeViewSections').innerHTML = '';
+
+  const data = await loadDepartmentCache();
+  departmentCacheData = data;
+  const departments = data.retailers[retailer]?.departments || {};
+  const isGendered = Boolean(departments.men || departments.women);
+  const deptEntries = Object.entries(departments).filter(([key]) => !(key === 'clothing' && isGendered));
+
+  if (!deptEntries.length){
+    document.getElementById('storeViewSubtitle').textContent = 'Sin departamentos disponibles por ahora.';
+    return;
+  }
+  document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${deptEntries.length > 1 ? 's' : ''} disponibles`;
+  document.getElementById('storeViewSections').innerHTML = `<div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
+    deptEntries.map(([key, entry]) => {
+      const meta = metaFor(DEPARTMENT_META, key);
+      const count = (entry.items || []).length;
+      return `<button onclick="openCatalog('department','${key}',{retailerFilter:'${retailer}'})" class="rounded-2xl border p-5 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+        <div class="text-[26px] mb-2">${meta.icon}</div>
+        <div class="font-bold text-[14px]">${escapeHtml(meta.label)}</div>
+        <div class="text-[12px] text-zinc-500 mt-0.5">${count} producto${count === 1 ? '' : 's'}</div>
+      </button>`;
+    }).join('')
+  }</div>`;
+}
+
+// Entry-point-scoping rule's "stayed scoped to the search" half — a live
+// single-retailer search for the exact term already searched (not that
+// store's full catalog). Only ever reached from a comparison-view column
+// click (storeResultsHeaderHTML() above); "Volver a resultados" re-runs
+// the same query back through the normal multi-store comparison view
+// rather than caching a second copy of the same live results.
+let storeResultsReturnQuery = '';
+function storeResultsGoBack(){
+  showResults(storeResultsReturnQuery);
+}
+async function openStoreResults(retailer, query){
+  showPage('storeResultsView');
+  await loadFxRate();
+  storeResultsReturnQuery = query;
+  document.getElementById('storeResultsHero').innerHTML = retailerBadgeHTML(retailer, 32);
+  document.getElementById('storeResultsSubtitle').textContent = `Buscando "${query}" en vivo…`;
+  document.getElementById('storeResultsGrid').innerHTML = '';
+  try {
+    const rawItems = await scrapeRetailer(retailer, query, 20);
+    const items = rawItems.map(normalizeLiveItem);
+    document.getElementById('storeResultsSubtitle').textContent = items.length
+      ? `${items.length} resultado${items.length > 1 ? 's' : ''} para "${query}"`
+      : `Sin resultados en vivo para "${query}" en este momento.`;
+    document.getElementById('storeResultsGrid').innerHTML = items.map(it => catalogTileHTML(it, retailer)).join('');
+  } catch (err) {
+    document.getElementById('storeResultsSubtitle').textContent = 'No pudimos completar esta búsqueda — intenta de nuevo.';
+  }
 }
 
 function renderCatalogSection(retailer, rawItems){
   const items = rawItems.map(normalizeLiveItem);
   if (!items.length) return '';
   return `<div class="mb-10">
-    <div class="text-[15px] font-bold mb-3" style="color:var(--navy)">${LIVE_RETAILER_LABEL[retailer]}</div>
+    <div class="mb-3">${retailerBadgeHTML(retailer, 26)}</div>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
       ${items.map(it => catalogTileHTML(it, retailer)).join('')}
     </div>
@@ -1118,27 +1463,27 @@ function renderCatalogSection(retailer, rawItems){
 // Same visual shape as saleCardHTML()'s grid tile, but works for any
 // item (not just ones already known to be on sale) — shows the
 // discount badge only when the item's own real onSale flag is true.
-// RULE: single button into orderProduct()/checkout.html, same as every
+// RULE: single button into showProduct()/productView, same as every
 // other product card on the site — never link out to the retailer.
 function catalogTileHTML(p, retailer){
   return `
-  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(retailer, p.title)}, '${sizeCategoryFor(retailer, p.title)}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+  <button onclick="showProduct('${retailer}', '${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(retailer, p.title)}, '${sizeCategoryFor(retailer, p.title)}', '${jsAttr(p.rating != null ? String(p.rating) : '')}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
     <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
       ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
       ${p.onSale ? `<span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${Math.round((1 - p.price / p.originalPrice) * 100)}%</span>` : ''}
     </div>
     <div class="p-3">
-      <span class="text-[10px] font-extrabold" style="color:var(--navy)">${LIVE_RETAILER_LABEL[retailer] || retailer}</span>
+      <div class="mb-1">${retailerBadgeHTML(retailer, 16)}</div>
       <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${escapeHtml(p.title)}</div>
       <div class="flex items-center gap-2 mt-1.5">
-        ${p.onSale ? `<span class="text-[11px] text-zinc-400 line-through tabular">${fmtUSD(p.originalPrice)}</span>` : ''}
-        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${p.price != null ? fmtUSD(p.price) : 'N/D'}</span>
+        ${p.onSale ? `<span class="text-[11px] text-zinc-400 line-through tabular">${fmtPEN(p.originalPrice)}</span>` : ''}
+        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${p.price != null ? fmtPriceLabel(p.price) : 'N/D'}</span>
       </div>
     </div>
   </button>`;
 }
 
-const ALL_VIEWS = ['homeView','resultsView','catalogView','salesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
+const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -1156,15 +1501,51 @@ function closeMobileMenu(){
   document.getElementById('mobileMenu').classList.add('hidden');
 }
 
+// Common Peruvian/Spanish retail slang that doesn't literally match how
+// US retailers list these items (e.g. "chompa" or "ramera" return nothing
+// searched literally) — mapped to the English term the real search
+// actually needs. Not exhaustive; extend as new gaps are found. Applied
+// once here, in the one shared search entry point every search bar on the
+// site funnels through, so the fix benefits every search, not just
+// category pages.
+const SPANISH_SYNONYMS = {
+  chompa: 'sweater', chompas: 'sweaters',
+  ramera: 't-shirt', rameras: 't-shirts',
+  polera: 't-shirt', poleras: 't-shirts',
+  polo: 'polo shirt', polos: 'polo shirts',
+  casaca: 'jacket', casacas: 'jackets',
+  buzo: 'hoodie', buzos: 'hoodies',
+  zapatilla: 'sneaker', zapatillas: 'sneakers',
+  pantalon: 'pants', 'pantalón': 'pants', pantalones: 'pants',
+  calzado: 'shoes',
+  cartera: 'purse', carteras: 'purses',
+  mochila: 'backpack', mochilas: 'backpacks',
+  gorra: 'cap', gorras: 'caps',
+  falda: 'skirt', faldas: 'skirts',
+  vestido: 'dress', vestidos: 'dresses',
+  correa: 'belt', correas: 'belts',
+  medias: 'socks', calcetines: 'socks',
+  audifonos: 'headphones', 'audífonos': 'headphones',
+  television: 'tv', televisor: 'tv', 'televisión': 'tv',
+};
+
+// Only translates words this site actually knows are Spanish retail slang
+// — everything else in the query (already-English terms, brand names,
+// literal Spanish that happens to already match real listings) passes
+// through completely unchanged.
+function translateSearchQuery(q){
+  return q.split(/\s+/).map(word => SPANISH_SYNONYMS[word.toLowerCase()] || word).join(' ');
+}
+
 function searchFor(q){
   document.getElementById('searchInput').value = q;
   doSearch();
 }
 
 function doSearch(which){
-  const q = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).trim();
-  if(!q){ showToast('Escribe algo para buscar.'); return; }
-  showResults(q);
+  const raw = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).trim();
+  if(!raw){ showToast('Escribe algo para buscar.'); return; }
+  showResults(translateSearchQuery(raw));
 }
 
 function initResultsFilters(){
@@ -1186,6 +1567,7 @@ function toggleRetailerBlock(retailer, visible){
 // of fake data this flow was rebuilt to remove.
 async function showResults(query){
   showPage('resultsView');
+  await loadFxRate();
 
   document.getElementById('searchInput2').value = query;
   document.getElementById('prodName').textContent = query;
@@ -1199,7 +1581,7 @@ async function showResults(query){
   liveScrapeQuery = query;
   const wrap = document.getElementById('liveResultsWrap');
   wrap.classList.remove('hidden');
-  wrap.innerHTML = GENERAL_RETAILERS.map(r => `<div id="liveBlock-${r}">${liveRetailerSkeleton(r)}</div>`).join('');
+  wrap.innerHTML = GENERAL_RETAILERS.map(r => `<div id="liveBlock-${r}" class="flex-shrink-0 w-[280px] snap-start">${liveRetailerSkeleton(r)}</div>`).join('');
 
   let heroSet = false;
   const settled = await Promise.allSettled(GENERAL_RETAILERS.map(async (retailer) => {
@@ -1227,24 +1609,75 @@ async function showResults(query){
     : `Sin resultados en vivo para "${query}" en este momento — intenta con otra búsqueda.`;
 }
 
-// RULE: every "Pedir/Comprar" action on the site must route through this
-// function so the customer always lands on checkout with a real product
-// image and title, never a bare price. Fixed 2026-09-17 after a bug
-// report: clicking a result went straight to checkout showing only a
-// number, with no way to know what was actually being bought. image and
-// sizes are both real data straight from the retailer's own scrape
-// payload — never invented. sizes is only ever a real availableSizes-type
-// list (currently only Old Navy's listing data includes one); when a
-// retailer doesn't expose real sizes, checkout.html offers a standard
-// industry size-scale dropdown instead (gated by needsSizeSelection(),
-// shoe-vs-clothing chosen by sizeCategoryFor()) rather than a fabricated
-// per-item list or free text.
-function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory){
+// RULE: every product card on the site must route through showProduct(),
+// never call orderProduct() directly — see the RULE comment on
+// orderProduct() itself below for why (that rule now applies one step
+// removed: showProduct() is the single entry point every card uses, and
+// orderProduct()/checkout.html is only ever reached from productView's
+// own "Comprar" button via confirmPurchase()).
+let pendingProduct = null;
+function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating){
+  const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
+  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView };
+
+  document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
+  document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
+  document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0 ? fmtPriceLabel(totalUsd) : 'Precio no disponible';
+
+  const img = document.getElementById('productViewImg');
+  const fallback = document.getElementById('productViewImgFallback');
+  if (imageUrl){
+    img.src = imageUrl;
+    img.classList.remove('hidden');
+    fallback.classList.add('hidden');
+  } else {
+    img.classList.add('hidden');
+    fallback.classList.remove('hidden');
+  }
+
+  // Real fields only — no generated product description exists anywhere
+  // in the scrape pipeline (see normalizeLiveItem()), so this section only
+  // ever shows metadata the retailer's own payload actually reported.
+  const metaParts = [];
+  if (rating) metaParts.push(`★ ${escapeHtml(String(rating))}`);
+  if (Array.isArray(sizes) && sizes.length) metaParts.push(`Tallas disponibles en tienda: ${sizes.map(s => escapeHtml(s)).join(', ')}`);
+  else if (needsSize) metaParts.push('Selecciona tu talla en el siguiente paso.');
+  document.getElementById('productViewMeta').innerHTML = metaParts.map(t => `<div>${t}</div>`).join('');
+
+  showPage('productView');
+}
+
+function confirmPurchase(){
+  if (!pendingProduct) return;
+  const p = pendingProduct;
+  orderProduct(p.name, p.totalUsd, p.weightKg, p.imageUrl, p.sizes, p.needsSize, p.sizeCategory, p.retailer);
+}
+
+function goBack(){
+  showPage(pendingProduct?.returnView || 'homeView');
+}
+
+// The final step into checkout.html — only ever called from productView's
+// "Comprar" button via confirmPurchase() above, never directly from a
+// product card (see the RULE comment on showProduct()). Ensures the
+// customer always lands on checkout with a real product image and title,
+// never a bare price. image and sizes are both real data straight from
+// the retailer's own scrape payload — never invented. sizes is only ever
+// a real availableSizes-type list (currently only Old Navy's listing data
+// includes one); when a retailer doesn't expose real sizes, checkout.html
+// offers a standard industry size-scale dropdown instead (gated by
+// needsSizeSelection(), shoe-vs-clothing chosen by sizeCategoryFor())
+// rather than a fabricated per-item list or free text.
+function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, retailer){
   const params = new URLSearchParams();
   if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
   if (name) params.set('desc', name);
   if (needsSize) params.set('needsSize', '1');
   if (sizeCategory) params.set('sizeCategory', sizeCategory);
+  // BUG FIX (2026-09-17): checkout never named which store the product
+  // came from at all. retailer is real data already sitting in
+  // pendingProduct from showProduct() — never guessed/defaulted here.
+  if (retailer) params.set('store', retailer);
   // Both auto parts (PART_WEIGHT_ESTIMATES_KG / estimateBrakePadWeightKg)
   // and general retail products (RETAIL_WEIGHT_ESTIMATES_KG) pass a
   // category-estimated weightKg here, since no source retailer publishes
@@ -1264,6 +1697,53 @@ function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize, size
    ============================================================ */
 const LIVE_RETAILERS = ['walmart', 'target', 'oldnavy', 'footlocker', 'autozone']; // bestbuy dropped, nordstrom paused — see apify-scrape-start.js
 const LIVE_RETAILER_LABEL = { bestbuy: 'Best Buy', walmart: 'Walmart', target: 'Target', nordstrom: 'Nordstrom', oldnavy: 'Old Navy', footlocker: 'Foot Locker', autozone: 'AutoZone' };
+
+// Same brand colors already used in storesView's retailer cards — kept as
+// the fallback treatment (see retailerTextBadgeHTML below) for any
+// retailer whose real logo file is missing or fails to load.
+const RETAILER_BADGE_COLOR = { walmart: '#0071CE', target: '#CC0000', oldnavy: '#001E62', footlocker: '#000', autozone: '#1C8A4B' };
+
+// Real logo files (see logos/README or the plan for sourcing notes — each
+// pulled from that retailer's own Wikipedia/Wikimedia-hosted logo file,
+// used here purely for store identification/comparison, the same
+// nominative use every price-comparison site relies on). A retailer with
+// no entry here just gets the colored text pill, same as before.
+const RETAILER_LOGO_FILE = { walmart: 'logos/walmart.svg', target: 'logos/target.svg', oldnavy: 'logos/oldnavy.svg', footlocker: 'logos/footlocker.svg', autozone: 'logos/autozone.svg' };
+
+// Lookups are case-insensitive (some callers, e.g. the Aria Auto sources
+// list, pass a display-cased label like "AutoZone" rather than the
+// lowercase key used elsewhere) — the original string is still used as
+// the ultimate display-label fallback so an unrecognized store still
+// shows its real name, just without a color/logo match.
+function retailerTextBadgeHTML(retailer){
+  const key = String(retailer || '').toLowerCase();
+  const color = RETAILER_BADGE_COLOR[key] || 'var(--navy)';
+  const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
+  return `<span class="inline-flex items-center h-7 px-3 rounded-full text-[12px] font-extrabold text-white" style="background:${color}">${escapeHtml(label)}</span>`;
+}
+
+// Swaps a failed/missing logo <img> for the text-pill fallback in place —
+// never leaves a broken image icon or a blank badge.
+function handleLogoError(imgEl, retailer){
+  const wrapper = document.createElement('span');
+  wrapper.innerHTML = retailerTextBadgeHTML(retailer);
+  imgEl.replaceWith(wrapper.firstElementChild);
+}
+
+// BUG FIX (2026-09-17): store attribution used to be small skimmable text
+// (or, on the product page only, a colored pill) everywhere a product
+// card appears, including checkout where the store wasn't named at all.
+// This is now the one function every product card/section/checkout uses
+// for store attribution — a real, prominent logo image, falling back to
+// the colored text pill via handleLogoError() only if that retailer has no
+// logo file or it fails to load.
+function retailerBadgeHTML(retailer, heightPx = 28){
+  const key = String(retailer || '').toLowerCase();
+  const logoFile = RETAILER_LOGO_FILE[key];
+  if (!logoFile) return retailerTextBadgeHTML(retailer);
+  const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
+  return `<img src="${logoFile}" alt="${escapeHtml(label)}" style="height:${heightPx}px; max-width:${heightPx * 4}px" class="inline-block" onerror="handleLogoError(this, '${escapeHtml(retailer)}')">`;
+}
 
 // Real retailers actually wired up for general shopping (excludes
 // AutoZone, which is Aria Auto's part-search source, not a general
@@ -1339,7 +1819,17 @@ function safeUrl(u){
 // auto-cache.json: cached items store the raw retailer price and pass
 // through this same markup on every read, so bumping this constant repriced
 // every already-cached product too — no cache regeneration needed.
+//
+// BUG FIX (2026-09-17): scraped prices are Miami shelf prices, which do not
+// include Miami-Dade's 7% sales tax — that tax is only added at the actual
+// register, so a price scraped straight off a retailer's site undercounts
+// the real cost by 7% before any markup is applied. SALES_TAX_RATE is
+// applied first, then LIVE_PRICE_MARKUP on top of the tax-inclusive price —
+// applying markup on top of pre-tax price (the previous behavior) was a
+// real margin leak on every single order.
+const SALES_TAX_RATE = 1.07;
 const LIVE_PRICE_MARKUP = 1.24;
+function round2(n){ return Math.round(n * 100) / 100; }
 
 // CONFIDENCE-BASED SAFETY BUFFER — shared by every weight estimate on the
 // site that feeds into checkout, both general retail (RETAIL_WEIGHT_ESTIMATES_KG,
@@ -1420,7 +1910,7 @@ function normalizeLiveItem(item){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
   const rawPrice = typeof priceRaw === 'number' ? priceRaw : (typeof priceRaw === 'string' ? parseFloat(priceRaw.replace(/[^0-9.]/g, '')) : NaN);
-  const price = Number.isFinite(rawPrice) ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
+  const price = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
   const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
   const weightKg = estimateRetailWeightKg(title);
@@ -1447,51 +1937,67 @@ function normalizeLiveItem(item){
   const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice;
   const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
   const hasRealDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
-  const originalPrice = hasRealDiscount ? Math.round(rawOriginalNum * LIVE_PRICE_MARKUP * 100) / 100 : null;
+  const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
   return { title, price, image, rating, weightKg, sizes, onSale: hasRealDiscount, originalPrice };
 }
 
 function liveRetailerSkeleton(retailer){
-  return `<div class="rounded-2xl border p-4 mb-3 animate-pulse" style="border-color:var(--line)">
-    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${LIVE_RETAILER_LABEL[retailer]}</div>
+  return `<div class="rounded-2xl border p-4 h-full animate-pulse" style="border-color:var(--line)">
+    <div class="mb-2">${retailerBadgeHTML(retailer, 22)}</div>
     <div class="h-4 rounded w-2/3 mb-2" style="background:var(--line)"></div>
     <div class="h-4 rounded w-1/3" style="background:var(--line)"></div>
   </div>`;
 }
 
+// BUG FIX (2026-09-17): search results used to just stack every retailer's
+// block vertically, one after another — not a real comparison. Each block
+// is now a fixed-width column (see #liveResultsWrap's flex/overflow-x-auto
+// wrapper in showResults()) so the same searched item renders grouped by
+// store, side by side, scrollable — the comparison experience the
+// homepage copy already promised. The header is clickable → per the
+// entry-point-scoping rule, clicking a store from *inside search results*
+// stays scoped to this search (openStoreResults), unlike a direct logo
+// click elsewhere on the site which always opens the store's full section.
+function storeResultsHeaderHTML(retailer, query){
+  return `<button onclick="openStoreResults('${retailer}', '${jsAttr(query)}')" class="w-full flex items-center justify-between gap-2 mb-3 text-left focus-ring rounded-lg">
+    ${retailerBadgeHTML(retailer, 22)}
+    <span class="text-[11.5px] font-bold flex-shrink-0" style="color:var(--blue)">Ver todo →</span>
+  </button>`;
+}
+
 function renderLiveRetailerBlock(retailer, result){
-  const label = LIVE_RETAILER_LABEL[retailer];
+  const query = liveScrapeQuery;
   if (!result.ok){
-    return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
-      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${label}</div>
+    return `<div class="rounded-2xl border p-4 h-full" style="border-color:var(--line)">
+      ${storeResultsHeaderHTML(retailer, query)}
       <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
     </div>`;
   }
 
   const items = Array.isArray(result.items) ? result.items.slice(0, 5).map(normalizeLiveItem) : [];
   if (!items.length){
-    return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
-      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${label}</div>
+    return `<div class="rounded-2xl border p-4 h-full" style="border-color:var(--line)">
+      ${storeResultsHeaderHTML(retailer, query)}
       <div class="text-[12px] text-zinc-400">Sin resultados en vivo.</div>
     </div>`;
   }
 
   // RULE: never link any part of a product card to the retailer's own
   // site — the whole card is one button that routes into our own
-  // checkout flow via orderProduct(), same as every other buy action on
+  // product page via showProduct(), same as every other buy action on
   // this site. Do not add an <a href> to a scraped item.url here or
   // anywhere else a product card is rendered.
-  return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
-    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${label}</div>
+  return `<div class="rounded-2xl border p-4 h-full" style="border-color:var(--line)">
+    ${storeResultsHeaderHTML(retailer, query)}
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg}, '${jsAttr(it.image || '')}', ${escapeHtml(JSON.stringify(it.sizes || []))}, ${needsSizeSelection(retailer, it.title)}, '${sizeCategoryFor(retailer, it.title)}')" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="showProduct('${retailer}', '${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${it.weightKg}, '${jsAttr(it.image || '')}', ${escapeHtml(JSON.stringify(it.sizes || []))}, ${needsSizeSelection(retailer, it.title)}, '${sizeCategoryFor(retailer, it.title)}', '${jsAttr(it.rating != null ? String(it.rating) : '')}')" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
             <div class="text-[12px] text-zinc-500">
-              ${it.onSale ? `<span class="line-through text-zinc-400">${fmtUSD(it.originalPrice)}</span> ` : ''}${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}
+              ${it.onSale ? `<span class="line-through text-zinc-400">${fmtPEN(it.originalPrice)}</span> ` : ''}${it.price != null ? fmtPriceLabel(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}
             </div>
           </div>
           <span class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0 grid place-items-center" style="background:var(--blue)">Pedir</span>
@@ -1671,7 +2177,7 @@ document.getElementById('autoModelSelect').addEventListener('change', maybeRevea
 function normalizeAutoPartItem(sourceId, item){
   if (sourceId === 'oreilly'){
     const rawPrice = item?.pricing?.price;
-    const price = typeof rawPrice === 'number' ? Math.round(rawPrice * LIVE_PRICE_MARKUP * 100) / 100 : null;
+    const price = typeof rawPrice === 'number' ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
     return {
       title: item.name || 'Repuesto sin título',
       price,
@@ -1720,7 +2226,7 @@ const AUTO_PARTS_SOURCES = [
 
 function autoPartSkeleton(label){
   return `<div class="rounded-2xl border p-4 mb-3 animate-pulse" style="border-color:var(--line)">
-    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
+    <div class="mb-2">${retailerBadgeHTML(label, 22)}</div>
     <div class="h-4 rounded w-2/3 mb-2" style="background:var(--line)"></div>
     <div class="h-4 rounded w-1/3" style="background:var(--line)"></div>
   </div>`;
@@ -2026,31 +2532,31 @@ function estimatePartWeightKg(query, vehicle){
 function renderAutoPartBlock(label, result, query){
   if (!result.ok){
     return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
-      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(label)}</div>
+      <div class="mb-1">${retailerBadgeHTML(label, 22)}</div>
       <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
     </div>`;
   }
   const items = Array.isArray(result.items) ? result.items : [];
   if (!items.length){
     return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
-      <div class="text-[12px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(label)}</div>
+      <div class="mb-1">${retailerBadgeHTML(label, 22)}</div>
       <div class="text-[12px] text-zinc-400">Sin resultados.</div>
     </div>`;
   }
   // RULE: never link any part of a product card to the retailer's own
   // site — the whole card is one button that routes into our own
-  // checkout flow via orderProduct(), same as every other buy action on
+  // product page via showProduct(), same as every other buy action on
   // this site. Do not add an <a href> to a scraped item.url here or
   // anywhere else a product card is rendered.
   return `<div class="rounded-2xl border p-4 mb-3" style="border-color:var(--line)">
-    <div class="text-[12px] font-bold mb-2" style="color:var(--navy)">${escapeHtml(label)}</div>
+    <div class="mb-2">${retailerBadgeHTML(label, 22)}</div>
     <div class="space-y-2.5">
       ${items.map(it => `
-        <button type="button" onclick="orderProduct('${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query, selectedVehicle)}, '${jsAttr(it.image || '')}')" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
+        <button type="button" onclick="showProduct('${jsAttr(label)}', '${jsAttr(it.title)}', ${it.price != null ? it.price : 0}, ${estimatePartWeightKg(query, selectedVehicle)}, '${jsAttr(it.image || '')}', [], false, '', '${jsAttr(it.rating != null ? String(it.rating) : '')}')" class="w-full flex items-center gap-3 text-left rounded-xl p-1 -m-1 hover:bg-zinc-50 transition focus-ring">
           ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-10 h-10 rounded-lg object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-10 h-10 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
-            <div class="text-[12px] text-zinc-500">${it.price != null ? fmtUSD(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
+            <div class="text-[12px] text-zinc-500">${it.price != null ? fmtPriceLabel(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}</div>
           </div>
           <span class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0 grid place-items-center" style="background:var(--blue)">Pedir</span>
         </button>
@@ -2063,6 +2569,7 @@ async function searchAutoParts(){
   if (!selectedVehicle){ showToast('Elige marca, modelo y año primero.'); return; }
   const query = document.getElementById('autoPartQuery').value.trim();
   if (!query){ showToast('Escribe qué repuesto buscas.'); return; }
+  await loadFxRate();
 
   const wrap = document.getElementById('autoPartsResultsWrap');
   wrap.classList.remove('hidden');
@@ -2114,24 +2621,72 @@ function initSalesFilters(){
   ).join('');
 }
 
+// BUG FIX (2026-09-17): "Categorías" used to just scroll to the homepage's
+// small teaser grid — this is a real page with its own sort (name/product
+// count) and store filter, same UI pattern as the Ofertas page. Built from
+// the exact same real department-cache.json data as the homepage tiles
+// (collectTiles()/deptTileHTML() above) — departments and brands together,
+// never a second/fake catalog.
+function initCategoriesFilters(){
+  document.getElementById('categoriesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
+    `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
+  ).join('');
+}
+
+async function openCategories(){
+  showPage('categoriesView');
+  departmentCacheData = await loadDepartmentCache();
+  renderCategoriesGrid();
+}
+
+function renderCategoriesGrid(){
+  const activeStores = Array.from(document.querySelectorAll('.categoriesStoreFilter:checked')).map(cb => cb.value);
+  const sortBy = document.getElementById('categoriesSort').value;
+
+  let tiles = [
+    ...collectTiles('department').map(t => ({ ...t, kind: 'department' })),
+    ...collectTiles('brand').map(t => ({ ...t, kind: 'brand' })),
+  ].filter(t => t.retailers.some(r => activeStores.includes(r)));
+
+  if (sortBy === 'count') tiles.sort((a, b) => b.count - a.count);
+  else tiles.sort((a, b) => a.label.localeCompare(b.label, 'es'));
+
+  document.getElementById('categoriesCount').textContent = `${tiles.length} categoría${tiles.length === 1 ? '' : 's'}`;
+  document.getElementById('categoriesGrid').innerHTML = tiles.length
+    ? tiles.map(t => deptTileHTML(t, t.kind)).join('')
+    : '<div class="col-span-full text-center text-zinc-400 py-16">No hay categorías disponibles para esta selección de tiendas.</div>';
+}
+
 async function runSalesScan(){
+  await loadFxRate();
   document.getElementById('salesCount').textContent = 'Buscando ofertas reales en vivo…';
   document.getElementById('salesGrid').innerHTML = `<div class="col-span-full text-center text-zinc-400 py-16">Buscando ofertas reales en vivo…</div>`;
 
-  const found = [];
+  // BUG FIX (2026-09-17): the same real product can legitimately come back
+  // from more than one of SALES_QUERIES (e.g. a pair of sale sneakers can
+  // match both the "clothing" and "shoes" queries against the same
+  // retailer) — with no dedup, that showed up as the same item repeated
+  // several times in a row. Deduped here by retailer+title+price (no
+  // stable per-item SKU/id field exists on normalizeLiveItem()'s output),
+  // keeping the first copy found.
+  const foundByKey = new Map();
   const tasks = [];
   SALES_QUERIES.forEach(query => {
     GENERAL_RETAILERS.forEach(retailer => {
       tasks.push(
         scrapeRetailer(retailer, query, 10)
-          .then(rawItems => rawItems.map(normalizeLiveItem).forEach(it => { if (it.onSale) found.push({ ...it, retailer }); }))
+          .then(rawItems => rawItems.map(normalizeLiveItem).forEach(it => {
+            if (!it.onSale) return;
+            const key = `${retailer}::${it.title}::${it.price}`;
+            if (!foundByKey.has(key)) foundByKey.set(key, { ...it, retailer });
+          }))
           .catch(() => {}) // one retailer/query failing shouldn't block the rest
       );
     });
   });
   await Promise.allSettled(tasks);
 
-  saleItemsCache = found;
+  saleItemsCache = Array.from(foundByKey.values());
   renderSalesGrid();
 }
 
@@ -2140,17 +2695,17 @@ function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100
 function saleCardHTML(p){
   const pct = discountPct(p);
   return `
-  <button onclick="orderProduct('${jsAttr(p.title)}', ${p.price}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(p.retailer, p.title)}, '${sizeCategoryFor(p.retailer, p.title)}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
+  <button onclick="showProduct('${p.retailer}', '${jsAttr(p.title)}', ${p.price}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(p.retailer, p.title)}, '${sizeCategoryFor(p.retailer, p.title)}', '${jsAttr(p.rating != null ? String(p.rating) : '')}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
     <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
       ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
       <span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${pct}%</span>
     </div>
     <div class="p-3">
-      <span class="text-[10px] font-extrabold" style="color:var(--navy)">${LIVE_RETAILER_LABEL[p.retailer] || p.retailer}</span>
+      <div class="mb-1">${retailerBadgeHTML(p.retailer, 16)}</div>
       <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${escapeHtml(p.title)}</div>
       <div class="flex items-center gap-2 mt-1.5">
-        <span class="text-[11px] text-zinc-400 line-through tabular">${fmtUSD(p.originalPrice)}</span>
-        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${fmtUSD(p.price)}</span>
+        <span class="text-[11px] text-zinc-400 line-through tabular">${fmtPEN(p.originalPrice)}</span>
+        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${fmtPriceLabel(p.price)}</span>
       </div>
     </div>
   </button>`;
@@ -2174,6 +2729,7 @@ function renderSalesGrid(){
 
 initSalesFilters();
 initResultsFilters();
+initCategoriesFilters();
 
 /* ============================================================
    AI SHOPPING ASSISTANT
@@ -2270,14 +2826,15 @@ function addAssistantMessage(role, text, audioBase64){
 function addAssistantProductCard(item, retailer){
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); orderProduct(item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title)); };
+  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
     ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
+      <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
-      <div class="text-[11.5px] text-zinc-500 truncate">${LIVE_RETAILER_LABEL[retailer] || retailer}${item.price != null ? ' · ' + fmtUSD(item.price) : ''}</div>
+      <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtPriceLabel(item.price) : ''}</div>
     </div>`;
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
@@ -2300,6 +2857,7 @@ const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion'
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
+  loadFxRate(); // kick off/reuse the memoized fetch; addAssistantProductCard awaits it below before rendering a price
 
   const statusEl = document.getElementById('assistantStatus');
   const prevStatus = statusEl ? statusEl.textContent : '';
@@ -2346,6 +2904,7 @@ async function runAssistantBrain(text){
     // "Pedir con Aria" search bar itself is for.
     try {
       const rawItems = await scrapeRetailer('walmart', text, 3);
+      await loadFxRate(); // already in flight since the top of this function — just making sure it's settled before rendering a price
       rawItems.map(it => normalizeLiveItem(it)).forEach(it => addAssistantProductCard(it, 'walmart'));
     } catch (e) {
       // A failed/empty live lookup shouldn't block the chat reply that

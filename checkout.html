@@ -30,6 +30,29 @@
   input:focus, select:focus, textarea:focus{outline:2px solid var(--blue); outline-offset:0; border-color:transparent}
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
   [hidden]{display:none!important}
+
+  /* BUG FIX (2026-09-17): the order summary/total used to be a sibling
+     <aside> placed after every form section in the DOM, and the 2-column
+     split only kicked in at the lg breakpoint — so on mobile a cautious
+     first-time buyer had to fill out their name, email, phone and address
+     before ever seeing a price. Grid areas decouple visual layout from
+     DOM order: on mobile (no media query active) grid items still lay out
+     in DOM/area order top-to-bottom, so putting "summary" second in the
+     area list (right after "product", before any personal-info section)
+     shows the total before the personal-info form is ever reached. On
+     desktop the same areas are reflowed into the familiar 2-column,
+     sticky-summary layout. */
+  #checkoutForm{ display:grid; gap:1.5rem; grid-template-areas:"product" "summary" "customer" "shipping" "destination"; }
+  @media (min-width:1024px){
+    #checkoutForm{ grid-template-columns:1fr 360px; gap:2rem; align-items:start;
+      grid-template-areas:"product summary" "customer summary" "shipping summary" "destination summary"; }
+    #checkoutForm .gridSummary{ position:sticky; top:6rem; }
+  }
+  .gridProduct{ grid-area:product; }
+  .gridSummary{ grid-area:summary; }
+  .gridCustomer{ grid-area:customer; }
+  .gridShipping{ grid-area:shipping; }
+  .gridDestination{ grid-area:destination; }
 </style>
 </head>
 <body class="antialiased">
@@ -58,9 +81,8 @@
       <p class="text-[13.5px] leading-relaxed mt-1.5 max-w-[62ch]" style="color:#5B6478">Completa tus datos, la dirección de entrega en Perú y el peso del paquete. Calculamos el total al instante.</p>
     </div>
 
-    <form id="checkoutForm" class="grid lg:grid-cols-[1fr_360px] gap-6 lg:gap-8 items-start" novalidate>
-      <div class="space-y-6 min-w-0">
-
+    <form id="checkoutForm" novalidate>
+        <div class="gridProduct">
         <!-- PRODUCT
              BUG FIX (2026-09-17): clicking a result used to skip straight
              to a checkout page showing only a price — no image, title, or
@@ -79,6 +101,7 @@
               <svg id="productImgFallback" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
             </div>
             <div class="min-w-0 flex-1">
+              <div id="productStoreBadge" class="mb-1.5"></div>
               <div id="productTitle" class="text-[15px] font-bold leading-snug" style="color:var(--navy)">Completa la descripción del contenido más abajo</div>
               <p class="text-[11.5px] mt-1" style="color:#8A93A8">Este es el producto que vas a comprar. El envío y los aranceles a Perú se calculan en el resumen del pedido.</p>
             </div>
@@ -108,7 +131,83 @@
             </p>
           </div>
         </section>
+        </div>
 
+        <!-- ORDER SUMMARY — moved here (right after the product, before any
+             personal-info section) so the total is visible before the
+             customer is asked for their name/email/address. See the
+             #checkoutForm grid-area CSS above for how this stays visually
+             the sticky right-hand column on desktop despite coming first
+             in DOM order. -->
+        <aside class="gridSummary bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
+          <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
+          <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
+            <div id="sumSizeRow" class="flex justify-between" hidden><span>Talla</span><span id="sumSize" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+            <div class="flex justify-between"><span>Peso declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
+            <div class="flex justify-between"><span>Valor declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
+            <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+          </div>
+          <!-- BUG FIX (2026-09-17): the total previously included AVI's real
+               Peru import duty/IGV charge (applies automatically over a $200
+               declared value) with no line item showing it, so the total
+               looked unexplained/wrong even though the math was correct.
+               VISUAL UPDATE (2026-09-17): pulled out of the plain price list
+               and given its own amber highlight so it visually reads as a
+               separate government charge, not part of what Aria charges. -->
+          <div id="sumDutyRow" class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
+            <span class="flex flex-col">
+              <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#8A6B1F">Cargo del gobierno de Perú</span>
+              <span class="text-[12.5px] font-bold" style="color:#5C4813">Aranceles e impuestos</span>
+            </span>
+            <span id="sumDuty" class="tabular font-extrabold text-[15px]" style="color:#8A6B1F">S/ 0.00</span>
+          </div>
+          <!-- VISUAL UPDATE (2026-09-17): this policy note used to be easy
+               to miss (small, gray text) — made it pop with a strong yellow
+               background and bold text so customers actually notice they
+               can avoid the duty charge entirely by staying under $200.
+               This threshold is a real, USD-denominated customs figure
+               (Peru's de minimis policy), so it stays in dollars even
+               though every other number on this page now leads with PEN. -->
+          <div class="rounded-xl px-3.5 py-3 flex items-start gap-2" style="background:var(--yellow); border:1px solid var(--yellow-dark)">
+            <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+            <p class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)">
+              Envíos de hasta $200 no pagan aranceles ni impuestos. Por encima de $200 aplica ~23% de aranceles e IGV sobre el valor declarado.
+            </p>
+          </div>
+          <div class="h-px" style="background:var(--line)"></div>
+          <div class="flex justify-between items-baseline">
+            <span class="text-[13.5px] font-bold" style="color:var(--navy)">Total a pagar</span>
+            <span id="sumTotal" class="text-[26px] font-extrabold tabular" style="color:var(--blue)">S/ 0.00</span>
+          </div>
+          <div id="sumUsdWrap" class="text-[12px] text-right -mt-2" style="color:#9AA3B8" hidden>≈ <span id="sumUsd" class="tabular font-semibold"></span> USD</div>
+          <!-- BUG FIX (2026-09-17): this used to rely on a hardcoded 3.8
+               USD/PEN rate. Now fetches real compra/venta rates from SUNAT
+               (netlify/functions/exchange-rate.js) — venta is what's used
+               to compute the soles amount above; both are shown here with
+               plain-language labels so the customer knows which applies. -->
+          <div id="fxRatesWrap" class="rounded-xl px-3.5 py-3 space-y-2.5" style="background:var(--sky)" hidden>
+            <div class="text-[10px] font-extrabold uppercase tracking-wide" style="color:var(--navy)">Tipo de cambio del día <span id="fxOrigen"></span></div>
+            <div>
+              <div class="text-[12.5px] font-bold" style="color:var(--navy)">Compra: <span id="fxCompra" class="tabular"></span></div>
+              <div class="text-[10.5px] leading-snug" style="color:#6B7280">Precio al que se compran dólares — no es lo que pagas tú.</div>
+            </div>
+            <div>
+              <div class="text-[12.5px] font-bold" style="color:var(--navy)">Venta: <span id="fxVenta" class="tabular"></span></div>
+              <div class="text-[10.5px] leading-snug" style="color:#6B7280">Precio al que se venden dólares — con este calculamos tu total en soles.</div>
+            </div>
+          </div>
+          <button id="payBtn" type="submit" disabled
+            class="w-full h-[52px] rounded-2xl text-white text-[14.5px] font-bold focus-ring transition disabled:opacity-40 disabled:cursor-not-allowed"
+            style="background:var(--blue)">
+            Completa el formulario para cotizar
+          </button>
+          <p class="text-[11.5px] flex items-center gap-1.5 justify-center" style="color:#9AA3B8">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Pago seguro · protegido por Aria
+          </p>
+        </aside>
+
+        <div class="gridCustomer">
         <!-- CUSTOMER INFO -->
         <section class="bg-white border rounded-3xl p-5 sm:p-6" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em] mb-4 flex items-center gap-2" style="color:var(--navy)">
@@ -133,7 +232,9 @@
             </div>
           </div>
         </section>
+        </div>
 
+        <div class="gridShipping">
         <!-- SHIPPING ADDRESS -->
         <section class="bg-white border rounded-3xl p-5 sm:p-6" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em] mb-4 flex items-center gap-2" style="color:var(--navy)">
@@ -177,7 +278,9 @@
             </div>
           </div>
         </section>
+        </div>
 
+        <div class="gridDestination">
         <!-- DESTINATION + WEIGHT -->
         <section class="bg-white border rounded-3xl p-5 sm:p-6" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em] mb-4 flex items-center gap-2" style="color:var(--navy)">
@@ -225,73 +328,7 @@
             <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Completa peso, valor y descripción para cotizar con AVI Courier.</p>
           </div>
         </section>
-      </div>
-
-      <!-- ORDER SUMMARY -->
-      <aside class="lg:sticky lg:top-24 bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
-        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
-        <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
-          <div id="sumSizeRow" class="flex justify-between" hidden><span>Talla</span><span id="sumSize" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
-          <div class="flex justify-between"><span>Peso declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
-          <div class="flex justify-between"><span>Valor declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">$0.00</span></div>
-          <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
         </div>
-        <!-- BUG FIX (2026-09-17): the total previously included AVI's real
-             Peru import duty/IGV charge (applies automatically over a $200
-             declared value) with no line item showing it, so the total
-             looked unexplained/wrong even though the math was correct.
-             VISUAL UPDATE (2026-09-17): pulled out of the plain price list
-             and given its own amber highlight so it visually reads as a
-             separate government charge, not part of what Aria charges. -->
-        <div id="sumDutyRow" class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
-          <span class="flex flex-col">
-            <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#8A6B1F">Cargo del gobierno de Perú</span>
-            <span class="text-[12.5px] font-bold" style="color:#5C4813">Aranceles e impuestos</span>
-          </span>
-          <span id="sumDuty" class="tabular font-extrabold text-[15px]" style="color:#8A6B1F">$0.00</span>
-        </div>
-        <!-- VISUAL UPDATE (2026-09-17): this policy note used to be easy
-             to miss (small, gray text) — made it pop with a strong yellow
-             background and bold text so customers actually notice they
-             can avoid the duty charge entirely by staying under $200. -->
-        <div class="rounded-xl px-3.5 py-3 flex items-start gap-2" style="background:var(--yellow); border:1px solid var(--yellow-dark)">
-          <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-          <p class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)">
-            Envíos de hasta $200 no pagan aranceles ni impuestos. Por encima de $200 aplica ~23% de aranceles e IGV sobre el valor declarado.
-          </p>
-        </div>
-        <div class="h-px" style="background:var(--line)"></div>
-        <div class="flex justify-between items-baseline">
-          <span class="text-[13.5px] font-bold" style="color:var(--navy)">Total a pagar</span>
-          <span id="sumTotal" class="text-[26px] font-extrabold tabular" style="color:var(--blue)">$0.00</span>
-        </div>
-        <div id="sumPenWrap" class="text-[12px] text-right -mt-2" style="color:#9AA3B8" hidden>≈ <span id="sumPen" class="tabular font-semibold"></span></div>
-        <!-- BUG FIX (2026-09-17): this used to rely on a hardcoded 3.8
-             USD/PEN rate. Now fetches real compra/venta rates from SUNAT
-             (netlify/functions/exchange-rate.js) — venta is what's used
-             to compute the soles amount above; both are shown here with
-             plain-language labels so the customer knows which applies. -->
-        <div id="fxRatesWrap" class="rounded-xl px-3.5 py-3 space-y-2.5" style="background:var(--sky)" hidden>
-          <div class="text-[10px] font-extrabold uppercase tracking-wide" style="color:var(--navy)">Tipo de cambio del día <span id="fxOrigen"></span></div>
-          <div>
-            <div class="text-[12.5px] font-bold" style="color:var(--navy)">Compra: <span id="fxCompra" class="tabular"></span></div>
-            <div class="text-[10.5px] leading-snug" style="color:#6B7280">Precio al que se compran dólares — no es lo que pagas tú.</div>
-          </div>
-          <div>
-            <div class="text-[12.5px] font-bold" style="color:var(--navy)">Venta: <span id="fxVenta" class="tabular"></span></div>
-            <div class="text-[10.5px] leading-snug" style="color:#6B7280">Precio al que se venden dólares — con este calculamos tu total en soles.</div>
-          </div>
-        </div>
-        <button id="payBtn" type="submit" disabled
-          class="w-full h-[52px] rounded-2xl text-white text-[14.5px] font-bold focus-ring transition disabled:opacity-40 disabled:cursor-not-allowed"
-          style="background:var(--blue)">
-          Completa el formulario para cotizar
-        </button>
-        <p class="text-[11.5px] flex items-center gap-1.5 justify-center" style="color:#9AA3B8">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          Pago seguro · protegido por Aria
-        </p>
-      </aside>
     </form>
   </div>
 
@@ -309,6 +346,28 @@
 
 </main>
 
+<!-- SITE FOOTER — matches index.html's global footer (same honest
+     legal-status line, no fabricated RUC/address). The AI chat widget only
+     lives on index.html, so "contact us" here points back to the store
+     rather than a button with no widget to open. -->
+<footer class="border-t mt-4" style="border-color:var(--line); background:#fff">
+  <div class="max-w-[1100px] mx-auto px-5 py-10">
+    <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+      <div class="flex items-center gap-2">
+        <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
+        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
+        <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
+      </div>
+      <div class="flex items-center gap-6 text-[12.5px] text-zinc-500">
+        <a href="index.html" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Vuelve a la tienda para chatear con nosotros</a>
+      </div>
+    </div>
+    <div class="pt-5 border-t text-[11.5px] text-zinc-400 leading-relaxed" style="border-color:var(--line)">
+      Entidad legal en trámite de registro — RUC y datos legales completos próximamente.
+    </div>
+  </div>
+</footer>
+
 <!-- TOAST -->
 <div id="toast" class="fixed bottom-6 left-1/2 z-50 px-4 py-3 rounded-xl text-[13px] font-semibold text-white shadow-lg transition"
   style="background:var(--navy); opacity:0; transform:translate(-50%, 24px)">
@@ -319,6 +378,36 @@
 
   const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const pen = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
+  function round2(n){ return Math.round(n * 100) / 100; }
+
+  // BUG FIX (2026-09-17): checkout never named which store a product came
+  // from at all. Small self-contained copy of index.html's retailer badge
+  // (same logo files, same colored-text-pill fallback) — this page has no
+  // access to index.html's script, so it can't just import the function.
+  const LIVE_RETAILER_LABEL = { walmart: 'Walmart', target: 'Target', oldnavy: 'Old Navy', footlocker: 'Foot Locker', autozone: 'AutoZone' };
+  const RETAILER_BADGE_COLOR = { walmart: '#0071CE', target: '#CC0000', oldnavy: '#001E62', footlocker: '#000', autozone: '#1C8A4B' };
+  const RETAILER_LOGO_FILE = { walmart: 'logos/walmart.svg', target: 'logos/target.svg', oldnavy: 'logos/oldnavy.svg', footlocker: 'logos/footlocker.svg', autozone: 'logos/autozone.svg' };
+  function escapeHtmlLocal(str){
+    return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function retailerTextBadgeHTML(retailer){
+    const key = String(retailer || '').toLowerCase();
+    const color = RETAILER_BADGE_COLOR[key] || 'var(--navy)';
+    const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
+    return `<span class="inline-flex items-center h-7 px-3 rounded-full text-[12px] font-extrabold text-white" style="background:${color}">${escapeHtmlLocal(label)}</span>`;
+  }
+  window.handleLogoError = function(imgEl, retailer){
+    const wrapper = document.createElement('span');
+    wrapper.innerHTML = retailerTextBadgeHTML(retailer);
+    imgEl.replaceWith(wrapper.firstElementChild);
+  };
+  function retailerBadgeHTML(retailer, heightPx = 26){
+    const key = String(retailer || '').toLowerCase();
+    const logoFile = RETAILER_LOGO_FILE[key];
+    if (!logoFile) return retailerTextBadgeHTML(retailer);
+    const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
+    return `<img src="${logoFile}" alt="${escapeHtmlLocal(label)}" style="height:${heightPx}px; max-width:${heightPx * 4}px" class="inline-block" onerror="handleLogoError(this, '${escapeHtmlLocal(retailer)}')">`;
+  }
 
   const kgInput = document.getElementById('kgInput');
   const valorInput = document.getElementById('valorInput');
@@ -332,8 +421,8 @@
   const sumDuty = document.getElementById('sumDuty');
   const sumFlete = document.getElementById('sumFlete');
   const sumTotal = document.getElementById('sumTotal');
-  const sumPenWrap = document.getElementById('sumPenWrap');
-  const sumPen = document.getElementById('sumPen');
+  const sumUsdWrap = document.getElementById('sumUsdWrap');
+  const sumUsd = document.getElementById('sumUsd');
   const fxRatesWrap = document.getElementById('fxRatesWrap');
   const fxCompra = document.getElementById('fxCompra');
   const fxVenta = document.getElementById('fxVenta');
@@ -432,17 +521,29 @@
   let requestSeq = 0;
   let debounceTimer;
 
+  // BUG FIX (2026-09-17): the nav says "Perú · PEN" but every number on
+  // this page used to lead with USD, with PEN only ever shown as a small
+  // "≈" afterthought next to the final total — a real misread risk (off
+  // by the ~3.8x USD/PEN rate). PEN is now the primary figure everywhere
+  // on this page, same as the rest of the site (see fmtPriceLabel() in
+  // index.html); falls back to USD-only (never a fabricated/zeroed
+  // conversion) if the live SUNAT rate hasn't loaded yet.
+  function fmtPrimary(usdAmount){
+    if (!fxRates) return usd.format(usdAmount);
+    return pen.format(round2(usdAmount * fxRates.venta));
+  }
+
   function renderSummary({ loading = false } = {}){
     const kg = currentKg();
     const valor = currentValor();
     sumWeight.textContent = kg.toFixed(2) + ' kg';
-    sumValor.textContent = usd.format(valor);
+    sumValor.textContent = fmtPrimary(valor);
 
     if (loading){
       sumDutyRow.hidden = true;
       sumFlete.textContent = 'Cotizando…';
       sumTotal.textContent = '—';
-      sumPenWrap.hidden = true;
+      sumUsdWrap.hidden = true;
       payBtn.disabled = true;
       payBtn.textContent = 'Cotizando con AVI Courier…';
       return;
@@ -451,8 +552,8 @@
     if (!latestQuote){
       sumDutyRow.hidden = true;
       sumFlete.textContent = '—';
-      sumTotal.textContent = usd.format(0);
-      sumPenWrap.hidden = true;
+      sumTotal.textContent = fmtPrimary(0);
+      sumUsdWrap.hidden = true;
       payBtn.disabled = true;
       payBtn.textContent = 'Completa el formulario para cotizar';
       return;
@@ -465,32 +566,27 @@
     // Flete alone even though the math was correct. Deriving it back out
     // here (rather than hardcoding the rate) keeps this exactly in sync
     // with whatever AVI's real quote actually charged.
-    const duty = Math.round((latestQuote.total_usd - valor - latestQuote.flete_usd) * 100) / 100;
+    const duty = round2(latestQuote.total_usd - valor - latestQuote.flete_usd);
     if (duty > 0.01){
-      sumDuty.textContent = usd.format(duty) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
+      sumDuty.textContent = fmtPrimary(duty) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
       sumDutyRow.hidden = false;
     } else {
       sumDutyRow.hidden = true;
     }
 
-    sumFlete.textContent = usd.format(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
-    sumTotal.textContent = usd.format(latestQuote.total_usd);
+    sumFlete.textContent = fmtPrimary(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
+    sumTotal.textContent = fmtPrimary(latestQuote.total_usd);
 
-    // BUG FIX (2026-09-17): the soles amount used to come from AVI's own
-    // total_pen (an internal rate we don't control) or a hardcoded 3.8
-    // rate. Now computed with our own live venta rate from SUNAT — the
-    // rate at which dollars are actually sold, which is what determines
-    // how many soles the customer needs. Falls back to AVI's own
-    // total_pen only if our own rate fetch failed entirely.
-    const totalPen = fxRates ? latestQuote.total_usd * fxRates.venta : latestQuote.total_pen;
-    if (totalPen != null){
-      sumPen.textContent = pen.format(totalPen);
-      sumPenWrap.hidden = false;
+    // Small secondary USD reference next to the (now PEN-primary) total —
+    // useful for price comparison, never the number read first.
+    if (fxRates){
+      sumUsd.textContent = usd.format(latestQuote.total_usd);
+      sumUsdWrap.hidden = false;
     } else {
-      sumPenWrap.hidden = true;
+      sumUsdWrap.hidden = true;
     }
     payBtn.disabled = false;
-    payBtn.textContent = 'Pagar ' + usd.format(latestQuote.total_usd);
+    payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
   }
 
   const sizeSelect = document.getElementById('sizeSelect');
@@ -591,6 +687,9 @@
   }
   const productTitle = document.getElementById('productTitle');
   if (prefillDesc) productTitle.textContent = prefillDesc;
+
+  const prefillStore = params.get('store');
+  if (prefillStore) document.getElementById('productStoreBadge').innerHTML = retailerBadgeHTML(prefillStore, 22);
 
   // Real retailer data first: a size dropdown is populated from a real
   // availableSizes-type list passed in the URL when the retailer's own
