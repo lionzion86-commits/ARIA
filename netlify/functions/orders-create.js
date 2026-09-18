@@ -11,7 +11,8 @@
 // primitive than Blobs offers; flagged here rather than silently assumed
 // perfect.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { corsHeaders } from "./_auth-helpers.js";
+import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
+import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
 
@@ -75,8 +76,26 @@ export async function handler(event) {
     const weightKgTotal = items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
     const fxRateVenta = typeof body.fxRateVenta === "number" ? body.fxRateVenta : null;
     const totalPen = fxRateVenta ? Math.round(quote.total_usd * fxRateVenta * 100) / 100 : null;
-    const gatewayFeeEstimatePen = totalPen != null
-      ? Math.round((totalPen * GATEWAY_FEE_RATE_ESTIMATE + GATEWAY_FEE_FIXED_PEN_ESTIMATE) * 100) / 100
+    /* SALDO ARIA. The browser asks for an amount; the server decides it.
+       The balance is re-read here and capped against both the real
+       balance and the order total, so a tampered request can only ever
+       spend money the customer actually has (see applicableCreditPen).
+       Only a signed-in customer has a wallet at all. */
+    const buyerEmail = await getSessionEmail(event);
+    let walletAppliedPen = 0;
+    let walletBalanceBeforePen = null;
+    if (buyerEmail && totalPen != null && Number(body.applyWalletPen) > 0) {
+      const wallet = await readWallet(buyerEmail);
+      walletBalanceBeforePen = wallet.balancePen;
+      walletAppliedPen = applicableCreditPen(wallet.balancePen, totalPen, Number(body.applyWalletPen));
+    }
+    const chargedPen = totalPen != null ? Math.round((totalPen - walletAppliedPen) * 100) / 100 : null;
+
+    // The gateway fee is charged on what the card actually pays, which is
+    // the total after any saldo — crediting a wallet does not make us pay
+    // a processor fee on money that never moved.
+    const gatewayFeeEstimatePen = chargedPen != null
+      ? Math.round((chargedPen * GATEWAY_FEE_RATE_ESTIMATE + GATEWAY_FEE_FIXED_PEN_ESTIMATE) * 100) / 100
       : null;
 
     // Order IDs carry the same Peru date the counter is keyed on, so an
@@ -91,7 +110,11 @@ export async function handler(event) {
       items,
       weightEstimatedKg: Math.round(weightKgTotal * 100) / 100,
       priceScrapedUsdTotal: null, // admin view derives this from priceUsdTotal / (SALES_TAX_RATE*LIVE_PRICE_MARKUP) — same known constants as index.html, not re-sent over the wire
-      pricePenCharged: totalPen,
+      pricePenCharged: chargedPen,      // after saldo Aria — what the card pays
+      orderTotalPen: totalPen,          // before saldo, for the margin view
+      walletAppliedPen,
+      walletBalanceBeforePen,
+      buyerEmail: buyerEmail || null,
       fxRateUsed: fxRateVenta,
       freteChargedUsd: typeof quote.flete_usd === "number" ? quote.flete_usd : null,
       totalUsd: quote.total_usd,
@@ -102,10 +125,33 @@ export async function handler(event) {
     await ordersStore.setJSON(orderId, order);
     await ordersStore.setJSON(counterKey, { count: counter.count + 1 });
 
+    /* Debited AFTER the order exists, and never before: a held order (cap
+       reached / paused) returns above without touching the wallet, so a
+       customer cannot lose saldo on an order that was not placed. If the
+       debit itself fails the order still stands and the balance is
+       untouched — the customer keeps their money and ops reconciles, which
+       is the right way round to fail. */
+    let walletBalanceAfterPen = walletBalanceBeforePen;
+    if (walletAppliedPen > 0) {
+      try {
+        const { balancePen } = await postTransaction({
+          email: buyerEmail, kind: "debit", amountPen: walletAppliedPen,
+          reason: `Aplicado al pedido ${orderId}`, by: "order", orderId,
+        });
+        walletBalanceAfterPen = balancePen;
+      } catch {
+        walletAppliedPen = 0;
+        await ordersStore.setJSON(orderId, { ...order, walletAppliedPen: 0, pricePenCharged: totalPen });
+      }
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ ok: true, orderId, totalUsd: quote.total_usd, totalPen }),
+      body: JSON.stringify({
+        ok: true, orderId, totalUsd: quote.total_usd, totalPen,
+        walletAppliedPen, chargedPen, walletBalancePen: walletBalanceAfterPen,
+      }),
     };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };

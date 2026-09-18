@@ -128,6 +128,16 @@
                VISUAL UPDATE (2026-09-17): pulled out of the plain price list
                and given its own amber highlight so it visually reads as a
                separate government charge, not part of what Aria charges. -->
+          <!-- SALDO ARIA. Only rendered when there is a balance to apply;
+               the amount is decided server-side at order time (see
+               orders-create.js) — this row shows what will be applied. -->
+          <div id="sumWalletRow" class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2" style="background:#FFF4D6; border:1px solid #E8C877" hidden>
+            <span class="flex flex-col">
+              <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#7A5B12">Saldo Aria</span>
+              <span id="sumWalletNote" class="text-[12px]" style="color:#7A5B12"></span>
+            </span>
+            <span id="sumWallet" class="tabular font-extrabold text-[15px]" style="color:#7A5B12">- S/ 0.00</span>
+          </div>
           <div id="sumDutyRow" class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
             <span class="flex flex-col">
               <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#8A6B1F">Cargo del gobierno de Perú</span>
@@ -452,6 +462,9 @@
   const sumDuty = document.getElementById('sumDuty');
   const sumFlete = document.getElementById('sumFlete');
   const sumTotal = document.getElementById('sumTotal');
+  const sumWalletRow = document.getElementById('sumWalletRow');
+  const sumWallet = document.getElementById('sumWallet');
+  const sumWalletNote = document.getElementById('sumWalletNote');
   const fxRatesWrap = document.getElementById('fxRatesWrap');
   const fxCompra = document.getElementById('fxCompra');
   const fxVenta = document.getElementById('fxVenta');
@@ -507,6 +520,30 @@
       fxRatesWrap.hidden = true;
     }
     renderSummary();
+  }
+
+  /* SALDO ARIA. The ledger is in soles (netlify/functions/_wallet.js), so
+     everything here is PEN — no conversion, nothing to drift. The amount
+     applied is decided again server-side at order time and capped against
+     the real balance; what the browser sends is a request, not a fact. */
+  let walletBalancePen = 0;
+  const fmtWalletPen = (pen) => 'S/ ' + Number(pen || 0).toLocaleString('es-PE',
+    { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  async function loadWalletBalance(){
+    try {
+      const res = await fetch('/.netlify/functions/wallet-get');
+      const data = await res.json();
+      walletBalancePen = Number(data.balancePen) || 0;
+    } catch { walletBalancePen = 0; }   // never block checkout on a balance
+    renderSummary();
+  }
+
+  // What this order can actually consume: never more than the balance,
+  // never more than the order. Mirrors applicableCreditPen() server-side.
+  function walletAppliedPen(orderTotalPen){
+    if (!(walletBalancePen > 0) || !(orderTotalPen > 0)) return 0;
+    return round2(Math.min(walletBalancePen, orderTotalPen));
   }
 
   function currentKg(){
@@ -589,6 +626,7 @@
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
       }
+      sumWalletRow.hidden = true;
       payBtn.disabled = true;
       payBtn.textContent = loading ? 'Cotizando con AVI Courier…' : 'Completa el formulario para cotizar';
       return;
@@ -610,6 +648,25 @@
     }
 
     sumFlete.textContent = fmtPrimary(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
+
+    // Saldo comes off the top of what the card pays. Without a live FX
+    // rate the total is in USD and a soles balance cannot be applied
+    // honestly, so the row stays hidden rather than guessing a rate.
+    const orderTotalPen = fxRates ? round2(latestQuote.total_usd * fxRates.venta) : 0;
+    const applied = walletAppliedPen(orderTotalPen);
+    if (applied > 0){
+      sumWallet.textContent = '- ' + fmtWalletPen(applied);
+      sumWalletNote.textContent = applied < walletBalancePen
+        ? `Te quedan ${fmtWalletPen(round2(walletBalancePen - applied))} después de este pedido`
+        : 'Se aplica todo tu saldo a este pedido';
+      sumWalletRow.hidden = false;
+      const chargedPen = round2(orderTotalPen - applied);
+      sumTotal.textContent = pen.format(chargedPen);
+      payBtn.disabled = false;
+      payBtn.textContent = 'Pagar ' + pen.format(chargedPen);
+      return;
+    }
+    sumWalletRow.hidden = true;
     sumTotal.textContent = fmtPrimary(latestQuote.total_usd);
     payBtn.disabled = false;
     payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
@@ -779,6 +836,7 @@
 
   renderSummary();
   initFxRates();
+  loadWalletBalance();
   if (cart.length) requestQuote();
   // Prefilled fields don't fire 'input' events, so the quote never
   // starts on its own — kick it off directly when everything needed is
@@ -832,6 +890,9 @@
           items: cart,
           quote: latestQuote,
           fxRateVenta: fxRates?.venta ?? null,
+          // A request, not an instruction: orders-create.js re-reads the
+          // balance and caps this against it and against the order total.
+          applyWalletPen: walletAppliedPen(fxRates ? round2(latestQuote.total_usd * fxRates.venta) : 0),
         }),
       });
       const data = await res.json();
@@ -848,7 +909,11 @@
       }
 
       document.getElementById('orderId').textContent = '#' + data.orderId;
-      document.getElementById('orderTotal').textContent = fmtPrimary(latestQuote.total_usd);
+      // What was actually charged, after saldo — the server is the source
+      // of truth for both numbers.
+      document.getElementById('orderTotal').textContent = data.chargedPen != null
+        ? fmtWalletPen(data.chargedPen) + (data.walletAppliedPen > 0 ? ` (saldo Aria aplicado: ${fmtWalletPen(data.walletAppliedPen)})` : '')
+        : fmtPrimary(latestQuote.total_usd);
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;

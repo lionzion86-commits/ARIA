@@ -256,12 +256,14 @@
          d) the customs disclosure's closing line, in the cart and checkout
        If any of those change, this copy has to change with them.
 
-       ONE PROMISE IS AHEAD OF THE CODE: "la diferencia vuelve a ti como
-       saldo Aria, automáticamente" (card b). There is no balance/wallet
-       anywhere in this codebase — orders-create.js stores an order, not a
-       credit, and nothing computes a freight difference after delivery.
-       Until that exists it is a manual ops promise, not an automatic one.
-       Either build it or soften the word "automáticamente".
+       CARD (b) DELIBERATELY DOES NOT PROMISE AUTOMATION. "automáticamente"
+       was removed on 2026-09-18: the saldo Aria balance is real (see
+       netlify/functions/_wallet.js — a per-user ledger, shown in the
+       account area and applied at checkout), but credit is ISSUED BY HAND
+       today, by an admin, and nothing reconciles quoted freight against
+       actual freight on its own. The guarantee stands and ops keeps it;
+       the auto-reconciliation job is a post-launch build. Do not put
+       "automáticamente" back until that job exists and runs.
        ============================================================ -->
   <section id="precioHonesto" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
     <div class="absolute inset-x-0 top-0 h-px" style="background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent)"></div>
@@ -291,7 +293,7 @@
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
         </div>
         <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Flete honesto, siempre</h3>
-        <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria, automáticamente.</p>
+        <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria.</p>
       </article>
       <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
         <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
@@ -342,7 +344,7 @@
           <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Flete cotizado por adelantado, con la cuenta a la vista</span>
         </li>
         <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#F1F4FA">
-          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Crédito automático si el flete real sale menor</span>
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Saldo de vuelta si el flete real sale menor</span>
         </li>
         <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#F1F4FA">
           <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Nada que pagar al recibir</span>
@@ -3862,13 +3864,48 @@ let currentUser = null; // null = logged out, else the user's email
 let currentUserIsAdmin = false;
 let authModalMode = 'login';
 
+/* SALDO ARIA in the account area. v1 is money only — a balance and where
+   it came from, not a member dashboard: no points, no tiers, no history
+   page. It reads from wallet-get.js, which only ever returns the signed-in
+   customer's own wallet. */
+let walletBalancePen = 0;
+
+function walletChipHTML(size){
+  if (!(walletBalancePen > 0)) return '';
+  const cls = size === 'mobile'
+    ? 'inline-flex items-center gap-1.5 text-[12.5px] font-extrabold px-2.5 py-1 rounded-full'
+    : 'hidden sm:inline-flex items-center gap-1.5 text-[12px] font-extrabold px-2.5 py-1 rounded-full';
+  // PEN is stored directly on the ledger, so it is shown directly — no
+  // conversion, no rate, nothing to drift.
+  return `<span class="${cls}" style="background:#FFF4D6; color:#7A5B12; border:1px solid #E8C877" title="Saldo Aria disponible">
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M3 7h13a2 2 0 0 1 2 2v1"/><path d="M18 10h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-2a2 2 0 0 1 0-4Z"/><path d="M3 7v10a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-2"/></svg>
+    Saldo ${escapeHtml(fmtWalletPen(walletBalancePen))}
+  </span>`;
+}
+
+// The ledger is in soles already — format it as soles, never through the
+// USD converter.
+function fmtWalletPen(pen){
+  return 'S/ ' + Number(pen || 0).toLocaleString('es-PE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function loadWalletBalance(){
+  if (!currentUser){ walletBalancePen = 0; return; }
+  try {
+    const res = await fetch('/.netlify/functions/wallet-get');
+    const data = await res.json();
+    walletBalancePen = Number(data.balancePen) || 0;
+  } catch { walletBalancePen = 0; }   // never block the page on a balance
+}
+
 function renderAuthUI(){
   const label = currentUser ? escapeHtml(currentUser) : '';
   const initial = currentUser ? escapeHtml(currentUser[0].toUpperCase()) : '';
   const loggedInHTML = `
-    <div class="hidden sm:flex items-center gap-2 text-[13px] font-semibold" style="color:var(--navy)" title="${label}">
+    <div id="accountArea" class="hidden sm:flex items-center gap-2.5 text-[13px] font-semibold" style="color:var(--navy)" title="${label}">
       <span class="w-7 h-7 rounded-full grid place-items-center text-white text-[12px] font-extrabold flex-shrink-0" style="background:var(--blue)">${initial}</span>
       <span class="max-w-[140px] truncate">${label}</span>
+      ${walletChipHTML('desktop')}
     </div>
     <button onclick="logout()" class="h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const loggedOutHTML = `
@@ -3877,9 +3914,10 @@ function renderAuthUI(){
   document.getElementById('authArea').innerHTML = currentUser ? loggedInHTML : loggedOutHTML;
 
   const mobileLoggedInHTML = `
-    <div class="flex items-center gap-2.5 mb-3">
+    <div id="accountAreaMobile" class="flex items-center gap-2.5 mb-3 flex-wrap">
       <span class="w-8 h-8 rounded-full grid place-items-center text-white text-[13px] font-extrabold flex-shrink-0" style="background:var(--blue)">${initial}</span>
       <span class="text-[13.5px] font-semibold truncate" style="color:var(--navy)">${label}</span>
+      ${walletChipHTML('mobile')}
     </div>
     <button onclick="logout();closeMobileMenu();" class="w-full h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const mobileLoggedOutHTML = `
@@ -3900,6 +3938,7 @@ async function initAuth(){
     currentUser = null; // network hiccup — treat as logged out rather than blocking the page
     currentUserIsAdmin = false;
   }
+  await loadWalletBalance();
   renderAuthUI();
   await initCart();
 }
