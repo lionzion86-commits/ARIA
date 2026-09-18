@@ -3191,6 +3191,9 @@ function showToast(msg){
    password reset, no rate limiting — full member perks come later.
    ============================================================ */
 let currentUser = null; // null = logged out, else the user's email
+// UI hint only, from auth-me. Every admin endpoint re-checks server-side;
+// nothing here is a security boundary.
+let currentUserIsAdmin = false;
 let authModalMode = 'login';
 
 function renderAuthUI(){
@@ -3226,8 +3229,10 @@ async function initAuth(){
     const res = await fetch('/.netlify/functions/auth-me');
     const data = await res.json();
     currentUser = data.email || null;
+    currentUserIsAdmin = Boolean(data.isAdmin);
   } catch {
     currentUser = null; // network hiccup — treat as logged out rather than blocking the page
+    currentUserIsAdmin = false;
   }
   renderAuthUI();
   await initCart();
@@ -3285,6 +3290,7 @@ async function submitAuth(event){
     if (!res.ok) throw new Error(data.error || 'Algo salió mal, intenta de nuevo.');
 
     currentUser = data.email;
+    currentUserIsAdmin = Boolean(data.isAdmin);
     renderAuthUI();
     closeAuthModal();
     showToast(authModalMode === 'login' ? `Bienvenida/o de vuelta, ${data.email}` : `Cuenta creada — bienvenida/o, ${data.email}`);
@@ -3305,6 +3311,7 @@ async function logout(){
     // logged-out even if the network call failed.
   }
   currentUser = null;
+  currentUserIsAdmin = false;
   renderAuthUI();
   showToast('Sesión cerrada.');
   await initCart(); // logging out drops back to whatever's in localStorage, no server cart anymore
@@ -4129,10 +4136,12 @@ async function liveSalesScan(){
 // note there.
 async function publishSalesCache(items){
   if (!items.length) return;
-  // POST /sales-cache requires a session (no anonymous writes). Logged-out
-  // visitors would just collect a 401, so don't send the request at all —
-  // they still benefit from whatever a logged-in visitor last donated.
-  if (!currentUser) return;
+  // POST /sales-cache is admin-only. Everyone else would just collect a
+  // 401/403, so don't send the request at all — they still read whatever
+  // an admin last donated. Consequence: the cache only refreshes when an
+  // admin opens Ofertas, so expect it cold most of the time and most
+  // visitors running a live scan (correct, just slower).
+  if (!currentUserIsAdmin) return;
   try {
     const res = await fetch('/.netlify/functions/sales-cache', {
       method: 'POST',

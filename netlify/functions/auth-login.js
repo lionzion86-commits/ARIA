@@ -2,7 +2,7 @@
 // returns the same generic error on a bad email or bad password (never
 // reveals which one was wrong) — standard practice, still simple.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { verifyPassword, normalizeEmail, sessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
+import { verifyPassword, normalizeEmail, sessionCookieHeader, corsHeaders, isAdmin } from "./_auth-helpers.js";
 import { randomBytes } from "node:crypto";
 
 export async function handler(event) {
@@ -43,7 +43,7 @@ export async function handler(event) {
     return {
       statusCode: 200,
       headers: { ...headers, "Set-Cookie": sessionCookieHeader(sessionId) },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, isAdmin: isAdmin(email) }),
     };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };

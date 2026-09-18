@@ -13,7 +13,7 @@
 //
 // AUTHENTICATION (2026-09-18)
 // POST used to be a PUBLIC, UNAUTHENTICATED write to shared state that
-// every visitor sees. Strict validation limited what could be stored, but
+// every visitor sees. It is now ADMIN ONLY. Strict validation limited what could be stored, but
 // it did not stop an anonymous attacker publishing valid-shaped but
 // fabricated deals during any stale window. That write path is gone:
 // POST now requires a valid session, and the session's email is recorded
@@ -22,19 +22,24 @@
 // GET stays public on purpose — deals are public catalog data, and the
 // storefront has to render them for logged-out shoppers.
 //
-// CONSEQUENCE, worth knowing: the cache is populated by a client donating
-// its completed scan, so it now only refills when a LOGGED-IN visitor
-// opens Ofertas. Anonymous visitors still read whatever is cached; on a
-// cold cache they fall back to a live scan, which is the behaviour that
-// existed before the cache was added — slower and more Apify usage, never
-// wrong. Tighten to admin-only by swapping getSessionEmail for isAdmin if
-// you want the write surface smaller still; the real fix remains a
-// scheduled server-side refresh with no client write path at all.
+// CONSEQUENCE, AND IT IS SIGNIFICANT: the cache is populated by a client
+// donating its completed scan, so with admin-only writes it refills ONLY
+// when an admin opens Ofertas. In normal operation that is rare, so expect
+// the cache to be cold most of the time and most visitors to fall back to
+// a live scan — the behaviour that existed before the cache was added.
+// Slower and more Apify usage per visitor, never wrong: a cold cache
+// degrades to a correct live result, it does not break the page. When an
+// admin does open Ofertas, everyone benefits for the next 6 hours.
+//
+// If that trade is not what you want, the fix is not to reopen this
+// endpoint — it is a scheduled server-side refresh with no client write
+// path at all, which keeps the cache warm AND keeps the write surface
+// closed.
 //
 // The validation below is retained regardless: authentication says who
 // may write, not that what they wrote is sane.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
+import { corsHeaders, getSessionEmail, isAdmin } from "./_auth-helpers.js";
 
 // Mirrors GENERAL_RETAILERS in index.html (LIVE_RETAILERS minus autozone,
 // which is the auto-parts lane and never appears in Ofertas).
@@ -155,11 +160,19 @@ export async function handler(event) {
   }
 
   if (event.httpMethod === "POST") {
-    // No anonymous writes. Checked before the body is even parsed, so an
-    // unauthenticated caller learns nothing about the payload contract.
+    // ADMIN ONLY. Checked before the body is even parsed, so a caller
+    // without rights learns nothing about the payload contract.
+    //
+    // 401 vs 403 is deliberate: 401 means "no valid session", 403 means
+    // "valid session, not an admin". Same rejection either way — the split
+    // exists so an operator reading logs can tell a logged-out client from
+    // a real privilege problem.
     const email = await getSessionEmail(event);
     if (!email) {
       return { statusCode: 401, headers, body: JSON.stringify({ error: "Autenticación requerida" }) };
+    }
+    if (!isAdmin(email)) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: "No autorizado" }) };
     }
 
     let body;

@@ -3,7 +3,7 @@
 // status) for "not logged in", since that's a completely normal state,
 // not a failure.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { parseCookies, SESSION_COOKIE_NAME, SESSION_TTL_SECONDS, clearSessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
+import { parseCookies, SESSION_COOKIE_NAME, SESSION_TTL_SECONDS, clearSessionCookieHeader, corsHeaders, isAdmin } from "./_auth-helpers.js";
 
 export async function handler(event) {
   connectLambda(event); // wires up the Blobs environment context for this classic-style function
@@ -19,7 +19,7 @@ export async function handler(event) {
   const cookies = parseCookies(event.headers.cookie);
   const sessionId = cookies[SESSION_COOKIE_NAME];
   if (!sessionId) {
-    return { statusCode: 200, headers, body: JSON.stringify({ email: null }) };
+    return { statusCode: 200, headers, body: JSON.stringify({ email: null, isAdmin: false }) };
   }
 
   try {
@@ -32,11 +32,15 @@ export async function handler(event) {
       return {
         statusCode: 200,
         headers: { ...headers, "Set-Cookie": clearSessionCookieHeader() },
-        body: JSON.stringify({ email: null }),
+        body: JSON.stringify({ email: null, isAdmin: false }),
       };
     }
 
-    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email }) };
+    // isAdmin is returned so the client can skip admin-only requests it
+    // would only be refused for (see publishSalesCache in index.html).
+    // Purely a UI hint — every admin endpoint re-checks server-side and
+    // never trusts this value.
+    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email) }) };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }

@@ -3,7 +3,7 @@
 // pass: email verification, password reset, rate limiting — "minimal"
 // per the brief; full member perks come later.
 import { getStore, connectLambda } from "@netlify/blobs";
-import { hashPassword, normalizeEmail, sessionCookieHeader, corsHeaders } from "./_auth-helpers.js";
+import { hashPassword, normalizeEmail, sessionCookieHeader, corsHeaders, isAdmin } from "./_auth-helpers.js";
 import { randomBytes } from "node:crypto";
 
 export async function handler(event) {
@@ -54,7 +54,7 @@ export async function handler(event) {
     return {
       statusCode: 200,
       headers: { ...headers, "Set-Cookie": sessionCookieHeader(sessionId) },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, isAdmin: isAdmin(email) }),
     };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
