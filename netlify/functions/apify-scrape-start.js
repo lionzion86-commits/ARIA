@@ -43,6 +43,25 @@ export const DEPARTMENT_CONFIG = {
     sporting_goods:   { categoryUrl: "https://www.walmart.com/browse/sports/4125_4161" },
     home_goods:       { categoryUrl: "https://www.walmart.com/browse/home/kitchen-towels-dish-towels/4044_623679_8055732_5591719_7723882" },
     pharmacy:         { categoryUrl: "https://www.walmart.com/browse/health/vitamins/976760_1005863" },
+
+    // Walmart and Target are universal retailers, so they belong in Moda
+    // Hombre / Mujer / Niños alongside Old Navy and Foot Locker — not
+    // just in the generic "clothing" tile.
+    //
+    // `men` REUSES the already REAL-TEST CONFIRMED mens-clothing browse
+    // URL above (the "clothing" entry is in fact men's-only — a latent
+    // mislabel, kept as-is so the existing tile does not change).
+    //
+    // NOT TEST CONFIRMED: `women` and `kids` use the actor's keyword
+    // mechanism rather than a browse URL. Walmart's /browse/ URLs need
+    // exact numeric category IDs, and inventing one yields either zero
+    // results or a CATEGORY_LANDING_PAGE error — so a real ID has to come
+    // from a real run, not from guesswork. A keyword needs no ID and
+    // degrades to "fewer results", never to a hard error. Swap in a
+    // confirmed categoryUrl once one has been verified by a real run.
+    men:              { categoryUrl: "https://www.walmart.com/browse/clothing/mens-clothing/5438_133197_7185501" },
+    women:            { searchQuery: "womens clothing" },
+    kids:             { searchQuery: "kids clothing" },
   },
   target: {
     electronics:      { startUrl: "https://www.target.com/c/electronics/-/N-5xtg6" },
@@ -51,6 +70,15 @@ export const DEPARTMENT_CONFIG = {
     sporting_goods:   { startUrl: "https://www.target.com/c/sports-equipment-outdoors/-/N-5xt52" },
     home_goods:       { startUrl: "https://www.target.com/c/bedding-home-decor/-/N-5xtv4" },
     pharmacy:         { startUrl: "https://www.target.com/c/vitamins-supplements-health/-/N-5xu07" },
+
+    // Same reasoning as Walmart above. `men` reuses the REAL-TEST
+    // CONFIRMED /c/men/ start URL (which "clothing" also points at).
+    // NOT TEST CONFIRMED: `women` and `kids` go through the keyword
+    // mechanism — Target's /c/<slug>/-/N-<code> URLs need the exact
+    // N-code, and a wrong one returns nothing at all.
+    men:              { startUrl: "https://www.target.com/c/men/-/N-18y1l" },
+    women:            { searchQuery: "womens clothing" },
+    kids:             { searchQuery: "kids clothing" },
   },
   oldnavy: {
     // All 4 entries REAL-TEST CONFIRMED (2026-09-17) — actual Apify runs
@@ -136,7 +164,10 @@ const RETAILER_CONFIG = {
     // "shop by category" landing hub, or it errors with CATEGORY_LANDING_PAGE.
     buildInput: (query, maxItems, department, brand) => {
       const dept = department && DEPARTMENT_CONFIG.walmart[department];
-      const target = dept ? dept.categoryUrl : query;
+      // A department entry carries either a real browse URL or, where no
+      // confirmed category ID exists yet, a keyword. `targets` accepts
+      // both, so either kind resolves to a real run.
+      const target = dept ? (dept.categoryUrl || dept.searchQuery) : query;
       return { targets: [target], maxResults: maxItems };
     },
   },
@@ -153,7 +184,10 @@ const RETAILER_CONFIG = {
       // {url} objects, not bare strings — confirmed via the actor's own
       // input schema example after a real call failed with "do not
       // contain valid URLs".
-      if (dept) return { startUrls: [{ url: dept.startUrl }], maxItems };
+      // startUrl where a confirmed category URL exists; otherwise the
+      // department falls back to its keyword (see DEPARTMENT_CONFIG).
+      if (dept?.startUrl) return { startUrls: [{ url: dept.startUrl }], maxItems };
+      if (dept?.searchQuery) return { searchQueries: [dept.searchQuery], maxItems };
       if (brandCfg) return { startUrls: [{ url: brandCfg.startUrl }], maxItems };
       return { searchQueries: [query], maxItems };
     },

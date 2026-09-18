@@ -84,7 +84,11 @@ function slimItem(item) {
   if (item.priceInfo && (item.priceInfo.price !== undefined || item.priceInfo.currentPrice !== undefined)) {
     slim.priceInfo = { price: item.priceInfo.price, currentPrice: item.priceInfo.currentPrice };
   }
-  if (Array.isArray(item.images) && item.images.length) slim.images = [item.images[0]];
+  // Keep the whole gallery (capped to match normalizeLiveItem's own cap),
+  // not just images[0]. The product page's thumbnail strip renders from
+  // this list, so truncating it here meant cached items could never show
+  // one however many photos the retailer actually returned.
+  if (Array.isArray(item.images) && item.images.length) slim.images = item.images.slice(0, 8);
   return slim;
 }
 

@@ -1482,6 +1482,17 @@ const DEPARTMENT_THUMB_EXCLUDE = {
 // One tile per unique department/brand key found anywhere in the cache
 // — a key can exist for more than one retailer (e.g. "men" for both Old
 // Navy and Foot Locker), and one tile covers all of them at once.
+// Every read of a cached department/brand bucket goes through here, so
+// the gender filter can never apply to the grid but not the tile count
+// (or vice versa). Brands are never gendered, so they pass straight
+// through.
+function bucketItems(entry, kind, key){
+  const items = entry?.items || [];
+  if (kind === 'brand') return items;
+  return items.filter(raw => titleMatchesDepartment(
+    raw.title || raw.name || raw.productTitle || raw.productName || '', key));
+}
+
 function collectTiles(kind){
   const bucketName = kind === 'brand' ? 'brands' : 'departments';
   const metaMap = kind === 'brand' ? BRAND_META : DEPARTMENT_META;
@@ -1489,11 +1500,12 @@ function collectTiles(kind){
   for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
     for (const [key, entry] of Object.entries(data[bucketName] || {})){
       if (!byKey[key]) byKey[key] = { key, retailers: [], thumb: null, fallbackThumb: null, count: 0 };
+      const entryItems = bucketItems(entry, kind, key);
       byKey[key].retailers.push(retailer);
-      byKey[key].count += (entry.items || []).length;
+      byKey[key].count += entryItems.length;
       if (byKey[key].thumb) continue; // already found an acceptable image for this key
       const excludePattern = DEPARTMENT_THUMB_EXCLUDE[key];
-      for (const it of (entry.items || []).map(normalizeLiveItem)){
+      for (const it of entryItems.map(normalizeLiveItem)){
         if (!it.image) continue;
         if (!byKey[key].fallbackThumb) byKey[key].fallbackThumb = it.image;
         if (!excludePattern || !excludePattern.test(it.title)){
@@ -1574,7 +1586,11 @@ async function openCatalog(kind, key, opts = {}){
   const data = await loadDepartmentCache();
   departmentCacheData = data;
   const bucketName = kind === 'brand' ? 'brands' : 'departments';
-  let retailers = GENERAL_RETAILERS.filter(r => data.retailers[r]?.[bucketName]?.[key]);
+  // A retailer whose items are ALL filtered out (e.g. a "men" bucket that
+  // came back entirely boys') must not be listed as having this
+  // department — otherwise the page offers a store and then shows nothing.
+  let retailers = GENERAL_RETAILERS.filter(r =>
+    bucketItems(data.retailers[r]?.[bucketName]?.[key], kind, key).length > 0);
   if (retailerFilter) retailers = retailers.filter(r => r === retailerFilter);
 
   if (!retailers.length){
@@ -1587,7 +1603,7 @@ async function openCatalog(kind, key, opts = {}){
     document.getElementById('catalogSubtitle').textContent = `En ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter}`;
     document.getElementById('catalogSections').innerHTML = retailers.map(r => {
       const entry = data.retailers[r][bucketName][key];
-      return renderCatalogSection(r, entry.items || []);
+      return renderCatalogSection(r, bucketItems(entry, kind, key));
     }).join('');
     return;
   }
@@ -1602,7 +1618,7 @@ async function openCatalog(kind, key, opts = {}){
       </button>
     </div>
     <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
-      retailers.map(r => storeLogoTileHTML(r, (data.retailers[r][bucketName][key].items || []).length)).join('')
+      retailers.map(r => storeLogoTileHTML(r, bucketItems(data.retailers[r][bucketName][key], kind, key).length)).join('')
     }</div>`;
 }
 
@@ -1655,7 +1671,7 @@ async function openStore(retailer){
   document.getElementById('storeViewSections').innerHTML = `<div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
     deptEntries.map(([key, entry]) => {
       const meta = metaFor(DEPARTMENT_META, key);
-      const count = (entry.items || []).length;
+      const count = bucketItems(entry, 'department', key).length;
       return `<button onclick="openCatalog('department','${key}',{retailerFilter:'${retailer}'})" class="rounded-2xl border p-5 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
         <div class="text-[26px] mb-2">${meta.icon}</div>
         <div class="font-bold text-[14px]">${escapeHtml(meta.label)}</div>
@@ -2333,6 +2349,74 @@ function estimateRetailWeightKg(text){
 // render function). image/title/price/rating/weightKg/sizes make it into
 // the normalized item; sizes is only populated from a real retailer field
 // (see below), never invented.
+/* ============================================================
+   PRODUCT DATA QUALITY (2026-09-18)
+
+   Four problems, all confirmed against the real scraped payloads in
+   department-cache.json rather than assumed:
+
+   1. Trivial "deals". Foot Locker returned Nike Air Max 95 at $200 ->
+      $199.99 — a one-cent markdown that rendered as a "-0%" badge. 12 of
+      263 real cached deals came in under 5% off.
+   2. Duplicate products at different prices. Old Navy and Foot Locker
+      return each colour/size variant as its own item, so the same title
+      appeared several times at different prices ("Classic Button-Down
+      Shirt" at 8.99, 29.99 and 34.99 simultaneously). The old dedupe key
+      included the price, so variants never collapsed.
+   3. Wrong-gender items. Old Navy's actor has no real category browse —
+      `department` is only a facet layered on a keyword (see
+      DEPARTMENT_CONFIG) — so boys' items leak into Moda Hombre. The
+      retailers do put gender in the title ("... for Boys", "... - Men's"),
+      which is a reliable enough signal to filter on.
+   ============================================================ */
+
+// A markdown under this is not worth calling an oferta.
+const MIN_DISCOUNT_PCT = 5;
+
+// Gender/age markers retailers actually put in titles. Confirmed forms:
+// Old Navy "... for Boys" / "... for Girls"; Foot Locker "... - Men's" /
+// "... - Women's".
+//
+// \b matters more than it looks: "Women's" contains the letters "men's",
+// but there is no word boundary before them, so /\bmen'?s\b/ correctly
+// does NOT match inside "Women's". Without \b every women's item would
+// be misread as menswear.
+const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|juniors?|ni[ñn][oa]s?)\b/i;
+const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
+const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
+
+// Rejects titles that CONTRADICT the department; keeps titles with no
+// gender marker at all. Most Old Navy menswear is titled plainly
+// ("Crew-Neck T-Shirt") with the gender only in the facet, so requiring a
+// positive marker would throw away nearly everything real.
+function titleMatchesDepartment(title, department){
+  const t = String(title || '');
+  if (!t) return true;
+  const kid = KID_MARKER.test(t);
+  const men = MEN_MARKER.test(t);
+  const women = WOMEN_MARKER.test(t);
+
+  if (department === 'men')   return !kid && !women;
+  if (department === 'women') return !kid && !men;
+  // An adult-marked title with no kid marker does not belong in Moda Niños.
+  if (department === 'kids')  return kid || (!men && !women);
+  return true; // non-gendered department: nothing to contradict
+}
+
+// Collapses colour/size variants of the same product. Deliberately
+// excludes price — including it was the bug that let one shirt show up
+// three times at three prices.
+function productDedupeKey(retailer, title){
+  return retailer + '::' + String(title || '')
+    .toLowerCase()
+    // Apostrophes are dropped rather than turned into a separator, so
+    // "Men's Tee" and "Mens Tee" collapse to one product; retailers are
+    // inconsistent about them even within a single feed.
+    .replace(/['’]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
 function normalizeLiveItem(item){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
@@ -2372,7 +2456,15 @@ function normalizeLiveItem(item){
     || (typeof item.percentOff === 'number' && item.percentOff > 0);
   const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice;
   const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
-  const hasRealDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
+  // A real markdown, AND a big enough one to be worth showing. The
+  // percentage is computed from the raw retailer prices — SALES_TAX_RATE
+  // and LIVE_PRICE_MARKUP apply to both sides and cancel out, so this is
+  // the same number the badge will render.
+  const hasAnyDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
+  const discountPctRaw = hasAnyDiscount ? (1 - rawPrice / rawOriginalNum) * 100 : 0;
+  // Rounded before comparing so what's kept always matches what the badge
+  // shows — a 4.6% markdown renders as "-5%", so it should qualify.
+  const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
   const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
   return { title, price, image, images, rating, weightKg, sizes, onSale: hasRealDiscount, originalPrice };
@@ -2450,11 +2542,14 @@ function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 
 // Actor runs take too long for a single request/response, so the flow is:
 // start the run (fast, returns a runId) → poll status until it finishes.
-async function scrapeRetailer(retailer, query, maxItems){
+// `department` routes the run through DEPARTMENT_CONFIG's real category
+// URL / facet for that retailer instead of a keyword search. The backend
+// already accepted it; only this caller never passed it.
+async function scrapeRetailer(retailer, query, maxItems, department){
   const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ retailer, query, maxItems }),
+    body: JSON.stringify({ retailer, query, maxItems, ...(department ? { department } : {}) }),
   });
   const startData = await startRes.json();
   if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda');
@@ -3627,7 +3722,42 @@ initAuth();
    retailer — visiting this page has a real cost, unlike the old fake
    array which was free because it wasn't real.
    ============================================================ */
-const SALES_QUERIES = ['clothing', 'shoes', 'electronics'];
+/* Where Ofertas actually looks for deals.
+
+   WAS: a keyword search ('clothing'/'shoes'/'electronics') against all
+   four retailers. Target returned zero deals that way. Its search path
+   (searchQueries) is the one input shape in RETAILER_CONFIG that was
+   never real-test confirmed, whereas every Target department URL below
+   IS confirmed — and the cached data those URLs produced contains 21 real
+   Target markdowns and 31 Walmart ones. So Ofertas now browses confirmed
+   categories and filters for on-sale, instead of depending on an
+   unverified search path.
+
+   Old Navy does NOT use its `sale` department here. That bucket is
+   `searchQuery: "clothing"` + onSaleOnly with no gender facet, and in the
+   real cached data all 24 of its items are boys' items — a gender
+   monoculture, which is where Ofertas' "everything is boys' clothing"
+   came from. Its gendered departments are used instead: 24 men + 20 women
+   + 24 kids real markdowns, actually mixed. Foot Locker's `sale` IS a
+   real men's onSaleOnly filter, so it stays and its women/kids
+   departments are added alongside for balance.
+
+   Each entry is {retailer, department}; a department that returns nothing
+   just contributes nothing. */
+const SALES_SOURCES = [
+  { retailer: 'oldnavy',    department: 'men' },
+  { retailer: 'oldnavy',    department: 'women' },
+  { retailer: 'oldnavy',    department: 'kids' },
+  { retailer: 'footlocker', department: 'sale' },   // real onSaleOnly filter (men's)
+  { retailer: 'footlocker', department: 'women' },
+  { retailer: 'footlocker', department: 'kids' },
+  { retailer: 'walmart',    department: 'clothing' },
+  { retailer: 'walmart',    department: 'electronics' },
+  { retailer: 'walmart',    department: 'sporting_goods' },
+  { retailer: 'target',     department: 'clothing' },
+  { retailer: 'target',     department: 'electronics' },
+  { retailer: 'target',     department: 'sporting_goods' },
+];
 
 let saleItemsCache = [];
 let salesGeneratedAt = null;   // ISO string from the server cache, or null when this page ran its own live scan
@@ -3783,28 +3913,23 @@ function renderCategoriesGrid(){
 // The actual scrape. Returns normalized on-sale items; never throws — one
 // retailer/query failing must not sink the whole scan.
 async function liveSalesScan(){
-  // BUG FIX (2026-09-17): the same real product can legitimately come back
-  // from more than one of SALES_QUERIES (e.g. a pair of sale sneakers can
-  // match both the "clothing" and "shoes" queries against the same
-  // retailer) — with no dedup, that showed up as the same item repeated
-  // several times in a row. Deduped here by retailer+title+price (no
-  // stable per-item SKU/id field exists on normalizeLiveItem()'s output),
-  // keeping the first copy found.
+  // Dedupe key deliberately excludes the price. The old key was
+  // retailer+title+price, which meant colour/size variants of one product
+  // never collapsed — the same shirt showed up three times at three
+  // different prices. Keyed on retailer+normalized title now, keeping the
+  // CHEAPEST variant, since that is the price the card advertises and the
+  // one a shopper clicking through expects to find.
   const foundByKey = new Map();
-  const tasks = [];
-  SALES_QUERIES.forEach(query => {
-    GENERAL_RETAILERS.forEach(retailer => {
-      tasks.push(
-        scrapeRetailer(retailer, query, 10)
-          .then(rawItems => rawItems.map(normalizeLiveItem).forEach(it => {
-            if (!it.onSale) return;
-            const key = `${retailer}::${it.title}::${it.price}`;
-            if (!foundByKey.has(key)) foundByKey.set(key, { ...it, retailer });
-          }))
-          .catch(() => {}) // one retailer/query failing shouldn't block the rest
-      );
-    });
-  });
+  const tasks = SALES_SOURCES.map(({ retailer, department }) =>
+    scrapeRetailer(retailer, '', 10, department)
+      .then(rawItems => rawItems.map(normalizeLiveItem).forEach(it => {
+        if (!it.onSale) return;
+        const key = productDedupeKey(retailer, it.title);
+        const existing = foundByKey.get(key);
+        if (!existing || it.price < existing.price) foundByKey.set(key, { ...it, retailer });
+      }))
+      .catch(() => {}) // one source failing shouldn't block the rest
+  );
   await Promise.allSettled(tasks);
   return Array.from(foundByKey.values());
 }

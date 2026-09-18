@@ -35,6 +35,11 @@ import { corsHeaders } from "./_auth-helpers.js";
 const ALLOWED_RETAILERS = new Set(["walmart", "target", "oldnavy", "footlocker"]);
 
 const TTL_MS = 6 * 60 * 60 * 1000; // 6h — deals move, but not minute to minute
+// Mirrors MIN_DISCOUNT_PCT in index.html. Enforced here too so a trivial
+// markdown can never re-enter through the cache even if a client posts
+// one: Foot Locker really did return a $200 -> $199.99 "deal", which
+// rendered as a -0% badge.
+const MIN_DISCOUNT_PCT = 5;
 const MAX_ITEMS = 120;
 const MAX_TITLE = 300;
 const MAX_URL = 1000;
@@ -75,8 +80,11 @@ export function sanitizeItem(raw) {
   const price = cleanPrice(raw.price);
   const originalPrice = cleanPrice(raw.originalPrice);
   // Ofertas only ever shows genuine markdowns — an item with no real
-  // original price above the current one is not a deal.
+  // original price above the current one is not a deal, and neither is a
+  // markdown too small to be worth a badge. Rounded before comparing so
+  // this matches exactly what the card would render.
   if (!title || price == null || originalPrice == null || originalPrice <= price) return null;
+  if (Math.round((1 - price / originalPrice) * 100) < MIN_DISCOUNT_PCT) return null;
 
   const ratingNum = Number(raw.rating);
   const rating = Number.isFinite(ratingNum) && ratingNum >= 0 && ratingNum <= 5
@@ -148,9 +156,21 @@ export async function handler(event) {
       return { statusCode: 400, headers, body: JSON.stringify({ error: "JSON inválido" }) };
     }
 
-    const items = Array.isArray(body.items)
-      ? body.items.slice(0, MAX_ITEMS).map(sanitizeItem).filter(Boolean)
-      : [];
+    // Same variant collapse the client does, applied again here: the cache
+    // is shared, so one client posting colour variants of a product must
+    // not show every visitor the same shirt three times at three prices.
+    // Cheapest wins, matching the client.
+    const deduped = new Map();
+    for (const raw of (Array.isArray(body.items) ? body.items.slice(0, MAX_ITEMS) : [])) {
+      const item = sanitizeItem(raw);
+      if (!item) continue;
+      // Must stay in step with productDedupeKey() in index.html.
+      const key = item.retailer + "::" + item.title.toLowerCase()
+        .replace(/['’]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+      const existing = deduped.get(key);
+      if (!existing || item.price < existing.price) deduped.set(key, item);
+    }
+    const items = Array.from(deduped.values());
     // An empty scan result is never worth replacing a good cache with —
     // it's indistinguishable from "every retailer failed".
     if (!items.length) {
