@@ -16,7 +16,7 @@
 <meta name="twitter:title" content="Aria — Compra en EE. UU., entregado en Perú">
 <meta name="twitter:description" content="Compra en tiendas de EE. UU. y te lo llevamos a Perú. Precio total, envío y aranceles incluidos, sin sorpresas.">
 <meta name="twitter:image" content="https://ariashop.pe/aria-og-image.png">
-<link rel="icon" type="image/png" href="aria-icon-512.png">
+<link rel="icon" type="image/png" href="assets/orb.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
@@ -1210,7 +1210,7 @@
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
   class="fixed bottom-5 right-5 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring transition">
   <div id="assistantIconSpark" class="relative" style="width:86px;height:86px;">
-    <img id="ariaOrbImg" src="aria-orb.png" alt="Aria" style="width:100%;height:100%;object-fit:contain;">
+    <img id="ariaOrbImg" src="assets/orb.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
   </div>
   <svg id="assistantIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" class="hidden relative"><path d="M18 6 6 18M6 6l12 12"/></svg>
 </button>
@@ -3497,7 +3497,13 @@ function renderCategoriesGrid(){
 async function runSalesScan(){
   await loadFxRate();
   document.getElementById('salesCount').textContent = 'Buscando ofertas reales en vivo…';
-  document.getElementById('salesGrid').innerHTML = `<div class="col-span-full text-center text-zinc-400 py-16">Buscando ofertas reales en vivo…</div>`;
+  // BRAND ASSET SWAP (2026-09-18): the new orb mascot doubles as the
+  // Ofertas loading indicator — full shimmer-skeleton/rotating-status
+  // redesign is a later phase of this build; this is just the orb swap.
+  document.getElementById('salesGrid').innerHTML = `<div class="col-span-full flex flex-col items-center text-center text-zinc-400 py-16">
+    <img src="assets/orb.png" alt="" class="w-16 h-16 mb-4" style="animation:ariaOrbBreathe 2.6s ease-in-out infinite">
+    <div>Buscando ofertas reales en vivo…</div>
+  </div>`;
 
   // BUG FIX (2026-09-17): the same real product can legitimately come back
   // from more than one of SALES_QUERIES (e.g. a pair of sale sneakers can
@@ -3933,22 +3939,12 @@ function speakWithAria(audioBase64, ariaText){
 
 
 <script>
-/* Aria orb: eyelid blink (real image swap) + hover/click sound */
+/* Aria orb: hover/click sound. BRAND ASSET SWAP (2026-09-18): the
+   open/closed eyelid-blink image swap is gone along with the old
+   two-image mascot (aria-orb.png/aria-orb-blink.png, deleted) — the new
+   canonical mascot (assets/orb.png) is one static image, rendered as a
+   circular avatar via CSS, not an animated character. */
 (function(){
-  const orbImg = document.getElementById('ariaOrbImg');
-  const OPEN_SRC = 'aria-orb.png';
-  const CLOSED_SRC = 'aria-orb-blink.png';
-  const preload = new Image();
-  preload.src = CLOSED_SRC;
-
-  function doBlink(){
-    if (!orbImg) return;
-    orbImg.src = CLOSED_SRC;
-    setTimeout(() => { orbImg.src = OPEN_SRC; }, 150);
-  }
-  setInterval(doBlink, 3400);
-  setTimeout(()=>{ doBlink(); setTimeout(doBlink,600); }, 1200);
-
   const AC = new (window.AudioContext || window.webkitAudioContext)();
   function pop(){
     const o=AC.createOscillator(), g=AC.createGain();
