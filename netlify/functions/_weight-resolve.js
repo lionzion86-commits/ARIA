@@ -15,9 +15,11 @@
 
    RESOLUTION ORDER (the caller sees which one answered)
      1. spec       — a real weight or real dimensions from the retailer
-     2. category   — our category table, at BILLABLE weight (actual vs
+     2. title      — a net weight the retailer stated in the product title
+                     ("4 oz"), plus a flat packaging allowance
+     3. category   — our category table, at BILLABLE weight (actual vs
                      volumetric, whichever the courier would charge)
-     3. fallback   — a labeled generic, never zero
+     4. fallback   — a labeled generic, never zero
 
    Nothing here may return 0: a zero weight is not a cheap package, it is
    a missing measurement, and it silently breaks the whole quote.
@@ -28,7 +30,7 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { billableWeightKg, dimensionalWeightKg } from "../../scripts/lib/item-weight.js";
+import { billableWeightKg, dimensionalWeightKg, titleWeight } from "../../scripts/lib/item-weight.js";
 
 // Deliberately the same generic the product cards and cart already show
 // (DEFAULT_RETAIL_WEIGHT_KG x the reasoned buffer, index.html), so an
@@ -142,6 +144,17 @@ export function resolveItemWeight(item) {
     const dims = parseDimsCm(item?.dimensions) || parseDimsCm(item?.packageDimensions);
     const kg = dims ? billableWeightKg(spec.kg, dims) : spec.kg;
     return { weightKg: kg, source: "spec", estimated: false, basis: spec.from };
+  }
+
+  // A weight the retailer wrote in the title is a stated fact, not a
+  // guess — it beats any category table. The carousel truncates titles on
+  // screen, so this reads the full source title (see titleWeight).
+  const stated = titleWeight(title);
+  if (stated) {
+    return {
+      weightKg: stated.kg, source: "title", estimated: false,
+      basis: `peso declarado en el título (${stated.token} + empaque)`,
+    };
   }
 
   const category = categoryWeightKg(title);

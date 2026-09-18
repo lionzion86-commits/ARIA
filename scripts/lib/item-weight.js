@@ -149,3 +149,103 @@ export function billableWeightKg(actualKg, dimCm) {
   const dim = Array.isArray(dimCm) ? dimensionalWeightKg(...dimCm) : null;
   return dim != null && dim > actual ? dim : actual;
 }
+
+/* ============================================================
+   WEIGHT PARSED FROM THE TITLE
+
+   Retailers put the net weight in the title — "Great Value Gummy Bears
+   Chewy Candy, 4 oz" — and we were ignoring it and guessing a category
+   instead. Worse, the carousel cards truncate the title on screen
+   ("BUBS Swedish Candy ..."), so the one number that mattered was
+   invisible to the customer AND unused by us. This reads the FULL title
+   from the source record, never the display string.
+
+   Order of authority: a scraped spec weight beats this, this beats a
+   category estimate, and a category estimate beats the generic floor.
+
+   TRAPS THIS AVOIDS, all from real titles:
+   - "up to 70 inch", "300 lb capacity", "holds 50 lbs" — a limit, not a
+     weight. Anything introduced by a capacity word is skipped.
+   - "(4 pack) ... 5.5 oz" — the pack count is not a weight; a bare number
+     with no unit never matches.
+   - "16 fl oz" is a volume, but for food and drink one fluid ounce of
+     water is ~1.04 oz by weight, so treating it as oz is right to within
+     a rounding error and always errs heavy.
+   - A parsed value above MAX_TITLE_WEIGHT_KG is not believed: it is far
+     more likely a capacity, a shipping limit or a typo than a 90kg
+     grocery item, and the category table handles genuinely heavy goods.
+   ============================================================ */
+const OZ_TO_KG = 0.0283495;
+const LB_TO_KG = 0.453592;
+
+// Packaging is a FLAT addition, never a multiplier: a bag, a box and a
+// label weigh about the same whether the contents are 4 oz or 10 oz.
+// 60g sits mid-range of the 50-80g the operations side uses for small
+// grocery items, so a 4 oz bag of gummy bears lands at ~0.17kg.
+export const PACKAGING_ALLOWANCE_KG = 0.06;
+export const MAX_TITLE_WEIGHT_KG = 25;
+
+// "(4 pack)", "4-pack", "pack of 4", "paquete de 4" — a real multiplier of
+// what is in the box. Capped, because "100 pack" of anything heavy is a
+// number to distrust rather than to bill.
+const MAX_PACK_COUNT = 24;
+function titlePackCount(text) {
+  const m = /\(?\b(\d{1,2})\s*[- ]?\s*(?:pack|pk|count|ct|unidades|piezas)\b/i.exec(text)
+    || /\b(?:pack|paquete) of\s*(\d{1,2})\b/i.exec(text)
+    || /\bpaquete de\s*(\d{1,2})\b/i.exec(text);
+  const n = m ? parseInt(m[1], 10) : 1;
+  return Number.isFinite(n) && n >= 2 && n <= MAX_PACK_COUNT ? n : 1;
+}
+
+const UNIT_SHORT = { "fl oz": "fl oz", "fluid ounce": "fl oz", "fluid ounces": "fl oz",
+  ounce: "oz", ounces: "oz", oz: "oz", lb: "lb", lbs: "lb", pound: "lb", pounds: "lb",
+  kg: "kg", kilogram: "kg", kilograms: "kg", gram: "g", grams: "g", g: "g" };
+const CAPACITY_BEFORE_RE = /(capacity|capacidad|holds?|supports?|up to|hasta|max(?:imum)?|rated|load|weight limit)\s*(?:of\s*)?[^,;]{0,12}$/i;
+
+/**
+ * Net weight stated in a product title, with the unit as written.
+ * Returns { kg, netKg, token, grams } or null when the title states none.
+ */
+export function titleWeight(title) {
+  const text = String(title || "");
+  if (!text) return null;
+  const re = /(\d+(?:[.,]\d+)?)\s*(fl\s*oz|fluid\s*ounces?|ounces?|oz|lbs?|pounds?|kg|kilograms?|grams?|g)\b\.?/gi;
+  let match;
+  while ((match = re.exec(text)) !== null) {
+    const before = text.slice(0, match.index);
+    if (CAPACITY_BEFORE_RE.test(before)) continue;   // "up to 70 lb" is a limit
+    const value = parseFloat(match[1].replace(",", "."));
+    if (!Number.isFinite(value) || value <= 0) continue;
+    const unit = match[2].toLowerCase().replace(/\s+/g, " ");
+    const netKg =
+      /^(fl oz|fluid ounce|fluid ounces|ounce|ounces|oz)$/.test(unit) ? value * OZ_TO_KG
+      : /^(lb|lbs|pound|pounds)$/.test(unit) ? value * LB_TO_KG
+      : /^(kg|kilogram|kilograms)$/.test(unit) ? value
+      : value / 1000; // g
+    if (!(netKg > 0) || netKg > MAX_TITLE_WEIGHT_KG) continue;
+    // "(4 pack) ... 5.5 oz" is 4 x 5.5 oz in one box, and quoting freight
+    // for one of them is exactly the underestimate this codebase keeps
+    // paying for. The allowance is still flat — one box, one allowance.
+    const packs = titlePackCount(text);
+    const totalNetKg = netKg * packs;
+    if (totalNetKg > MAX_TITLE_WEIGHT_KG) continue;
+    const token = `${match[1].replace(",", ".")} ${UNIT_SHORT[unit] || unit}`;
+    return {
+      netKg: Math.round(totalNetKg * 1000) / 1000,
+      kg: Math.round((totalNetKg + PACKAGING_ALLOWANCE_KG) * 1000) / 1000,
+      token: packs > 1 ? `${packs} x ${token}` : token,
+      packs,
+      grams: Math.round(totalNetKg * 1000),
+    };
+  }
+  return null;
+}
+
+/** "10 oz / 283 g" — what the card shows, so a truncated title cannot hide it. */
+export function titleWeightLabel(title) {
+  const parsed = titleWeight(title);
+  if (!parsed) return null;
+  const grams = parsed.grams;
+  const metric = grams >= 1000 ? `${Math.round(grams / 10) / 100} kg` : `${grams} g`;
+  return /^(g|kg)$/i.test(parsed.token.split(" ")[1]) ? metric : `${parsed.token} / ${metric}`;
+}

@@ -35,7 +35,7 @@ export const SALES_TAX_RATE = 1.07;
 export const LIVE_PRICE_MARKUP = 1.24;
 export const MIN_DISCOUNT_PCT = 5;
 
-import { bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses, billableWeightKg, MAX_FREIGHT_SHARE } from "./item-weight.js";
+import { bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses, billableWeightKg, titleWeight, MAX_FREIGHT_SHARE } from "./item-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
 // internal courier cost and margin; neither may travel with anything that
@@ -103,8 +103,19 @@ export function categoryWeightKg(title) {
   return billableWeightKg(withBuffer(hit.kg, hit.tier), hit.dimCm);
 }
 
-/** Estimated shipping weight for a scraped title. Bulky goods win first. */
+/**
+ * Estimated shipping weight for a scraped title.
+ *
+ * The chain, in order of how much it is worth trusting:
+ *   1. a weight the retailer stated in the title ("4 oz") — a fact
+ *   2. our category table — a reasoned guess, biased high
+ *   3. the generic floor — never zero
+ * (A scraped spec weight beats all three, and is applied before this is
+ * ever called: see netlify/functions/_weight-resolve.js.)
+ */
 export function estimateWeightKg(title) {
+  const stated = titleWeight(title);
+  if (stated) return stated.kg;
   const category = categoryWeightKg(title);
   if (category != null) return category;
   return withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned");
