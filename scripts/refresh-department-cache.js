@@ -76,6 +76,25 @@ const KEEP_FIELDS = [
   "onSale", "isOnSale", "savingsAmount", "savingsPercent", "percentageOff", "percentOff",
   "regularPrice", "wasPrice", "was_price", "originalPrice",
 ];
+// IMAGE-QUALITY RULE (2026-09-18): product images must not have a price
+// rendered into them. The image shows the US sticker price while ours adds
+// ~24% for shipping, duties and IGV, so a priced image always understates
+// what the customer pays and reads as bait-and-switch.
+//
+// The check is OCR-based and too slow to run inline inside this scrape
+// (it is seconds per image, against hundreds of images, while Apify runs
+// are already in flight). So this script marks everything it writes as
+// unscreened, and scripts/image-price-scan.js does the screening in a
+// second pass. Run them together:
+//
+//   node scripts/refresh-department-cache.js && node scripts/image-price-scan.js
+//
+// `imageReview: "pending"` is what makes that safe: the storefront renders
+// NO IMAGE for a pending item, so a fresh scrape can never put an
+// unscreened, possibly-priced image in front of a customer just because
+// the second pass has not run yet. The product itself stays listed and
+// buyable — only a confirmed "quarantined" verdict withholds the product,
+// because hiding every item after every refresh would empty the store.
 function slimItem(item) {
   const slim = {};
   for (const k of KEEP_FIELDS) {
@@ -89,6 +108,8 @@ function slimItem(item) {
   // this list, so truncating it here meant cached items could never show
   // one however many photos the retailer actually returned.
   if (Array.isArray(item.images) && item.images.length) slim.images = item.images.slice(0, 8);
+  // Unscreened until image-price-scan.js says otherwise.
+  if (slim.image || slim.imageUrl || slim.thumbnail || slim.images) slim.imageReview = "pending";
   return slim;
 }
 
@@ -292,6 +313,9 @@ async function main() {
   await saveCache();
 
   console.log(`\nWrote ${OUT_FILE.pathname}`);
+  console.log("\n  NEXT: run `node scripts/image-price-scan.js` — every item just written is");
+  console.log("  marked imageReview:\"pending\" and its image stays hidden on the storefront");
+  console.log("  until that scan clears it.\n");
   for (const [retailer, bucket] of Object.entries(cache.retailers)) {
     console.log(`  ${retailer}: ${Object.keys(bucket.departments).length} departments, ${Object.keys(bucket.brands).length} brands`);
   }
