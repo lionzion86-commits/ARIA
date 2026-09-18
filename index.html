@@ -2412,7 +2412,12 @@ function addToCartFromProduct(){
     retailer: p.retailer,
     title: p.name,
     priceUsd: Number.isFinite(p.totalUsd) ? p.totalUsd : 0,
-    weightKg: Number.isFinite(p.weightKg) ? p.weightKg : 0,
+    // Never 0: a card built without a weight (an older cart, a payload
+    // with no weight field) used to store 0 here, and checkout showed
+    // "Peso del paquete 0.00 kg" with no freight line and no total.
+    // Falls back to the same title-based estimate every card uses;
+    // checkout re-resolves it server side regardless.
+    weightKg: Number.isFinite(p.weightKg) && p.weightKg > 0 ? p.weightKg : estimateRetailWeightKg(p.name),
     image: p.imageUrl || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   });
@@ -2616,7 +2621,35 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.15, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
   { match: /\bremote\b/i, kg: 0.1, tier: 'reasoned' },
   { match: /\bwall mount\b|\btv mount\b/i, kg: 2.5, tier: 'reasoned' }, // typical TV wall-mount bracket, not the TV itself
+  // Rigid boxed goods. dimCm is the typical retail box (L x W x H, cm):
+  // air freight bills the greater of actual and volumetric weight, and for
+  // these the box wins — a 0.7kg pair of over-ear headphones in a
+  // 25x22x12 box bills as 1.32kg. Mirrors RETAIL_WEIGHT_FALLBACK_KG in
+  // scripts/lib/sales-sources.js; test-sales-parity asserts both agree.
+  // Deliberately not applied to apparel or soft goods, which ship
+  // compressed — a box volume there would inflate freight for nothing.
+  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.7, tier: 'reasoned', dimCm: [25, 22, 12] },
+  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 3, tier: 'reasoned', dimCm: [95, 20, 15] },
+  { match: /\bmonitor\b/i, kg: 5.5, tier: 'reasoned', dimCm: [70, 45, 15] },
+  { match: /\bprinter\b|impresora/i, kg: 7, tier: 'reasoned', dimCm: [55, 45, 35] },
+  { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: 'reasoned', dimCm: [60, 45, 35] },
+  { match: /airpods|earbuds/i, kg: 0.25, tier: 'reasoned', dimCm: [12, 10, 6] },
+  { match: /\bipad\b|\btablet\b/i, kg: 0.9, tier: 'reasoned', dimCm: [30, 22, 5] },
+  { match: /smartwatch|apple watch/i, kg: 0.3, tier: 'reasoned', dimCm: [15, 12, 8] },
 ];
+// Volumetric weight: L x W x H in cm over the 5000 IATA divisor.
+const DIM_DIVISOR_CM3_PER_KG = 5000;
+function dimensionalWeightKg(l, w, h){
+  const d = [l, w, h].map(Number);
+  if (d.some(x => !Number.isFinite(x) || x <= 0)) return null;
+  return Math.round((d[0] * d[1] * d[2] / DIM_DIVISOR_CM3_PER_KG) * 100) / 100;
+}
+function billableWeightKg(actualKg, dimCm){
+  const actual = Number(actualKg);
+  if (!Number.isFinite(actual) || actual <= 0) return null;
+  const dim = Array.isArray(dimCm) ? dimensionalWeightKg(...dimCm) : null;
+  return dim != null && dim > actual ? dim : actual;
+}
 const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced ('reasoned' tier)
 
 // TVs vary too much by screen size for one flat number — parse an inch
@@ -2717,7 +2750,8 @@ function estimateRetailWeightKg(text){
   const head = t.replace(/\bwith\b[^,;]*/gi, ' ');
   if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(head)) return estimateTvWeightKg(t);
   const found = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t));
-  return found ? withBuffer(found.kg, found.tier) : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
+  return found ? billableWeightKg(withBuffer(found.kg, found.tier), found.dimCm)
+               : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
 }
 
 // Deliberately does NOT expose a clickthrough URL to the retailer's site —

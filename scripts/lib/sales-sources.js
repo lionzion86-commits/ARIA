@@ -35,7 +35,7 @@ export const SALES_TAX_RATE = 1.07;
 export const LIVE_PRICE_MARKUP = 1.24;
 export const MIN_DISCOUNT_PCT = 5;
 
-import { bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses, MAX_FREIGHT_SHARE } from "./item-weight.js";
+import { bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses, billableWeightKg, MAX_FREIGHT_SHARE } from "./item-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
 // internal courier cost and margin; neither may travel with anything that
@@ -64,6 +64,16 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.15, tier: "cited" },
   { match: /\bremote\b/i, kg: 0.1, tier: "reasoned" },
   { match: /\bwall mount\b|\btv mount\b/i, kg: 2.5, tier: "reasoned" },
+  // Rigid boxed goods, where the box bills for more than the contents
+  // weigh (dimCm = typical retail box, L x W x H in cm). All reasoned.
+  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.7, tier: "reasoned", dimCm: [25, 22, 12] },
+  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 3, tier: "reasoned", dimCm: [95, 20, 15] },
+  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned", dimCm: [70, 45, 15] },
+  { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned", dimCm: [55, 45, 35] },
+  { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned", dimCm: [60, 45, 35] },
+  { match: /airpods|earbuds/i, kg: 0.25, tier: "reasoned", dimCm: [12, 10, 6] },
+  { match: /\bipad\b|\btablet\b/i, kg: 0.9, tier: "reasoned", dimCm: [30, 22, 5] },
+  { match: /smartwatch|apple watch/i, kg: 0.3, tier: "reasoned", dimCm: [15, 12, 8] },
 ];
 const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // unclassified: a rough placeholder, so 'reasoned'
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
@@ -76,14 +86,28 @@ function tvWeightKg(title) {
   return withBuffer(kg, "cited");
 }
 
-/** Estimated shipping weight for a scraped title. Bulky goods win first. */
-export function estimateWeightKg(title) {
+/**
+ * Billable weight for a title when a real category matches, else null.
+ *
+ * Returning null for "nothing matched" is what lets the checkout weight
+ * resolver tell a category estimate apart from the generic fallback, and
+ * label them differently to the customer.
+ */
+export function categoryWeightKg(title) {
   const t = String(title || "");
   const bulky = bulkyWeightKg(t);
   if (bulky != null) return bulky;
   if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
-  return hit ? withBuffer(hit.kg, hit.tier) : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned");
+  if (!hit) return null;
+  return billableWeightKg(withBuffer(hit.kg, hit.tier), hit.dimCm);
+}
+
+/** Estimated shipping weight for a scraped title. Bulky goods win first. */
+export function estimateWeightKg(title) {
+  const category = categoryWeightKg(title);
+  if (category != null) return category;
+  return withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned");
 }
 
 const round2 = (n) => Math.round(n * 100) / 100;

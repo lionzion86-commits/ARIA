@@ -111,7 +111,13 @@
         <aside class="gridSummary bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
           <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
-            <div class="flex justify-between"><span>Peso total declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
+            <div class="flex items-start justify-between gap-2">
+              <span class="flex flex-col">
+                <span>Peso total declarado</span>
+                <span id="sumWeightNote" class="text-[11px]" style="color:#8A93A8" hidden>peso estimado</span>
+              </span>
+              <span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span>
+            </div>
             <div class="flex justify-between"><span>Valor total declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
             <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
           </div>
@@ -277,7 +283,15 @@
                   class="w-full h-[54px] bg-white border rounded-2xl pl-4 pr-11 text-[20px] font-bold outline-none focus-ring tabular disabled:opacity-70 disabled:cursor-not-allowed" style="border-color:var(--line); color:var(--navy)">
                 <span class="absolute right-4 top-1/2 -translate-y-1/2 text-[13px] font-bold" style="color:#9AA3B8">kg</span>
               </div>
-              <p id="kgAutoNote" class="text-[11px] mt-1.5" style="color:#8A93A8" hidden>Peso estimado automáticamente según el tipo de producto.</p>
+              <!-- The promise this note makes is now actually implemented:
+                   netlify/functions/resolve-weight.js resolves a weight per
+                   item (retailer spec -> category at billable weight ->
+                   labeled generic) and can never return 0. Filled by
+                   applyResolvedWeight(); the wording changes depending on
+                   which of those answered, so "estimado" is only claimed
+                   when it is an estimate. -->
+              <p id="kgAutoNote" class="text-[11px] mt-1.5" style="color:#8A93A8" hidden></p>
+              <p id="kgHonorNote" class="text-[11px] mt-1" style="color:#2F7A46" hidden>Si el peso real resulta mayor, asumimos la diferencia: pagas el precio cotizado.</p>
             </div>
             <div>
               <label for="valorInput" class="block text-[12px] font-bold mb-1.5">Valor declarado</label>
@@ -554,21 +568,29 @@
     sumWeight.textContent = kg.toFixed(2) + ' kg';
     sumValor.textContent = fmtPrimary(valor);
 
-    if (loading){
-      sumDutyRow.hidden = true;
-      sumFlete.textContent = 'Cotizando…';
-      sumTotal.textContent = '—';
-      payBtn.disabled = true;
-      payBtn.textContent = 'Cotizando con AVI Courier…';
-      return;
-    }
+    /* A freight line that reads "—" and a total that reads S/ 0.00 are not
+       honest placeholders: they look like a quote of nothing. While the
+       live AVI quote is in flight (or before it can run) the summary shows
+       the arithmetic we already know — weight x $13/kg, plus duty over the
+       threshold — marked as an estimate. Pagar still waits for the real
+       quote; only the numbers on screen are filled in. */
+    const provisional = kg > 0 && valor > 0 ? fallbackQuote(kg, valor) : null;
 
-    if (!latestQuote){
-      sumDutyRow.hidden = true;
-      sumFlete.textContent = '—';
-      sumTotal.textContent = fmtPrimary(0);
+    if (loading || !latestQuote){
+      const q = latestQuote || provisional;
+      if (q){
+        const pendingDuty = round2(q.total_usd - valor - q.flete_usd);
+        sumDuty.textContent = fmtPrimary(pendingDuty) + ' (estimado)';
+        sumDutyRow.hidden = !(pendingDuty > 0.01);
+        sumFlete.textContent = fmtPrimary(q.flete_usd) + ' (estimado)';
+        sumTotal.textContent = fmtPrimary(q.total_usd) + ' (estimado)';
+      } else {
+        sumDutyRow.hidden = true;
+        sumFlete.textContent = '—';
+        sumTotal.textContent = '—';
+      }
       payBtn.disabled = true;
-      payBtn.textContent = 'Completa el formulario para cotizar';
+      payBtn.textContent = loading ? 'Cotizando con AVI Courier…' : 'Completa el formulario para cotizar';
       return;
     }
 
@@ -637,6 +659,59 @@
   // customer, so they always match what the cart actually contains —
   // disabled inputs, never editable (declaring a lower value than what's
   // really being shipped isn't something this page should make easy).
+  /* Mirrors netlify/functions/_weight-resolve.js closely enough to fill the
+     field the instant the page renders, so the customer never sees 0.00 kg
+     while the request is in flight. The server's answer replaces it. Its
+     generic is the same 0.6kg the product cards and cart already show, so
+     nothing gets heavier between the cart and checkout. */
+  const GENERIC_FALLBACK_KG = 0.6;
+  function localWeightFallback(items){
+    const totalKg = items.reduce((sum, it) => {
+      const qty = Math.max(1, Math.round(Number(it.qty) || 1));
+      const kg = Number(it.weightKg);
+      return sum + (Number.isFinite(kg) && kg > 0 ? kg : GENERIC_FALLBACK_KG) * qty;
+    }, 0);
+    return { totalKg: round2(totalKg), estimated: true };
+  }
+
+  async function resolveWeights(items){
+    try {
+      const res = await fetch('/.netlify/functions/resolve-weight', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      });
+      const data = await res.json();
+      if (!res.ok || !(Number(data.totalKg) > 0)) throw new Error(data.error || 'peso no resuelto');
+      return data;
+    } catch {
+      // Never fall back to zero — that is the bug. The local estimate
+      // stands, still labeled as an estimate.
+      return localWeightFallback(items);
+    }
+  }
+
+  function applyResolvedWeight(resolved){
+    const kg = Number(resolved?.totalKg);
+    if (!(Number.isFinite(kg) && kg > 0)) return;   // 0 is never an answer
+    kgInput.value = kg.toFixed(2);
+    const note = document.getElementById('kgAutoNote');
+    const honor = document.getElementById('kgHonorNote');
+    const sumNote = document.getElementById('sumWeightNote');
+    // Only call it estimated when it is: a real weight published by the
+    // retailer is not an estimate, and saying so would be a lie in the
+    // customer's favour today and against them the day it matters.
+    const estimated = resolved.estimated !== false;
+    note.textContent = estimated
+      ? 'Peso estimado automáticamente según el tipo de producto.'
+      : 'Peso confirmado por la tienda.';
+    note.hidden = false;
+    honor.hidden = !estimated;
+    sumNote.hidden = !estimated;
+    renderSummary();
+    requestQuote();
+  }
+
   const CART_STORAGE_KEY = 'aria_cart_v1';
   function loadCart(){
     try {
@@ -685,9 +760,17 @@
     }, { valor: 0, kg: 0 });
     const description = cart.map(it => it.selectedSize ? `${it.title} (Talla ${it.selectedSize}) x${it.qty}` : `${it.title} x${it.qty}`).join(', ');
 
-    kgInput.value = round2(totals.kg).toFixed(2);
+    /* The weight is resolved SERVER SIDE, per item — never taken from
+       whatever the cart happens to carry. A cart written by an older build
+       (or any card built without a weight) stored weightKg: 0, and 0.00 kg
+       fails requestQuote()'s kg > 0 guard, which is how this page ended up
+       promising an automatic estimate while showing 0.00 kg, an empty
+       freight line and a S/ 0.00 total. Reproduced with "Apple AirPods Max
+       2 - Starlight". The field stays disabled either way: the system owns
+       this number, not the customer. */
     kgInput.disabled = true;
-    document.getElementById('kgAutoNote').hidden = false;
+    applyResolvedWeight(localWeightFallback(cart));   // instant, never 0
+    resolveWeights(cart).then(applyResolvedWeight);   // authoritative
     valorInput.value = round2(totals.valor).toFixed(2);
     valorInput.disabled = true;
     descInput.value = description;

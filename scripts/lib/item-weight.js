@@ -111,3 +111,34 @@ export function freightShare(weightKg, priceUsd, chargePerKg) {
 export function freightKillsDeal(weightKg, priceUsd, chargePerKg) {
   return freightShare(weightKg, priceUsd, chargePerKg) > MAX_FREIGHT_SHARE;
 }
+
+/* ============================================================
+   BILLABLE (VOLUMETRIC) WEIGHT
+
+   Air freight is charged on whichever is greater: what the box weighs, or
+   what it would weigh if it were as dense as the carrier's standard —
+   L x W x H in cm divided by 5000, the IATA volumetric divisor AVI
+   Courier's rate card uses. A pair of over-ear headphones is 0.7kg of
+   product in a 25x22x12 box: we are billed for 1.32kg, not 0.7.
+
+   Only rigid, genuinely boxed goods get dimensions here. Apparel and soft
+   goods ship compressed in poly bags, so applying a box volume to them
+   would inflate freight against the customer for no reason.
+   ============================================================ */
+
+export const DIM_DIVISOR_CM3_PER_KG = 5000;
+
+/** Volumetric weight for a box in centimetres, or null if not measurable. */
+export function dimensionalWeightKg(lCm, wCm, hCm) {
+  const dims = [lCm, wCm, hCm].map(Number);
+  if (dims.some((d) => !Number.isFinite(d) || d <= 0)) return null;
+  return Math.round((dims[0] * dims[1] * dims[2] / DIM_DIVISOR_CM3_PER_KG) * 100) / 100;
+}
+
+/** What the courier actually bills: the heavier of actual and dimensional. */
+export function billableWeightKg(actualKg, dimCm) {
+  const actual = Number(actualKg);
+  if (!Number.isFinite(actual) || actual <= 0) return null;
+  const dim = Array.isArray(dimCm) ? dimensionalWeightKg(...dimCm) : null;
+  return dim != null && dim > actual ? dim : actual;
+}
