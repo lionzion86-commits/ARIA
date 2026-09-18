@@ -68,8 +68,15 @@
       <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
         🇵🇪 Perú · PEN
       </span>
-      <button class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-      <button class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+      <!-- BUG FIX (live audit): real email/password auth now backs these
+           (see netlify/functions/auth-*.js + initAuth()/renderAuthUI()
+           below) — never a dead button again. #authArea is re-rendered on
+           login/logout/page-load; the two static buttons here are just
+           the logged-out default markup. -->
+      <div id="authArea" class="flex items-center gap-2.5">
+        <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+        <button onclick="openAuthModal('signup')" class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+      </div>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
       </button>
@@ -83,7 +90,8 @@
     <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
     <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
-    <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5">Devoluciones</a>
+    <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Devoluciones</a>
+    <div id="authAreaMobile" class="p-5"></div>
   </nav>
 </header>
 
@@ -1152,6 +1160,44 @@
 </div>
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
+
+<!-- ============ AUTH MODAL ============ -->
+<!-- Real email/password signup + login (netlify/functions/auth-signup.js
+     /auth-login.js), a persistent httpOnly-cookie session
+     (auth-me.js on page load, auth-logout.js), never a dead button/mock.
+     One form, toggled between the two modes by authModalMode — kept
+     deliberately minimal (no confirm-password field, no email
+     verification, no password reset) per the brief; full member perks
+     come later. -->
+<div id="authModalBackdrop" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(10,31,68,0.55)" onclick="if(event.target===this)closeAuthModal()">
+  <div class="bg-white rounded-3xl p-6 sm:p-7 w-full max-w-[380px] relative">
+    <button onclick="closeAuthModal()" aria-label="Cerrar" class="absolute top-4 right-4 w-8 h-8 grid place-items-center rounded-lg focus-ring text-zinc-400 hover:text-zinc-600 transition">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <h2 id="authModalTitle" class="text-[19px] font-extrabold tracking-[-0.02em] mb-1" style="color:var(--navy)">Entrar</h2>
+    <p id="authModalSubtitle" class="text-[12.5px] text-zinc-500 mb-5">Ingresa tu correo y contraseña.</p>
+    <form id="authForm" onsubmit="submitAuth(event)" novalidate>
+      <div class="mb-3">
+        <label for="authEmail" class="block text-[12px] font-bold mb-1.5">Correo electrónico</label>
+        <input id="authEmail" type="email" required autocomplete="email" placeholder="ana@correo.com"
+          class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+      </div>
+      <div class="mb-1.5">
+        <label for="authPassword" class="block text-[12px] font-bold mb-1.5">Contraseña</label>
+        <input id="authPassword" type="password" required autocomplete="current-password" placeholder="Mínimo 8 caracteres"
+          class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+      </div>
+      <p id="authError" class="text-[12.5px] font-semibold mb-3" style="color:#C0392B" hidden></p>
+      <button id="authSubmitBtn" type="submit" class="w-full h-[46px] mt-2 rounded-2xl text-white text-[14px] font-bold focus-ring transition" style="background:var(--blue)">Entrar</button>
+    </form>
+    <p class="text-[12.5px] text-center mt-4" style="color:#8A93A8">
+      <span id="authSwitchPrompt">¿No tienes cuenta?</span>
+      <button onclick="switchAuthMode()" class="font-bold" style="color:var(--blue)">
+        <span id="authSwitchAction">Crear cuenta</span>
+      </button>
+    </p>
+  </div>
+</div>
 
 <script>
 // RULE: no hardcoded/demo product catalog belongs here — every product
@@ -2662,6 +2708,134 @@ function showToast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(()=>{ el.style.opacity = 0; el.style.transform = 'translate(-50%, 24px)'; }, 2600);
 }
+
+/* ============================================================
+   AUTH — real email/password signup + login (netlify/functions/
+   auth-signup.js / auth-login.js), a persistent httpOnly-cookie session
+   checked via auth-me.js on every page load (initAuth() below), and a
+   real server-side logout (auth-logout.js). No dead buttons, no mock
+   state. Deliberately minimal per the brief: no email verification, no
+   password reset, no rate limiting — full member perks come later.
+   ============================================================ */
+let currentUser = null; // null = logged out, else the user's email
+let authModalMode = 'login';
+
+function renderAuthUI(){
+  const label = currentUser ? escapeHtml(currentUser) : '';
+  const initial = currentUser ? escapeHtml(currentUser[0].toUpperCase()) : '';
+  const loggedInHTML = `
+    <div class="hidden sm:flex items-center gap-2 text-[13px] font-semibold" style="color:var(--navy)" title="${label}">
+      <span class="w-7 h-7 rounded-full grid place-items-center text-white text-[12px] font-extrabold flex-shrink-0" style="background:var(--blue)">${initial}</span>
+      <span class="max-w-[140px] truncate">${label}</span>
+    </div>
+    <button onclick="logout()" class="h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
+  const loggedOutHTML = `
+    <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+    <button onclick="openAuthModal('signup')" class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>`;
+  document.getElementById('authArea').innerHTML = currentUser ? loggedInHTML : loggedOutHTML;
+
+  const mobileLoggedInHTML = `
+    <div class="flex items-center gap-2.5 mb-3">
+      <span class="w-8 h-8 rounded-full grid place-items-center text-white text-[13px] font-extrabold flex-shrink-0" style="background:var(--blue)">${initial}</span>
+      <span class="text-[13.5px] font-semibold truncate" style="color:var(--navy)">${label}</span>
+    </div>
+    <button onclick="logout();closeMobileMenu();" class="w-full h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
+  const mobileLoggedOutHTML = `
+    <div class="flex items-center gap-2.5">
+      <button onclick="openAuthModal('login');closeMobileMenu();" class="flex-1 h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+      <button onclick="openAuthModal('signup');closeMobileMenu();" class="flex-1 h-11 rounded-full text-[13.5px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+    </div>`;
+  document.getElementById('authAreaMobile').innerHTML = currentUser ? mobileLoggedInHTML : mobileLoggedOutHTML;
+}
+
+async function initAuth(){
+  try {
+    const res = await fetch('/.netlify/functions/auth-me');
+    const data = await res.json();
+    currentUser = data.email || null;
+  } catch {
+    currentUser = null; // network hiccup — treat as logged out rather than blocking the page
+  }
+  renderAuthUI();
+}
+
+function openAuthModal(mode){
+  authModalMode = mode;
+  document.getElementById('authForm').reset();
+  document.getElementById('authError').hidden = true;
+  applyAuthModalMode();
+  document.getElementById('authModalBackdrop').classList.remove('hidden');
+  document.getElementById('authEmail').focus();
+}
+
+function closeAuthModal(){
+  document.getElementById('authModalBackdrop').classList.add('hidden');
+}
+
+function switchAuthMode(){
+  authModalMode = authModalMode === 'login' ? 'signup' : 'login';
+  document.getElementById('authError').hidden = true;
+  applyAuthModalMode();
+}
+
+function applyAuthModalMode(){
+  const isLogin = authModalMode === 'login';
+  document.getElementById('authModalTitle').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
+  document.getElementById('authModalSubtitle').textContent = isLogin ? 'Ingresa tu correo y contraseña.' : 'Crea tu cuenta con tu correo y una contraseña.';
+  document.getElementById('authSubmitBtn').textContent = isLogin ? 'Entrar' : 'Crear cuenta';
+  document.getElementById('authPassword').autocomplete = isLogin ? 'current-password' : 'new-password';
+  document.getElementById('authSwitchPrompt').textContent = isLogin ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?';
+  document.getElementById('authSwitchAction').textContent = isLogin ? 'Crear cuenta' : 'Entrar';
+}
+
+async function submitAuth(event){
+  event.preventDefault();
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errorEl = document.getElementById('authError');
+  const submitBtn = document.getElementById('authSubmitBtn');
+  errorEl.hidden = true;
+
+  submitBtn.disabled = true;
+  const originalLabel = submitBtn.textContent;
+  submitBtn.textContent = 'Un momento…';
+
+  try {
+    const endpoint = authModalMode === 'login' ? '/.netlify/functions/auth-login' : '/.netlify/functions/auth-signup';
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Algo salió mal, intenta de nuevo.');
+
+    currentUser = data.email;
+    renderAuthUI();
+    closeAuthModal();
+    showToast(authModalMode === 'login' ? `Bienvenida/o de vuelta, ${data.email}` : `Cuenta creada — bienvenida/o, ${data.email}`);
+  } catch (err) {
+    errorEl.textContent = err.message;
+    errorEl.hidden = false;
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalLabel;
+  }
+}
+
+async function logout(){
+  try {
+    await fetch('/.netlify/functions/auth-logout', { method: 'POST' });
+  } catch {
+    // Best-effort — still clear local state below so the UI reflects
+    // logged-out even if the network call failed.
+  }
+  currentUser = null;
+  renderAuthUI();
+  showToast('Sesión cerrada.');
+}
+
+initAuth();
 
 /* ============================================================
    SALES / DEALS SECTION
