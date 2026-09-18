@@ -26,7 +26,14 @@
 // its own copy because it is a plain <script> and cannot import;
 // test-item-weight asserts the two agree on every category.
 
-export const CONFIDENCE_BUFFER = { cited: 1.10, reasoned: 1.20 };
+/* CONSERVATIVE BIAS — the standing rule for every weight in this codebase.
+   We honor the freight we quote, so an underestimate is money off our
+   margin on every single order, while an overestimate costs at most a
+   marginal sale. Estimates therefore lean HIGH: base values are the upper
+   end of the realistic range for the category, and these buffers add a
+   further margin on top (raised 2026-09-18 from 1.10/1.20). Never lower
+   an entry to make a price look better. */
+export const CONFIDENCE_BUFFER = { cited: 1.15, reasoned: 1.35 };
 
 export function withBuffer(kg, tier) {
   return Math.round(kg * CONFIDENCE_BUFFER[tier] * 100) / 100;
@@ -35,24 +42,24 @@ export function withBuffer(kg, tier) {
 // Checked BEFORE the general table and before the TV branch, because
 // "TV Stand" is furniture, not a television.
 export const BULKY_WEIGHT_ESTIMATES_KG = [
-  { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 60 },
-  { match: /\b(mattress|box spring|boxspring)\b/i, kg: 30 },
-  { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, kg: 35 },
-  { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 50 },
-  { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 45 },
-  { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, kg: 70 },
-  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, kg: 70 },
-  { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 30 },
-  { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 30 },
-  { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 25 },
-  { match: /\b(grill|smoker|bbq)\b/i, kg: 40 },
-  { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, kg: 40 },
-  { match: /\b(air conditioner|dehumidifier|space heater)\b/i, kg: 25 },
-  { match: /\b(mini fridge|microwave|air fryer)\b/i, kg: 15 },
-  { match: /\b(recliner|armchair|accent chair|office chair|dining chair)\b/i, kg: 15 },
-  { match: /\b(rug|carpet|area rug)\b/i, kg: 12 },
-  { match: /\b(vacuum|stroller|car seat)\b/i, kg: 8 },
-  { match: /\b(suitcase|luggage)\b/i, kg: 4 },
+  { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 70 },
+  { match: /\b(mattress|box spring|boxspring)\b/i, kg: 40 },
+  { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, kg: 45 },
+  { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 60 },
+  { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 55 },
+  { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, kg: 90 },
+  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, kg: 90 },
+  { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 40 },
+  { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 35 },
+  { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 30 },
+  { match: /\b(grill|smoker|bbq)\b/i, kg: 50 },
+  { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, kg: 55 },
+  { match: /\b(air conditioner|dehumidifier|space heater)\b/i, kg: 30 },
+  { match: /\b(mini fridge|microwave|air fryer)\b/i, kg: 18 },
+  { match: /\b(recliner|armchair|accent chair|office chair|dining chair)\b/i, kg: 18 },
+  { match: /\b(rug|carpet|area rug)\b/i, kg: 16 },
+  { match: /\b(vacuum|stroller|car seat)\b/i, kg: 12 },
+  { match: /\b(suitcase|luggage)\b/i, kg: 6 },
 ];
 
 /**

@@ -2659,7 +2659,13 @@ function round2(n){ return Math.round(n * 100) / 100; }
    leaked into any browser-served file. */
 const CHARGE_PER_KG_USD = 13;
 
-const CONFIDENCE_BUFFER = { cited: 1.10, reasoned: 1.20 };
+/* CONSERVATIVE BIAS (2026-09-18): every weight in this file leans HIGH.
+   We honor the freight we quote, so an underestimate comes straight out of
+   margin on every order while an overestimate risks at most a marginal
+   sale. Base values are the upper end of the realistic range for the
+   category; these buffers (was 1.10/1.20) add margin on top. Never lower
+   an entry to make a price look better. Mirrors item-weight.js. */
+const CONFIDENCE_BUFFER = { cited: 1.15, reasoned: 1.35 };
 function withBuffer(kg, tier){
   return Math.round(kg * CONFIDENCE_BUFFER[tier] * 100) / 100;
 }
@@ -2679,18 +2685,18 @@ function withBuffer(kg, tier){
 // Real-world average citations noted per row; anything unmatched falls
 // back to DEFAULT_RETAIL_WEIGHT_KG, a rough generic placeholder.
 const RETAIL_WEIGHT_ESTIMATES_KG = [
-  { match: /\bjeans?\b|denim/i, kg: 0.8, tier: 'cited' },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
-  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.15, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
-  { match: /hoodie|sweatshirt/i, kg: 0.6, tier: 'cited' },              // cotton hoodie ~450-680g (printful.com)
-  { match: /jacket|\bcoat\b/i, kg: 0.9, tier: 'reasoned' },             // heavier outerwear than a hoodie — reasoned estimate, no single citation
-  { match: /sneaker|\bshoe|\bboot/i, kg: 1.1, tier: 'cited' },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
-  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.05, tier: 'cited' }, // ~30-70g/pair (crescendoapparel.com)
-  { match: /\bsocks?\b/i, kg: 0.06, tier: 'cited' },                    // ~40-60g/pair (deadsoxy.com)
-  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2, tier: 'cited' }, // mainstream phones ~160-220g (devicetests.com)
-  { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8, tier: 'cited' }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
-  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.15, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
-  { match: /\bremote\b/i, kg: 0.1, tier: 'reasoned' },
-  { match: /\bwall mount\b|\btv mount\b/i, kg: 2.5, tier: 'reasoned' }, // typical TV wall-mount bracket, not the TV itself
+  { match: /\bjeans?\b|denim/i, kg: 1, tier: 'cited' },              // std pair of jeans ~1.5-2lb / 0.68-0.9kg shipping-budget consensus (parcelpath.com, sinofinetex.com)
+  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
+  { match: /hoodie|sweatshirt/i, kg: 0.8, tier: 'cited' },              // cotton hoodie ~450-680g (printful.com)
+  { match: /jacket|\bcoat\b/i, kg: 1.3, tier: 'reasoned' },             // heavier outerwear than a hoodie — reasoned estimate, no single citation
+  { match: /sneaker|\bshoe|\bboot/i, kg: 1.4, tier: 'cited', dimCm: [33, 22, 13] },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
+  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: 'cited' }, // ~30-70g/pair (crescendoapparel.com)
+  { match: /\bsocks?\b/i, kg: 0.1, tier: 'cited' },                    // ~40-60g/pair (deadsoxy.com)
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: 'cited', dimCm: [20, 12, 8] }, // mainstream phones ~160-220g (devicetests.com)
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: 'cited', dimCm: [45, 32, 10] }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
+  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
+  { match: /\bremote\b/i, kg: 0.2, tier: 'reasoned' },
+  { match: /\bwall mount\b|\btv mount\b/i, kg: 3.5, tier: 'reasoned' }, // typical TV wall-mount bracket, not the TV itself
   // Rigid boxed goods. dimCm is the typical retail box (L x W x H, cm):
   // air freight bills the greater of actual and volumetric weight, and for
   // these the box wins — a 0.7kg pair of over-ear headphones in a
@@ -2698,14 +2704,14 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   // scripts/lib/sales-sources.js; test-sales-parity asserts both agree.
   // Deliberately not applied to apparel or soft goods, which ship
   // compressed — a box volume there would inflate freight for nothing.
-  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.7, tier: 'reasoned', dimCm: [25, 22, 12] },
-  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 3, tier: 'reasoned', dimCm: [95, 20, 15] },
+  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: 'reasoned', dimCm: [25, 22, 12] },
+  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: 'reasoned', dimCm: [95, 20, 15] },
   { match: /\bmonitor\b/i, kg: 5.5, tier: 'reasoned', dimCm: [70, 45, 15] },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: 'reasoned', dimCm: [55, 45, 35] },
   { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: 'reasoned', dimCm: [60, 45, 35] },
-  { match: /airpods|earbuds/i, kg: 0.25, tier: 'reasoned', dimCm: [12, 10, 6] },
-  { match: /\bipad\b|\btablet\b/i, kg: 0.9, tier: 'reasoned', dimCm: [30, 22, 5] },
-  { match: /smartwatch|apple watch/i, kg: 0.3, tier: 'reasoned', dimCm: [15, 12, 8] },
+  { match: /airpods|earbuds/i, kg: 0.35, tier: 'reasoned', dimCm: [12, 10, 6] },
+  { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: 'reasoned', dimCm: [30, 22, 5] },
+  { match: /smartwatch|apple watch/i, kg: 0.4, tier: 'reasoned', dimCm: [15, 12, 8] },
 ];
 // Volumetric weight: L x W x H in cm over the 5000 IATA divisor.
 const DIM_DIVISOR_CM3_PER_KG = 5000;
@@ -2720,7 +2726,7 @@ function billableWeightKg(actualKg, dimCm){
   const dim = Array.isArray(dimCm) ? dimensionalWeightKg(...dimCm) : null;
   return dim != null && dim > actual ? dim : actual;
 }
-const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced ('reasoned' tier)
+const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced ('reasoned' tier)
 
 // TVs vary too much by screen size for one flat number — parse an inch
 // figure out of the title when present. Buckets from weightofstuff.com /
@@ -2729,14 +2735,14 @@ const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // generic fallback for unclassified gener
 // cited ranges.
 function estimateTvWeightKg(text){
   const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(text || '');
-  if (!m) return withBuffer(12, 'cited'); // no size in the title — blended default across common sizes
+  if (!m) return withBuffer(14, 'cited'); // no size in the title — blended default across common sizes
   const inches = parseInt(m[1], 10);
-  if (inches <= 32) return withBuffer(7, 'cited');
-  if (inches <= 43) return withBuffer(10, 'cited');
-  if (inches <= 50) return withBuffer(17, 'cited');
-  if (inches <= 55) return withBuffer(20, 'cited');
-  if (inches <= 65) return withBuffer(28, 'cited');
-  return withBuffer(35, 'cited'); // 70"+
+  if (inches <= 32) return withBuffer(8, 'cited');
+  if (inches <= 43) return withBuffer(12, 'cited');
+  if (inches <= 50) return withBuffer(19, 'cited');
+  if (inches <= 55) return withBuffer(23, 'cited');
+  if (inches <= 65) return withBuffer(31, 'cited');
+  return withBuffer(40, 'cited'); // 70"+
 }
 
 // BUG FIX (live audit): a bare \btv\b match caught any title that merely
@@ -2766,24 +2772,24 @@ const TV_ACCESSORY_KEYWORDS = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b
    shipping weights, carrying the usual 1.2x buffer, meant to keep heavy
    goods out of Ofertas and stop checkout under-quoting, not to be exact. */
 const BULKY_WEIGHT_ESTIMATES_KG = [
-  { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 60 },
-  { match: /\b(mattress|box spring|boxspring)\b/i, kg: 30 },
-  { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, kg: 35 },
-  { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 50 },
-  { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 45 },
-  { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, kg: 70 },
-  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, kg: 70 },
-  { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 30 },
-  { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 30 },
-  { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 25 },
-  { match: /\b(grill|smoker|bbq)\b/i, kg: 40 },
-  { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, kg: 40 },
-  { match: /\b(air conditioner|dehumidifier|space heater)\b/i, kg: 25 },
-  { match: /\b(mini fridge|microwave|air fryer)\b/i, kg: 15 },
-  { match: /\b(recliner|armchair|accent chair|office chair|dining chair)\b/i, kg: 15 },
-  { match: /\b(rug|carpet|area rug)\b/i, kg: 12 },
-  { match: /\b(vacuum|stroller|car seat)\b/i, kg: 8 },
-  { match: /\b(suitcase|luggage)\b/i, kg: 4 },
+  { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 70 },
+  { match: /\b(mattress|box spring|boxspring)\b/i, kg: 40 },
+  { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, kg: 45 },
+  { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 60 },
+  { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 55 },
+  { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, kg: 90 },
+  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, kg: 90 },
+  { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 40 },
+  { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 35 },
+  { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 30 },
+  { match: /\b(grill|smoker|bbq)\b/i, kg: 50 },
+  { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, kg: 55 },
+  { match: /\b(air conditioner|dehumidifier|space heater)\b/i, kg: 30 },
+  { match: /\b(mini fridge|microwave|air fryer)\b/i, kg: 18 },
+  { match: /\b(recliner|armchair|accent chair|office chair|dining chair)\b/i, kg: 18 },
+  { match: /\b(rug|carpet|area rug)\b/i, kg: 16 },
+  { match: /\b(vacuum|stroller|car seat)\b/i, kg: 12 },
+  { match: /\b(suitcase|luggage)\b/i, kg: 6 },
 ];
 
 function bulkyWeightKg(text){
@@ -3159,7 +3165,91 @@ document.getElementById('autoModelSelect').addEventListener('change', maybeRevea
 // each render function: product cards must never link off-site to the
 // retailer.
 function normalizeAutoPartItem(sourceId, item){
-  return normalizeLiveItem(item);
+  // The raw payload is kept alongside the normalized fields: fitment and
+  // part-type live there, and the card needs them.
+  return { ...normalizeLiveItem(item), raw: item };
+}
+
+/* ============================================================
+   AUTOMOTIVE TIRE FILTER
+
+   BUG (2026-09-18): searching "llantas" for a Toyota Yaris returned
+   MaxPower 400x6 lawn-mower tires, a 480/400-8 garden tire and a Hi-Run
+   WB1004 wheelbarrow tire. AutoZone's actor is a keyword search, and it
+   sells all of those, so the query happily matched them.
+
+   Two kinds of signal separate a car tire from a lawn one, and the size
+   format is the strongest: passenger and light-truck tires are written
+   in the ISO metric form (185/65R15, P205/55R16, LT265/70R17), while
+   lawn, wheelbarrow, ATV and implement tires use the old imperial forms
+   (400x6, 4.10/3.50-4, 13x5.00-6, 480/400-8).
+
+   This FAILS CLOSED: a tire we cannot positively identify as automotive
+   is dropped, because showing a wheelbarrow tire to someone shopping for
+   their Yaris is worse than showing one result fewer.
+   ============================================================ */
+const NON_AUTOMOTIVE_TIRE_RE = /\blawn\b|\bgarden\b|\bmower\b|\btractor\b|\bturf\b|wheel ?barrow|\bhand truck\b|\bdolly\b|\bcart\b|\btrailer\b|\batv\b|\butv\b|go[- ]?kart|golf cart|\bsnow blower\b|\btiller\b|\bimplement\b|\bforklift\b|bicycle|\bbike\b|\bscooter\b|\bpneumatic\b|flat.?free|\bcaster\b/i;
+// Passenger / light-truck size, e.g. 185/65R15, P205/55R16, LT265/70R17.
+const CAR_TIRE_SIZE_RE = /\b(P|LT|ST)?\d{3}\/\d{2}\s?(R|ZR)\s?\d{2}\b/i;
+// Lawn, wheelbarrow, ATV and implement sizing, e.g. 400x6, 4.10/3.50-4.
+const NON_CAR_TIRE_SIZE_RE = /\b\d{2,3}\s?x\s?\d(\.\d+)?(\s?-\s?\d+)?\b|\b\d\.\d{2}\/\d\.\d{2}\s?-\s?\d+\b|\b\d{3}\/\d{3}\s?-\s?\d+\b/i;
+
+function isTireQuery(query){
+  return /llantas?|neum[aá]ticos?|\btires?\b|\btyres?\b/i.test(query || '');
+}
+
+function isTireItem(item){
+  const t = `${item?.title || ''} ${item?.raw?.part_type || ''}`;
+  return /\btires?\b|\btyres?\b|llantas?|neum[aá]tico/i.test(t);
+}
+
+/** True only for a tire we can positively place on a car or light truck. */
+function isAutomotiveTire(item){
+  const text = `${item?.title || ''} ${item?.raw?.part_type || ''} ${(item?.raw?.breadcrumbs || []).join(' ')}`;
+  if (NON_AUTOMOTIVE_TIRE_RE.test(text)) return false;
+  if (CAR_TIRE_SIZE_RE.test(text)) return true;
+  if (NON_CAR_TIRE_SIZE_RE.test(text)) return false;
+  // No size to read: only an explicitly automotive part type gets through.
+  return /passenger|all[- ]season|touring|highway terrain|all[- ]terrain|performance tire|\bsummer tire\b|\bwinter tire\b/i.test(text);
+}
+
+/** Drops non-car tires from a car-fitment result set. Other parts pass. */
+function filterAutomotiveParts(items, query){
+  if (!isTireQuery(query)) return items;
+  return items.filter(it => !isTireItem(it) ? true : isAutomotiveTire(it));
+}
+
+/* ============================================================
+   FITMENT VERIFICATION
+
+   A green "Compatible con tu Toyota Yaris 2023" on a part that does not
+   fit is the single most expensive thing this page can say, and it was
+   being said on wheelbarrow tires. The badge is now earned, not assumed.
+
+   What AutoZone's payload actually carries is `vehicle_fitment`, with
+   exactly two values across all 9,285 cached items: VEHICLE_SPECIFIC and
+   UNIVERSAL. VEHICLE_SPECIFIC means "this part is sold per vehicle" — it
+   does NOT say it was matched to THIS vehicle, and the actor is a keyword
+   search ("2023 Toyota Yaris llantas"), not a fitment lookup. So it is
+   not verification, and nothing in today's data is.
+
+   The verified path below is real code waiting on real data: when the
+   scrape runs in a vehicle-scoped mode that returns a per-vehicle fitment
+   confirmation (`fits_vehicle: true`, or a `fitment` object naming the
+   year/make/model), the badge lights up on its own. Until then every card
+   says "Verifica el calce". Do not widen this to VEHICLE_SPECIFIC.
+   ============================================================ */
+function fitmentVerified(item, vehicle){
+  const raw = item?.raw;
+  if (!raw || !vehicle) return false;
+  if (raw.fits_vehicle === true || raw.fitsVehicle === true) return true;
+  const fit = raw.fitment || raw.vehicle_fit || null;
+  if (fit && typeof fit === 'object'){
+    const same = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+    return Boolean(fit.confirmed !== false
+      && same(fit.year, vehicle.year) && same(fit.make, vehicle.make) && same(fit.model, vehicle.model));
+  }
+  return false;
 }
 
 // Cache key must exactly match scripts/refresh-auto-cache.js's format.
@@ -3218,11 +3308,11 @@ function autoPartSkeleton(label){
 // weight estimates above — see the comment there. Every part-weight
 // estimate below is tagged 'cited' or 'reasoned' the same way.
 const PART_WEIGHT_ESTIMATES_KG = [
-  { match: /bujía|bujia|spark plug/i, kg: 0.4, tier: 'reasoned' }, // no verified real citation found (Sept 2026 research) — reasoned from typical plug dimensions, lower confidence than brake pads below
-  { match: /filtro de aceite|oil filter/i, kg: 0.5, tier: 'reasoned' }, // no verified real citation found — one Amazon listing claimed 0.01oz, which is a physically-impossible data error and was discarded; reasoned from typical spin-on canister size, lower confidence
-  { match: /limpiaparabrisas|wiper/i, kg: 0.36, tier: 'cited' }, // real citation: Rain-X Latitude 22" blade = 6.4oz/181g each, pair = ~362g
+  { match: /bujía|bujia|spark plug/i, kg: 0.5, tier: 'reasoned' }, // no verified real citation found (Sept 2026 research) — reasoned from typical plug dimensions, lower confidence than brake pads below
+  { match: /filtro de aceite|oil filter/i, kg: 0.6, tier: 'reasoned' }, // no verified real citation found — one Amazon listing claimed 0.01oz, which is a physically-impossible data error and was discarded; reasoned from typical spin-on canister size, lower confidence
+  { match: /limpiaparabrisas|wiper/i, kg: 0.45, tier: 'cited' }, // real citation: Rain-X Latitude 22" blade = 6.4oz/181g each, pair = ~362g
 ];
-const DEFAULT_PART_WEIGHT_KG = 1.0; // flat fallback for anything unmatched — always 'reasoned' tier, see estimatePartWeightKg
+const DEFAULT_PART_WEIGHT_KG = 1.5; // flat fallback for anything unmatched — always 'reasoned' tier, see estimatePartWeightKg
 
 // FRONT/REAR BRAKE PAD WEIGHT BY VEHICLE CLASS (kg per axle set)
 // -----------------------------------------------------------------
@@ -3252,10 +3342,10 @@ const DEFAULT_PART_WEIGHT_KG = 1.0; // flat fallback for anything unmatched — 
 // per-model verified figure — flag for correction if a specific vehicle's
 // estimate looks obviously wrong.
 const BRAKE_PAD_WEIGHT_KG = {
-  compact: { front: 2.0, rear: 0.9 },
-  sedan:   { front: 2.3, rear: 1.0 },
-  suv:     { front: 2.8, rear: 1.2 },
-  truck:   { front: 3.8, rear: 1.7 },
+  compact: { front: 2.5, rear: 1.1 },
+  sedan:   { front: 2.8, rear: 1.3 },
+  suv:     { front: 3.4, rear: 1.5 },
+  truck:   { front: 4.6, rear: 2.1 },
 };
 
 // Classifies a vehicle into a curb-weight class from its model name.
@@ -3308,10 +3398,10 @@ function lookupAxleWeightKg(table, query, vehicle, tier){
 // construction (a vented rotor has two friction faces plus internal
 // cooling vanes, adding mass a solid rear disc of similar diameter lacks).
 const BRAKE_ROTOR_WEIGHT_KG = {
-  compact: { front: 6.4, rear: 4.5 },  // 14lb midpoint of 12-16lb citation
-  sedan:   { front: 9.5, rear: 6.7 },  // 21lb large-sedan citation
-  suv:     { front: 12.7, rear: 8.9 }, // 28lb midpoint of 22-34lb citation
-  truck:   { front: 13.6, rear: 9.5 }, // 30lb, upper end of SUV/truck range
+  compact: { front: 7.3, rear: 5.1 },  // 16lb, UPPER end of the 12-16lb citation (was 6.4, its midpoint)
+  sedan:   { front: 10.4, rear: 7.3 }, // 23lb, the large-sedan citation with range headroom
+  suv:     { front: 15.4, rear: 10.8 },// 34lb, UPPER end of the 22-34lb citation (was 12.7, its midpoint)
+  truck:   { front: 17.2, rear: 12.0 },// 38lb, above the SUV upper end since trucks run heavier
 };
 
 // BRAKE CALIPERS (kg per caliper, with pads) — direct citations: RX8
@@ -3321,10 +3411,10 @@ const BRAKE_ROTOR_WEIGHT_KG = {
 // brakecalipercenter.com). Sedan/SUV rows have no direct citation —
 // reasoned by interpolating between the compact and truck anchors.
 const BRAKE_CALIPER_WEIGHT_KG = {
-  compact: { front: 6.1, rear: 4.1 },
-  sedan:   { front: 6.8, rear: 4.5 },  // interpolated, no direct citation
-  suv:     { front: 7.7, rear: 5.0 },  // interpolated, no direct citation
-  truck:   { front: 8.8, rear: 5.4 },  // front cited; rear reasoned at ~60% of front, consistent with the pad/rotor pattern
+  compact: { front: 6.8, rear: 4.6 },
+  sedan:   { front: 7.5, rear: 5.0 },  // interpolated, no direct citation — biased high
+  suv:     { front: 8.6, rear: 5.6 },  // interpolated, no direct citation — biased high
+  truck:   { front: 9.8, rear: 6.1 },  // front cited; rear reasoned at ~60% of front, consistent with the pad/rotor pattern
 };
 
 // CAR BATTERIES (kg) — real BCI group-size weight ranges (batteryequivalents.com,
@@ -3335,7 +3425,7 @@ const BRAKE_CALIPER_WEIGHT_KG = {
 // 4-way size class — so this only splits into two tiers (compact/sedan vs
 // suv/truck) rather than four, to avoid implying more precision than the
 // data supports.
-const BATTERY_WEIGHT_KG = { compact: 17, sedan: 17, suv: 21, truck: 21 };
+const BATTERY_WEIGHT_KG = { compact: 19, sedan: 19, suv: 23, truck: 25 };
 
 // ALTERNATORS (kg) — AutoZone's own reference (autozone.com/diy/qa/how-much-does-an-alternator-weigh):
 // "a passenger vehicle like a car, SUV, minivan, or half-ton truck" runs
@@ -3345,14 +3435,14 @@ const BATTERY_WEIGHT_KG = { compact: 17, sedan: 17, suv: 21, truck: 21 };
 // cited 12-15lb passenger-vehicle bracket by class — not independently
 // cited per class, reasoned as larger engines drawing more electrical load
 // needing a slightly heavier unit.
-const ALTERNATOR_WEIGHT_KG = { compact: 5.5, sedan: 6.0, suv: 6.5, truck: 7.0 };
+const ALTERNATOR_WEIGHT_KG = { compact: 6.0, sedan: 6.5, suv: 7.5, truck: 8.5 };
 
 // RADIATORS (kg) — real citation (wxbwl.com): mid-size sedan 10-15lb/
 // 4.5-6.8kg, full-size car/SUV/truck 15-30lb/6.8-13.6kg. Compact uses a
 // reasoned value below the cited sedan range (smaller engine/lower cooling
 // load, no direct citation). SUV/truck split the wide full-size range
 // toward its lower-mid and upper end respectively, reasoned not cited.
-const RADIATOR_WEIGHT_KG = { compact: 4.5, sedan: 5.7, suv: 8.2, truck: 11.8 };
+const RADIATOR_WEIGHT_KG = { compact: 6.0, sedan: 6.8, suv: 10.0, truck: 13.6 };
 
 // STARTERS (kg) — real citation: "starters are typically around 4-5kg"
 // (allaboutcircuits.com forum consensus + multiple listings), with no
@@ -3361,7 +3451,7 @@ const RADIATOR_WEIGHT_KG = { compact: 4.5, sedan: 5.7, suv: 8.2, truck: 11.8 };
 // scale with class the way brakes/cooling do. Applied flat across
 // compact/sedan/suv; truck gets a small reasoned bump (not cited) since
 // larger engines need more starting torque.
-const STARTER_WEIGHT_KG = { compact: 4.5, sedan: 4.5, suv: 4.5, truck: 5.5 };
+const STARTER_WEIGHT_KG = { compact: 5.0, sedan: 5.0, suv: 5.5, truck: 6.5 };
 
 // --- PRIORITY 2 CATEGORIES ---
 // Source quality here is noticeably weaker than Priority 1 (brakes/battery/
@@ -3376,7 +3466,7 @@ const STARTER_WEIGHT_KG = { compact: 4.5, sedan: 4.5, suv: 4.5, truck: 5.5 };
 // that real 1.5-6.7kg range on the reasoned assumption that smaller
 // 4-cyl engines commonly use lighter aluminum/composite-impeller pumps
 // and larger V6/V8s more often use iron ones.
-const WATER_PUMP_WEIGHT_KG = { compact: 3.0, sedan: 3.8, suv: 4.5, truck: 6.0 };
+const WATER_PUMP_WEIGHT_KG = { compact: 3.5, sedan: 4.2, suv: 5.0, truck: 6.8 };
 
 // FRONT LOWER CONTROL ARMS (kg) — mixed evidence: a real, direct citation
 // for a Honda Civic (our "compact" class) front lower control arm is
@@ -3388,7 +3478,7 @@ const WATER_PUMP_WEIGHT_KG = { compact: 3.0, sedan: 3.8, suv: 4.5, truck: 6.0 };
 // doesn't support, compact and sedan are both anchored near the Civic
 // figure, and only SUV/truck get a reasoned (not cited) increase, based
 // on general knowledge that these do get more robust suspension arms.
-const CONTROL_ARM_WEIGHT_KG = { compact: 8.6, sedan: 8.6, suv: 10.0, truck: 13.0 };
+const CONTROL_ARM_WEIGHT_KG = { compact: 9.5, sedan: 9.5, suv: 11.5, truck: 15.0 };
 
 // CV AXLES (kg per shaft) — no reliable direct citation found despite
 // multiple search attempts (Amazon/eBay listings for Civic and Camry CV
@@ -3396,7 +3486,7 @@ const CONTROL_ARM_WEIGHT_KG = { compact: 8.6, sedan: 8.6, suv: 10.0, truck: 13.0
 // typical CV axle shaft dimensions and mass of comparable steel automotive
 // driveshaft components — lower confidence than the water pump/control
 // arm rows above.
-const CV_AXLE_WEIGHT_KG = { compact: 3.0, sedan: 3.5, suv: 4.0, truck: 5.0 };
+const CV_AXLE_WEIGHT_KG = { compact: 3.5, sedan: 4.2, suv: 5.0, truck: 6.5 };
 
 // STRUTS/SHOCKS (kg) — one number surfaced during research ("75+ lbs
 // each") was discarded as an implausible data error, the same call made
@@ -3408,10 +3498,10 @@ const CV_AXLE_WEIGHT_KG = { compact: 3.0, sedan: 3.5, suv: 4.0, truck: 5.0 };
 // shock absorber alone, reasoned lighter since most vehicles in our
 // selector don't run a spring-integrated rear strut.
 const STRUT_WEIGHT_KG = {
-  compact: { front: 8.5, rear: 5.5 },
-  sedan:   { front: 9.5, rear: 6.0 },
-  suv:     { front: 12.0, rear: 8.0 },
-  truck:   { front: 15.0, rear: 10.0 },
+  compact: { front: 9.5, rear: 6.2 },
+  sedan:   { front: 10.5, rear: 6.8 },
+  suv:     { front: 13.5, rear: 9.0 },
+  truck:   { front: 17.0, rear: 11.5 },
 };
 
 // CABIN AIR FILTERS (kg) — real citation: an activated-carbon cabin air
@@ -3453,7 +3543,7 @@ const TIMING_BELT_WEIGHT_KG = 0.2;
 // sanity check, not a citation. Graduated by class since larger vehicles
 // (especially trucks, which often get extended tow mirrors) commonly
 // carry bigger mirror housings — that class trend is reasoned, not cited.
-const MIRROR_WEIGHT_KG = { compact: 1.0, sedan: 1.2, suv: 1.4, truck: 1.8 };
+const MIRROR_WEIGHT_KG = { compact: 1.3, sedan: 1.5, suv: 1.8, truck: 2.3 };
 
 // GRILLES (kg) — no reliable citation found despite multiple real search
 // attempts (retailer listings for sedan, truck, and chrome/plastic
@@ -3462,7 +3552,18 @@ const MIRROR_WEIGHT_KG = { compact: 1.0, sedan: 1.2, suv: 1.4, truck: 1.8 };
 // graduated by class since a truck's grille is a visibly larger panel
 // than a compact car's (and more often has a heavier chrome-plated
 // shell).
-const GRILLE_WEIGHT_KG = { compact: 1.0, sedan: 1.3, suv: 1.8, truck: 2.5 };
+const GRILLE_WEIGHT_KG = { compact: 1.5, sedan: 1.9, suv: 2.5, truck: 3.5 };
+
+// TIRES (kg each) — BUG FIX (2026-09-18): tire searches matched no row at
+// all and fell through to DEFAULT_PART_WEIGHT_KG, so every tire card said
+// 1.2 kg. A passenger-car tire is 9-12 kg mounted-weight-free (a
+// 185/65R15 for a Yaris ~9kg, a 205/55R16 ~10kg, larger touring sizes up
+// to 12kg); SUV/crossover sizes run 13-16kg and LT/truck sizes 18-25kg.
+// Per the conservative-bias rule these are the UPPER end of each range,
+// and the 'cited' buffer is applied on top. Freight on tires is the whole
+// economics of the order — at $13/kg a single car tire is ~$165 of
+// freight — so this number has to be right, not hopeful.
+const TIRE_WEIGHT_KG = { compact: 11, sedan: 12, suv: 16, truck: 22 };
 
 // Confidence tier per category, exactly as reviewed and confirmed:
 // 'cited' (real sourced weight found) -> +10% buffer: brake pads, wiper
@@ -3473,6 +3574,7 @@ const GRILLE_WEIGHT_KG = { compact: 1.0, sedan: 1.3, suv: 1.8, truck: 2.5 };
 function estimatePartWeightKg(query, vehicle){
   const q = query || '';
   const cls = () => vehicleWeightClass(vehicle?.make, vehicle?.model);
+  if (/llantas?|neum[aá]ticos?|\btires?\b|\btyres?\b/i.test(q)) return withBuffer(TIRE_WEIGHT_KG[cls()], 'cited');
   if (/pastillas de freno|brake pad/i.test(q)) return lookupAxleWeightKg(BRAKE_PAD_WEIGHT_KG, q, vehicle, 'cited');
   if (/rotor de freno|disco de freno|brake rotor|brake disc/i.test(q)) return lookupAxleWeightKg(BRAKE_ROTOR_WEIGHT_KG, q, vehicle, 'cited');
   if (/cal[ií]per|calibre de freno|mordaza de freno/i.test(q)) return lookupAxleWeightKg(BRAKE_CALIPER_WEIGHT_KG, q, vehicle, 'cited');
@@ -3519,10 +3621,16 @@ function vehicleLabel(vehicle){
    look for is whether the part fits their car, so it sits in the badge
    slot, over the photo, at the same weight. Allowed to wrap — "Chevrolet
    Silverado 1500 2018" does not fit one line on a phone. */
-function fitmentBadgeHTML(vehicle){
+function fitmentBadgeHTML(vehicle, verified){
   const label = vehicleLabel(vehicle);
   if (!label) return '';
-  return `<span class="absolute top-3 left-3 right-3 text-[12.5px] font-extrabold px-3 py-1.5 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.18)] leading-snug" style="background:#1E7A43; color:#fff">Compatible con tu ${escapeHtml(label)}</span>`;
+  const base = 'absolute top-3 left-3 right-3 text-[12.5px] font-extrabold px-3 py-1.5 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.18)] leading-snug';
+  // Green and a compatibility claim ONLY when the retailer's own fitment
+  // data confirmed this exact vehicle (see fitmentVerified). Otherwise an
+  // amber prompt to check — never a claim we cannot back.
+  return verified
+    ? `<span class="${base}" style="background:#1E7A43; color:#fff">Compatible con tu ${escapeHtml(label)}</span>`
+    : `<span class="${base}" style="background:#8A6B1F; color:#fff">Verifica el calce · ${escapeHtml(label)}</span>`;
 }
 
 function renderAutoPartBlock(label, result, query){
@@ -3532,10 +3640,16 @@ function renderAutoPartBlock(label, result, query){
       <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
     </div>`;
   }
-  const items = Array.isArray(result.items) ? result.items : [];
+  const rawItems = Array.isArray(result.items) ? result.items : [];
+  // Car-fitment results carry car parts only: lawn, wheelbarrow, trailer
+  // and ATV tires are dropped here (see filterAutomotiveParts).
+  const items = filterAutomotiveParts(rawItems, query);
   if (!items.length){
+    const droppedAll = rawItems.length > 0;
     return `<div class="mb-6">${header}
-      <div class="text-[12px] text-zinc-400">Sin resultados.</div>
+      <div class="text-[12px] text-zinc-400">${droppedAll && isTireQuery(query)
+        ? 'Sin llantas de auto para este vehículo. Los resultados que llegaron eran de jardín o carretilla, así que no los mostramos.'
+        : 'Sin resultados.'}</div>
     </div>`;
   }
   // RULE: never link any part of a product card to the retailer's own
@@ -3549,7 +3663,7 @@ function renderAutoPartBlock(label, result, query){
   // per-SKU weight in any scrape mode — see estimatePartWeightKg).
   const vehicle = selectedVehicle;
   const weightKg = estimatePartWeightKg(query, vehicle);
-  const badge = fitmentBadgeHTML(vehicle);
+  let verifiedCount = 0;
   const cards = items.map((it) => {
     const card = {
       retailer: label,
@@ -3559,16 +3673,29 @@ function renderAutoPartBlock(label, result, query){
       image: it.image || '',
       rating: it.rating != null ? it.rating : null,
     };
+    // Per item, not per block: one confirmed part does not vouch for the
+    // rest of the results.
+    const verified = fitmentVerified(it, vehicle);
+    if (verified) verifiedCount++;
     const idx = autoPartsRendered.push(card) - 1;
-    return productCardHTML(card, { open: `openAutoPart(${idx})`, badgeHTML: badge });
+    return productCardHTML(card, { open: `openAutoPart(${idx})`, badgeHTML: fitmentBadgeHTML(vehicle, verified) });
   }).join('');
-  /* The fitment line states what the search was for, not a verified fit:
-     AutoZone's actor is a keyword search ("2015 Toyota Corolla pastillas
-     de freno"), with no VIN or fitment API behind it. Saying so once per
-     block keeps the badge honest without repeating a caveat on every
-     card. Do not delete this line while the search stays keyword-based. */
+  const dropped = rawItems.length - items.length;
+  /* The line states what the search was for, not a verified fit:
+     AutoZone's actor is a keyword search ("2023 Toyota Yaris llantas"),
+     with no VIN or fitment API behind it, so the cards say "Verifica el
+     calce" (see fitmentVerified). Once a real fitment source confirms a
+     part for this exact vehicle, that card turns green on its own and
+     this line reports how many were confirmed. */
+  const scopeLine = verifiedCount === items.length
+    ? `Calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
+    : verifiedCount > 0
+      ? `${verifiedCount} de ${items.length} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}. El resto, verifícalo antes de pedir.`
+      : `Resultados buscados para tu ${escapeHtml(vehicleLabel(vehicle))}. La tienda no confirma el calce por vehículo, así que verifícalo antes de pedir.`;
   return `<div class="mb-8">${header}
-    <p class="text-[11.5px] mb-3" style="color:#8A93A8">Resultados buscados para tu ${escapeHtml(vehicleLabel(vehicle))}. Confirma el calce antes de pedir.</p>
+    <p class="text-[11.5px] mb-3" style="color:#8A93A8">${scopeLine}${dropped > 0 && isTireQuery(query)
+      ? ` Ocultamos ${dropped} resultado${dropped === 1 ? '' : 's'} que no ${dropped === 1 ? 'era' : 'eran'} de auto (jardín, carretilla o remolque).`
+      : ''}</p>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-5">${cards}</div>
   </div>`;
 }

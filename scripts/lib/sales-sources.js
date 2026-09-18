@@ -52,37 +52,37 @@ export const CHARGE_PER_KG_USD = 13;
 // mismatch means the page can show a deal the refresh suppressed.
 // test-freight asserts row-for-row agreement.
 const RETAIL_WEIGHT_FALLBACK_KG = [
-  { match: /\bjeans?\b|denim/i, kg: 0.8, tier: "cited" },
-  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.15, tier: "cited" },
-  { match: /hoodie|sweatshirt/i, kg: 0.6, tier: "cited" },
-  { match: /jacket|\bcoat\b/i, kg: 0.9, tier: "reasoned" },
-  { match: /sneaker|\bshoe|\bboot/i, kg: 1.1, tier: "cited" },
-  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.05, tier: "cited" },
-  { match: /\bsocks?\b/i, kg: 0.06, tier: "cited" },
-  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2, tier: "cited" },
-  { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8, tier: "cited" },
-  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.15, tier: "cited" },
-  { match: /\bremote\b/i, kg: 0.1, tier: "reasoned" },
-  { match: /\bwall mount\b|\btv mount\b/i, kg: 2.5, tier: "reasoned" },
+  { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
+  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
+  { match: /hoodie|sweatshirt/i, kg: 0.8, tier: "cited" },
+  { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
+  { match: /sneaker|\bshoe|\bboot/i, kg: 1.4, tier: "cited", dimCm: [33, 22, 13] },
+  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: "cited" },
+  { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: "cited", dimCm: [20, 12, 8] },
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited", dimCm: [45, 32, 10] },
+  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: "cited" },
+  { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
+  { match: /\bwall mount\b|\btv mount\b/i, kg: 3.5, tier: "reasoned" },
   // Rigid boxed goods, where the box bills for more than the contents
   // weigh (dimCm = typical retail box, L x W x H in cm). All reasoned.
-  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.7, tier: "reasoned", dimCm: [25, 22, 12] },
-  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 3, tier: "reasoned", dimCm: [95, 20, 15] },
+  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned", dimCm: [25, 22, 12] },
+  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned", dimCm: [95, 20, 15] },
   { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned", dimCm: [70, 45, 15] },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned", dimCm: [55, 45, 35] },
   { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned", dimCm: [60, 45, 35] },
-  { match: /airpods|earbuds/i, kg: 0.25, tier: "reasoned", dimCm: [12, 10, 6] },
-  { match: /\bipad\b|\btablet\b/i, kg: 0.9, tier: "reasoned", dimCm: [30, 22, 5] },
-  { match: /smartwatch|apple watch/i, kg: 0.3, tier: "reasoned", dimCm: [15, 12, 8] },
+  { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned", dimCm: [12, 10, 6] },
+  { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned", dimCm: [30, 22, 5] },
+  { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned", dimCm: [15, 12, 8] },
 ];
-const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // unclassified: a rough placeholder, so 'reasoned'
+const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // unclassified: a rough placeholder, so 'reasoned'
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
 
 function tvWeightKg(title) {
   const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(title);
   const inches = m ? parseInt(m[1], 10) : null;
-  const kg = inches == null ? 12 : inches <= 32 ? 7 : inches <= 43 ? 10
-    : inches <= 50 ? 17 : inches <= 55 ? 20 : inches <= 65 ? 28 : 35;
+  const kg = inches == null ? 14 : inches <= 32 ? 8 : inches <= 43 ? 12
+    : inches <= 50 ? 19 : inches <= 55 ? 23 : inches <= 65 ? 31 : 40;
   return withBuffer(kg, "cited");
 }
 
