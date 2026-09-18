@@ -525,10 +525,30 @@
     </button>
     <div class="bg-white border rounded-3xl p-6 sm:p-8" style="border-color:var(--line)">
       <div id="productViewBadge" class="mb-4"></div>
-      <div class="grid sm:grid-cols-[220px_1fr] gap-6">
-        <div class="w-full h-[220px] rounded-2xl overflow-hidden grid place-items-center" style="background:var(--sky)">
-          <img id="productViewImg" class="w-full h-full object-cover hidden" alt="" onerror="this.classList.add('hidden'); document.getElementById('productViewImgFallback').classList.remove('hidden');">
-          <svg id="productViewImgFallback" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+      <!-- Spec §6 product imagery: the image column was a 220px square
+           under object-cover, which both beheaded portrait catalog shots
+           and gave the customer no way to actually look at the product.
+           Now a ~600px contain viewport with a click-to-expand lightbox, a
+           desktop hover magnifier, mobile pinch-to-zoom (inside the
+           lightbox) and a thumbnail strip whenever the retailer really
+           supplied more than one image. -->
+      <div class="grid sm:grid-cols-[minmax(320px,460px)_1fr] gap-7">
+        <div>
+          <div id="productViewImgWrap" class="relative w-full rounded-2xl overflow-hidden grid place-items-center cursor-zoom-in"
+               style="aspect-ratio:4/5; background:var(--sky)"
+               onclick="openImageLightbox()"
+               onmousemove="productMagnifierMove(event)"
+               onmouseenter="productMagnifierOn()"
+               onmouseleave="productMagnifierOff()">
+            <img id="productViewImg" class="w-full h-full hidden" style="object-fit:contain" alt="" onerror="handleProductImgError()">
+            <svg id="productViewImgFallback" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            <!-- Desktop-only magnifier lens; hidden on touch, where
+                 pinch-to-zoom in the lightbox is the real gesture. -->
+            <div id="productMagnifier" class="hidden absolute pointer-events-none rounded-full border-2 border-white shadow-[0_6px_20px_rgba(10,31,68,0.35)]"
+                 style="width:180px;height:180px;background-repeat:no-repeat;background-color:#fff"></div>
+            <span class="absolute bottom-2.5 right-2.5 text-[11px] font-bold px-2.5 py-1 rounded-full pointer-events-none" style="background:rgba(10,31,68,0.72); color:#fff">Toca para ampliar</span>
+          </div>
+          <div id="productThumbs" class="flex gap-2 mt-3 overflow-x-auto pb-1" hidden></div>
         </div>
         <div class="min-w-0">
           <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-3"></h1>
@@ -1264,6 +1284,21 @@
   </div>
 </div>
 
+<!-- ============ PRODUCT IMAGE LIGHTBOX (spec §6) ============
+     Click-to-expand on every device. On touch it is also the pinch-to-zoom
+     surface: touch-action:pinch-zoom lets the browser's own native
+     pinch/pan handle the gesture, which is smoother and more predictable
+     than re-implementing it with touch events. -->
+<div id="imageLightbox" class="fixed inset-0 z-[60] hidden items-center justify-center" style="background:rgba(4,12,28,0.93)" onclick="closeImageLightbox(event)">
+  <button onclick="closeImageLightbox()" aria-label="Cerrar" class="absolute top-4 right-4 w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.14)">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  </button>
+  <div class="w-full h-full overflow-auto grid place-items-center p-4" style="touch-action:pinch-zoom">
+    <img id="lightboxImg" alt="" class="max-w-none" style="max-height:92vh;width:auto;object-fit:contain">
+  </div>
+  <div id="lightboxHint" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+</div>
+
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
 
 <!-- ============ AUTH MODAL ============ -->
@@ -1851,7 +1886,128 @@ function standardSizeOptions(title, sizeCategory){
 }
 
 let pendingProduct = null;
-function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating){
+/* ============================================================
+   PRODUCT IMAGERY (spec §6): thumbnail strip, hover magnifier, lightbox.
+
+   Every image shown here is one the retailer's own scrape data actually
+   returned (see normalizeLiveItem's `images`) — the strip is hidden
+   outright when there is only one, never padded out with duplicates.
+   ============================================================ */
+let productGallery = [];
+let productGalleryIndex = 0;
+
+function handleProductImgError(){
+  // A dead image URL must not leave a broken frame sitting there.
+  document.getElementById('productViewImg').classList.add('hidden');
+  document.getElementById('productViewImgFallback').classList.remove('hidden');
+  productMagnifierOff();
+}
+
+function renderProductThumbs(){
+  const wrap = document.getElementById('productThumbs');
+  if (!wrap) return;
+  // "Thumbnail strip when the retailer supplies multiple images" — one
+  // image means no strip at all.
+  if (productGallery.length < 2){ wrap.hidden = true; wrap.innerHTML = ''; return; }
+  wrap.hidden = false;
+  wrap.innerHTML = productGallery.map((src, i) => `
+    <button onclick="selectProductImage(${i})" aria-label="Imagen ${i + 1}"
+      class="flex-shrink-0 w-[62px] h-[62px] rounded-xl overflow-hidden border-2 focus-ring transition"
+      style="border-color:${i === productGalleryIndex ? 'var(--blue)' : 'var(--line)'}; background:var(--sky)">
+      <img src="${escapeHtml(src)}" alt="" loading="lazy" class="w-full h-full" style="object-fit:contain">
+    </button>`).join('');
+}
+
+function selectProductImage(i){
+  if (!productGallery[i]) return;
+  productGalleryIndex = i;
+  const img = document.getElementById('productViewImg');
+  img.src = productGallery[i];
+  img.classList.remove('hidden');
+  document.getElementById('productViewImgFallback').classList.add('hidden');
+  renderProductThumbs();
+}
+
+/* Desktop hover magnifier. Pointer-based so it never fires on touch (a
+   tap would otherwise leave a lens stuck on screen); the lens is a
+   background-position window onto the same image at 2.2x. */
+let productMagnifierActive = false;
+
+function productMagnifierOn(){
+  if (window.matchMedia('(hover: none)').matches) return; // touch: lightbox pinch-zoom instead
+  const img = document.getElementById('productViewImg');
+  if (!img || img.classList.contains('hidden') || !img.src) return;
+  productMagnifierActive = true;
+  const lens = document.getElementById('productMagnifier');
+  lens.style.backgroundImage = `url("${img.src}")`;
+  lens.classList.remove('hidden');
+}
+
+function productMagnifierOff(){
+  productMagnifierActive = false;
+  const lens = document.getElementById('productMagnifier');
+  if (lens) lens.classList.add('hidden');
+}
+
+function productMagnifierMove(event){
+  if (!productMagnifierActive) return;
+  const wrap = document.getElementById('productViewImgWrap');
+  const img = document.getElementById('productViewImg');
+  const lens = document.getElementById('productMagnifier');
+  if (!wrap || !img || !lens) return;
+
+  const wrapBox = wrap.getBoundingClientRect();
+  const x = event.clientX - wrapBox.left;
+  const y = event.clientY - wrapBox.top;
+  const size = lens.offsetWidth;
+
+  // object-fit:contain letterboxes the image, so the lens has to track the
+  // RENDERED box, not the wrapper — otherwise it magnifies empty padding
+  // near the edges.
+  const natW = img.naturalWidth || 1, natH = img.naturalHeight || 1;
+  const scale = Math.min(wrapBox.width / natW, wrapBox.height / natH);
+  const renderW = natW * scale, renderH = natH * scale;
+  const offX = (wrapBox.width - renderW) / 2, offY = (wrapBox.height - renderH) / 2;
+
+  const inside = x >= offX && x <= offX + renderW && y >= offY && y <= offY + renderH;
+  if (!inside){ lens.classList.add('hidden'); return; }
+  lens.classList.remove('hidden');
+
+  const ZOOM = 2.2;
+  lens.style.left = `${x - size / 2}px`;
+  lens.style.top = `${y - size / 2}px`;
+  lens.style.backgroundSize = `${renderW * ZOOM}px ${renderH * ZOOM}px`;
+  lens.style.backgroundPosition = `${-((x - offX) * ZOOM - size / 2)}px ${-((y - offY) * ZOOM - size / 2)}px`;
+}
+
+function openImageLightbox(){
+  const img = document.getElementById('productViewImg');
+  if (!img || img.classList.contains('hidden') || !img.src) return;
+  productMagnifierOff();
+  const box = document.getElementById('imageLightbox');
+  document.getElementById('lightboxImg').src = img.src;
+  document.getElementById('lightboxHint').textContent =
+    window.matchMedia('(hover: none)').matches ? 'Pellizca para acercar' : 'Haz clic fuera para cerrar';
+  box.classList.remove('hidden');
+  box.classList.add('flex');
+  document.body.style.overflow = 'hidden'; // no background scroll behind the overlay
+}
+
+function closeImageLightbox(event){
+  // Clicking the image itself must not close it — only the backdrop or
+  // the explicit close button.
+  if (event && event.target && event.target.id === 'lightboxImg') return;
+  const box = document.getElementById('imageLightbox');
+  box.classList.add('hidden');
+  box.classList.remove('flex');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !document.getElementById('imageLightbox')?.classList.contains('hidden')) closeImageLightbox();
+});
+
+function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView };
 
@@ -1859,16 +2015,26 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
   document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0 ? fmtPriceLabel(totalUsd) : 'Precio no disponible';
 
+  // Gallery = whatever the retailer really gave us, with the card's own
+  // image guaranteed first. Callers that pass no list still work.
+  const gallery = Array.isArray(images) ? images.filter(s => typeof s === 'string' && s) : [];
+  if (imageUrl && !gallery.includes(imageUrl)) gallery.unshift(imageUrl);
+  productGallery = [...new Set(gallery)].slice(0, 8);
+  productGalleryIndex = 0;
+  productMagnifierOff();
+
   const img = document.getElementById('productViewImg');
   const fallback = document.getElementById('productViewImgFallback');
-  if (imageUrl){
-    img.src = imageUrl;
+  if (productGallery.length){
+    img.src = productGallery[0];
     img.classList.remove('hidden');
     fallback.classList.add('hidden');
   } else {
+    img.removeAttribute('src');
     img.classList.add('hidden');
     fallback.classList.remove('hidden');
   }
+  renderProductThumbs();
 
   // Real fields only — no generated product description exists anywhere
   // in the scrape pipeline (see normalizeLiveItem()), so this section only
@@ -2167,7 +2333,16 @@ function normalizeLiveItem(item){
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
   const rawPrice = typeof priceRaw === 'number' ? priceRaw : (typeof priceRaw === 'string' ? parseFloat(priceRaw.replace(/[^0-9.]/g, '')) : NaN);
   const price = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
-  const image = safeUrl(item.image || item.imageUrl || item.thumbnail || (Array.isArray(item.images) ? item.images[0] : null));
+  // The whole gallery, not just the first frame — spec §6 wants a
+  // thumbnail strip "when the retailer supplies multiple images", so the
+  // rest can no longer be thrown away here. Deduped and cleaned; an empty
+  // list simply means this retailer gave us one image (or none), and the
+  // strip stays hidden rather than being padded with anything invented.
+  const rawImages = Array.isArray(item.images) ? item.images : [];
+  const images = [...new Set(
+    [item.image, item.imageUrl, item.thumbnail, ...rawImages].map(safeUrl).filter(Boolean)
+  )].slice(0, 8);
+  const image = images[0] || null;
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
   const weightKg = estimateRetailWeightKg(title);
 
@@ -2195,7 +2370,7 @@ function normalizeLiveItem(item){
   const hasRealDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
   const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
-  return { title, price, image, rating, weightKg, sizes, onSale: hasRealDiscount, originalPrice };
+  return { title, price, image, images, rating, weightKg, sizes, onSale: hasRealDiscount, originalPrice };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -3685,7 +3860,7 @@ function openSaleProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '');
+    p.rating != null ? String(p.rating) : '', p.images || []);
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
