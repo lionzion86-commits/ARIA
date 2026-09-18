@@ -3413,7 +3413,7 @@ async function loadOrderCapStatus(){
       banner.style.background = 'var(--yellow)';
       banner.hidden = false;
     } else if (data.remaining <= 0){
-      banner.textContent = `Se completó el cupo de pedidos de hoy (${data.cap}) — tu carrito se guarda automáticamente y tu pedido entra primero mañana.`;
+      banner.textContent = `Se completó el cupo de pedidos de hoy (${data.cap}) — tu carrito se guarda automáticamente y tu pedido entra en el primer lote de mañana, a las 9:00 a. m.`;
       banner.style.background = 'var(--yellow)';
       banner.hidden = false;
     } else if (data.remaining <= 10){
