@@ -16,6 +16,7 @@
 // looked up server-side in the "sessions" store — never a JWT, so a
 // session can be invalidated (logout) by simply deleting its Blob entry.
 
+import { getStore } from "@netlify/blobs";
 import { randomBytes, scrypt, timingSafeEqual } from "node:crypto";
 import { promisify } from "node:util";
 
@@ -65,6 +66,29 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function normalizeEmail(raw) {
   const email = String(raw || "").trim().toLowerCase();
   return EMAIL_RE.test(email) ? email : null;
+}
+
+// Shared by every function that needs to know "who's calling" (cart-get/
+// cart-save, the admin-* functions) — reads the session cookie and looks
+// it up server-side, same as auth-me.js. Returns null for no/invalid/
+// expired session rather than throwing, so callers can just treat that as
+// "not logged in". IMPORTANT: callers must call connectLambda(event)
+// themselves before this (same classic-Netlify-Functions requirement as
+// every other getStore() call in this codebase).
+export async function getSessionEmail(event) {
+  const cookies = parseCookies(event.headers.cookie);
+  const sessionId = cookies[SESSION_COOKIE_NAME];
+  if (!sessionId) return null;
+  try {
+    const sessions = getStore("sessions");
+    const session = await sessions.get(sessionId, { type: "json" });
+    if (!session) return null;
+    const ageSeconds = (Date.now() - new Date(session.createdAt).getTime()) / 1000;
+    if (ageSeconds > SESSION_TTL_SECONDS) return null;
+    return session.email;
+  } catch {
+    return null;
+  }
 }
 
 // Same-origin only (the frontend calls these from ariashop.pe itself), so

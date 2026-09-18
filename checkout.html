@@ -83,53 +83,22 @@
 
     <form id="checkoutForm" novalidate>
         <div class="gridProduct">
-        <!-- PRODUCT
-             BUG FIX (2026-09-17): clicking a result used to skip straight
-             to a checkout page showing only a price — no image, title, or
-             way to know what was actually being bought. This section is
-             the fix: a real product view (image + full title from the
-             retailer's own scrape data, never invented) plus a size field
-             for apparel/footwear before the customer can pay. -->
+        <!-- CART REWORK (2026-09-18): checkout used to show exactly one
+             product, prefilled entirely from URL query params
+             (?valor=&kg=&desc=&img=&store=&sizes=). It now reads the real
+             cart (see cart.js below — same localStorage key/shape as
+             index.html's cart) and lists every line item, size already
+             attached (size selection moved to the product page — see
+             addToCartFromProduct() in index.html — since a cart line item
+             needs a concrete size before it can sit in the cart at all).
+             No URL-param path remains; this is the only way to reach
+             checkout now. -->
         <section class="bg-white border rounded-3xl p-5 sm:p-6" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em] mb-4 flex items-center gap-2" style="color:var(--navy)">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M20 7 12 3 4 7v10l8 4 8-4Z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>
-            Tu producto
+            Tu pedido
           </h2>
-          <div class="flex items-start gap-4">
-            <div class="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden flex-shrink-0 grid place-items-center" style="background:var(--sky)">
-              <img id="productImg" class="w-full h-full object-cover hidden" alt="" onerror="this.classList.add('hidden'); document.getElementById('productImgFallback').classList.remove('hidden');">
-              <svg id="productImgFallback" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9AA3B8" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div id="productStoreBadge" class="mb-1.5"></div>
-              <div id="productTitle" class="text-[15px] font-bold leading-snug" style="color:var(--navy)">Completa la descripción del contenido más abajo</div>
-              <p class="text-[11.5px] mt-1" style="color:#8A93A8">Este es el producto que vas a comprar. El envío y los aranceles a Perú se calculan en el resumen del pedido.</p>
-            </div>
-          </div>
-          <div id="sizeWrap" class="mt-4" hidden>
-            <label id="sizeLabel" for="sizeSelect" class="block text-[12px] font-bold mb-1.5">Talla</label>
-            <!-- BUG FIX (2026-09-18): a free-text box let customers type
-                 any value, including sizes that don't realistically exist
-                 for the item (since we can't validate real availability
-                 either way). Always a <select> now — either the
-                 retailer's real available sizes, or (see
-                 standardSizeOptions() below) a standard industry size
-                 scale chosen by category/gender/kids detection from the
-                 title, never free text. -->
-            <select id="sizeSelect" name="sizeSelect"
-              class="w-full h-[46px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)"></select>
-            <p id="sizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
-            <!-- BUG FIX (2026-09-17): typing/selecting a size gave zero
-                 visible confirmation — the only feedback was a debounced
-                 shipping re-quote that shows the exact same numbers (size
-                 doesn't change weight or price), so it looked like nothing
-                 happened. This updates the instant a value is entered,
-                 with no network round-trip involved. -->
-            <p id="sizeConfirm" class="text-[11.5px] mt-1.5 font-semibold flex items-center gap-1.5" style="color:var(--green)" hidden>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>
-              <span id="sizeConfirmText"></span>
-            </p>
-          </div>
+          <div id="checkoutItemsWrap" class="space-y-4"></div>
         </section>
         </div>
 
@@ -142,9 +111,8 @@
         <aside class="gridSummary bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
           <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
-            <div id="sumSizeRow" class="flex justify-between" hidden><span>Talla</span><span id="sumSize" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
-            <div class="flex justify-between"><span>Peso declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
-            <div class="flex justify-between"><span>Valor declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
+            <div class="flex justify-between"><span>Peso total declarado</span><span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span></div>
+            <div class="flex justify-between"><span>Valor total declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
             <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
           </div>
           <!-- BUG FIX (2026-09-17): the total previously included AVI's real
@@ -414,8 +382,6 @@
   const valorInput = document.getElementById('valorInput');
   const descInput = document.getElementById('descInput');
   const quoteStatus = document.getElementById('quoteStatus');
-  const sumSizeRow = document.getElementById('sumSizeRow');
-  const sumSize = document.getElementById('sumSize');
   const sumWeight = document.getElementById('sumWeight');
   const sumValor = document.getElementById('sumValor');
   const sumDutyRow = document.getElementById('sumDutyRow');
@@ -577,22 +543,11 @@
     payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
   }
 
-  const sizeSelect = document.getElementById('sizeSelect');
-
-  function currentSize(){
-    return sizeSelect.value.trim();
-  }
-
   function requestQuote(){
     clearTimeout(debounceTimer);
     const kg = currentKg();
     const valor = currentValor();
-    const baseDescription = descInput.value.trim();
-    const size = currentSize();
-    // The real declared content sent to AVI Courier includes the size the
-    // customer actually picked, so the package description matches what's
-    // really being shipped — not just the bare product title.
-    const description = baseDescription && size ? `${baseDescription} - Talla ${size}` : baseDescription;
+    const description = descInput.value.trim();
 
     if (kg <= 0 || valor <= 0 || !description){
       latestQuote = null;
@@ -621,136 +576,77 @@
     }, 500);
   }
 
-  // BUG FIX (2026-09-17): typing/selecting a size only ever triggered a
-  // debounced shipping re-quote — since size doesn't change weight or
-  // price, the numbers on screen stayed identical, so there was no way to
-  // tell the size had actually registered. This updates immediately, with
-  // no network round-trip, the instant a value is entered or picked.
-  function updateSizeFeedback(){
-    const size = currentSize();
-    const sizeConfirm = document.getElementById('sizeConfirm');
-    const sizeConfirmText = document.getElementById('sizeConfirmText');
-    if (size){
-      sizeConfirmText.textContent = `Talla registrada: ${size}`;
-      sizeConfirm.hidden = false;
-      sumSize.textContent = size;
-      sumSizeRow.hidden = false;
-    } else {
-      sizeConfirm.hidden = true;
-      sumSizeRow.hidden = true;
-    }
+  [kgInput, valorInput, descInput].forEach(el => el.addEventListener('input', requestQuote));
+
+  // CART REWORK (2026-09-18): checkout used to be prefilled entirely from
+  // URL query params for exactly one product. It now reads the real cart
+  // — same localStorage key/shape as index.html's cart (see the CART
+  // section of index.html's script) — lists every line item, and sums
+  // weight/value across all of them for one combined AVI Courier quote
+  // (one shipment). kg/valor/desc are computed, not typed by the
+  // customer, so they always match what the cart actually contains —
+  // disabled inputs, never editable (declaring a lower value than what's
+  // really being shipped isn't something this page should make easy).
+  const CART_STORAGE_KEY = 'aria_cart_v1';
+  function loadCart(){
+    try {
+      const raw = localStorage.getItem(CART_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  }
+  function clearCart(){
+    try { localStorage.removeItem(CART_STORAGE_KEY); } catch {}
+    // Best-effort — clears the logged-in user's server cart too, a no-op
+    // (401, ignored) if they're not logged in.
+    fetch('/.netlify/functions/cart-save', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart: [] }),
+    }).catch(() => {});
   }
 
-  [kgInput, valorInput, descInput].forEach(el => el.addEventListener('input', requestQuote));
-  sizeSelect.addEventListener('change', requestQuote);
-  sizeSelect.addEventListener('change', updateSizeFeedback);
+  const cart = loadCart();
+  const checkoutItemsWrap = document.getElementById('checkoutItemsWrap');
+  const checkoutWrap = document.getElementById('checkoutWrap');
 
-  // BUG FIX (2026-09-17): clicking a product used to land here with only a
-  // price — no image, title, or size, so the customer had no way to
-  // confirm what they were actually buying. img/sizes are both real data
-  // straight from the retailer's own scrape payload (see orderProduct()/
-  // normalizeLiveItem() in index.html) — never invented.
-  // BUG FIX (live audit): defensively round2() before toFixed() here too
-  // — belt-and-suspenders on top of the weight-estimator fix in
-  // index.html (see estimateRetailWeightKg), so a raw/imprecise float can
-  // never land in a checkout form control's value no matter what
-  // upstream computation produced it.
-  const params = new URLSearchParams(location.search);
-  const prefillKg = round2(parseFloat(params.get('kg')));
-  if (Number.isFinite(prefillKg) && prefillKg > 0){
-    kgInput.value = prefillKg.toFixed(2);
-    // Weight came from the product itself (category-based estimate — no
-    // retailer exposes a real per-SKU weight) — lock it so the customer
-    // can't override it with a guess of their own.
+  if (!cart.length){
+    checkoutItemsWrap.innerHTML = `<div class="text-center py-8">
+      <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Tu carrito está vacío</div>
+      <div class="text-[12.5px] mb-4" style="color:#8A93A8">Agrega un producto antes de pagar.</div>
+      <a href="index.html" class="inline-flex items-center justify-center h-10 px-5 rounded-full text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Volver a la tienda</a>
+    </div>`;
+    payBtn.disabled = true;
+    quoteStatus.textContent = '';
+  } else {
+    checkoutItemsWrap.innerHTML = cart.map(it => `
+      <div class="flex items-center gap-3 pb-4 border-b last:border-b-0 last:pb-0" style="border-color:var(--line)">
+        ${it.image ? `<img src="${escapeHtmlLocal(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+        <div class="min-w-0 flex-1">
+          <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
+          <div class="text-[13.5px] font-bold leading-snug" style="color:var(--navy)">${escapeHtmlLocal(it.title)}</div>
+          <div class="text-[11.5px] mt-0.5" style="color:#8A93A8">${it.selectedSize ? `Talla ${escapeHtmlLocal(it.selectedSize)} · ` : ''}Cantidad: ${it.qty}</div>
+        </div>
+      </div>
+    `).join('');
+
+    const totals = cart.reduce((acc, it) => {
+      acc.valor += it.priceUsd * it.qty;
+      acc.kg += it.weightKg * it.qty;
+      return acc;
+    }, { valor: 0, kg: 0 });
+    const description = cart.map(it => it.selectedSize ? `${it.title} (Talla ${it.selectedSize}) x${it.qty}` : `${it.title} x${it.qty}`).join(', ');
+
+    kgInput.value = round2(totals.kg).toFixed(2);
     kgInput.disabled = true;
     document.getElementById('kgAutoNote').hidden = false;
-  }
-  const prefillValor = round2(parseFloat(params.get('valor')));
-  if (Number.isFinite(prefillValor) && prefillValor > 0) valorInput.value = prefillValor.toFixed(2);
-  const prefillDesc = params.get('desc');
-  if (prefillDesc) descInput.value = prefillDesc;
-
-  const prefillImg = params.get('img');
-  const productImg = document.getElementById('productImg');
-  const productImgFallback = document.getElementById('productImgFallback');
-  if (prefillImg){
-    productImg.src = prefillImg;
-    productImg.classList.remove('hidden');
-    productImgFallback.classList.add('hidden');
-  }
-  const productTitle = document.getElementById('productTitle');
-  if (prefillDesc) productTitle.textContent = prefillDesc;
-
-  const prefillStore = params.get('store');
-  if (prefillStore) document.getElementById('productStoreBadge').innerHTML = retailerBadgeHTML(prefillStore, 22);
-
-  // Real retailer data first: a size dropdown is populated from a real
-  // availableSizes-type list passed in the URL when the retailer's own
-  // data includes one (see normalizeLiveItem in index.html — currently
-  // only Old Navy's listing data includes one). Otherwise — flagged by
-  // needsSizeSelection() (index.html) because the retailer sells nothing
-  // but apparel/footwear, e.g. Foot Locker, or the title matched a
-  // clothing keyword — BUG FIX (2026-09-18): this used to be a free-text
-  // box, letting a customer type any value including sizes that don't
-  // realistically exist for the item, with nothing validating either way.
-  // Replaced with a standard industry size-scale dropdown, chosen by
-  // category/gender/kids detection from the title (standardSizeOptions
-  // below) — a real, standard convention, not a fabricated per-item list,
-  // and disclosed as such in the note under the field. The keyword check
-  // is repeated here too as defense-in-depth for any checkout URL built
-  // without the needsSize flag.
-  const APPAREL_SIZE_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
-  const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
-  const KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
-  const MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
-  const WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
-  const ADULT_CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
-  const ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
-  const ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
-  const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
-  const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
-
-  // sizeCategory ('shoe'/'clothing') comes from sizeCategoryFor() in
-  // index.html, which knows the retailer — real shoe names like "Jordan
-  // Retro 8" or "Nike Kobe Air Force 1 Low" don't contain a literal word
-  // like "shoe" for a title-only keyword check to catch, so a retailer
-  // that's predominantly footwear (Foot Locker) defaults to shoe sizing
-  // there. Falls back to this file's own SHOE_KEYWORDS check only when
-  // the param is missing (e.g. a checkout URL built without it).
-  function standardSizeOptions(title, sizeCategory){
-    const isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title);
-    const isKids = KIDS_KEYWORDS.test(title);
-    if (isShoe && isKids) return KIDS_SHOE_SIZES;
-    if (isShoe && MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
-    if (isShoe && WOMENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_WOMEN;
-    if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
-    if (isKids) return KIDS_CLOTHING_SIZES;
-    return ADULT_CLOTHING_SIZES;
-  }
-
-  const rawSizes = (params.get('sizes') || '').split(',').map(s => s.trim()).filter(Boolean);
-  const prefillSizeCategory = params.get('sizeCategory') || '';
-  const flaggedNeedsSize = params.get('needsSize') === '1';
-  const sizeWrap = document.getElementById('sizeWrap');
-  const sizeNote = document.getElementById('sizeNote');
-  if (rawSizes.length){
-    sizeWrap.hidden = false;
-    sizeSelect.required = true;
-    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-      + rawSizes.map(s => `<option value="${s.replace(/"/g, '&quot;')}">${s.toUpperCase()}</option>`).join('');
-    sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
-  } else if (flaggedNeedsSize || (prefillDesc && APPAREL_SIZE_KEYWORDS.test(prefillDesc))){
-    sizeWrap.hidden = false;
-    sizeSelect.required = true;
-    const options = standardSizeOptions(prefillDesc || '', prefillSizeCategory);
-    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
-      + options.map(s => `<option value="${s}">${s}</option>`).join('');
-    sizeNote.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
+    valorInput.value = round2(totals.valor).toFixed(2);
+    valorInput.disabled = true;
+    descInput.value = description;
+    descInput.disabled = true;
   }
 
   renderSummary();
   initFxRates();
+  if (cart.length) requestQuote();
   // Prefilled fields don't fire 'input' events, so the quote never
   // starts on its own — kick it off directly when everything needed is
   // already here (i.e. arrived from Aria Auto with weight+value+desc).
@@ -784,10 +680,11 @@
     setTimeout(() => {
       const orderId = '#ARIA-' + Math.floor(100000 + Math.random() * 900000);
       document.getElementById('orderId').textContent = orderId;
-      document.getElementById('orderTotal').textContent = usd.format(total);
+      document.getElementById('orderTotal').textContent = fmtPrimary(total);
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;
+      clearCart();
       window.scrollTo({ top: 0, behavior: 'instant' });
     }, 900);
   });

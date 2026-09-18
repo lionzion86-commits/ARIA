@@ -68,6 +68,10 @@
       <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
         🇵🇪 Perú · PEN
       </span>
+      <button onclick="openCart()" aria-label="Carrito" class="relative w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+        <span id="cartCountBadge" hidden class="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full text-white text-[10px] font-extrabold grid place-items-center" style="background:var(--blue)">0</span>
+      </button>
       <!-- BUG FIX (live audit): real email/password auth now backs these
            (see netlify/functions/auth-*.js + initAuth()/renderAuthUI()
            below) — never a dead button again. #authArea is re-rendered on
@@ -83,6 +87,7 @@
     </div>
   </div>
   <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
+    <a href="#" onclick="openCart();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line)">🛒 Carrito</a>
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
     <a href="#" onclick="openCategories();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
     <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
@@ -466,6 +471,42 @@
   </div>
 </div>
 
+<!-- ============ CART VIEW ============ -->
+<!-- Real multi-item cart (2026-09-18 rework) — see the CART section of
+     the script below for addToCart()/renderCartView() etc. Tax-zone bar
+     and cross-sell rail both live here (not on the payment step), per
+     the brief. -->
+<div id="cartView" class="view">
+  <div class="max-w-[760px] mx-auto px-5 py-10">
+    <button onclick="goHome()" class="text-[13px] font-semibold mb-6 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
+      Seguir comprando
+    </button>
+    <h1 class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em] mb-6">Tu carrito</h1>
+
+    <div id="cartEmpty" class="text-center py-16" hidden>
+      <div class="text-[15px] font-bold mb-1" style="color:var(--navy)">Tu carrito está vacío</div>
+      <div class="text-[13px] text-zinc-500 mb-5">Busca algo o entra a una tienda para empezar.</div>
+      <button onclick="goHome()" class="h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring" style="background:var(--blue)">Ir a la tienda</button>
+    </div>
+
+    <div id="orderCapBanner" hidden class="rounded-2xl px-4 py-3 mb-5 text-[13px] font-semibold" style="background:var(--sky); color:var(--navy)"></div>
+
+    <div id="cartItemsWrap"></div>
+
+    <div id="cartSummaryWrap" hidden>
+      <div id="taxZoneBarWrap" class="mt-6"></div>
+      <div id="crossSellRailWrap" class="mt-8"></div>
+
+      <div class="mt-8 pt-5 border-t flex items-center justify-between" style="border-color:var(--line)">
+        <span class="text-[14px] font-bold" style="color:var(--navy)">Subtotal</span>
+        <span id="cartSubtotal" class="text-[20px] font-extrabold" style="color:var(--navy)"></span>
+      </div>
+      <button id="cartCheckoutBtn" onclick="location.href='checkout.html'" class="w-full h-[52px] mt-4 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Proceder al pago</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ PRODUCT DETAIL VIEW ============ -->
 <!-- BUG FIX (2026-09-17): every product card used to jump straight to
      checkout.html with no page in between — no image, full title, or
@@ -492,8 +533,20 @@
         <div class="min-w-0">
           <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-3"></h1>
           <div id="productViewPrice" class="text-[26px] font-extrabold mb-3" style="color:var(--navy)"></div>
-          <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-6"></div>
-          <button onclick="confirmPurchase()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Comprar</button>
+          <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-4"></div>
+          <!-- BUG FIX (cart rework): size now has to be picked before the
+               item can sit in the cart as a concrete line item, so this
+               moved here from checkout.html (see standardSizeOptions() in
+               the script below — same logic, ported, not duplicated by
+               accident: checkout.html no longer has its own copy). Always
+               a real <select>, either the retailer's real available sizes
+               or a standard industry size scale — never free text. -->
+          <div id="productSizeWrap" class="mb-4" hidden>
+            <label for="productSizeSelect" class="block text-[12px] font-bold mb-1.5">Talla</label>
+            <select id="productSizeSelect" class="w-full sm:w-[220px] h-[46px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)"></select>
+            <p id="productSizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
+          </div>
+          <button id="addToCartBtn" onclick="addToCartFromProduct()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Agregar al carrito</button>
         </div>
       </div>
     </div>
@@ -1583,7 +1636,7 @@ function catalogTileHTML(p, retailer){
   </button>`;
 }
 
-const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView'];
+const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView'];
 
 function showPage(id){
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
@@ -1715,6 +1768,36 @@ async function showResults(query){
 // removed: showProduct() is the single entry point every card uses, and
 // orderProduct()/checkout.html is only ever reached from productView's
 // own "Comprar" button via confirmPurchase()).
+// Size-option logic — ported from checkout.html during the cart rework
+// (2026-09-18): a cart line item needs a concrete size *before* it can go
+// in the cart, so size selection now happens here, on the product page,
+// not at checkout. Always a real <select>, either the retailer's real
+// available sizes or (standardSizeOptions) a standard industry size scale
+// chosen by category/gender/kids detection from the title — never a
+// fabricated per-item list or free text.
+const APPAREL_SIZE_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
+const PRODUCT_SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+const PRODUCT_KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
+const PRODUCT_MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
+const PRODUCT_WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
+const ADULT_CLOTHING_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const ADULT_SHOE_SIZES_MEN = ['6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13','13.5','14','15'];
+const ADULT_SHOE_SIZES_WOMEN = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12'];
+const ADULT_SHOE_SIZES_UNISEX = ['5','5.5','6','6.5','7','7.5','8','8.5','9','9.5','10','10.5','11','11.5','12','12.5','13'];
+const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','12','14','16'];
+const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
+
+function standardSizeOptions(title, sizeCategory){
+  const isShoe = sizeCategory ? sizeCategory === 'shoe' : PRODUCT_SHOE_KEYWORDS.test(title);
+  const isKids = PRODUCT_KIDS_KEYWORDS.test(title);
+  if (isShoe && isKids) return KIDS_SHOE_SIZES;
+  if (isShoe && PRODUCT_MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
+  if (isShoe && PRODUCT_WOMENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_WOMEN;
+  if (isShoe) return ADULT_SHOE_SIZES_UNISEX;
+  if (isKids) return KIDS_CLOTHING_SIZES;
+  return ADULT_CLOTHING_SIZES;
+}
+
 let pendingProduct = null;
 function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
@@ -1740,54 +1823,61 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   // ever shows metadata the retailer's own payload actually reported.
   const metaParts = [];
   if (rating) metaParts.push(`★ ${escapeHtml(String(rating))}`);
-  if (Array.isArray(sizes) && sizes.length) metaParts.push(`Tallas disponibles en tienda: ${sizes.map(s => escapeHtml(s)).join(', ')}`);
-  else if (needsSize) metaParts.push('Selecciona tu talla en el siguiente paso.');
   document.getElementById('productViewMeta').innerHTML = metaParts.map(t => `<div>${t}</div>`).join('');
 
-  showPage('productView');
-}
+  const sizeWrap = document.getElementById('productSizeWrap');
+  const sizeSelect = document.getElementById('productSizeSelect');
+  const sizeNote = document.getElementById('productSizeNote');
+  const rawSizes = Array.isArray(sizes) ? sizes.filter(s => typeof s === 'string' && s.trim()) : [];
+  if (rawSizes.length){
+    sizeWrap.hidden = false;
+    sizeSelect.required = true;
+    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+      + rawSizes.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
+    sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
+  } else if (needsSize || (name && APPAREL_SIZE_KEYWORDS.test(name))){
+    sizeWrap.hidden = false;
+    sizeSelect.required = true;
+    const options = standardSizeOptions(name || '', sizeCategory);
+    sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+      + options.map(s => `<option value="${s}">${s}</option>`).join('');
+    sizeNote.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
+  } else {
+    sizeWrap.hidden = true;
+    sizeSelect.required = false;
+    sizeSelect.innerHTML = '';
+  }
 
-function confirmPurchase(){
-  if (!pendingProduct) return;
-  const p = pendingProduct;
-  orderProduct(p.name, p.totalUsd, p.weightKg, p.imageUrl, p.sizes, p.needsSize, p.sizeCategory, p.retailer);
+  showPage('productView');
 }
 
 function goBack(){
   showPage(pendingProduct?.returnView || 'homeView');
 }
 
-// The final step into checkout.html — only ever called from productView's
-// "Comprar" button via confirmPurchase() above, never directly from a
-// product card (see the RULE comment on showProduct()). Ensures the
-// customer always lands on checkout with a real product image and title,
-// never a bare price. image and sizes are both real data straight from
-// the retailer's own scrape payload — never invented. sizes is only ever
-// a real availableSizes-type list (currently only Old Navy's listing data
-// includes one); when a retailer doesn't expose real sizes, checkout.html
-// offers a standard industry size-scale dropdown instead (gated by
-// needsSizeSelection(), shoe-vs-clothing chosen by sizeCategoryFor())
-// rather than a fabricated per-item list or free text.
-function orderProduct(name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, retailer){
-  const params = new URLSearchParams();
-  if (Number.isFinite(totalUsd) && totalUsd > 0) params.set('valor', totalUsd.toFixed(2));
-  if (name) params.set('desc', name);
-  if (needsSize) params.set('needsSize', '1');
-  if (sizeCategory) params.set('sizeCategory', sizeCategory);
-  // BUG FIX (2026-09-17): checkout never named which store the product
-  // came from at all. retailer is real data already sitting in
-  // pendingProduct from showProduct() — never guessed/defaulted here.
-  if (retailer) params.set('store', retailer);
-  // Both auto parts (PART_WEIGHT_ESTIMATES_KG / estimateBrakePadWeightKg)
-  // and general retail products (RETAIL_WEIGHT_ESTIMATES_KG) pass a
-  // category-estimated weightKg here, since no source retailer publishes
-  // real per-SKU weight — see comments at each table. No path should ever
-  // fall back to manual entry silently; if weightKg is somehow missing,
-  // checkout's manual field is the only fallback, but that's not expected.
-  if (Number.isFinite(weightKg) && weightKg > 0) params.set('kg', weightKg.toFixed(2));
-  if (imageUrl) params.set('img', imageUrl);
-  if (Array.isArray(sizes) && sizes.length) params.set('sizes', sizes.join(','));
-  window.location.href = 'checkout.html' + (params.toString() ? '?' + params.toString() : '');
+// Replaces the old orderProduct()/checkout.html-URL-params flow — every
+// product now becomes a real cart line item (see addToCart() below) with
+// a concrete size already attached, and checkout.html reads the cart
+// itself instead of URL params. One path for every purchase, single item
+// or many.
+function addToCartFromProduct(){
+  if (!pendingProduct) return;
+  const p = pendingProduct;
+  const sizeWrap = document.getElementById('productSizeWrap');
+  const sizeSelect = document.getElementById('productSizeSelect');
+  if (!sizeWrap.hidden && sizeSelect.required && !sizeSelect.value){
+    showToast('Selecciona una talla antes de agregar al carrito.');
+    return;
+  }
+  addToCart({
+    retailer: p.retailer,
+    title: p.name,
+    priceUsd: Number.isFinite(p.totalUsd) ? p.totalUsd : 0,
+    weightKg: Number.isFinite(p.weightKg) ? p.weightKg : 0,
+    image: p.imageUrl || '',
+    selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
+  });
+  showToast('Agregado al carrito.');
 }
 
 /* ============================================================
@@ -2757,6 +2847,7 @@ async function initAuth(){
     currentUser = null; // network hiccup — treat as logged out rather than blocking the page
   }
   renderAuthUI();
+  await initCart();
 }
 
 function openAuthModal(mode){
@@ -2833,7 +2924,193 @@ async function logout(){
   currentUser = null;
   renderAuthUI();
   showToast('Sesión cerrada.');
+  await initCart(); // logging out drops back to whatever's in localStorage, no server cart anymore
 }
+
+/* ============================================================
+   CART — real multi-item cart (2026-09-18 rework). Replaces the old
+   single-product orderProduct()/checkout.html-URL-params flow entirely:
+   every "Agregar al carrito" action (see addToCartFromProduct() above)
+   adds a real line item here, checkout.html reads this same cart, one
+   path for every purchase. Anonymous shoppers get localStorage only;
+   a logged-in shopper's cart also syncs to Netlify Blobs
+   (netlify/functions/cart-get.js/cart-save.js) so it survives a device
+   switch, merged with whatever was in localStorage at login time so an
+   anonymous cart is never silently dropped.
+   ============================================================ */
+const CART_STORAGE_KEY = 'aria_cart_v1';
+let cart = [];
+
+function loadCartLocal(){
+  try {
+    const raw = localStorage.getItem(CART_STORAGE_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch { return []; }
+}
+
+function saveCartLocal(){
+  try { localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart)); } catch { /* storage full/unavailable — non-fatal */ }
+}
+
+// retailer+title+size is the best available uniqueness key — there's no
+// stable per-item SKU/id anywhere in this scrape pipeline (same
+// constraint noted at normalizeLiveItem()).
+function cartItemKey(item){
+  return [item.retailer, item.title, item.selectedSize || ''].join('::');
+}
+
+function cartCount(){
+  return cart.reduce((sum, it) => sum + it.qty, 0);
+}
+
+function cartTotals(){
+  return cart.reduce((acc, it) => {
+    acc.priceUsd += it.priceUsd * it.qty;
+    acc.weightKg += it.weightKg * it.qty;
+    return acc;
+  }, { priceUsd: 0, weightKg: 0 });
+}
+
+async function syncCartToServer(){
+  if (!currentUser) return;
+  try {
+    await fetch('/.netlify/functions/cart-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cart }),
+    });
+  } catch { /* best-effort — localStorage already has the real copy */ }
+}
+
+async function loadCartFromServer(){
+  if (!currentUser) return null;
+  try {
+    const res = await fetch('/.netlify/functions/cart-get');
+    const data = await res.json();
+    return Array.isArray(data.cart) ? data.cart : null;
+  } catch { return null; }
+}
+
+function mergeCarts(localCart, serverCart){
+  const map = new Map();
+  for (const it of serverCart) map.set(cartItemKey(it), { ...it });
+  for (const it of localCart){
+    const key = cartItemKey(it);
+    if (map.has(key)) map.get(key).qty += it.qty;
+    else map.set(key, { ...it });
+  }
+  return Array.from(map.values());
+}
+
+async function initCart(){
+  cart = loadCartLocal();
+  if (currentUser){
+    const serverCart = await loadCartFromServer();
+    if (serverCart){
+      cart = mergeCarts(cart, serverCart);
+      saveCartLocal();
+      syncCartToServer();
+    }
+  }
+  renderCartBadge();
+  if (document.getElementById('cartView')?.classList.contains('active')) renderCartView();
+}
+
+function renderCartBadge(){
+  const el = document.getElementById('cartCountBadge');
+  if (!el) return;
+  const count = cartCount();
+  el.textContent = count > 99 ? '99+' : String(count);
+  el.classList.toggle('hidden', count === 0);
+}
+
+function addToCart(item){
+  const key = cartItemKey(item);
+  const existing = cart.find(it => cartItemKey(it) === key);
+  if (existing) existing.qty += 1;
+  else cart.push({ ...item, qty: 1 });
+  saveCartLocal();
+  syncCartToServer();
+  renderCartBadge();
+}
+
+function removeFromCartByKey(key){
+  cart = cart.filter(it => cartItemKey(it) !== key);
+  saveCartLocal();
+  syncCartToServer();
+  renderCartBadge();
+  renderCartView();
+}
+
+function setCartQty(key, qty){
+  const it = cart.find(it => cartItemKey(it) === key);
+  if (!it) return;
+  if (qty <= 0){ removeFromCartByKey(key); return; }
+  it.qty = qty;
+  saveCartLocal();
+  syncCartToServer();
+  renderCartBadge();
+  renderCartView();
+}
+
+function openCart(){
+  showPage('cartView');
+  renderCartView();
+}
+
+function cartLineItemHTML(it){
+  const key = cartItemKey(it);
+  return `<div class="flex items-center gap-3 py-4 border-b" style="border-color:var(--line)">
+    ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+    <div class="min-w-0 flex-1">
+      <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
+      <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
+      ${it.selectedSize ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Talla: ${escapeHtml(it.selectedSize)}</div>` : ''}
+      <div class="text-[13px] font-extrabold tabular mt-1" style="color:var(--navy)">${fmtPriceLabel(it.priceUsd)}</div>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button onclick="setCartQty('${jsAttr(key)}', ${it.qty - 1})" aria-label="Restar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">−</button>
+      <span class="w-6 text-center text-[13px] font-bold tabular">${it.qty}</span>
+      <button onclick="setCartQty('${jsAttr(key)}', ${it.qty + 1})" aria-label="Sumar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">+</button>
+      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar" class="w-8 h-8 rounded-lg grid place-items-center focus-ring transition text-zinc-400 hover:text-red-500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      </button>
+    </div>
+  </div>`;
+}
+
+function renderCartView(){
+  const wrap = document.getElementById('cartItemsWrap');
+  const emptyEl = document.getElementById('cartEmpty');
+  const summaryEl = document.getElementById('cartSummaryWrap');
+  if (!cart.length){
+    wrap.innerHTML = '';
+    emptyEl.hidden = false;
+    summaryEl.hidden = true;
+    renderTaxZoneBar(0);
+    renderCrossSellRail();
+    return;
+  }
+  emptyEl.hidden = true;
+  summaryEl.hidden = false;
+  wrap.innerHTML = cart.map(cartLineItemHTML).join('');
+
+  const totals = cartTotals();
+  document.getElementById('cartSubtotal').innerHTML = fmtPriceLabel(totals.priceUsd);
+  document.getElementById('cartCheckoutBtn').textContent = `Proceder al pago — ${cart.length} artículo${cart.length === 1 ? '' : 's'}`;
+
+  renderTaxZoneBar(totals.priceUsd);
+  renderCrossSellRail();
+  loadOrderCapStatus();
+}
+
+// Stubs — real implementations land in later phases of this same build
+// (tax-zone bar, cross-sell rail, order-cap/kill-switch status). Kept as
+// safe no-ops here so the cart page works standalone before those ship.
+function renderTaxZoneBar(_usdSubtotal){}
+function renderCrossSellRail(){}
+function loadOrderCapStatus(){}
 
 initAuth();
 
