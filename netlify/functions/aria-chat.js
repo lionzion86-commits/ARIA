@@ -1,4 +1,8 @@
-// Secure middleman between ariashop.pe and Grok
+// Secure middleman between ariashop.pe and Grok. Used for the opening
+// greeting when the chat panel is first opened; aria-chat-groq.js handles
+// the actual conversation.
+import { buildSystemPrompt, sanitizeHistory } from "./_aria-prompt.js";
+
 export async function handler(event) {
   const headers = {
     "Access-Control-Allow-Origin": "*",
@@ -11,7 +15,10 @@ export async function handler(event) {
   }
 
   try {
-    const { message } = JSON.parse(event.body);
+    const body = JSON.parse(event.body || "{}");
+    const message = typeof body.message === "string" ? body.message : "";
+    const history = sanitizeHistory(body.history);
+    const products = Array.isArray(body.products) ? body.products.slice(0, 6) : [];
 
     // Step 1: Get Grok's text reply
     const chatResponse = await fetch("https://api.x.ai/v1/chat/completions", {
@@ -23,14 +30,13 @@ export async function handler(event) {
       body: JSON.stringify({
         model: "grok-4",
         messages: [
-          {
-            role: "system",
-            // RULE: keep this retailer list in sync with LIVE_RETAILERS
-            // (index.html) and RETAILER_CONFIG (apify-scrape-start.js) —
-            // it previously named Best Buy, which isn't wired up.
-            content:
-              "You are Aria, a helpful shopping assistant for ariashop.pe, a cross-border shopping platform letting Peruvians buy from US retailers like Target, Walmart, Old Navy, and Foot Locker (plus AutoZone for auto parts via Aria Auto), with delivery to Peru. Keep replies short and conversational, in Spanish unless the user writes in English.",
-          },
+          // Same prompt the main chat endpoint uses, from the shared
+          // module — this one previously carried its own copy of the
+          // retailer list (which had already drifted, naming Best Buy)
+          // and no shipping rules at all, so a greeting turn could invent
+          // shipping figures the rest of the site never states.
+          { role: "system", content: buildSystemPrompt(products) },
+          ...history,
           { role: "user", content: message },
         ],
       }),

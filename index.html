@@ -1188,8 +1188,24 @@
   .ariaShimmer { animation: none; }
 }
 @keyframes ariaOrbGlow {
-  0%, 100% { opacity: 0.6; }
-  50% { opacity: 1; }
+  0%, 100% { opacity: 0.55; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.06); }
+}
+@keyframes ariaOrbShimmer {
+  0%   { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
+}
+@keyframes ariaOrbSpeak {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+@keyframes ariaOrbSpeakGlow {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.14); }
+}
+@keyframes ariaOrbRing {
+  0%   { opacity: 0.75; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.45); }
 }
 @keyframes ariaStarGlow {
   0%, 100% { filter: drop-shadow(0 0 16px rgba(79,139,255,0.95)) drop-shadow(0 0 30px rgba(120,170,255,0.75)); }
@@ -1218,31 +1234,96 @@
    moving chrome). Kept the gentle breathing pulse — still feels "alive" —
    dropped the drift so the assistant stays exactly where a shopper expects
    to find it. */
+/* ORB MOTION (2026-09-18)
+   A static PNG reads as a logo, not as something listening to you. Three
+   states, each doing a different job:
+
+     idle      slow breathing scale + a warm glow that swells with it, so
+               the orb looks alive but never competes with the page
+     thinking  a light sweep travelling across the orb while a reply is
+               being generated — visibly different from idle, so waiting
+               feels answered rather than ignored
+     speaking  a faster pulse with a ring that expands and fades on each
+               beat, tied to the actual audio playing
+
+   Everything is transform/opacity/filter only, so it composites on the
+   GPU and never triggers layout. The whole thing is disabled under
+   prefers-reduced-motion. */
 #assistantBtn {
   background: transparent;
-  animation: ariaOrbBreathe 2.6s ease-in-out infinite;
   overflow: visible;
-  filter: drop-shadow(0 6px 14px rgba(10,31,68,0.35));
+  transition: transform 0.2s ease;
 }
-#assistantBtn:hover {
-  animation-play-state: paused;
-  transform: scale(1.16);
+#assistantBtn:hover { transform: scale(1.12); }
+
+/* The glow lives on the image wrapper so the pseudo-elements below can
+   sit behind it without the button's own layout getting involved. */
+#assistantIconSpark {
+  border-radius: 50%;
+  animation: ariaOrbBreathe 3.4s ease-in-out infinite;
 }
-#assistantStarHalo {
-  animation: ariaHaloPulse 2.6s ease-in-out infinite;
-  background: radial-gradient(circle, rgba(140,180,255,0.55), rgba(140,180,255,0.15) 55%, transparent 75%);
-  filter: blur(6px);
+#assistantIconSpark::before {
+  content: '';
+  position: absolute;
+  inset: -16%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,196,84,0.55), rgba(255,170,60,0.18) 55%, transparent 72%);
+  filter: blur(9px);
+  z-index: -1;
+  animation: ariaOrbGlow 3.4s ease-in-out infinite;
 }
-#assistantStarShape {
-  animation: ariaStarGlow 2.6s ease-in-out infinite;
+/* Sheen for the thinking state; inert until .is-thinking turns it on. */
+#assistantIconSpark::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  opacity: 0;
+  pointer-events: none;
+  background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.78) 50%, transparent 65%);
+  background-size: 260% 100%;
 }
-.aria-eye-white {
-  animation: ariaBlink 4.5s ease-in-out infinite;
-  transform-origin: center;
+
+#assistantIconSpark.is-thinking {
+  animation-duration: 1.5s; /* quicker, more alert breathing */
 }
-.aria-eye-white.l { animation-delay: 0.15s; }
-#assistantMouth {
-  transition: d 0.25s ease;
+#assistantIconSpark.is-thinking::before {
+  animation-duration: 1.5s;
+}
+#assistantIconSpark.is-thinking::after {
+  opacity: 1;
+  animation: ariaOrbShimmer 1.15s linear infinite;
+}
+
+#assistantIconSpark.is-speaking {
+  animation: ariaOrbSpeak 0.62s ease-in-out infinite;
+}
+#assistantIconSpark.is-speaking::before {
+  animation: ariaOrbSpeakGlow 0.62s ease-in-out infinite;
+}
+/* Ring that expands and fades on each speech beat. */
+#assistantIconSpark.is-speaking .aria-orb-ring {
+  animation: ariaOrbRing 0.62s ease-out infinite;
+}
+.aria-orb-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255,190,70,0.85);
+  opacity: 0;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #assistantIconSpark,
+  #assistantIconSpark::before,
+  #assistantIconSpark::after,
+  #assistantIconSpark.is-speaking,
+  #assistantIconSpark.is-speaking::before,
+  #assistantIconSpark.is-speaking .aria-orb-ring {
+    animation: none;
+  }
+  #assistantIconSpark.is-thinking::after { opacity: 0; }
 }
 @keyframes ariaBubbleIn {
   0% { opacity: 0; transform: translateY(8px) scale(0.94); }
@@ -1256,6 +1337,7 @@
   class="fixed bottom-5 right-5 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring transition">
   <div id="assistantIconSpark" class="relative" style="width:86px;height:86px;">
     <img id="ariaOrbImg" src="assets/orb-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+    <span class="aria-orb-ring" aria-hidden="true"></span>
   </div>
   <svg id="assistantIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" class="hidden relative"><path d="M18 6 6 18M6 6l12 12"/></svg>
 </button>
@@ -4108,18 +4190,23 @@ let assistantOpen = false;
 let assistantAwaitingAge = false;
 let assistantAwaitingInterest = false;
 
-(function(){
-  const btn = document.getElementById('assistantBtn');
-  const mouth = document.getElementById('assistantMouth');
-  if (btn && mouth) {
-    const smileNormal = 'M12 24 Q20 32 28 24';
-    const smileWide = 'M10 23 Q20 35 30 23';
-    btn.addEventListener('mouseenter', () => mouth.setAttribute('d', smileWide));
-    btn.addEventListener('mouseleave', () => mouth.setAttribute('d', smileNormal));
-    btn.addEventListener('touchstart', () => mouth.setAttribute('d', smileWide));
-    btn.addEventListener('touchend', () => mouth.setAttribute('d', smileNormal));
-  }
-})();
+/* ORB STATE DRIVER.
+   Replaces a dead IIFE that animated #assistantMouth — the smiley mouth
+   was deleted along with the old two-image mascot in Phase 6, so it had
+   been a no-op ever since.
+
+   'idle' | 'thinking' | 'speaking'. CSS owns the motion (see the orb
+   rules in <style>); this only swaps the class, so nothing here has to
+   know about timings or keyframes. */
+let orbState = 'idle';
+
+function setOrbState(state){
+  const el = document.getElementById('assistantIconSpark');
+  if (!el) return;
+  orbState = state;
+  el.classList.toggle('is-thinking', state === 'thinking');
+  el.classList.toggle('is-speaking', state === 'speaking');
+}
 
 function toggleAssistant(){
   assistantOpen = !assistantOpen;
@@ -4214,6 +4301,12 @@ function sendAssistantText(){
 let ariaChatHistory = [];
 let assistantThinking = false;
 
+// The one retailer chat product lookups query. Both the cards and the
+// retailer name the model is told come from this, so chat prose can never
+// credit a product to a store the card doesn't show — the bug behind
+// "New Balance 1906R en Foot Locker" appearing next to a Walmart card.
+const CHAT_RETAILER = 'walmart';
+
 const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion','liquidación','rebaja','rebajas','promocion','promoción'];
 
 async function runAssistantBrain(text){
@@ -4236,12 +4329,47 @@ async function runAssistantBrain(text){
   }
 
   if (statusEl) statusEl.textContent = 'Aria está pensando…';
+  setOrbState('thinking');
 
   try {
+    /* RETRIEVE BEFORE GENERATE.
+       This search used to run AFTER the reply had already been written,
+       so the model answered with no idea what the customer was about to
+       see — which is exactly how "no vendemos iPhone" ended up printed
+       directly above three real iPhone cards. The results are fetched
+       first now and sent to the model as grounding, so the prose and the
+       cards can no longer contradict each other.
+
+       Still bounded to one retailer (Walmart, the broadest general
+       catalog we search) and 3 items, so a chat turn costs one Apify run
+       rather than scanning every retailer; the "Pedir con Aria" search bar
+       is what a full multi-retailer comparison is for. CHAT_RETAILER is
+       the single source of truth for the cards AND for what the model is
+       told, so the two can never disagree. */
+    let foundItems = [];
+    try {
+      const rawItems = await scrapeRetailer(CHAT_RETAILER, text, 3);
+      await loadFxRate(); // in flight since the top of this function; settle it before formatting any price
+      foundItems = rawItems
+        .map(it => normalizeLiveItem(it))
+        .filter(it => it.title && it.price != null);
+    } catch (e) {
+      foundItems = []; // a failed lookup just means no cards and no grounding
+    }
+
     const res = await fetch('/.netlify/functions/aria-chat-groq', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text, history: ariaChatHistory })
+      body: JSON.stringify({
+        message: text,
+        history: ariaChatHistory,
+        // Retailer is sent per item from the same constant the cards use.
+        products: foundItems.map(it => ({
+          title: it.title,
+          retailer: LIVE_RETAILER_LABEL[CHAT_RETAILER] || CHAT_RETAILER,
+          priceLabel: fmtPriceLabel(it.price),
+        })),
+      })
     });
 
     if (!res.ok) {
@@ -4257,27 +4385,15 @@ async function runAssistantBrain(text){
     if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
 
     addAssistantMessage('bot', reply, data.audio);
-
-    // Surfaces real product cards from a real live search — no local fake
-    // catalog. Bounded to a single retailer (Walmart, the broadest general
-    // catalog of the ones we search) and 3 items, so every chat turn only
-    // costs one Apify run instead of scanning all retailers like the main
-    // search flow does; a full multi-retailer comparison is what the
-    // "Pedir con Aria" search bar itself is for.
-    try {
-      const rawItems = await scrapeRetailer('walmart', text, 3);
-      await loadFxRate(); // already in flight since the top of this function — just making sure it's settled before rendering a price
-      rawItems.map(it => normalizeLiveItem(it)).forEach(it => addAssistantProductCard(it, 'walmart'));
-    } catch (e) {
-      // A failed/empty live lookup shouldn't block the chat reply that
-      // already succeeded above — just skip showing product cards.
-    }
+    foundItems.forEach(it => addAssistantProductCard(it, CHAT_RETAILER));
 
   } catch (err) {
     addAssistantMessage('bot', 'Ups, no pude conectarme. Revisa tu conexión e intenta de nuevo.');
   } finally {
     assistantThinking = false;
     if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    // Only drop out of "thinking" if speaking hasn't already taken over.
+    if (orbState === 'thinking') setOrbState('idle');
   }
 }
 
@@ -4442,12 +4558,21 @@ function speakWithAria(audioBase64, ariaText){
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
+    // The speaking pulse is driven by the audio element itself rather than
+    // a timer, so the orb beats for exactly as long as Aria is actually
+    // audible — including when playback is blocked and never starts.
+    ariaAudioPlayer.onplaying = () => setOrbState('speaking');
     ariaAudioPlayer.onended = () => {
+      setOrbState('idle');
       if (continuousMode) startListening();
     };
-    ariaAudioPlayer.play().catch(() => { /* still blocked, text stays visible */ });
+    ariaAudioPlayer.onpause = () => { if (orbState === 'speaking') setOrbState('idle'); };
+    ariaAudioPlayer.onerror = () => setOrbState('idle');
+    ariaAudioPlayer.play().catch(() => {
+      setOrbState('idle'); // autoplay blocked — text stays visible, orb goes back to breathing
+    });
 } catch (err) {
- 
+    setOrbState('idle');
     // if anything goes wrong decoding/playing Ara's voice, just stay silent —
     // the text reply is already visible in the chat
   }
