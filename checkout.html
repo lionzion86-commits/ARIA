@@ -311,6 +311,18 @@
     <a href="index.html" class="inline-flex items-center justify-center h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring" style="background:var(--blue)">Volver a la tienda</a>
   </div>
 
+  <!-- ============ HELD VIEW (daily order cap / kill switch) ============ -->
+  <div id="heldWrap" hidden class="max-w-[520px] mx-auto text-center py-10">
+    <div class="w-16 h-16 rounded-full grid place-items-center mx-auto mb-5" style="background:var(--sky)">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+    </div>
+    <h1 class="text-[24px] sm:text-[28px] font-extrabold tracking-[-0.02em] mb-2" style="color:var(--navy)">Tu pedido quedó guardado</h1>
+    <p class="text-[13.5px] leading-relaxed mb-6" style="color:#5B6478">
+      Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.
+    </p>
+    <a href="index.html" class="inline-flex items-center justify-center h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring" style="background:var(--blue)">Volver a la tienda</a>
+  </div>
+
 </main>
 
 <!-- SITE FOOTER — matches index.html's global footer (same honest
@@ -661,7 +673,13 @@
     toastTimer = setTimeout(() => { el.style.opacity = 0; el.style.transform = 'translate(-50%, 24px)'; }, 2600);
   }
 
-  document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+  // BUG FIX (launch cash control): "Pagar" used to just fake success
+  // locally with no server involved at all. It now calls
+  // orders-create.js, which enforces the daily order cap / kill switch
+  // and persists a real order record (still a *simulated* charge — no
+  // real payment gateway exists or is in scope here) that the admin
+  // margin-test view reads from.
+  document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
     if (!form.checkValidity() || !latestQuote){
@@ -670,23 +688,54 @@
       return;
     }
 
-    const total = latestQuote.total_usd;
     const name = document.getElementById('custName').value.trim();
     const email = document.getElementById('custEmail').value.trim();
 
     payBtn.disabled = true;
     payBtn.textContent = 'Procesando pago…';
 
-    setTimeout(() => {
-      const orderId = '#ARIA-' + Math.floor(100000 + Math.random() * 900000);
-      document.getElementById('orderId').textContent = orderId;
-      document.getElementById('orderTotal').textContent = fmtPrimary(total);
+    try {
+      const res = await fetch('/.netlify/functions/orders-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customer: { name, email, phone: document.getElementById('custPhone').value.trim() },
+          shipping: {
+            addrLine: document.getElementById('addrLine').value.trim(),
+            addrDistrict: document.getElementById('addrDistrict').value.trim(),
+            addrRegion: document.getElementById('addrRegion').value,
+            addrPostal: document.getElementById('addrPostal').value.trim(),
+            addrRef: document.getElementById('addrRef').value.trim(),
+            destCity: document.getElementById('destCity').value,
+          },
+          items: cart,
+          quote: latestQuote,
+          fxRateVenta: fxRates?.venta ?? null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'No se pudo procesar el pedido');
+
+      if (data.held){
+        document.getElementById('checkoutWrap').hidden = true;
+        document.getElementById('heldWrap').hidden = false;
+        // Cart is deliberately NOT cleared — it's what re-enters tomorrow's batch.
+        window.scrollTo({ top: 0, behavior: 'instant' });
+        return;
+      }
+
+      document.getElementById('orderId').textContent = '#' + data.orderId;
+      document.getElementById('orderTotal').textContent = fmtPrimary(latestQuote.total_usd);
       document.getElementById('orderEmail').textContent = email;
       document.getElementById('checkoutWrap').hidden = true;
       document.getElementById('successWrap').hidden = false;
       clearCart();
       window.scrollTo({ top: 0, behavior: 'instant' });
-    }, 900);
+    } catch (err) {
+      showToast(err.message || 'No pudimos procesar tu pedido — intenta de nuevo.');
+      payBtn.disabled = false;
+      payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
+    }
   });
 </script>
 

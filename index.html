@@ -3110,7 +3110,36 @@ function renderCartView(){
 // safe no-ops here so the cart page works standalone before those ship.
 function renderTaxZoneBar(_usdSubtotal){}
 function renderCrossSellRail(){}
-function loadOrderCapStatus(){}
+// Live "quedan X cupos hoy" — reads the same settings/counter
+// netlify/functions/orders-remaining.js exposes (public, no auth) that
+// orders-create.js enforces at actual checkout time. Never blocks
+// rendering the cart if this fails — just no banner.
+async function loadOrderCapStatus(){
+  const banner = document.getElementById('orderCapBanner');
+  try {
+    const res = await fetch('/.netlify/functions/orders-remaining');
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'error');
+
+    if (data.paused){
+      banner.textContent = 'Estamos actualizando pedidos por el momento — tu carrito queda guardado y podrás pagar en breve.';
+      banner.style.background = 'var(--yellow)';
+      banner.hidden = false;
+    } else if (data.remaining <= 0){
+      banner.textContent = `Se completó el cupo de pedidos de hoy (${data.cap}) — tu carrito se guarda automáticamente y tu pedido entra primero mañana.`;
+      banner.style.background = 'var(--yellow)';
+      banner.hidden = false;
+    } else if (data.remaining <= 10){
+      banner.textContent = `Quedan ${data.remaining} cupo${data.remaining === 1 ? '' : 's'} hoy — estamos en lanzamiento y procesamos un número limitado de pedidos por día.`;
+      banner.style.background = 'var(--sky)';
+      banner.hidden = false;
+    } else {
+      banner.hidden = true;
+    }
+  } catch {
+    banner.hidden = true; // best-effort — never block the cart on this
+  }
+}
 
 initAuth();
 
