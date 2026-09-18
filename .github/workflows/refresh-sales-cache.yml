@@ -1,0 +1,40 @@
+# Keeps the Ofertas deals cache warm server-side, so no visitor's browser
+# ever has to write it.
+#
+# Every 4 hours against the cache's 6h TTL: the cache is replaced before it
+# can go stale, so a visitor arriving at any moment finds it warm. Cost is
+# 12 Apify actor runs per refresh, 6 refreshes a day = 72 runs/day at
+# roughly $0.01-0.03 each. Widen the cron if that is too much — at every
+# 6h it still works, with a short stale window before each run during which
+# visitors fall back to a live scan.
+#
+# Required repository secret:
+#   SALES_REFRESH_TOKEN   must match the SALES_REFRESH_TOKEN environment
+#                         variable set on the Netlify site
+name: Refresh Ofertas cache
+
+on:
+  schedule:
+    - cron: "0 */4 * * *"
+  workflow_dispatch: {}      # lets an operator run it by hand from the Actions tab
+
+concurrency:
+  # Two overlapping refreshes would just burn Apify credits racing to write
+  # the same key.
+  group: refresh-sales-cache
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20       # a full scan polls 12 sources; 20m is generous headroom
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Refresh the deals cache
+        env:
+          SITE: https://ariashop.pe
+          SALES_REFRESH_TOKEN: ${{ secrets.SALES_REFRESH_TOKEN }}
+        run: node scripts/refresh-sales-cache.js

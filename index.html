@@ -1131,6 +1131,22 @@
           <span id="adminSettingsStatus" class="text-[12px] text-zinc-500"></span>
         </div>
       </div>
+
+      <!-- Manual override for the scheduled Ofertas refresh. The cron
+           (.github/workflows/refresh-sales-cache.yml) keeps the cache warm
+           every 4 hours on its own; this is for when an operator wants it
+           updated right now. It is the ONLY write to the deals cache this
+           page can make — ordinary browsing never writes it. -->
+      <div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line)">
+        <div class="font-bold text-[14px] mb-1">Ofertas</div>
+        <p class="text-[12px] text-zinc-500 mb-3 leading-snug">
+          La caché se actualiza sola cada 4 horas. Usa esto solo si necesitas verla actualizada ahora mismo.
+        </p>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="adminRefreshOfertasBtn" onclick="adminRefreshSalesCache()" class="h-9 px-4 rounded-full text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Actualizar ofertas</button>
+          <span id="adminRefreshOfertasStatus" class="text-[12px] text-zinc-500"></span>
+        </div>
+      </div>
       <div id="adminOrdersList"></div>
     </div>
   </div>
@@ -4128,32 +4144,49 @@ async function liveSalesScan(){
   return Array.from(foundByKey.values());
 }
 
-// Donates a completed scan back to the shared server cache so the next
-// visitor doesn't have to wait for one. Best-effort and deliberately
-// silent: the scan already succeeded for THIS visitor, so a failed
-// publish is not something to interrupt them about. The endpoint requires
-// a session and validates everything it stores — see the authentication
-// note there.
-async function publishSalesCache(items){
-  if (!items.length) return;
-  // POST /sales-cache is admin-only. Everyone else would just collect a
-  // 401/403, so don't send the request at all — they still read whatever
-  // an admin last donated. Consequence: the cache only refreshes when an
-  // admin opens Ofertas, so expect it cold most of the time and most
-  // visitors running a live scan (correct, just slower).
-  if (!currentUserIsAdmin) return;
+/* NO CLIENT WRITE PATH.
+   Browsing Ofertas never writes the cache — not for visitors, not for
+   admins. The cache is kept warm server-side by
+   scripts/refresh-sales-cache.js, run every 4 hours by
+   .github/workflows/refresh-sales-cache.yml against a 6h TTL, so it is
+   replaced before it can go stale.
+
+   The only write this file can still make is the explicit admin
+   "Actualizar ofertas" button below — a deliberate manual override, never
+   a side effect of someone looking at the page. */
+
+// Manual refresh for the admin page. Runs the same scan the scheduled
+// refresher runs and publishes it, so an operator does not have to wait
+// for the next cron tick. Loud about its outcome, unlike the old silent
+// donate — someone pressed a button and is owed an answer.
+async function adminRefreshSalesCache(){
+  const btn = document.getElementById('adminRefreshOfertasBtn');
+  const statusEl = document.getElementById('adminRefreshOfertasStatus');
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  statusEl.textContent = 'Buscando ofertas… puede tomar un par de minutos.';
   try {
+    const items = await liveSalesScan();
+    if (!items.length){
+      // Never replace a good cache with nothing — same rule the scheduled
+      // refresher enforces.
+      statusEl.textContent = 'No se encontraron ofertas — no se actualizó nada.';
+      return;
+    }
     const res = await fetch('/.netlify/functions/sales-cache', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items }),
     });
     const data = await res.json();
-    if (res.ok && data.generatedAt && !data.skipped){
-      salesGeneratedAt = data.generatedAt;
-      renderSalesFreshness();
-    }
-  } catch { /* best-effort */ }
+    if (!res.ok) throw new Error(data.error || 'Error');
+    salesGeneratedAt = data.generatedAt || null;
+    statusEl.textContent = `Actualizado ✓ ${data.stored ?? items.length} ofertas.`;
+  } catch (err) {
+    statusEl.textContent = 'No se pudo actualizar — intenta de nuevo.';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // Stale-while-revalidate: the visitor already has real deals on screen, so
@@ -4165,7 +4198,9 @@ async function revalidateSalesInBackground(){
   try {
     const items = await liveSalesScan();
     if (!items.length) return; // an empty scan never replaces good cached deals
-    await publishSalesCache(items);
+    // Deliberately does NOT publish: this visitor's scan is for this
+    // visitor's screen. Writing the shared cache is the scheduled
+    // refresher's job.
     saleItemsCache = items;
     if (document.getElementById('salesView')?.classList.contains('active')) renderSalesGrid();
   } catch { /* keep showing the cached deals */ }
@@ -4201,7 +4236,9 @@ async function runSalesScan(){
     salesGeneratedAt = items.length ? new Date().toISOString() : null;
     stopSalesColdLoading();
     renderSalesGrid();
-    publishSalesCache(items);
+    // No publish here either — see the NO CLIENT WRITE PATH note above.
+    // A cold cache means the scheduled refresher has not run yet (or its
+    // last run failed); this visitor still gets correct live results.
   } catch {
     stopSalesColdLoading();
     saleItemsCache = [];

@@ -40,6 +40,7 @@
 // may write, not that what they wrote is sane.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { corsHeaders, getSessionEmail, isAdmin } from "./_auth-helpers.js";
+import { timingSafeEqual } from "node:crypto";
 
 // Mirrors GENERAL_RETAILERS in index.html (LIVE_RETAILERS minus autozone,
 // which is the auto-parts lane and never appears in Ofertas).
@@ -129,6 +130,37 @@ export function sanitizeItem(raw) {
   };
 }
 
+// Constant-time bearer comparison. A plain === leaks the token prefix
+// through response timing; the length guard is fine to leak since the
+// token length is not the secret.
+function tokenMatches(presented, expected) {
+  if (!presented || !expected) return false;
+  const a = Buffer.from(presented);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) return false;
+  return timingSafeEqual(a, b);
+}
+
+async function authorizeWriter(event) {
+  const auth = event.headers?.authorization || event.headers?.Authorization || "";
+  const bearer = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  const expected = (process.env.SALES_REFRESH_TOKEN || "").trim();
+
+  if (bearer) {
+    // A presented token that does not match is a hard 403 — never fall
+    // through to the session check, so a bad token cannot be probed
+    // against a logged-in browser session.
+    return tokenMatches(bearer, expected)
+      ? { ok: true, who: "scheduled-refresh" }
+      : { ok: false, status: 403, error: "No autorizado" };
+  }
+
+  const email = await getSessionEmail(event);
+  if (!email) return { ok: false, status: 401, error: "Autenticación requerida" };
+  if (!isAdmin(email)) return { ok: false, status: 403, error: "No autorizado" };
+  return { ok: true, who: email };
+}
+
 export async function handler(event) {
   connectLambda(event);
   const headers = corsHeaders("GET, POST, OPTIONS");
@@ -160,19 +192,23 @@ export async function handler(event) {
   }
 
   if (event.httpMethod === "POST") {
-    // ADMIN ONLY. Checked before the body is even parsed, so a caller
-    // without rights learns nothing about the payload contract.
+    // TWO TRUSTED WRITERS, NO OTHERS. Checked before the body is even
+    // parsed, so a caller without rights learns nothing about the payload
+    // contract.
     //
-    // 401 vs 403 is deliberate: 401 means "no valid session", 403 means
-    // "valid session, not an admin". Same rejection either way — the split
-    // exists so an operator reading logs can tell a logged-out client from
-    // a real privilege problem.
-    const email = await getSessionEmail(event);
-    if (!email) {
-      return { statusCode: 401, headers, body: JSON.stringify({ error: "Autenticación requerida" }) };
-    }
-    if (!isAdmin(email)) {
-      return { statusCode: 403, headers, body: JSON.stringify({ error: "No autorizado" }) };
+    //   1. the scheduled refresher (scripts/refresh-sales-cache.js), which
+    //      presents SALES_REFRESH_TOKEN as a bearer token. This is the
+    //      normal path — it is what keeps the cache warm.
+    //   2. an admin session, for the "Actualizar ofertas" button, which is
+    //      a manual override when an operator wants it refreshed now.
+    //
+    // Ordinary visitors never write. 401 vs 403 is deliberate: 401 means
+    // "no credentials at all", 403 means "credentials, but not allowed" —
+    // the split exists so an operator reading logs can tell a logged-out
+    // client from a real privilege problem.
+    const writer = await authorizeWriter(event);
+    if (!writer.ok) {
+      return { statusCode: writer.status, headers, body: JSON.stringify({ error: writer.error }) };
     }
 
     let body;
@@ -204,22 +240,21 @@ export async function handler(event) {
     }
 
     try {
-      const existing = await store.get("deals", { type: "json" });
-      if (existing?.generatedAt) {
-        const ageMs = Date.now() - new Date(existing.generatedAt).getTime();
-        // Staleness gate: a fresh cache is never overwritten, so this
-        // endpoint can't be used to churn what visitors see.
-        if (Number.isFinite(ageMs) && ageMs <= TTL_MS) {
-          return {
-            statusCode: 200,
-            headers,
-            body: JSON.stringify({ ok: true, skipped: "fresh", generatedAt: existing.generatedAt }),
-          };
-        }
-      }
+      // The staleness gate that used to live here is GONE, deliberately.
+      // It refused to overwrite a cache younger than TTL_MS, and its only
+      // purpose was stopping an anonymous attacker churning what visitors
+      // see. There are no anonymous writers any more — only the scheduled
+      // refresher and an admin pressing "Actualizar ofertas", and both of
+      // those exist precisely to overwrite.
+      //
+      // Keeping it would have broken the whole feature silently: the cron
+      // runs more often than TTL_MS (every 4h against a 6h TTL, so the
+      // cache is replaced before it can go stale), so EVERY scheduled run
+      // would have been answered "skipped: fresh" and the cache would have
+      // aged out anyway.
       const generatedAt = new Date().toISOString();
-      // writtenBy makes a bad write traceable to an account.
-      await store.setJSON("deals", { generatedAt, items, writtenBy: email });
+      // writtenBy makes any write traceable to the refresher or an account.
+      await store.setJSON("deals", { generatedAt, items, writtenBy: writer.who });
       return { statusCode: 200, headers, body: JSON.stringify({ ok: true, generatedAt, stored: items.length }) };
     } catch (error) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
