@@ -12,9 +12,10 @@
 // perfect.
 import { getStore, connectLambda } from "@netlify/blobs";
 import { corsHeaders } from "./_auth-helpers.js";
+import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
 
-const DEFAULT_SETTINGS = { paused: false, dailyCap: 40 };
+const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
 
 // Real Culqi/Niubiz-class card-gateway fee is not something I can verify
@@ -23,10 +24,6 @@ const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue per
 // as an estimate, never as a real reconciled fee.
 const GATEWAY_FEE_RATE_ESTIMATE = 0.0399;
 const GATEWAY_FEE_FIXED_PEN_ESTIMATE = 0.5;
-
-function todayKey() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export async function handler(event) {
   connectLambda(event);
@@ -57,16 +54,21 @@ export async function handler(event) {
     const ordersStore = getStore("orders");
     const settings = (await settingsStore.get("global", { type: "json" })) || DEFAULT_SETTINGS;
 
+    const batchHour = normalizeBatchHour(settings.batchHour);
+
     if (settings.paused) {
-      return { statusCode: 200, headers, body: JSON.stringify({ held: true, message: HELD_MESSAGE }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ held: true, message: HELD_MESSAGE, batchHour }) };
     }
 
-    const dateKey = todayKey();
+    // Peru-day key, not UTC: this counter is what "pedidos por día" means
+    // to the customer, and the batch runs on Peru mornings. See
+    // _peru-time.js for why the UTC date was wrong.
+    const dateKey = peruDateKey();
     const counterKey = `count:${dateKey}`;
     const counter = (await ordersStore.get(counterKey, { type: "json" })) || { count: 0 };
 
     if (counter.count >= settings.dailyCap) {
-      return { statusCode: 200, headers, body: JSON.stringify({ held: true, message: HELD_MESSAGE }) };
+      return { statusCode: 200, headers, body: JSON.stringify({ held: true, message: HELD_MESSAGE, batchHour }) };
     }
 
     const priceUsdTotal = items.reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
@@ -77,6 +79,8 @@ export async function handler(event) {
       ? Math.round((totalPen * GATEWAY_FEE_RATE_ESTIMATE + GATEWAY_FEE_FIXED_PEN_ESTIMATE) * 100) / 100
       : null;
 
+    // Order IDs carry the same Peru date the counter is keyed on, so an
+    // ID always matches the batch day it was counted against.
     const orderId = "ARIA-" + dateKey.replace(/-/g, "") + "-" + randomBytes(3).toString("hex").toUpperCase();
     const order = {
       orderId,

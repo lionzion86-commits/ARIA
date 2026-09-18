@@ -321,9 +321,11 @@
       Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.
     </p>
     <!-- The spec's held copy is used verbatim above; the batch time it
-         also calls for ("enters first in tomorrow's batch at 9am") is
-         stated here rather than edited into that fixed wording. -->
-    <p class="text-[13px] font-bold mb-6" style="color:var(--navy)">Tu pedido entra en el primer lote de mañana, a las 9:00 a. m.</p>
+         also calls for is stated here rather than edited into that fixed
+         wording. The hour is whatever admin-settings has configured
+         (default 09:00 PET) and arrives on the held response, so changing
+         it in the admin needs no deploy and no second round trip. -->
+    <p id="heldBatchTime" class="text-[13px] font-bold mb-6" style="color:var(--navy)"></p>
     <a href="index.html" class="inline-flex items-center justify-center h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring" style="background:var(--blue)">Volver a la tienda</a>
   </div>
 
@@ -364,6 +366,38 @@
   const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const pen = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
   function round2(n){ return Math.round(n * 100) / 100; }
+
+  /* Batch time is Peru local time (PET, UTC-5, no DST). Small
+     self-contained copy of the same helpers in index.html and
+     netlify/functions/_peru-time.js — this page has no access to
+     index.html's script, same reason the retailer badge below is
+     duplicated. The server normalizes and is the authority; this is
+     presentation only.
+     Note on normalizeBatchHour: bare Number() would be wrong here.
+     Number(null), Number('') and Number(false) are all 0 — a valid hour —
+     so a missing value would silently read as midnight instead of
+     falling back to 09:00. */
+  const DEFAULT_BATCH_HOUR = 9;
+
+  function normalizeBatchHour(value){
+    const isNumeric = typeof value === 'number' || (typeof value === 'string' && value.trim() !== '');
+    if (!isNumeric) return DEFAULT_BATCH_HOUR;
+    const n = Number(value);
+    return Number.isInteger(n) && n >= 0 && n <= 23 ? n : DEFAULT_BATCH_HOUR;
+  }
+
+  function formatBatchHourEs(hour){
+    const h = normalizeBatchHour(hour);
+    const suffix = h < 12 ? 'a. m.' : 'p. m.';
+    const display = h % 12 === 0 ? 12 : h % 12;
+    return `${display}:00 ${suffix}`;
+  }
+
+  // Always names the zone — a shopper whose phone is set to another
+  // timezone must not have to guess which 9am this is.
+  function batchTimeLabel(hour){
+    return `${formatBatchHourEs(hour)} (hora de Perú)`;
+  }
 
   // BUG FIX (2026-09-17): checkout never named which store a product came
   // from at all. Small self-contained copy of index.html's retailer badge
@@ -721,6 +755,8 @@
       if (!res.ok) throw new Error(data.error || 'No se pudo procesar el pedido');
 
       if (data.held){
+        document.getElementById('heldBatchTime').textContent =
+          `Tu pedido entra en el primer lote de mañana, a las ${batchTimeLabel(data.batchHour)}.`;
         document.getElementById('checkoutWrap').hidden = true;
         document.getElementById('heldWrap').hidden = false;
         // Cart is deliberately NOT cleared — it's what re-enters tomorrow's batch.

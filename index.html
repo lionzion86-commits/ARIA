@@ -1121,6 +1121,11 @@
             <label for="adminDailyCap" class="block text-[12px] font-bold mb-1">Cupo diario</label>
             <input type="number" id="adminDailyCap" min="0" class="w-24 h-9 border rounded-lg px-2 text-[13px]" style="border-color:var(--line)">
           </div>
+          <div>
+            <label for="adminBatchHour" class="block text-[12px] font-bold mb-1">Hora del lote (hora de Perú)</label>
+            <select id="adminBatchHour" class="w-[150px] h-9 border rounded-lg px-2 text-[13px]" style="border-color:var(--line)"></select>
+            <p class="text-[11px] text-zinc-500 mt-1">Se muestra al cliente cuando su pedido queda en espera.</p>
+          </div>
           <button onclick="saveAdminSettings()" class="h-9 px-4 rounded-full text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Guardar</button>
           <span id="adminSettingsStatus" class="text-[12px] text-zinc-500"></span>
         </div>
@@ -3397,6 +3402,33 @@ function addCrossSellToCart(idx){
   showToast('Agregado al carrito.');
   renderCartView();
 }
+/* Batch time is Peru local time (PET, UTC-5, no DST). These mirror
+   netlify/functions/_peru-time.js — the server normalizes and is the
+   authority; this is presentation only. Duplicated rather than imported
+   because this is a plain <script>, not a module (same pattern already
+   used for TAX_ZONE_THRESHOLD_USD). */
+const DEFAULT_BATCH_HOUR = 9;
+
+function normalizeBatchHour(value){
+  const isNumeric = typeof value === 'number' || (typeof value === 'string' && value.trim() !== '');
+  if (!isNumeric) return DEFAULT_BATCH_HOUR;
+  const n = Number(value);
+  return Number.isInteger(n) && n >= 0 && n <= 23 ? n : DEFAULT_BATCH_HOUR;
+}
+
+function formatBatchHourEs(hour){
+  const h = normalizeBatchHour(hour);
+  const suffix = h < 12 ? 'a. m.' : 'p. m.';
+  const display = h % 12 === 0 ? 12 : h % 12;
+  return `${display}:00 ${suffix}`;
+}
+
+// Always names the zone — a Peru shopper on a phone set to another
+// timezone must not have to guess which 9am this is.
+function batchTimeLabel(hour){
+  return `${formatBatchHourEs(hour)} (hora de Perú)`;
+}
+
 // Live "quedan X cupos hoy" — reads the same settings/counter
 // netlify/functions/orders-remaining.js exposes (public, no auth) that
 // orders-create.js enforces at actual checkout time. Never blocks
@@ -3413,7 +3445,7 @@ async function loadOrderCapStatus(){
       banner.style.background = 'var(--yellow)';
       banner.hidden = false;
     } else if (data.remaining <= 0){
-      banner.textContent = `Se completó el cupo de pedidos de hoy (${data.cap}) — tu carrito se guarda automáticamente y tu pedido entra en el primer lote de mañana, a las 9:00 a. m.`;
+      banner.textContent = `Se completó el cupo de pedidos de hoy (${data.cap}) — tu carrito se guarda automáticamente y tu pedido entra en el primer lote de mañana, a las ${batchTimeLabel(data.batchHour)}.`;
       banner.style.background = 'var(--yellow)';
       banner.hidden = false;
     } else if (data.remaining <= 10){
@@ -3451,6 +3483,10 @@ async function openAdmin(){
     if (!res.ok) throw new Error(settings.error || 'Error');
     document.getElementById('adminPaused').checked = Boolean(settings.paused);
     document.getElementById('adminDailyCap').value = settings.dailyCap;
+    const hourSel = document.getElementById('adminBatchHour');
+    hourSel.innerHTML = Array.from({ length: 24 }, (_, h) =>
+      `<option value="${h}">${formatBatchHourEs(h)}</option>`).join('');
+    hourSel.value = String(normalizeBatchHour(settings.batchHour));
     document.getElementById('adminGate').innerHTML = '';
     document.getElementById('adminContent').hidden = false;
     await loadAdminOrders();
@@ -3469,6 +3505,7 @@ async function saveAdminSettings(){
       body: JSON.stringify({
         paused: document.getElementById('adminPaused').checked,
         dailyCap: parseInt(document.getElementById('adminDailyCap').value, 10) || 0,
+        batchHour: parseInt(document.getElementById('adminBatchHour').value, 10),
       }),
     });
     if (!res.ok) throw new Error();
