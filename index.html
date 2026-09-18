@@ -3108,8 +3108,116 @@ function renderCartView(){
 // Stubs — real implementations land in later phases of this same build
 // (tax-zone bar, cross-sell rail, order-cap/kill-switch status). Kept as
 // safe no-ops here so the cart page works standalone before those ship.
-function renderTaxZoneBar(_usdSubtotal){}
-function renderCrossSellRail(){}
+// Peru's real $200 de minimis threshold and ~23% duty/IGV rate — mirrors
+// weight-data.js's DUTY_THRESHOLD_USD/DUTY_RATE exactly (checkout.html
+// imports that module directly; this plain <script> can't, so the two
+// numbers are duplicated here rather than restructuring module loading —
+// same pattern checkout.html already uses for its own small self-
+// contained copies of shared constants/helpers). If that policy ever
+// changes, update both places.
+const TAX_ZONE_THRESHOLD_USD = 200;
+const TAX_ZONE_RATE = 0.23;
+const TAX_ZONE_AMBER_START_USD = 150;
+
+// Lives on the cart page (not checkout) per the brief — never distract at
+// the payment step. usdSubtotal is the same USD FOB total (pre-shipping)
+// used for the AVI Courier quote, computed from cartTotals().priceUsd.
+// Informational only: states the real rule, never coaches splitting
+// orders to dodge duties (Peru's anti-fraccionamiento rules are a real
+// legal question for AVI, not something to route around here).
+function renderTaxZoneBar(usdSubtotal){
+  const wrap = document.getElementById('taxZoneBarWrap');
+  if (!wrap) return;
+  if (!(usdSubtotal > 0)){ wrap.innerHTML = ''; return; }
+
+  const pct = Math.min(100, Math.round((usdSubtotal / TAX_ZONE_THRESHOLD_USD) * 100));
+  const dutyPct = Math.round(TAX_ZONE_RATE * 100);
+  let color, copy;
+  if (usdSubtotal > TAX_ZONE_THRESHOLD_USD){
+    color = '#C0392B';
+    copy = `Este pedido supera los $${TAX_ZONE_THRESHOLD_USD} y entrará en zona de impuestos (~${dutyPct}% adicional).`;
+  } else if (usdSubtotal >= TAX_ZONE_AMBER_START_USD){
+    color = 'var(--yellow-dark)';
+    copy = `Te acercas a la zona de impuestos ($${TAX_ZONE_THRESHOLD_USD}). Si pasas de $${TAX_ZONE_THRESHOLD_USD}, este pedido paga ~${dutyPct}% en impuestos de importación. Recuerda: los pedidos menores a $${TAX_ZONE_THRESHOLD_USD} no pagan impuestos.`;
+  } else {
+    color = 'var(--green)';
+    copy = `Vas en $${Math.round(usdSubtotal)} — sin impuestos.`;
+  }
+
+  wrap.innerHTML = `
+    <div class="rounded-2xl border p-4" style="border-color:var(--line)">
+      <div class="h-2 rounded-full overflow-hidden mb-2.5" style="background:var(--line)">
+        <div class="h-full rounded-full" style="width:${pct}%; background:${color}; transition:width 0.3s ease"></div>
+      </div>
+      <p class="text-[12.5px] font-semibold leading-snug" style="color:var(--navy)">${escapeHtml(copy)}</p>
+    </div>`;
+}
+// "Productos que no existen en Perú" — impulse add-ons from the same
+// retailer(s) already in the cart (near-zero marginal shipping, same
+// box). Sourced from department-cache.json's real candy_chocolate bucket
+// (already scraped, see collectTiles()/DEPARTMENT_CONFIG — no new
+// scraper), keyword-matched down to snack/gum/travel-beauty items.
+// FLAGGING (not verified): DIGESA food-import rules for Peru haven't been
+// confirmed with the courier — chocolate-heavy items are excluded here
+// specifically because of transit-heat risk, per your own note, until
+// that's confirmed.
+const CROSS_SELL_KEYWORDS = /sour|skittles|cheetos|gum\b|gummy|starburst|airheads|nerds|jolly rancher|travel size|travel-size|mini\b/i;
+const CROSS_SELL_EXCLUDE = /chocolate|cocoa|candy bar|fudge/i;
+let crossSellItems = [];
+
+async function renderCrossSellRail(){
+  const wrap = document.getElementById('crossSellRailWrap');
+  if (!wrap) return;
+  if (!cart.length){ wrap.innerHTML = ''; return; }
+
+  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
+  // Bail if the cart changed (or emptied) while the cache was loading —
+  // this render is now stale.
+  if (!cart.length) return;
+
+  const cartRetailers = new Set(cart.map(it => it.retailer));
+  const seen = new Set();
+  const candidates = [];
+  for (const retailer of cartRetailers){
+    const bucket = departmentCacheData.retailers?.[retailer]?.departments?.candy_chocolate;
+    for (const raw of bucket?.items || []){
+      const it = normalizeLiveItem(raw);
+      if (!it.title || !it.image || it.price == null) continue;
+      if (CROSS_SELL_EXCLUDE.test(it.title) || !CROSS_SELL_KEYWORDS.test(it.title)) continue;
+      const key = retailer + '::' + it.title;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      candidates.push({ ...it, retailer });
+    }
+  }
+  crossSellItems = candidates.slice(0, 8);
+
+  if (!crossSellItems.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `
+    <div class="mb-3">
+      <div class="text-[15px] font-extrabold" style="color:var(--navy)">Productos que no existen en Perú</div>
+      <div class="text-[12px] text-zinc-500">Van en la misma caja — envío casi gratis agregándolos ahora.</div>
+    </div>
+    <div class="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 snap-x">
+      ${crossSellItems.map((it, i) => `
+        <button onclick="addCrossSellToCart(${i})" class="flex-shrink-0 w-[130px] text-left rounded-2xl border overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)] snap-start" style="border-color:var(--line)">
+          <div class="h-[100px]" style="background:var(--sky)"><img src="${escapeHtml(it.image)}" class="w-full h-full object-cover" alt=""></div>
+          <div class="p-2.5">
+            <div class="text-[11px] font-bold leading-tight truncate">${escapeHtml(it.title)}</div>
+            <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtPriceLabel(it.price)}</div>
+          </div>
+        </button>
+      `).join('')}
+    </div>`;
+}
+
+function addCrossSellToCart(idx){
+  const it = crossSellItems[idx];
+  if (!it) return;
+  addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg, image: it.image || '', selectedSize: '' });
+  showToast('Agregado al carrito.');
+  renderCartView();
+}
 // Live "quedan X cupos hoy" — reads the same settings/counter
 // netlify/functions/orders-remaining.js exposes (public, no auth) that
 // orders-create.js enforces at actual checkout time. Never blocks
