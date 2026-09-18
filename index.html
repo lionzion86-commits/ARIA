@@ -1515,8 +1515,12 @@
   animation: ariaBubbleIn 0.35s ease-out;
 }
 </style>
+<!-- Position is driven by the swim loop (ariaOrbSwim below): fixed at the
+     origin, moved with a transform, starting at the bottom-right corner it
+     used to sit in. The trail lives in #ariaOrbTrail, behind it. -->
+<div id="ariaOrbTrail" aria-hidden="true" class="fixed inset-0 z-30 pointer-events-none overflow-hidden"></div>
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
-  class="fixed bottom-5 right-5 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring transition">
+  class="fixed left-0 top-0 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring">
   <div id="assistantIconSpark" class="relative" style="width:86px;height:86px;">
     <img id="ariaOrbImg" src="assets/orb-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
     <span class="aria-orb-ring" aria-hidden="true"></span>
@@ -3376,6 +3380,112 @@ function autoPartCacheKey(vehicle, query){
   return `${vehicle.year}|${vehicle.make}|${vehicle.model}|${query}`.toLowerCase();
 }
 
+/* ============================================================
+   SPANISH -> ENGLISH PARTS DICTIONARY
+
+   The retailer's catalog is in English; our customers type Spanish. The
+   query used to go across verbatim — "pastillas de freno" hit AutoZone's
+   search as a Spanish phrase and matched on luck. This translates first,
+   deterministically: same query in, same English term out, for every
+   vehicle, every time. No model call, nothing that can drift between two
+   identical searches.
+
+   Longest phrase first, so "filtro de aire de cabina" cannot be eaten by
+   "filtro de aire". Unknown terms pass through untouched — a customer
+   typing English, a part number, or a brand still searches for exactly
+   what they typed.
+   ============================================================ */
+const AUTO_PART_TERMS_ES_EN = [
+  ['pastillas de freno', 'brake pads'],
+  ['balatas de freno', 'brake pads'],
+  ['balatas', 'brake pads'],
+  ['discos de freno', 'brake rotors'],
+  ['disco de freno', 'brake rotor'],
+  ['rotor de freno', 'brake rotor'],
+  ['zapatas de freno', 'brake shoes'],
+  ['mordaza de freno', 'brake caliper'],
+  ['cal\u00edper de freno', 'brake caliper'],
+  ['l\u00edquido de frenos', 'brake fluid'],
+  ['filtro de aire de cabina', 'cabin air filter'],
+  ['filtro de cabina', 'cabin air filter'],
+  ['filtro de habit\u00e1culo', 'cabin air filter'],
+  ['filtro de aceite', 'oil filter'],
+  ['filtro de aire', 'engine air filter'],
+  ['filtro de combustible', 'fuel filter'],
+  ['aceite de motor', 'motor oil'],
+  ['buj\u00edas de encendido', 'spark plugs'],
+  ['buj\u00edas', 'spark plugs'],
+  ['bobina de encendido', 'ignition coil'],
+  ['bater\u00eda', 'car battery'],
+  ['alternador', 'alternator'],
+  ['motor de arranque', 'starter motor'],
+  ['marcha', 'starter motor'],
+  ['radiador', 'radiator'],
+  ['bomba de agua', 'water pump'],
+  ['bomba de gasolina', 'fuel pump'],
+  ['termostato', 'thermostat'],
+  ['refrigerante', 'coolant'],
+  ['anticongelante', 'antifreeze'],
+  ['correa de distribuci\u00f3n', 'timing belt'],
+  ['correa de tiempo', 'timing belt'],
+  ['correa serpentina', 'serpentine belt'],
+  ['correa de accesorios', 'serpentine belt'],
+  ['amortiguadores', 'shock absorbers'],
+  ['amortiguador', 'shock absorber'],
+  ['brazo de control', 'control arm'],
+  ['r\u00f3tula', 'ball joint'],
+  ['terminal de direcci\u00f3n', 'tie rod end'],
+  ['eje homocin\u00e9tico', 'cv axle'],
+  ['junta homocin\u00e9tica', 'cv joint'],
+  ['rodamiento de rueda', 'wheel bearing'],
+  ['balero de rueda', 'wheel bearing'],
+  ['limpiaparabrisas', 'windshield wiper blades'],
+  ['plumillas', 'windshield wiper blades'],
+  ['escobillas', 'windshield wiper blades'],
+  ['espejo lateral', 'side mirror'],
+  ['espejo retrovisor', 'rearview mirror'],
+  ['parrilla', 'grille'],
+  ['faro delantero', 'headlight'],
+  ['faros', 'headlights'],
+  ['calavera', 'tail light'],
+  ['luz trasera', 'tail light'],
+  ['foco', 'light bulb'],
+  ['silenciador', 'muffler'],
+  ['escape', 'exhaust'],
+  ['catalizador', 'catalytic converter'],
+  ['embrague', 'clutch kit'],
+  ['clutch', 'clutch kit'],
+  ['llantas', 'tires'],
+  ['llanta', 'tire'],
+  ['neum\u00e1ticos', 'tires'],
+  ['neum\u00e1tico', 'tire'],
+  ['tapa de radiador', 'radiator cap'],
+  ['sensor de ox\u00edgeno', 'oxygen sensor'],
+  ['sensor de oxigeno', 'oxygen sensor'],
+  ['cilindro maestro', 'master cylinder'],
+].sort((a, b) => b[0].length - a[0].length);
+
+// Accent- and case-insensitive, so "bujias" works as well as "buj\u00edas".
+const deaccent = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+/** Spanish part terms -> the English the retailer's catalog actually uses. */
+function translatePartQuery(query){
+  let out = String(query || '').trim();
+  if (!out) return out;
+  const flat = deaccent(out);
+  for (const [es, en] of AUTO_PART_TERMS_ES_EN){
+    const esFlat = deaccent(es);
+    const idx = flat.indexOf(esFlat);
+    if (idx === -1) continue;
+    // Whole words only: "foco" must not fire inside "enfocado".
+    const before = flat[idx - 1], after = flat[idx + esFlat.length];
+    const isWordChar = (c) => c != null && /[a-z0-9]/.test(c);
+    if (isWordChar(before) || isWordChar(after)) continue;
+    return (out.slice(0, idx) + en + out.slice(idx + es.length)).replace(/\s+/g, ' ').trim();
+  }
+  return out;
+}
+
 const AUTO_PARTS_SOURCES = [
   {
     id: 'autozone',
@@ -3384,7 +3494,8 @@ const AUTO_PARTS_SOURCES = [
       const cache = await loadAutoCache();
       const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.autozone;
       if (cached?.length) return cached.map(it => normalizeAutoPartItem('autozone', it));
-      const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
+      // Translated before it leaves: the catalog is in English.
+      const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
       const rawItems = await scrapeRetailer('autozone', combined, maxItems);
       return rawItems.map(it => normalizeAutoPartItem('autozone', it));
     },
@@ -3727,7 +3838,11 @@ let autoPartsRendered = [];
 function openAutoPart(idx){
   const p = autoPartsRendered[idx];
   if (!p) return;
-  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', [], false, '',
+  // The axle travels with the product into the detail view and the cart —
+  // "Duralast Ceramic Brake Pads" alone is the same string for both axles,
+  // which is exactly how someone ends up with the wrong set.
+  const title = p.axle ? `${p.title} (${AXLE_LABEL_ES[p.axle]})` : p.title;
+  showProduct(p.retailer, title, p.price, p.weightKg, p.image || '', [], false, '',
     p.rating != null ? String(p.rating) : '');
 }
 
@@ -3752,6 +3867,143 @@ function fitmentBadgeHTML(vehicle, verified){
     : `<span class="${base}" style="background:#8A6B1F; color:#fff">Verifica el calce · ${escapeHtml(label)}</span>`;
 }
 
+/* ============================================================
+   NO FITMENT DATA IS AN ANSWER, NOT A REASON TO GUESS
+
+   Root cause, established from real searches: "pastillas de freno" works
+   for an Audi A4, a 2023 Elantra and a 2019 Yaris, and fails for a 2023
+   Yaris — because that model year was never sold in the US, so no US
+   retailer holds fitment for it. The keyword search still returned
+   something (universal parts, accessories, junk) and the page showed it
+   under a compatibility badge. That is the worst possible answer: wrong
+   parts, presented as right.
+
+   The only fitment signal AutoZone returns is vehicle_fitment, which is
+   VEHICLE_SPECIFIC or UNIVERSAL. So: if NOT ONE result is vehicle
+   specific, we have no fitment data for this vehicle, and we say so
+   instead of showing a list. When we do have it, the vehicle-specific
+   results are what we show — a universal air freshener is not an answer
+   to "brake pads for my car".
+   ============================================================ */
+function hasFitmentData(items){
+  return items.some(it => it?.raw?.vehicle_fitment === 'VEHICLE_SPECIFIC');
+}
+
+function vehicleFittedItems(items){
+  return items.filter(it => it?.raw?.vehicle_fitment === 'VEHICLE_SPECIFIC');
+}
+
+/* A tally, not a log of people: vehicle + part, so the gaps can be
+   prioritised. Never blocks or fails the search. */
+function logFitmentGap(vehicle, query){
+  if (!vehicle) return;
+  try {
+    fetch('/.netlify/functions/fitment-gap-log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year: vehicle.year, make: vehicle.make, model: vehicle.model, query }),
+      keepalive: true,
+    }).catch(() => {});
+  } catch { /* never let a tally break a search */ }
+}
+
+function fitmentGapHTML(label, vehicle, query){
+  const v = escapeHtml(vehicleLabel(vehicle));
+  return `<div class="mb-8">
+    <div class="mb-3">${retailerBadgeHTML(label, 22)}</div>
+    <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
+      <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">No tenemos datos de calce para tu ${v} en tiendas de EE. UU.</div>
+      <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
+        Ese modelo no se vendió en Estados Unidos, así que las tiendas de allá no tienen el calce registrado.
+        No vamos a mostrarte repuestos que quizá no encajen: preferimos decirte la verdad.
+      </p>
+      <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">
+        Escríbenos qué pieza necesitas y la buscamos manualmente
+      </button>
+    </div>
+  </div>`;
+}
+
+/* The concierge path: opens Aria with the vehicle and part already in the
+   box, so the customer does not retype what they just told us. */
+function askAriaForPart(vehicleText, query){
+  const input = document.getElementById('assistantInput');
+  if (typeof toggleAssistant === 'function' && document.getElementById('assistantPanel')?.classList.contains('hidden')) toggleAssistant();
+  if (input){
+    input.value = `Necesito ${query || 'un repuesto'} para mi ${vehicleText}. ¿Pueden buscarlo manualmente?`;
+    input.focus();
+  }
+}
+
+/* ============================================================
+   AXLE POSITION — wrong axle is a return, every time
+
+   Brake pads are sold per axle and the two are not interchangeable: a
+   front set on a rear axle does not fit. AutoZone states it, in
+   `location` ("Front" / "Rear") — present on all 2,120 cached pad
+   listings — and the cards were dropping it, so a customer picked between
+   two identical-looking "Duralast Ceramic Brake Pads" by price alone.
+
+   Every axle-specific listing now carries its position, each card carries
+   its OWN weight for that axle (a front set is heavier than a rear one,
+   so the freight line differs), and when both exist for the vehicle a
+   selector swaps between them — product, price and weight together,
+   because they are three views of the same choice.
+   ============================================================ */
+const AXLE_LABEL_ES = { front: 'Delantero', rear: 'Trasero' };
+
+/** The retailer's own position field, or the title when it says so. */
+function axleFromItem(item){
+  const loc = String(item?.raw?.location || '').toLowerCase();
+  if (loc === 'front') return 'front';
+  if (loc === 'rear') return 'rear';
+  const title = String(item?.title || '');
+  if (/\bfront\b|delanter[oa]/i.test(title) && !/\brear\b|traser[oa]/i.test(title)) return 'front';
+  if (/\brear\b|traser[oa]/i.test(title) && !/\bfront\b|delanter[oa]/i.test(title)) return 'rear';
+  return null;
+}
+
+/** Per-item weight: the axle the listing is for, not an average of both. */
+function partWeightForItem(item, query, vehicle){
+  const axle = axleFromItem(item);
+  if (!axle) return estimatePartWeightKg(query, vehicle);
+  // The estimator already reads an axle out of the query text (see
+  // detectAxle) — this just tells it which one this listing is.
+  return estimatePartWeightKg(`${query} ${axle === 'front' ? 'delantera' : 'trasera'}`, vehicle);
+}
+
+function axleBadgeHTML(axle){
+  if (!axle) return '';
+  return `<span class="absolute left-3 text-[11.5px] font-extrabold px-2.5 py-1 rounded-full shadow-[0_3px_10px_rgba(0,0,0,0.16)]" style="top:52px; background:var(--navy); color:#fff">${AXLE_LABEL_ES[axle]}</span>`;
+}
+
+/* Swaps which axle's listings are on screen. Cards carry their own price
+   and weight, so filtering the grid swaps all three together. */
+function setAutoAxleFilter(blockId, axle){
+  const block = document.getElementById(blockId);
+  if (!block) return;
+  block.querySelectorAll('[data-axle]').forEach(el => {
+    el.hidden = axle !== 'all' && el.getAttribute('data-axle') !== axle;
+  });
+  block.querySelectorAll('[data-axle-btn]').forEach(btn => {
+    const on = btn.getAttribute('data-axle-btn') === axle;
+    btn.style.background = on ? 'var(--navy)' : '#fff';
+    btn.style.color = on ? '#fff' : 'var(--navy)';
+    btn.setAttribute('aria-pressed', String(on));
+  });
+}
+
+function axleSelectorHTML(blockId){
+  const opt = (value, text) => `<button type="button" data-axle-btn="${value}" aria-pressed="${value === 'all'}"
+    onclick="setAutoAxleFilter('${blockId}', '${value}')"
+    class="h-9 px-4 rounded-full border text-[13px] font-bold focus-ring transition"
+    style="border-color:var(--line); background:${value === 'all' ? 'var(--navy)' : '#fff'}; color:${value === 'all' ? '#fff' : 'var(--navy)'}">${text}</button>`;
+  return `<div class="flex items-center gap-2 mb-4 flex-wrap">
+    <span class="text-[12.5px] font-semibold mr-1" style="color:#5B6478">Posición:</span>
+    ${opt('all', 'Todos')}${opt('front', 'Delantero')}${opt('rear', 'Trasero')}
+  </div>`;
+}
+
 function renderAutoPartBlock(label, result, query){
   const header = `<div class="mb-3">${retailerBadgeHTML(label, 22)}</div>`;
   if (!result.ok){
@@ -3760,9 +4012,20 @@ function renderAutoPartBlock(label, result, query){
     </div>`;
   }
   const rawItems = Array.isArray(result.items) ? result.items : [];
+  /* No fitment data for this vehicle: say so, show nothing, log the gap.
+     Never fall back to the unfiltered result set (see hasFitmentData). */
+  if (rawItems.length && !hasFitmentData(rawItems)){
+    logFitmentGap(selectedVehicle, query);
+    return fitmentGapHTML(label, selectedVehicle, query);
+  }
   // Car-fitment results carry car parts only: lawn, wheelbarrow, trailer
-  // and ATV tires are dropped here (see filterAutomotiveParts).
-  const items = filterAutomotiveParts(rawItems, query);
+  // and ATV tires are dropped here (see filterAutomotiveParts), and only
+  // vehicle-specific parts are shown when we have fitment at all.
+  const items = filterAutomotiveParts(vehicleFittedItems(rawItems), query);
+  if (!rawItems.length){
+    logFitmentGap(selectedVehicle, query);
+    return fitmentGapHTML(label, selectedVehicle, query);
+  }
   if (!items.length){
     const droppedAll = rawItems.length > 0;
     return `<div class="mb-6">${header}
@@ -3781,25 +4044,36 @@ function renderAutoPartBlock(label, result, query){
   // category in the query, not from the item (AutoZone exposes no
   // per-SKU weight in any scrape mode — see estimatePartWeightKg).
   const vehicle = selectedVehicle;
-  const weightKg = estimatePartWeightKg(query, vehicle);
+  const blockId = `autoBlockGrid-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, '')}`;
+  const axles = new Set(items.map(axleFromItem).filter(Boolean));
   let verifiedCount = 0;
   const cards = items.map((it) => {
+    const axle = axleFromItem(it);
     const card = {
       retailer: label,
       title: it.title,
       price: it.price,
-      weightKg,
+      // Each listing's own axle weight — a front set is heavier than a
+      // rear one, so the freight line on the card differs too.
+      weightKg: partWeightForItem(it, query, vehicle),
       image: it.image || '',
       rating: it.rating != null ? it.rating : null,
+      axle,
     };
     // Per item, not per block: one confirmed part does not vouch for the
     // rest of the results.
     const verified = fitmentVerified(it, vehicle);
     if (verified) verifiedCount++;
     const idx = autoPartsRendered.push(card) - 1;
-    return productCardHTML(card, { open: `openAutoPart(${idx})`, badgeHTML: fitmentBadgeHTML(vehicle, verified) });
+    return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {
+      open: `openAutoPart(${idx})`,
+      badgeHTML: fitmentBadgeHTML(vehicle, verified) + axleBadgeHTML(axle),
+    })}</div>`;
   }).join('');
   const dropped = rawItems.length - items.length;
+  // Only when the vehicle really has both — a selector with one option is
+  // a dead control.
+  const selector = axles.has('front') && axles.has('rear') ? axleSelectorHTML(blockId) : '';
   /* The line states what the search was for, not a verified fit:
      AutoZone's actor is a keyword search ("2023 Toyota Yaris llantas"),
      with no VIN or fitment API behind it, so the cards say "Verifica el
@@ -3815,7 +4089,8 @@ function renderAutoPartBlock(label, result, query){
     <p class="text-[11.5px] mb-3" style="color:#8A93A8">${scopeLine}${dropped > 0 && isTireQuery(query)
       ? ` Ocultamos ${dropped} resultado${dropped === 1 ? '' : 's'} que no ${dropped === 1 ? 'era' : 'eran'} de auto (jardín, carretilla o remolque).`
       : ''}</p>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">${cards}</div>
+    ${selector}
+    <div id="${blockId}" class="grid grid-cols-1 md:grid-cols-2 gap-5">${cards}</div>
   </div>`;
 }
 
@@ -5191,6 +5466,187 @@ function setOrbState(state){
   el.classList.toggle('is-speaking', state === 'speaking');
 }
 
+/* ============================================================
+   ORB MOTION — "she swims, she doesn't sit"
+
+   The orb used to pulse in a corner: alive, but static, which reads as a
+   logo rather than a presence. It now drifts slowly around the rim of the
+   screen, trailing light, pausing and changing its mind the way something
+   alive does, and drifting a little toward the cursor when you come near.
+
+   RULES IT MUST NOT BREAK:
+   - It never blocks content or clicks. The trail is pointer-events:none
+     and the orb stays in a band along the rim, never over the middle of
+     the page.
+   - It never crosses the header (y is clamped below it), so it cannot
+     cover the nav.
+   - It stops while the chat panel is open — a moving target is a hostile
+     thing to try to click — and resumes when it closes.
+   - prefers-reduced-motion: no drift at all, it simply sits where it was.
+   ============================================================ */
+const ORB_SIZE = 96;
+const ORB_MARGIN = 20;          // gap from the viewport edge
+const ORB_TOP_SAFE = 120;       // never above this: the header lives there
+const ORB_SPEED_PX_S = 26;      // a drift, not a journey
+const ORB_TRAIL_DOTS = 7;
+const ORB_CURSOR_RANGE = 220;   // how close the pointer has to be to interest her
+const ORB_CURSOR_PULL = 0.16;   // and how much she leans toward it
+
+const orbSwim = {
+  x: 0, y: 0, targetX: 0, targetY: 0,
+  dir: 1,               // which way around the rim
+  pauseUntil: 0,        // lifelike stops
+  pointer: null,
+  trail: [],
+  started: false,
+};
+
+function orbBounds(){
+  return {
+    minX: ORB_MARGIN,
+    maxX: Math.max(ORB_MARGIN, window.innerWidth - ORB_SIZE - ORB_MARGIN),
+    minY: ORB_TOP_SAFE,
+    maxY: Math.max(ORB_TOP_SAFE, window.innerHeight - ORB_SIZE - ORB_MARGIN),
+  };
+}
+
+/* The rim as a single loop: right edge down, bottom edge left, left edge
+   up, top edge right. Progress 0..1 maps to a point on it, so "keep
+   going" and "turn around" are both just moving along one number. */
+function orbRimPoint(progress){
+  const b = orbBounds();
+  const w = Math.max(1, b.maxX - b.minX), h = Math.max(1, b.maxY - b.minY);
+  const perimeter = 2 * (w + h);
+  let d = ((progress % 1) + 1) % 1 * perimeter;
+  if (d < h) return { x: b.maxX, y: b.minY + d };
+  d -= h;
+  if (d < w) return { x: b.maxX - d, y: b.maxY };
+  d -= w;
+  if (d < h) return { x: b.minX, y: b.maxY - d };
+  d -= h;
+  return { x: b.minX + d, y: b.minY };
+}
+
+// Set in startOrbSwim() to the bottom-right corner — where the orb has
+// always lived, so nothing jumps on first paint.
+let orbProgress = 0;
+
+function orbPickNextLeg(now){
+  // Mostly carries on the way she was going; now and then she turns
+  // around, which is what makes it read as a decision rather than a loop.
+  if (Math.random() < 0.18) orbSwim.dir *= -1;
+  // Legs are short and uneven — a fixed stride would read as a carousel.
+  // At ORB_SPEED_PX_S this is roughly 5-14 seconds of travel, so a pause
+  // or a turn lands often enough to notice.
+  orbSwim.legLength = 0.04 + Math.random() * 0.07;
+  // Long enough to read as a stop, not a stutter: the eased follow takes
+  // about a second to settle, so a shorter pause would never be seen.
+  orbSwim.pauseUntil = now + (Math.random() < 0.6 ? 1600 + Math.random() * 2600 : 0);
+}
+
+function orbStep(now){
+  const panelOpen = !document.getElementById('assistantPanel')?.classList.contains('hidden');
+  const dt = Math.min(0.05, (now - (orbSwim.lastTs || now)) / 1000);
+  orbSwim.lastTs = now;
+
+  if (!panelOpen && now >= orbSwim.pauseUntil){
+    const b = orbBounds();
+    const perimeter = 2 * ((b.maxX - b.minX) + (b.maxY - b.minY));
+    orbProgress += orbSwim.dir * (ORB_SPEED_PX_S * dt) / Math.max(1, perimeter);
+    // At the end of a leg she pauses, or turns, or both.
+    if (Math.abs(orbProgress - (orbSwim.legStart ?? 0)) > (orbSwim.legLength ?? 0.1)){
+      orbSwim.legStart = orbProgress;
+      orbPickNextLeg(now);
+    }
+  }
+
+  const rim = orbRimPoint(orbProgress);
+  let tx = rim.x, ty = rim.y;
+
+  // Curiosity: a lean toward the pointer when it comes near, capped so she
+  // never leaves the rim band or chases the cursor across the page.
+  if (orbSwim.pointer && !panelOpen){
+    const cx = orbSwim.x + ORB_SIZE / 2, cy = orbSwim.y + ORB_SIZE / 2;
+    const dx = orbSwim.pointer.x - cx, dy = orbSwim.pointer.y - cy;
+    const dist = Math.hypot(dx, dy);
+    if (dist < ORB_CURSOR_RANGE && dist > 1){
+      const lean = ORB_CURSOR_PULL * (1 - dist / ORB_CURSOR_RANGE);
+      tx += dx * lean;
+      ty += dy * lean;
+    }
+  }
+
+  const b = orbBounds();
+  orbSwim.targetX = Math.min(b.maxX, Math.max(b.minX, tx));
+  orbSwim.targetY = Math.min(b.maxY, Math.max(b.minY, ty));
+
+  // Eased follow: the orb never snaps, it glides.
+  orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
+  orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
+
+  const btn = document.getElementById('assistantBtn');
+  if (btn) btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0)`;
+
+  // The trail: each dot follows the one ahead of it, so the whole thing
+  // lags and fades behind her like light in water.
+  let leadX = orbSwim.x + ORB_SIZE / 2, leadY = orbSwim.y + ORB_SIZE / 2;
+  for (const dot of orbSwim.trail){
+    dot.x += (leadX - dot.x) * 0.22;
+    dot.y += (leadY - dot.y) * 0.22;
+    dot.el.style.transform = `translate3d(${Math.round(dot.x - dot.size / 2)}px, ${Math.round(dot.y - dot.size / 2)}px, 0)`;
+    leadX = dot.x; leadY = dot.y;
+  }
+
+  requestAnimationFrame(orbStep);
+}
+
+// Called at the end of this script, once every const above exists: a
+// call from the earlier init block would hit the temporal dead zone.
+function startOrbSwim(){
+  if (orbSwim.started) return;
+  const btn = document.getElementById('assistantBtn');
+  const trailWrap = document.getElementById('ariaOrbTrail');
+  if (!btn || !trailWrap) return;
+  orbSwim.started = true;
+
+  // Progress 0 is the top-right corner and runs down the right edge, so
+  // the bottom-right corner — her old home — is exactly one edge along.
+  const bStart = orbBounds();
+  const hStart = Math.max(1, bStart.maxY - bStart.minY);
+  const perimeterStart = 2 * ((bStart.maxX - bStart.minX) + hStart);
+  orbProgress = hStart / perimeterStart;
+  const rim = orbRimPoint(orbProgress);
+  orbSwim.x = rim.x; orbSwim.y = rim.y;
+  orbSwim.legStart = orbProgress;
+  orbPickNextLeg(performance.now());
+  btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0)`;
+
+  // Someone who asked for less motion gets none of this: the orb stays
+  // where it is and keeps only its breathing.
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  for (let i = 0; i < ORB_TRAIL_DOTS; i++){
+    const size = 46 - i * 5;
+    const el = document.createElement('span');
+    el.className = 'absolute rounded-full';
+    el.style.cssText = `width:${size}px;height:${size}px;left:0;top:0;pointer-events:none;` +
+      `background:radial-gradient(circle at 50% 50%, rgba(120,170,255,${0.30 - i * 0.035}), rgba(120,170,255,0));` +
+      `filter:blur(${5 + i}px);will-change:transform;`;
+    trailWrap.appendChild(el);
+    orbSwim.trail.push({ el, size, x: orbSwim.x + ORB_SIZE / 2, y: orbSwim.y + ORB_SIZE / 2 });
+  }
+
+  window.addEventListener('pointermove', (e) => { orbSwim.pointer = { x: e.clientX, y: e.clientY }; }, { passive: true });
+  window.addEventListener('pointerleave', () => { orbSwim.pointer = null; }, { passive: true });
+  window.addEventListener('resize', () => {
+    const b = orbBounds();
+    orbSwim.x = Math.min(b.maxX, Math.max(b.minX, orbSwim.x));
+    orbSwim.y = Math.min(b.maxY, Math.max(b.minY, orbSwim.y));
+  }, { passive: true });
+
+  requestAnimationFrame(orbStep);
+}
+
 function toggleAssistant(){
   assistantOpen = !assistantOpen;
   document.getElementById('assistantPanel').classList.toggle('hidden', !assistantOpen);
@@ -5775,6 +6231,7 @@ function speakWithAria(audioBase64, ariaText){
   btn.addEventListener('mouseenter', () => { if (AC.state==='suspended') AC.resume(); twinkle(); });
   btn.addEventListener('click', () => { if (AC.state==='suspended') AC.resume(); pop(); setTimeout(twinkle,120); });
 })();
+startOrbSwim();
 </script>
 </body>
 </html>
