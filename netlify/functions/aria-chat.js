@@ -19,6 +19,8 @@ export async function handler(event) {
     const message = typeof body.message === "string" ? body.message : "";
     const history = sanitizeHistory(body.history);
     const products = Array.isArray(body.products) ? body.products.slice(0, 6) : [];
+    // Recipient gender/age the client extracted; see recipientRulesEs.
+    const recipient = body.recipient && typeof body.recipient === "object" ? body.recipient : null;
 
     // Step 1: Get Grok's text reply
     const chatResponse = await fetch("https://api.x.ai/v1/chat/completions", {
@@ -35,7 +37,7 @@ export async function handler(event) {
           // retailer list (which had already drifted, naming Best Buy)
           // and no shipping rules at all, so a greeting turn could invent
           // shipping figures the rest of the site never states.
-          { role: "system", content: buildSystemPrompt(products) },
+          { role: "system", content: buildSystemPrompt(products, recipient) },
           ...history,
           { role: "user", content: message },
         ],

@@ -2016,6 +2016,10 @@ const SPANISH_SYNONYMS = {
   casaca: 'jacket', casacas: 'jackets',
   buzo: 'hoodie', buzos: 'hoodies',
   zapatilla: 'sneaker', zapatillas: 'sneakers',
+  zapato: 'shoes', zapatos: 'shoes', zapatillas_deportivas: 'sneakers',
+  camisa: 'shirt', camisas: 'shirts', ropa: 'clothing',
+  juguete: 'toy', juguetes: 'toys', reloj: 'watch', relojes: 'watches',
+  lentes: 'sunglasses', billetera: 'wallet', billeteras: 'wallets',
   pantalon: 'pants', 'pantalón': 'pants', pantalones: 'pants',
   calzado: 'shoes',
   cartera: 'purse', carteras: 'purses',
@@ -4580,6 +4584,165 @@ let assistantThinking = false;
 // "New Balance 1906R en Foot Locker" appearing next to a Walmart card.
 const CHAT_RETAILER = 'walmart';
 
+/* ============================================================
+   RECIPIENT INTENT (2026-09-18)
+
+   BUG THIS FIXES: asked for "zapatos para mi sobrino de 14 años", the
+   assistant's prose correctly said "tu sobrino" while the product search
+   sent the raw sentence to Walmart with no gender or age filter — and
+   recommended "Big Kids Girls Dress Shoes". The chat text and the cards
+   disagreed about who the gift was for.
+
+   Three things happen now:
+     1. the recipient's gender and age are extracted from the conversation
+        (the whole thread, not just the last message — "para mi sobrina"
+        in one turn still applies when the next turn says only "zapatos")
+     2. they become real search keywords, so the retailer returns
+        boys'/girls'/men's/women's stock instead of a generic mix
+     3. results are POST-FILTERED: a title signalling the opposite gender
+        is never shown, whatever the retailer returned
+
+   Gender is a hard filter, age a soft one. A 14-year-old boy plausibly
+   wears men's sizes, so male-marked and unmarked titles both pass for a
+   male recipient — only female-marked ones are rejected. Age only rejects
+   the clearly-wrong band (toddler shoes for a teenager).
+   ============================================================ */
+
+// Spanish kinship and person nouns, which is how Peruvian shoppers
+// actually state the recipient. Plural-tolerant. "papa" (potato) is
+// deliberately NOT here — only the accented "papá" and "padre".
+const RECIPIENT_MALE_RE = /\b(sobrino|hijo|hermano|primo|novio|esposo|marido|papá|padre|t[íi]o|abuelo|nieto|amigo|ni[ñn]o|chico|muchacho|hombre|se[ñn]or|var[óo]n|caballero|nene)s?(?![\wáéíóúñüÁÉÍÓÚÑÜ])|(?<![\wáéíóúñüÁÉÍÓÚÑÜ])él(?![\wáéíóúñüÁÉÍÓÚÑÜ])/i;
+const RECIPIENT_FEMALE_RE = /\b(sobrina|hija|hermana|prima|novia|esposa|mamá|madre|t[íi]a|abuela|nieta|amiga|ni[ñn]a|chica|muchacha|mujer|se[ñn]ora|se[ñn]orita|dama|nena)s?(?![\wáéíóúñüÁÉÍÓÚÑÜ])|(?<![\wáéíóúñüÁÉÍÓÚÑÜ])ella(?![\wáéíóúñüÁÉÍÓÚÑÜ])/i;
+
+// Nouns that carry an age band on their own, when no number is given.
+const RECIPIENT_BABY_RE = /\b(beb[ée]|reci[ée]n\s+nacid[oa]|neonato)s?(?![\wáéíóúñüÁÉÍÓÚÑÜ])/i;
+const RECIPIENT_CHILD_RE = /\b(ni[ñn][oa]|nene|nena|chiquit[oa]|peque)s?(?![\wáéíóúñüÁÉÍÓÚÑÜ])/i;
+const RECIPIENT_ADULT_RE = /\b(hombre|mujer|se[ñn]or|se[ñn]ora|esposo|esposa|marido|papá|mamá|padre|madre|abuelo|abuela|caballero|dama)s?(?![\wáéíóúñüÁÉÍÓÚÑÜ])/i;
+
+// Kinship terms that imply a younger generation. With no age stated,
+// "algo para mi sobrina" almost always means a child, so the SEARCH is
+// biased young rather than adult. This only steers the query keyword —
+// the post-filter still accepts both girls' and women's stock, so a
+// grown-up niece is never filtered out by this guess.
+const YOUNGER_KIN_RE = /\b(sobrin[oa]|hij[oa]|niet[oa]|ahijad[oa])s?(?![\wáéíóúñüÁÉÍÓÚÑÜ])/i;
+const AGE_YEARS_RE = /(\d{1,2})\s*(?:a[ñn]os?|years?|yrs?)\b/i;
+const AGE_MONTHS_RE = /(\d{1,2})\s*(?:meses|mes|months?)\b/i;
+
+function ageBandFromYears(years){
+  if (!Number.isFinite(years)) return null;
+  if (years <= 2) return 'baby';
+  if (years <= 12) return 'kids';
+  if (years <= 17) return 'teen';
+  return 'adult';
+}
+
+/* Reads the recipient out of the conversation. `history` is scanned too,
+   oldest first, so the most RECENT statement wins — a shopper who says
+   "para mi sobrina" and then "y para mi sobrino?" gets the nephew. */
+function extractRecipient(text, history){
+  const turns = [
+    ...(Array.isArray(history) ? history : [])
+      .filter(m => m && m.role === 'user' && typeof m.content === 'string')
+      .map(m => m.content),
+    String(text || ''),
+  ];
+
+  let gender = null, ageBand = null, ageYears = null;
+  for (const turn of turns){
+    const male = RECIPIENT_MALE_RE.test(turn);
+    const female = RECIPIENT_FEMALE_RE.test(turn);
+    // Both named in one breath ("para mi sobrino y mi sobrina") is
+    // genuinely ambiguous — filtering either way would hide half of what
+    // they asked for, so no gender filter is applied.
+    if (male && !female) gender = 'male';
+    else if (female && !male) gender = 'female';
+    else if (male && female) gender = null;
+
+    const months = turn.match(AGE_MONTHS_RE);
+    const years = turn.match(AGE_YEARS_RE);
+    if (months){ ageYears = 0; ageBand = 'baby'; }
+    else if (years){ ageYears = parseInt(years[1], 10); ageBand = ageBandFromYears(ageYears); }
+    else if (RECIPIENT_BABY_RE.test(turn)) ageBand = 'baby';
+    else if (RECIPIENT_CHILD_RE.test(turn)) ageBand = 'kids';
+    else if (RECIPIENT_ADULT_RE.test(turn)) ageBand = 'adult';
+    else if (YOUNGER_KIN_RE.test(turn)) ageBand = 'kids';
+  }
+  return { gender, ageBand, ageYears };
+}
+
+// Spanish label for the reply, so the model describes the same person the
+// filter used.
+function recipientLabelEs(recipient){
+  if (!recipient.gender && !recipient.ageBand) return null;
+  const g = recipient.gender === 'male' ? 'hombre' : recipient.gender === 'female' ? 'mujer' : null;
+  const band = { baby: 'bebé', kids: 'niño/a', teen: 'adolescente', adult: 'adulto/a' }[recipient.ageBand] || null;
+  const age = recipient.ageYears ? `${recipient.ageYears} años` : null;
+  return [g, band, age].filter(Boolean).join(', ');
+}
+
+/* Turns the recipient into words the US retailer's catalogue actually
+   uses, so the search itself is narrowed rather than only the results.
+   "zapatos para mi sobrino de 14 años" -> "shoes boys". */
+function buildChatSearchQuery(text, recipient){
+  const base = translateSearchQuery(String(text || ''))
+    // Drop the Spanish framing so only the product words remain; left in,
+    // "para mi sobrino de 14 años" is noise the retailer matches badly.
+    .replace(/\bpara\s+(mi|mis|el|la|un|una)?\s*/gi, ' ')
+    .replace(new RegExp(RECIPIENT_MALE_RE.source, 'gi'), ' ')
+    .replace(new RegExp(RECIPIENT_FEMALE_RE.source, 'gi'), ' ')
+    .replace(AGE_YEARS_RE, ' ')
+    .replace(AGE_MONTHS_RE, ' ')
+    .replace(/\b(de|del|mi|mis|que|tiene|a[ñn]os?)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const extra = [];
+  if (recipient.gender === 'male'){
+    if (recipient.ageBand === 'baby') extra.push('baby boys');
+    else if (recipient.ageBand === 'kids' || recipient.ageBand === 'teen') extra.push('boys');
+    else extra.push("men's");
+  } else if (recipient.gender === 'female'){
+    if (recipient.ageBand === 'baby') extra.push('baby girls');
+    else if (recipient.ageBand === 'kids' || recipient.ageBand === 'teen') extra.push('girls');
+    else extra.push("women's");
+  } else if (recipient.ageBand === 'baby') extra.push('baby');
+  else if (recipient.ageBand === 'kids' || recipient.ageBand === 'teen') extra.push('kids');
+
+  return [base, ...extra].filter(Boolean).join(' ').trim() || base || String(text || '').trim();
+}
+
+/* What audience a product TITLE signals. Deliberately conservative:
+   anything unmarked stays null so it is not filtered out. */
+function titleAudience(title){
+  const t = String(title || '');
+  const unisex = /\bunisex\b/i.test(t);
+  let gender = null;
+  // \b is load-bearing: "Women's" contains the letters "men's", but with
+  // no word boundary before them, so /\bmen'?s\b/ does not match inside it.
+  if (/\b(girls?'?s?|ni[ñn]a)\b/i.test(t)) gender = 'female';
+  else if (/\b(boys?'?s?|ni[ñn]o)\b/i.test(t)) gender = 'male';
+  else if (/\b(women'?s?|womens|ladies|misses|mujer)\b/i.test(t)) gender = 'female';
+  else if (/\b(men'?s?|mens|hombre)\b/i.test(t)) gender = 'male';
+  if (unisex) gender = null;
+
+  let age = null;
+  if (/\b(toddler|infant|newborn|baby|beb[ée])\b/i.test(t)) age = 'baby';
+  else if (/\b(big kids?|little kids?|kids?|youth|junior|boys?|girls?)\b/i.test(t)) age = 'kids';
+  else if (/\b(men'?s?|women'?s?|mens|womens|adult)\b/i.test(t)) age = 'adult';
+  return { gender, age };
+}
+
+/* Gender is a hard filter; age only rejects the clearly-wrong band. */
+function productSuitsRecipient(title, recipient){
+  if (!recipient || (!recipient.gender && !recipient.ageBand)) return true;
+  const aud = titleAudience(title);
+  if (recipient.gender && aud.gender && aud.gender !== recipient.gender) return false;
+  const band = recipient.ageBand;
+  if ((band === 'kids' || band === 'teen' || band === 'adult') && aud.age === 'baby') return false;
+  if (band === 'baby' && aud.age === 'adult') return false;
+  return true;
+}
+
 const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion','liquidación','rebaja','rebajas','promocion','promoción'];
 
 async function runAssistantBrain(text){
@@ -4619,13 +4782,24 @@ async function runAssistantBrain(text){
        is what a full multi-retailer comparison is for. CHAT_RETAILER is
        the single source of truth for the cards AND for what the model is
        told, so the two can never disagree. */
+    // Who is this for? Read from the whole thread, not just this message.
+    const recipient = extractRecipient(text, ariaChatHistory);
+    const searchQuery = buildChatSearchQuery(text, recipient);
+
     let foundItems = [];
+    let rejectedForRecipient = 0;
     try {
-      const rawItems = await scrapeRetailer(CHAT_RETAILER, text, 3);
+      const rawItems = await scrapeRetailer(CHAT_RETAILER, searchQuery, 6); // over-fetch: some get filtered out
       await loadFxRate(); // in flight since the top of this function; settle it before formatting any price
-      foundItems = rawItems
+      const normalized = rawItems
         .map(it => normalizeLiveItem(it))
         .filter(it => it.title && it.price != null);
+      // HARD GATE: never show a product whose title signals the wrong
+      // gender for the recipient. This is the actual fix — enriching the
+      // query alone still lets a "Girls" listing through for a nephew.
+      const suitable = normalized.filter(it => productSuitsRecipient(it.title, recipient));
+      rejectedForRecipient = normalized.length - suitable.length;
+      foundItems = suitable.slice(0, 3);
     } catch (e) {
       foundItems = []; // a failed lookup just means no cards and no grounding
     }
@@ -4642,6 +4816,12 @@ async function runAssistantBrain(text){
           retailer: LIVE_RETAILER_LABEL[CHAT_RETAILER] || CHAT_RETAILER,
           priceLabel: fmtPriceLabel(it.price),
         })),
+        // So the reply describes the same person the filter used, and can
+        // say honestly when nothing matched rather than offering the
+        // wrong-gender items that were just discarded.
+        recipient: (recipient.gender || recipient.ageBand)
+          ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
+          : null,
       })
     });
 

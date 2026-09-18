@@ -36,6 +36,8 @@ export async function handler(event) {
     // here, so every turn was answered with no memory of the last one.
     const history = sanitizeHistory(body.history);
     const products = Array.isArray(body.products) ? body.products.slice(0, 6) : [];
+    // Recipient gender/age the client extracted; see recipientRulesEs.
+    const recipient = body.recipient && typeof body.recipient === "object" ? body.recipient : null;
 
     const chatResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -46,7 +48,7 @@ export async function handler(event) {
       body: JSON.stringify({
         model: "openai/gpt-oss-120b",
         messages: [
-          { role: "system", content: buildSystemPrompt(products) },
+          { role: "system", content: buildSystemPrompt(products, recipient) },
           ...history,
           { role: "user", content: message },
         ],

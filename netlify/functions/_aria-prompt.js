@@ -61,7 +61,36 @@ export const SHIPPING_RULES_ES = `REGLAS SOBRE PRECIOS, ENVÍO E IMPUESTOS — O
 
 // Binds what the reply may assert about availability, price and retailer to
 // the products the caller actually retrieved for this turn.
-export function productRulesEs(products) {
+// Who the gift is for, when the shopper said. The client extracts this
+// and applies it as a hard filter on the products BEFORE they get here,
+// so the reply must never offer something the filter already discarded.
+export function recipientRulesEs(recipient) {
+  if (!recipient) return "";
+  const bits = [];
+  if (recipient.label) bits.push(`El pedido es para: ${recipient.label}.`);
+  if (recipient.gender) {
+    const g = recipient.gender === "male" ? "hombre/niño" : "mujer/niña";
+    bits.push(`Género del destinatario: ${g}. Los productos que te pasamos ya están filtrados para ese género — NUNCA ofrezcas ropa o calzado del género opuesto, ni sugieras un producto que no esté en la lista.`);
+  }
+  if (recipient.ageYears) bits.push(`Edad: ${recipient.ageYears} años.`);
+  if (recipient.rejectedForRecipient > 0) {
+    bits.push(`Se descartaron ${recipient.rejectedForRecipient} resultado(s) por ser del género o la edad equivocada. NO los menciones ni los ofrezcas.`);
+  }
+  return bits.length ? `DESTINATARIO DEL PEDIDO:\n- ${bits.join("\n- ")}` : "";
+}
+
+export function productRulesEs(products, recipient) {
+  if (!products.length) {
+    // Distinct from a plain empty search: results existed but every one
+    // was the wrong gender/age, and saying so honestly is the requirement.
+    if (recipient && recipient.rejectedForRecipient > 0) {
+      return `BÚSQUEDA SIN RESULTADOS ADECUADOS: se encontraron productos, pero TODOS eran del género o la edad equivocada para el destinatario, así que se descartaron y no se mostrará ninguna tarjeta.
+- Dilo con honestidad: no encontraste opciones para ese destinatario en este momento.
+- NUNCA ofrezcas los productos descartados ni los describas. No son una opción.
+- Ofrece buscar otra cosa, otra categoría o afinar la talla o el estilo.
+- No inventes productos, precios ni tiendas.`;
+    }
+  }
   if (!products.length) {
     return `BÚSQUEDA SIN RESULTADOS: la búsqueda en vivo no devolvió productos para este mensaje, así que no se mostrará ninguna tarjeta.
 - Si el cliente preguntaba por un producto, di que no lo encontraste disponible EN ESTE MOMENTO y ofrece buscar otra cosa o afinar la búsqueda. No afirmes que Aria nunca vende esa categoría.
@@ -80,8 +109,13 @@ REGLAS OBLIGATORIAS SOBRE ESTOS RESULTADOS:
 - No inventes precios: si mencionas uno, usa el que aparece arriba.`;
 }
 
-export function buildSystemPrompt(products = []) {
-  return `${BASE_PROMPT_ES}\n\n${SHIPPING_RULES_ES}\n\n${productRulesEs(products)}`;
+export function buildSystemPrompt(products = [], recipient = null) {
+  return [
+    BASE_PROMPT_ES,
+    SHIPPING_RULES_ES,
+    recipientRulesEs(recipient),
+    productRulesEs(products, recipient),
+  ].filter(Boolean).join("\n\n");
 }
 
 // Only real conversation turns survive: a `system` role arriving inside
