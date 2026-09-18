@@ -1585,30 +1585,156 @@ const DEPARTMENT_THUMB_EXCLUDE = {
 // the gender filter can never apply to the grid but not the tile count
 // (or vice versa). Brands are never gendered, so they pass straight
 // through.
-function bucketItems(entry, kind, key){
-  // A confirmed "quarantined" verdict means no image of this product could
-  // be cleared of price text, so it is withheld from the storefront until
-  // a human reviews it (see image-quarantine.json). "pending" items stay
-  // listed — they just render without an image until the scan clears them,
-  // since hiding everything after each refresh would empty the store.
-  const items = (entry?.items || []).filter(raw => raw?.imageReview !== 'quarantined');
-  if (kind === 'brand') return items;
-  return items.filter(raw => titleMatchesDepartment(
-    raw.title || raw.name || raw.productTitle || raw.productName || '', key));
+/* ============================================================
+   CATEGORY-DRIVEN DEPARTMENT MAPPING (2026-09-18)
+
+   BUG THIS REPLACES: a retailer appeared in a department only if
+   department-cache.json held a bucket literally named after it. That is
+   tag-based and the tags were incomplete — Walmart and Target have no
+   bucket called "women", so Moda Mujer listed only Foot Locker and Old
+   Navy even though both generalists sell women's clothes. Every new
+   department needed every retailer re-tagged by hand, and anything missed
+   vanished from that page silently.
+
+   NOW: a department is defined by the product CATEGORY it contains (plus
+   a gender, for fashion). Each scraped bucket declares its category. A
+   retailer appears in a department when its inventory actually contains
+   matching items — derived, never tagged. A new department needs no
+   per-retailer work: whoever carries the category shows up.
+
+   Mirrors scripts/lib/department-map.js, which is the same logic as a
+   module for the scripts. This page is a plain <script> and cannot import
+   it, so the duplication is asserted instead: test-department-map-parity
+   cross-checks both over the real cache. Change one, change the other.
+   ============================================================ */
+
+// A department = one product category, optionally narrowed to a gender.
+const DEPARTMENT_SPEC = {
+  electronics:     { category: 'electronics' },
+  clothing:        { category: 'apparel' },
+  men:             { category: 'apparel', gender: 'men' },
+  women:           { category: 'apparel', gender: 'women' },
+  kids:            { category: 'apparel', gender: 'kids' },
+  candy_chocolate: { category: 'grocery' },
+  sporting_goods:  { category: 'sporting' },
+  home_goods:      { category: 'home' },
+  pharmacy:        { category: 'health' },
+  // Not a category — a state any item can be in. This is why Walmart and
+  // Target belong in Ofertas despite having no bucket named "sale".
+  sale:            { anyCategory: true, onSaleOnly: true },
+};
+
+// What category each scraped bucket holds, and whether the scrape itself
+// was gender-specific (a real gender facet we can trust over the title).
+const BUCKET_SPEC = {
+  clothing:        { category: 'apparel' },
+  men:             { category: 'apparel', gender: 'men' },
+  women:           { category: 'apparel', gender: 'women' },
+  kids:            { category: 'apparel', gender: 'kids' },
+  sale:            { category: 'apparel' },
+  electronics:     { category: 'electronics' },
+  candy_chocolate: { category: 'grocery' },
+  sporting_goods:  { category: 'sporting' },
+  home_goods:      { category: 'home' },
+  pharmacy:        { category: 'health' },
+};
+
+function rawTitleOf(item){
+  return item?.title || item?.name || item?.productTitle || item?.productName || '';
+}
+
+// Gender a title positively states, or null. Kids wins: a "Boys'
+// Men's-Style Shirt" is kidswear.
+function genderFromTitle(title){
+  const t = String(title || '');
+  if (KID_MARKER.test(t)) return 'kids';
+  if (WOMEN_MARKER.test(t)) return 'women';
+  if (MEN_MARKER.test(t)) return 'men';
+  return null;
+}
+
+// A title naming a gender overrides the bucket — that is what keeps boys'
+// items out of Moda Hombre when a retailer's gender facet leaks (Old
+// Navy's does). An item from a NON-gendered bucket with no marker gets no
+// gender at all: it stays in Ropa rather than being guessed into all three
+// gendered pages at once.
+function genderOfItem(item, bucketName){
+  return genderFromTitle(rawTitleOf(item)) || BUCKET_SPEC[bucketName]?.gender || null;
+}
+
+function rawItemOnSale(item){
+  const flag = item?.onSale === true || item?.isOnSale === true
+    || (typeof item?.savingsAmount === 'number' && item.savingsAmount > 0)
+    || (typeof item?.savingsPercent === 'number' && item.savingsPercent > 0)
+    || (typeof item?.percentageOff === 'number' && item.percentageOff > 0)
+    || (typeof item?.percentOff === 'number' && item.percentOff > 0);
+  if (!flag) return false;
+  const price = Number(item.price ?? item.effectivePrice ?? item.currentPrice ?? item.salePrice);
+  const original = Number(item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice);
+  if (!Number.isFinite(price) || !Number.isFinite(original) || original <= price) return false;
+  return Math.round((1 - price / original) * 100) >= MIN_DISCOUNT_PCT;
+}
+
+function itemBelongsToDepartment(item, bucketName, deptKey){
+  const dept = DEPARTMENT_SPEC[deptKey];
+  if (!dept) return false;
+  if (dept.onSaleOnly) return rawItemOnSale(item);
+  const bucket = BUCKET_SPEC[bucketName];
+  if (!bucket || bucket.category !== dept.category) return false;
+  if (!dept.gender) return true;
+  return genderOfItem(item, bucketName) === dept.gender;
+}
+
+// A confirmed "quarantined" image verdict means no image of this product
+// could be cleared of price text, so it is withheld until a human reviews
+// it (see image-quarantine.json). "pending" items stay listed — they just
+// render without an image until the scan clears them, since hiding
+// everything after each refresh would empty the store.
+function notQuarantined(raw){ return raw?.imageReview !== 'quarantined'; }
+
+/* Everything a retailer can show in a department, gathered across ALL its
+   buckets of the matching category — not just one that happens to share
+   the department's name. Deduped, because Old Navy's synthetic "clothing"
+   bucket is a merge of its men/women/kids buckets and reaches the same
+   item twice. */
+function departmentItemsFor(retailerData, kind, key){
+  if (kind === 'brand'){
+    return (retailerData?.brands?.[key]?.items || []).filter(notQuarantined);
+  }
+  const out = [];
+  const seen = new Set();
+  for (const [bucketName, bucket] of Object.entries(retailerData?.departments || {})){
+    for (const raw of bucket?.items || []){
+      if (!notQuarantined(raw)) continue;
+      if (!itemBelongsToDepartment(raw, bucketName, key)) continue;
+      const dedupe = rawTitleOf(raw) + '::' + (raw.price ?? raw.effectivePrice ?? '');
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
+      out.push(raw);
+    }
+  }
+  return out;
 }
 
 function collectTiles(kind){
-  const bucketName = kind === 'brand' ? 'brands' : 'departments';
   const metaMap = kind === 'brand' ? BRAND_META : DEPARTMENT_META;
+  // Departments come from the taxonomy, brands from whatever was scraped.
+  // Driving departments off DEPARTMENT_SPEC rather than off bucket names
+  // is the whole point: a department gets a tile when some retailer
+  // carries its category, even with no bucket of that name anywhere.
+  const keys = kind === 'brand'
+    ? [...new Set(Object.values(departmentCacheData.retailers || {}).flatMap(d => Object.keys(d.brands || {})))]
+    : Object.keys(DEPARTMENT_SPEC);
   const byKey = {};
-  for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
-    for (const [key, entry] of Object.entries(data[bucketName] || {})){
-      if (!byKey[key]) byKey[key] = { key, retailers: [], thumb: null, fallbackThumb: null, count: 0 };
-      const entryItems = bucketItems(entry, kind, key);
+  for (const key of keys){
+    byKey[key] = { key, retailers: [], thumb: null, fallbackThumb: null, count: 0 };
+    const excludePattern = DEPARTMENT_THUMB_EXCLUDE[key];
+    for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
+      const entryItems = departmentItemsFor(data, kind, key);
+      if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
-      if (byKey[key].thumb) continue; // already found an acceptable image for this key
-      const excludePattern = DEPARTMENT_THUMB_EXCLUDE[key];
+      if (byKey[key].thumb) continue; // already found an acceptable image
       for (const it of entryItems.map(normalizeLiveItem)){
         if (!it.image) continue;
         if (!byKey[key].fallbackThumb) byKey[key].fallbackThumb = it.image;
@@ -1619,6 +1745,8 @@ function collectTiles(kind){
       }
     }
   }
+  // A department no retailer carries gets no tile at all.
+  for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
   // Never show nothing: fall back to the first image found at all if
   // every candidate happened to match the exclude pattern.
   for (const t of Object.values(byKey)){
@@ -1694,7 +1822,7 @@ async function openCatalog(kind, key, opts = {}){
   // came back entirely boys') must not be listed as having this
   // department — otherwise the page offers a store and then shows nothing.
   let retailers = GENERAL_RETAILERS.filter(r =>
-    bucketItems(data.retailers[r]?.[bucketName]?.[key], kind, key).length > 0);
+    departmentItemsFor(data.retailers[r], kind, key).length > 0);
   if (retailerFilter) retailers = retailers.filter(r => r === retailerFilter);
 
   if (!retailers.length){
@@ -1706,8 +1834,7 @@ async function openCatalog(kind, key, opts = {}){
   if (retailerFilter){
     document.getElementById('catalogSubtitle').textContent = `En ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter}`;
     document.getElementById('catalogSections').innerHTML = retailers.map(r => {
-      const entry = data.retailers[r][bucketName][key];
-      return renderCatalogSection(r, bucketItems(entry, kind, key));
+      return renderCatalogSection(r, departmentItemsFor(data.retailers[r], kind, key));
     }).join('');
     return;
   }
@@ -1722,7 +1849,7 @@ async function openCatalog(kind, key, opts = {}){
       </button>
     </div>
     <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
-      retailers.map(r => storeLogoTileHTML(r, bucketItems(data.retailers[r][bucketName][key], kind, key).length)).join('')
+      retailers.map(r => storeLogoTileHTML(r, departmentItemsFor(data.retailers[r], kind, key).length)).join('')
     }</div>`;
 }
 
@@ -1763,9 +1890,18 @@ async function openStore(retailer){
 
   const data = await loadDepartmentCache();
   departmentCacheData = data;
-  const departments = data.retailers[retailer]?.departments || {};
-  const isGendered = Boolean(departments.men || departments.women);
-  const deptEntries = Object.entries(departments).filter(([key]) => !(key === 'clothing' && isGendered));
+  const retailerData = data.retailers[retailer];
+  // Taxonomy-driven, same as the tiles: this store lists every department
+  // it actually carries stock for, which is no longer the same thing as
+  // "has a bucket of that name". Walmart now shows Moda Hombre and Ofertas
+  // here without ever having had a bucket called either.
+  const carried = Object.keys(DEPARTMENT_SPEC)
+    .map(key => [key, departmentItemsFor(retailerData, 'department', key).length])
+    .filter(([, count]) => count > 0);
+  // Ropa is redundant next to the gendered pages for a fashion retailer —
+  // it is the same stock split three ways.
+  const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
+  const deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = 'Sin departamentos disponibles por ahora.';
@@ -1773,9 +1909,8 @@ async function openStore(retailer){
   }
   document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${deptEntries.length > 1 ? 's' : ''} disponibles`;
   document.getElementById('storeViewSections').innerHTML = `<div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
-    deptEntries.map(([key, entry]) => {
+    deptEntries.map(([key, count]) => {
       const meta = metaFor(DEPARTMENT_META, key);
-      const count = bucketItems(entry, 'department', key).length;
       return `<button onclick="openCatalog('department','${key}',{retailerFilter:'${retailer}'})" class="rounded-2xl border p-5 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
         <div class="text-[26px] mb-2">${meta.icon}</div>
         <div class="font-bold text-[14px]">${escapeHtml(meta.label)}</div>
@@ -2488,24 +2623,6 @@ const MIN_DISCOUNT_PCT = 5;
 const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|juniors?|ni[ñn][oa]s?)\b/i;
 const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
 const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
-
-// Rejects titles that CONTRADICT the department; keeps titles with no
-// gender marker at all. Most Old Navy menswear is titled plainly
-// ("Crew-Neck T-Shirt") with the gender only in the facet, so requiring a
-// positive marker would throw away nearly everything real.
-function titleMatchesDepartment(title, department){
-  const t = String(title || '');
-  if (!t) return true;
-  const kid = KID_MARKER.test(t);
-  const men = MEN_MARKER.test(t);
-  const women = WOMEN_MARKER.test(t);
-
-  if (department === 'men')   return !kid && !women;
-  if (department === 'women') return !kid && !men;
-  // An adult-marked title with no kid marker does not belong in Moda Niños.
-  if (department === 'kids')  return kid || (!men && !women);
-  return true; // non-gendered department: nothing to contradict
-}
 
 // Collapses colour/size variants of the same product. Deliberately
 // excludes price — including it was the bug that let one shirt show up
