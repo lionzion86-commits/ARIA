@@ -2279,10 +2279,8 @@ async function scrapeRetailer(retailer, query, maxItems){
    ============================================================ */
 // Vehicle selector is a static list, not a live API call — AutoZone's
 // scraper has no vehicle year/make/model lookup at all (it's a pure
-// product-search actor), and O'Reilly's equivalent API kept hitting its
-// daily request cap and going down. The selector must never depend on an
-// external API being up; O'Reilly stays purely as an optional secondary
-// result source in AUTO_PARTS_SOURCES below, same as before.
+// product-search actor). The selector must never depend on an external
+// API being up.
 const STATIC_YEARS = Array.from({ length: 2026 - 2009 + 1 }, (_, i) => String(2026 - i)); // newest first
 // Full lineup per make, researched against AutoZone's own supported
 // models for 2009-2026. Each brand's original 2 models (the ones the
@@ -2309,7 +2307,7 @@ const STATIC_VEHICLES = [
 let selectedVehicle = null;
 
 // Static, periodically-refreshed cache (see scripts/refresh-auto-cache.js)
-// served as a free file — checked before any paid O'Reilly/AutoZone call.
+// served as a free file — checked before any paid AutoZone call.
 // Only fetched once per page load, and only if Aria Auto is actually opened.
 let autoCachePromise = null;
 function loadAutoCache(){
@@ -2317,29 +2315,6 @@ function loadAutoCache(){
     autoCachePromise = fetch('/auto-cache.json').then(r => r.ok ? r.json() : null).catch(() => null);
   }
   return autoCachePromise;
-}
-
-function oreillyErrorText(value, fallback){
-  if (!value) return fallback;
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object' && value.message) return value.message;
-  try { return JSON.stringify(value); } catch { return fallback; }
-}
-
-async function callOreilly(action, params){
-  const res = await fetch('/.netlify/functions/oreilly-parts', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, ...params }),
-  });
-  const data = await res.json();
-  if (!res.ok){
-    const message = oreillyErrorText(data.error, `Error al consultar O'Reilly (${action})`);
-    const err = new Error(message);
-    err.isRateLimit = res.status === 429 || /daily|rate.?limit|usage_exceeded/i.test(message);
-    throw err;
-  }
-  return data;
 }
 
 function openAriaAuto(){
@@ -2405,22 +2380,12 @@ document.getElementById('autoMakeSelect').addEventListener('change', function(){
 
 document.getElementById('autoModelSelect').addEventListener('change', maybeRevealPartSearch);
 
-// O'Reilly's search_products result fields differ from the retail-scraper
-// shape normalizeLiveItem() expects, so it gets its own mapping; every
-// other source can just reuse normalizeLiveItem() directly. Deliberately
-// no url field — see RULE comments at each render function: product
-// cards must never link off-site to the retailer.
+// Every auto-parts source currently reuses normalizeLiveItem() directly.
+// A future source whose payload shape differs gets its own branch here,
+// keyed on sourceId. Deliberately no url field — see RULE comments at
+// each render function: product cards must never link off-site to the
+// retailer.
 function normalizeAutoPartItem(sourceId, item){
-  if (sourceId === 'oreilly'){
-    const rawPrice = item?.pricing?.price;
-    const price = typeof rawPrice === 'number' ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
-    return {
-      title: item.name || 'Repuesto sin título',
-      price,
-      image: safeUrl(item.image),
-      rating: null,
-    };
-  }
   return normalizeLiveItem(item);
 }
 
@@ -2442,19 +2407,6 @@ const AUTO_PARTS_SOURCES = [
       return rawItems.map(it => normalizeAutoPartItem('autozone', it));
     },
   },
-  {
-    id: 'oreilly',
-    label: "O'Reilly Auto Parts",
-    search: async (vehicle, query, maxItems) => {
-      const cache = await loadAutoCache();
-      const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.oreilly;
-      if (cached?.length) return cached.map(it => normalizeAutoPartItem('oreilly', it));
-      const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${query}`.trim();
-      const data = await callOreilly('search_products', { query: combined });
-      const items = Array.isArray(data?.data?.items) ? data.data.items.slice(0, maxItems) : [];
-      return items.map(it => normalizeAutoPartItem('oreilly', it));
-    },
-  },
   // Add future auto parts sources here — just id, label, and an async
   // search(vehicle, query, maxItems) returning normalized items via
   // normalizeAutoPartItem(). No other code needs to change.
@@ -2468,11 +2420,11 @@ function autoPartSkeleton(label){
   </div>`;
 }
 
-// Neither AutoZone (confirmed in both "overview" and full "detail" scrape
-// modes — the detail mode returns full specs/dimensions/materials and
-// still no weight field) nor O'Reilly's search_products expose a real
-// per-SKU shipping weight anywhere. With no real weight data available
-// from either retailer, live or cached, this estimates by part category
+// AutoZone exposes no real per-SKU shipping weight anywhere (confirmed in
+// both "overview" and full "detail" scrape modes — the detail mode
+// returns full specs/dimensions/materials and still no weight field).
+// With no real weight data available from the retailer, live or cached,
+// this estimates by part category
 // (from the search query itself, which is retailer-agnostic and always
 // known) so checkout can still auto-calculate shipping with zero manual
 // entry, as required. These are real-world plausible averages, not
