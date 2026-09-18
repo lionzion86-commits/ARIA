@@ -59,7 +59,7 @@
       <a href="#" onclick="openCategories();return false;" class="opacity-70 hover:opacity-100 transition">Categorías</a>
       <a href="#" onclick="openAriaAuto();return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
       <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
-      <a href="#whyUs" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">¿Por qué Aria?</a>
+      <a href="#precioHonesto" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Precio Honesto</a>
       <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
       <a href="#" onclick="showPage('aboutView');return false;" class="opacity-70 hover:opacity-100 transition">Nosotros</a>
       <a href="#" onclick="showPage('returnsView');return false;" class="opacity-70 hover:opacity-100 transition">Devoluciones</a>
@@ -92,7 +92,7 @@
     <a href="#" onclick="openCategories();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
     <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
     <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">🔥 Ofertas</a>
-    <a href="#whyUs" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">¿Por qué Aria?</a>
+    <a href="#precioHonesto" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Precio Honesto</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
     <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
     <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Devoluciones</a>
@@ -242,6 +242,122 @@
       </div>
     </div>
   </div>
+
+  <!-- ============================================================
+       GARANTÍA DE PRECIO HONESTO
+
+       The four promises here are the ones the code actually keeps, and
+       each maps to something real:
+         a) displayPriceUsd()/taxIncludedNoteHTML() — tax-included prices
+            over $200, labeled on the card
+         b) the conservative-bias rule in item-weight.js (CONFIDENCE_BUFFER
+            and the upper-end base values)
+         c) the honor-the-quote note at checkout (#kgHonorNote)
+         d) the customs disclosure's closing line, in the cart and checkout
+       If any of those change, this copy has to change with them.
+
+       ONE PROMISE IS AHEAD OF THE CODE: "la diferencia vuelve a ti como
+       saldo Aria, automáticamente" (card b). There is no balance/wallet
+       anywhere in this codebase — orders-create.js stores an order, not a
+       credit, and nothing computes a freight difference after delivery.
+       Until that exists it is a manual ops promise, not an automatic one.
+       Either build it or soften the word "automáticamente".
+       ============================================================ -->
+  <section id="precioHonesto" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+    <div class="absolute inset-x-0 top-0 h-px" style="background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent)"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-20 sm:py-24">
+
+      <div class="max-w-[62ch] mb-14 sm:mb-16">
+        <div class="text-[11.5px] font-extrabold tracking-[0.18em] uppercase mb-4" style="color:#F4C463">Garantía Aria</div>
+        <h2 class="text-[30px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.08] mb-5" style="color:#fff">
+          Garantía de <span style="color:#F4C463">Precio Honesto</span>
+        </h2>
+        <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
+          Importar desde Estados Unidos suele terminar en una sorpresa: un cobro que nadie te avisó.
+          Aquí no. Te decimos el precio completo desde el primer momento y lo sostenemos hasta tu puerta.
+        </p>
+      </div>
+
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3" fill="#F4C463"/></svg>
+        </div>
+        <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Lo que ves es lo que pagas</h3>
+        <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Si el producto pasa de $200, el precio que ves en la tarjeta ya trae los impuestos de importación (~23%). No hay una cifra distinta esperándote en el checkout.</p>
+      </article>
+      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
+        </div>
+        <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Flete honesto, siempre</h3>
+        <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria, automáticamente.</p>
+      </article>
+      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4.5 5.8v5.4c0 4.6 3.1 8.8 7.5 10.3 4.4-1.5 7.5-5.7 7.5-10.3V5.8Z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/></svg>
+        </div>
+        <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Si nos equivocamos, perdemos nosotros</h3>
+        <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Si nuestro estimado de peso se queda corto, asumimos la diferencia. El precio que te cotizamos es el que pagas: nunca te cobramos más después.</p>
+      </article>
+      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.8V20h13V9.8"/><path d="M9.8 20v-5.2h4.4V20"/></svg>
+        </div>
+        <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Nada que pagar al recibir</h3>
+        <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Todo se paga en el checkout: producto, flete e impuestos. Cuando toquen tu puerta, no hay nada más que pagar. Ni un sol.</p>
+      </article>
+      </div>
+
+      <!-- COMPARISON STRIP -->
+      <div class="mt-16 sm:mt-20">
+        <h3 class="text-[13px] font-extrabold tracking-[0.14em] uppercase mb-6" style="color:#7F8CAB">La diferencia, en corto</h3>
+        <div class="grid md:grid-cols-2 gap-5 sm:gap-6">
+
+          <div class="rounded-3xl p-7 sm:p-8" style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.09)">
+            <div class="text-[15px] font-bold mb-5" style="color:#8792AD">Otros importadores</div>
+            <ul class="space-y-3.5">
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#8792AD">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7897" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span>Precio sin impuestos: la sorpresa llega en aduana</span>
+        </li>
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#8792AD">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7897" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span>Flete misterioso, calculado después de que ya compraste</span>
+        </li>
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#8792AD">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6B7897" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span><span>Cobros sorpresa al recibir el paquete</span>
+        </li>
+            </ul>
+          </div>
+
+          <div class="rounded-3xl p-7 sm:p-8 relative" style="background:rgba(244,196,99,0.07); border:1px solid rgba(244,196,99,0.45); box-shadow:0 18px 50px rgba(0,0,0,0.28)">
+            <div class="flex items-center gap-2.5 mb-5">
+              <span class="text-[15px] font-extrabold" style="color:#F4C463">Aria</span>
+              <span class="text-[10.5px] font-extrabold px-2 py-0.5 rounded-full" style="background:#F4C463; color:#0A1F44">SIN SORPRESAS</span>
+            </div>
+            <ul class="space-y-3.5">
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#F1F4FA">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Todo incluido desde la tarjeta del producto</span>
+        </li>
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#F1F4FA">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Flete cotizado por adelantado, con la cuenta a la vista</span>
+        </li>
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#F1F4FA">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Crédito automático si el flete real sale menor</span>
+        </li>
+        <li class="flex items-start gap-3 text-[13.5px] leading-relaxed" style="color:#F1F4FA">
+          <span class="mt-0.5 flex-shrink-0"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg></span><span>Nada que pagar al recibir</span>
+        </li>
+            </ul>
+          </div>
+
+        </div>
+        <p class="text-[13px] mt-8 leading-relaxed" style="color:#8792AD">
+          Todo se paga aquí. Nada se paga al recibir.
+        </p>
+      </div>
+
+    </div>
+  </section>
 
   <!-- FEATURE STRIP -->
   <div class="max-w-[1240px] mx-auto px-5 py-14">
@@ -1216,6 +1332,7 @@
       </div>
       <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
         <a href="#" onclick="showPage('howView');return false;" class="hover:text-[color:var(--navy)] transition">Cómo funciona</a>
+        <a href="#precioHonesto" onclick="goHome()" class="font-semibold hover:text-[color:var(--navy)] transition" style="color:var(--navy)">Precio Honesto</a>
         <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
         <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
         <a href="#" onclick="showPage('termsView');return false;" class="hover:text-[color:var(--navy)] transition">Términos</a>
