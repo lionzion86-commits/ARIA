@@ -562,7 +562,11 @@
         <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2">🔥 Ofertas y liquidación</h1>
         <p id="salesCount" class="text-[12.5px] mt-1" style="color:#B9C6E8"></p>
       </div>
-      <div class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)">Búsqueda en vivo, en tiempo real</div>
+      <!-- Freshness is now stated honestly (spec §6): this page serves a
+           server-side cache, so it says when that cache was built rather
+           than claiming every view is a live search. Filled by
+           renderSalesFreshness(). -->
+      <div id="salesFreshness" class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)"></div>
     </div>
 
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
@@ -590,7 +594,9 @@
             <option value="priceDesc">Precio: mayor a menor</option>
           </select>
         </div>
-        <div id="salesGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-4"></div>
+        <!-- Spec §6: "2 columns desktop / 1 column mobile" — deliberately
+             NOT a dense commodity grid. -->
+        <div id="salesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
       </div>
     </div>
   </div>
@@ -1141,6 +1147,20 @@
 @keyframes ariaOrbBreathe {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.09); }
+}
+@keyframes ariaShimmer {
+  0%   { background-position: -420px 0; }
+  100% { background-position: 420px 0; }
+}
+/* Skeleton fill for the Ofertas cold-cache cards (spec §6). Plain
+   animate-pulse reads as "broken", a travelling sheen reads as "working". */
+.ariaShimmer {
+  background: linear-gradient(90deg, #EEF1F7 0%, #F7F9FC 50%, #EEF1F7 100%);
+  background-size: 420px 100%;
+  animation: ariaShimmer 1.25s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .ariaShimmer { animation: none; }
 }
 @keyframes ariaOrbGlow {
   0%, 100% { opacity: 0.6; }
@@ -3398,10 +3418,112 @@ initAuth();
 const SALES_QUERIES = ['clothing', 'shoes', 'electronics'];
 
 let saleItemsCache = [];
+let salesGeneratedAt = null;   // ISO string from the server cache, or null when this page ran its own live scan
+let salesScanInFlight = false; // guards against goSales() being hit repeatedly
+let salesStatusTimer = null;
 
 function goSales(){
   showPage('salesView');
   runSalesScan();
+}
+
+/* ============================================================
+   OFERTAS FRESHNESS + COLD-CACHE LOADING STATE (spec §6)
+
+   The page is cache-first: netlify/functions/sales-cache.js holds the
+   last completed deal scan, so a visitor sees real deals immediately
+   instead of waiting on a full live scrape. The full skeleton/status-line
+   loading state below is therefore reserved for a TRUE cold cache — if
+   anything cached exists, it renders instantly and any refresh happens
+   quietly in the background.
+   ============================================================ */
+
+// "Actualizado hace X" — deliberately vague at the low end ("hace un
+// momento") rather than counting seconds, and never claims a freshness it
+// can't back up: with no timestamp it says so plainly.
+function relativeTimeEs(iso){
+  if (!iso) return null;
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return null;
+  const mins = Math.floor((Date.now() - then) / 60000);
+  if (mins < 2) return 'hace un momento';
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `hace ${hrs} h`;
+  const days = Math.floor(hrs / 24);
+  return days === 1 ? 'hace 1 día' : `hace ${days} días`;
+}
+
+function renderSalesFreshness(state){
+  const el = document.getElementById('salesFreshness');
+  if (!el) return;
+  if (state === 'scanning'){
+    el.textContent = 'Buscando ofertas en vivo…';
+    el.style.background = 'var(--sky)';
+    el.style.color = 'var(--navy)';
+    return;
+  }
+  const rel = relativeTimeEs(salesGeneratedAt);
+  el.textContent = rel ? `Actualizado ${rel}` : 'Resultados en vivo';
+  el.style.background = 'var(--yellow)';
+  el.style.color = 'var(--navy)';
+}
+
+// Rotating status lines, built from the real retailers actually being
+// scanned — never a hardcoded list that could name a store we no longer
+// carry.
+function salesStatusLines(){
+  const verbs = [
+    r => `Revisando ${r}…`,
+    r => `Comparando precios en ${r}…`,
+    r => `Verificando stock en ${r}…`,
+  ];
+  const lines = [];
+  GENERAL_RETAILERS.forEach((key, i) => {
+    const label = LIVE_RETAILER_LABEL[key] || key;
+    lines.push(verbs[i % verbs.length](label));
+  });
+  return lines.length ? lines : ['Buscando ofertas reales…'];
+}
+
+function salesSkeletonCardHTML(){
+  return `<div class="rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+    <div class="ariaShimmer" style="aspect-ratio:4/5"></div>
+    <div class="p-4">
+      <div class="ariaShimmer h-4 w-24 rounded mb-3"></div>
+      <div class="ariaShimmer h-5 w-full rounded mb-2"></div>
+      <div class="ariaShimmer h-5 w-2/3 rounded mb-4"></div>
+      <div class="ariaShimmer h-8 w-32 rounded-full"></div>
+    </div>
+  </div>`;
+}
+
+// Spec §6: "True cold cache only: 6 shimmer skeleton cards + pulsing orb
+// + rotating status lines."
+function showSalesColdLoading(){
+  const lines = salesStatusLines();
+  document.getElementById('salesCount').textContent = '';
+  renderSalesFreshness('scanning');
+  document.getElementById('salesGrid').innerHTML = `
+    <div class="col-span-full flex flex-col items-center text-center py-8">
+      <img src="assets/orb-320.png" alt="" class="w-16 h-16 mb-4" style="animation:ariaOrbBreathe 2.6s ease-in-out infinite">
+      <div id="salesStatusLine" class="text-[13.5px] font-semibold" style="color:var(--navy)">${escapeHtml(lines[0])}</div>
+      <div class="text-[12px] text-zinc-400 mt-1">Buscamos ofertas reales en cada tienda — toma unos segundos la primera vez.</div>
+    </div>
+    ${Array.from({ length: 6 }, salesSkeletonCardHTML).join('')}`;
+
+  let i = 0;
+  clearInterval(salesStatusTimer);
+  salesStatusTimer = setInterval(() => {
+    i = (i + 1) % lines.length;
+    const el = document.getElementById('salesStatusLine');
+    if (el) el.textContent = lines[i];
+  }, 1800);
+}
+
+function stopSalesColdLoading(){
+  clearInterval(salesStatusTimer);
+  salesStatusTimer = null;
 }
 
 function initSalesFilters(){
@@ -3446,17 +3568,9 @@ function renderCategoriesGrid(){
     : '<div class="col-span-full text-center text-zinc-400 py-16">No hay categorías disponibles para esta selección de tiendas.</div>';
 }
 
-async function runSalesScan(){
-  await loadFxRate();
-  document.getElementById('salesCount').textContent = 'Buscando ofertas reales en vivo…';
-  // BRAND ASSET SWAP (2026-09-18): the new orb mascot doubles as the
-  // Ofertas loading indicator — full shimmer-skeleton/rotating-status
-  // redesign is a later phase of this build; this is just the orb swap.
-  document.getElementById('salesGrid').innerHTML = `<div class="col-span-full flex flex-col items-center text-center text-zinc-400 py-16">
-    <img src="assets/orb-320.png" alt="" class="w-16 h-16 mb-4" style="animation:ariaOrbBreathe 2.6s ease-in-out infinite">
-    <div>Buscando ofertas reales en vivo…</div>
-  </div>`;
-
+// The actual scrape. Returns normalized on-sale items; never throws — one
+// retailer/query failing must not sink the whole scan.
+async function liveSalesScan(){
   // BUG FIX (2026-09-17): the same real product can legitimately come back
   // from more than one of SALES_QUERIES (e.g. a pair of sale sneakers can
   // match both the "clothing" and "shoes" queries against the same
@@ -3480,9 +3594,83 @@ async function runSalesScan(){
     });
   });
   await Promise.allSettled(tasks);
+  return Array.from(foundByKey.values());
+}
 
-  saleItemsCache = Array.from(foundByKey.values());
-  renderSalesGrid();
+// Donates a completed scan back to the shared server cache so the next
+// visitor doesn't have to wait for one. Best-effort and deliberately
+// silent: the scan already succeeded for THIS visitor, so a failed
+// publish is not something to interrupt them about. The function
+// validates everything it stores — see the trust-boundary comment there.
+async function publishSalesCache(items){
+  if (!items.length) return;
+  try {
+    const res = await fetch('/.netlify/functions/sales-cache', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items }),
+    });
+    const data = await res.json();
+    if (res.ok && data.generatedAt && !data.skipped){
+      salesGeneratedAt = data.generatedAt;
+      renderSalesFreshness();
+    }
+  } catch { /* best-effort */ }
+}
+
+// Stale-while-revalidate: the visitor already has real deals on screen, so
+// this runs with no skeleton and no spinner. Only swaps the grid once real
+// results are in hand, and only if they're still looking at this page.
+async function revalidateSalesInBackground(){
+  if (salesScanInFlight) return;
+  salesScanInFlight = true;
+  try {
+    const items = await liveSalesScan();
+    if (!items.length) return; // an empty scan never replaces good cached deals
+    await publishSalesCache(items);
+    saleItemsCache = items;
+    if (document.getElementById('salesView')?.classList.contains('active')) renderSalesGrid();
+  } catch { /* keep showing the cached deals */ }
+  finally { salesScanInFlight = false; }
+}
+
+async function runSalesScan(){
+  await loadFxRate();
+
+  // 1. Cache first — a visitor should never wait on a full live scrape
+  //    when a real, recent scan already exists.
+  let cached = null;
+  try {
+    const res = await fetch('/.netlify/functions/sales-cache');
+    if (res.ok) cached = await res.json();
+  } catch { /* fall through to a live scan */ }
+
+  if (cached?.items?.length){
+    saleItemsCache = cached.items;
+    salesGeneratedAt = cached.generatedAt;
+    renderSalesGrid();
+    if (cached.stale) revalidateSalesInBackground();
+    return;
+  }
+
+  // 2. True cold cache — the only case that earns the full loading state.
+  if (salesScanInFlight) return;
+  salesScanInFlight = true;
+  showSalesColdLoading();
+  try {
+    const items = await liveSalesScan();
+    saleItemsCache = items;
+    salesGeneratedAt = items.length ? new Date().toISOString() : null;
+    stopSalesColdLoading();
+    renderSalesGrid();
+    publishSalesCache(items);
+  } catch {
+    stopSalesColdLoading();
+    saleItemsCache = [];
+    renderSalesGrid();
+  } finally {
+    salesScanInFlight = false;
+  }
 }
 
 function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100); }
@@ -3519,7 +3707,12 @@ function renderSalesGrid(){
   document.getElementById('salesGrid').innerHTML = items.length
     ? items.map(saleCardHTML).join('')
     : `<div class="col-span-full text-center text-zinc-400 py-16">No encontramos ofertas reales en este momento — vuelve a intentarlo más tarde.</div>`;
-  document.getElementById('salesCount').textContent = `${items.length} ofertas reales encontradas en vivo`;
+  // No longer claims "en vivo" — these may well be served from the cache,
+  // and the freshness badge states exactly when that cache was built.
+  document.getElementById('salesCount').textContent = items.length
+    ? `${items.length} oferta${items.length === 1 ? '' : 's'} real${items.length === 1 ? '' : 'es'}`
+    : '';
+  renderSalesFreshness();
 }
 
 initSalesFilters();
