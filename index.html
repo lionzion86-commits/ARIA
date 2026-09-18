@@ -4061,8 +4061,12 @@ function cartCount(){
 
 function cartTotals(){
   return cart.reduce((acc, it) => {
-    acc.priceUsd += it.priceUsd * it.qty;
-    acc.weightKg += it.weightKg * it.qty;
+    acc.priceUsd += (Number(it.priceUsd) || 0) * it.qty;
+    // Last line of defence: repairCartWeights() runs on load, but a line
+    // that reached here with no weight still must not bill as free
+    // freight. Estimating is always better than charging zero.
+    const kg = Number(it.weightKg);
+    acc.weightKg += (Number.isFinite(kg) && kg > 0 ? kg : estimateRetailWeightKg(it.title || '')) * it.qty;
     return acc;
   }, { priceUsd: 0, weightKg: 0 });
 }
@@ -4098,6 +4102,37 @@ function mergeCarts(localCart, serverCart){
   return Array.from(map.values());
 }
 
+/* ============================================================
+   CART WEIGHT REPAIR — money, not cosmetics.
+
+   BUG (2026-09-18, live): a fireplace TV stand in the cart showed
+   "0.00 kg" and "Flete internacional S/ 0.00". The card-side estimator
+   was fixed earlier and is correct — that title resolves to 47.25 kg —
+   but the CART never re-resolves anything. It trusts the weightKg stored
+   on the line item, and a line item written before that fix (or by any
+   path that had no weight to give) carries 0 forever, in localStorage and
+   in the server cart. Checkout resolves weights server-side, so the two
+   views disagreed and the cart was the one the customer read.
+
+   With the honor-the-quote policy, a zero here is a ~$600 loss on one TV
+   stand. So: every line is repaired on load, the repair is saved back, and
+   nothing in the cart may hold a non-positive weight.
+   ============================================================ */
+function repairCartWeights(list){
+  let changed = false;
+  const repaired = list.map((it) => {
+    const kg = Number(it.weightKg);
+    if (Number.isFinite(kg) && kg > 0) return it;
+    changed = true;
+    // Same estimator the product cards use: bulky table first (a TV stand
+    // is furniture), then the category table, then the generic floor —
+    // which is itself non-zero, so this cannot return 0.
+    const estimated = estimateRetailWeightKg(it.title || '');
+    return { ...it, weightKg: estimated > 0 ? estimated : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned') };
+  });
+  return { cart: repaired, changed };
+}
+
 async function initCart(){
   cart = loadCartLocal();
   if (currentUser){
@@ -4108,6 +4143,9 @@ async function initCart(){
       syncCartToServer();
     }
   }
+  const fixed = repairCartWeights(cart);
+  cart = fixed.cart;
+  if (fixed.changed){ saveCartLocal(); syncCartToServer(); }
   renderCartBadge();
   if (document.getElementById('cartView')?.classList.contains('active')) renderCartView();
 }
@@ -4121,6 +4159,11 @@ function renderCartBadge(){
 }
 
 function addToCart(item){
+  // Every entry point funnels through here (product page, cross-sell,
+  // Aria Auto, chat), so this is where a missing weight is caught once
+  // rather than at each caller.
+  const kg = Number(item.weightKg);
+  if (!(Number.isFinite(kg) && kg > 0)) item = { ...item, weightKg: estimateRetailWeightKg(item.title || '') };
   const key = cartItemKey(item);
   const existing = cart.find(it => cartItemKey(it) === key);
   if (existing) existing.qty += 1;
@@ -4291,6 +4334,20 @@ const CUSTOMS_CLOSING_LINE = 'Todo se paga aquí. Nada se paga al recibir.';
 
 function usd0(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
 
+/* CURRENCY RULE (2026-09-18): soles are the primary currency everywhere on
+   this site — the header says "Perú · PEN" and the cart, cards and
+   checkout all lead with S/. This box used to lead with dollars
+   ($982 / $226 / $1,208) inside a cart quoting soles, which put two
+   primary currencies in one view and read as two different prices. USD
+   stays, but as the parenthetical it always should have been: the $200
+   threshold is a real USD customs figure, so the dollar amount is still
+   worth showing — just not first. Falls back to USD alone when no live FX
+   rate has loaded, rather than inventing a conversion. */
+function penWithUsd(usdAmount){
+  if (!fxRate) return usd0(usdAmount);
+  return `${fmtPEN(usdAmount)} (≈${usd0(usdAmount)})`;
+}
+
 function renderCustomsDisclosure(usdSubtotal){
   const wrap = document.getElementById('customsDisclosureWrap');
   if (!wrap) return;
@@ -4306,7 +4363,7 @@ function renderCustomsDisclosure(usdSubtotal){
         <p class="text-[12.5px] leading-relaxed" style="color:var(--navy)">
           Para que lo tengas claro: los pedidos que superan los $${TAX_ZONE_THRESHOLD_USD} de valor declarado pagan
           aproximadamente <b>${dutyPct}% en aranceles e impuestos</b> al Estado peruano. Tu pedido va en
-          <b>${escapeHtml(usd0(usdSubtotal))}</b>.
+          <b>${escapeHtml(penWithUsd(usdSubtotal))}</b>.
         </p>
         ${closing}
       </div>`;
@@ -4325,19 +4382,19 @@ function renderCustomsDisclosure(usdSubtotal){
       <div class="text-[12.5px]" style="color:var(--navy)">
         <div class="flex items-center justify-between py-1.5">
           <span>Valor declarado</span>
-          <span class="font-bold tabular">${escapeHtml(usd0(usdSubtotal))}</span>
+          <span class="font-bold tabular">${escapeHtml(penWithUsd(usdSubtotal))}</span>
         </div>
         <div class="flex items-center justify-between py-1.5 border-t" style="border-color:#E3B7B1">
           <span>Aranceles e impuestos (~${dutyPct}%)</span>
-          <span class="font-bold tabular">${escapeHtml(usd0(charges))}</span>
+          <span class="font-bold tabular">${escapeHtml(penWithUsd(charges))}</span>
         </div>
         <div class="flex items-center justify-between py-1.5 border-t" style="border-color:#E3B7B1">
           <span class="font-bold">Total estimado (sin flete)</span>
-          <span class="font-extrabold tabular">${escapeHtml(usd0(total))}</span>
+          <span class="font-extrabold tabular">${escapeHtml(penWithUsd(total))}</span>
         </div>
       </div>
       <p class="text-[11.5px] mt-2" style="color:#7A5A56">
-        Estimado sobre el valor declarado; el monto exacto se confirma en el checkout${fxRate ? ` (≈ ${escapeHtml(fmtPriceLabel(total))})` : ''}.
+        Estimado sobre el valor declarado; el monto exacto se confirma en el checkout.
       </p>
       ${closing}
     </div>`;
