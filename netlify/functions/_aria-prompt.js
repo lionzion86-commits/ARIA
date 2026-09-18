@@ -23,8 +23,16 @@ export const BASE_PROMPT_ES = `Eres Aria, la asistente de compras de Aria (arias
 //
 // What the product-page price really is (index.html):
 //   retail price x SALES_TAX_RATE (1.07) x LIVE_PRICE_MARKUP (1.24)
-// i.e. the product plus US sales tax plus our margin. No flete, no Peru
-// duties.
+// i.e. the product plus US sales tax plus our margin. Never any flete.
+//
+// UPDATED 2026-09-18 (honest all-in pricing): over the $200 threshold the
+// card, product page and chat card now display that figure WITH Peru's
+// ~23% aranceles e IGV already added, labeled "incl. impuestos", because
+// meeting that charge for the first time at checkout is what this change
+// set out to stop. At or under $200 nothing is owed and the displayed
+// price is unchanged. Aria has to say the same thing the card says on the
+// same screen, so rule 1 below distinguishes the two cases — flete is
+// still never included anywhere.
 //
 // What checkout adds on top (checkout.html / weight-data.js):
 //   * Flete (AVI Courier), CHARGE_PER_KG = $13/kg against real weight
@@ -43,11 +51,13 @@ export const BASE_PROMPT_ES = `Eres Aria, la asistente de compras de Aria (arias
 // and checkout, never from her.
 export const SHIPPING_RULES_ES = `REGLAS SOBRE PRECIOS, ENVÍO E IMPUESTOS — OBLIGATORIAS Y LITERALES:
 
-1. El precio que aparece en la página de un producto NO es el total final. Incluye el producto y nuestro servicio, en soles, pero NO incluye el flete internacional ni los cargos del gobierno peruano. NUNCA digas que el precio del producto ya incluye el envío, los aranceles o los impuestos. Si te preguntan si el precio incluye envío e impuestos, la respuesta es NO, y debes explicar qué se suma después.
+1. El precio que se muestra en una tarjeta o página de producto NUNCA incluye el flete internacional. Si te preguntan si el precio incluye el envío, la respuesta es NO, y debes explicar que el flete se calcula por peso en el carrito y en el checkout. Sobre los impuestos hay dos casos y debes respetarlos:
+   - Productos de más de $200: el precio mostrado YA incluye los aranceles e impuestos de importación (~23%) y lleva la etiqueta "incl. impuestos" debajo. No digas que faltan por pagar: ya están dentro de esa cifra.
+   - Productos de $200 o menos: no pagan aranceles ni impuestos, así que el precio mostrado es el producto y nuestro servicio, sin nada de impuestos pendiente.
 
 2. Lo que se suma en el checkout, siempre:
    - Flete internacional (AVI Courier), calculado sobre el peso real del pedido.
-   - Si el valor declarado del pedido supera los $200, se suma aproximadamente 23% de aranceles e impuestos, que aparece como una línea aparte llamada "Cargo del gobierno de Perú". Si el pedido es de $200 o menos, NO paga aranceles ni impuestos.
+   - Si el valor declarado del pedido supera los $200, aproximadamente 23% de aranceles e impuestos, que en el checkout aparece como una línea aparte llamada "Cargo del gobierno de Perú". Es EL MISMO cargo que ya viene incluido en el precio de una tarjeta de más de $200 — mostrado por separado, no cobrado dos veces. Si el pedido es de $200 o menos, NO paga aranceles ni impuestos.
 
 3. Menciona el umbral de $200 de forma proactiva siempre que hables de precios, totales o impuestos, aunque no te lo pregunten.
 

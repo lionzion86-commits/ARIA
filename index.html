@@ -295,6 +295,7 @@
 <div id="resultsView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
+    <div data-honest-banner></div>
     <div class="relative mb-5">
       <input id="searchInput2" onkeydown="if(event.key==='Enter')doSearch(2)" placeholder="¿Qué estás buscando hoy?"
         class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition"
@@ -418,6 +419,7 @@
      RULE as everywhere else on this site — no invented products). -->
 <div id="catalogView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <div data-honest-banner></div>
     <button onclick="catalogGoBack()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver
@@ -441,6 +443,7 @@
      pre-filtered to whatever department/search brought the shopper here. -->
 <div id="storeView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <div data-honest-banner></div>
     <button onclick="goHome()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver
@@ -461,6 +464,7 @@
      goes to openStore() (the full section) instead. -->
 <div id="storeResultsView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <div data-honest-banner></div>
     <button onclick="storeResultsGoBack()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver a resultados
@@ -598,6 +602,7 @@
 <div id="salesView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
+    <div data-honest-banner></div>
     <div class="rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, var(--navy) 0%, #14306B 100%)">
       <div>
         <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2">🔥 Ofertas y liquidación</h1>
@@ -674,6 +679,7 @@
      data as the homepage tiles, never a separate/fake catalog. -->
 <div id="categoriesView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
+    <div data-honest-banner></div>
     <h1 class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em] mb-2">Categorías</h1>
     <p class="text-[13.5px] text-zinc-500 mb-8">Todos los departamentos y marcas disponibles, con inventario real de nuestras tiendas.</p>
 
@@ -1562,6 +1568,67 @@ function fmtPriceLabel(usd){
 }
 
 /* ============================================================
+   HONEST ALL-IN PRICING
+
+   Peru charges roughly 23% in aranceles e IGV on any shipment whose
+   declared value is over $200. Cards used to show the product price alone
+   and the customer met that charge for the first time at checkout. Over
+   the threshold, the price on the card is now the price with the import
+   tax already in it, labeled "incl. impuestos" — nothing is hidden, the
+   charge is simply surfaced where the decision is made. Under $200 the
+   displayed price is unchanged, because nothing is owed.
+
+   The cart and checkout still itemize (valor declarado / aranceles /
+   flete): the card's tax-included figure is exactly valor + aranceles,
+   which is the "Total estimado (sin flete)" line of the cart's customs
+   box.
+
+   KNOWN LIMIT, worth stating: the threshold is per SHIPMENT, not per
+   item. Two $150 items are under it individually and over it together,
+   so their cards show no tax while the cart correctly charges it. The
+   card cannot know the rest of the cart; the yellow banner and the cart
+   breakdown are what teach the rule.
+   ============================================================ */
+const IMPORT_TAX_THRESHOLD_USD = 200;
+const IMPORT_TAX_RATE = 0.23;
+
+function priceIncludesImportTax(usd){
+  return Number.isFinite(usd) && usd > IMPORT_TAX_THRESHOLD_USD;
+}
+
+/** What a card shows: with import tax over the threshold, plain under it. */
+function displayPriceUsd(usd){
+  if (!priceIncludesImportTax(usd)) return usd;
+  return Math.round(usd * (1 + IMPORT_TAX_RATE) * 100) / 100;
+}
+
+function fmtDisplayPrice(usd){
+  return fmtPriceLabel(displayPriceUsd(usd));
+}
+
+/** The "incl. impuestos" line under a price, only when it is true. */
+function taxIncludedNoteHTML(usd, cls = 'text-[11px] mt-0.5'){
+  return priceIncludesImportTax(usd)
+    ? `<div class="${cls}" style="color:#8A93A8">incl. impuestos</div>`
+    : '';
+}
+
+/* One slim line, on every browsing surface: departments, brand pages,
+   store sections, scoped store results, Ofertas and Categorías. Filled
+   into every [data-honest-banner] node at load, so a new view gets it by
+   adding the attribute and nothing else. */
+const HONEST_PRICING_BANNER_HTML = `
+  <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
+    💛 Precios honestos: todo lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya incluye los impuestos de importación (~${Math.round(IMPORT_TAX_RATE * 100)}%). Lo que ves es lo que pagas.
+  </div>`;
+
+function renderHonestPricingBanners(){
+  document.querySelectorAll('[data-honest-banner]').forEach(el => {
+    el.innerHTML = HONEST_PRICING_BANNER_HTML;
+  });
+}
+
+/* ============================================================
    DEPARTMENT / BRAND BROWSING — homepage tiles + catalogView, driven
    entirely by department-cache.json (see scripts/refresh-department-
    cache.js, itself sourced from DEPARTMENT_CONFIG/BRAND_CONFIG in
@@ -2033,9 +2100,10 @@ function catalogTileHTML(p, retailer){
       <div class="mb-1">${retailerBadgeHTML(retailer, 16)}</div>
       <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${escapeHtml(p.title)}</div>
       <div class="flex items-center gap-2 mt-1.5">
-        ${p.onSale ? `<span class="text-[11px] text-zinc-400 line-through tabular">${fmtPEN(p.originalPrice)}</span>` : ''}
-        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${p.price != null ? fmtPriceLabel(p.price) : 'N/D'}</span>
+        ${p.onSale ? `<span class="text-[11px] text-zinc-400 line-through tabular">${fmtPEN(displayPriceUsd(p.originalPrice))}</span>` : ''}
+        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${p.price != null ? fmtDisplayPrice(p.price) : 'N/D'}</span>
       </div>
+      ${p.price != null ? taxIncludedNoteHTML(p.price, 'text-[10.5px] mt-0.5') : ''}
     </div>
   </button>`;
 }
@@ -2334,7 +2402,9 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
-  document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0 ? fmtPriceLabel(totalUsd) : 'Precio no disponible';
+  document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0
+    ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
+    : 'Precio no disponible';
 
   // Gallery = whatever the retailer really gave us, with the card's own
   // image guaranteed first. Callers that pass no list still work.
@@ -2933,7 +3003,7 @@ function renderLiveRetailerBlock(retailer, result){
           <div class="min-w-0 flex-1">
             <div class="text-[12.5px] font-semibold truncate" style="color:var(--navy)">${escapeHtml(it.title)}</div>
             <div class="text-[12px] text-zinc-500">
-              ${it.onSale ? `<span class="line-through text-zinc-400">${fmtPEN(it.originalPrice)}</span> ` : ''}${it.price != null ? fmtPriceLabel(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}
+              ${it.onSale ? `<span class="line-through text-zinc-400">${fmtPEN(displayPriceUsd(it.originalPrice))}</span> ` : ''}${it.price != null ? fmtDisplayPrice(it.price) : 'Precio no disponible'}${it.rating ? ' · ★ ' + escapeHtml(it.rating) : ''}${it.price != null ? taxIncludedNoteHTML(it.price, 'text-[10.5px]') : ''}
             </div>
           </div>
           <span class="h-8 px-3 rounded-full text-white text-[11.5px] font-bold flex-shrink-0 grid place-items-center" style="background:var(--blue)">Pedir</span>
@@ -3869,8 +3939,10 @@ function renderCartView(){
 // same pattern checkout.html already uses for its own small self-
 // contained copies of shared constants/helpers). If that policy ever
 // changes, update both places.
-const TAX_ZONE_THRESHOLD_USD = 200;
-const TAX_ZONE_RATE = 0.23;
+// Same threshold and rate the cards price with — aliased, not repeated,
+// so the two can never drift apart.
+const TAX_ZONE_THRESHOLD_USD = IMPORT_TAX_THRESHOLD_USD;
+const TAX_ZONE_RATE = IMPORT_TAX_RATE;
 const TAX_ZONE_AMBER_START_USD = 150;
 
 // Lives on the cart page (not checkout) per the brief — never distract at
@@ -4040,7 +4112,8 @@ async function renderCrossSellRail(){
           <div class="h-[100px]" style="background:var(--sky)"><img src="${escapeHtml(it.image)}" class="w-full h-full object-cover" alt=""></div>
           <div class="p-2.5">
             <div class="text-[11px] font-bold leading-tight truncate">${escapeHtml(it.title)}</div>
-            <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtPriceLabel(it.price)}</div>
+            <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtDisplayPrice(it.price)}</div>
+            ${taxIncludedNoteHTML(it.price, 'text-[10px]')}
           </div>
         </button>
       `).join('')}
@@ -4706,9 +4779,10 @@ function productCardHTML(p, opts){
       </div>
       <div class="text-[15px] font-bold leading-snug mb-2.5 cursor-pointer line-clamp-2" style="color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
       <div class="flex items-baseline gap-2.5 mb-1.5 mt-auto">
-        <span class="text-[22px] font-extrabold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(price) : 'Precio no disponible'}</span>
-        ${hasOriginal ? `<span class="text-[13px] text-zinc-400 line-through tabular">${fmtPEN(original)}</span>` : ''}
+        <span class="text-[22px] font-extrabold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Precio no disponible'}</span>
+        ${hasOriginal ? `<span class="text-[13px] text-zinc-400 line-through tabular">${fmtPEN(displayPriceUsd(original))}</span>` : ''}
       </div>
+      ${hasPrice ? taxIncludedNoteHTML(price, 'text-[11px] -mt-1 mb-1') : ''}
       ${freight != null ? `<div class="text-[11.5px] mb-3.5" style="color:${freightHeavy ? '#8A6B1F' : '#7A8296'}">
         + ${escapeHtml(fmtPriceLabel(freight))} de flete (${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : '<div class="mb-3.5"></div>'}
@@ -4742,6 +4816,7 @@ function renderSalesGrid(){
 initSalesFilters();
 initResultsFilters();
 initCategoriesFilters();
+renderHonestPricingBanners();
 
 /* ============================================================
    AI SHOPPING ASSISTANT
@@ -4851,7 +4926,7 @@ function addAssistantProductCard(item, retailer){
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
-      <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtPriceLabel(item.price) : ''}</div>
+      <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price) : ''}${item.price != null && priceIncludesImportTax(item.price) ? ' · incl. impuestos' : ''}</div>
     </div>`;
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
@@ -5105,7 +5180,7 @@ async function runAssistantBrain(text){
         products: foundItems.map(it => ({
           title: it.title,
           retailer: LIVE_RETAILER_LABEL[CHAT_RETAILER] || CHAT_RETAILER,
-          priceLabel: fmtPriceLabel(it.price),
+          priceLabel: fmtDisplayPrice(it.price) + (priceIncludesImportTax(it.price) ? ' (incl. impuestos)' : ''),
         })),
         // So the reply describes the same person the filter used, and can
         // say honestly when nothing matched rather than offering the
