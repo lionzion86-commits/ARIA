@@ -35,6 +35,57 @@ export const SALES_TAX_RATE = 1.07;
 export const LIVE_PRICE_MARKUP = 1.24;
 export const MIN_DISCOUNT_PCT = 5;
 
+import { bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses, MAX_FREIGHT_SHARE } from "./item-weight.js";
+
+// The public charged rate, and only that. weight-data.js also exports our
+// internal courier cost and margin; neither may travel with anything that
+// reaches a customer, so this module imports neither.
+export const CHARGE_PER_KG_USD = 13;
+
+// General-retail fallbacks. This is an EXACT mirror of
+// RETAIL_WEIGHT_ESTIMATES_KG in index.html -- same rows, same order, same
+// confidence tiers -- because both sides must produce the identical weight
+// for the same title. They diverged once: this table was written without
+// the `tier` field, so every row got the 1.20 'reasoned' buffer while the
+// page gave 'cited' rows 1.10, and a pair of sneakers came out 1.32kg here
+// against 1.21kg there. The freight gate runs on these numbers, so a
+// mismatch means the page can show a deal the refresh suppressed.
+// test-freight asserts row-for-row agreement.
+const RETAIL_WEIGHT_FALLBACK_KG = [
+  { match: /\bjeans?\b|denim/i, kg: 0.8, tier: "cited" },
+  { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.15, tier: "cited" },
+  { match: /hoodie|sweatshirt/i, kg: 0.6, tier: "cited" },
+  { match: /jacket|\bcoat\b/i, kg: 0.9, tier: "reasoned" },
+  { match: /sneaker|\bshoe|\bboot/i, kg: 1.1, tier: "cited" },
+  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.05, tier: "cited" },
+  { match: /\bsocks?\b/i, kg: 0.06, tier: "cited" },
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.2, tier: "cited" },
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 1.8, tier: "cited" },
+  { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.15, tier: "cited" },
+  { match: /\bremote\b/i, kg: 0.1, tier: "reasoned" },
+  { match: /\bwall mount\b|\btv mount\b/i, kg: 2.5, tier: "reasoned" },
+];
+const DEFAULT_RETAIL_WEIGHT_KG = 0.5; // unclassified: a rough placeholder, so 'reasoned'
+const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
+
+function tvWeightKg(title) {
+  const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(title);
+  const inches = m ? parseInt(m[1], 10) : null;
+  const kg = inches == null ? 12 : inches <= 32 ? 7 : inches <= 43 ? 10
+    : inches <= 50 ? 17 : inches <= 55 ? 20 : inches <= 65 ? 28 : 35;
+  return withBuffer(kg, "cited");
+}
+
+/** Estimated shipping weight for a scraped title. Bulky goods win first. */
+export function estimateWeightKg(title) {
+  const t = String(title || "");
+  const bulky = bulkyWeightKg(t);
+  if (bulky != null) return bulky;
+  if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
+  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
+  return hit ? withBuffer(hit.kg, hit.tier) : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned");
+}
+
 const round2 = (n) => Math.round(n * 100) / 100;
 
 function num(value) {
@@ -87,13 +138,30 @@ export function normalizeDeal(item, retailer) {
   const isDeal = hasAny && pct >= MIN_DISCOUNT_PCT;
 
   if (!isDeal || !title || price == null) return null;
+
+  /* FREIGHT GATE. A 45%-off TV stand is not a deal if it weighs 40kg and
+     costs $520 to fly here. The scraper gives us no weight, so it is
+     estimated from the title (see estimateWeightKg / item-weight.js) and
+     joined here, at ranking time, rather than being discovered by the
+     customer at checkout.
+
+     Weight and freight are stored on the item so the card can show the
+     real cost and, if anything slips through, badge it instead of
+     printing a discount the freight wipes out. */
+  const weightKg = estimateWeightKg(title);
+  const freight = freightUsd(weightKg, CHARGE_PER_KG_USD);
+  const share = freightShare(weightKg, price, CHARGE_PER_KG_USD);
+  if (share > MAX_FREIGHT_SHARE) return null; // suppressed: freight kills it
+
   return {
     retailer,
     title,
     price,
     originalPrice: round2(rawOriginal * SALES_TAX_RATE * LIVE_PRICE_MARKUP),
     rating,
-    weightKg: null, // the page estimates this; not stored
+    weightKg,
+    freightUsd: freight,
+    freightShare: Math.round(share * 1000) / 1000,
     sizes,
     image: images[0] || null,
     images,

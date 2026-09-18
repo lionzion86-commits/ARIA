@@ -1,5 +1,7 @@
 // Secure middleman between ariashop.pe and AVI Courier's shipping quote API
-import { COST_PER_KG, CHARGE_PER_KG } from "../../weight-data.js";
+import { CHARGE_PER_KG } from "../../weight-data.js";
+// Internal cost lives server-side only — see _courier-economics.js.
+import { COST_PER_KG } from "./_courier-economics.js";
 
 export async function handler(event) {
   const headers = {

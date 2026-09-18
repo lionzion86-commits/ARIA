@@ -1,12 +1,14 @@
-// RULE: COST_PER_KG and PROFIT_PER_KG are our internal AVI Courier cost
-// and margin — never import either into index.html, checkout.html, or any
-// other customer-facing file. Only CHARGE_PER_KG (the $13/kg rate actually
-// shown to and charged to the customer) and BASE_FEE belong in the
-// frontend. This was violated once already (a homepage calculator showed
-// "Mi costo"/"Mi ganancia" publicly) — don't reintroduce it.
-export const COST_PER_KG = 9;
-export const CHARGE_PER_KG = 13;
-export const PROFIT_PER_KG = 4;
+// This module is IMPORTED BY checkout.html, so the browser downloads it
+// and everything in it is public. Only customer-facing figures may live
+// here.
+//
+// COST_PER_KG and PROFIT_PER_KG used to be exported from this file. They
+// are our internal AVI Courier cost and margin, and shipping them to every
+// checkout visitor exposed both — the old comment forbade importing them
+// into the frontend, but the values travelled with the file anyway. They
+// now live in netlify/functions/_courier-economics.js, which is server
+// only. Do not bring them back.
+export const CHARGE_PER_KG = 13; // the rate actually charged to and shown to the customer
 export const BASE_FEE = 0;
 
 // Peru import duty/IGV policy, as already publicly disclosed on the site
