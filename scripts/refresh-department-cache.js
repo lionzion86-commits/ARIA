@@ -3,7 +3,7 @@
 // and brand across the four department-store retailers (Walmart, Target,
 // Old Navy, Foot Locker) — see netlify/functions/apify-scrape-start.js's
 // DEPARTMENT_CONFIG/BRAND_CONFIG for the underlying per-retailer config
-// this imports directly, so the two files can't drift out of sync.
+// this file imports directly, so the two files can't drift out of sync.
 //
 // Run manually every few days: `node scripts/refresh-department-cache.js`
 // Calls the site's own already-deployed, already-tested functions rather
@@ -17,6 +17,7 @@
 // here (prices/stock/sale status change).
 
 import fs from "node:fs/promises";
+import { estimateWeightDetail } from "./lib/sales-sources.js";
 import { DEPARTMENT_CONFIG, BRAND_CONFIG } from "../netlify/functions/apify-scrape-start.js";
 
 const SITE = "https://ariashop.pe";
@@ -311,6 +312,29 @@ async function main() {
     }
   }
   await saveCache();
+
+  /* Same sanity pass as the Ofertas refresh. The department cache stores
+     raw scrapes and the page estimates weight at render time, so nothing
+     is rewritten here — but an implausible weight must never reach the
+     storefront unannounced, and this is where a human is watching. */
+  const flagged = [];
+  for (const bucket of Object.values(out.retailers || {})) {
+    for (const group of [bucket.departments || {}, bucket.brands || {}]) {
+      for (const dept of Object.values(group)) {
+        for (const item of dept.items || []) {
+          const title = item.name || item.title || "";
+          const w = estimateWeightDetail(title);
+          if (w.flagged) flagged.push(`${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`);
+        }
+      }
+    }
+  }
+  if (flagged.length) {
+    console.log(`\n  ${flagged.length} item(s) needed a weight sanity floor — add a category row for these:`);
+    for (const line of [...new Set(flagged)]) console.log(`    ${line}`);
+  } else {
+    console.log("\n  weights: every item is within its category bounds");
+  }
 
   console.log(`\nWrote ${OUT_FILE.pathname}`);
   console.log("\n  NEXT: run `node scripts/image-price-scan.js` — every item just written is");

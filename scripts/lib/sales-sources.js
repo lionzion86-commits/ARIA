@@ -35,7 +35,10 @@ export const SALES_TAX_RATE = 1.07;
 export const LIVE_PRICE_MARKUP = 1.24;
 export const MIN_DISCOUNT_PCT = 5;
 
-import { bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses, billableWeightKg, titleWeight, MAX_FREIGHT_SHARE } from "./item-weight.js";
+import {
+  bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
+  billableWeightKg, titleWeight, MAX_FREIGHT_SHARE, weightSanity,
+} from "./item-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
 // internal courier cost and margin; neither may travel with anything that
@@ -115,11 +118,34 @@ export function categoryWeightKg(title) {
  * ever called: see netlify/functions/_weight-resolve.js.)
  */
 export function estimateWeightKg(title) {
+  return estimateWeightDetail(title).kg;
+}
+
+/**
+ * The same chain, with its reasoning attached — and with the sanity
+ * bounds applied at the end, so nothing implausible leaves this function.
+ *
+ * { kg, source: "title"|"category"|"fallback", flagged, bound, reason }
+ *
+ * `flagged` means the chain produced a weight the bounds rejected: the
+ * floor is used instead (never under-quote) and the caller is expected to
+ * SAY SO rather than publish it quietly. That is the whole point — a
+ * wrong weight is money straight off the margin, because we honour the
+ * freight we quoted.
+ */
+export function estimateWeightDetail(title) {
   const stated = titleWeight(title);
-  if (stated) return stated.kg;
-  const category = categoryWeightKg(title);
-  if (category != null) return category;
-  return withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned");
+  const raw = stated ? { kg: stated.kg, source: "title" }
+    : (() => {
+        const category = categoryWeightKg(title);
+        return category != null
+          ? { kg: category, source: "category" }
+          : { kg: withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned"), source: "fallback" };
+      })();
+
+  const check = weightSanity(title, raw.kg);
+  if (check.ok) return { ...raw, flagged: false, bound: check.key, reason: null };
+  return { kg: check.kg, source: raw.source, flagged: true, bound: check.key, reason: check.reason };
 }
 
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -184,7 +210,8 @@ export function normalizeDeal(item, retailer) {
      Weight and freight are stored on the item so the card can show the
      real cost and, if anything slips through, badge it instead of
      printing a discount the freight wipes out. */
-  const weightKg = estimateWeightKg(title);
+  const weight = estimateWeightDetail(title);
+  const weightKg = weight.kg;
   const freight = freightUsd(weightKg, CHARGE_PER_KG_USD);
   const share = freightShare(weightKg, price, CHARGE_PER_KG_USD);
   if (share > MAX_FREIGHT_SHARE) return null; // suppressed: freight kills it
@@ -196,6 +223,9 @@ export function normalizeDeal(item, retailer) {
     originalPrice: round2(rawOriginal * SALES_TAX_RATE * LIVE_PRICE_MARKUP),
     rating,
     weightKg,
+    // Set only when the sanity bounds had to correct the estimate — the
+    // refresh script prints these so a real category row gets added.
+    ...(weight.flagged ? { weightFlagged: true, weightFlagReason: weight.reason } : {}),
     freightUsd: freight,
     freightShare: Math.round(share * 1000) / 1000,
     sizes,
