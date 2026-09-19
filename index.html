@@ -54,6 +54,27 @@
      next to it. The explicit min-*:0 plus overflow:hidden makes overflow
      impossible at any viewport width, whatever a logo file's intrinsic
      size happens to be. */
+  /* THE "PRECIO HONESTO" DESIGN LANGUAGE, as a component.
+     The guarantee section introduced it (navy band, gold hairline, gold
+     kicker, gold-bordered card with an icon tile) and Nosotros now uses
+     the very same classes rather than a second copy of the same values,
+     so the two pages cannot drift apart. The numbers here are exactly
+     what that section already rendered: rounded-3xl / p-7 sm:p-8 /
+     w-12 h-12 rounded-2xl mb-6. */
+  .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaKicker--onLight{ color:var(--amber) }
+  .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
+  .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  .ariaCard{ border-radius:24px; padding:28px; height:100%; display:flex; flex-direction:column;
+             background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22) }
+  .ariaCardIcon{ width:48px; height:48px; border-radius:16px; display:grid; place-items:center; margin-bottom:24px;
+                 background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35) }
+  /* Same card on a light band. */
+  .ariaCard--light{ background:#fff; border-color:var(--line); box-shadow:0 10px 30px rgba(10,31,68,0.06) }
+  .ariaCard--light .ariaCardIcon{ background:rgba(244,196,99,0.20); border-color:rgba(184,134,11,0.38) }
+  @media (min-width:640px){ .ariaCard{ padding:32px } }
+  /* A line worth stopping on, in both bands. */
+  .ariaPullQuote{ border-left:3px solid #F4C463; padding-left:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.3 }
   .store-logo-tile{width:120px; height:48px; flex:0 0 auto; display:grid; place-items:center; overflow:hidden; border-radius:10px; padding:6px; background:#fff; border:1px solid var(--line)}
   .store-logo-tile img{display:block; width:100%; height:100%; min-width:0; min-height:0; object-fit:contain}
   /* Styled-text fallback for a logo file that is missing or fails to
@@ -287,7 +308,7 @@
     <div class="max-w-[1120px] mx-auto px-5 py-20 sm:py-24">
 
       <div class="max-w-[62ch] mb-14 sm:mb-16">
-        <div class="text-[11.5px] font-extrabold tracking-[0.18em] uppercase mb-4" style="color:#F4C463">Garantía Aria</div>
+        <div class="ariaKicker mb-4">Garantía Aria</div>
         <h2 class="text-[30px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.08] mb-5" style="color:#fff">
           Garantía de <span style="color:#F4C463">Precio Honesto</span>
         </h2>
@@ -298,29 +319,29 @@
       </div>
 
       <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
-      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
-        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+      <article class="ariaCard">
+        <div class="ariaCardIcon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 12 22l-9-9V4a1 1 0 0 1 1-1h9l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.3" fill="#F4C463"/></svg>
         </div>
         <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Lo que ves es lo que pagas</h3>
         <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Si el producto pasa de $200, el precio que ves en la tarjeta ya trae los impuestos de importación (~23%). No hay una cifra distinta esperándote en el checkout.</p>
       </article>
-      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
-        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+      <article class="ariaCard">
+        <div class="ariaCardIcon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h11v10H3zM14 9h4l3 3v4h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17.5" cy="18" r="2"/></svg>
         </div>
         <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Flete honesto, siempre</h3>
         <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Cotizamos el flete por peso, con estimados conservadores y la cuenta a la vista: kilos × $13/kg. Si el flete real sale menor, la diferencia vuelve a ti como saldo Aria.</p>
       </article>
-      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
-        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+      <article class="ariaCard">
+        <div class="ariaCardIcon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2.5 4.5 5.8v5.4c0 4.6 3.1 8.8 7.5 10.3 4.4-1.5 7.5-5.7 7.5-10.3V5.8Z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/></svg>
         </div>
         <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Si nos equivocamos, perdemos nosotros</h3>
         <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Si nuestro estimado de peso se queda corto, asumimos la diferencia. El precio que te cotizamos es el que pagas: nunca te cobramos más después.</p>
       </article>
-      <article class="rounded-3xl p-7 sm:p-8 h-full flex flex-col" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
-        <div class="w-12 h-12 rounded-2xl grid place-items-center mb-6" style="background:rgba(244,196,99,0.14); border:1px solid rgba(244,196,99,0.35)">
+      <article class="ariaCard">
+        <div class="ariaCardIcon">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.8V20h13V9.8"/><path d="M9.8 20v-5.2h4.4V20"/></svg>
         </div>
         <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Nada que pagar al recibir</h3>
@@ -1141,52 +1162,159 @@
 </div>
 
 <!-- ============ ABOUT VIEW ============ -->
+<!-- ============ NOSOTROS ============ -->
+<!-- REBUILT 2026-09-19. This was a flat header over a wall of grey text
+     and three anaemic stat chips — the page carrying the company's whole
+     reason for existing read like a filler page. It now uses the same
+     design language as the Precio Honesto section (navy bands, gold
+     kicker, the shared .ariaCard component) so the promise and the story
+     behind it look like they come from the same company.
+     The Best Buy mention is gone: it was never a store Aria searches. -->
 <div id="aboutView" class="view">
 
-  <!-- NAVY HERO -->
-  <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #14306B 100%)">
-    <div class="relative max-w-[760px] mx-auto px-5 pt-16 pb-14 text-center">
-      <h1 class="text-[34px] sm:text-[42px] font-extrabold tracking-[-0.03em] text-white mb-4">Nosotros</h1>
-      <p class="text-[16px] sm:text-[18px] leading-relaxed max-w-[56ch] mx-auto" style="color:#DCE6FF">
-        Aria nace en Lima, Perú, con una idea simple:
-        <span class="font-bold" style="color:#7FB8FF">comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.</span>
-      </p>
+  <!-- 1 · HEADER BAND -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-20 sm:py-24">
+      <div class="max-w-[62ch]">
+        <div class="ariaKicker mb-4">Quiénes somos</div>
+        <h1 class="text-[32px] sm:text-[46px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-5" style="color:#fff">
+          Una promesa con <span style="color:#F4C463">nombre propio</span>.
+        </h1>
+        <p class="text-[15px] sm:text-[17px] leading-relaxed max-w-[56ch]" style="color:#AFBBD6">
+          Comprar en Estados Unidos debería sentirse tan fácil y transparente como comprar en tu tienda local.
+        </p>
+      </div>
     </div>
-  </div>
+  </section>
 
-  <!-- BODY -->
-  <div class="max-w-[760px] mx-auto px-5 py-14">
-    <div class="space-y-6 text-[14.5px] text-zinc-700 leading-relaxed max-w-[58ch] mx-auto">
-      <p>Hoy, comprar en tiendas como Target, Walmart o Best Buy desde Perú sigue siendo complicado: casilleros que cobran por peso, costos de aduana que aparecen recién al final, y la duda constante de si el producto es realmente genuino.</p>
-      <p>Aria resuelve eso mostrando un solo precio, todo incluido, antes de que decidas comprar. Compramos directamente en la tienda de origen, consolidamos en nuestro almacén en Miami, y gestionamos todo el proceso de envío y aduana hasta tu puerta en Perú.</p>
-      <p>Confianza es la base de todo lo que hacemos. Por eso cada producto muestra claramente de qué tienda proviene, y nunca trabajamos con revendedores externos.</p>
-    </div>
+  <!-- 2 · LA HISTORIA -->
+  <section style="background:var(--paper)">
+    <div class="max-w-[1120px] mx-auto px-5 py-20 sm:py-24">
+      <div class="ariaKicker ariaKicker--onLight mb-4">La historia</div>
+      <h2 class="text-[28px] sm:text-[38px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-10 max-w-[20ch]" style="color:var(--navy)">
+        Aria lleva el nombre de mi hija.
+      </h2>
 
-    <!-- STAT / VALUE STRIP (light blue accent) -->
-    <div class="grid sm:grid-cols-3 gap-4 mt-12 max-w-[58ch] mx-auto">
-      <div class="rounded-2xl p-5 text-center" style="background:var(--sky); border:1px solid #D6E1FF">
-        <div class="text-[12px] font-bold uppercase tracking-wide" style="color:var(--blue)">Nacimos en</div>
-        <div class="text-[16px] font-extrabold mt-1" style="color:var(--navy)">Lima, Perú</div>
-      </div>
-      <div class="rounded-2xl p-5 text-center" style="background:var(--sky); border:1px solid #D6E1FF">
-        <div class="text-[12px] font-bold uppercase tracking-wide" style="color:var(--blue)">Consolidamos en</div>
-        <div class="text-[16px] font-extrabold mt-1" style="color:var(--navy)">Miami, EE. UU.</div>
-      </div>
-      <div class="rounded-2xl p-5 text-center" style="background:var(--sky); border:1px solid #D6E1FF">
-        <div class="text-[12px] font-bold uppercase tracking-wide" style="color:var(--blue)">Nuestra base</div>
-        <div class="text-[16px] font-extrabold mt-1" style="color:var(--navy)">Confianza y transparencia</div>
-      </div>
-    </div>
+      <div id="aboutStoryGrid" class="grid md:grid-cols-[1.35fr_1fr] gap-10 md:gap-14 items-start">
+        <div class="max-w-[62ch]">
+          <p class="text-[15.5px] sm:text-[16.5px] leading-[1.75] mb-7" style="color:#3D4759">
+            Aria lleva el nombre de mi hija. Nació como una promesa: que ningún peruano vuelva a pagar de más
+            — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
+            compra en una tienda en Estados Unidos.
+          </p>
+          <p class="text-[15.5px] sm:text-[16.5px] leading-[1.75] mb-8" style="color:#3D4759">
+            Empezamos como un proyecto pequeño, construido a mano, con obsesión por una sola cosa:
+          </p>
+          <blockquote class="ariaPullQuote text-[21px] sm:text-[26px] my-8" style="color:var(--navy)">
+            que el precio que ves sea el precio que pagas.
+          </blockquote>
+          <p class="text-[15.5px] sm:text-[16.5px] leading-[1.75] mb-7" style="color:#3D4759">
+            Sin sorpresas en la aduana. Sin cobros que aparecen al final. Sin letra pequeña.
+          </p>
+          <p class="text-[15.5px] sm:text-[16.5px] leading-[1.75]" style="color:#3D4759">
+            Compramos directamente en las tiendas oficiales, consolidamos en Miami y gestionamos todo el envío
+            y la aduana hasta tu puerta en Perú. Cada producto muestra claramente de qué tienda proviene
+            — nunca trabajamos con revendedores externos.
+          </p>
+        </div>
 
-    <!-- NAVY CTA -->
-    <div class="mt-12 rounded-2xl p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 max-w-[58ch] mx-auto" style="background:var(--navy)">
-      <div>
-        <div class="font-bold text-[15px] mb-1 text-white">¿Tienes preguntas?</div>
-        <div class="text-[13.5px]" style="color:#B9C6E8">Escríbenos, nos encantaría conocerte.</div>
+        <!-- Visual slot for the founder's own photo. Drop the file in as
+             assets/about-fundador.jpg and it appears here; until it does,
+             onerror removes the whole figure and the story runs full
+             width. No stand-in person is ever generated or shown. -->
+        <figure id="aboutFounderPhoto" class="md:sticky md:top-[92px]">
+          <div class="rounded-3xl overflow-hidden" style="border:1px solid var(--line); background:var(--sky)">
+            <img src="assets/about-fundador.jpg" alt="El fundador de Aria" class="w-full h-auto block"
+                 onerror="this.setAttribute('data-img-failed','1'); window.hideFounderPhoto && hideFounderPhoto()">
+          </div>
+          <figcaption class="text-[12.5px] mt-3" style="color:#6B7487">Lima, Perú.</figcaption>
+        </figure>
       </div>
-      <span class="text-[12px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)">Siempre transparentes</span>
     </div>
-  </div>
+  </section>
+
+  <!-- 3 · NUESTRO PORQUÉ -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-20 sm:py-28">
+      <div class="ariaKicker mb-4">Nuestro porqué</div>
+      <h2 class="text-[28px] sm:text-[38px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-12 sm:mb-16 max-w-[24ch]" style="color:#fff">
+        Por qué existe <span style="color:#F4C463">Aria</span>.
+      </h2>
+
+      <!-- Copy verbatim. Short paragraphs, wide leading, two lines lifted
+           out as pull quotes — this is the soul of the page; it gets air. -->
+      <div class="max-w-[60ch] space-y-9 sm:space-y-11">
+        <p class="text-[16px] sm:text-[18px] leading-[1.8]" style="color:#D6DEF2">
+          Creemos algo simple: el valor de una persona no está en lo que tiene, sino en lo que construye
+          — para sí misma y para los demás.
+        </p>
+        <p class="text-[16px] sm:text-[18px] leading-[1.8]" style="color:#D6DEF2">
+          Aria lleva el nombre de mi hija. Es para ella. Para que crezca en un mundo donde la honestidad sea
+          la regla y no la excepción. Donde nadie pague de más por no tener a alguien allá. Donde el precio
+          que ves sea el precio que pagas, y donde el que se equivoca asuma su error en lugar de pasárselo
+          al cliente.
+        </p>
+        <blockquote class="ariaPullQuote text-[21px] sm:text-[28px]" style="color:#fff">
+          No nos hacemos ricos con tu confusión.
+        </blockquote>
+        <p class="text-[16px] sm:text-[18px] leading-[1.8]" style="color:#D6DEF2">
+          Ganamos de una sola manera, a la vista de todos: un margen claro por hacer el trabajo.
+          Y si nos equivocamos, perdemos nosotros.
+        </p>
+        <p class="text-[22px] sm:text-[30px] font-extrabold tracking-[-0.02em] leading-[1.25]" style="color:#F4C463">
+          Eso defendemos. Eso es Aria.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · CÓMO FUNCIONA -->
+  <section style="background:#fff">
+    <div class="max-w-[1120px] mx-auto px-5 py-20 sm:py-24">
+      <div class="ariaKicker ariaKicker--onLight mb-4">Cómo funciona</div>
+      <h2 class="text-[28px] sm:text-[38px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-12 max-w-[22ch]" style="color:var(--navy)">
+        Tres pasos, y nada que pagar al recibir.
+      </h2>
+      <div class="grid sm:grid-cols-3 gap-5 sm:gap-6">
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a2 2 0 0 0 2 1.6h7.7a2 2 0 0 0 2-1.5L21 8H6"/><circle cx="10" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+          </div>
+          <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:var(--navy)">Compramos por ti</h3>
+          <p class="text-[14.5px] leading-relaxed" style="color:#4A5568">Directamente en tiendas oficiales de EE. UU.: Target, Walmart y Old Navy. Nada de intermediarios.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5 12 4l9 4.5v7L12 20l-9-4.5Z"/><path d="m3 8.5 9 4.5 9-4.5M12 13v7"/></svg>
+          </div>
+          <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:var(--navy)">Consolidamos en Miami</h3>
+          <p class="text-[14.5px] leading-relaxed" style="color:#4A5568">Juntamos tus pedidos en nuestro almacén para que pagues un solo envío.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1Z"/></svg>
+          </div>
+          <h3 class="text-[18px] sm:text-[19px] font-extrabold tracking-[-0.01em] mb-3" style="color:var(--navy)">Lo recibes en tu puerta</h3>
+          <p class="text-[14.5px] leading-relaxed" style="color:#4A5568">Gestionamos aduana y entrega en Perú. Todo pagado desde el checkout: nada que pagar al recibir.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · LA PROMESA -->
+  <section style="background:var(--paper)">
+    <div class="max-w-[1120px] mx-auto px-5 pb-20 sm:pb-24">
+      <div class="rounded-3xl px-7 py-9 sm:px-12 sm:py-12 relative overflow-hidden ariaNavyBand">
+        <div class="ariaGoldHair"></div>
+        <p class="text-[19px] sm:text-[26px] font-extrabold tracking-[-0.02em] leading-[1.35] max-w-[34ch]" style="color:#fff">
+          Si nuestro estimado se queda corto, <span style="color:#F4C463">asumimos la diferencia</span>.
+          El precio que te cotizamos es el que pagas.
+        </p>
+      </div>
+    </div>
+  </section>
 </div>
 
 <!-- ============ RETURNS VIEW ============ -->
@@ -1786,6 +1914,19 @@ const HONEST_PRICING_BANNER_HTML = `
   <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
     💛 Precios honestos: todo lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya incluye los impuestos de importación (~${Math.round(IMPORT_TAX_RATE * 100)}%) en el precio que ves — y todo lo que está por debajo de $${IMPORT_TAX_THRESHOLD_USD} no paga impuestos de importación. Lo que ves es lo que pagas.
   </div>`;
+
+/* The founder's photo is a real asset the founder supplies. Until the
+   file exists, the slot removes itself and the story runs full width —
+   never a broken image, never a placeholder person. */
+function hideFounderPhoto(){
+  document.getElementById('aboutFounderPhoto')?.remove();
+  document.getElementById('aboutStoryGrid')?.classList.remove('md:grid-cols-[1.35fr_1fr]');
+}
+// The onerror can fire before this script has run (same race as the store
+// logos), so the missing asset is also marked and swept on init.
+function sweepFounderPhoto(){
+  if (document.querySelector('#aboutFounderPhoto img[data-img-failed]')) hideFounderPhoto();
+}
 
 function renderHonestPricingBanners(){
   document.querySelectorAll('[data-honest-banner]').forEach(el => {
@@ -6045,30 +6186,124 @@ const orbSwim = {
   started: false,
 };
 
+/* THE ORB MUST NEVER COVER TEXT OR CLICKS (2026-09-19, reported on
+   Nosotros, where it sat on top of a card's copy).
+
+   It used to swim the whole viewport rim, and the rim runs straight
+   across the content column on every page. Now it swims a LANE: the page
+   gutter beside the content, measured live from the active view, so
+   geometrically it cannot be over the text. Where the window is wide
+   enough for a gutter but not a full-size orb, the orb scales down to fit
+   the lane rather than leaving it.
+
+   On a phone there is no gutter at all — the content is the full width —
+   so it docks in the bottom corner at a smaller size and stops swimming,
+   and the page reserves that much space at the bottom so no content ends
+   up permanently underneath it. (Content still scrolls past beneath a
+   fixed corner button, the same as any floating assistant; the honest fix
+   for that is a reserved bottom bar, which is a design decision, not this
+   bug fix.) */
+const ORB_SIZE_DOCKED = 64;     // phones: smaller, parked in the corner
+const ORB_LANE_MIN = 56;        // a lane narrower than this is not a lane
+const ORB_CONTENT_GAP = 10;     // never breathe on the text
+/* Docked, she still has to get out of the way. When the corner she is
+   parked in has content under it, she retreats to the screen edge until
+   only this much of her is over the page — which is the page's own 20px
+   gutter, where no glyph ever reaches — and comes back out the moment the
+   corner is clear again. */
+const ORB_PEEK_PX = 24;
+const ORB_COVER_CHECK_MS = 250;
+
+/* The column the page's content actually occupies right now. Every view
+   lays its content out in an `mx-auto` wrapper, so the union of the
+   visible ones is the column — padding included, which errs on the side
+   of leaving the text alone. */
+function orbContentColumn(){
+  const view = document.querySelector('.view.active');
+  if (!view) return null;
+  let left = Infinity, right = -Infinity;
+  // The footer is shared chrome, outside the view, and it is content too:
+  // the lane has to make room for it while it is on screen. The header
+  // needs no such handling — ORB_TOP_SAFE already keeps her below it.
+  const wrappers = [...view.querySelectorAll('.mx-auto'), ...document.querySelectorAll('footer .mx-auto')];
+  for (const el of wrappers){
+    const r = el.getBoundingClientRect();
+    if (r.width < 240 || r.height < 60) continue;                 // chips, pills, buttons
+    if (r.bottom <= 0 || r.top >= window.innerHeight) continue;   // scrolled out of sight
+    if (r.left < left) left = r.left;
+    if (r.right > right) right = r.right;
+  }
+  return Number.isFinite(left) ? { left, right } : null;
+}
+
+/* Where the orb is allowed to be: a vertical lane in the wider gutter,
+   or — when there is no gutter — the docked corner. */
+function orbLane(){
+  const topSafe = ORB_TOP_SAFE;
+  const bottom = window.innerHeight - ORB_MARGIN;
+  const col = orbContentColumn();
+  const leftGutter = col ? col.left - ORB_CONTENT_GAP - ORB_MARGIN : window.innerWidth;
+  const rightGutter = col ? window.innerWidth - ORB_MARGIN - (col.right + ORB_CONTENT_GAP) : window.innerWidth;
+  const onRight = rightGutter >= leftGutter;
+  const gutter = Math.max(leftGutter, rightGutter);
+  const size = Math.min(ORB_SIZE, Math.floor(gutter));
+
+  if (size < ORB_LANE_MIN || bottom - topSafe < size + 20){
+    const s = ORB_SIZE_DOCKED;
+    const x = Math.max(ORB_MARGIN, window.innerWidth - s - 12);
+    const y = Math.max(topSafe, window.innerHeight - s - 12);
+    return { mode: 'dock', size: s, minX: x, maxX: x, minY: y, maxY: y };
+  }
+  const x = onRight
+    ? Math.min(window.innerWidth - size - ORB_MARGIN, (col ? col.right + ORB_CONTENT_GAP : ORB_MARGIN) + Math.max(0, (gutter - size) / 2))
+    : Math.max(ORB_MARGIN, ORB_MARGIN + Math.max(0, (gutter - size) / 2));
+  return { mode: 'lane', size, minX: x, maxX: x, minY: topSafe, maxY: Math.max(topSafe, bottom - size) };
+}
+
 function orbBounds(){
-  return {
-    minX: ORB_MARGIN,
-    maxX: Math.max(ORB_MARGIN, window.innerWidth - ORB_SIZE - ORB_MARGIN),
-    minY: ORB_TOP_SAFE,
-    maxY: Math.max(ORB_TOP_SAFE, window.innerHeight - ORB_SIZE - ORB_MARGIN),
-  };
+  const lane = orbLane();
+  return { minX: lane.minX, maxX: lane.maxX, minY: lane.minY, maxY: lane.maxY, mode: lane.mode, size: lane.size };
+}
+
+/* Is there page content under the orb right now? Asked of the page
+   itself rather than guessed from geometry, with the orb made
+   click-through for the duration so it cannot find itself. */
+function orbCoversContent(x, y, size){
+  const btn = document.getElementById('assistantBtn');
+  if (!btn) return false;
+  const prev = btn.style.pointerEvents;
+  btn.style.pointerEvents = 'none';
+  let covers = false;
+  for (const [fx, fy] of [[0.18, 0.5], [0.5, 0.5], [0.5, 0.85], [0.5, 0.15]]){
+    const el = document.elementFromPoint(x + size * fx, y + size * fy);
+    if (el && el.closest('p,h1,h2,h3,h4,h5,h6,blockquote,li,figcaption,label,button,a,input,select,textarea,article,img')){
+      covers = true;
+      break;
+    }
+  }
+  btn.style.pointerEvents = prev;
+  return covers;
+}
+
+/* Reserve the docked orb's corner so the last of the page never ends up
+   underneath it. In lane mode nothing is reserved: it is in the gutter. */
+function orbReserveSpace(lane){
+  const want = lane.mode === 'dock' ? (lane.size + 24) + 'px' : '';
+  if (document.body.style.paddingBottom !== want) document.body.style.paddingBottom = want;
 }
 
 /* The rim as a single loop: right edge down, bottom edge left, left edge
    up, top edge right. Progress 0..1 maps to a point on it, so "keep
    going" and "turn around" are both just moving along one number. */
+/* The lane as a single loop: down it, then back up. Progress 0..1 maps to
+   a point on that loop, so "keep going" and "turn around" are both still
+   just moving along one number — the drift, the pauses and the turns are
+   unchanged, they simply happen beside the content instead of over it. */
 function orbRimPoint(progress){
   const b = orbBounds();
-  const w = Math.max(1, b.maxX - b.minX), h = Math.max(1, b.maxY - b.minY);
-  const perimeter = 2 * (w + h);
-  let d = ((progress % 1) + 1) % 1 * perimeter;
-  if (d < h) return { x: b.maxX, y: b.minY + d };
-  d -= h;
-  if (d < w) return { x: b.maxX - d, y: b.maxY };
-  d -= w;
-  if (d < h) return { x: b.minX, y: b.maxY - d };
-  d -= h;
-  return { x: b.minX + d, y: b.minY };
+  const h = Math.max(1, b.maxY - b.minY);
+  const d = (((progress % 1) + 1) % 1) * 2 * h;
+  return { x: b.minX, y: d < h ? b.minY + d : b.maxY - (d - h) };
 }
 
 // Set in startOrbSwim() to the bottom-right corner — where the orb has
@@ -6092,10 +6327,13 @@ function orbStep(now){
   const panelOpen = !document.getElementById('assistantPanel')?.classList.contains('hidden');
   const dt = Math.min(0.05, (now - (orbSwim.lastTs || now)) / 1000);
   orbSwim.lastTs = now;
+  const lane = orbLane();
+  orbReserveSpace(lane);
+  const docked = lane.mode === 'dock';
 
-  if (!panelOpen && now >= orbSwim.pauseUntil){
+  if (!panelOpen && !docked && now >= orbSwim.pauseUntil){
     const b = orbBounds();
-    const perimeter = 2 * ((b.maxX - b.minX) + (b.maxY - b.minY));
+    const perimeter = 2 * (b.maxY - b.minY);
     orbProgress += orbSwim.dir * (ORB_SPEED_PX_S * dt) / Math.max(1, perimeter);
     // At the end of a leg she pauses, or turns, or both.
     if (Math.abs(orbProgress - (orbSwim.legStart ?? 0)) > (orbSwim.legLength ?? 0.1)){
@@ -6109,7 +6347,7 @@ function orbStep(now){
 
   // Curiosity: a lean toward the pointer when it comes near, capped so she
   // never leaves the rim band or chases the cursor across the page.
-  if (orbSwim.pointer && !panelOpen){
+  if (orbSwim.pointer && !panelOpen && !docked){
     const cx = orbSwim.x + ORB_SIZE / 2, cy = orbSwim.y + ORB_SIZE / 2;
     const dx = orbSwim.pointer.x - cx, dy = orbSwim.pointer.y - cy;
     const dist = Math.hypot(dx, dy);
@@ -6120,20 +6358,48 @@ function orbStep(now){
     }
   }
 
-  const b = orbBounds();
-  orbSwim.targetX = Math.min(b.maxX, Math.max(b.minX, tx));
-  orbSwim.targetY = Math.min(b.maxY, Math.max(b.minY, ty));
+  if (docked){
+    // Docked, the only decision left is how far out of the way to be.
+    if (now - (orbSwim.lastCoverCheck || 0) > ORB_COVER_CHECK_MS){
+      orbSwim.lastCoverCheck = now;
+      orbSwim.covering = orbCoversContent(lane.minX, lane.minY, lane.size);
+    }
+    tx = orbSwim.covering ? window.innerWidth - ORB_PEEK_PX : lane.minX;
+    ty = lane.minY;
+  }
 
-  // Eased follow: the orb never snaps, it glides.
-  orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
-  orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
+  // The lane is the guarantee: whatever the drift or the cursor lean
+  // wanted, the orb is clamped back into the gutter before it moves.
+  orbSwim.targetX = docked ? tx : Math.min(lane.maxX, Math.max(lane.minX, tx));
+  orbSwim.targetY = docked ? ty : Math.min(lane.maxY, Math.max(lane.minY, ty));
+
+  // Eased follow: the orb never snaps, it glides — except out of the way.
+  // Gliding off a line of text still crosses it, so the retreat is
+  // instant and only the return is eased.
+  if (docked && orbSwim.covering){
+    orbSwim.x = orbSwim.targetX;
+    orbSwim.y = orbSwim.targetY;
+  } else {
+    orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
+    orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
+  }
 
   const btn = document.getElementById('assistantBtn');
-  if (btn) btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0)`;
+  // Scaled from its top-left corner, so the drawn orb is exactly the box
+  // the lane math reserved for it — never a pixel wider.
+  const scale = lane.size / ORB_SIZE;
+  if (btn){
+    btn.style.transformOrigin = '0 0';
+    btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${scale.toFixed(3)})`;
+  }
 
   // The trail: each dot follows the one ahead of it, so the whole thing
   // lags and fades behind her like light in water.
-  let leadX = orbSwim.x + ORB_SIZE / 2, leadY = orbSwim.y + ORB_SIZE / 2;
+  // Docked, there is no swim to trail — and a trail in the corner would
+  // be a glow sitting on the content the dock is careful not to cover.
+  const trailWrap = document.getElementById('ariaOrbTrail');
+  if (trailWrap) trailWrap.style.opacity = docked ? '0' : '';
+  let leadX = orbSwim.x + lane.size / 2, leadY = orbSwim.y + lane.size / 2;
   for (const dot of orbSwim.trail){
     dot.x += (leadX - dot.x) * 0.22;
     dot.y += (leadY - dot.y) * 0.22;
@@ -6153,17 +6419,17 @@ function startOrbSwim(){
   if (!btn || !trailWrap) return;
   orbSwim.started = true;
 
-  // Progress 0 is the top-right corner and runs down the right edge, so
-  // the bottom-right corner — her old home — is exactly one edge along.
-  const bStart = orbBounds();
-  const hStart = Math.max(1, bStart.maxY - bStart.minY);
-  const perimeterStart = 2 * ((bStart.maxX - bStart.minX) + hStart);
-  orbProgress = hStart / perimeterStart;
+  // Progress 0.5 is the far end of the lane — the bottom corner she has
+  // always started from — so nothing jumps on first paint.
+  const laneStart = orbLane();
+  orbReserveSpace(laneStart);
+  orbProgress = 0.5;
   const rim = orbRimPoint(orbProgress);
   orbSwim.x = rim.x; orbSwim.y = rim.y;
   orbSwim.legStart = orbProgress;
   orbPickNextLeg(performance.now());
-  btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0)`;
+  btn.style.transformOrigin = '0 0';
+  btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${(laneStart.size / ORB_SIZE).toFixed(3)})`;
 
   // Someone who asked for less motion gets none of this: the orb stays
   // where it is and keeps only its breathing.
@@ -6182,11 +6448,15 @@ function startOrbSwim(){
 
   window.addEventListener('pointermove', (e) => { orbSwim.pointer = { x: e.clientX, y: e.clientY }; }, { passive: true });
   window.addEventListener('pointerleave', () => { orbSwim.pointer = null; }, { passive: true });
-  window.addEventListener('resize', () => {
+  // The lane moves when the window does, and when a different view (with
+  // a different content column) comes up under a scroll.
+  const reclamp = () => {
     const b = orbBounds();
     orbSwim.x = Math.min(b.maxX, Math.max(b.minX, orbSwim.x));
     orbSwim.y = Math.min(b.maxY, Math.max(b.minY, orbSwim.y));
-  }, { passive: true });
+  };
+  window.addEventListener('resize', reclamp, { passive: true });
+  window.addEventListener('scroll', reclamp, { passive: true });
 
   requestAnimationFrame(orbStep);
 }
@@ -6904,6 +7174,7 @@ function speakWithAria(audioBase64, ariaText){
 })();
 startOrbSwim();
 sweepStoreLogos();
+sweepFounderPhoto();
 initRouter();
 </script>
 </body>
