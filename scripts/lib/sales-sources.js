@@ -74,6 +74,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned", dimCm: [12, 10, 6] },
   { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned", dimCm: [30, 22, 5] },
   { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned", dimCm: [15, 12, 8] },
+  { match: /\bvitamins?\b|multivitamin|\bsupplement\b|suplementos?\b|\bsoftgels?\b|\btablets?\b.*\bcount\b/i, kg: 0.5, tier: "reasoned" },
 ];
 const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // unclassified: a rough placeholder, so 'reasoned'
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
