@@ -3897,7 +3897,12 @@ const FOOTWEAR_TIERS = [
   { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55, boxCm: [28, 18, 11] },
   { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2,  boxCm: [33, 22, 14] },
   { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6,  boxCm: [36, 24, 16] },
-  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, boxCm: [30, 19, 10] },
+  /* Sandals ship in a polybag, not a shoebox, so the shoebox volumetric
+     does not apply — the shipped weight is stated outright instead of
+     derived. 0.40-0.50 kg is what they actually weigh packed; 0.60 is
+     that with the conservative margin, and it replaced a 1.14 kg
+     shoebox figure that was quoting S/ 52 of freight on S/ 60 sandals. */
+  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, boxCm: [30, 19, 10], shippedKg: 0.6 },
   { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4,  boxCm: [30, 19, 11] },
   { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5,  boxCm: [30, 19, 12] },
   { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55, boxCm: [32, 20, 12] },
@@ -3928,6 +3933,9 @@ function footwearTierFor(title) {
 function footwearWeightKg(title) {
   const tier = footwearTierFor(title);
   if (!tier) return null;
+  // A tier that states its shipped weight (soft packs, where the shoebox
+  // volumetric is simply wrong) is taken at its word.
+  if (tier.shippedKg != null) return tier.shippedKg;
   const mass = withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
   const volumetric = dimensionalWeightKg(...tier.boxCm);
   return Math.round(Math.max(mass, volumetric) * 100) / 100;
