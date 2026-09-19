@@ -37,7 +37,7 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  billableWeightKg, titleWeight, MAX_FREIGHT_SHARE, weightSanity,
+  billableWeightKg, titleWeight, MAX_FREIGHT_SHARE, weightSanity, footwearWeightKg,
 } from "./item-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
@@ -59,9 +59,30 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
   { match: /hoodie|sweatshirt/i, kg: 0.8, tier: "cited" },
   { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
-  { match: /sneaker|\bshoe|\bboot/i, kg: 1.4, tier: "cited", dimCm: [33, 22, 13] },
+  { match: /sneakers?|\btrainers?\b|\bshoe|\bboots?\b(?!\s*cut)|loafers?|moc toe|slip[- ]ons?|sandals?|flip[- ]?flops?|\bclogs?\b|slippers?|cleats?/i, kg: 1.4, tier: "cited", dimCm: [33, 22, 13] },
   { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: "cited" },
   { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
+  /* 2026-09-19: these were the biggest slice of the "unclassified guess"
+     review queue — a clothing-heavy catalogue with no row for trousers,
+     shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
+     generic fallback. Cited tier: these are ordinary garment weights. */
+  { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers|leggings?|overalls)\b/i, kg: 0.55, tier: "cited" },
+  { match: /\b(shorts)\b/i, kg: 0.32, tier: "cited" },
+  { match: /\b(shirt|polo|blouse|button[- ]?up|button[- ]?down)\b/i, kg: 0.35, tier: "cited" },
+  { match: /\b(dress|skirt|romper|jumpsuit)\b/i, kg: 0.42, tier: "cited" },
+  { match: /\b(sweater|cardigan|fleece|vest|pullover)\b/i, kg: 0.6, tier: "cited" },
+  { match: /\b(pajamas?|pyjamas?|robe|sleepwear|loungewear)\b/i, kg: 0.6, tier: "reasoned" },
+  { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: "reasoned" },
+  { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: "reasoned" },
+  { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: "reasoned" },
+  { match: /\b(tennis balls?|baseballs?|softballs?|golf balls?|pickleballs?)\b/i, kg: 0.25, tier: "reasoned" },
+  { match: /\b(basketball|volleyball|soccer ball|football)\b/i, kg: 0.7, tier: "reasoned" },
+  // Bedding is the heaviest thing a clothing-and-home catalogue sells by
+  // volume, and it had no row at all: a queen comforter is nearly 3 kg.
+  { match: /\b(comforter|duvet|quilt|bedspread|coverlet)\b/i, kg: 2.8, tier: "reasoned" },
+  { match: /\b(sheet set|bed sheets?|pillowcases?|bedding set|mattress pad|mattress protector)\b/i, kg: 1.6, tier: "reasoned" },
+  { match: /\b(pillows?|cushions?|throw blanket|blankets?)\b/i, kg: 1.2, tier: "reasoned" },
+  { match: /\b(curtains?|drapes?|shower curtain)\b/i, kg: 1, tier: "reasoned" },
   { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: "cited", dimCm: [20, 12, 8] },
   { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited", dimCm: [45, 32, 10] },
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: "cited" },
@@ -101,6 +122,9 @@ export function categoryWeightKg(title) {
   const t = String(title || "");
   const bulky = bulkyWeightKg(t);
   if (bulky != null) return bulky;
+  // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
+  const shoes = footwearWeightKg(t);
+  if (shoes != null) return shoes;
   if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
   if (!hit) return null;
@@ -144,8 +168,24 @@ export function estimateWeightDetail(title) {
       })();
 
   const check = weightSanity(title, raw.kg);
-  if (check.ok) return { ...raw, flagged: false, bound: check.key, reason: null };
-  return { kg: check.kg, source: raw.source, flagged: true, bound: check.key, reason: check.reason };
+  const kg = check.kg;
+  /* NEVER PUBLISH A GUESS SILENTLY (2026-09-19). Two different things
+     used to look identical on a card: a weight the retailer stated, and
+     the generic fallback. Every product we could not classify showed the
+     same 1.08 kg next to a freight figure, which reads as a measurement.
+     A fallback weight is now flagged on its way out — it is a review
+     queue for the refresh scripts, and the card labels it an estimate
+     instead of printing it as fact. */
+  const guessed = raw.source === "fallback";
+  if (!check.ok) {
+    return { kg, source: raw.source, estimated: true, flagged: true, bound: check.key, reason: check.reason };
+  }
+  if (guessed) {
+    return { kg, source: raw.source, estimated: true, flagged: true, bound: check.key,
+      reason: `sin categoría — estimado genérico de ${kg} kg, necesita una fila de categoría` };
+  }
+  // A category estimate is still an estimate; only a stated weight is a fact.
+  return { kg, source: raw.source, estimated: raw.source !== "title", flagged: false, bound: check.key, reason: null };
 }
 
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -225,6 +265,9 @@ export function normalizeDeal(item, retailer) {
     weightKg,
     // Set only when the sanity bounds had to correct the estimate — the
     // refresh script prints these so a real category row gets added.
+    // The card must be able to say "estimado" rather than print a guess
+    // as a measurement; the refresh script prints the flagged ones.
+    weightEstimated: weight.estimated,
     ...(weight.flagged ? { weightFlagged: true, weightFlagReason: weight.reason } : {}),
     freightUsd: freight,
     freightShare: Math.round(share * 1000) / 1000,

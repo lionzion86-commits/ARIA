@@ -75,6 +75,16 @@
   @media (min-width:640px){ .ariaCard{ padding:32px } }
   /* A line worth stopping on, in both bands. */
   .ariaPullQuote{ border-left:3px solid #F4C463; padding-left:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.3 }
+  /* THE NAV (2026-09-19). It read as flat grey typewriter text, wrapped
+     mid-phrase ("Cómo fun / ciona") and left "🚗 Aria Auto" sitting off
+     its icon. Navy by default, gold for the section you are actually in,
+     never a mid-phrase break, everything on one optical baseline. */
+  .ariaNavLink{ display:inline-flex; align-items:center; gap:6px; white-space:nowrap; line-height:1;
+                color:var(--navy); opacity:.72; font-weight:600; transition:opacity .15s, color .15s }
+  .ariaNavLink:hover{ opacity:1 }
+  .ariaNavLink[aria-current="page"]{ opacity:1; color:var(--amber); font-weight:800 }
+  .ariaNavLink[aria-current="page"]::after{ content:""; position:absolute; left:0; right:0; bottom:-24px; height:2px; background:var(--amber); border-radius:2px }
+  .ariaNavLink{ position:relative }
   .store-logo-tile{width:120px; height:48px; flex:0 0 auto; display:grid; place-items:center; overflow:hidden; border-radius:10px; padding:6px; background:#fff; border:1px solid var(--line)}
   .store-logo-tile img{display:block; width:100%; height:100%; min-width:0; min-height:0; object-fit:contain}
   /* Styled-text fallback for a logo file that is missing or fails to
@@ -88,19 +98,26 @@
 <!-- HEADER -->
 <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b" style="border-color:var(--line)">
   <div class="max-w-[1240px] mx-auto px-5 h-[68px] flex items-center justify-between gap-6">
-    <button onclick="goHome()" class="flex items-center gap-2.5 flex-shrink-0 focus-ring rounded-lg">
-      <img src="aria-mark-transparent.png" alt="Aria" class="w-8 h-8 object-contain flex-shrink-0">
-      <span class="text-[21px] font-semibold tracking-[0.12em]" style="color:var(--navy); font-family:'Rajdhani',sans-serif">ARIA</span>
+    <!-- The triangle mark was removed on 2026-09-19, not restyled: the
+         asset (aria-mark-transparent.png, 658x439) is only 5.6% opaque
+         with a median luminance of 131, i.e. a soft glow, so at 32px it
+         renders as a watermark and no amount of CSS makes it crisp. It is
+         also not square, so object-contain left it optically off the
+         wordmark's baseline. Drop a real, solid, square mark in here and
+         put the <img> back. -->
+    <button onclick="goHome()" class="flex items-baseline gap-[7px] flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop — inicio">
+      <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
+      <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop</span>
     </button>
-    <nav class="hidden lg:flex items-center gap-7 text-[14px] font-medium flex-1" style="color:var(--navy)">
-      <a href="#" onclick="showPage('howView');return false;" class="opacity-70 hover:opacity-100 transition">Cómo funciona</a>
-      <a href="#" onclick="openCategories();return false;" class="opacity-70 hover:opacity-100 transition">Categorías</a>
-      <a href="#" onclick="openAriaAuto();return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
-      <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
-      <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="opacity-70 hover:opacity-100 transition">Precio Honesto</a>
-      <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
-      <a href="#" onclick="showPage('aboutView');return false;" class="opacity-70 hover:opacity-100 transition">Nosotros</a>
-      <a href="#" onclick="showPage('returnsView');return false;" class="opacity-70 hover:opacity-100 transition">Devoluciones</a>
+    <nav class="hidden lg:flex items-center justify-center gap-6 xl:gap-7 text-[13.5px] flex-1">
+      <a href="#" data-nav="howView" onclick="showPage('howView');return false;" class="ariaNavLink">Cómo funciona</a>
+      <a href="#" data-nav="categoriesView" onclick="openCategories();return false;" class="ariaNavLink">Categorías</a>
+      <a href="#" data-nav="ariaAutoView" onclick="openAriaAuto();return false;" class="ariaNavLink"><span aria-hidden="true">🚗</span>Aria Auto</a>
+      <a href="#" data-nav="salesView" onclick="goSales();return false;" class="ariaNavLink"><span aria-hidden="true">🔥</span>Ofertas</a>
+      <a href="#precioHonesto" data-nav="precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="ariaNavLink">Precio Honesto</a>
+      <a href="#" data-nav="storesView" onclick="showPage('storesView');return false;" class="ariaNavLink">Tiendas en EE.&nbsp;UU.</a>
+      <a href="#" data-nav="aboutView" onclick="showPage('aboutView');return false;" class="ariaNavLink">Nosotros</a>
+      <a href="#" data-nav="returnsView" onclick="showPage('returnsView');return false;" class="ariaNavLink">Devoluciones</a>
     </nav>
     <div class="flex items-center gap-2.5 flex-shrink-0">
       <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
@@ -1993,7 +2010,7 @@ function taxIncludedNoteHTML(usd, cls = 'text-[11px] mt-0.5'){
    adding the attribute and nothing else. */
 const HONEST_PRICING_BANNER_HTML = `
   <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
-    💛 Precios honestos: todo lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya incluye los impuestos de importación (~${Math.round(IMPORT_TAX_RATE * 100)}%) en el precio que ves — y todo lo que está por debajo de $${IMPORT_TAX_THRESHOLD_USD} no paga impuestos de importación. Lo que ves es lo que pagas.
+    💛 Precios honestos: los pedidos de hasta $${IMPORT_TAX_THRESHOLD_USD} no pagan impuestos de importación; lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya los incluye (~${Math.round(IMPORT_TAX_RATE * 100)}%). Lo que ves es lo que pagas.
   </div>`;
 
 /* The founder's photo is a real asset the founder supplies. Until the
@@ -2800,8 +2817,19 @@ function initRouter(){
 // these here beats editing two dozen onclick attributes.
 const STATIC_ROUTE_VIEWS = new Set(['howView', 'storesView', 'aboutView', 'returnsView', 'termsView', 'adminView']);
 
+/* Gold marks the section you are actually in — one link at a time, and
+   only ever one. Called from showPage() so every entry point (nav click,
+   card, deep link, back button) lands on the same state. */
+function setActiveNav(viewId){
+  document.querySelectorAll('.ariaNavLink').forEach(a => {
+    if (a.dataset.nav === viewId) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+}
+
 function showPage(id){
   if (id !== 'homeView' && typeof hideGreetBubble === 'function') hideGreetBubble();
+  setActiveNav(id);
   if (STATIC_ROUTE_VIEWS.has(id)) pushRoute({ view: id });
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
   // A restore sets its own scroll position (see applyRoute) — clobbering
@@ -2822,6 +2850,7 @@ function goHome(){
 function goHomeSection(id){
   pushRoute({ view: 'homeView', hash: id });
   showPage('homeView');
+  setActiveNav(id);   // it is a section of the home page, not a view
   scrollToSection(id);
 }
 
@@ -3570,9 +3599,30 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: 'cited' },   // std cotton tee ~140-200g (printful.com, printkk.com)
   { match: /hoodie|sweatshirt/i, kg: 0.8, tier: 'cited' },              // cotton hoodie ~450-680g (printful.com)
   { match: /jacket|\bcoat\b/i, kg: 1.3, tier: 'reasoned' },             // heavier outerwear than a hoodie — reasoned estimate, no single citation
-  { match: /sneaker|\bshoe|\bboot/i, kg: 1.4, tier: 'cited', dimCm: [33, 22, 13] },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
+  { match: /sneakers?|\btrainers?\b|\bshoe|\bboots?\b(?!\s*cut)|loafers?|moc toe|slip[- ]ons?|sandals?|flip[- ]?flops?|\bclogs?\b|slippers?|cleats?/i, kg: 1.4, tier: 'cited', dimCm: [33, 22, 13] },          // avg pair of shoes ~900-1400g (thefitville.com, feethealth.org)
   { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: 'cited' }, // ~30-70g/pair (crescendoapparel.com)
-  { match: /\bsocks?\b/i, kg: 0.1, tier: 'cited' },                    // ~40-60g/pair (deadsoxy.com)
+  { match: /\bsocks?\b/i, kg: 0.1, tier: 'cited' },
+  /* 2026-09-19: these were the biggest slice of the "unclassified guess"
+     review queue — a clothing-heavy catalogue with no row for trousers,
+     shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
+     generic fallback. Cited tier: these are ordinary garment weights. */
+  { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers|leggings?|overalls)\b/i, kg: 0.55, tier: 'cited' },
+  { match: /\b(shorts)\b/i, kg: 0.32, tier: 'cited' },
+  { match: /\b(shirt|polo|blouse|button[- ]?up|button[- ]?down)\b/i, kg: 0.35, tier: 'cited' },
+  { match: /\b(dress|skirt|romper|jumpsuit)\b/i, kg: 0.42, tier: 'cited' },
+  { match: /\b(sweater|cardigan|fleece|vest|pullover)\b/i, kg: 0.6, tier: 'cited' },
+  { match: /\b(pajamas?|pyjamas?|robe|sleepwear|loungewear)\b/i, kg: 0.6, tier: 'reasoned' },
+  { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: 'reasoned' },
+  { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: 'reasoned' },
+  { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: 'reasoned' },
+  { match: /\b(tennis balls?|baseballs?|softballs?|golf balls?|pickleballs?)\b/i, kg: 0.25, tier: 'reasoned' },
+  { match: /\b(basketball|volleyball|soccer ball|football)\b/i, kg: 0.7, tier: 'reasoned' },
+  // Bedding is the heaviest thing a clothing-and-home catalogue sells by
+  // volume, and it had no row at all: a queen comforter is nearly 3 kg.
+  { match: /\b(comforter|duvet|quilt|bedspread|coverlet)\b/i, kg: 2.8, tier: 'reasoned' },
+  { match: /\b(sheet set|bed sheets?|pillowcases?|bedding set|mattress pad|mattress protector)\b/i, kg: 1.6, tier: 'reasoned' },
+  { match: /\b(pillows?|cushions?|throw blanket|blankets?)\b/i, kg: 1.2, tier: 'reasoned' },
+  { match: /\b(curtains?|drapes?|shower curtain)\b/i, kg: 1, tier: 'reasoned' },                    // ~40-60g/pair (deadsoxy.com)
   { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: 'cited', dimCm: [20, 12, 8] }, // mainstream phones ~160-220g (devicetests.com)
   { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: 'cited', dimCm: [45, 32, 10] }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
@@ -3854,6 +3904,7 @@ const WEIGHT_SANITY_BOUNDS = [
   { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8 },
   { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6 },
   { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6 },
+  { key: "calzado", match: /\b(sneakers?|shoes?|trainers?|zapatillas|zapatos)\b|\bboots?\b(?!\s*cut)/i, minKg: 1.2 },  // "Boot Cut Jeans" is trousers, not footwear.
   { key: "televisor",
     test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(String(t).replace(/\bwith\b[^,;]*/gi, ' ')),
     minKg: 4 },
@@ -3893,6 +3944,21 @@ function weightSanity(title, kg) {
   return { ok: true, kg: n, key: bound ? bound.key : null, minKg: bound ? bound.minKg : null, reason: null };
 }
 
+const FOOTWEAR_BRAND_RE = /\b(nike|jordan|adidas|new balance|puma|reebok|converse|vans|asics|crocs|ugg|timberland|brooks|hoka|saucony|fila|skechers|birkenstock|dr\.? martens)\b/i;
+const FOOTWEAR_MODEL_RE = /\b(air force|air max|air jordan|dunk low|dunk high|\bdunk\b|samba|gazelle|superstar|stan smith|forum low|blazer|pegasus|ultraboost|nmd|chuck taylor|all star|old skool|sk8-hi|classic clog|tasman|retro (?:high|low|mid)|\b(?:530|550|574|990|993|9060|2002r|204l|327)\b)/i;
+/* Words that mean the listing is clothing or an accessory from the same
+   brand — checked first, so a Jordan hoodie never weighs a shoebox. */
+const FOOTWEAR_NOT_RE = /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|jersey|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|lace|insole|cleaner|shoe ?care|water bottle)\b/i;
+
+function footwearWeightKg(title) {
+  const t = String(title || "");
+  if (FOOTWEAR_NOT_RE.test(t)) return null;
+  if (!FOOTWEAR_BRAND_RE.test(t) && !FOOTWEAR_MODEL_RE.test(t)) return null;
+  // Same numbers the general table uses for the word "sneaker", so the two
+  // paths can never disagree about what a pair of shoes weighs.
+  return billableWeightKg(withBuffer(1.4, "cited"), [33, 22, 13]);
+}
+
 function bulkyWeightKg(text){
   const t = String(text || '');
   const goal = goalWeightKg(t);
@@ -3916,6 +3982,20 @@ function freightSharePct(weightKg, priceUsd){
   if (!Number.isFinite(price) || price <= 0) return Infinity;
   return freightUsd(weightKg) / price;
 }
+/* The same chain as estimateRetailWeightKg, with its provenance — a
+   weight the retailer stated in the title is a fact; anything else is an
+   estimate and the card has to say so. Mirrors estimateWeightDetail() in
+   scripts/lib/sales-sources.js. */
+function estimateRetailWeightDetail(text){
+  const t = text || '';
+  if (titleWeight(t)) return { kg: estimateRetailWeightKg(t), source: 'title', estimated: false };
+  const classified = bulkyWeightKg(t) != null
+    || footwearWeightKg(t) != null
+    || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t))
+    || (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' ')));
+  return { kg: estimateRetailWeightKg(t), source: classified ? 'category' : 'fallback', estimated: true };
+}
+
 function estimateRetailWeightKg(text){
   const t = text || '';
   // 1) what the retailer stated in the title, 2) the category table,
@@ -3927,6 +4007,9 @@ function estimateRetailWeightKg(text){
   // through to the 0.5kg default.
   const bulky = bulkyWeightKg(t);
   if (bulky != null) return weightSanity(t, bulky).kg;
+  // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
+  const shoes = footwearWeightKg(t);
+  if (shoes != null) return weightSanity(t, shoes).kg;
   // "...Smart Roku TV with Voice Remote" is a television, not a remote:
   // an accessory word inside a "with ..." clause names what is bundled
   // WITH the product. Without this, that real Target title came out at
@@ -4028,7 +4111,8 @@ function normalizeLiveItem(item){
   if (item.imageReview && item.imageReview !== 'clean') images = [];
   const image = images[0] || null;
   const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
-  const weightKg = estimateRetailWeightKg(title);
+  const weightDetail = estimateRetailWeightDetail(title);
+  const weightKg = weightDetail.kg;
 
   // Real available-sizes list, only when the retailer's own scrape data
   // reports one (confirmed present on live Old Navy listing data as
@@ -4062,7 +4146,8 @@ function normalizeLiveItem(item){
   const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
   const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
-  return { title, price, image, images, rating, weightKg, sizes, onSale: hasRealDiscount, originalPrice };
+  return { title, price, image, images, rating, weightKg, weightEstimated: weightDetail.estimated,
+    sizes, onSale: hasRealDiscount, originalPrice };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -6383,7 +6468,7 @@ function productCardHTML(p, opts){
       ${weightLabelHTML(p.title, 'text-[11.5px] mb-1 font-semibold')}
       ${opts.extraHTML || ''}
       ${freight != null ? `<div class="text-[11.5px] mb-3.5" style="color:${freightHeavy ? '#8A6B1F' : '#7A8296'}">
-        + ${escapeHtml(fmtPriceLabel(freight))} de flete (${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
+        + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : '<div class="mb-3.5"></div>'}
       <button onclick="${open}" class="w-full h-11 rounded-xl text-white text-[14px] font-bold focus-ring transition" style="background:var(--blue)">Comprar</button>
     </div>
@@ -6511,7 +6596,9 @@ const ORB_CONTENT_GAP = 10;     // never breathe on the text
    only this much of her is over the page — which is the page's own 20px
    gutter, where no glyph ever reaches — and comes back out the moment the
    corner is clear again. */
-const ORB_PEEK_PX = 24;
+const ORB_PEEK_PX = 18;   // 2026-09-19: 24 still clipped the right-hand
+                          // product card by 4px on a 390px phone, where the
+                          // page gutter is only 20px. This clears it.
 const ORB_COVER_CHECK_MS = 250;
 
 /* The column the page's content actually occupies right now. Every view

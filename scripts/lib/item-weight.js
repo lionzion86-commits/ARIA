@@ -143,6 +143,37 @@ export function goalWeightKg(title) {
  * Bulky-category weight for a title, or null when nothing matches.
  * Callers fall through to their own general table.
  */
+/* FOOTWEAR BY NAME (2026-09-19).
+
+   Reported: "New Balance 204L" and "Jordan AJ 1 Retro High" both showed
+   1.08 kg — the generic fallback — because the general table only knows
+   the words "sneaker", "shoe" and "boot", and a sneaker listing almost
+   never uses them. Foot Locker's entire catalogue is model names.
+
+   A boxed pair bills at 1.89 kg (the shoebox, 33x22x13cm, beats the
+   1.4 kg the shoes weigh), so every unrecognised pair was under-quoted by
+   about $10 of freight that we then honour.
+
+   Brand or model, minus anything that says it is apparel: "Nike Air
+   Force 1" is footwear, "Nike Dri-FIT T-Shirt" is not. */
+export const FOOTWEAR_BRAND_RE =
+  /\b(nike|jordan|adidas|new balance|puma|reebok|converse|vans|asics|crocs|ugg|timberland|brooks|hoka|saucony|fila|skechers|birkenstock|dr\.? martens)\b/i;
+export const FOOTWEAR_MODEL_RE =
+  /\b(air force|air max|air jordan|dunk low|dunk high|\bdunk\b|samba|gazelle|superstar|stan smith|forum low|blazer|pegasus|ultraboost|nmd|chuck taylor|all star|old skool|sk8-hi|classic clog|tasman|retro (?:high|low|mid)|\b(?:530|550|574|990|993|9060|2002r|204l|327)\b)/i;
+/* Words that mean the listing is clothing or an accessory from the same
+   brand — checked first, so a Jordan hoodie never weighs a shoebox. */
+export const FOOTWEAR_NOT_RE =
+  /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|jersey|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|lace|insole|cleaner|shoe ?care|water bottle)\b/i;
+
+export function footwearWeightKg(title) {
+  const t = String(title || "");
+  if (FOOTWEAR_NOT_RE.test(t)) return null;
+  if (!FOOTWEAR_BRAND_RE.test(t) && !FOOTWEAR_MODEL_RE.test(t)) return null;
+  // Same numbers the general table uses for the word "sneaker", so the two
+  // paths can never disagree about what a pair of shoes weighs.
+  return billableWeightKg(withBuffer(1.4, "cited"), [33, 22, 13]);
+}
+
 export function bulkyWeightKg(text) {
   const t = String(text || "");
   const goal = goalWeightKg(t);
@@ -196,6 +227,7 @@ export const WEIGHT_SANITY_BOUNDS = [
   { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8 },
   { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6 },
   { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6 },
+  { key: "calzado", match: /\b(sneakers?|shoes?|trainers?|zapatillas|zapatos)\b|\bboots?\b(?!\s*cut)/i, minKg: 1.2 },  // "Boot Cut Jeans" is trousers, not footwear.
   { key: "televisor",
     test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t)),
     minKg: 4 },
