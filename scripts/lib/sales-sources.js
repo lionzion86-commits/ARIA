@@ -37,7 +37,7 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  billableWeightKg, titleWeight, MAX_FREIGHT_SHARE, weightSanity, footwearWeightKg,
+  billableWeightKg, titleWeight, MAX_FREIGHT_SHARE, weightSanity, footwearWeightKg, ballWeightKg,
 } from "./item-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
@@ -75,8 +75,9 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: "reasoned" },
   { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: "reasoned" },
   { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: "reasoned" },
-  { match: /\b(tennis balls?|baseballs?|softballs?|golf balls?|pickleballs?)\b/i, kg: 0.25, tier: "reasoned" },
-  { match: /\b(basketball|volleyball|soccer ball|football)\b/i, kg: 0.7, tier: "reasoned" },
+  // Balls are handled by ballWeightKg() (real mass x count vs the box),
+  // not by a single row that made a golf ball and a basketball equal.
+  { match: /\bfootballs?\b/i, kg: 0.45, tier: "cited" },
   // Bedding is the heaviest thing a clothing-and-home catalogue sells by
   // volume, and it had no row at all: a queen comforter is nearly 3 kg.
   { match: /\b(comforter|duvet|quilt|bedspread|coverlet)\b/i, kg: 2.8, tier: "reasoned" },
@@ -125,6 +126,9 @@ export function categoryWeightKg(title) {
   // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
   const shoes = footwearWeightKg(t);
   if (shoes != null) return shoes;
+  // A ball's real mass and count, against the box that gets billed.
+  const ball = ballWeightKg(t);
+  if (ball != null) return ball;
   if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
   if (!hit) return null;

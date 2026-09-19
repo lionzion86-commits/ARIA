@@ -174,6 +174,41 @@ export function footwearWeightKg(title) {
   return billableWeightKg(withBuffer(1.4, "cited"), [33, 22, 13]);
 }
 
+/* BALLS (2026-09-19, reported).
+
+   A Rawlings Official League baseball was quoting 1.08 kg — seven times
+   what a baseball weighs (145 g). The first fix put every ball in one
+   0.25 kg row, which is better but still guesses: a golf ball and a
+   basketball are not the same parcel, and a 12-count is not a 1-count.
+
+   So: the ball's REAL mass, times the count the title states, against the
+   box that actually gets billed. These masses are regulation figures, not
+   estimates, so they take the 'cited' buffer. The box matters because a
+   ball is light for its volume — a single boxed baseball bills at ~0.27 kg
+   volumetric even though it weighs 0.145 kg, and that, not the mass, is
+   what the courier charges for. Never the 1.08 kg fallback either way. */
+export const BALL_SPECS = [
+  { match: /\bbaseballs?\b/i, kg: 0.145, boxCm: [11, 11, 11] },
+  { match: /\bsoftballs?\b/i, kg: 0.19, boxCm: [13, 13, 13] },
+  { match: /\btennis balls?\b/i, kg: 0.058, boxCm: [8, 8, 8] },
+  { match: /\bgolf balls?\b/i, kg: 0.046, boxCm: [5, 5, 5] },
+  { match: /\bpickleballs?\b/i, kg: 0.024, boxCm: [8, 8, 8] },
+  { match: /\bbasketballs?\b/i, kg: 0.62, boxCm: [25, 25, 25] },
+  { match: /\b(?:soccer|f[uú]tbol)\s*balls?\b/i, kg: 0.43, boxCm: [23, 23, 23] },
+  { match: /\bvolleyballs?\b/i, kg: 0.27, boxCm: [22, 22, 22] },
+];
+
+export function ballWeightKg(title) {
+  const t = String(title || "");
+  const hit = BALL_SPECS.find((b) => b.match.test(t));
+  if (!hit) return null;
+  const packs = titlePackCount(t);
+  const net = withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
+  // The box scales with the count; the courier bills whichever is larger.
+  const volumetric = dimensionalWeightKg(...hit.boxCm) * packs;
+  return Math.round(Math.max(net, volumetric) * 100) / 100;
+}
+
 export function bulkyWeightKg(text) {
   const t = String(text || "");
   const goal = goalWeightKg(t);
@@ -382,8 +417,8 @@ export const MAX_TITLE_WEIGHT_KG = 25;
 // "(4 pack)", "4-pack", "pack of 4", "paquete de 4" — a real multiplier of
 // what is in the box. Capped, because "100 pack" of anything heavy is a
 // number to distrust rather than to bill.
-const MAX_PACK_COUNT = 24;
-function titlePackCount(text) {
+export const MAX_PACK_COUNT = 24;
+export function titlePackCount(text) {
   const m = /\(?\b(\d{1,2})\s*[- ]?\s*(?:pack|pk|count|ct|unidades|piezas)\b/i.exec(text)
     || /\b(?:pack|paquete) of\s*(\d{1,2})\b/i.exec(text)
     || /\bpaquete de\s*(\d{1,2})\b/i.exec(text);

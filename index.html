@@ -3615,8 +3615,9 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: 'reasoned' },
   { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: 'reasoned' },
   { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: 'reasoned' },
-  { match: /\b(tennis balls?|baseballs?|softballs?|golf balls?|pickleballs?)\b/i, kg: 0.25, tier: 'reasoned' },
-  { match: /\b(basketball|volleyball|soccer ball|football)\b/i, kg: 0.7, tier: 'reasoned' },
+  // Balls are handled by ballWeightKg() (real mass x count vs the box),
+  // not by a single row that made a golf ball and a basketball equal.
+  { match: /\bfootballs?\b/i, kg: 0.45, tier: 'cited' },
   // Bedding is the heaviest thing a clothing-and-home catalogue sells by
   // volume, and it had no row at all: a queen comforter is nearly 3 kg.
   { match: /\b(comforter|duvet|quilt|bedspread|coverlet)\b/i, kg: 2.8, tier: 'reasoned' },
@@ -3959,6 +3960,28 @@ function footwearWeightKg(title) {
   return billableWeightKg(withBuffer(1.4, "cited"), [33, 22, 13]);
 }
 
+const BALL_SPECS = [
+  { match: /\bbaseballs?\b/i, kg: 0.145, boxCm: [11, 11, 11] },
+  { match: /\bsoftballs?\b/i, kg: 0.19, boxCm: [13, 13, 13] },
+  { match: /\btennis balls?\b/i, kg: 0.058, boxCm: [8, 8, 8] },
+  { match: /\bgolf balls?\b/i, kg: 0.046, boxCm: [5, 5, 5] },
+  { match: /\bpickleballs?\b/i, kg: 0.024, boxCm: [8, 8, 8] },
+  { match: /\bbasketballs?\b/i, kg: 0.62, boxCm: [25, 25, 25] },
+  { match: /\b(?:soccer|f[uú]tbol)\s*balls?\b/i, kg: 0.43, boxCm: [23, 23, 23] },
+  { match: /\bvolleyballs?\b/i, kg: 0.27, boxCm: [22, 22, 22] },
+];
+
+function ballWeightKg(title) {
+  const t = String(title || "");
+  const hit = BALL_SPECS.find((b) => b.match.test(t));
+  if (!hit) return null;
+  const packs = titlePackCount(t);
+  const net = withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
+  // The box scales with the count; the courier bills whichever is larger.
+  const volumetric = dimensionalWeightKg(...hit.boxCm) * packs;
+  return Math.round(Math.max(net, volumetric) * 100) / 100;
+}
+
 function bulkyWeightKg(text){
   const t = String(text || '');
   const goal = goalWeightKg(t);
@@ -3991,6 +4014,7 @@ function estimateRetailWeightDetail(text){
   if (titleWeight(t)) return { kg: estimateRetailWeightKg(t), source: 'title', estimated: false };
   const classified = bulkyWeightKg(t) != null
     || footwearWeightKg(t) != null
+    || ballWeightKg(t) != null
     || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t))
     || (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' ')));
   return { kg: estimateRetailWeightKg(t), source: classified ? 'category' : 'fallback', estimated: true };
@@ -4010,6 +4034,9 @@ function estimateRetailWeightKg(text){
   // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
   const shoes = footwearWeightKg(t);
   if (shoes != null) return weightSanity(t, shoes).kg;
+  // A ball's real mass and count, against the box that gets billed.
+  const ball = ballWeightKg(t);
+  if (ball != null) return weightSanity(t, ball).kg;
   // "...Smart Roku TV with Voice Remote" is a television, not a remote:
   // an accessory word inside a "with ..." clause names what is bundled
   // WITH the product. Without this, that real Target title came out at
