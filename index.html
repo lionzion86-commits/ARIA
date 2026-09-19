@@ -59,7 +59,7 @@
       <a href="#" onclick="openCategories();return false;" class="opacity-70 hover:opacity-100 transition">Categorías</a>
       <a href="#" onclick="openAriaAuto();return false;" class="opacity-70 hover:opacity-100 transition">🚗 Aria Auto</a>
       <a href="#" onclick="goSales();return false;" class="font-bold transition" style="color:var(--blue)">🔥 Ofertas</a>
-      <a href="#precioHonesto" onclick="goHome()" class="opacity-70 hover:opacity-100 transition">Precio Honesto</a>
+      <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="opacity-70 hover:opacity-100 transition">Precio Honesto</a>
       <a href="#" onclick="showPage('storesView');return false;" class="opacity-70 hover:opacity-100 transition">Tiendas en EE. UU.</a>
       <a href="#" onclick="showPage('aboutView');return false;" class="opacity-70 hover:opacity-100 transition">Nosotros</a>
       <a href="#" onclick="showPage('returnsView');return false;" class="opacity-70 hover:opacity-100 transition">Devoluciones</a>
@@ -92,7 +92,7 @@
     <a href="#" onclick="openCategories();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
     <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">🚗 Aria Auto</a>
     <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">🔥 Ofertas</a>
-    <a href="#precioHonesto" onclick="goHome();closeMobileMenu();" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Precio Honesto</a>
+    <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Precio Honesto</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
     <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
     <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Devoluciones</a>
@@ -1348,7 +1348,7 @@
       </div>
       <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
         <a href="#" onclick="showPage('howView');return false;" class="hover:text-[color:var(--navy)] transition">Cómo funciona</a>
-        <a href="#precioHonesto" onclick="goHome()" class="font-semibold hover:text-[color:var(--navy)] transition" style="color:var(--navy)">Precio Honesto</a>
+        <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="font-semibold hover:text-[color:var(--navy)] transition" style="color:var(--navy)">Precio Honesto</a>
         <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
         <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
         <a href="#" onclick="showPage('termsView');return false;" class="hover:text-[color:var(--navy)] transition">Términos</a>
@@ -2049,6 +2049,7 @@ function catalogGoBack(){
 }
 
 async function openCatalog(kind, key, opts = {}){
+  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter: opts.retailerFilter || null });
   /* BUG FIX: the "Ofertas" department tile came through here and landed on
      the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
      so a shopper tapping Ofertas from the homepage got a store list while
@@ -2134,6 +2135,7 @@ function storeLogoTileHTML(retailer, count){
 // real men/women/kids sections, so a shopper sees this store the way they
 // actually organize it, not a duplicate of the same items twice.
 async function openStore(retailer){
+  pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
   await loadFxRate();
   document.getElementById('storeViewHero').innerHTML = retailerBadgeHTML(retailer, 44);
@@ -2183,6 +2185,7 @@ function storeResultsGoBack(){
   showResults(storeResultsReturnQuery);
 }
 async function openStoreResults(retailer, query){
+  pushRoute({ view: 'storeResultsView', retailer, q: query });
   showPage('storeResultsView');
   await loadFxRate();
   storeResultsReturnQuery = query;
@@ -2248,13 +2251,212 @@ function catalogTileHTML(p, retailer){
 
 const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView','adminView'];
 
+/* ============================================================
+   ROUTING / BROWSER HISTORY
+
+   BUG (2026-09-19, reported): search "dulces", open a product, press the
+   browser's back button — and you leave ariashop.pe entirely, landing
+   back on Google. Root cause: this site had NO history integration at
+   all. Not one pushState in the codebase, no popstate listener. Every
+   view change was showPage() flipping a class, which the browser never
+   sees, so the only entry in the history stack was the referrer that
+   brought you here. Back went there, because there was nowhere else.
+
+   Now every browsable view pushes a real entry with a real URL, and the
+   back button walks the views in reverse.
+
+   WHY THE URLS ARE QUERY-BASED (/?buscar=dulces, not /buscar?q=dulces):
+   this is a static Netlify site with no netlify.toml — routing config
+   lives in the Netlify UI, and no SPA rewrite is configured. A pushed
+   path like /buscar would 404 the moment someone reloaded or shared it.
+   Query routes hang off "/", which is always served, so reload, deep
+   link and share all work with zero deploy config. If a
+   `/* /index.html 200` rewrite is ever added, routeUrl() is the one
+   function to change.
+
+   REPLACE NEVER MOVES YOU FORWARD. replaceState is used in exactly three
+   places below, none of them a navigation: stamping the entry the page
+   was loaded into, saving scrollY onto the CURRENT entry before leaving
+   it, and collapsing a repeat of the view you are already on. Forward
+   navigation is always pushState — replacing there is what ate the back
+   button in the first place. An audit of this codebase found no
+   location.replace anywhere, and none should appear.
+   ============================================================ */
+let routerReady = false;
+let isRestoringRoute = false;   // set while popstate re-renders a view
+let routeDepth = 0;             // entries WE pushed, so goBack() knows if history.back() stays in-site
+
+// view id -> how its URL is written, and how it comes back.
+const ROUTE_VIEWS = {
+  homeView:         { key: null },
+  resultsView:      { key: 'buscar',    params: ['q'] },
+  productView:      { key: 'producto',  params: ['retailer', 'name'] },
+  catalogView:      { key: 'categoria', params: ['kind', 'catKey', 'retailerFilter'] },
+  storeView:        { key: 'tienda',    params: ['retailer'] },
+  storeResultsView: { key: 'tienda-buscar', params: ['retailer', 'q'] },
+  salesView:        { key: 'ofertas',   params: ['retailer'] },
+  categoriesView:   { key: 'categorias' },
+  cartView:         { key: 'carrito' },
+  ariaAutoView:     { key: 'auto' },
+  howView:          { key: 'como-funciona' },
+  storesView:       { key: 'tiendas' },
+  aboutView:        { key: 'nosotros' },
+  returnsView:      { key: 'devoluciones' },
+  termsView:        { key: 'terminos' },
+  adminView:        { key: 'admin' },
+};
+
+function routeUrl(route){
+  const spec = ROUTE_VIEWS[route?.view];
+  if (!spec || !spec.key) return location.pathname + (route?.hash ? `#${route.hash}` : '');
+  const params = new URLSearchParams();
+  params.set(spec.key, route.slug || '1');
+  for (const name of spec.params || []){
+    if (name === 'q' || name === 'name' || name === 'catKey' || name === 'retailer') continue; // carried by the slug
+    if (route[name]) params.set(name, route[name]);
+  }
+  return `${location.pathname}?${params.toString()}`;
+}
+
+/** The readable part of the URL: the query, the product, the department. */
+function routeSlug(route){
+  switch (route.view){
+    case 'resultsView': return route.q || '';
+    case 'storeResultsView': return `${route.retailer || ''}:${route.q || ''}`;
+    case 'productView': return route.name || '';
+    case 'catalogView': return route.catKey || '';
+    case 'storeView': return route.retailer || '';
+    case 'salesView': return route.retailer || '1';
+    default: return '1';
+  }
+}
+
+function parseRoute(search){
+  const params = new URLSearchParams(search || '');
+  for (const [view, spec] of Object.entries(ROUTE_VIEWS)){
+    if (!spec.key || !params.has(spec.key)) continue;
+    const slug = params.get(spec.key);
+    const route = { view };
+    if (view === 'resultsView') route.q = slug;
+    else if (view === 'storeResultsView'){ const [r, ...rest] = String(slug).split(':'); route.retailer = r; route.q = rest.join(':'); }
+    else if (view === 'productView') route.name = slug;
+    else if (view === 'catalogView'){ route.catKey = slug; route.kind = params.get('kind') || 'department'; route.retailerFilter = params.get('retailerFilter') || null; }
+    else if (view === 'storeView') route.retailer = slug;
+    else if (view === 'salesView') route.retailer = slug === '1' ? null : slug;
+    return route;
+  }
+  return { view: 'homeView' };
+}
+
+/* Pushes a real history entry for a view the user navigated TO. Called
+   from the view functions themselves, so every entry point — a nav link,
+   a card, the assistant, a deep link — gets the same treatment. */
+function pushRoute(route){
+  if (!routerReady || isRestoringRoute) return;
+  const current = history.state;
+  // Never stack the identical view twice: opening the same product from
+  // the same page should not need two back presses to undo.
+  if (current && current.view === route.view && routeSlug(current) === routeSlug(route)){
+    history.replaceState({ ...route, slug: routeSlug(route), scrollY: 0 }, '', routeUrl({ ...route, slug: routeSlug(route) }));
+    return;
+  }
+  // Save where the customer was on the page they are leaving, so coming
+  // back lands them on the same card, not at the top.
+  if (current) history.replaceState({ ...current, scrollY: window.scrollY }, '', location.href);
+  const withSlug = { ...route, slug: routeSlug(route), scrollY: 0 };
+  history.pushState(withSlug, '', routeUrl(withSlug));
+  routeDepth++;
+}
+
+/* Re-renders a view from a history entry. Never pushes — this is the
+   back button's path, and pushing here is how SPAs trap people. */
+async function applyRoute(route){
+  isRestoringRoute = true;
+  try {
+    switch (route.view){
+      case 'resultsView': await showResults(route.q || '', { fromHistory: true }); break;
+      case 'productView': {
+        // Restore from the list we came back to when we still have it;
+        // otherwise show what the URL carries rather than a blank page.
+        const known = (searchResults || []).find(it => it.title === route.name)
+          || (salesRendered || []).find(it => it.title === route.name)
+          || (autoPartsRendered || []).find(it => it.title === route.name);
+        if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
+          known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
+          known.rating != null ? String(known.rating) : '', known.images || []);
+        else if (route.name) showResults(route.name, { fromHistory: true });
+        else showPage('homeView');
+        break;
+      }
+      case 'catalogView': await openCatalog(route.kind || 'department', route.catKey, route.retailerFilter ? { retailerFilter: route.retailerFilter } : {}); break;
+      case 'storeView': await openStore(route.retailer); break;
+      case 'storeResultsView': await openStoreResults(route.retailer, route.q); break;
+      case 'salesView': goSales(route.retailer || undefined); break;
+      case 'categoriesView': await openCategories(); break;
+      case 'cartView': openCart(); break;
+      case 'ariaAutoView': openAriaAuto(); break;
+      case 'homeView': showPage('homeView'); if (route.hash) scrollToSection(route.hash); break;
+      default: showPage(route.view || 'homeView');
+    }
+  } finally {
+    isRestoringRoute = false;
+  }
+  // Put them back where they were on the page, after it has rendered.
+  const y = Number(route.scrollY) || 0;
+  requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
+}
+
+window.addEventListener('popstate', (event) => {
+  routeDepth = Math.max(0, routeDepth - 1);
+  applyRoute(event.state || parseRoute(location.search));
+});
+
+function initRouter(){
+  if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+  const route = parseRoute(location.search);
+  if (route.view === 'homeView' && location.hash) route.hash = location.hash.slice(1);
+  // The only other replaceState: stamping the entry we were loaded into.
+  history.replaceState({ ...route, slug: routeSlug(route), scrollY: 0 }, '', location.href);
+  routerReady = true;
+  // A deep link (/?buscar=dulces, or /#precioHonesto) has to render what
+  // it points at, not the top of the home page.
+  if (route.view !== 'homeView' || route.hash) applyRoute(route);
+}
+
+// Views whose URL carries no parameters. Everything else (search,
+// product, department, store, ofertas) pushes its own route from its own
+// entry function, where the query/product/department is known. Routing
+// these here beats editing two dozen onclick attributes.
+const STATIC_ROUTE_VIEWS = new Set(['howView', 'storesView', 'aboutView', 'returnsView', 'termsView', 'adminView']);
+
 function showPage(id){
+  if (STATIC_ROUTE_VIEWS.has(id)) pushRoute({ view: id });
   ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
-  window.scrollTo({top:0, behavior:'instant'});
+  // A restore sets its own scroll position (see applyRoute) — clobbering
+  // it here is what makes "back" land at the top of the page instead of
+  // on the card the customer was looking at.
+  if (!isRestoringRoute) window.scrollTo({top:0, behavior:'instant'});
 }
 
 function goHome(){
+  pushRoute({ view: 'homeView' });
   showPage('homeView');
+}
+
+/* A link to a section of the home page ("Precio Honesto"). The router
+   pushes a URL as soon as the click handler runs, which would drop the
+   anchor's #hash before the browser could jump to it — so the hash is
+   part of the route, and the scroll is done here. */
+function goHomeSection(id){
+  pushRoute({ view: 'homeView', hash: id });
+  showPage('homeView');
+  scrollToSection(id);
+}
+
+function scrollToSection(id){
+  const el = document.getElementById(id);
+  if (!el) return;
+  requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 function toggleMobileMenu(){
@@ -2434,9 +2636,27 @@ function renderSearchResults(){
     : '';
 }
 
-async function showResults(query){
+/* Back from a product has to land on the SAME results, not a fresh scan
+   that may return different items in a different order. The last search
+   is kept in memory and replayed on a history restore; a new search (or
+   a different query) still goes out live. */
+let lastSearch = { query: null, items: [] };
+
+async function showResults(query, opts = {}){
+  pushRoute({ view: 'resultsView', q: query });
   showPage('resultsView');
   await loadFxRate();
+
+  if (opts.fromHistory && lastSearch.query === query && lastSearch.items.length){
+    document.getElementById('searchInput2').value = query;
+    document.getElementById('prodName').textContent = query;
+    document.getElementById('prodNameBig').textContent = query;
+    liveScrapeQuery = query;
+    searchResults = lastSearch.items.slice();
+    document.getElementById('liveResultsWrap').classList.remove('hidden');
+    renderSearchResults();
+    return;
+  }
 
   document.getElementById('searchInput2').value = query;
   document.getElementById('prodName').textContent = query;
@@ -2484,6 +2704,7 @@ async function showResults(query){
   }));
 
   renderSearchResults();
+  lastSearch = { query, items: searchResults.slice() };
   if (!searchResults.length){
     document.getElementById('resultCount').textContent =
       `Sin resultados en vivo para "${query}" en este momento — intenta con otra búsqueda.`;
@@ -2656,6 +2877,7 @@ document.addEventListener('keydown', (e) => {
 
 function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
+  pushRoute({ view: 'productView', retailer, name });
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
@@ -2723,6 +2945,11 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
 }
 
 function goBack(){
+  // One back, two buttons: if we pushed an entry, walk the real history
+  // so in-page "Volver" and the browser's back arrow do the same thing.
+  // On a deep link (nothing of ours in the stack) fall back to the view
+  // we came from rather than throwing the visitor off the site.
+  if (routeDepth > 0){ history.back(); return; }
   showPage(pendingProduct?.returnView || 'homeView');
 }
 
@@ -3399,6 +3626,7 @@ function loadAutoCache(){
 }
 
 function openAriaAuto(){
+  pushRoute({ view: 'ariaAutoView' });
   showPage('ariaAutoView');
   // Kick off the part-search cache fetch early (used later by
   // AUTO_PARTS_SOURCES) — harmless to call more than once, the promise
@@ -4647,6 +4875,7 @@ function setCartQty(key, qty){
 }
 
 function openCart(){
+  pushRoute({ view: 'cartView' });
   showPage('cartView');
   renderCartView();
 }
@@ -5220,6 +5449,7 @@ let salesStatusTimer = null;
    retailer (optional) pre-selects a single store in the feed's own filter
    instead of sending the shopper to a store-picker page first. */
 function goSales(retailer){
+  pushRoute({ view: 'salesView', retailer: retailer || null });
   showPage('salesView');
   // Already built at load; rebuilt only if something cleared it.
   if (!document.querySelector('.salesStoreFilter')) initSalesFilters();
@@ -5363,6 +5593,7 @@ function initCategoriesFilters(){
 }
 
 async function openCategories(){
+  pushRoute({ view: 'categoriesView' });
   showPage('categoriesView');
   departmentCacheData = await loadDepartmentCache();
   renderCategoriesGrid();
@@ -6441,6 +6672,7 @@ function speakWithAria(audioBase64, ariaText){
   btn.addEventListener('click', () => { if (AC.state==='suspended') AC.resume(); pop(); setTimeout(twinkle,120); });
 })();
 startOrbSwim();
+initRouter();
 </script>
 </body>
 </html>
