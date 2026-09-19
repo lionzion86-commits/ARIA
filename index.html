@@ -43,6 +43,23 @@
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
   .view{display:none}
   .view.active{display:block}
+  /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
+     used to sit on their brand-colour swatch, which made Foot Locker
+     (all-black artwork on #000) read as a solid black rectangle and
+     Walmart (blue artwork on #0071CE) all but vanish. They now sit on
+     white with a hairline border, where every mark is legible.
+     Containment: a grid/flex child defaults to min-width/min-height:auto,
+     which silently defeats max-width:100% — that is why target.svg
+     (intrinsic 800x800) escaped its 120x48 box and overlapped the card
+     next to it. The explicit min-*:0 plus overflow:hidden makes overflow
+     impossible at any viewport width, whatever a logo file's intrinsic
+     size happens to be. */
+  .store-logo-tile{width:120px; height:48px; flex:0 0 auto; display:grid; place-items:center; overflow:hidden; border-radius:10px; padding:6px; background:#fff; border:1px solid var(--line)}
+  .store-logo-tile img{display:block; width:100%; height:100%; min-width:0; min-height:0; object-fit:contain}
+  /* Styled-text fallback for a logo file that is missing or fails to
+     load: the store's real name on its brand colour. A missing asset must
+     never surface as a black box, a broken-image icon or raw alt text. */
+  .store-logo-fallback{display:inline-flex; align-items:center; max-width:100%; height:26px; padding:0 10px; border-radius:999px; color:#fff; font-size:12px; font-weight:800; letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
 </style>
 </head>
 <body class="antialiased">
@@ -1020,9 +1037,8 @@
          the store" mall metaphor. -->
     <div class="grid sm:grid-cols-2 gap-4">
       <button onclick="openStore('walmart')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#0071CE">
-          <img src="logos/walmart.svg" alt="Walmart" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
-          <span class="text-white font-extrabold text-[15px] tracking-[-0.02em]" style="display:none">Walmart</span>
+        <div class="store-logo-tile">
+          <img src="logos/walmart.svg" alt="Walmart" data-retailer="walmart" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
         </div>
         <div>
           <div class="font-bold text-[15px]">Walmart</div>
@@ -1030,9 +1046,8 @@
         </div>
       </button>
       <button onclick="openStore('target')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#fff; border:1px solid var(--line)">
-          <img src="logos/target.svg" alt="Target" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="#CC0000" style="display:none"><circle cx="12" cy="12" r="11" fill="#fff" stroke="#CC0000" stroke-width="1.5"/><circle cx="12" cy="12" r="6.2"/><circle cx="12" cy="12" r="2.2" fill="#fff"/></svg>
+        <div class="store-logo-tile">
+          <img src="logos/target.svg" alt="Target" data-retailer="target" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
         </div>
         <div>
           <div class="font-bold text-[15px]">Target</div>
@@ -1040,9 +1055,8 @@
         </div>
       </button>
       <button onclick="openStore('oldnavy')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#001E62">
-          <img src="logos/oldnavy.svg" alt="Old Navy" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
-          <span class="text-white font-extrabold text-[14px] tracking-[-0.01em]" style="display:none">Old Navy</span>
+        <div class="store-logo-tile">
+          <img src="logos/oldnavy.svg" alt="Old Navy" data-retailer="oldnavy" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
         </div>
         <div>
           <div class="font-bold text-[15px]">Old Navy</div>
@@ -1050,9 +1064,8 @@
         </div>
       </button>
       <button onclick="openStore('footlocker')" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#000">
-          <img src="logos/footlocker.svg" alt="Foot Locker" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
-          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]" style="display:none">Foot Locker</span>
+        <div class="store-logo-tile">
+          <img src="logos/footlocker.svg" alt="Foot Locker" data-retailer="footlocker" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
         </div>
         <div>
           <div class="font-bold text-[15px]">Foot Locker</div>
@@ -1060,9 +1073,8 @@
         </div>
       </button>
       <button onclick="openAriaAuto()" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="w-[120px] h-12 rounded-lg grid place-items-center flex-shrink-0 p-2" style="background:#1C8A4B">
-          <img src="logos/autozone.svg" alt="AutoZone" class="max-h-full max-w-full object-contain" onerror="this.style.display='none'; this.nextElementSibling.style.display='';">
-          <span class="text-white font-extrabold text-[13px] tracking-[-0.01em]" style="display:none">AutoZone</span>
+        <div class="store-logo-tile">
+          <img src="logos/autozone.svg" alt="AutoZone" data-retailer="autozone" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
         </div>
         <div>
           <div class="font-bold text-[15px]">AutoZone</div>
@@ -3013,6 +3025,23 @@ function retailerTextBadgeHTML(retailer){
   const color = RETAILER_BADGE_COLOR[key] || 'var(--navy)';
   const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
   return `<span class="inline-flex items-center h-7 px-3 rounded-full text-[12px] font-extrabold text-white" style="background:${color}">${escapeHtml(label)}</span>`;
+}
+
+// Same idea for the bigger logo tiles on the Tiendas page: a logo file
+// that 404s or fails to decode is replaced in place by the store's name
+// on its brand colour. The inline onerror can fire before this script has
+// run, so it also marks the element and sweepStoreLogos() catches those on
+// init — a missing asset must never end up as a black box or raw alt text.
+function storeLogoFallback(imgEl){
+  const key = String(imgEl.dataset.retailer || '').toLowerCase();
+  const span = document.createElement('span');
+  span.className = 'store-logo-fallback';
+  span.style.background = RETAILER_BADGE_COLOR[key] || 'var(--navy)';
+  span.textContent = LIVE_RETAILER_LABEL[key] || imgEl.alt || 'Tienda';
+  imgEl.replaceWith(span);
+}
+function sweepStoreLogos(){
+  document.querySelectorAll('.store-logo-tile img[data-logo-failed]').forEach(storeLogoFallback);
 }
 
 // Swaps a failed/missing logo <img> for the text-pill fallback in place —
@@ -6672,6 +6701,7 @@ function speakWithAria(audioBase64, ariaText){
   btn.addEventListener('click', () => { if (AC.state==='suspended') AC.resume(); pop(); setTimeout(twinkle,120); });
 })();
 startOrbSwim();
+sweepStoreLogos();
 initRouter();
 </script>
 </body>
