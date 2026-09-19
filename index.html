@@ -6344,8 +6344,24 @@ async function runSalesScan(){
     if (res.ok) cached = await res.json();
   } catch { /* fall through to a live scan */ }
 
+/* A published deal carries the weight the refresh script computed WHEN IT
+   RAN, which can be older than the estimator now in the page. Reported
+   2026-09-19 with a photo of the live feed: "Nike Air Max 95 - Women's"
+   and a Rawlings baseball both still showing 1.08 kg — both already fixed
+   in the tables, but the cache is only rebuilt once a day, so the fix
+   would not have reached a shopper until the next run.
+
+   Re-deriving here means a table fix takes effect the moment it deploys.
+   A weight the retailer actually stated (weightEstimated === false) is
+   never overwritten — only our own estimate is. */
+function refreshCachedWeight(p){
+  if (!p || p.weightEstimated === false) return p;
+  const detail = estimateRetailWeightDetail(p.title || '');
+  return { ...p, weightKg: detail.kg, weightEstimated: detail.estimated };
+}
+
   if (cached?.items?.length){
-    saleItemsCache = cached.items;
+    saleItemsCache = cached.items.map(refreshCachedWeight);
     salesGeneratedAt = cached.generatedAt;
     renderSalesGrid();
     if (cached.stale) revalidateSalesInBackground();
@@ -6358,7 +6374,7 @@ async function runSalesScan(){
   showSalesColdLoading();
   try {
     const items = await liveSalesScan();
-    saleItemsCache = items;
+    saleItemsCache = items.map(refreshCachedWeight);
     salesGeneratedAt = items.length ? new Date().toISOString() : null;
     stopSalesColdLoading();
     renderSalesGrid();
