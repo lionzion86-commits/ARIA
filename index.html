@@ -585,11 +585,12 @@
 <!-- ============ STORE HOMEPAGE VIEW ============ -->
 <!-- One retailer's own branded homepage — real logo hero + a grid of that
      store's own departments (never merged/aggregated like the homepage's
-     "Ropa" tile does). Entered via openStore(): from the Stores directory,
-     from a category page's store-logo tile, or from a comparison-view
-     column header — a direct logo click always lands here, on the full
-     store section (see the entry-point-scoping rule in the plan), never
-     pre-filtered to whatever department/search brought the shopper here. -->
+     "Ropa" tile does). Entered via openStore(): from the Stores
+     directory or from a comparison-view column header — a store picked
+     with NO category in hand lands here, on the full store section. A
+     store picked from inside a category never comes here: that keeps the
+     category and filters the category feed instead (setCatalogStore()),
+     because a shopper must never re-pick what they already picked. -->
 <div id="storeView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
@@ -2042,101 +2043,157 @@ function initDepartmentTiles(){
 window.addEventListener('DOMContentLoaded', initDepartmentTiles);
 loadFxRate(); // kick off the fetch as early as possible; render paths below await the same memoized promise
 
-// BUG FIX (2026-09-17): category pages (e.g. "Ropa") used to stack every
-// carrying retailer's full item grid in one long undifferentiated scroll.
-// With no retailerFilter, this now shows one large logo tile per carrying
-// retailer instead (storeLogoTileHTML) — a shopper picks a store first.
-// With a retailerFilter (only ever passed from openStore()'s own
-// department tiles), it renders the real item grid scoped to that one
-// store, same as the old always-show-everyone behavior just narrowed to
-// one retailer.
-// `key` must be a real key present in department-cache.json
-// (department-store keys like "electronics", or a brand key like "nike")
-// — see DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the
-// source of truth.
-let catalogReturnView = null;
+/* CATEGORY PAGES ARE A FEED, NOT A GATE (2026-09-19)
+
+   BUG THIS REPLACES: Categorias -> Moda Hombre showed four store cards
+   (Walmart, Target, Old Navy, Foot Locker) and not one product. The
+   shopper had to pick a store before seeing a single item — the same
+   mistake search made with its per-store columns: it hands back the one
+   decision they came here for us to make. Worse, tapping Walmart called
+   openStore(), which dropped the category and dumped them on Walmart's
+   generic department list, where they had to pick Moda Hombre again.
+
+   NOW: one merged, price-sorted feed of every carrying store's items,
+   each card wearing its own store badge, with the stores as chips that
+   FILTER that feed. A chip keeps the category (Walmart -> Moda Hombre AT
+   Walmart, same page, same department) and pushes its own URL, so the
+   address bar matches what is on screen and back undoes exactly one step.
+
+   `key` must be a real key present in department-cache.json (a department
+   key like "electronics", or a brand key like "nike") — see
+   DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the source
+   of truth.
+   ============================================================ */
+let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map() };
+
 function catalogGoBack(){
-  if (catalogReturnView?.view === 'storeView') openStore(catalogReturnView.retailer);
+  // In-page "Volver" and the browser's back arrow have to agree.
+  if (routeDepth > 0){ history.back(); return; }
+  // Deep link, with nothing of ours in the stack: undo one level of
+  // narrowing (store filter -> whole category) instead of throwing away
+  // the category, which is the context this page exists to keep.
+  if (catalogState.retailerFilter) openCatalog(catalogState.kind, catalogState.key);
   else goHome();
 }
 
 async function openCatalog(kind, key, opts = {}){
-  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter: opts.retailerFilter || null });
+  const retailerFilter = opts.retailerFilter || null;
+  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter });
   /* BUG FIX: the "Ofertas" department tile came through here and landed on
      the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
      so a shopper tapping Ofertas from the homepage got a store list while
      the nav link got the deals feed. Ofertas is a feed with its own store
      filter, not a department to pick a store for. Guarded here rather than
-     at each tile so every caller — homepage tiles, Categorías, any future
+     at each tile so every caller — homepage tiles, Categorias, any future
      one — lands in the same place. */
-  if (kind === 'department' && key === 'sale'){ goSales(opts.retailerFilter); return; }
-  const { retailerFilter } = opts;
-  catalogReturnView = retailerFilter ? { view: 'storeView', retailer: retailerFilter } : null;
+  if (kind === 'department' && key === 'sale'){ goSales(retailerFilter); return; }
   showPage('catalogView');
   await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   document.getElementById('catalogIcon').textContent = meta.icon;
   document.getElementById('catalogTitle').textContent = meta.label;
   document.getElementById('catalogSubtitle').textContent = 'Buscando en nuestras tiendas…';
-  document.getElementById('catalogSections').innerHTML = retailerFilter ? liveRetailerSkeleton(retailerFilter) : '';
+  document.getElementById('catalogSections').innerHTML =
+    `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
+      (retailerFilter ? [retailerFilter] : GENERAL_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
 
   const data = await loadDepartmentCache();
   departmentCacheData = data;
-  const bucketName = kind === 'brand' ? 'brands' : 'departments';
-  // A retailer whose items are ALL filtered out (e.g. a "men" bucket that
-  // came back entirely boys') must not be listed as having this
-  // department — otherwise the page offers a store and then shows nothing.
-  let retailers = GENERAL_RETAILERS.filter(r =>
-    departmentItemsFor(data.retailers[r], kind, key).length > 0);
-  if (retailerFilter) retailers = retailers.filter(r => r === retailerFilter);
-
-  if (!retailers.length){
-    document.getElementById('catalogSubtitle').textContent = 'Sin resultados por ahora.';
-    document.getElementById('catalogSections').innerHTML = '';
-    return;
+  // Every carrying store is read even when a filter is on: the chip row
+  // has to carry honest counts for the stores you are NOT looking at, or
+  // the filter has quietly become a gate again.
+  const byRetailer = new Map();
+  for (const retailer of GENERAL_RETAILERS){
+    const items = departmentItemsFor(data.retailers[retailer], kind, key)
+      .map(normalizeLiveItem)
+      .filter(it => it.title);
+    if (items.length) byRetailer.set(retailer, items);
   }
+  catalogState = { kind, key, retailerFilter, byRetailer };
+  renderCatalogFeed();
+}
 
-  if (retailerFilter){
-    document.getElementById('catalogSubtitle').textContent = `En ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter}`;
-    document.getElementById('catalogSections').innerHTML = retailers.map(r => {
-      return renderCatalogSection(r, departmentItemsFor(data.retailers[r], kind, key));
-    }).join('');
-    return;
-  }
+// A store chip is navigation, not a silent swap: it re-enters this same
+// category with the filter applied, so it gets its own URL and one back
+// press returns to the whole category.
+function setCatalogStore(retailer){
+  openCatalog(catalogState.kind, catalogState.key, retailer ? { retailerFilter: retailer } : {});
+}
 
-  document.getElementById('catalogSubtitle').textContent = `Disponible en ${retailers.length} tienda${retailers.length > 1 ? 's' : ''} — elige una tienda, o busca algo más específico abajo.`;
-  document.getElementById('catalogSections').innerHTML = `
-    <div class="relative max-w-[520px] mb-8">
+// The store filter. "Todas las tiendas" is the default and is always one
+// tap away — this row can never become a gate in front of the products.
+function catalogStoreChipsHTML(){
+  const { retailerFilter, byRetailer } = catalogState;
+  const total = Array.from(byRetailer.values()).reduce((n, items) => n + items.length, 0);
+  const chip = (active, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${active}" class="catalogStoreChip h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${active ? 'var(--navy)' : 'var(--line)'}; background:${active ? 'var(--navy)' : '#fff'}; color:${active ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span><span class="tabular font-semibold" style="opacity:.65">${count}</span>
+    </button>`;
+  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+    ${chip(!retailerFilter, 'Todas las tiendas', total, 'setCatalogStore(null)')}
+    ${Array.from(byRetailer.entries()).map(([r, items]) =>
+      chip(retailerFilter === r, escapeHtml(LIVE_RETAILER_LABEL[r] || r), items.length, `setCatalogStore('${r}')`)).join('')}
+  </div>`;
+}
+
+function catalogSearchBarHTML(){
+  return `<div class="relative max-w-[520px] mb-4">
       <input id="catalogSearchInput" onkeydown="if(event.key==='Enter')catalogSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
         class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
       <button onclick="catalogSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
+    </div>`;
+}
+
+function renderCatalogFeed(){
+  const { retailerFilter, byRetailer } = catalogState;
+  const sections = document.getElementById('catalogSections');
+  const subtitle = document.getElementById('catalogSubtitle');
+  if (!byRetailer.size){
+    subtitle.textContent = 'Sin resultados por ahora.';
+    sections.innerHTML = '';
+    return;
+  }
+  // A filter naming a store that carries nothing here must not leave an
+  // empty page: it falls back to the whole feed and says so.
+  const filterHasStock = retailerFilter && byRetailer.has(retailerFilter);
+  const active = filterHasStock ? [retailerFilter] : Array.from(byRetailer.keys());
+
+  const items = [];
+  for (const retailer of active) for (const it of byRetailer.get(retailer)) items.push({ ...it, retailer });
+  const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
+  // Best price first, the same default as search. An item with no price
+  // can never be the cheapest, so it sorts last either way.
+  items.sort((a, b) => {
+    if (a.price == null) return 1;
+    if (b.price == null) return -1;
+    return sortBy === 'priceDesc' ? b.price - a.price : a.price - b.price;
+  });
+
+  const storeCount = byRetailer.size;
+  const n = items.length;
+  subtitle.textContent = filterHasStock
+    ? `${n} producto${n === 1 ? '' : 's'} de ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} en esta categoría · toca "Todas las tiendas" para comparar con las demás`
+    : retailerFilter
+      ? `${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} no tiene productos de esta categoría — te mostramos las ${storeCount} tiendas que sí.`
+      : `${n} producto${n === 1 ? '' : 's'} de ${storeCount} tienda${storeCount === 1 ? '' : 's'} en un solo feed · el flete y los aranceles se calculan en el checkout`;
+
+  sections.innerHTML = `
+    ${catalogSearchBarHTML()}
+    ${catalogStoreChipsHTML()}
+    <div class="flex items-center justify-end mb-3">
+      <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
+        <option value="priceAsc">Mejor precio primero</option>
+        <option value="priceDesc">Precio: mayor a menor</option>
+      </select>
     </div>
-    <div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
-      retailers.map(r => storeLogoTileHTML(r, departmentItemsFor(data.retailers[r], kind, key).length)).join('')
-    }</div>`;
-}
-
-// The category-page search bar feeds the exact same translated-query +
-// comparison-view path as every other search entry point on the site
-// (see translateSearchQuery()/showResults()) — no separate results UI.
-function catalogSearchSubmit(){
-  const raw = document.getElementById('catalogSearchInput').value.trim();
-  if (!raw){ showToast('Escribe algo para buscar.'); return; }
-  showResults(translateSearchQuery(raw));
-}
-
-// Large clickable store-logo entry block used on category/brand pages —
-// clicking always opens that store's full homepage via openStore(), never
-// just this one department (a direct logo click is "browsing", scoped
-// search results are the only thing that stay narrowed — see
-// openStoreResults()).
-function storeLogoTileHTML(retailer, count){
-  return `<button onclick="openStore('${retailer}')" class="rounded-3xl border p-8 flex flex-col items-center justify-center gap-3 text-center focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line); background:#fff; min-height:170px">
-    ${retailerBadgeHTML(retailer, 40)}
-    <div class="text-[12.5px] text-zinc-500">${count} producto${count === 1 ? '' : 's'}</div>
-  </button>`;
+    <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
+      items.map(it => catalogTileHTML(it, it.retailer)).join('')}</div>`;
+  // The <select> was just re-created, so put the chosen sort back on it.
+  const sel = document.getElementById('catalogSort');
+  if (sel) sel.value = sortBy;
 }
 
 // One retailer's own branded homepage — real departments only (never the
@@ -2214,17 +2271,6 @@ async function openStoreResults(retailer, query){
   } catch (err) {
     document.getElementById('storeResultsSubtitle').textContent = 'No pudimos completar esta búsqueda — intenta de nuevo.';
   }
-}
-
-function renderCatalogSection(retailer, rawItems){
-  const items = rawItems.map(normalizeLiveItem);
-  if (!items.length) return '';
-  return `<div class="mb-10">
-    <div class="mb-3">${retailerBadgeHTML(retailer, 26)}</div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-      ${items.map(it => catalogTileHTML(it, retailer)).join('')}
-    </div>
-  </div>`;
 }
 
 // Same visual shape as saleCardHTML()'s grid tile, but works for any
@@ -2343,6 +2389,20 @@ function routeSlug(route){
   }
 }
 
+/* Two entries are the same place only when EVERY part of the route
+   matches, not just the readable slug. BUG (2026-09-19): a category
+   page's store filter lives in a query param, not in the slug, so
+   "Moda Hombre" and "Moda Hombre at Walmart" compared equal — applying a
+   filter REPLACED the category entry instead of pushing, and back then
+   skipped straight past the unfiltered category to Categorias. The #hash
+   counts too: a jump to a section of the home page is its own entry, the
+   same as a real anchor link. */
+function routeIdentity(route){
+  const spec = ROUTE_VIEWS[route?.view] || {};
+  const params = (spec.params || []).map(name => route?.[name] || '').join('|');
+  return `${route?.view}|${routeSlug(route || {})}|${params}|${route?.hash || ''}`;
+}
+
 function parseRoute(search){
   const params = new URLSearchParams(search || '');
   for (const [view, spec] of Object.entries(ROUTE_VIEWS)){
@@ -2368,7 +2428,7 @@ function pushRoute(route){
   const current = history.state;
   // Never stack the identical view twice: opening the same product from
   // the same page should not need two back presses to undo.
-  if (current && current.view === route.view && routeSlug(current) === routeSlug(route)){
+  if (current && routeIdentity(current) === routeIdentity(route)){
     history.replaceState({ ...route, slug: routeSlug(route), scrollY: 0 }, '', routeUrl({ ...route, slug: routeSlug(route) }));
     return;
   }
