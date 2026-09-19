@@ -143,35 +143,70 @@ export function goalWeightKg(title) {
  * Bulky-category weight for a title, or null when nothing matches.
  * Callers fall through to their own general table.
  */
-/* FOOTWEAR BY NAME (2026-09-19).
+/* FOOTWEAR, BY WHAT IS ACTUALLY IN THE BOX (2026-09-19).
 
-   Reported: "New Balance 204L" and "Jordan AJ 1 Retro High" both showed
-   1.08 kg — the generic fallback — because the general table only knows
-   the words "sneaker", "shoe" and "boot", and a sneaker listing almost
-   never uses them. Foot Locker's entire catalogue is model names.
+   Reported twice. First: "New Balance 204L" and "Jordan AJ 1 Retro High"
+   both quoting 1.08 kg — the generic fallback, because the table only
+   knew the words sneaker/shoe/boot and a listing rarely uses them. Then:
+   every shoe quoting the SAME weight, which is the same complaint one
+   level up. A toddler sneaker and a men's work boot are not one number.
 
-   A boxed pair bills at 1.89 kg (the shoebox, 33x22x13cm, beats the
-   1.4 kg the shoes weigh), so every unrecognised pair was under-quoted by
-   about $10 of freight that we then honour.
+   HONESTY ABOUT WHERE THESE COME FROM: they are reasoned figures —
+   typical pair masses and the retail shoebox each size actually ships
+   in — not sourced measurements, and they carry the 'reasoned' buffer
+   accordingly. A per-SKU weight from a retailer feed should replace all
+   of it, and specWeightKg() already prefers one when a scrape has it.
 
-   Brand or model, minus anything that says it is apparel: "Nike Air
-   Force 1" is footwear, "Nike Dri-FIT T-Shirt" is not. */
+   What actually decides the quote is the second number, not the first: a
+   shoebox is mostly air, so its volumetric weight (L*W*H / 5000, the
+   standard air divisor) exceeds the pair's mass in every row below, and
+   the volumetric figure is what the courier bills us. That is why a
+   toddler shoe lands at 0.72 kg and a men's boot at 2.76 kg. */
+export const FOOTWEAR_TIERS = [
+  // Size wins over style: a kids' boot ships in a kids' box.
+  { key: "bebé",        match: /\b(baby|infant|newborn|crib shoe)\b/i,                        kg: 0.15, boxCm: [20, 13, 9] },
+  { key: "toddler",     match: /\b(toddler|little kids?)\b/i,                                 kg: 0.3,  boxCm: [24, 15, 10] },
+  { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55, boxCm: [28, 18, 11] },
+  { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2,  boxCm: [33, 22, 14] },
+  { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6,  boxCm: [36, 24, 16] },
+  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, boxCm: [30, 19, 10] },
+  { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4,  boxCm: [30, 19, 11] },
+  { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5,  boxCm: [30, 19, 12] },
+  { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55, boxCm: [32, 20, 12] },
+  { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65, boxCm: [31, 20, 12] },
+  { key: "hombre",      match: /\b(men'?s?|mens|hombre)\b/i,                                  kg: 0.9,  boxCm: [34, 22, 13] },
+];
+// No size and no style stated — the middle of the range, not a guess at
+// the small end, because under-quoting is money off our own margin.
+export const FOOTWEAR_DEFAULT = { key: "calzado", kg: 0.8, boxCm: [33, 21, 12] };
+
+/* A listing is footwear if it names a shoe, or names a shoe brand or a
+   shoe model — Foot Locker's catalogue is model names and almost never
+   the word "shoe". */
+export const FOOTWEAR_NOUN_RE =
+  /\b(sneakers?|trainers?|shoes?|boots?(?!\s*cut)|loafers?|moc toe|slip[- ]ons?|sandals?|flip[- ]?flops?|clogs?|slippers?|cleats?|zapatillas|zapatos)\b/i;
 export const FOOTWEAR_BRAND_RE =
-  /\b(nike|jordan|adidas|new balance|puma|reebok|converse|vans|asics|crocs|ugg|timberland|brooks|hoka|saucony|fila|skechers|birkenstock|dr\.? martens)\b/i;
+  /\b(nike|jordan|adidas|new balance|puma|reebok|converse|vans|asics|crocs|ugg|timberland|brooks|hoka|saucony|fila|skechers|birkenstock|florsheim|dr\.? martens)\b/i;
 export const FOOTWEAR_MODEL_RE =
   /\b(air force|air max|air jordan|dunk low|dunk high|\bdunk\b|samba|gazelle|superstar|stan smith|forum low|blazer|pegasus|ultraboost|nmd|chuck taylor|all star|old skool|sk8-hi|classic clog|tasman|retro (?:high|low|mid)|\b(?:530|550|574|990|993|9060|2002r|204l|327)\b)/i;
-/* Words that mean the listing is clothing or an accessory from the same
-   brand — checked first, so a Jordan hoodie never weighs a shoebox. */
+/* Same brand, different product: clothing, accessories, and the things
+   sold NEXT to shoes (racks, cleaners, insoles) are not shoes. */
 export const FOOTWEAR_NOT_RE =
-  /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|jersey|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|lace|insole|cleaner|shoe ?care|water bottle)\b/i;
+  /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|laces?|insoles?|cleaner|polish|shoe ?care|shoe ?rack|shoe ?box|organizer|deodorizer|water bottle)\b/i;
 
-export function footwearWeightKg(title) {
+export function footwearTierFor(title) {
   const t = String(title || "");
   if (FOOTWEAR_NOT_RE.test(t)) return null;
-  if (!FOOTWEAR_BRAND_RE.test(t) && !FOOTWEAR_MODEL_RE.test(t)) return null;
-  // Same numbers the general table uses for the word "sneaker", so the two
-  // paths can never disagree about what a pair of shoes weighs.
-  return billableWeightKg(withBuffer(1.4, "cited"), [33, 22, 13]);
+  if (!FOOTWEAR_NOUN_RE.test(t) && !FOOTWEAR_BRAND_RE.test(t) && !FOOTWEAR_MODEL_RE.test(t)) return null;
+  return FOOTWEAR_TIERS.find((x) => x.match.test(t)) || FOOTWEAR_DEFAULT;
+}
+
+export function footwearWeightKg(title) {
+  const tier = footwearTierFor(title);
+  if (!tier) return null;
+  const mass = withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
+  const volumetric = dimensionalWeightKg(...tier.boxCm);
+  return Math.round(Math.max(mass, volumetric) * 100) / 100;
 }
 
 /* BALLS (2026-09-19, reported).
@@ -262,7 +297,7 @@ export const WEIGHT_SANITY_BOUNDS = [
   { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8 },
   { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6 },
   { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6 },
-  { key: "calzado", match: /\b(sneakers?|shoes?|trainers?|zapatillas|zapatos)\b|\bboots?\b(?!\s*cut)/i, minKg: 1.2 },  // "Boot Cut Jeans" is trousers, not footwear.
+  { key: "calzado", match: FOOTWEAR_NOUN_RE, minKg: 0.4 },  // a baby shoe box is ~0.47 kg volumetric; "Boot Cut Jeans" is excluded by the regex itself
   { key: "televisor",
     test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t)),
     minKg: 4 },

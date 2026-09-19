@@ -59,7 +59,8 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
   { match: /hoodie|sweatshirt/i, kg: 0.8, tier: "cited" },
   { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
-  { match: /sneakers?|\btrainers?\b|\bshoe|\bboots?\b(?!\s*cut)|loafers?|moc toe|slip[- ]ons?|sandals?|flip[- ]?flops?|\bclogs?\b|slippers?|cleats?/i, kg: 1.4, tier: "cited", dimCm: [33, 22, 13] },
+  // Footwear is owned by footwearWeightKg() — one source, sized by what
+  // is in the box rather than one number for every pair.
   { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: "cited" },
   { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
   /* 2026-09-19: these were the biggest slice of the "unclassified guess"
