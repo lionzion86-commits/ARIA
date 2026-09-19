@@ -1396,6 +1396,21 @@
 @media (prefers-reduced-motion: reduce) {
   .ariaShimmer { animation: none; }
 }
+/* "Aria esta escribiendo..." dots. The panel must never be blank AND
+   silent while a live search runs — that reads as frozen. */
+@keyframes ariaTypingDot {
+  0%, 80%, 100% { opacity: .25; transform: translateY(0); }
+  40%           { opacity: 1;   transform: translateY(-3px); }
+}
+.ariaTypingDots {
+  display:inline-flex; align-items:center; flex:0 0 auto; white-space:nowrap;
+}
+.ariaTypingDots i {
+  display:inline-block; width:5px; height:5px; margin-right:3px; border-radius:50%;
+  background: var(--navy); animation: ariaTypingDot 1.1s infinite ease-in-out;
+}
+.ariaTypingDots i:nth-child(2){ animation-delay:.15s }
+.ariaTypingDots i:nth-child(3){ animation-delay:.3s }
 @keyframes ariaOrbGlow {
   0%, 100% { opacity: 0.55; transform: scale(0.97); }
   50% { opacity: 1; transform: scale(1.06); }
@@ -1769,7 +1784,7 @@ function taxIncludedNoteHTML(usd, cls = 'text-[11px] mt-0.5'){
    adding the attribute and nothing else. */
 const HONEST_PRICING_BANNER_HTML = `
   <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
-    💛 Precios honestos: todo lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya incluye los impuestos de importación (~${Math.round(IMPORT_TAX_RATE * 100)}%). Lo que ves es lo que pagas.
+    💛 Precios honestos: todo lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya incluye los impuestos de importación (~${Math.round(IMPORT_TAX_RATE * 100)}%) en el precio que ves — y todo lo que está por debajo de $${IMPORT_TAX_THRESHOLD_USD} no paga impuestos de importación. Lo que ves es lo que pagas.
   </div>`;
 
 function renderHonestPricingBanners(){
@@ -6257,6 +6272,46 @@ function addAssistantProductCard(item, retailer){
   wrap.scrollTop = wrap.scrollHeight;
 }
 
+/* A note is Aria narrating what she is doing — the acknowledgment, a
+   progress update, a failure. It is deliberately quieter than a reply and
+   is never spoken aloud (it would talk over the real answer) and never
+   enters the chat history the model sees. */
+function addAssistantNote(text){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return null;
+  const note = document.createElement('div');
+  note.className = 'assistantNote max-w-[85%] text-[12px] italic leading-relaxed px-1';
+  note.style.color = '#5B6478';
+  note.textContent = text;
+  wrap.appendChild(note);
+  wrap.scrollTop = wrap.scrollHeight;
+  return note;
+}
+
+/* Stays up for the WHOLE search. Blank and silent reads as frozen. */
+function showAssistantTyping(label){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return;
+  hideAssistantTyping();
+  const el = document.createElement('div');
+  el.id = 'assistantTyping';
+  el.className = 'flex items-start gap-2 text-[12px] italic px-1';
+  el.style.color = '#5B6478';
+  el.innerHTML = `<span class="ariaTypingDots" aria-hidden="true" style="margin-top:5px"><i></i><i></i><i></i></span><span id="assistantTypingLabel"></span>`;
+  wrap.appendChild(el);
+  el.querySelector('#assistantTypingLabel').textContent = label || 'Aria está escribiendo…';
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function setAssistantTypingLabel(label){
+  const el = document.getElementById('assistantTypingLabel');
+  if (el) el.textContent = label;
+  const wrap = document.getElementById('assistantMessages');
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
+}
+function hideAssistantTyping(){
+  document.getElementById('assistantTyping')?.remove();
+}
+
 function sendAssistantText(){
   const input = document.getElementById('assistantInput');
   const text = input.value.trim();
@@ -6269,11 +6324,51 @@ function sendAssistantText(){
 let ariaChatHistory = [];
 let assistantThinking = false;
 
-// The one retailer chat product lookups query. Both the cards and the
-// retailer name the model is told come from this, so chat prose can never
-// credit a product to a store the card doesn't show — the bug behind
-// "New Balance 1906R en Foot Locker" appearing next to a Walmart card.
-const CHAT_RETAILER = 'walmart';
+/* WHAT THE ASSISTANT SEARCHES (2026-09-19)
+
+   It searches the REAL catalogue — the same live retailers the rest of
+   the site searches, not one store and never a demo set. "Zapatos" has
+   to be able to come back with actual shoes from actual stores.
+
+   This was bounded to Walmart alone to keep a chat turn at one Apify run.
+   That is a real cost we are now choosing to pay (one run per retailer
+   per turn), bounded instead by how much comes back: at most
+   CHAT_MAX_PER_STORE from any one store and CHAT_MAX_CARDS in total.
+
+   Each card's retailer travels WITH the item and the model is told the
+   same per-item store, so chat prose can never credit a product to a
+   store its card doesn't show — the bug behind "New Balance 1906R en
+   Foot Locker" appearing next to a Walmart card. */
+const CHAT_RETAILERS = GENERAL_RETAILERS;
+const CHAT_MAX_CARDS = 6;
+const CHAT_MAX_PER_STORE = 2;
+// One honest progress note, and only if the search is still running by then.
+const CHAT_PROGRESS_AFTER_MS = 5000;
+// Turns that are plainly not product requests: asking these about shipping
+// or customs should not spend four scrapes, or claim to be "buscando" them.
+const CHAT_NON_SHOPPING_RE = /\b(env[ií]os?|demora|tarda|aduana|arancel(es)?|impuestos?|flete|pagar?|pagos?|tarjeta|yape|plin|devoluci[oó]n|devoluciones|garant[ií]a|reembolso|rastre[oa]|seguimiento|c[oó]mo funciona|qui[eé]nes son|d[oó]nde est[aá]n)\b/i;
+
+function chatStoreLabel(retailer){ return LIVE_RETAILER_LABEL[retailer] || retailer; }
+function joinEs(list){
+  if (list.length <= 1) return list[0] || '';
+  return list.slice(0, -1).join(', ') + ' y ' + list[list.length - 1];
+}
+
+/* The acknowledgment restates what was asked, in the customer's own
+   words, flipped to second person ("mi hijo" -> "tu hijo"). Restating is
+   the point: it proves she heard the actual request, not just that
+   something was received. */
+function chatAckEs(text){
+  const phrase = String(text || '').trim()
+    .replace(/^(?:hola|oye|ok|ya)[\s,]+/i, '')
+    .replace(/^(?:me\s+)?(?:puedes\s+)?(?:b[uú]sca(?:me)?|busca(?:me)?|buscar|enc[uú]entra(?:me)?|encontrar|necesito|quiero|quisiera|estoy buscando|ando buscando|tienen|tienes|hay)\b[\s,:]*/i, '')
+    .replace(/[¿?¡!.]+$/g, '')
+    .replace(/\bmis\b/gi, 'tus')
+    .replace(/\bmi\b/gi, 'tu')
+    .trim();
+  const short = phrase.length > 70 ? phrase.slice(0, 67).trim() + '…' : phrase;
+  return short ? `Buscando ${short}… dame un segundo.` : 'Dame un segundo, estoy buscando…';
+}
 
 /* ============================================================
    RECIPIENT INTENT (2026-09-18)
@@ -6455,8 +6550,25 @@ async function runAssistantBrain(text){
     return;
   }
 
-  if (statusEl) statusEl.textContent = 'Aria está pensando…';
+  const recipient = extractRecipient(text, ariaChatHistory);
+  const searchQuery = buildChatSearchQuery(text, recipient);
+  const willSearch = searchQuery.length >= 3 && !CHAT_NON_SHOPPING_RE.test(text);
+
+  /* NO DEAD TIME (2026-09-19). The acknowledgment goes up BEFORE anything
+     is awaited, so it is on screen in a few hundred milliseconds, and the
+     typing indicator stays up until the reply lands. A live multi-store
+     search can run 20-30 seconds; a blank, silent panel for that long
+     reads as frozen, and people close it. */
+  addAssistantNote(willSearch ? chatAckEs(text) : 'Dame un segundo, reviso eso…');
+  showAssistantTyping();
+  if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
+
+  const foundItems = [];
+  const shownKeys = new Set();
+  const failedStores = [];
+  let rejectedForRecipient = 0;
+  let progressTimer = null;
 
   try {
     /* RETRIEVE BEFORE GENERATE.
@@ -6464,35 +6576,58 @@ async function runAssistantBrain(text){
        so the model answered with no idea what the customer was about to
        see — which is exactly how "no vendemos iPhone" ended up printed
        directly above three real iPhone cards. The results are fetched
-       first now and sent to the model as grounding, so the prose and the
-       cards can no longer contradict each other.
+       first and sent to the model as grounding, so the prose and the
+       cards can no longer contradict each other. */
+    if (willSearch){
+      const pending = new Set(CHAT_RETAILERS);
+      /* ONE progress note, only if the search is genuinely still running,
+         and only saying what is true at that exact moment — which stores
+         have answered and which have not. Never filler chatter. */
+      progressTimer = setTimeout(() => {
+        if (!pending.size) return;
+        const done = CHAT_RETAILERS.filter(r => !pending.has(r)).map(chatStoreLabel);
+        const left = Array.from(pending).map(chatStoreLabel);
+        setAssistantTypingLabel(done.length
+          ? `Ya revisé ${joinEs(done)}, buscando en ${joinEs(left)}…`
+          : `Buscando en ${joinEs(left)}…`);
+      }, CHAT_PROGRESS_AFTER_MS);
 
-       Still bounded to one retailer (Walmart, the broadest general
-       catalog we search) and 3 items, so a chat turn costs one Apify run
-       rather than scanning every retailer; the "Pedir con Aria" search bar
-       is what a full multi-retailer comparison is for. CHAT_RETAILER is
-       the single source of truth for the cards AND for what the model is
-       told, so the two can never disagree. */
-    // Who is this for? Read from the whole thread, not just this message.
-    const recipient = extractRecipient(text, ariaChatHistory);
-    const searchQuery = buildChatSearchQuery(text, recipient);
-
-    let foundItems = [];
-    let rejectedForRecipient = 0;
-    try {
-      const rawItems = await scrapeRetailer(CHAT_RETAILER, searchQuery, 6); // over-fetch: some get filtered out
-      await loadFxRate(); // in flight since the top of this function; settle it before formatting any price
-      const normalized = rawItems
-        .map(it => normalizeLiveItem(it))
-        .filter(it => it.title && it.price != null);
-      // HARD GATE: never show a product whose title signals the wrong
-      // gender for the recipient. This is the actual fix — enriching the
-      // query alone still lets a "Girls" listing through for a nephew.
-      const suitable = normalized.filter(it => productSuitsRecipient(it.title, recipient));
-      rejectedForRecipient = normalized.length - suitable.length;
-      foundItems = suitable.slice(0, 3);
-    } catch (e) {
-      foundItems = []; // a failed lookup just means no cards and no grounding
+      await Promise.allSettled(CHAT_RETAILERS.map(async (retailer) => {
+        let raw = [];
+        try {
+          raw = await scrapeRetailer(retailer, searchQuery, 6); // over-fetch: some get filtered out
+        } catch (e) {
+          failedStores.push(retailer);
+          pending.delete(retailer);
+          return;
+        }
+        pending.delete(retailer);
+        await loadFxRate(); // in flight since the top of this function; settle it before formatting any price
+        const normalized = raw.map(it => normalizeLiveItem(it)).filter(it => it.title && it.price != null);
+        // HARD GATE: never show a product whose title signals the wrong
+        // gender for the recipient (see the RECIPIENT INTENT block above).
+        const suitable = normalized.filter(it => productSuitsRecipient(it.title, recipient));
+        rejectedForRecipient += normalized.length - suitable.length;
+        let addedHere = 0;
+        for (const it of suitable){
+          if (addedHere >= CHAT_MAX_PER_STORE || foundItems.length >= CHAT_MAX_CARDS) break;
+          // The same product from a second store is not a second option.
+          const key = crossStoreKey(it.title);
+          if (shownKeys.has(key)) continue;
+          shownKeys.add(key);
+          foundItems.push({ ...it, retailer });
+          /* STREAM: each store's finds land the moment THAT store answers,
+             not in one dump once the slowest one finishes. */
+          addAssistantProductCard(it, retailer);
+          addedHere++;
+        }
+      }));
+      clearTimeout(progressTimer);
+      // Say it plainly and fast. "Found nothing" and "every store errored"
+      // are different things and must never look the same.
+      if (failedStores.length === CHAT_RETAILERS.length){
+        addAssistantNote('Tuve un problema buscando eso, ¿intentamos de nuevo?');
+      }
     }
 
     const res = await fetch('/.netlify/functions/aria-chat-groq', {
@@ -6501,10 +6636,10 @@ async function runAssistantBrain(text){
       body: JSON.stringify({
         message: text,
         history: ariaChatHistory,
-        // Retailer is sent per item from the same constant the cards use.
+        // Retailer travels per item, from the same object the card used.
         products: foundItems.map(it => ({
           title: it.title,
-          retailer: LIVE_RETAILER_LABEL[CHAT_RETAILER] || CHAT_RETAILER,
+          retailer: LIVE_RETAILER_LABEL[it.retailer] || it.retailer,
           priceLabel: fmtDisplayPrice(it.price) + (priceIncludesImportTax(it.price) ? ' (incl. impuestos)' : ''),
         })),
         // So the reply describes the same person the filter used, and can
@@ -6517,7 +6652,8 @@ async function runAssistantBrain(text){
     });
 
     if (!res.ok) {
-      addAssistantMessage('bot', 'Ups, tuve un problema para responder. ¿Puedes intentar de nuevo en un momento?');
+      hideAssistantTyping();
+      addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
       return;
     }
 
@@ -6528,12 +6664,15 @@ async function runAssistantBrain(text){
     ariaChatHistory.push({ role: 'assistant', content: reply });
     if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
 
+    hideAssistantTyping();
     addAssistantMessage('bot', reply, data.audio);
-    foundItems.forEach(it => addAssistantProductCard(it, CHAT_RETAILER));
 
   } catch (err) {
-    addAssistantMessage('bot', 'Ups, no pude conectarme. Revisa tu conexión e intenta de nuevo.');
+    hideAssistantTyping();
+    addAssistantMessage('bot', 'Tuve un problema con la conexión, ¿intentamos de nuevo?');
   } finally {
+    clearTimeout(progressTimer);
+    hideAssistantTyping();
     assistantThinking = false;
     if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
     // Only drop out of "thinking" if speaking hasn't already taken over.
@@ -6551,7 +6690,10 @@ let silenceTimer = null;
   let lastTranscriptLength = 0;
 let maxSessionTimer = null;
 const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
-const SILENCE_TIMEOUT_MS = 4000;
+// SPEC: 2-3 seconds, not 8-10. The mic must never hover — a thinker, or
+// someone turning to ask their kid mid-sentence, should hear it close and
+// re-tap when they are ready, rather than feel listened to.
+const SILENCE_TIMEOUT_MS = 2500;
 const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
 
 function isGoodbye(text){
