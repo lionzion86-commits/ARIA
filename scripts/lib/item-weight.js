@@ -235,6 +235,90 @@ export function footwearWeightKg(title) {
   return withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
 }
 
+/* ============================================================
+   BOOKS AND PAPER GOODS (2026-09-20)
+
+   REPORTED LIVE: a 64-page Hello Kitty colouring book listed at S/ 4.48
+   was quoted S/ 47.29 of freight — ten times the price of the book. The
+   estimator had no book row of any kind, so the title fell through to
+   the generic 1.08 kg placeholder, and there was no band for "libro"
+   for the sanity check to argue with. Both halves of that are fixed
+   here: a real row so the estimate is right, and a band so the next
+   thing that lands in this category cannot quote a kilo of paper.
+
+   TIERED, LIKE FOOTWEAR, AND FOR THE SAME REASON. A stapled activity
+   book, a mass-market paperback and a hardcover textbook are an order of
+   magnitude apart, and one band wide enough to hold all three is wide
+   enough to wave through the exact error this exists to catch. Each tier
+   carries the plausible shipped band for its own kind of book.
+   ============================================================ */
+
+/* Named first and matched most specifically: a colouring book is the
+   lightest thing in the category and the one that was reported. */
+export const BOOK_TIERS = [
+  { key: "libro para colorear",
+    match: /\b(colou?ring|activity|sticker|puzzle|maze|doodle|workbooks?)\b[^,]{0,24}\bbooks?\b|\bbooks?\b[^,]{0,24}\b(colou?ring|activity|sticker)\b|\blibros? para colorear\b/i,
+    kg: 0.12, bandKg: [0.05, 0.6] },
+  // Comics and magazines are stapled sheets; a graphic novel is a thin
+  // paperback and sits in the same place.
+  { key: "revista/cómic",
+    match: /\b(magazines?|revistas?|comic books?|comics?|manga|graphic novels?)\b/i,
+    kg: 0.18, bandKg: [0.05, 0.8] },
+  // Board books are cardboard, several times a paperback of the same size.
+  { key: "libro de cartón",
+    match: /\b(board books?)\b/i,
+    kg: 0.35, bandKg: [0.15, 1.2] },
+  /* The heavy end: a cookbook or a textbook is the one kind of book that
+     legitimately approaches three kilos, which is why the paperback band
+     must not be stretched to cover it. */
+  { key: "libro de tapa dura",
+    match: /\b(hardcovers?|hardbacks?|textbooks?|cookbooks?|recipe books?|coffee ?table books?|encyclopedias?|dictionar(?:y|ies)|atlas(?:es)?)\b/i,
+    kg: 0.75, bandKg: [0.3, 3.5] },
+  // Paper stationery: a spiral notebook, a planner, a journal. Bound
+  // paper, so it belongs here rather than next to the laptops — and the
+  // laptop row is exactly what "notebook" used to match.
+  { key: "cuaderno/agenda",
+    match: /\b(composition|spiral|subject|college ?ruled|wide ?ruled)\b[^,]{0,16}\bnotebooks?\b|\b(journals?|planners?|diar(?:y|ies)|sketchbooks?|cuadernos?|agendas?)\b/i,
+    kg: 0.4, bandKg: [0.1, 1.5] },
+];
+
+/* No tier stated — a paperback, which is what most of a book catalogue
+   is. The band is the widest of the ordinary ones and still an order of
+   magnitude below the generic 1.08 kg placeholder this replaces. */
+export const BOOK_DEFAULT = { key: "libro", kg: 0.3, bandKg: [0.1, 1.2] };
+
+export const BOOK_RE =
+  /\b(books?|libros?|paperbacks?|hardcovers?|hardbacks?|novels?|textbooks?|cookbooks?|workbooks?|magazines?|revistas?|comics?|manga|journals?|planners?|sketchbooks?|cuadernos?|agendas?)\b/i;
+
+/* Things whose names contain "book" and are not books. Every one of
+   these has a row of its own — a bookcase is furniture, a book bag is a
+   backpack, a MacBook is a laptop — and judging any of them against
+   0.3 kg of paper would be the same class of error in reverse.
+   "Bookmark" is not a book either, and weighs nothing. */
+export const BOOK_IMPOSTOR_RE =
+  /\b(book ?bags?|book ?cases?|bookshel(?:f|ves)|book ?ends?|book ?lights?|book ?covers?|book ?marks?|scrapbooks?|macbooks?|chromebooks?|notebook computers?|facebook|e-?readers?|kindle|audiobooks?|coloring pages?)\b/i;
+
+/** The book tier for a title, or null when the title is not a book. */
+export function bookTierFor(title) {
+  const t = String(title || "");
+  if (BOOK_IMPOSTOR_RE.test(t)) return null;
+  if (!BOOK_RE.test(t)) return null;
+  return BOOK_TIERS.find((x) => x.match.test(t)) || BOOK_DEFAULT;
+}
+
+/** The plausible shipped band for a book title, or null. */
+export function bookBandKg(title) {
+  const tier = bookTierFor(title);
+  return tier ? (tier.bandKg || BOOK_DEFAULT.bandKg) : null;
+}
+
+/** Shipped weight for a book title, or null when it is not a book. */
+export function bookWeightKg(title) {
+  const tier = bookTierFor(title);
+  if (!tier) return null;
+  return withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
+}
+
 /* BALLS (2026-09-19, reported).
 
    A Rawlings Official League baseball was quoting 1.08 kg — seven times
@@ -341,6 +425,12 @@ export const WEIGHT_SANITY_BOUNDS = [
      without this row a perfume could be floored to the calzado minimum
      and quoted as a pair of trainers. */
   { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02, maxKg: 0.6 },
+  /* Books run early and light, for the same reason beauty does: a
+     colouring book weighs 120 grams, and every catch-all bound below it
+     is written for objects that weigh kilos. Tier-aware, so a paperback
+     is judged against 0.1-1.2 and a textbook against 0.3-3.5 — see
+     BOOK_TIERS for the reported case this came from. */
+  { key: "libro", test: (t) => bookTierFor(t) != null, band: bookBandKg },
   { key: "goal", match: GOAL_RE, minKg: 3, maxKg: 45 },
   { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20, maxKg: 130 },
   { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15, maxKg: 130 },
@@ -492,9 +582,40 @@ export function freightUsd(weightKg, chargePerKg) {
 export const FREIGHT_BADGE_SHARE = 0.50;
 export const FREIGHT_FEATURE_CEILING = 1.00;
 
-/** Share of the sale price that freight represents. */
-export function freightShare(weightKg, priceUsd, chargePerKg) {
+/* THE BADGE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
+
+   REPORTED LIVE: a card showing S/ 25.29 and S/ 10.07 of freight — 40%,
+   comfortably under the 50% line — was wearing the "Flete alto" badge.
+   Two separate things were wrong, and this is the second of them.
+
+     1. The site was still running the old single 30% threshold, which
+        40% clears. That is what the shopper actually hit, and it is
+        fixed by FREIGHT_BADGE_SHARE above.
+
+     2. The share was divided by the RAW scraped price while the card
+        printed the DISPLAYED one. Over the $200 import-tax threshold
+        those are not the same number: a $250 item prints $307.50 and the
+        badge was being decided on $250. A smaller denominator means a
+        bigger share, so the badge fired on a ratio the shopper could not
+        reproduce from anything in front of them — and a warning nobody
+        can check is worse than no warning.
+
+   So the share is freight over the price ON THE CARD. Anyone can divide
+   the two numbers they see and land on the same answer we did. This is
+   the same rule doorToDoorUsd() sorts by, for the same reason. */
+export const IMPORT_TAX_THRESHOLD_USD = 200;
+export const IMPORT_TAX_RATE = 0.23;
+
+/** What a card prints for a product: with import tax over the threshold. */
+export function shownPriceUsd(priceUsd) {
   const price = Number(priceUsd);
+  if (!Number.isFinite(price) || price <= IMPORT_TAX_THRESHOLD_USD) return price;
+  return Math.round(price * (1 + IMPORT_TAX_RATE) * 100) / 100;
+}
+
+/** Share of the price the shopper sees that freight represents. */
+export function freightShare(weightKg, priceUsd, chargePerKg) {
+  const price = shownPriceUsd(priceUsd);
   if (!Number.isFinite(price) || price <= 0) return Infinity;
   return freightUsd(weightKg, chargePerKg) / price;
 }

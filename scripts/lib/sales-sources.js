@@ -37,7 +37,7 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  titleWeight, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg,
+  titleWeight, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 
@@ -145,6 +145,11 @@ export function categoryWeightKg(title, hints = {}) {
      of trainers. */
   const beauty = beautyWeightDetail(t, hints);
   if (beauty) return beauty.kg;
+  /* Books are read BEFORE footwear for the same collision reason: the
+     footwear detector matches on brand names, and a "Nike: Better is
+     Temporary" hardcover is a book, not a pair of trainers. */
+  const book = bookWeightKg(t);
+  if (book != null) return book;
   // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
   const shoes = footwearWeightKg(t);
   if (shoes != null) return shoes;

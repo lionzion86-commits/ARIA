@@ -4,6 +4,7 @@
     "@netlify/blobs": "^10.7.13"
   },
   "scripts": {
-    "test": "node scripts/test/run-tests.mjs"
+    "test": "node scripts/test/run-tests.mjs",
+    "test:browser": "node scripts/test/browser-tests.mjs"
   }
 }

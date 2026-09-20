@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice, loadPageTileSlice } from "./_page-script.mjs";
+import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -25,6 +25,8 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN } from
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
+import * as translate from "../lib/query-translate.js";
+import { CHARGE_PER_KG as chargePerKg } from "../../weight-data.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -53,6 +55,7 @@ function stripComments(src) {
 }
 
 const page = loadPageWeightSlice();
+const pageQuery = loadPageQuerySlice();
 
 /* ------------------------------------------------------------------
    P1.1 — the beauty table, row by row, against the brief's own figures.
@@ -427,8 +430,11 @@ check("the feature ceiling fires strictly above 100%, and nowhere below", () => 
 });
 
 check("50-100% is featured AND badged", () => {
-  // A 74 kg dresser at $1,200: ~$965 of freight, 60% of the price.
-  const heavy = deal("6 Drawer Dresser", 1200, 2000);
+  /* A 74 kg dresser: ~$965 of freight against a card price of ~$1,469 —
+     66%. The share is measured against the price the CARD PRINTS, which
+     over the $200 threshold carries the import tax, so the fixture is
+     priced from that number and not from the raw scrape. */
+  const heavy = deal("6 Drawer Dresser", 900, 1600);
   if (!heavy) throw new Error("a heavy item inside the ceiling was suppressed instead of badged");
   eq(heavy.freightHigh, true, "carries the Flete alto badge");
   if (!(heavy.freightShare > 0.5 && heavy.freightShare <= 1)) {
@@ -446,7 +452,7 @@ check("over 100% is not featurable as a deal", () => {
   // believed, and the item is fine at a price that can carry the freight.
   const d = estimateWeightDetail("6 Drawer Dresser");
   eq(d.flagged, false, "the weight itself is believed");
-  if (!deal("6 Drawer Dresser", 1200, 2000)) throw new Error("the same product is featurable at a price that carries the freight");
+  if (!deal("6 Drawer Dresser", 900, 1600)) throw new Error("the same product is featurable at a price that carries the freight");
 });
 
 check("an item over the ceiling is still listed everywhere else", () => {
@@ -960,6 +966,268 @@ check("the sign-off the brief put out of scope is untouched", () => {
   const html = readFileSync(root("index.html"), "utf8");
   // It was never on the page; this asserts nobody added it by accident.
   if (/Soy el papá de Aria/.test(html)) throw new Error("the deferred sign-off was added");
+});
+
+
+/* ------------------------------------------------------------------
+   FOLLOW-UPS TO THE BIG BATCH (2026-09-20), all five reported live.
+   ------------------------------------------------------------------ */
+group("follow-up 1: the Flete alto badge fires only at 0.50");
+
+check("the badge is measured against the price the card prints", () => {
+  // Over the $200 import-tax threshold the card prints 23% more than the
+  // scrape did. Dividing by the raw figure was giving the badge a
+  // smaller denominator than the shopper's own arithmetic.
+  eq(itemWeight.shownPriceUsd(199), 199, "under the threshold, unchanged");
+  eq(itemWeight.shownPriceUsd(200), 200, "at the threshold, unchanged");
+  eq(itemWeight.shownPriceUsd(250), 307.5, "over the threshold, tax included");
+  for (const usd of [5, 60, 199.99, 200, 200.01, 250, 1000]) {
+    eq(page.displayPriceUsd(usd), itemWeight.shownPriceUsd(usd), `page mirror at $${usd}`);
+  }
+  // 10 kg is $130 of freight: 52% of $250, but only 42% of the $307.50
+  // the card shows. The shopper's number is the one that decides.
+  eq(itemWeight.freightIsHigh(10, 250, 13), false, "not high against the printed price");
+  eq(page.freightSharePct(10, 250) > page.FREIGHT_BADGE_SHARE, false, "page agrees");
+  eq(
+    Math.round(page.freightSharePct(10, 250) * 1000),
+    Math.round(itemWeight.freightShare(10, 250, 13) * 1000),
+    "page and module compute the same share",
+  );
+});
+
+check("the reported Hello Kitty T-shirt carries no badge", () => {
+  /* LIVE REPORT: S/ 25.29 product, S/ 10.07 freight — 39.8%, comfortably
+     under the 0.50 line, and it was wearing "Flete alto" anyway. The
+     ratio is currency-free, so the sole figures are reproduced exactly
+     by picking the dollar price that yields the same share. */
+  const kg = estimateWeightDetail("Hello Kitty and Friends Girls T-Shirt").kg;
+  const freight = itemWeight.freightUsd(kg, 13);
+  const priceUsd = freight * (25.29 / 10.07);        // the reported ratio
+  const share = page.freightSharePct(kg, priceUsd);
+  if (Math.abs(share - 10.07 / 25.29) > 0.002) {
+    throw new Error(`share drifted from the reported 39.8%: ${share}`);
+  }
+  eq(share > page.FREIGHT_BADGE_SHARE, false, "no badge at 40%");
+  eq(itemWeight.freightIsHigh(kg, priceUsd, 13), false, "module agrees");
+  // And the line it must fire on, either side of exactly 50%.
+  eq(itemWeight.freightIsHigh(kg, freight / 0.5, 13), false, "exactly 50% — no badge");
+  eq(itemWeight.freightIsHigh(kg, freight / 0.4999, 13), false, "just under 50%");
+  eq(itemWeight.freightIsHigh(kg, freight / 0.5001, 13), true, "just over 50%");
+});
+
+check("no threshold other than the two named ones is left in the badge path", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  if (/0\.3\b|\b30\s*%/.test(card)) throw new Error("a stray 30% threshold is back in the card");
+  if (!/FREIGHT_BADGE_SHARE/.test(card)) throw new Error("the card stopped reading the named constant");
+});
+
+group("follow-up 2: $13/kg is the customer-facing rate, and stays");
+
+check("every customer-facing copy of the rate is 13", () => {
+  eq(chargePerKg, 13, "weight-data.js, the module checkout imports");
+  eq(page.CHARGE_PER_KG_USD, 13, "index.html");
+  eq(salesSources.CHARGE_PER_KG_USD, 13, "scripts/lib/sales-sources.js");
+  const cache = readFileSync(root("netlify/functions/sales-cache.js"), "utf8");
+  if (!/const CHARGE_PER_KG_USD = 13;/.test(cache)) throw new Error("sales-cache.js drifted off 13");
+});
+
+check("the freight line still shows the rate to the shopper", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  // The per-item card and the cart total both spell the arithmetic out.
+  if (!/kg × \$\$\{CHARGE_PER_KG_USD\}\/kg/.test(html)) {
+    throw new Error("the card's '× $13/kg' freight line is gone");
+  }
+  if (!/kg × \$\$\{CHARGE_PER_KG_USD\}\/kg`/.test(html)) {
+    throw new Error("the cart total's '× $13/kg' line is gone");
+  }
+  // The one place the rate is prose rather than interpolated. It cannot
+  // read the constant (it is declared thousands of lines later and the
+  // array is built at load), so this is what keeps the two in step.
+  if (!/kilos × \$13\/kg/.test(html)) {
+    throw new Error("the Precio Honesto promise no longer states $13/kg");
+  }
+});
+
+check("the internal contract cost never reaches a browser", () => {
+  /* $9/kg is what the courier charges US; $13/kg is what the shopper
+     pays. Every file the browser downloads is walked from the two HTML
+     entry points, so a new import cannot quietly widen the set. */
+  const seen = new Set();
+  const queue = ["index.html", "checkout.html"];
+  while (queue.length) {
+    const rel = queue.shift();
+    if (seen.has(rel)) continue;
+    seen.add(rel);
+    const src = readFileSync(root(rel), "utf8");
+    for (const m of src.matchAll(/from\s+["'](\.\/[^"']+)["']|src=["'](\.\/[^"']+)["']/g)) {
+      const dep = (m[1] || m[2]).replace(/^\.\//, "");
+      queue.push(dep);
+    }
+  }
+  if (seen.size < 4) throw new Error(`the browser-served walk found only ${seen.size} files — the matcher broke`);
+  for (const rel of seen) {
+    /* Comments are stripped first: weight-data.js's own header explains
+       at length why COST_PER_KG left, and that explanation is the reason
+       nobody puts it back. A named figure in prose is the thing to
+       forbid; the word in a warning is not. */
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/COST_PER_KG|PROFIT_PER_KG|AVI_COST_PER_KG|AVI_PROFIT_PER_KG/.test(src)) {
+      throw new Error(`${rel} references the internal courier economics`);
+    }
+    if (/\$\s?9\s?\/\s?kg|9 USD\/kg|\$\s?4\s?\/\s?kg/.test(src)) {
+      throw new Error(`${rel} prints an internal per-kg figure`);
+    }
+  }
+  // And the server-only module is still server-only.
+  const econ = root("netlify/functions/_courier-economics.js");
+  if (!/COST_PER_KG/.test(readFileSync(econ, "utf8"))) {
+    throw new Error("the internal economics module moved — re-point this guard");
+  }
+});
+
+group("follow-up 3: a colouring book is not a kilo of paper");
+
+check("the reported 64-page colouring book", () => {
+  const title = "Hello Kitty and Friends Coloring Book, 64 Pages";
+  const d = estimateWeightDetail(title);
+  eq(d.source, "category", "it has a real row now, not the generic guess");
+  eq(d.reviewKind, null, "and so it is no longer a gap");
+  eq(d.bound, "libro", "judged against the book band");
+  if (!(d.kg > 0 && d.kg <= 0.3)) throw new Error(`a colouring book came out at ${d.kg} kg`);
+  // The live figure: 1.08 kg, which produced S/ 47.29 of freight on a
+  // S/ 4.48 book. The band is what catches it.
+  const sanity = itemWeight.weightSanity(title, 1.08);
+  eq(sanity.outOfBand, true, "1.08 kg is refused for a colouring book");
+  eq(sanity.key, "libro");
+  eq(page.weightSanity(title, 1.08).outOfBand, true, "page mirror refuses it too");
+  // Freight on the believed weight, against the freight on the old guess.
+  const now = itemWeight.freightUsd(d.kg, 13);
+  if (!(now < itemWeight.freightUsd(1.08, 13) / 3)) {
+    throw new Error(`the quote barely moved: $${now}`);
+  }
+});
+
+check("the book tiers are banded by kind of book", () => {
+  const band = (t) => itemWeight.bookBandKg(t);
+  eq(JSON.stringify(band("Hello Kitty Coloring Book")), JSON.stringify([0.05, 0.6]));
+  eq(JSON.stringify(band("The Silent Patient Paperback")), JSON.stringify([0.1, 1.2]));
+  eq(JSON.stringify(band("Joy of Cooking Hardcover")), JSON.stringify([0.3, 3.5]));
+  // A textbook at 2.5 kg is fine; a paperback at 2.5 kg is not.
+  eq(itemWeight.weightSanity("Campbell Biology Textbook Hardcover", 2.5).outOfBand, false);
+  eq(itemWeight.weightSanity("The Silent Patient Paperback", 2.5).outOfBand, true);
+});
+
+check("things that merely contain the word 'book' are not books", () => {
+  for (const t of ["JanSport Book Bag Backpack", "5 Shelf Bookcase", "MacBook Air 13-inch", "Magnetic Bookmark Set"]) {
+    eq(itemWeight.bookTierFor(t), null, t);
+  }
+  // …and none of them lost the row it used to have.
+  eq(itemWeight.bandFor("5 Shelf Bookcase").key, "muebles");
+});
+
+check("the page mirrors the book table row for row", () => {
+  eq(page.BOOK_TIERS.length, itemWeight.BOOK_TIERS.length, "row count");
+  itemWeight.BOOK_TIERS.forEach((row, i) => {
+    const mirror = page.BOOK_TIERS[i];
+    eq(mirror.key, row.key, `row ${i} key`);
+    eq(mirror.kg, row.kg, `row ${i} kg`);
+    eq(String(mirror.match), String(row.match), `row ${i} regex`);
+    eq(JSON.stringify(mirror.bandKg), JSON.stringify(row.bandKg), `row ${i} band`);
+  });
+  eq(JSON.stringify(page.BOOK_DEFAULT), JSON.stringify(itemWeight.BOOK_DEFAULT), "default row");
+  for (const t of ["Hello Kitty Coloring Book", "Joy of Cooking Hardcover", "Composition Notebook 100 Sheets"]) {
+    eq(page.bookWeightKg(t), itemWeight.bookWeightKg(t), t);
+  }
+});
+
+group("follow-up 4: no internal labels on the storefront");
+
+check("the BETA pill is gone from Aria Smart Search", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const prose = html.replace(/<!--[\s\S]*?-->/g, "");
+  if (/BETA/.test(prose)) throw new Error("a BETA label is still rendered");
+  if (!/Aria Smart Search/.test(prose)) throw new Error("the row itself was removed with it");
+});
+
+group("follow-up 5: Spanish in, English out, before the retailer sees it");
+
+check("the reported query", () => {
+  eq(translate.translateSearchQuery("celular"), "cell phone");
+  eq(pageQuery.translateSearchQuery("celular"), "cell phone", "page mirror");
+  eq(translate.translateSearchQuery("celulares"), "cell phone", "plurals fall back to the singular");
+  eq(translate.translateSearchQuery("CELULAR"), "cell phone", "case");
+});
+
+check("the words the brief named, and the ones a shopper actually types", () => {
+  const cases = [
+    ["zapatillas", "sneakers"],
+    ["cartera", "handbag"],
+    ["audífonos", "headphones"],
+    ["televisor", "tv"],
+    ["chompa", "sweater"],
+    ["juguetes", "toy"],
+    ["plancha de cabello", "hair straightener"],
+    ["audifonos inalambricos", "wireless earbuds"],
+    ["zapatillas negras para hombre", "sneakers black mens"],
+    ["chompa para mujer", "sweater womens"],
+  ];
+  for (const [es, en] of cases) {
+    eq(translate.translateSearchQuery(es), en, es);
+    eq(pageQuery.translateSearchQuery(es), en, `${es} (page)`);
+  }
+});
+
+check("a phrase beats its own words", () => {
+  // "plancha" alone is a clothes iron; the phrase is a hair straightener.
+  eq(translate.translateSearchQuery("plancha"), "plancha", "no row for the bare word, so untouched");
+  eq(translate.translateQuery("plancha de cabello").query, "hair straightener");
+});
+
+check("anything we do not recognise goes out exactly as typed", () => {
+  for (const q of ["The North Face jacket", "iPhone 15 Pro Max 256GB", "Levi's 501", "PS5 DualSense", "nintendo switch oled"]) {
+    eq(translate.translateSearchQuery(q), q, q);
+    eq(pageQuery.translateSearchQuery(q), q, `${q} (page)`);
+    eq(translate.translateQuery(q).translated, false, `${q} reports no translation`);
+  }
+});
+
+check("translating twice changes nothing", () => {
+  // scrapeRetailer() translates, and the chat path has already translated
+  // once before it gets there.
+  for (const q of ["celular", "plancha de cabello", "The North Face jacket", "zapatillas negras"]) {
+    const once = translate.translateSearchQuery(q);
+    eq(translate.translateSearchQuery(once), once, q);
+  }
+});
+
+check("every query that leaves for a retailer is translated first", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const calls = src.match(/fetch\('\/\.netlify\/functions\/apify-scrape-start'[\s\S]{0,400}?\}\);/g) || [];
+  if (calls.length !== 2) throw new Error(`expected 2 scrape entry points, found ${calls.length}`);
+  for (const call of calls) {
+    if (!/query: translateSearchQuery\(/.test(call)) {
+      throw new Error("a scrape call sends the raw Spanish query to the retailer");
+    }
+  }
+  // The old word-by-word table is gone, not shadowed by the new one.
+  if (/SPANISH_SYNONYMS\s*[=\[]/.test(src)) throw new Error("the old synonym table is still live");
+});
+
+check("the page mirrors the whole vocabulary", () => {
+  eq(
+    Object.keys(pageQuery.ES_EN_WORDS).length,
+    Object.keys(translate.ES_EN_WORDS).length,
+    "single-word row count",
+  );
+  for (const [es, en] of Object.entries(translate.ES_EN_WORDS)) {
+    eq(pageQuery.ES_EN_WORDS[es], en, es);
+  }
+  eq(pageQuery.ES_EN_PHRASES.length, translate.ES_EN_PHRASES.length, "phrase row count");
+  translate.ES_EN_PHRASES.forEach(([es, en], i) => {
+    eq(pageQuery.ES_EN_PHRASES[i][0], es, `phrase ${i} key`);
+    eq(pageQuery.ES_EN_PHRASES[i][1], en, `phrase ${i} value`);
+  });
 });
 
 /* ------------------------------------------------------------------ */

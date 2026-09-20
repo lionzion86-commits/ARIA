@@ -515,7 +515,11 @@
       <div class="flex-1 text-center sm:text-left">
         <div class="flex items-center justify-center sm:justify-start gap-2 text-[12px] font-bold mb-1.5" style="color:var(--blue)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2 13.6 8.4 20 10 13.6 11.6 12 18 10.4 11.6 4 10 10.4 8.4Z"/></svg>
-          Aria Smart Search <span class="text-[10px] font-bold px-1.5 py-0.5 rounded" style="background:var(--sky); color:var(--blue)">BETA</span>
+          <!-- No internal labels on the storefront: the "BETA" pill was
+               removed 2026-09-20. A shopper reads it as "this might not
+               work", which is not something a shop says about the thing it
+               is asking them to trust with their money. -->
+          Aria Smart Search
         </div>
         <h2 id="prodNameBig" class="text-[18px] font-bold tracking-[-0.02em] leading-tight"></h2>
         <p class="text-[13px] text-zinc-500 mt-1 max-w-[56ch]">Comparamos precios reales entre varias tiendas de EE. UU. en vivo para encontrarte la mejor opción.</p>
@@ -850,8 +854,9 @@
 
     <!-- Ofertas had no search of its own: the only search input on the way
          here was the one on the store-picker page, which mobile used to
-         land on. Same input, same shared search path (translateSearchQuery
-         + showResults), now on the feed itself. The hint under it exists
+         land on. Same input, same shared search path (showResults, which
+         hands the query to scrapeRetailer and its ES→EN table), now on
+         the feed itself. The hint under it exists
          because shoppers read a search box on a deals page as "filter what
          is on screen" — it is actually a live scan across the US stores. -->
     <div class="mb-6">
@@ -2944,8 +2949,19 @@ function renderCatalogFeed(){
   /* An in-category search narrows the cached feed first — instant and
      free. When that comes back thin, the on-demand card at the bottom
      offers to go and look in the real store. */
-  const term = String(catalogState.searchTerm || '').trim().toLowerCase();
-  const items = term ? all.filter(it => String(it.title || '').toLowerCase().includes(term)) : all;
+  /* The cached titles are the US retailer's own English, so the term is
+     translated before it is matched against them — "chompa" finds the
+     sweaters that are sitting right there. Matched token by token rather
+     than as one substring, because a translation can be two words
+     ("celular" -> "cell phone") and no title contains that pair
+     verbatim. The shopper still sees what they typed; only the matching
+     is in English. */
+  const typed = String(catalogState.searchTerm || '').trim();
+  const term = typed.toLowerCase();
+  const tokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
+  const items = tokens.length
+    ? all.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
+    : all;
 
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
@@ -3479,44 +3495,349 @@ function closeMobileMenu(){
   document.getElementById('mobileMenu').classList.add('hidden');
 }
 
-// Common Peruvian/Spanish retail slang that doesn't literally match how
-// US retailers list these items (e.g. "chompa" or "ramera" return nothing
-// searched literally) — mapped to the English term the real search
-// actually needs. Not exhaustive; extend as new gaps are found. Applied
-// once here, in the one shared search entry point every search bar on the
-// site funnels through, so the fix benefits every search, not just
-// category pages.
-const SPANISH_SYNONYMS = {
-  chompa: 'sweater', chompas: 'sweaters',
-  ramera: 't-shirt', rameras: 't-shirts',
-  polera: 't-shirt', poleras: 't-shirts',
-  polo: 'polo shirt', polos: 'polo shirts',
-  casaca: 'jacket', casacas: 'jackets',
-  buzo: 'hoodie', buzos: 'hoodies',
-  zapatilla: 'sneaker', zapatillas: 'sneakers',
-  zapato: 'shoes', zapatos: 'shoes', zapatillas_deportivas: 'sneakers',
-  camisa: 'shirt', camisas: 'shirts', ropa: 'clothing',
-  juguete: 'toy', juguetes: 'toys', reloj: 'watch', relojes: 'watches',
-  lentes: 'sunglasses', billetera: 'wallet', billeteras: 'wallets',
-  pantalon: 'pants', 'pantalón': 'pants', pantalones: 'pants',
-  calzado: 'shoes',
-  cartera: 'purse', carteras: 'purses',
-  mochila: 'backpack', mochilas: 'backpacks',
-  gorra: 'cap', gorras: 'caps',
-  falda: 'skirt', faldas: 'skirts',
-  vestido: 'dress', vestidos: 'dresses',
-  correa: 'belt', correas: 'belts',
-  medias: 'socks', calcetines: 'socks',
-  audifonos: 'headphones', 'audífonos': 'headphones',
-  television: 'tv', televisor: 'tv', 'televisión': 'tv',
+/* ============================================================
+   SPANISH → ENGLISH, BEFORE THE QUERY LEAVES FOR A US RETAILER
+
+   REPORTED LIVE: a shopper types "celular" and gets nonsense, because
+   "celular" went to Walmart's search verbatim and Walmart has never
+   heard of the word. A Peruvian shopper must never have to know the
+   English term — that is the entire job of an import shop.
+
+   WHAT WAS HERE BEFORE was SPANISH_SYNONYMS: a short list of apparel
+   slang, applied one word at a time in doSearch(). Three holes, and the
+   "celular" report is an instance of all three — "celular" was simply
+   not in it; a word-by-word pass can never translate "plancha de
+   cabello", where the phrase means what its words do not; and accents
+   and plurals were literal keys, so "audífonos" and "audifonos" were two
+   rows and "celulares" would have missed even had "celular" been there.
+
+   WHERE IT IS APPLIED NOW. Not in doSearch() — at the boundary, in
+   scrapeRetailer() and scrapeRetailerOnDemand(), the two functions that
+   actually put a query in an HTTP request. Every search bar on the site
+   funnels through one of them, including the on-demand "búscalo en la
+   tienda" path and Aria's chat, so there is no entry point left that can
+   forget. The page keeps showing the shopper their own words; only the
+   retailer sees English.
+
+   Mirrors scripts/lib/query-translate.js line for line (this page is a
+   plain <script> and cannot import); test-translate asserts both sides
+   answer identically for every table entry.
+   ============================================================ */
+/** Lowercase, strip accents, collapse whitespace. */
+function normalizeQueryText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/* MULTI-WORD PHRASES. Checked before single words, longest first, because
+   the phrase means something its parts do not: "plancha de cabello" is a
+   hair straightener, "plancha" alone is a clothes iron. */
+const ES_EN_PHRASES = [
+  ["plancha de cabello", "hair straightener"],
+  ["plancha de pelo", "hair straightener"],
+  ["secadora de cabello", "hair dryer"],
+  ["secadora de pelo", "hair dryer"],
+  ["base de maquillaje", "foundation makeup"],
+  ["sombra de ojos", "eyeshadow"],
+  ["esmalte de unas", "nail polish"],
+  ["crema hidratante", "moisturizer"],
+  ["protector solar", "sunscreen"],
+  ["pasta de dientes", "toothpaste"],
+  ["cepillo de dientes", "toothbrush"],
+  ["papel higienico", "toilet paper"],
+  ["pañales", "diapers"],
+  ["toallas humedas", "baby wipes"],
+  ["coche de bebe", "stroller"],
+  ["silla de auto", "car seat"],
+  ["olla arrocera", "rice cooker"],
+  ["olla de presion", "pressure cooker"],
+  ["freidora de aire", "air fryer"],
+  ["licuadora de mano", "immersion blender"],
+  ["maquina de afeitar", "electric shaver"],
+  ["cortadora de cabello", "hair clippers"],
+  ["reloj inteligente", "smartwatch"],
+  ["audifonos inalambricos", "wireless earbuds"],
+  ["parlante bluetooth", "bluetooth speaker"],
+  ["cargador inalambrico", "wireless charger"],
+  ["disco duro", "hard drive"],
+  ["memoria usb", "usb flash drive"],
+  ["tarjeta de memoria", "memory card"],
+  ["consola de videojuegos", "game console"],
+  ["ropa deportiva", "activewear"],
+  ["ropa interior", "underwear"],
+  ["traje de bano", "swimsuit"],
+  ["zapatillas de correr", "running shoes"],
+  ["zapatos de vestir", "dress shoes"],
+  ["casaca de cuero", "leather jacket"],
+  ["pantalon corto", "shorts"],
+  ["lentes de sol", "sunglasses"],
+  ["bloqueador solar", "sunscreen"],
+  ["juego de sabanas", "sheet set"],
+  ["maquina de coser", "sewing machine"],
+  ["aspiradora robot", "robot vacuum"],
+  ["cafetera electrica", "coffee maker"],
+  /* "para niños" is how a Peruvian shopper says "for children" in
+     general, while "niño" on its own is the boys' department. The phrase
+     has to win, or a search for toys for the kids comes back boys-only. */
+  ["para ninos", "kids"],
+  ["para ninas", "girls"],
+  ["para bebes", "baby"],
+  ["para mujer", "womens"],
+  ["para hombre", "mens"],
+];
+
+/* SINGLE WORDS. Keys are accent-free and singular; the lookup handles
+   both. Everything the old SPANISH_SYNONYMS held is here, plus the
+   categories a shopper actually types. */
+const ES_EN_WORDS = {
+  // electronics — the category the live report came from
+  celular: "cell phone",
+  movil: "cell phone",
+  telefono: "phone",
+  computadora: "laptop",
+  laptop: "laptop",
+  ordenador: "computer",
+  tableta: "tablet",
+  pantalla: "monitor",
+  televisor: "tv",
+  television: "tv",
+  tele: "tv",
+  audifono: "headphones",
+  auricular: "headphones",
+  parlante: "speaker",
+  altavoz: "speaker",
+  cargador: "charger",
+  bateria: "battery",
+  camara: "camera",
+  impresora: "printer",
+  teclado: "keyboard",
+  raton: "computer mouse",
+  consola: "game console",
+  videojuego: "video game",
+  reloj: "watch",
+  // apparel
+  chompa: "sweater",
+  // "remera" is the River Plate word for a tee; "ramera" is the common
+  // misspelling of it and is kept only because the old table had it.
+  remera: "t-shirt",
+  ramera: "t-shirt",
+  polera: "t-shirt",
+  polo: "polo shirt",
+  camiseta: "t-shirt",
+  camisa: "shirt",
+  casaca: "jacket",
+  chaqueta: "jacket",
+  abrigo: "coat",
+  buzo: "hoodie",
+  pantalon: "pants",
+  jean: "jeans",
+  short: "shorts",
+  falda: "skirt",
+  vestido: "dress",
+  blusa: "blouse",
+  ropa: "clothing",
+  media: "socks",
+  calcetin: "socks",
+  correa: "belt",
+  gorra: "cap",
+  sombrero: "hat",
+  guante: "gloves",
+  bufanda: "scarf",
+  pijama: "pajamas",
+  // footwear and bags
+  zapatilla: "sneakers",
+  zapato: "shoes",
+  calzado: "shoes",
+  bota: "boots",
+  sandalia: "sandals",
+  cartera: "handbag",
+  bolso: "handbag",
+  billetera: "wallet",
+  mochila: "backpack",
+  maleta: "suitcase",
+  // beauty
+  labial: "lipstick",
+  rimel: "mascara",
+  pestanina: "mascara",
+  delineador: "eyeliner",
+  rubor: "blush",
+  corrector: "concealer",
+  perfume: "perfume",
+  colonia: "cologne",
+  fragancia: "fragrance",
+  maquillaje: "makeup",
+  serum: "serum",
+  jabon: "soap",
+  champu: "shampoo",
+  shampoo: "shampoo",
+  acondicionador: "conditioner",
+  desodorante: "deodorant",
+  // home and kitchen
+  licuadora: "blender",
+  cafetera: "coffee maker",
+  tostadora: "toaster",
+  microondas: "microwave",
+  refrigeradora: "refrigerator",
+  aspiradora: "vacuum cleaner",
+  ventilador: "fan",
+  lampara: "lamp",
+  almohada: "pillow",
+  sabana: "bed sheets",
+  edredon: "comforter",
+  toalla: "towel",
+  cortina: "curtains",
+  alfombra: "rug",
+  colchon: "mattress",
+  silla: "chair",
+  mesa: "table",
+  olla: "cooking pot",
+  sarten: "frying pan",
+  cuchillo: "knife",
+  // kids, sport, misc
+  juguete: "toy",
+  muneca: "doll",
+  pelota: "ball",
+  bicicleta: "bicycle",
+  patineta: "skateboard",
+  mancuerna: "dumbbell",
+  vitamina: "vitamins",
+  suplemento: "supplement",
+  libro: "book",
+  cuaderno: "notebook",
+  mochilero: "backpack",
+  herramienta: "tools",
+  taladro: "drill",
+  linterna: "flashlight",
+  lente: "sunglasses",
+  /* WHO IT IS FOR. A US catalogue files almost everything under a
+     department, and "chompa mujer" searched literally finds nothing —
+     the store has never seen the word. These are the difference between
+     a search that returns the right aisle and one that returns none. */
+  mujer: "womens",
+  dama: "womens",
+  hombre: "mens",
+  varon: "mens",
+  caballero: "mens",
+  nino: "boys",
+  nina: "girls",
+  bebe: "baby",
+  infantil: "kids",
+  juvenil: "youth",
+  // Colours, the other thing a shopper types that a US search cannot read.
+  negro: "black",
+  blanco: "white",
+  rojo: "red",
+  azul: "blue",
+  verde: "green",
+  amarillo: "yellow",
+  morado: "purple",
+  rosado: "pink",
+  gris: "gray",
+  dorado: "gold",
+  plateado: "silver",
+  // Materials, for the same reason.
+  algodon: "cotton",
+  cuero: "leather",
+  lana: "wool",
+  seda: "silk",
+  acero: "steel",
+  madera: "wood",
 };
 
-// Only translates words this site actually knows are Spanish retail slang
-// — everything else in the query (already-English terms, brand names,
-// literal Spanish that happens to already match real listings) passes
-// through completely unchanged.
-function translateSearchQuery(q){
-  return q.split(/\s+/).map(word => SPANISH_SYNONYMS[word.toLowerCase()] || word).join(' ');
+/* Plural endings, longest first. Spanish pluralises predictably enough
+   that one rule saves a second entry for every noun in the table. */
+const PLURAL_RULES = [
+  [/ces$/, "z"],     // lapices -> lapiz
+  [/es$/, ""],       // pantalones -> pantalon
+  [/s$/, ""],        // zapatos -> zapato
+];
+
+/* Every form of a word worth looking up, most literal first. The
+   feminine swap is what makes "zapatillas negras" work: the adjective
+   agrees with the noun, so the table would otherwise need "negro" and
+   "negra" and "negros" and "negras" as four separate rows. */
+function lookupForms(w) {
+  const forms = [w];
+  for (const [re, replacement] of PLURAL_RULES) {
+    if (re.test(w)) forms.push(w.replace(re, replacement));
+  }
+  for (const form of [...forms]) {
+    if (/a$/.test(form)) forms.push(form.replace(/a$/, "o"));
+  }
+  return forms;
+}
+
+/** The English term for one Spanish word, or null. */
+function translateWord(word) {
+  const w = normalizeQueryText(word);
+  if (!w) return null;
+  for (const form of lookupForms(w)) {
+    if (ES_EN_WORDS[form]) return ES_EN_WORDS[form];
+  }
+  return null;
+}
+
+/* Words that carry no meaning for a retailer's search engine and only
+   dilute it. Dropped ONLY when something else in the query translated —
+   an all-English query is never touched. */
+const FILLER = new Set(["de", "del", "la", "el", "los", "las", "un", "una", "para", "con", "y"]);
+
+/**
+ * A shopper's query, in the language the retailer speaks.
+ *
+ * Returns { query, translated, changed } — `query` is what to search
+ * with, and `translated` is true when anything was actually recognised,
+ * so a caller can tell the shopper what we searched for.
+ */
+function translateQuery(raw) {
+  const original = String(raw || "").trim();
+  if (!original) return { query: "", translated: false, changed: false };
+
+  let text = normalizeQueryText(original);
+  let hit = false;
+
+  // Phrases first, longest first: the phrase means what its words do not.
+  const phrases = [...ES_EN_PHRASES].sort((a, b) => b[0].length - a[0].length);
+  for (const [es, en] of phrases) {
+    if (text.includes(es)) {
+      text = text.split(es).join(` ${en} `);
+      hit = true;
+    }
+  }
+
+  const words = text.split(/\s+/).filter(Boolean).map((w) => {
+    const en = translateWord(w);
+    if (en) { hit = true; return en; }
+    return w;
+  });
+
+  /* NOTHING RECOGNISED, NOTHING TOUCHED. A query we do not know goes to
+     the retailer exactly as the shopper typed it — same case, same
+     accents, same word order. That covers brands, model numbers and
+     anyone who already typed English, and it means this can only ever
+     improve a search, never damage one. */
+  if (!hit) return { query: original, translated: false, changed: false };
+
+  /* Connectives are dropped only now that we know this really was a
+     Spanish query: "de" is noise in "plancha de cabello" and a real
+     token in "The North Face". Duplicates go the same way — "zapatos
+     zapatillas" both resolve to shoes and searching for it twice narrows
+     nothing. */
+  const cleaned = words.filter((w) => !FILLER.has(w));
+  const query = [...new Set(cleaned)].join(" ").trim();
+
+  // A translation that produced nothing usable is not a translation.
+  if (!query) return { query: original, translated: false, changed: false };
+  return { query, translated: true, changed: query !== normalizeQueryText(original) };
+}
+
+/** Just the string, for callers that do not care whether anything changed. */
+function translateSearchQuery(raw) {
+  return translateQuery(raw).query;
 }
 
 function searchFor(q){
@@ -3527,7 +3848,9 @@ function searchFor(q){
 function doSearch(which){
   const raw = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).trim();
   if(!raw){ showToast('Escribe algo para buscar.'); return; }
-  showResults(translateSearchQuery(raw));
+  // The shopper's own words go to the page; scrapeRetailer() is what
+  // translates, and it is the only thing that needs to.
+  showResults(raw);
 }
 
 function initResultsFilters(){
@@ -3831,10 +4154,14 @@ async function runOnDemandSearch(retailer, query){
    and spend cap. A cache hit comes back from the START call with the
    items already attached and never starts a run at all. */
 async function scrapeRetailerOnDemand(retailer, query){
+  /* Translated here too, and for a harder reason than the ordinary
+     search: an on-demand run COSTS MONEY. Sending "celular" to Old Navy
+     buys an empty dataset at full price, and the shopper who pressed the
+     button waits ninety seconds to be told there is nothing there. */
   const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ retailer, query, maxItems: ON_DEMAND_MAX_ITEMS, onDemand: true }),
+    body: JSON.stringify({ retailer, query: translateSearchQuery(query), maxItems: ON_DEMAND_MAX_ITEMS, onDemand: true }),
   });
   const startData = await startRes.json();
   if (startRes.status === 429) throw new Error(startData.error || 'Ya tienes búsquedas en curso.');
@@ -3935,7 +4262,15 @@ async function showResults(query, opts = {}){
 
   document.getElementById('searchInput2').value = query;
   document.getElementById('prodName').textContent = query;
-  document.getElementById('prodSpec').textContent = '';
+  /* SAY WHAT WE ASKED THE STORE FOR. The shopper typed "celular"; the
+     stores were asked for "cell phone". Showing the translation is how a
+     result set that looks slightly off stops being a mystery — and how
+     a shopper can tell us we got the word wrong. Only shown when the
+     query actually changed; "laptop" needs no explanation. */
+  const t = translateQuery(query);
+  document.getElementById('prodSpec').textContent = t.changed
+    ? `Buscamos “${t.query}” en las tiendas de EE. UU.`
+    : '';
   document.getElementById('prodNameBig').textContent = query;
   document.getElementById('prodImg').removeAttribute('src');
   document.getElementById('prodImgBig').removeAttribute('src');
@@ -5278,6 +5613,92 @@ function footwearWeightKg(title) {
   return withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
 }
 
+/* ============================================================
+   BOOKS AND PAPER GOODS (2026-09-20)
+
+   REPORTED LIVE: a 64-page Hello Kitty colouring book listed at S/ 4.48
+   was quoted S/ 47.29 of freight — ten times the price of the book. The
+   estimator had no book row of any kind, so the title fell through to
+   the generic 1.08 kg placeholder, and there was no band for "libro"
+   for the sanity check to argue with. Both halves of that are fixed
+   here: a real row so the estimate is right, and a band so the next
+   thing that lands in this category cannot quote a kilo of paper.
+
+   TIERED, LIKE FOOTWEAR, AND FOR THE SAME REASON. A stapled activity
+   book, a mass-market paperback and a hardcover textbook are an order of
+   magnitude apart, and one band wide enough to hold all three is wide
+   enough to wave through the exact error this exists to catch. Each tier
+   carries the plausible shipped band for its own kind of book.
+   Mirrors BOOK_TIERS / bookTierFor() in scripts/lib/item-weight.js;
+   test-books asserts both sides agree row for row.
+   ============================================================ */
+
+/* Named first and matched most specifically: a colouring book is the
+   lightest thing in the category and the one that was reported. */
+const BOOK_TIERS = [
+  { key: "libro para colorear",
+    match: /\b(colou?ring|activity|sticker|puzzle|maze|doodle|workbooks?)\b[^,]{0,24}\bbooks?\b|\bbooks?\b[^,]{0,24}\b(colou?ring|activity|sticker)\b|\blibros? para colorear\b/i,
+    kg: 0.12, bandKg: [0.05, 0.6] },
+  // Comics and magazines are stapled sheets; a graphic novel is a thin
+  // paperback and sits in the same place.
+  { key: "revista/cómic",
+    match: /\b(magazines?|revistas?|comic books?|comics?|manga|graphic novels?)\b/i,
+    kg: 0.18, bandKg: [0.05, 0.8] },
+  // Board books are cardboard, several times a paperback of the same size.
+  { key: "libro de cartón",
+    match: /\b(board books?)\b/i,
+    kg: 0.35, bandKg: [0.15, 1.2] },
+  /* The heavy end: a cookbook or a textbook is the one kind of book that
+     legitimately approaches three kilos, which is why the paperback band
+     must not be stretched to cover it. */
+  { key: "libro de tapa dura",
+    match: /\b(hardcovers?|hardbacks?|textbooks?|cookbooks?|recipe books?|coffee ?table books?|encyclopedias?|dictionar(?:y|ies)|atlas(?:es)?)\b/i,
+    kg: 0.75, bandKg: [0.3, 3.5] },
+  // Paper stationery: a spiral notebook, a planner, a journal. Bound
+  // paper, so it belongs here rather than next to the laptops — and the
+  // laptop row is exactly what "notebook" used to match.
+  { key: "cuaderno/agenda",
+    match: /\b(composition|spiral|subject|college ?ruled|wide ?ruled)\b[^,]{0,16}\bnotebooks?\b|\b(journals?|planners?|diar(?:y|ies)|sketchbooks?|cuadernos?|agendas?)\b/i,
+    kg: 0.4, bandKg: [0.1, 1.5] },
+];
+
+/* No tier stated — a paperback, which is what most of a book catalogue
+   is. The band is the widest of the ordinary ones and still an order of
+   magnitude below the generic 1.08 kg placeholder this replaces. */
+const BOOK_DEFAULT = { key: "libro", kg: 0.3, bandKg: [0.1, 1.2] };
+
+const BOOK_RE =
+  /\b(books?|libros?|paperbacks?|hardcovers?|hardbacks?|novels?|textbooks?|cookbooks?|workbooks?|magazines?|revistas?|comics?|manga|journals?|planners?|sketchbooks?|cuadernos?|agendas?)\b/i;
+
+/* Things whose names contain "book" and are not books. Every one of
+   these has a row of its own — a bookcase is furniture, a book bag is a
+   backpack, a MacBook is a laptop — and judging any of them against
+   0.3 kg of paper would be the same class of error in reverse.
+   "Bookmark" is not a book either, and weighs nothing. */
+const BOOK_IMPOSTOR_RE =
+  /\b(book ?bags?|book ?cases?|bookshel(?:f|ves)|book ?ends?|book ?lights?|book ?covers?|book ?marks?|scrapbooks?|macbooks?|chromebooks?|notebook computers?|facebook|e-?readers?|kindle|audiobooks?|coloring pages?)\b/i;
+
+/** The book tier for a title, or null when the title is not a book. */
+function bookTierFor(title) {
+  const t = String(title || "");
+  if (BOOK_IMPOSTOR_RE.test(t)) return null;
+  if (!BOOK_RE.test(t)) return null;
+  return BOOK_TIERS.find((x) => x.match.test(t)) || BOOK_DEFAULT;
+}
+
+/** The plausible shipped band for a book title, or null. */
+function bookBandKg(title) {
+  const tier = bookTierFor(title);
+  return tier ? (tier.bandKg || BOOK_DEFAULT.bandKg) : null;
+}
+
+/** Shipped weight for a book title, or null when it is not a book. */
+function bookWeightKg(title) {
+  const tier = bookTierFor(title);
+  if (!tier) return null;
+  return withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
+}
+
 const MIN_PUBLISHABLE_KG = 0.01;
 
 /* A cable "for TV" is not a TV. Shared with sales-sources.js, which uses
@@ -5310,6 +5731,12 @@ const WEIGHT_SANITY_BOUNDS = [
      without this row a perfume could be floored to the calzado minimum
      and quoted as a pair of trainers. */
   { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02, maxKg: 0.6 },
+  /* Books run early and light, for the same reason beauty does: a
+     colouring book weighs 120 grams, and every catch-all bound below it
+     is written for objects that weigh kilos. Tier-aware, so a paperback
+     is judged against 0.1-1.2 and a textbook against 0.3-3.5 — see
+     BOOK_TIERS for the reported case this came from. */
+  { key: "libro", test: (t) => bookTierFor(t) != null, band: bookBandKg },
   { key: "goal", match: GOAL_RE, minKg: 3, maxKg: 45 },
   { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20, maxKg: 130 },
   { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15, maxKg: 130 },
@@ -5488,8 +5915,27 @@ function byDoorToDoor(sortBy){
   };
 }
 
+/* THE BADGE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
+
+   REPORTED LIVE: a card showing S/ 25.29 and S/ 10.07 of freight — 40%,
+   comfortably under the 50% line — was wearing the "Flete alto" badge.
+   Two separate things were wrong, and this is the second of them.
+
+     1. The live build was still running the old single 30% threshold,
+        which 40% clears. FREIGHT_BADGE_SHARE above is the fix for that:
+        one line, at 0.50, and the card reads it rather than a number of
+        its own.
+
+     2. The share was divided by the RAW scraped price while the card
+        printed displayPriceUsd(price). Over the $200 import-tax
+        threshold those differ by 23%, so the badge was decided on a
+        denominator the shopper never sees. A warning nobody can check by
+        dividing the two numbers in front of them is worse than none.
+
+   Mirrors freightShare() in scripts/lib/item-weight.js, which divides by
+   the same displayed price; test-badge asserts they agree. */
 function freightSharePct(weightKg, priceUsd){
-  const price = Number(priceUsd);
+  const price = displayPriceUsd(Number(priceUsd));
   if (!Number.isFinite(price) || price <= 0) return Infinity;
   return freightUsd(weightKg) / price;
 }
@@ -5502,6 +5948,7 @@ function estimateRetailWeightDetail(text, hints){
   const beauty = beautyWeightDetail(t, hints || {});
   const stated = beauty ? null : titleWeight(t);
   const classified = !beauty && !stated && (bulkyWeightKg(t) != null
+    || bookWeightKg(t) != null
     || footwearWeightKg(t) != null
     || ballWeightKg(t) != null
     || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t))
@@ -5510,7 +5957,7 @@ function estimateRetailWeightDetail(text, hints){
   // The raw estimate, before the band is applied, is what the band judges.
   const raw = beauty ? beauty.kg
     : stated ? stated.kg
-    : classified ? (bulkyWeightKg(t) ?? footwearWeightKg(t) ?? ballWeightKg(t)
+    : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? footwearWeightKg(t) ?? ballWeightKg(t)
         ?? (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))
               ? estimateTvWeightKg(t)
               : withBuffer(RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).kg,
@@ -5775,10 +6222,15 @@ function wait(ms){ return new Promise(resolve => setTimeout(resolve, ms)); }
 // URL / facet for that retailer instead of a keyword search. The backend
 // already accepted it; only this caller never passed it.
 async function scrapeRetailer(retailer, query, maxItems, department){
+  /* THE ONE PLACE A QUERY BECOMES ENGLISH. Walmart has never heard of
+     "celular". Every search bar on the site ends up here, so translating
+     at this boundary is what makes the rule site-wide rather than a
+     thing each new entry point has to remember — see the ES→EN table
+     further up. An unrecognised query passes through exactly as typed. */
   const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ retailer, query, maxItems, ...(department ? { department } : {}) }),
+    body: JSON.stringify({ retailer, query: translateSearchQuery(query), maxItems, ...(department ? { department } : {}) }),
   });
   const startData = await startRes.json();
   if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda');
@@ -7847,13 +8299,14 @@ function applySalesStoreFilter(retailer){
 }
 
 // The feed's search is the same shared search path as every other search
-// bar on the site (translateSearchQuery + showResults) — a live scan
-// across the US stores, not a filter over the cards already on screen,
+// bar on the site (showResults, translated into English at the retailer
+// boundary) — a live scan across the US stores, not a filter over the
+// cards already on screen,
 // which is exactly what the hint under the input tells the shopper.
 function salesSearchSubmit(){
   const raw = document.getElementById('salesSearchInput').value.trim();
   if (!raw){ showToast('Escribe algo para buscar.'); return; }
-  showResults(translateSearchQuery(raw));
+  showResults(raw);
 }
 
 /* ============================================================
@@ -8213,14 +8666,37 @@ function productCardHTML(p, opts){
   const price = Number(p.price);
   const hasPrice = Number.isFinite(price) && price > 0;
   const freight = Number.isFinite(weightKg) && weightKg > 0 ? freightUsd(weightKg) : null;
-  const freightHeavy = freight != null && hasPrice && freightSharePct(weightKg, price) > FREIGHT_BADGE_SHARE;
+  /* ONE SHARE, COMPUTED ONCE, ON THE NUMBERS THIS CARD PRINTS. The badge
+     and the "we cannot quote this" rule below both read it, so they can
+     never disagree with each other or with the two figures on screen —
+     see freightSharePct() for the reported bug that came from exactly
+     that kind of drift. */
+  const freightShare = freight != null && hasPrice ? freightSharePct(weightKg, price) : null;
+  const freightHeavy = freightShare != null && freightShare > FREIGHT_BADGE_SHARE;
+
   /* FAIL CLOSED. A weight outside its category's plausible band is not a
      number to build a price on, in either direction — a projector at
      0.065 kg and a men's sneaker at 1.94 kg are both wrong, and both used
      to be printed as freight. The card says the freight is being
      confirmed instead of showing a figure nobody believes. */
+  const localDetail = p.weightNeedsReview === undefined ? estimateRetailWeightDetail(p.title || '') : null;
+  const reviewKind = localDetail ? localDetail.reviewKind : p.weightReviewKind;
+  /* AND A GENERIC GUESS THAT COSTS MORE THAN THE PRODUCT (2026-09-20).
+
+     REPORTED LIVE: a 64-page colouring book at S/ 4.48 printed S/ 47.29
+     of freight. It had no category row at all, so it carried the generic
+     1.08 kg placeholder — a "gap", which is quotable by design because
+     most of the time the guess is roughly right and saying nothing is
+     worse. That book now has a real row and a band (see BOOK_TIERS), but
+     the class of error does not end with books: whenever the generic
+     guess produces a freight bill larger than the product's own price,
+     the guess is doing all the work and none of it is knowledge. The
+     card says the freight is being confirmed instead. A weight we
+     actually have a row for still quotes, however heavy it is — that is
+     what the "Flete alto" badge is for. */
   const weightUnderReview = p.weightNeedsReview === true
-    || (p.weightNeedsReview === undefined && estimateRetailWeightDetail(p.title || '').needsReview);
+    || localDetail?.needsReview === true
+    || (reviewKind === 'gap' && freightShare != null && freightShare > FREIGHT_FEATURE_CEILING);
   // A struck-through original only when there is a real one above the
   // current price — auto parts carry no originalPrice at all.
   const original = Number(p.originalPrice);

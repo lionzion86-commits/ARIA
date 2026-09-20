@@ -65,6 +65,17 @@ const MIN_DISCOUNT_PCT = 5;
 const CHARGE_PER_KG_USD = 13;
 const FREIGHT_BADGE_SHARE = 0.50;
 const FREIGHT_FEATURE_CEILING = 1.00;
+/* Both lines are measured against the price the CARD PRINTS, which over
+   the $200 threshold carries Peru's import tax — see freightShare() in
+   scripts/lib/item-weight.js for the reported badge bug this comes from.
+   Dividing by the raw scraped price here and by the displayed price on
+   the page would let the cache publish a freightHigh flag the card
+   disagrees with. */
+const IMPORT_TAX_THRESHOLD_USD = 200;
+const IMPORT_TAX_RATE = 0.23;
+const shownPriceUsd = (usd) => (usd > IMPORT_TAX_THRESHOLD_USD
+  ? Math.round(usd * (1 + IMPORT_TAX_RATE) * 100) / 100
+  : usd);
 const MAX_ITEMS = 120;
 const MAX_TITLE = 300;
 const MAX_URL = 1000;
@@ -131,7 +142,7 @@ export function sanitizeItem(raw) {
   if (weightKg == null) return null;
   if (raw.weightFlagged === true || raw.weightReviewKind === "out-of-band" || raw.weightReviewKind === "gap") return null;
   const freight = Math.round(weightKg * CHARGE_PER_KG_USD * 100) / 100;
-  const share = freight / price;
+  const share = freight / shownPriceUsd(price);
   if (share > FREIGHT_FEATURE_CEILING) return null;
 
   const sizes = Array.isArray(raw.sizes)
