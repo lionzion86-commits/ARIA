@@ -72,6 +72,16 @@ const pageFee = loadPageFeeSlice();
 const pageFitment = loadPageFitmentSlice();
 const pageAuto = loadPageAutoSourcesSlice();
 
+/* index.html's RETAILERS mirror, read for its logo paths only. A vm slice
+   would drag in the whole registry block and everything it references;
+   the mirror rows are single-line object literals, so a regex reads them
+   safely and cannot be broken by unrelated code moving around. */
+const pageRetailers = Object.fromEntries(
+  [...readFileSync(root("index.html"), "utf8")
+    .matchAll(/^\s*\w+:\s*\{\s*key: '(\w+)',[^\n]*?logo: (?:null|'([^']+)')/gm)]
+    .map((m) => [m[1], m[2] ?? null]),
+);
+
 /* ------------------------------------------------------------------
    P1.1 — the beauty table, row by row, against the brief's own figures.
    ------------------------------------------------------------------ */
@@ -1341,6 +1351,21 @@ check("every store mark is contain-fit and capped, never stretched", () => {
     // Never a bare width/height, which would ignore the file's own ratio.
     if (/style="[^"]*[;\s]height:\s*\d/.test(img)) throw new Error("a store mark sets a fixed height");
     if (!/onerror=/.test(img)) throw new Error("a store mark has no fallback if the file is missing");
+  }
+});
+
+check("the three beauty stores show their own logo", () => {
+  /* They shipped on the wordmark treatment until their files arrived
+     (2026-09-20). A regression to `logo: null` would silently put the
+     text pills back, which is what Danny rejected. */
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+    const row = RETAILERS[key];
+    if (!row.logo) throw new Error(`${key} is back on the wordmark pill`);
+    if (!/^logos\/.+\.(png|svg)$/.test(row.logo)) throw new Error(`${key} logo path looks wrong: ${row.logo}`);
+    if (!existsSync(root(row.logo))) throw new Error(`${key} points at a missing file: ${row.logo}`);
+    // The page mirror has to agree, or Tiendas and the rest of the site
+    // disagree about what the store looks like.
+    eq(pageRetailers[key], row.logo, `${key} index.html mirror`);
   }
 });
 

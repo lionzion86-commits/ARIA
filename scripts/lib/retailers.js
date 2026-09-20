@@ -90,12 +90,17 @@ export const RETAILERS = {
      products" rather than as a missing integration.
 
      So they ship as `search: false` with `catalog: "beauty"`. Step 3 and
-     step 4 of ADDING A RETAILER above are the whole remaining task. */
+     step 4 of ADDING A RETAILER above are the whole remaining task.
+
+     2026-09-20: their real logo files landed, so steps 1 and 2 are done —
+     all three render their own mark on Tiendas now instead of a wordmark
+     pill. That is independent of the scraper: a store can look like
+     itself long before its catalogue is connected. */
   sephora: {
     key: "sephora",
     label: "Sephora",
     color: "#000000",
-    logo: null,
+    logo: "logos/sephora.png",
     tagline: "Maquillaje, skincare y perfumes",
     kind: "general",
     catalog: "beauty",
@@ -106,7 +111,7 @@ export const RETAILERS = {
     key: "victoriassecret",
     label: "Victoria's Secret",
     color: "#E31C79",
-    logo: null,
+    logo: "logos/victoriassecret.png",
     tagline: "Lencería, brumas corporales y fragancias",
     kind: "general",
     catalog: "beauty",
@@ -122,7 +127,7 @@ export const RETAILERS = {
     key: "bathandbodyworks",
     label: "Bath & Body Works",
     color: "#0F4C81",
-    logo: null,
+    logo: "logos/bathandbodyworks.png",
     tagline: "Cremas, jabones y velas aromáticas",
     kind: "general",
     catalog: "beauty",

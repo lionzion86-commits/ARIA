@@ -54,5 +54,15 @@ treatment, and it is also what a missing or un-decodable file falls back
 to at runtime — nothing on this site ever shows a broken-image icon or raw
 alt text where a store logo should be.
 
-Sephora, Victoria's Secret and Bath & Body Works ship on the wordmark
-treatment today, pending their logo files.
+Sephora, Victoria's Secret and Bath & Body Works carried that wordmark
+treatment until their real files arrived on 2026-09-20. All eight stores
+show their own mark now.
+
+Two of those three are worth a note, because they look like mistakes and
+are not. Victoria's Secret and Bath & Body Works publish their logos as
+artwork on a brand-coloured field — pink and blue — rather than as
+transparent marks, so their tiles carry a coloured rectangle where the
+others carry a mark on white. That is the logo as the brand distributes
+it, and the rule is to use it exactly as provided: never recoloured,
+never knocked out, never redrawn. Sephora's file is genuinely transparent
+and sits straight on the tile.

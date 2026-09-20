@@ -450,6 +450,63 @@ await check("the small-order fee follows the order, not the products", async () 
   await ctx.close();
 });
 
+await check("the three beauty stores render their real logo, unfiltered", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => showPage("storesView"));
+  await page.waitForTimeout(400);
+
+  const r = await page.evaluate(async () => {
+    // Wait for decode: a tag with the right src but a broken file would
+    // pass every other assertion here and show nothing to a shopper.
+    const all = [...document.querySelectorAll("#storesGrid img")];
+    await Promise.all(all.map((i) => (i.complete ? null : new Promise((res) => { i.onload = res; i.onerror = res; }))));
+    const out = {};
+    for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+      const card = [...document.querySelectorAll("#storesGrid > *")]
+        .find((el) => (el.outerHTML || "").includes(`logos/${key}.`));
+      if (!card) { out[key] = { found: false }; continue; }
+      const img = card.querySelector("img");
+      const plate = img ? img.closest("div") : null;
+      out[key] = {
+        found: true,
+        isImage: Boolean(img),
+        src: img ? img.getAttribute("src") : null,
+        // A brand's mark is never ours to recolour — the pending
+        // treatment used to grey the whole tile, logo included.
+        plateFilter: plate ? getComputedStyle(plate).filter : null,
+        imgFilter: img ? getComputedStyle(img).filter : null,
+        objectFit: img ? getComputedStyle(img).objectFit : null,
+        naturalWidth: img ? img.naturalWidth : 0,
+        // Still honest about the catalogue not being connected.
+        stillPending: /Conectando el catálogo/.test(card.textContent || ""),
+        // …and no text-pill fallback left behind.
+        hasWordmarkPill: Boolean(card.querySelector(".store-logo-fallback")),
+      };
+    }
+    return out;
+  });
+
+  for (const [key, v] of Object.entries(r)) {
+    if (!v.found) throw new Error(`${key} has no card on Tiendas`);
+    eq(v.isImage, true, `${key} is still a text pill, not an image`);
+    if (!v.src.endsWith(`logos/${key}.png`)) throw new Error(`${key} src is ${v.src}`);
+    for (const [what, f] of [["plate", v.plateFilter], ["img", v.imgFilter]]) {
+      if (f && f !== "none") throw new Error(`${key} ${what} carries a CSS filter (${f}) — a brand's mark is not ours to recolour`);
+    }
+    if (v.objectFit && v.objectFit !== "contain") throw new Error(`${key} is ${v.objectFit}, not contain`);
+    if (!(v.naturalWidth > 0)) throw new Error(`${key} has the right src but the image did not decode`);
+    eq(v.stillPending, true, `${key} stopped saying its catalogue is being connected`);
+    eq(v.hasWordmarkPill, false, `${key} still renders the wordmark fallback`);
+  }
+  // And the grid is still the symmetric eight.
+  const count = await page.evaluate(() => document.querySelectorAll("#storesGrid > *").length);
+  eq(count, 8, "Tiendas store count");
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

@@ -191,6 +191,28 @@ async function main() {
   const autozoneComboCount = AUTOZONE_YEARS.length * AUTOZONE_VEHICLES.length * AUTOZONE_PARTS.length;
   console.log(`~${autozoneComboCount} AutoZone Apify runs (~$0.01-0.03 each).\n`);
 
+  /* ORDER MATTERS, AND GETTING IT WRONG COSTS REAL MONEY.
+
+     This script does not call Apify directly — it calls the DEPLOYED
+     site's own functions (SITE above). So the scrape mode it runs under
+     is whatever is live at ariashop.pe right now, not whatever is in
+     this checkout. Re-running before the AUTO_SCRAPE_MODE="detail"
+     change is merged AND published means paying for a full pass that
+     comes back in "overview" mode: no compatibility lists, no green
+     badges, nothing gained.
+
+     There is no endpoint that reports the deployed mode, so this cannot
+     be checked automatically — which is exactly why it is printed here,
+     loudly, before anything is spent. The coverage report at the end
+     tells you whether it worked. */
+  console.log("  ----------------------------------------------------");
+  console.log("  ANTES DE GASTAR: este script usa las funciones del sitio EN VIVO.");
+  console.log("  El calce solo llega si el deploy publicado ya corre");
+  console.log("  AUTO_SCRAPE_MODE=\"detail\" (netlify/functions/apify-scrape-start.js).");
+  console.log("  Si todavía está en \"overview\", esta pasada no trae listas de");
+  console.log("  compatibilidad y el gasto es en vano. Verifica el deploy primero.");
+  console.log("  ----------------------------------------------------\n");
+
   const autozoneCombos = [];
   for (const year of AUTOZONE_YEARS) {
     for (const { make, model } of AUTOZONE_VEHICLES) {
