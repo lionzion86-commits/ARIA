@@ -23,6 +23,7 @@ import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
 import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
+import * as ondemand from "../lib/ondemand-policy.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -488,6 +489,139 @@ check("the cart and checkout both refuse to quote an unconfirmed weight", () => 
   const checkout = readFileSync(root("checkout.html"), "utf8");
   if (!/weightReview\.needsReview/.test(checkout)) throw new Error("checkout does not read the resolver's verdict");
   if (!/Confirmando el peso del pedido/.test(checkout)) throw new Error("Pagar is not closed on it");
+});
+
+/* ------------------------------------------------------------------
+   ON-DEMAND STORE SEARCH — the spend guards.
+   ------------------------------------------------------------------ */
+group("on-demand store search");
+
+check("one question is one cache key, however it is typed", () => {
+  const k = ondemand.ondemandCacheKey("oldnavy", "camison azul");
+  eq(ondemand.ondemandCacheKey("OldNavy", "  Camisón   AZUL!! "), k, "case, accents, padding, punctuation");
+  eq(ondemand.ondemandCacheKey("oldnavy", "camison-azul"), k, "hyphens");
+  // Paying for three Apify runs to answer one question three times is
+  // the exact waste the cache exists to stop.
+  if (ondemand.ondemandCacheKey("target", "camison azul") === k) {
+    throw new Error("different stores share a key");
+  }
+  if (ondemand.ondemandCacheKey("oldnavy", "jeans") === k) throw new Error("different queries share a key");
+});
+
+check("a long query cannot grow the key without bound", () => {
+  const key = ondemand.ondemandCacheKey("walmart", "a".repeat(500));
+  if (key.length > 100) throw new Error(`key is ${key.length} chars`);
+});
+
+check("cache freshness is six hours", () => {
+  eq(ondemand.ONDEMAND_TTL_MS, 6 * 60 * 60 * 1000);
+  const now = Date.now();
+  const at = (ms) => new Date(now - ms).toISOString();
+  eq(ondemand.ondemandCacheIsFresh(at(60 * 1000), now), true, "a minute old");
+  eq(ondemand.ondemandCacheIsFresh(at(ondemand.ONDEMAND_TTL_MS - 1000), now), true, "just inside");
+  eq(ondemand.ondemandCacheIsFresh(at(ondemand.ONDEMAND_TTL_MS + 1000), now), false, "just outside");
+  eq(ondemand.ondemandCacheIsFresh("not a date", now), false, "garbage is never fresh");
+  eq(ondemand.ondemandCacheIsFresh(undefined, now), false);
+});
+
+check("the spend cap is two runs in flight per user", () => {
+  eq(ondemand.MAX_CONCURRENT_PER_USER, 2);
+  eq(ondemand.canStartAnotherRun(0), true);
+  eq(ondemand.canStartAnotherRun(1), true);
+  eq(ondemand.canStartAnotherRun(2), false, "the third is refused");
+  eq(ondemand.canStartAnotherRun(99), false);
+});
+
+check("a dead browser frees its slot on its own", () => {
+  // Without an expiry, a shopper who closes the tab mid-poll would be
+  // capped out forever.
+  const now = Date.now();
+  const record = { runs: {
+    live: now - 1000,
+    alsoLive: now - (ondemand.LEASE_TTL_MS - 1000),
+    expired: now - (ondemand.LEASE_TTL_MS + 1000),
+    ancient: now - 86400000,
+    junk: "not a number",
+  } };
+  const alive = ondemand.liveLeases(record, now);
+  eq(Object.keys(alive).sort().join(","), "alsoLive,live");
+  eq(Object.keys(ondemand.liveLeases(null, now)).length, 0, "no record is no leases");
+  eq(Object.keys(ondemand.liveLeases({}, now)).length, 0);
+});
+
+check("index.html mirrors the policy numbers exactly", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const num = (name) => {
+    const m = new RegExp(`const ${name} = (\\d+)`).exec(html);
+    if (!m) throw new Error(`${name} missing from index.html`);
+    return Number(m[1]);
+  };
+  eq(num("ON_DEMAND_THIN_RESULTS"), ondemand.THIN_RESULT_COUNT, "thin threshold");
+  eq(num("ON_DEMAND_MAX_ITEMS"), ondemand.ON_DEMAND_MAX_ITEMS, "items per on-demand run");
+  eq(num("ON_DEMAND_MAX_CONCURRENT"), ondemand.MAX_CONCURRENT_PER_USER, "concurrency cap");
+});
+
+check("an on-demand run goes deeper than the fan-out that came back thin", () => {
+  if (!(ondemand.ON_DEMAND_MAX_ITEMS > 5)) {
+    throw new Error("on-demand asks for no more than the shallow scan already did");
+  }
+});
+
+check("the browser can neither pick the cache key nor fill the cache", () => {
+  /* The obvious design — let the page POST what it scraped — is a cache
+     poisoning hole. The key comes from what apify-scrape-START recorded
+     and the contents from what apify-scrape-STATUS fetched from Apify. */
+  const start = stripComments(readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8"));
+  if (!/recordOndemandRun\(runId, \{ retailer, query/.test(start)) {
+    throw new Error("the start call does not record what the run is for");
+  }
+  const status = stripComments(readFileSync(root("netlify/functions/apify-scrape-status.js"), "utf8"));
+  if (!/writeOndemandCache\(meta\.retailer, meta\.query, items\)/.test(status)) {
+    throw new Error("the cache is not written from the recorded key + Apify's own items");
+  }
+  const html = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (/writeOndemandCache|ondemand-cache|ondemandCacheKey/.test(html)) {
+    throw new Error("the page has a way to write the shared cache");
+  }
+});
+
+check("the cap is enforced server side, not only in the button", () => {
+  const start = stripComments(readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8"));
+  if (!/ondemandInFlight\(userKey\)/.test(start)) throw new Error("no server-side in-flight check");
+  if (!/statusCode: 429/.test(start)) throw new Error("the server does not refuse an over-cap request");
+  // A guard the client can skip is not a guard.
+  if (!/MAX_CONCURRENT_PER_USER/.test(start)) throw new Error("the server does not use the shared cap");
+});
+
+check("a failed run still hands its slot back", () => {
+  const status = stripComments(readFileSync(root("netlify/functions/apify-scrape-status.js"), "utf8"));
+  const failBranch = status.slice(status.indexOf("TERMINAL_FAILURE_STATUSES.includes(status)"));
+  if (!/settleOndemandRun\(runId, null\)/.test(failBranch)) {
+    throw new Error("a dead run would keep its lease and cap the shopper out");
+  }
+});
+
+check("on-demand results go through the same weight guards as everything else", () => {
+  /* These are the least-vetted titles on the site — nobody has seen them
+     before. Rendering them through a shortcut would be a live money bug. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const fn = html.slice(html.indexOf("async function runOnDemandSearch"), html.indexOf("async function scrapeRetailerOnDemand"));
+  if (!/normalizeLiveItem\(raw, \{ retailer \}\)/.test(fn)) {
+    throw new Error("on-demand results bypass normalizeLiveItem, and with it the beauty table and the category bands");
+  }
+  // The same titles that P1.5 covers, answered the same way.
+  eq(estimateWeightDetail("5G WiFi Bluetooth Projector 1080P").kg, 2.97, "the 5G bug stays fixed for on-demand titles");
+  eq(estimateWeightDetail("Dior Sauvage Eau de Toilette 100ml").kg, 0.35);
+});
+
+check("the category search bar that called nothing now exists", () => {
+  // Its input and button both called catalogSearchSubmit() and the
+  // function was never defined — Enter threw a ReferenceError and did
+  // nothing. It is the entry point the upsell needs a query FROM.
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/function catalogSearchSubmit\(\)/.test(html)) throw new Error("catalogSearchSubmit is still undefined");
+  const refs = (html.match(/catalogSearchSubmit\(\)/g) || []).length;
+  if (refs < 3) throw new Error(`expected the definition plus both call sites, found ${refs}`);
 });
 
 /* ------------------------------------------------------------------

@@ -23,7 +23,12 @@
 // Exported (alongside BRAND_CONFIG below) so refresh-department-cache.js
 // can import the exact same department/brand keys rather than
 // hand-duplicating this list and risking drift.
+import { connectLambda } from "@netlify/blobs";
 import { retailerFor } from "../../scripts/lib/retailers.js";
+import {
+  readOndemandCache, recordOndemandRun, acquireOndemandLease, ondemandInFlight,
+  ondemandUserKey, MAX_CONCURRENT_PER_USER,
+} from "./_ondemand.js";
 
 export const DEPARTMENT_CONFIG = {
   // All 6 Walmart URLs and all 6 Target URLs below are REAL-TEST CONFIRMED
@@ -315,6 +320,7 @@ const RETAILER_CONFIG = {
 const DEFAULT_MAX_ITEMS = 20;
 
 export async function handler(event) {
+  connectLambda(event);
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -334,7 +340,7 @@ export async function handler(event) {
   }
 
   try {
-    const { retailer, query, maxItems, department, brand } = JSON.parse(event.body || "{}");
+    const { retailer, query, maxItems, department, brand, onDemand } = JSON.parse(event.body || "{}");
 
     const config = RETAILER_CONFIG[retailer];
     if (!config) {
@@ -373,6 +379,60 @@ export async function handler(event) {
     }
 
     const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 50);
+
+    /* ON-DEMAND STORE SEARCH (2026-09-20).
+
+       A shopper asked us to go and look in one store, right now, for one
+       query. That is a real Apify run and it costs real money, so two
+       things happen before one is started — and both happen HERE rather
+       than in the browser, because a guard the client can skip is not a
+       guard.
+
+       1. THE SHARED CACHE. A query another shopper already paid for
+          comes straight back, no run, no lease, no spend. The cache is
+          written by apify-scrape-status from Apify's own response, under
+          the key recorded below, so nothing a browser says can enter it.
+
+       2. THE SPEND CAP. Two runs in flight per user. The lease is
+          released when the run finishes (or expires on its own if the
+          browser is closed mid-poll — see LEASE_TTL_MS). */
+    const isOnDemand = onDemand === true && !hasDepartment && !hasBrand;
+    let userKey = null;
+    if (isOnDemand) {
+      const cached = await readOndemandCache(retailer, query);
+      if (cached) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            retailer, cached: true, items: cached.items,
+            generatedAt: cached.generatedAt,
+          }),
+        };
+      }
+
+      /* CHECKED BEFORE THE RUN, CLAIMED AFTER IT. The check has to come
+         first or the money is already spent by the time we refuse; the
+         claim has to come second because a lease is keyed on the runId,
+         which does not exist yet. The gap between them is the race the
+         module header documents — worth cents, not worth a second
+         storage primitive. */
+      userKey = await ondemandUserKey(event);
+      const inFlight = await ondemandInFlight(userKey);
+      if (inFlight >= MAX_CONCURRENT_PER_USER) {
+        return {
+          statusCode: 429,
+          headers,
+          body: JSON.stringify({
+            error: `Ya tienes ${inFlight} búsqueda${inFlight === 1 ? "" : "s"} en curso. Espera a que termine antes de pedir otra.`,
+            limit: MAX_CONCURRENT_PER_USER,
+            inFlight,
+            rateLimited: true,
+          }),
+        };
+      }
+    }
+
     /* A config gives EITHER a bespoke buildInput (the stores that do real
        category/brand browsing) OR the name of a shared input shape. The
        second path is what makes adding a store data entry rather than
@@ -411,10 +471,23 @@ export async function handler(event) {
       };
     }
 
+    const runId = runData.data.id;
+
+    /* Record what this run IS, at the one point in the system that knows
+       for certain: the server just built the actor input from these
+       values. apify-scrape-status reads this back to decide where the
+       results belong, which is what keeps the cache un-poisonable. The
+       lease is re-keyed onto the real runId so the status call can
+       release exactly this run's slot. */
+    if (isOnDemand) {
+      await recordOndemandRun(runId, { retailer, query: (query || "").trim(), userKey });
+      await acquireOndemandLease(userKey, runId);
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ retailer, runId: runData.data.id }),
+      body: JSON.stringify({ retailer, runId }),
     };
   } catch (error) {
     return {

@@ -97,6 +97,12 @@
   .ariaStepIcon svg{ stroke:#F4C463; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
   .ariaStepCaption{ font-size:13px; font-weight:800; letter-spacing:-0.01em; color:var(--navy) }
   .ariaStepSub{ font-size:11.5px; color:#6B7487; margin-top:2px }
+  /* The on-demand search spinner. A 30-90 second wait needs something
+     that is visibly alive, next to copy that says how long it will be. */
+  .ariaSpinner{ width:15px; height:15px; border-radius:50%; display:inline-block;
+    border:2px solid rgba(47,95,238,0.25); border-top-color:var(--blue); animation:ariaSpin .7s linear infinite }
+  .ariaSpinner--lg{ width:26px; height:26px; border-width:3px }
+  @keyframes ariaSpin{ to{ transform:rotate(360deg) } }
   .ariaPullQuote{ border-left:3px solid #F4C463; padding-left:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.3 }
   /* THE NAV (2026-09-19). It read as flat grey typewriter text, wrapped
      mid-phrase ("Cómo fun / ciona") and left "🚗 Aria Auto" sitting off
@@ -546,6 +552,11 @@
              single grid, each card carrying its own store badge, with the
              store checkboxes acting as a filter over the feed. -->
         <div id="liveResultsWrap" class="mb-6 hidden grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+
+        <!-- ON-DEMAND STORE SEARCH. Appears under a thin or empty feed:
+             the offer to go and look in one store right now. Filled by
+             renderOnDemandUpsell(); empty on a healthy result set. -->
+        <div id="searchOnDemandWrap"></div>
 
         <!-- VISUAL UPDATE (2026-09-17): this used to be pale blue with
              regular-weight navy text — easy to skim past. Made it pop
@@ -2646,7 +2657,7 @@ loadFxRate(); // kick off the fetch as early as possible; render paths below awa
    DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the source
    of truth.
    ============================================================ */
-let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map() };
+let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map(), searchTerm: '' };
 
 function catalogGoBack(){
   // In-page "Volver" and the browser's back arrow have to agree.
@@ -2696,7 +2707,9 @@ async function openCatalog(kind, key, opts = {}){
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
   }
-  catalogState = { kind, key, retailerFilter, byRetailer };
+  // A new category (or a new store filter) is a new question — carrying
+  // the last search term into it would silently hide most of the feed.
+  catalogState = { kind, key, retailerFilter, byRetailer, searchTerm: '' };
   renderCatalogFeed();
 }
 
@@ -2724,9 +2737,31 @@ function catalogStoreChipsHTML(){
   </div>`;
 }
 
+/* SEARCH WITHIN A CATEGORY.
+
+   BUG FIX (2026-09-20): this bar's input and button have both called
+   catalogSearchSubmit() since the category feed was built, and the
+   function never existed — typing a term and pressing Enter threw a
+   ReferenceError and did nothing at all. Found while wiring the
+   on-demand upsell, which needs exactly this: a term to search a real
+   store FOR.
+
+   It filters the cached feed first (instant, free) and, when that comes
+   back thin, the on-demand card offers to go and look in the store for
+   real. Clearing the box restores the whole category. */
+function catalogSearchSubmit(){
+  const input = document.getElementById('catalogSearchInput');
+  catalogState.searchTerm = input ? input.value.trim() : '';
+  renderCatalogFeed();
+  // The bar is re-rendered by renderCatalogFeed, so the term has to be
+  // put back on the new node or it vanishes as you search.
+  const fresh = document.getElementById('catalogSearchInput');
+  if (fresh){ fresh.value = catalogState.searchTerm; fresh.focus(); }
+}
+
 function catalogSearchBarHTML(){
   return `<div class="relative max-w-[520px] mb-4">
-      <input id="catalogSearchInput" onkeydown="if(event.key==='Enter')catalogSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
+      <input id="catalogSearchInput" value="${escapeHtml(catalogState.searchTerm || '')}" onkeydown="if(event.key==='Enter')catalogSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
         class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
       <button onclick="catalogSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
@@ -2748,8 +2783,15 @@ function renderCatalogFeed(){
   const filterHasStock = retailerFilter && byRetailer.has(retailerFilter);
   const active = filterHasStock ? [retailerFilter] : Array.from(byRetailer.keys());
 
-  const items = [];
-  for (const retailer of active) for (const it of byRetailer.get(retailer)) items.push({ ...it, retailer });
+  const all = [];
+  for (const retailer of active) for (const it of byRetailer.get(retailer)) all.push({ ...it, retailer });
+
+  /* An in-category search narrows the cached feed first — instant and
+     free. When that comes back thin, the on-demand card at the bottom
+     offers to go and look in the real store. */
+  const term = String(catalogState.searchTerm || '').trim().toLowerCase();
+  const items = term ? all.filter(it => String(it.title || '').toLowerCase().includes(term)) : all;
+
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
   // can never be the cheapest, so it sorts last either way.
@@ -2761,11 +2803,13 @@ function renderCatalogFeed(){
 
   const storeCount = byRetailer.size;
   const n = items.length;
-  subtitle.textContent = filterHasStock
-    ? `${n} producto${n === 1 ? '' : 's'} de ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} en esta categoría · toca "Todas las tiendas" para comparar con las demás`
-    : retailerFilter
-      ? `${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} no tiene productos de esta categoría — te mostramos las ${storeCount} tiendas que sí.`
-      : `${n} producto${n === 1 ? '' : 's'} de ${storeCount} tienda${storeCount === 1 ? '' : 's'} en un solo feed · el flete y los aranceles se calculan en el checkout`;
+  subtitle.textContent = term
+    ? `${n} resultado${n === 1 ? '' : 's'} para "${term}" en esta categoría`
+    : filterHasStock
+      ? `${n} producto${n === 1 ? '' : 's'} de ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} en esta categoría · toca "Todas las tiendas" para comparar con las demás`
+      : retailerFilter
+        ? `${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} no tiene productos de esta categoría — te mostramos las ${storeCount} tiendas que sí.`
+        : `${n} producto${n === 1 ? '' : 's'} de ${storeCount} tienda${storeCount === 1 ? '' : 's'} en un solo feed · el flete y los aranceles se calculan en el checkout`;
 
   sections.innerHTML = `
     ${catalogSearchBarHTML()}
@@ -2777,10 +2821,18 @@ function renderCatalogFeed(){
       </select>
     </div>
     <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
-      items.map(it => catalogTileHTML(it, it.retailer)).join('')}</div>`;
+      items.map(it => catalogTileHTML(it, it.retailer)).join('')}</div>
+    ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
+    <div id="catalogOnDemandWrap" class="mt-6"></div>`;
   // The <select> was just re-created, so put the chosen sort back on it.
   const sel = document.getElementById('catalogSort');
   if (sel) sel.value = sortBy;
+  /* This feed is served from a cache rebuilt once a day, so "thin" here
+     usually means "we have not looked recently", not "the store does not
+     sell it". The offer only makes sense once the shopper has told us
+     WHAT they want, so it is tied to the in-category search term. */
+  renderOnDemandUpsell('catalogOnDemandWrap', catalogState.searchTerm, items.length,
+    filterHasStock ? [] : Array.from(byRetailer.keys()));
 }
 
 // One retailer's own branded homepage — real departments only (never the
@@ -3383,6 +3435,268 @@ function renderSearchResults(){
   document.getElementById('resultCount').textContent = items.length
     ? `${items.length} resultado${items.length === 1 ? '' : 's'} de ${stores.size} tienda${stores.size === 1 ? '' : 's'} · el flete y los aranceles se calculan en el checkout`
     : '';
+
+  /* Thin or empty: offer to go and look in a real store. Stores that DID
+     answer are excluded — re-searching a store whose results are already
+     on screen is not what the shopper is missing. */
+  renderOnDemandUpsell('searchOnDemandWrap', liveScrapeQuery, items.length, [...stores]);
+}
+
+/* ============================================================
+   ON-DEMAND STORE SEARCH (2026-09-20)
+
+   THE PROBLEM. A shopper searches for something our cached catalogue and
+   our shallow five-per-store live scan do not cover, gets two results or
+   none, and concludes we do not sell it. We usually do — we just have not
+   looked yet. The honest answer is to offer to go and look, say plainly
+   how long that takes, and then price what comes back exactly like
+   everything else on the site.
+
+   WHAT IT COSTS, AND WHY THAT SHAPES THE UI. Each on-demand search is a
+   real Apify run: 30-90 seconds and a cent or three. So it is never
+   automatic — a person has to ask for it, for one named store — and the
+   spend guards live on the server, where a client cannot skip them:
+   a shared cache keyed by retailer+query, and a per-user cap on runs in
+   flight (see netlify/functions/_ondemand.js). The two constants below
+   mirror that cap so the button can refuse instantly instead of making
+   the shopper wait for a 429.
+
+   THE WEIGHT GUARDS ARE NOT OPTIONAL HERE. On-demand results are the
+   least-vetted data on the site: nobody has seen these titles before.
+   They go through normalizeLiveItem() like every other product, which
+   means the beauty table, the category bands and the fail-closed
+   needsReview check all apply, and a card whose weight we do not believe
+   says "Flete por confirmar" instead of inventing a freight figure. That
+   is asserted in scripts/test/run-tests.mjs — a future refactor that
+   renders these through a shortcut would be a live money bug.
+   ============================================================ */
+
+/* Page mirror of scripts/lib/ondemand-policy.js — this page is a plain
+   <script> and cannot import. The module is the source of truth and the
+   Netlify functions enforce it; these copies exist so the UI can decide
+   instantly. A test asserts all three numbers match. */
+const ON_DEMAND_THIN_RESULTS = 10;    // THIN_RESULT_COUNT
+const ON_DEMAND_MAX_ITEMS = 24;       // ON_DEMAND_MAX_ITEMS
+const ON_DEMAND_MAX_CONCURRENT = 2;   // MAX_CONCURRENT_PER_USER
+
+/* key -> { status: 'idle'|'running'|'done'|'error', items, error, cached } */
+const onDemandRuns = new Map();
+const onDemandKey = (retailer, query) => `${retailer}::${String(query || '').trim().toLowerCase()}`;
+
+function onDemandInFlight(){
+  let n = 0;
+  for (const state of onDemandRuns.values()) if (state.status === 'running') n++;
+  return n;
+}
+
+/* Which stores are worth offering for a given query.
+
+   Searchable stores only — a store whose scraper is not wired up yet can
+   never answer, so offering it would be a promise we cannot keep
+   (GENERAL_RETAILERS already excludes those).
+
+   Stores that already filled this feed are dropped: re-searching a store
+   whose results are on screen is not what the shopper is missing. The
+   exception is a store the shopper JUST ran on demand — it is in the
+   feed precisely because they asked, and taking its button away the
+   instant it succeeds swallows the only confirmation they get. */
+function onDemandCandidates(excludeRetailers = [], query = ''){
+  const exclude = new Set(excludeRetailers);
+  return GENERAL_RETAILERS.filter(r => !exclude.has(r) || onDemandRuns.has(onDemandKey(r, query)));
+}
+
+function onDemandButtonHTML(retailer, query){
+  const state = onDemandRuns.get(onDemandKey(retailer, query));
+  const label = escapeHtml(LIVE_RETAILER_LABEL[retailer] || retailer);
+  const q = jsAttr(query);
+  if (state?.status === 'running'){
+    return `<button disabled class="h-10 px-4 rounded-full text-[13px] font-bold inline-flex items-center gap-2 opacity-70 cursor-wait" style="background:var(--sky); color:var(--navy)">
+      <span class="ariaSpinner"></span> Buscando en ${label}…
+    </button>`;
+  }
+  if (state?.status === 'done'){
+    const n = state.items.length;
+    return `<button disabled class="h-10 px-4 rounded-full text-[13px] font-bold inline-flex items-center gap-2" style="background:var(--green-bg); color:var(--green)">
+      ✓ ${label}: ${n} resultado${n === 1 ? '' : 's'}
+    </button>`;
+  }
+  return `<button onclick="runOnDemandSearch('${jsAttr(retailer)}','${q}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition inline-flex items-center gap-2" style="background:var(--blue)">
+    🔍 Buscar más en ${label}
+  </button>`;
+}
+
+/* The upsell itself. `query` is what to search for; `already` names the
+   stores that did return something, so we do not offer to re-search a
+   store the shopper is already looking at. */
+function onDemandUpsellHTML(query, already = []){
+  const q = String(query || '').trim();
+  if (!q) return '';
+  const stores = onDemandCandidates(already, q);
+  if (!stores.length) return '';
+  const running = onDemandInFlight();
+  return `<div class="rounded-2xl border-2 p-5 mb-6" style="border-color:#D6E1FF; background:var(--sky)">
+    <div class="flex items-start gap-3 mb-3.5">
+      <svg class="flex-shrink-0 mt-0.5" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+      <div>
+        <div class="text-[14.5px] font-extrabold" style="color:var(--navy)">¿No lo ves aquí?</div>
+        <div class="text-[13.5px] leading-relaxed mt-0.5" style="color:#3D4759">
+          Búscalo directo en la tienda y te lo traemos con precio puerta a puerta.
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2.5">${stores.map(r => onDemandButtonHTML(r, q)).join('')}</div>
+    <div class="text-[12px] mt-3 flex items-center gap-1.5" style="color:#6B7487">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      Buscamos en el catálogo real de la tienda — toma entre 30 y 90 segundos.
+      ${running ? `<span class="font-semibold" style="color:var(--navy)">· ${running} de ${ON_DEMAND_MAX_CONCURRENT} en curso</span>` : ''}
+    </div>
+  </div>`;
+}
+
+/* The loading state, shown in place of the results while a run is out.
+   It names the store and the wait, because a 90-second spinner with no
+   explanation reads as a broken page. */
+function onDemandLoadingHTML(retailer){
+  const label = escapeHtml(LIVE_RETAILER_LABEL[retailer] || retailer);
+  return `<div class="rounded-2xl border p-6 mb-6 flex items-start gap-4" style="border-color:var(--line); background:#fff">
+    <span class="ariaSpinner ariaSpinner--lg flex-shrink-0 mt-0.5"></span>
+    <div>
+      <div class="text-[14.5px] font-extrabold" style="color:var(--navy)">Buscando en ${label}…</div>
+      <div class="text-[13px] leading-relaxed mt-1" style="color:#5B6478">
+        Estamos consultando el catálogo real de ${label} para tu búsqueda. Esto toma entre 30 y 90 segundos —
+        puedes seguir navegando, los resultados aparecen aquí cuando lleguen.
+      </div>
+    </div>
+  </div>`;
+}
+
+/**
+ * Go and look, for real, in one store.
+ *
+ * The server answers from its shared cache when another shopper already
+ * paid for this query, and refuses with a 429 when this user already has
+ * the maximum number of runs out. Both are handled here as ordinary
+ * outcomes, not errors.
+ */
+async function runOnDemandSearch(retailer, query){
+  const q = String(query || '').trim();
+  if (!q) return;
+  const key = onDemandKey(retailer, q);
+  const existing = onDemandRuns.get(key);
+  if (existing && (existing.status === 'running' || existing.status === 'done')) return;
+
+  // The client-side half of the cap: an instant, honest refusal beats a
+  // round trip to one. The server still enforces it either way.
+  if (onDemandInFlight() >= ON_DEMAND_MAX_CONCURRENT){
+    showToast(`Espera a que termine ${onDemandInFlight() === 1 ? 'la búsqueda en curso' : 'alguna de las búsquedas en curso'}.`);
+    return;
+  }
+
+  onDemandRuns.set(key, { status: 'running', items: [], error: null });
+  renderOnDemandSurface(q, retailer);
+
+  try {
+    const items = await scrapeRetailerOnDemand(retailer, q);
+    /* THE SAME GUARDS AS EVERY OTHER PRODUCT. normalizeLiveItem applies
+       the beauty table, the category weight bands and the fail-closed
+       needsReview check, so an on-demand card can never quote a freight
+       figure the rest of the site would refuse to quote. */
+    const normalized = items
+      .map(raw => normalizeLiveItem(raw, { retailer }))
+      .filter(it => it.title && it.price != null)
+      .map(it => ({ ...it, retailer, onDemand: true }));
+
+    onDemandRuns.set(key, { status: 'done', items: normalized, error: null });
+    absorbOnDemandResults(retailer, q, normalized);
+  } catch (err) {
+    onDemandRuns.set(key, { status: 'error', items: [], error: err.message });
+    showToast(err.message || 'No pudimos completar la búsqueda en la tienda.');
+  }
+  renderOnDemandSurface(q, retailer);
+}
+
+/* Start + poll, with the on-demand flag that turns on the server's cache
+   and spend cap. A cache hit comes back from the START call with the
+   items already attached and never starts a run at all. */
+async function scrapeRetailerOnDemand(retailer, query){
+  const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ retailer, query, maxItems: ON_DEMAND_MAX_ITEMS, onDemand: true }),
+  });
+  const startData = await startRes.json();
+  if (startRes.status === 429) throw new Error(startData.error || 'Ya tienes búsquedas en curso.');
+  if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda en la tienda');
+  if (startData.cached) return startData.items || [];
+
+  const deadline = Date.now() + LIVE_POLL_MAX_MS;
+  while (Date.now() < deadline){
+    const statusRes = await fetch(`/.netlify/functions/apify-scrape-status?runId=${encodeURIComponent(startData.runId)}`);
+    const statusData = await statusRes.json();
+    if (!statusRes.ok) throw new Error(statusData.error || 'Error al consultar el estado');
+    if (statusData.status === 'SUCCEEDED') return statusData.items || [];
+    if (statusData.error) throw new Error(statusData.error);
+    await wait(LIVE_POLL_INTERVAL_MS);
+  }
+  throw new Error('La búsqueda en la tienda tardó demasiado — intenta de nuevo.');
+}
+
+/* Results go into whichever feed asked for them, so they sort, filter and
+   price exactly like everything already on screen rather than sitting in
+   a second-class list underneath it. */
+function absorbOnDemandResults(retailer, query, items){
+  if (!items.length) return;
+  const view = document.querySelector('.view.active')?.id;
+  if (view === 'resultsView'){
+    const seen = new Set(searchResults.map(it => it.retailer + '::' + it.title));
+    for (const it of items) if (!seen.has(it.retailer + '::' + it.title)) searchResults.push(it);
+    lastSearch = { query: liveScrapeQuery, items: searchResults.slice() };
+    renderSearchResults();
+    return;
+  }
+  if (view === 'catalogView'){
+    const existing = catalogState.byRetailer.get(retailer) || [];
+    const seen = new Set(existing.map(it => it.title));
+    catalogState.byRetailer.set(retailer, existing.concat(items.filter(it => !seen.has(it.title))));
+    renderCatalogFeed();
+  }
+}
+
+/* Repaints whatever surface is showing the upsell. Both feeds call their
+   own renderer, which calls renderOnDemandUpsell() again — so this only
+   has to handle the loading block, which lives outside the feed. */
+function renderOnDemandSurface(query, retailer){
+  const state = onDemandRuns.get(onDemandKey(retailer, query));
+  for (const id of ['searchOnDemandWrap', 'catalogOnDemandWrap']){
+    const wrap = document.getElementById(id);
+    if (!wrap || !wrap.dataset.query) continue;
+    wrap.innerHTML = (state?.status === 'running' ? onDemandLoadingHTML(retailer) : '')
+      + onDemandUpsellHTML(wrap.dataset.query, JSON.parse(wrap.dataset.already || '[]'));
+  }
+}
+
+/**
+ * Put the upsell under a feed when the feed is thin, and take it away
+ * when it is not.
+ *
+ * `already` is the set of stores that did answer — we never offer to
+ * re-search a store whose results are already on screen.
+ */
+function renderOnDemandUpsell(wrapId, query, resultCount, already = []){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  const q = String(query || '').trim();
+  const thin = resultCount < ON_DEMAND_THIN_RESULTS;
+  if (!q || !thin){
+    wrap.innerHTML = '';
+    delete wrap.dataset.query;
+    return;
+  }
+  wrap.dataset.query = q;
+  wrap.dataset.already = JSON.stringify(already);
+  const running = [...onDemandRuns.entries()].find(([k, v]) => v.status === 'running' && k.endsWith('::' + q.toLowerCase()));
+  wrap.innerHTML = (running ? onDemandLoadingHTML(running[0].split('::')[0]) : '')
+    + onDemandUpsellHTML(q, already);
 }
 
 /* Back from a product has to land on the SAME results, not a fresh scan
