@@ -47,13 +47,45 @@ export const DUTY_RATE = 0.23;
 export const SMALL_ORDER_THRESHOLD_PEN = 50;
 export const SMALL_ORDER_FEE_PEN = 10;
 
-/** The fee a product subtotal (in soles, as displayed) attracts. 0 at or above the threshold. */
-export function smallOrderFeePen(productSubtotalPen) {
-  const subtotal = Number(productSubtotalPen);
+/* WHAT THE THRESHOLD IS MEASURED AGAINST (2026-09-20, policy fix).
+
+   REPORTED LIVE: a cart of one T-shirt at S/ 44.69 plus S/ 10.07 of
+   freight — S/ 54.76 all in — was charged the S/ 10 "pedido pequeño"
+   fee, under a label reading "Sin cargo en PEDIDOS desde S/ 50". The
+   label said orders; the code compared the product subtotal alone. A
+   S/ 54.76 order is not a small order, and a fee whose own note
+   contradicts it is worse than a fee.
+
+   So the base is PRODUCTS + INTERNATIONAL FREIGHT, which is what a
+   shopper means by "mi pedido" and what the label always claimed. The
+   fee keeps doing its job — a genuinely small basket still pays it,
+   because handling a S/ 30 lipstick costs what it costs — it just stops
+   firing on orders that are over the line once the freight they are
+   really paying is counted.
+
+   NOT INCLUDED: import duty. That is money collected for the Peruvian
+   government on orders over $200, and an order that large is never a
+   small one anyway — folding it in would only ever move the line in a
+   direction that cannot matter. Also not the fee itself: a fee that
+   pushes an order over its own threshold and thereby cancels itself is
+   a circular rule. */
+
+/**
+ * The fee an ORDER attracts — products plus international freight, in
+ * soles, as the shopper sees them. 0 at or above the threshold.
+ *
+ * @param {number} orderSubtotalPen products + freight, in PEN.
+ */
+export function smallOrderFeePen(orderSubtotalPen) {
+  const subtotal = Number(orderSubtotalPen);
   if (!Number.isFinite(subtotal) || subtotal <= 0) return 0;
   return subtotal < SMALL_ORDER_THRESHOLD_PEN ? SMALL_ORDER_FEE_PEN : 0;
 }
 
 /** "Sin cargo en pedidos desde S/ 50" — the note shown beside the fee. */
 export const SMALL_ORDER_FEE_LABEL = "Pedido pequeño";
-export const SMALL_ORDER_FEE_NOTE = `Sin cargo en pedidos desde S/ ${SMALL_ORDER_THRESHOLD_PEN}`;
+/* Says the basis out loud. The old note named a threshold without saying
+   what it was measured against, which is exactly how the copy and the
+   code drifted apart without anyone noticing. */
+export const SMALL_ORDER_FEE_NOTE =
+  `Sin cargo en pedidos desde S/ ${SMALL_ORDER_THRESHOLD_PEN} (productos + flete)`;

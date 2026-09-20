@@ -5073,9 +5073,10 @@ const CHARGE_PER_KG_USD = 13;
 const SMALL_ORDER_THRESHOLD_PEN = 50;
 const SMALL_ORDER_FEE_PEN = 10;
 const SMALL_ORDER_FEE_LABEL = 'Pedido pequeño';
-const SMALL_ORDER_FEE_NOTE = `Sin cargo en pedidos desde S/ ${SMALL_ORDER_THRESHOLD_PEN}`;
-function smallOrderFeePen(productSubtotalPen){
-  const subtotal = Number(productSubtotalPen);
+const SMALL_ORDER_FEE_NOTE = `Sin cargo en pedidos desde S/ ${SMALL_ORDER_THRESHOLD_PEN} (productos + flete)`;
+// PRODUCTS + FLETE. Mirrors weight-data.js, where the reasoning lives.
+function smallOrderFeePen(orderSubtotalPen){
+  const subtotal = Number(orderSubtotalPen);
   if (!Number.isFinite(subtotal) || subtotal <= 0) return 0;
   return subtotal < SMALL_ORDER_THRESHOLD_PEN ? SMALL_ORDER_FEE_PEN : 0;
 }
@@ -5154,10 +5155,12 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /airpods|earbuds/i, kg: 0.35, tier: 'reasoned' },
   { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: 'reasoned' },
   { match: /smartwatch|apple watch/i, kg: 0.4, tier: 'reasoned' },
-  // A bottle of tablets is a real category, not an unclassified
-  // mystery: the generic floor was badging every supplement as
-  // high-freight. Upper end of a large 200-250 count bottle.
-  { match: /\bvitamins?\b|multivitamin|\bsupplement\b|suplementos?\b|\bsoftgels?\b|\btablets?\b.*\bcount\b/i, kg: 0.5, tier: 'reasoned' },
+  /* THE VITAMINS ROW IS GONE (2026-09-20). One row at 0.5 kg —
+     withBuffer made it 0.68 — served a 30-tablet bottle and a tub of
+     protein alike, and quoted the identical number for two unrelated
+     products live. Supplements are read by supplementWeightDetail()
+     above, which does the arithmetic the title already contains.
+     Mirrors scripts/lib/sales-sources.js. */
   /* PROJECTORS (2026-09-20). There was no row at all, which is how a "5G
      WiFi Bluetooth Projector" quoted freight on 0.065 kg. Bimodal
      category, so two rows: a pocket/portable unit is about a kilo boxed,
@@ -5314,7 +5317,18 @@ function weightLabelHTML(title, cls){
    reading with no dimensional component and no exceptions, so charging a
    customer for air was charging them for something we are never billed
    for. Mirrors the same removal in scripts/lib/item-weight.js. */
-const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // generic fallback for unclassified general-retail items — a rough placeholder, not sourced ('reasoned' tier)
+/* THE ONE GENERIC FALLBACK (2026-09-20). This page used to answer
+   withBuffer(0.8, 'reasoned') = 1.08 kg while the checkout resolver
+   answered 0.6, under a comment in that file claiming the two matched.
+   An unclassified item got heavier between the cart and the payment
+   page, and live that 1.08 charged S/ 47.29 of freight on a S/ 40.18
+   conditioner. One number now, the lower one, mirrored from
+   GENERIC_FALLBACK_KG in scripts/lib/item-weight.js. It is not an
+   estimate — it is the admission that no table matched — so it is small,
+   always labelled "peso estimado", never quotable when it would cost
+   more than the product (see freightQuotable), and always in the review
+   queue. */
+const GENERIC_FALLBACK_KG = 0.6;
 
 // TVs vary too much by screen size for one flat number — parse an inch
 // figure out of the title when present. Buckets from weightofstuff.com /
@@ -5582,29 +5596,29 @@ const BEAUTY_FALLBACK_KG = [
     match: /\b(foundation|base de maquillaje|base l[ií]quida)\b/i,
     needs: /\b(foundation|base)\b/i,
     not: /\b(foundation (?:repair|crack|vent|wall)|bed foundation|mattress foundation)\b/i,
-    kg: 0.15, pack: "carton" },
+    kg: 0.15, pack: "carton", refMl: 30 },
   { key: "polvo / rubor / bronceador",
     match: /\b(pressed powder|setting powder|loose powder|face powder|compact powder|blush|bronzer|highlighter|contour|polvo compacto|polvos? (?:sueltos?|compactos?|traslúcidos?)|rubor|colorete|bronceador|iluminador)\b/i,
     kg: 0.08, pack: "carton" },
   { key: "spray fijador",
     match: /\b(setting spray|makeup setting|fixing spray|spray fijador|fijador de maquillaje|bruma fijadora)\b/i,
-    kg: 0.15, pack: "carton" },
+    kg: 0.15, pack: "carton", refMl: 118 },
 
   /* --- nails --------------------------------------------------- */
   { key: "esmalte de uñas",
     match: /\b(nail ?polish|nail ?lacquer|nail ?enamel|gel polish|esmalte de u[ñn]as|esmalte para u[ñn]as)\b/i,
-    kg: 0.05, pack: "carton" },
+    kg: 0.05, pack: "carton", refMl: 15 },
 
   /* --- skincare ------------------------------------------------ */
   // Glass dropper bottle.
   { key: "sérum",
     match: /\b(serum|s[ée]rum|suero facial|ampolla)\b/i,
-    kg: 0.10, pack: "carton" },
+    kg: 0.10, pack: "carton", refMl: 30 },
   // A 50 ml jar is the heaviest thing on this list that is not a bottle:
   // most of the mass is the glass.
   { key: "crema hidratante",
     match: /\b(moisturi[sz]er|moisturi[sz]ing (?:cream|lotion|gel)|face cream|night cream|day cream|gel cream|crema hidratante|hidratante facial|crema facial|crema de noche|crema de d[ií]a)\b/i,
-    kg: 0.20, pack: "carton" },
+    kg: 0.20, pack: "carton", refMl: 50 },
 
   /* --- EXTENSIONS beyond the brief's 18 rows -------------------
      Victoria's Secret's catalogue is overwhelmingly body mists and
@@ -5615,10 +5629,10 @@ const BEAUTY_FALLBACK_KG = [
      they are easy to find when the brief's table is next revised. */
   { key: "bruma corporal",
     match: /\b(body mist|body splash|fragrance mist|bruma corporal|body spray)\b/i,
-    kg: 0.35, pack: "carton" },
+    kg: 0.35, pack: "carton", refMl: 250 },
   { key: "loción / crema corporal",
     match: /\b(body lotion|body cream|body butter|hand cream|loci[óo]n corporal|crema corporal|manteca corporal|crema de manos)\b/i,
-    kg: 0.35, pack: "carton" },
+    kg: 0.35, pack: "carton", refMl: 236 },
 ];
 
 /* PERFUME sizes its own row: the bottle is most of the weight and the
@@ -5717,6 +5731,33 @@ function beautyRowFor(title) {
  * { kg, key, pack } — `key` is the Spanish row name shown in the review
  * queue, "belleza (sin fila)" for the 0.05 kg catch-all.
  */
+/* THE PLAUSIBLE BAND FOR A BEAUTY TITLE.
+
+   Flat [0.02, 0.6] was right while every row answered one fixed size. Now
+   that a stated volume scales the estimate (see beautyWeightDetail), a
+   473 ml tub of moisturiser legitimately weighs 0.62 kg and a flat
+   ceiling of 0.6 would flag it for review — the band would be rejecting
+   the arithmetic that made it accurate.
+
+   So the band follows the size when the title states one: roughly half
+   to a bit over twice the liquid's own mass, which catches a bottle
+   quoted as if it were empty and one quoted as if it were a brick,
+   while leaving the honest middle alone. With no volume stated, the
+   original flat band applies unchanged. */
+const BEAUTY_BAND_KG = [0.02, 0.6];
+
+function beautyBandKg(title) {
+  const t = String(title || "");
+  if (!beautyRowFor(t) && !PERFUME_RE.test(t)) return null;
+  const ml = titleVolumeMl(t);
+  if (ml == null || ml <= 0) return BEAUTY_BAND_KG;
+  const contents = ml / 1000;
+  return [
+    Math.max(BEAUTY_BAND_KG[0], beautyRound2(contents * 0.6)),
+    beautyRound2(contents * 2.2 + 0.2),
+  ];
+}
+
 function beautyWeightDetail(title, hints = {}) {
   const t = String(title || "");
   if (!t || BEAUTY_IMPOSTOR_RE.test(t)) return null;
@@ -5727,7 +5768,24 @@ function beautyWeightDetail(title, hints = {}) {
   }
 
   const row = beautyRowFor(t);
-  if (row) return { kg: beautyRound2(row.kg + packAllowance(row.pack)), key: row.key, pack: row.pack };
+  if (row) {
+    /* A STATED VOLUME BEATS THE ROW'S FLAT FIGURE (2026-09-20). Each
+       liquid row is calibrated for one typical size — the sérum row is a
+       30 ml dropper bottle — so a title saying "5 fl oz" was being
+       answered with the weight of something five times smaller. The
+       row's figure stays the anchor: only the contents scale, the
+       container mass is derived from it. Mirrors beauty-weight.js. */
+    const ml = row.refMl != null ? titleVolumeMl(t) : null;
+    if (ml != null && ml > 0) {
+      const containerKg = Math.max(0.01, row.kg - row.refMl / 1000);
+      return {
+        kg: beautyRound2(containerKg + ml / 1000 + packAllowance(row.pack)),
+        key: `${row.key} (${ml} ml)`,
+        pack: row.pack,
+      };
+    }
+    return { kg: beautyRound2(row.kg + packAllowance(row.pack)), key: row.key, pack: row.pack };
+  }
 
   // Nothing matched, but we know it is beauty: 0.05 kg, never the generic.
   if (isBeautyItem(t, hints)) {
@@ -5963,13 +6021,233 @@ const LONG_BUT_LIGHT_RE = /\b(cable|cord|hose|rope|twine|tape|wire|chain|leash|s
 const PROJECTOR_RE = /\b(projectors?|proyectores?|proyector)\b/i;
 const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bulb|l[áa]mpara|case|funda|stand|tr[ií]pode|tripod|cable)\b/i;
 
+/* ============================================================
+   VITAMINS AND SUPPLEMENTS — a table, not a constant
+
+   REPORTED LIVE (2026-09-20): a 180-softgel bottle and a 5 fl oz liquid
+   both quoted "peso estimado 0.68 kg" and both wore a manufactured
+   "Flete alto" badge. 0.68 was withBuffer(0.5, "reasoned") — one coarse
+   `vitamins|supplement` row serving an entire aisle. A supplement title
+   states almost everything needed (a count and a form, or a volume), so
+   this is arithmetic rather than a guess.
+
+   Biased LOW, against the house rule, on Danny's standing call for this
+   category: over-quoting a 200 g bottle by 5x costs the sale.
+
+   Mirrors scripts/lib/supplement-weight.js; test-supplements asserts the
+   two agree title for title.
+   ============================================================ */
+const SUPP_ML_PER_FL_OZ = 29.5735;
+
+function suppRound3(n) {
+  return Math.round(n * 1000) / 1000;
+}
+
+/* GRAMS PER UNIT, SHIPPED. The pill plus its share of the fill. Low end
+   of the plausible range, per the downward bias above. */
+const SUPPLEMENT_FORM_G = {
+  softgel: 0.75,
+  capsule: 0.55,
+  tablet: 0.9,
+  caplet: 0.9,
+  /* Gummies are the outlier this table exists to respect: a gummy is
+     several times the mass of a tablet, so 60 gummies and 60 tablets are
+     nothing alike. Form, not just count. */
+  gummy: 3.0,
+  chewable: 1.6,
+  lozenge: 1.4,
+  packet: 3.5,
+};
+
+/* THE BOTTLE. A count implies a container size — 60 capsules ship in a
+   small bottle, 300 in a large one — so the allowance steps with the
+   count rather than being flat. HDPE bottle plus cap, lid seal and
+   label. */
+const SUPPLEMENT_BOTTLE_G = [
+  { maxCount: 60, g: 28 },
+  { maxCount: 120, g: 42 },
+  { maxCount: 250, g: 60 },
+  { maxCount: Infinity, g: 85 },
+];
+
+/* Liquids: the contents weigh what they measure (density ~1 for a syrup
+   or a tincture), plus the bottle and its dropper or pump. */
+const SUPPLEMENT_LIQUID_CONTAINER_G = 55;
+
+/* Nothing parseable in the title, but we know it is a supplement. A
+   small bottle — never the old 0.68, and never the 1.08 generic. */
+const SUPPLEMENT_DEFAULT_KG = 0.12;
+
+/* What makes a title a supplement at all. Broad on purpose: this is the
+   gate, and the arithmetic below is what makes the answer specific. */
+const SUPPLEMENT_RE =
+  /\b(vitamins?|vitaminas?|multivitamins?|multivitam[íi]nico|supplements?|suplementos?|softgels?|c[áa]psulas?|capsules?|caplets?|tablets?|gummies|gummy|gomitas?|probi[óo]ticos?|probiotics?|omega[- ]?3|fish oil|aceite de pescado|collagen|col[áa]geno|melatonin|melatonina|biotin|biotina|magnesium|magnesio|elderberry|s[áa]uco|ashwagandha|turmeric|c[úu]rcuma|creatine|creatina|electrolytes?|electrolitos?)\b/i;
+
+/* Things that read as supplements and are not. A protein tub or a case
+   of drinks is heavy and states its own weight; a pill ORGANISER is
+   plastic. Letting any of them through this table would under-quote
+   badly, which is the one direction the downward bias must not go. */
+const SUPPLEMENT_IMPOSTOR_RE =
+  /\b(organi[sz]er|pill ?box|dispenser|case|holder|rack|shaker|bottle opener|blender|scale|book|guide|chart|poster|shirt|mug|sticker|gift ?card)\b/i;
+
+/* Sold by weight, not by count: protein, greens and meal powders come in
+   tubs that state their own mass, and titleWeight() reads it before this
+   file is ever consulted. Named here so that if one ever arrives with no
+   stated weight it falls to a category row rather than being priced as a
+   handful of capsules. */
+const SUPPLEMENT_BULK_RE =
+  /\b(protein powder|whey|mass gainer|meal replacement|greens powder|pre[- ]?workout|proteina|prote[íi]na en polvo)\b/i;
+
+const FORM_PATTERNS = [
+  [/\bsoft ?gels?\b|\bc[áa]psulas? blandas?\b/i, "softgel"],
+  [/\bveg(?:gie|etarian)? ?caps?\b|\bcapsules?\b|\bc[áa]psulas?\b/i, "capsule"],
+  [/\bcaplets?\b/i, "caplet"],
+  [/\btablets?\b|\btabletas?\b|\bcomprimidos?\b/i, "tablet"],
+  [/\bgummies\b|\bgummy\b|\bgomitas?\b/i, "gummy"],
+  [/\bchewables?\b|\bmasticables?\b/i, "chewable"],
+  [/\blozenges?\b|\bpastillas para chupar\b/i, "lozenge"],
+  [/\bpackets?\b|\bstick ?packs?\b|\bsobres?\b/i, "packet"],
+];
+
+/** The dosage form named in a title, or null. */
+function supplementForm(title) {
+  const t = String(title || "");
+  for (const [re, form] of FORM_PATTERNS) if (re.test(t)) return form;
+  return null;
+}
+
+/**
+ * How many units the title says are in the bottle.
+ *
+ * Reads "180 Softgels", "60 Count", "120 ct", "90 Tablets" and their
+ * Spanish forms. Deliberately does NOT read a bare number: "Vitamin D3
+ * 2000 IU" is a dose, not a count, and treating it as one would produce
+ * a two-kilo bottle of vitamin D.
+ */
+function supplementCount(title) {
+  const t = String(title || "");
+  const patterns = [
+    /(\d{1,4})\s*(?:soft ?gels?|capsules?|c[áa]psulas?|caplets?|tablets?|tabletas?|comprimidos?|gummies|gummy|gomitas?|chewables?|masticables?|lozenges?|packets?|sobres?)\b/i,
+    /(\d{1,4})\s*(?:count|ct\.?|unidades?|u\.?)\b/i,
+    /\bcount(?:\s*of)?\s*(\d{1,4})\b/i,
+  ];
+  for (const re of patterns) {
+    const m = re.exec(t);
+    if (m) {
+      const n = parseInt(m[1], 10);
+      // A four-digit "count" is almost always an IU dose or a year.
+      if (Number.isFinite(n) && n > 0 && n <= 1000) return n;
+    }
+  }
+  return null;
+}
+
+/** Volume in millilitres stated in the title, or null. */
+function supplementVolumeMl(title) {
+  const t = String(title || "");
+  const ml = /(\d+(?:[.,]\d+)?)\s*(?:ml|mL|millilit\w*|mililitros?)\b/i.exec(t);
+  if (ml) {
+    const n = parseFloat(ml[1].replace(",", "."));
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  const oz = /(\d+(?:[.,]\d+)?)\s*(?:fl\.?\s*oz|fluid ounces?|onzas? l[íi]quidas?)\b/i.exec(t);
+  if (oz) {
+    const n = parseFloat(oz[1].replace(",", "."));
+    if (Number.isFinite(n) && n > 0) return Math.round(n * SUPP_ML_PER_FL_OZ * 10) / 10;
+  }
+  return null;
+}
+
+function bottleGramsFor(count) {
+  return (SUPPLEMENT_BOTTLE_G.find((b) => count <= b.maxCount) || SUPPLEMENT_BOTTLE_G.at(-1)).g;
+}
+
+/** How many bottles the title sells at once ("2 Pack", "Pack of 3"). */
+function supplementPackCount(title) {
+  const t = String(title || "");
+  const m = /\b(\d{1,2})\s*[- ]?\s*(?:pack|pk|count bottles?|bottles?)\b/i.exec(t)
+    || /\bpack of\s*(\d{1,2})\b/i.exec(t);
+  const n = m ? parseInt(m[1], 10) : 1;
+  return Number.isFinite(n) && n >= 1 && n <= 12 ? n : 1;
+}
+
+/**
+ * Shipped weight for a supplement title, with its reasoning, or null.
+ *
+ * Returns { kg, key, basis } — `basis` is the arithmetic in words, so the
+ * review queue can show why a number is what it is rather than only that
+ * it is wrong.
+ */
+function supplementWeightDetail(title, hints = {}) {
+  const t = String(title || "");
+  if (!t) return null;
+  if (SUPPLEMENT_IMPOSTOR_RE.test(t)) return null;
+
+  const looksLikeSupplement = SUPPLEMENT_RE.test(t)
+    || String(hints.department || "").toLowerCase() === "pharmacy";
+  if (!looksLikeSupplement) return null;
+
+  // Sold by mass, not by count: let the category tables answer.
+  if (SUPPLEMENT_BULK_RE.test(t)) return null;
+
+  const packs = supplementPackCount(t);
+
+  // A stated volume is the most specific thing a liquid title can say.
+  const ml = supplementVolumeMl(t);
+  if (ml != null) {
+    const kg = suppRound3(((ml + SUPPLEMENT_LIQUID_CONTAINER_G) / 1000) * packs);
+    return {
+      kg,
+      key: "suplemento líquido",
+      basis: `${ml} ml + ${SUPPLEMENT_LIQUID_CONTAINER_G} g de envase${packs > 1 ? ` x ${packs}` : ""}`,
+    };
+  }
+
+  const count = supplementCount(t);
+  const form = supplementForm(t);
+  if (count != null) {
+    // A count with no form named: capsules are the commonest and the
+    // lightest of the plausible readings, which is the right way to be
+    // wrong in this category.
+    const useForm = form || "capsule";
+    const unitG = SUPPLEMENT_FORM_G[useForm];
+    const grams = count * unitG + bottleGramsFor(count);
+    return {
+      kg: suppRound3((grams / 1000) * packs),
+      key: `suplemento (${useForm})`,
+      basis: `${count} x ${unitG} g + ${bottleGramsFor(count)} g de frasco${packs > 1 ? ` x ${packs}` : ""}`,
+    };
+  }
+
+  /* A form with no count — "Softgels" in the title and the number only
+     on the label. Treat it as a small bottle rather than refusing: the
+     category's whole problem was a number far too big, and the default
+     below is a plausible small bottle. */
+  return {
+    kg: suppRound3(SUPPLEMENT_DEFAULT_KG * packs),
+    key: form ? `suplemento (${form}, sin conteo)` : "suplemento (sin detalle)",
+    basis: `frasco pequeño, sin conteo en el título${packs > 1 ? ` x ${packs}` : ""}`,
+  };
+}
+
+/** Just the weight. Null when the title is not a supplement. */
+function supplementWeightKg(title, hints = {}) {
+  const detail = supplementWeightDetail(title, hints);
+  return detail ? detail.kg : null;
+}
+
 const WEIGHT_SANITY_BOUNDS = [
   /* Beauty runs FIRST and low. A cosmetic is the one category on this
      site that legitimately weighs 20 grams, and several fragrance houses
      share a name with a shoe brand ("Puma Energy Eau de Toilette"), so
      without this row a perfume could be floored to the calzado minimum
      and quoted as a pair of trainers. */
-  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02, maxKg: 0.6 },
+  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), band: beautyBandKg },
+  /* SUPPLEMENTS RUN EARLY AND LOW, for the same reason beauty does. A
+     vitamin bottle above half a kilo is a bottle we have got wrong, so
+     past the ceiling it fails closed into review rather than quoting.
+     Mirrors item-weight.js. */
+  { key: "suplemento", test: (t) => supplementWeightDetail(t) != null, minKg: 0.02, maxKg: 0.5 },
   /* Books run early and light, for the same reason beauty does: a
      colouring book weighs 120 grams, and every catch-all bound below it
      is written for objects that weigh kilos. Tier-aware, so a paperback
@@ -6173,6 +6451,29 @@ function byDoorToDoor(sortBy){
 
    Mirrors freightShare() in scripts/lib/item-weight.js, which divides by
    the same displayed price; test-badge asserts they agree. */
+/* ONE RULE FOR "WE WILL NOT QUOTE THIS FREIGHT" (2026-09-20).
+
+   REPORTED LIVE: a conditioner's product page said "Flete por confirmar
+   — lo cotizamos antes de que pagues", and the cart then charged
+   S/ 47.29 of freight on the same S/ 40.18 item. Two surfaces, two
+   different rules, and the one that took the money was the one that had
+   not been told.
+
+   The card, the cart and the checkout resolver all ask this now.
+   Mirrors freightQuotable() in scripts/lib/item-weight.js. */
+function freightQuotable(detail, priceUsd){
+  if (!detail) return { quotable: true, reason: null };
+  if (detail.needsReview) {
+    return { quotable: false, reason: detail.reviewReason || detail.reason || 'peso fuera de banda' };
+  }
+  if (detail.reviewKind === 'gap' || detail.source === 'fallback') {
+    if (freightSharePct(detail.kg, priceUsd) > FREIGHT_FEATURE_CEILING) {
+      return { quotable: false, reason: `estimado genérico de ${detail.kg} kg: el flete supera el precio del producto` };
+    }
+  }
+  return { quotable: true, reason: null };
+}
+
 function freightSharePct(weightKg, priceUsd){
   const price = displayPriceUsd(Number(priceUsd));
   if (!Number.isFinite(price) || price <= 0) return Infinity;
@@ -6188,6 +6489,7 @@ function estimateRetailWeightDetail(text, hints){
   const stated = beauty ? null : titleWeight(t);
   const classified = !beauty && !stated && (bulkyWeightKg(t) != null
     || bookWeightKg(t) != null
+    || supplementWeightKg(t, hints || {}) != null
     || footwearWeightKg(t) != null
     || ballWeightKg(t) != null
     || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t))
@@ -6196,12 +6498,12 @@ function estimateRetailWeightDetail(text, hints){
   // The raw estimate, before the band is applied, is what the band judges.
   const raw = beauty ? beauty.kg
     : stated ? stated.kg
-    : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? footwearWeightKg(t) ?? ballWeightKg(t)
+    : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? supplementWeightKg(t, hints || {}) ?? footwearWeightKg(t) ?? ballWeightKg(t)
         ?? (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))
               ? estimateTvWeightKg(t)
               : withBuffer(RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).kg,
                            RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).tier)))
-    : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
+    : GENERIC_FALLBACK_KG;
 
   const check = weightSanity(t, raw);
   const source = beauty ? 'beauty' : stated ? 'title' : classified ? 'category' : 'fallback';
@@ -6223,42 +6525,21 @@ function estimateRetailWeightDetail(text, hints){
   };
 }
 
+/* ONE CHAIN ON THIS PAGE, NOT TWO (2026-09-20).
+
+   This function used to carry its OWN copy of the estimation chain,
+   beside the one in estimateRetailWeightDetail() below. They drifted, as
+   two copies of a chain always do: the book table added earlier never
+   reached this one, and the supplements table would have missed it too —
+   which is how a 250-count vitamin bottle came out at the 1.08 kg
+   generic here while the module said 0.285. Caught by the corpus parity
+   test rather than by a customer, this time.
+
+   So it delegates. There is now exactly one place on this page that
+   decides what a product weighs, and the next table added to the chain
+   cannot reach half of the site. */
 function estimateRetailWeightKg(text, hints){
-  const t = text || '';
-  // 1) the beauty table, 2) what the retailer stated in the title,
-  // 3) the category table, 4) the generic floor. (A scraped spec weight
-  // beats all four and is applied server-side; see
-  // netlify/functions/_weight-resolve.js.)
-  /* Beauty is read BEFORE the title, because a cosmetic's title states
-     the VOLUME in the bottle — "Eau de Toilette 3.4 oz" — and the glass,
-     the cap and the box are most of what actually ships. Mirrors
-     estimateWeightDetail() in scripts/lib/sales-sources.js. */
-  const beauty = beautyWeightDetail(t, hints || {});
-  if (beauty) return weightSanity(t, beauty.kg).kg;
-  const stated = titleWeight(t);
-  if (stated) return weightSanity(t, stated.kg).kg;
-  // Bulky goods first: "TV Stand" is furniture, and without this it fell
-  // through to the 0.5kg default.
-  const bulky = bulkyWeightKg(t);
-  if (bulky != null) return weightSanity(t, bulky).kg;
-  // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
-  const shoes = footwearWeightKg(t);
-  if (shoes != null) return weightSanity(t, shoes).kg;
-  // A ball's real mass and count, against the box that gets billed.
-  const ball = ballWeightKg(t);
-  if (ball != null) return weightSanity(t, ball).kg;
-  // "...Smart Roku TV with Voice Remote" is a television, not a remote:
-  // an accessory word inside a "with ..." clause names what is bundled
-  // WITH the product. Without this, that real Target title came out at
-  // 0.12kg and the 40" TV shipped with $1.56 of freight quoted against a
-  // real ~$143. Mirrors withoutBundledClauses() in item-weight.js.
-  const head = t.replace(/\bwith\b[^,;]*/gi, ' ');
-  if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(head)) return weightSanity(t, estimateTvWeightKg(t)).kg;
-  const found = RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t));
-  const kg = found ? withBuffer(found.kg, found.tier)
-                   : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
-  // Last gate before a weight reaches a price: see WEIGHT_SANITY_BOUNDS.
-  return weightSanity(t, kg).kg;
+  return estimateRetailWeightDetail(text || '', hints).kg;
 }
 
 // Deliberately does NOT expose a clickthrough URL to the retailer's site —
@@ -6657,36 +6938,279 @@ function filterAutomotiveParts(items, query){
 }
 
 /* ============================================================
-   FITMENT VERIFICATION
+   DOES THIS PART FIT THIS CAR?
 
-   A green "Compatible con tu Toyota Yaris 2023" on a part that does not
-   fit is the single most expensive thing this page can say, and it was
-   being said on wheelbarrow tires. The badge is now earned, not assumed.
+   REPORTED LIVE (2026-09-20): a shopper picked 2020 / Hyundai / Sonata,
+   searched "pastillas de freno", and got generic brake pads under an
+   amber "Verifica el calce" badge and the line "La tienda no confirma el
+   calce por vehículo, así que verifícalo antes de pedir." The vehicle
+   picker was decoration over a keyword search — it kept the liability
+   AND the uselessness.
 
-   What AutoZone's payload actually carries is `vehicle_fitment`, with
-   exactly two values across all 9,285 cached items: VEHICLE_SPECIFIC and
-   UNIVERSAL. VEHICLE_SPECIFIC means "this part is sold per vehicle" — it
-   does NOT say it was matched to THIS vehicle, and the actor is a keyword
-   search ("2023 Toyota Yaris llantas"), not a fitment lookup. So it is
-   not verification, and nothing in today's data is.
+   Two outcomes now, no third: confirmed-fit parts with the green badge,
+   or the honest per-store empty state. "No fitment data" is an absence,
+   never a maybe.
 
-   The verified path below is real code waiting on real data: when the
-   scrape runs in a vehicle-scoped mode that returns a per-vehicle fitment
-   confirmation (`fits_vehicle: true`, or a `fitment` object naming the
-   year/make/model), the badge lights up on its own. Until then every card
-   says "Verifica el calce". Do not widen this to VEHICLE_SPECIFIC.
+   Mirrors scripts/lib/fitment.js; test-fitment asserts the two agree.
    ============================================================ */
-function fitmentVerified(item, vehicle){
-  const raw = item?.raw;
-  if (!raw || !vehicle) return false;
-  if (raw.fits_vehicle === true || raw.fitsVehicle === true) return true;
-  const fit = raw.fitment || raw.vehicle_fit || null;
-  if (fit && typeof fit === 'object'){
-    const same = (a, b) => String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
-    return Boolean(fit.confirmed !== false
-      && same(fit.year, vehicle.year) && same(fit.make, vehicle.make) && same(fit.model, vehicle.model));
+const VEHICLE_MAKES = [
+  "Mercedes-Benz", "Mercedes Benz", "Land Rover", "Alfa Romeo", "Great Wall",
+  "Aston Martin", "Rolls-Royce",
+  "Toyota", "Honda", "Ford", "Chevrolet", "Nissan", "Hyundai", "Kia", "Suzuki",
+  "Mitsubishi", "Mazda", "Subaru", "Volkswagen", "Volvo", "Audi", "BMW", "Jeep",
+  "Dodge", "Chrysler", "Ram", "GMC", "Buick", "Cadillac", "Lincoln", "Acura",
+  "Infiniti", "Lexus", "Genesis", "Tesla", "Mini", "Porsche", "Fiat", "Renault",
+  "Peugeot", "Citroen", "Citroën", "Seat", "Skoda", "Chery", "JAC", "Changan",
+  "BYD", "Haval", "MG", "Geely", "Isuzu", "Daihatsu", "Ssangyong", "Datsun",
+].sort((a, b) => b.length - a.length);
+
+const MAKE_ALIASES = {
+  "mercedes benz": "mercedes-benz",
+  mercedes: "mercedes-benz",
+  benz: "mercedes-benz",
+  vw: "volkswagen",
+  chevy: "chevrolet",
+  citroën: "citroen",
+};
+
+/* A year range only means anything inside the span a car has existed.
+   1950 rules out a phone number and a part number; two years ahead of
+   today rules out a price that happens to look like a year. */
+const MIN_MODEL_YEAR = 1950;
+const MAX_MODEL_YEAR = new Date().getFullYear() + 2;
+
+function normalizeVehicleText(text) {
+  return String(text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function canonicalMake(make) {
+  const m = normalizeVehicleText(make);
+  return MAKE_ALIASES[m] || m;
+}
+
+/* "Sonata SE", "Corolla LE Hatchback" — a trim is not a different car for
+   brake-pad purposes, and a shopper picks a model, not a trim. Compared
+   on the first token so "Sonata" matches "Sonata Hybrid", while "3
+   Series" and "F-150" survive intact. */
+function canonicalModel(model) {
+  const m = normalizeVehicleText(model);
+  if (!m) return "";
+  // Multi-token model names we must not truncate to their first word.
+  if (/^\d\s?series$/.test(m) || /^[a-z]-(class|series)$/.test(m)) return m;
+  if (/^[a-z]+-\d+$/.test(m)) return m;            // f-150, cx-5
+  return m.split(" ")[0];
+}
+
+function yearsIn(text) {
+  const t = String(text || "");
+  const range = /\b(19|20)(\d{2})\s*(?:-|–|—|to|a|hasta)\s*(?:(19|20))?(\d{2})\b/i.exec(t);
+  if (range) {
+    const from = Number(range[1] + range[2]);
+    // "2020-24" is a real way to write it.
+    const toPrefix = range[3] || (Number(range[4]) >= Number(range[2]) ? range[1] : String(Number(range[1]) + 1));
+    const to = Number(toPrefix + range[4]);
+    if (from >= MIN_MODEL_YEAR && to <= MAX_MODEL_YEAR && to >= from) {
+      return { yearFrom: from, yearTo: to };
+    }
   }
-  return false;
+  const single = /\b(19|20)\d{2}\b/.exec(t);
+  if (single) {
+    const y = Number(single[0]);
+    if (y >= MIN_MODEL_YEAR && y <= MAX_MODEL_YEAR) return { yearFrom: y, yearTo: y };
+  }
+  return null;
+}
+
+/** Splits "Hyundai Sonata" into its make and model, or null. */
+function splitMakeModel(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return null;
+  const norm = normalizeVehicleText(raw);
+  for (const make of VEHICLE_MAKES) {
+    const m = normalizeVehicleText(make);
+    if (norm === m) return { make: canonicalMake(m), model: "" };
+    if (norm.startsWith(m + " ")) {
+      return { make: canonicalMake(m), model: norm.slice(m.length + 1).trim() };
+    }
+  }
+  return null;
+}
+
+/**
+ * Every vehicle a compatibility STRING names.
+ *
+ * Handles the shapes these listings actually use:
+ *   "Fits Hyundai Sonata, Hyundai Tucson, Kia K5, Kia Sportage 2020–2024"
+ *   "Fits: 2014-2019 Toyota Corolla"
+ *   "2014 Toyota Corolla; 2015 Honda Civic"
+ *
+ * A year range at the END of the list applies to every entry that does
+ * not carry its own — which is exactly how the first example reads to a
+ * person, and getting it wrong would either drop every match or claim
+ * all of them.
+ */
+function parseFitmentText(text) {
+  const raw = String(text || "");
+  if (!raw.trim()) return [];
+
+  const cleaned = raw.replace(/^\s*(fits?|compatible with|compatibility|aplicaciones?|compatibilidad|calza con)\s*:?\s*/i, "");
+  // A range sitting at the end of the whole list is the shared one.
+  const trailing = /(?:^|[\s,;])((?:19|20)\d{2}\s*(?:-|–|—|to|a|hasta)\s*(?:(?:19|20))?\d{2})\s*$/.exec(cleaned);
+  const shared = trailing ? yearsIn(trailing[1]) : null;
+  const body = trailing ? cleaned.slice(0, trailing.index) : cleaned;
+
+  const out = [];
+  for (const segment of body.split(/[;,]|\band\b|\by\b/i)) {
+    const seg = segment.trim();
+    if (!seg) continue;
+    const own = yearsIn(seg);
+    /* Strip the years, and ONLY the years. An earlier version also
+       stripped every range separator wherever it appeared, which ate the
+       hyphen in "Mercedes-Benz" and "F-150" and the letter "a" inside
+       "Toyota" — "a" is a Spanish range word and was being matched
+       without word boundaries. The separators are removed as part of the
+       year pattern itself now, and nothing else is touched. */
+    const withoutYears = seg
+      .replace(/\b(19|20)\d{2}\s*(?:-|–|—|to|\ba\b|hasta)\s*(?:19|20)?\d{2}\b/gi, " ")
+      .replace(/\b(19|20)\d{2}\b/g, " ")
+      .replace(/^[\s:\-–—]+|[\s:\-–—]+$/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+    const pair = splitMakeModel(withoutYears);
+    if (!pair || !pair.model) continue;
+    const years = own || shared;
+    out.push({
+      make: pair.make,
+      model: canonicalModel(pair.model),
+      yearFrom: years ? years.yearFrom : null,
+      yearTo: years ? years.yearTo : null,
+    });
+  }
+  return out;
+}
+
+/* Where a source might publish its compatibility list. Checked in order,
+   most structured first: a field built for the purpose beats prose. */
+const FITMENT_ARRAY_FIELDS = ["fitment", "fitments", "compatibility", "compatibleVehicles", "vehicles", "fits", "applications"];
+const FITMENT_TEXT_FIELDS = ["fitmentText", "compatibilityText", "vehicleFitmentText", "description", "productDescription", "longDescription"];
+const FITMENT_SPEC_KEYS = /^(fits|fitment|vehicle fitment|compatibility|compatible|applications?|aplicaciones?|compatibilidad)$/i;
+
+function vehiclesFromStructured(value) {
+  const list = Array.isArray(value) ? value : [value];
+  const out = [];
+  for (const entry of list) {
+    if (!entry) continue;
+    if (typeof entry === "string") {
+      out.push(...parseFitmentText(entry));
+      continue;
+    }
+    if (typeof entry !== "object") continue;
+    const make = entry.make ?? entry.brand ?? entry.manufacturer;
+    const model = entry.model ?? entry.modelName;
+    if (!make || !model) {
+      const text = entry.text ?? entry.name ?? entry.label ?? entry.description;
+      if (text) out.push(...parseFitmentText(text));
+      continue;
+    }
+    const years = entry.year != null
+      ? yearsIn(String(entry.year))
+      : (entry.yearFrom || entry.startYear)
+        ? { yearFrom: Number(entry.yearFrom ?? entry.startYear), yearTo: Number(entry.yearTo ?? entry.endYear ?? entry.yearFrom ?? entry.startYear) }
+        : null;
+    out.push({
+      make: canonicalMake(make),
+      model: canonicalModel(model),
+      yearFrom: years ? years.yearFrom : null,
+      yearTo: years ? years.yearTo : null,
+    });
+  }
+  return out;
+}
+
+/**
+ * The compatibility list a raw product record carries, or null when it
+ * carries none.
+ *
+ * Returns { vehicles, from } — `from` names the field it came out of, so
+ * a source that starts publishing fitment somewhere new shows up in the
+ * ops output instead of silently doing nothing.
+ */
+function extractFitment(raw) {
+  if (!raw || typeof raw !== "object") return null;
+
+  for (const field of FITMENT_ARRAY_FIELDS) {
+    const value = raw[field];
+    if (value == null) continue;
+    // A bare marketing string like "VEHICLE_SPECIFIC" is not a list.
+    if (typeof value === "string" && !/\d|,/.test(value)) continue;
+    const vehicles = vehiclesFromStructured(value);
+    if (vehicles.length) return { vehicles, from: field };
+  }
+
+  const specs = raw.specs && typeof raw.specs === "object" ? raw.specs : {};
+  for (const [key, value] of Object.entries(specs)) {
+    if (!FITMENT_SPEC_KEYS.test(String(key).trim())) continue;
+    const vehicles = parseFitmentText(value);
+    if (vehicles.length) return { vehicles, from: `specs:${key}` };
+  }
+
+  const features = Array.isArray(raw.features) ? raw.features : [];
+  for (const feature of features) {
+    if (!/fits|compatib|aplicaci/i.test(String(feature))) continue;
+    const vehicles = parseFitmentText(feature);
+    if (vehicles.length) return { vehicles, from: "features" };
+  }
+
+  for (const field of FITMENT_TEXT_FIELDS) {
+    const text = raw[field];
+    if (!text || typeof text !== "string") continue;
+    if (!/fits|compatib|aplicaci/i.test(text)) continue;
+    const vehicles = parseFitmentText(text);
+    if (vehicles.length) return { vehicles, from: field };
+  }
+
+  return null;
+}
+
+/** Does a parsed compatibility list name this car? */
+function matchesVehicle(vehicles, vehicle) {
+  if (!Array.isArray(vehicles) || !vehicles.length || !vehicle) return false;
+  const make = canonicalMake(vehicle.make);
+  const model = canonicalModel(vehicle.model);
+  const year = Number(vehicle.year);
+  if (!make || !model) return false;
+
+  return vehicles.some((v) => {
+    if (canonicalMake(v.make) !== make) return false;
+    if (canonicalModel(v.model) !== model) return false;
+    // A list that names the car but no year is a match on make/model
+    // alone: the source is telling us the part is for this model line.
+    if (v.yearFrom == null || !Number.isFinite(year)) return true;
+    const to = v.yearTo == null ? v.yearFrom : v.yearTo;
+    return year >= v.yearFrom && year <= to;
+  });
+}
+
+/**
+ * The verdict for one part against one car.
+ *
+ *   "fits"          the compatibility list names this vehicle.
+ *   "does-not-fit"  there is a list and this vehicle is not on it.
+ *   "unknown"       there is no list. Not a maybe — an absence.
+ *
+ * Nothing downstream may treat "unknown" as "probably fine". That was the
+ * bug.
+ */
+function fitmentVerdict(raw, vehicle) {
+  const fitment = extractFitment(raw);
+  if (!fitment) return "unknown";
+  return matchesVehicle(fitment.vehicles, vehicle) ? "fits" : "does-not-fit";
 }
 
 // Cache key must exactly match scripts/refresh-auto-cache.js's format.
@@ -6800,24 +7324,177 @@ function translatePartQuery(query){
   return out;
 }
 
-const AUTO_PARTS_SOURCES = [
-  {
-    id: 'autozone',
-    label: 'AutoZone',
-    search: async (vehicle, query, maxItems) => {
-      const cache = await loadAutoCache();
-      const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.autozone;
-      if (cached?.length) return cached.map(it => normalizeAutoPartItem('autozone', it));
-      // Translated before it leaves: the catalog is in English.
-      const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
-      const rawItems = await scrapeRetailer('autozone', combined, maxItems);
-      return rawItems.map(it => normalizeAutoPartItem('autozone', it));
-    },
+/* ============================================================
+   ARIA AUTO'S PARTS SOURCES — a registry, not a hardcoded store
+
+   One source means one fitment database: when AutoZone has no fitment
+   for a vehicle, the section is a dead end. A second catalogue is the
+   difference between "we do not have it" and "we do not have it HERE" —
+   and, because a wrong-fit part is a return Aria pays for, two chances
+   to CONFIRM a fit instead of one.
+
+   These are NOT Tiendas. Aria Auto's sources live here, apart from
+   RETAILERS, and they never enter the Tiendas grid — that grid stays at
+   its symmetric eight. Mirrors scripts/lib/auto-sources.js.
+   ============================================================ */
+const AUTO_SOURCES = {
+  autozone: {
+    key: "autozone",
+    label: "AutoZone",
+    color: "#1C8A4B",
+    logo: "logos/autozone.svg",
+    search: true,
+    /* Whether this source publishes a per-vehicle compatibility list at
+       all. `partial` is the honest answer for AutoZone today: the actor
+       runs in overview mode, which returns no description, no features
+       and a two-key specs object — an audit of all 9,285 cached items
+       found exactly zero compatibility lists. The list exists on the
+       product detail page; capturing it is a scrape-mode change, not a
+       code change. Until a refresh brings it in, every AutoZone result
+       is `unknown` and the honest empty state is what shows. */
+    fitmentData: "partial",
+    note: "Catálogo amplio; el calce viene en la ficha del producto, no en el listado.",
   },
-  // Add future auto parts sources here — just id, label, and an async
-  // search(vehicle, query, maxItems) returning normalized items via
-  // normalizeAutoPartItem(). No other code needs to change.
-];
+  /* ROCKAUTO (2026-09-20, per the brief). Deep catalogue, competitive
+     prices, a real YMM selector, and a site that does not fight
+     scrapers — which is why it is the second source rather than one of
+     the chains.
+
+     It ships `search: false` for the same reason Sephora and Victoria's
+     Secret did: apify.com is unreachable from this build environment
+     (the egress proxy answers 403 to every host outside its allowlist),
+     so there is no way to verify an actor ID from here. Pointing the
+     scraper at a guessed actor returns an empty run, which reads to a
+     shopper as "RockAuto has no parts for your car" — a lie, and exactly
+     the kind this section is being fixed to stop telling. Step 2 and
+     step 3 of ADDING A PARTS SOURCE above are the whole remaining task. */
+  rockauto: {
+    key: "rockauto",
+    label: "RockAuto",
+    color: "#C8102E",
+    logo: null,
+    search: false,
+    fitmentData: "yes",
+    pendingNote: "Conectando el catálogo",
+    note: "Selector año/marca/modelo propio y listas de compatibilidad por pieza.",
+  },
+  /* ADVANCE AUTO PARTS — conditional per the brief: probe it, onboard it
+     only if the scrape comes back clean, and skip it silently otherwise
+     rather than blocking the fix.
+
+     NOT PROBED, and that is a fact rather than a judgement: this
+     environment cannot reach advanceautoparts.com any more than it can
+     reach apify.com. So the row exists with the probe recorded as not
+     run, and it is excluded from the UI exactly as if it had failed —
+     `search: false` keeps it out of the fan-out, and an unprobed source
+     is not presented to a shopper. Run the probe, and if it returns real
+     items, flip the flag. NAPA is the same shape when its turn comes. */
+  advanceauto: {
+    key: "advanceauto",
+    label: "Advance Auto Parts",
+    color: "#D5001C",
+    logo: null,
+    search: false,
+    fitmentData: "unknown",
+    probe: "not-run",
+    pendingNote: "Por evaluar",
+    note: "Onboarding condicional: solo si el scrape responde limpio.",
+  },
+  /* O'REILLY IS OUT, and stays out. Danny tried it: the site declines
+     scraper requests. Kept as a row so nobody spends another afternoon
+     rediscovering that. Never flip `search` on this one without a new
+     reason that is not "let us try again". */
+  oreilly: {
+    key: "oreilly",
+    label: "O'Reilly Auto Parts",
+    color: "#006341",
+    logo: null,
+    search: false,
+    excluded: true,
+    excludedReason: "Rechaza peticiones de scraping (probado 2026-09).",
+  },
+};
+
+/** Sources Aria Auto actually queries. */
+function searchableAutoSources() {
+  return Object.values(AUTO_SOURCES).filter((s) => s.search && !s.excluded);
+}
+
+/**
+ * Every source a shopper is shown, in order — the ones we query, plus
+ * the ones being connected, which get an honest "conectando" block
+ * rather than being hidden. A source that was tried and refused
+ * (O'Reilly) is not shown at all: it is an operational fact, not news.
+ */
+function visibleAutoSources() {
+  return Object.values(AUTO_SOURCES).filter((s) => !s.excluded && s.probe !== "not-run");
+}
+
+function autoSourceFor(key) {
+  return AUTO_SOURCES[String(key || "").toLowerCase()] || null;
+}
+
+function autoSourceLabel(key) {
+  return autoSourceFor(key)?.label || key || "Tienda";
+}
+
+/* A source's own mark. Aria Auto's sources are deliberately NOT in the
+   Tiendas registry, so retailerBadgeHTML() cannot resolve them — this
+   reads the auto registry instead and falls back to a wordmark pill on
+   the source's own colour, the same treatment a store with no logo file
+   gets on Tiendas. */
+function autoSourceBadgeHTML(key, heightPx = 22){
+  const s = autoSourceFor(key);
+  if (!s) return retailerBadgeHTML(key, heightPx);
+  if (s.logo){
+    return `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle">`;
+  }
+  return `<span class="inline-flex items-center h-[${heightPx}px] px-2.5 rounded-lg text-[12px] font-extrabold text-white align-middle" style="background:${s.color}">${escapeHtml(s.label)}</span>`;
+}
+
+/* ONE SEARCH PATH FOR EVERY SOURCE. AutoZone's cached results and a
+   future source's live scrape go through the same function; the only
+   per-source facts are the registry row and the actor config in
+   apify-scrape-start.js. That is what makes adding RockAuto data entry
+   rather than code. */
+async function searchAutoSource(sourceKey, vehicle, query, maxItems){
+  const cache = await loadAutoCache();
+  const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
+  if (cached?.length) return cached.map(it => normalizeAutoPartItem(sourceKey, it));
+  // Translated before it leaves: every parts catalogue is in English.
+  const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
+  const rawItems = await scrapeRetailer(sourceKey, combined, maxItems);
+  return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
+}
+
+/* Built from the registry, not hand-listed. A row with search:false is
+   still SHOWN — as its own "conectando el catálogo" block — because a
+   store the shopper can see us connecting is information, while a store
+   silently missing is not. */
+const AUTO_PARTS_SOURCES = visibleAutoSources().map(s => ({
+  id: s.key,
+  label: s.label,
+  pending: !s.search,
+  pendingNote: s.pendingNote || 'Conectando el catálogo',
+  search: s.search ? (vehicle, query, maxItems) => searchAutoSource(s.key, vehicle, query, maxItems) : null,
+}));
+
+/* A source whose scraper is not wired up yet. Honest, and deliberately
+   not a fake empty result: "conectando" and "no calza con tu vehículo"
+   are different facts and a shopper deserves to know which one they are
+   looking at. */
+function autoPendingBlockHTML(source, vehicle, query){
+  return `<div class="mb-8">
+    <div class="mb-3">${autoSourceBadgeHTML(source.id, 22)}</div>
+    <div class="rounded-2xl border p-5" style="border-color:var(--line); background:#FAFBFD">
+      <div class="text-[13.5px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(source.pendingNote)}</div>
+      <p class="text-[12.5px] leading-relaxed" style="color:#5B6478">
+        Todavía no consultamos ${escapeHtml(source.label)} automáticamente. Si no encuentras tu repuesto
+        en las otras tiendas, escríbenos y lo buscamos ahí a mano.
+      </p>
+    </div>
+  </div>`;
+}
 
 // Card-shaped while loading, so results do not jump from a two-line strip
 // to a grid of large cards.
@@ -7173,38 +7850,55 @@ function fitmentBadgeHTML(vehicle, verified){
   const label = vehicleLabel(vehicle);
   if (!label) return '';
   const base = 'absolute top-3 left-3 right-3 text-[12.5px] font-extrabold px-3 py-1.5 rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.18)] leading-snug';
-  // Green and a compatibility claim ONLY when the retailer's own fitment
-  // data confirmed this exact vehicle (see fitmentVerified). Otherwise an
-  // amber prompt to check — never a claim we cannot back.
-  return verified
-    ? `<span class="${base}" style="background:#1E7A43; color:#fff">Compatible con tu ${escapeHtml(label)}</span>`
-    : `<span class="${base}" style="background:#8A6B1F; color:#fff">Verifica el calce · ${escapeHtml(label)}</span>`;
+  /* ONE BRANCH (2026-09-20). This used to fall back to an amber
+     "Verifica el calce · [vehículo]" whenever the fitment data did not
+     confirm the car — which is how a shopper ended up holding generic
+     brake pads and the job of checking them. A card only reaches this
+     function now if its compatibility list names the vehicle, so the
+     badge is green or the card is not on the page. There is deliberately
+     no "maybe" state to render. */
+  if (!verified) return '';
+  return `<span class="${base}" style="background:#1E7A43; color:#fff">Compatible con tu ${escapeHtml(label)}</span>`;
 }
 
 /* ============================================================
    NO FITMENT DATA IS AN ANSWER, NOT A REASON TO GUESS
 
-   Root cause, established from real searches: "pastillas de freno" works
-   for an Audi A4, a 2023 Elantra and a 2019 Yaris, and fails for a 2023
-   Yaris — because that model year was never sold in the US, so no US
-   retailer holds fitment for it. The keyword search still returned
-   something (universal parts, accessories, junk) and the page showed it
-   under a compatibility badge. That is the worst possible answer: wrong
-   parts, presented as right.
+   Two outcomes, and the middle one is banned (2026-09-20):
 
-   The only fitment signal AutoZone returns is vehicle_fitment, which is
-   VEHICLE_SPECIFIC or UNIVERSAL. So: if NOT ONE result is vehicle
-   specific, we have no fitment data for this vehicle, and we say so
-   instead of showing a list. When we do have it, the vehicle-specific
-   results are what we show — a universal air freshener is not an answer
-   to "brake pads for my car".
+     1. A part whose compatibility list names this vehicle -> shown, with
+        the green "Compatible con tu [vehículo]" badge.
+     2. No part in this store's results carries a compatibility list at
+        all -> the honest empty state and the concierge path.
+
+   A part WITH a list that does not name this car is simply not shown.
+   That is the whole point: the shopper asked whether it fits, and
+   "there is a list and you are not on it" is a no.
+
+   WHAT USED TO BE HERE read AutoZone's `vehicle_fitment` field, whose
+   only two values are VEHICLE_SPECIFIC and UNIVERSAL. VEHICLE_SPECIFIC
+   means "sold per vehicle" — it never said WHICH vehicle — so it
+   filtered out air fresheners and nothing else, and every surviving card
+   wore "Verifica el calce". The picker was decoration.
+
+   HONEST NOTE ON TODAY'S DATA. An audit of all 9,285 cached AutoZone
+   items found zero compatibility lists: every one was scraped in
+   overview mode, which returns no description, no features and a
+   two-key specs object. The lists are on the product detail pages. So
+   until scripts/refresh-auto-cache.js runs again against a scrape mode
+   that captures them, outcome 2 is what Aria Auto shows — which is the
+   correct behaviour under this contract, and visibly better than
+   confidently selling someone the wrong brake pads.
    ============================================================ */
-function hasFitmentData(items){
-  return items.some(it => it?.raw?.vehicle_fitment === 'VEHICLE_SPECIFIC');
+
+/** Items whose compatibility list names the selected vehicle. */
+function vehicleFittedItems(items, vehicle){
+  return items.filter(it => fitmentVerdict(it?.raw, vehicle) === 'fits');
 }
 
-function vehicleFittedItems(items){
-  return items.filter(it => it?.raw?.vehicle_fitment === 'VEHICLE_SPECIFIC');
+/** True when ANY result carries a compatibility list we could read. */
+function hasFitmentData(items, vehicle){
+  return items.some(it => fitmentVerdict(it?.raw, vehicle) !== 'unknown');
 }
 
 /* A tally, not a log of people: vehicle + part, so the gaps can be
@@ -7221,10 +7915,10 @@ function logFitmentGap(vehicle, query){
   } catch { /* never let a tally break a search */ }
 }
 
-function fitmentGapHTML(label, vehicle, query){
+function fitmentGapHTML(label, vehicle, query, sourceKey){
   const v = escapeHtml(vehicleLabel(vehicle));
   return `<div class="mb-8">
-    <div class="mb-3">${retailerBadgeHTML(label, 22)}</div>
+    <div class="mb-3">${autoSourceBadgeHTML(sourceKey || label, 22)}</div>
     <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
       <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">No tenemos datos de calce para tu ${v} en tiendas de EE. UU.</div>
       <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
@@ -7318,49 +8012,64 @@ function axleSelectorHTML(blockId){
   </div>`;
 }
 
-function renderAutoPartBlock(label, result, query){
-  const header = `<div class="mb-3">${retailerBadgeHTML(label, 22)}</div>`;
+/* ONE BLOCK PER SOURCE, AND EACH ONE ANSWERS FOR ITSELF (2026-09-20).
+
+   A store with no fitment data for this vehicle gets its own honest
+   empty state — it does not blank the page, and it does not hide behind
+   a store that does have data. If AutoZone confirms four pads and
+   RockAuto has nothing for the car, the shopper sees both facts. That
+   is the comparison this section exists to give. */
+function renderAutoPartBlock(label, result, query, sourceKey){
+  const header = `<div class="mb-3">${autoSourceBadgeHTML(sourceKey || label, 22)}</div>`;
   if (!result.ok){
     return `<div class="mb-6">${header}
       <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
     </div>`;
   }
+  const vehicle = selectedVehicle;
   const rawItems = Array.isArray(result.items) ? result.items : [];
-  /* No fitment data for this vehicle: say so, show nothing, log the gap.
-     Never fall back to the unfiltered result set (see hasFitmentData). */
-  if (rawItems.length && !hasFitmentData(rawItems)){
-    logFitmentGap(selectedVehicle, query);
-    return fitmentGapHTML(label, selectedVehicle, query);
+
+  /* OUTCOME 2: no compatibility data anywhere in this store's results.
+     Say so, show nothing, log the gap. Never fall back to the unfiltered
+     keyword results — that was the bug. */
+  if (!rawItems.length || !hasFitmentData(rawItems, vehicle)){
+    logFitmentGap(vehicle, query);
+    return fitmentGapHTML(label, vehicle, query, sourceKey);
   }
-  // Car-fitment results carry car parts only: lawn, wheelbarrow, trailer
-  // and ATV tires are dropped here (see filterAutomotiveParts), and only
-  // vehicle-specific parts are shown when we have fitment at all.
-  const items = filterAutomotiveParts(vehicleFittedItems(rawItems), query);
-  if (!rawItems.length){
-    logFitmentGap(selectedVehicle, query);
-    return fitmentGapHTML(label, selectedVehicle, query);
-  }
+
+  /* OUTCOME 1: filter to the parts whose list names this car. A part
+     with a list that does NOT name it is excluded — a shopper asked
+     whether it fits and the source answered no. Lawn and wheelbarrow
+     tires are dropped separately (filterAutomotiveParts). */
+  const fitted = vehicleFittedItems(rawItems, vehicle);
+  const items = filterAutomotiveParts(fitted, query);
+  const excluded = rawItems.length - fitted.length;
+
   if (!items.length){
-    const droppedAll = rawItems.length > 0;
-    return `<div class="mb-6">${header}
-      <div class="text-[12px] text-zinc-400">${droppedAll && isTireQuery(query)
-        ? 'Sin llantas de auto para este vehículo. Los resultados que llegaron eran de jardín o carretilla, así que no los mostramos.'
-        : 'Sin resultados.'}</div>
+    return `<div class="mb-8">${header}
+      <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
+        <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">
+          Nada que calce con tu ${escapeHtml(vehicleLabel(vehicle))} en ${escapeHtml(label)}
+        </div>
+        <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
+          ${excluded > 0
+            ? `Revisamos ${excluded} repuesto${excluded === 1 ? '' : 's'} y ninguno lista tu vehículo. Preferimos no venderte algo que quizá no encaje.`
+            : 'No encontramos repuestos con calce confirmado para tu vehículo aquí.'}
+        </p>
+        <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">
+          Escríbenos qué pieza necesitas y la buscamos manualmente
+        </button>
+      </div>
     </div>`;
   }
+
   // RULE: never link any part of a product card to the retailer's own
   // site — the card routes into our own product page via
   // openAutoPart()/showProduct(), same as every other buy action on this
   // site. Do not add an <a href> to a scraped item.url here or anywhere
   // else a product card is rendered.
-  //
-  // One weight for the whole block: the estimate comes from the part
-  // category in the query, not from the item (AutoZone exposes no
-  // per-SKU weight in any scrape mode — see estimatePartWeightKg).
-  const vehicle = selectedVehicle;
   const blockId = `autoBlockGrid-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, '')}`;
   const axles = new Set(items.map(axleFromItem).filter(Boolean));
-  let verifiedCount = 0;
   const cards = items.map((it) => {
     const axle = axleFromItem(it);
     const card = {
@@ -7374,39 +8083,37 @@ function renderAutoPartBlock(label, result, query){
       rating: it.rating != null ? it.rating : null,
       axle,
     };
-    // Per item, not per block: one confirmed part does not vouch for the
-    // rest of the results.
-    const verified = fitmentVerified(it, vehicle);
-    if (verified) verifiedCount++;
     const idx = autoPartsRendered.push(card) - 1;
     return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {
       open: `openAutoPart(${idx})`,
-      badgeHTML: fitmentBadgeHTML(vehicle, verified) + axleBadgeHTML(axle),
+      // Every card in this list is confirmed — that is what got it here.
+      badgeHTML: fitmentBadgeHTML(vehicle, true) + axleBadgeHTML(axle),
     })}</div>`;
   }).join('');
-  const dropped = rawItems.length - items.length;
+
+  const droppedTires = fitted.length - items.length;
   // Only when the vehicle really has both — a selector with one option is
   // a dead control.
   const selector = axles.has('front') && axles.has('rear') ? axleSelectorHTML(blockId) : '';
-  /* The line states what the search was for, not a verified fit:
-     AutoZone's actor is a keyword search ("2023 Toyota Yaris llantas"),
-     with no VIN or fitment API behind it, so the cards say "Verifica el
-     calce" (see fitmentVerified). Once a real fitment source confirms a
-     part for this exact vehicle, that card turns green on its own and
-     this line reports how many were confirmed. */
-  const scopeLine = verifiedCount === items.length
-    ? `Calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
-    : verifiedCount > 0
-      ? `${verifiedCount} de ${items.length} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}. El resto, verifícalo antes de pedir.`
-      : `Resultados buscados para tu ${escapeHtml(vehicleLabel(vehicle))}. La tienda no confirma el calce por vehículo, así que verifícalo antes de pedir.`;
+  /* The line is now a statement of fact rather than a disclaimer. Every
+     card below carries a compatibility list naming this vehicle; the old
+     "verifícalo antes de pedir" has nothing left to apply to. */
+  const scopeLine = `${items.length} repuesto${items.length === 1 ? '' : 's'} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
+    + (excluded > 0 ? ` Ocultamos ${excluded} que no lista${excluded === 1 ? '' : 'n'} tu vehículo.` : '')
+    + (droppedTires > 0 && isTireQuery(query)
+        ? ` Y ${droppedTires} que no ${droppedTires === 1 ? 'era' : 'eran'} de auto (jardín, carretilla o remolque).`
+        : '');
   return `<div class="mb-8">${header}
-    <p class="text-[11.5px] mb-3" style="color:#8A93A8">${scopeLine}${dropped > 0 && isTireQuery(query)
-      ? ` Ocultamos ${dropped} resultado${dropped === 1 ? '' : 's'} que no ${dropped === 1 ? 'era' : 'eran'} de auto (jardín, carretilla o remolque).`
-      : ''}</p>
+    <p class="text-[11.5px] mb-3" style="color:#8A93A8">${scopeLine}</p>
     ${selector}
-    <div id="${blockId}" class="grid grid-cols-1 md:grid-cols-2 gap-5">${cards}</div>
+    <div id="${blockId}" class="${LISTING_GRID_CLASS}">${cards}</div>
   </div>`;
 }
+
+/* CONFIRMED-FIT RESULTS, PER SOURCE, COLLECTED FOR COMPARISON.
+   Keyed by source so the comparison strip can say where each part came
+   from, and so a source that answers late does not reorder the blocks. */
+let autoConfirmedBySource = new Map();
 
 async function searchAutoParts(){
   if (!selectedVehicle){ showToast('Elige marca, modelo y año primero.'); return; }
@@ -7416,18 +8123,81 @@ async function searchAutoParts(){
 
   const wrap = document.getElementById('autoPartsResultsWrap');
   autoPartsRendered = [];   // a new search replaces what the cards index into
+  autoConfirmedBySource = new Map();
   wrap.classList.remove('hidden');
-  wrap.innerHTML = AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${autoPartSkeleton(s.label)}</div>`).join('');
+  wrap.innerHTML = `<div id="autoCompareWrap"></div>`
+    + AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${
+        s.pending ? autoPendingBlockHTML(s, selectedVehicle, query) : autoPartSkeleton(s.label)
+      }</div>`).join('');
 
   await Promise.allSettled(AUTO_PARTS_SOURCES.map(async (source) => {
+    if (source.pending) return;      // nothing to query; its block is already honest
     const blockEl = document.getElementById(`autoBlock-${source.id}`);
     try {
       const items = await source.search(selectedVehicle, query, 5);
-      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query);
+      const confirmed = filterAutomotiveParts(vehicleFittedItems(items, selectedVehicle), query);
+      autoConfirmedBySource.set(source.id, confirmed);
+      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
     } catch (err) {
-      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: false, error: err.message }, query);
+      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: false, error: err.message }, query, source.id);
     }
+    renderAutoComparison(query);
   }));
+  renderAutoComparison(query);
+}
+
+/* ============================================================
+   THE COMPARISON STRIP — Google Flights, for brake pads.
+
+   The same part, across stores, ranked by what it costs AT YOUR DOOR:
+   product price plus the freight its own weight earns. Store attribution
+   on every row, because "which shop" is the second question after "does
+   it fit" and the answer changes the price.
+
+   It only renders when TWO OR MORE sources returned confirmed-fit parts.
+   With one source it would be the same list twice under a different
+   heading, which is noise pretending to be a feature. */
+function renderAutoComparison(query){
+  const wrap = document.getElementById('autoCompareWrap');
+  if (!wrap) return;
+  const sources = [...autoConfirmedBySource.entries()].filter(([, items]) => items.length);
+  if (sources.length < 2){ wrap.innerHTML = ''; return; }
+
+  const rows = [];
+  for (const [sourceKey, items] of sources){
+    for (const it of items){
+      const weightKg = partWeightForItem(it, query, selectedVehicle);
+      rows.push({
+        sourceKey,
+        title: it.title,
+        price: it.price,
+        weightKg,
+        doorUsd: doorToDoorUsd({ price: it.price, weightKg }),
+      });
+    }
+  }
+  rows.sort((a, b) => a.doorUsd - b.doorUsd);
+  const best = rows[0];
+
+  wrap.innerHTML = `<div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line); background:#fff">
+    <div class="text-[15px] font-extrabold mb-1" style="color:var(--navy)">
+      El mismo repuesto, tienda por tienda
+    </div>
+    <p class="text-[12px] mb-4" style="color:#6B7487">
+      Ordenado por lo que pagas a tu puerta: producto + flete. Todos con calce confirmado para tu ${escapeHtml(vehicleLabel(selectedVehicle))}.
+    </p>
+    <div class="space-y-2">${rows.slice(0, 8).map(r => `
+      <div class="flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5" style="border-color:var(--line); ${r === best ? 'background:#F1F7F3' : ''}">
+        <div class="min-w-0 flex items-center gap-2.5">
+          ${autoSourceBadgeHTML(r.sourceKey, 18)}
+          <span class="text-[12.5px] truncate" style="color:var(--navy)">${escapeHtml(clampWords(r.title, 52))}</span>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <div class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${escapeHtml(fmtPriceLabel(r.doorUsd))}</div>
+          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}</div>
+        </div>
+      </div>`).join('')}</div>
+  </div>`;
 }
 
 let toastTimer;
@@ -7717,7 +8487,7 @@ function repairCartWeights(list){
     // is furniture), then the category table, then the generic floor —
     // which is itself non-zero, so this cannot return 0.
     const estimated = estimateRetailWeightKg(it.title || '');
-    return { ...it, weightKg: estimated > 0 ? estimated : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned') };
+    return { ...it, weightKg: estimated > 0 ? estimated : GENERIC_FALLBACK_KG };
   });
   return { cart: repaired, changed };
 }
@@ -7878,8 +8648,18 @@ function fmtPEN_direct(pen){
 
    That is a dead end only if we leave it one, so it points at the thing
    that actually resolves it — a real person, through the assistant. */
+/* THE CART ASKS THE SAME QUESTION THE CARD DOES (2026-09-20).
+
+   It used to ask only "is this weight out of band", so a generic-guess
+   line whose freight exceeded the product's own price passed straight
+   through — the product page said "flete por confirmar" and the cart
+   charged S/ 47.29 on a S/ 40.18 conditioner. The price is what the
+   cart was missing, and it is on every line. */
 function cartWeightReviewItems(){
-  return cart.filter(it => estimateRetailWeightDetail(it.title || '').needsReview);
+  return cart.filter(it => {
+    const detail = estimateRetailWeightDetail(it.title || '');
+    return !freightQuotable(detail, Number(it.priceUsd ?? it.price)).quotable;
+  });
 }
 
 function renderCartWeightReview(){
@@ -7979,16 +8759,25 @@ function renderCartView(){
   /* The fee is decided on the PRICE THE SHOPPER SEES: soles, markup and
      all. Without a live FX rate there is no soles figure to compare
      against the threshold, so the row stays hidden rather than guessing —
-     checkout resolves it either way before anyone pays. */
+     checkout resolves it either way before anyone pays.
+
+     PRODUCTS + FLETE, not products alone (2026-09-20). A S/ 44.69 shirt
+     with S/ 10.07 of freight is a S/ 54.76 order, and charging it a
+     "pedido pequeño" fee under a note reading "sin cargo en pedidos
+     desde S/ 50" was the label calling the code a liar. See
+     smallOrderFeePen() in weight-data.js for what is and is not in the
+     base. */
   const productsPen = fxRate ? round2(totals.priceUsd * fxRate) : null;
-  const smallOrderFee = productsPen == null ? 0 : smallOrderFeePen(productsPen);
+  const freightPen = fxRate ? round2(cartFreight * fxRate) : 0;
+  const orderBasePen = productsPen == null ? null : round2(productsPen + freightPen);
+  const smallOrderFee = orderBasePen == null ? 0 : smallOrderFeePen(orderBasePen);
   const feeRow = document.getElementById('cartSmallOrderRow');
   document.getElementById('cartSmallOrderLabel').textContent = SMALL_ORDER_FEE_LABEL;
   document.getElementById('cartSmallOrderNote').textContent = SMALL_ORDER_FEE_NOTE;
   document.getElementById('cartSmallOrderFee').textContent = fmtPEN_direct(smallOrderFee);
   feeRow.hidden = !(smallOrderFee > 0);
 
-  const subtotalPen = productsPen == null ? null : round2(productsPen + (fxRate ? cartFreight * fxRate : 0) + smallOrderFee);
+  const subtotalPen = orderBasePen == null ? null : round2(orderBasePen + smallOrderFee);
   document.getElementById('cartSubtotal').innerHTML = subtotalPen == null
     ? fmtPriceLabel(totals.priceUsd + cartFreight)
     : fmtPEN_direct(subtotalPen);
@@ -8019,6 +8808,21 @@ const TAX_ZONE_THRESHOLD_USD = IMPORT_TAX_THRESHOLD_USD;
 const TAX_ZONE_RATE = IMPORT_TAX_RATE;
 const TAX_ZONE_AMBER_START_USD = 150;
 
+/* WHY THIS BAR DOES NOT COUNT FREIGHT, unlike the small-order fee
+   (2026-09-20).
+
+   The fee's threshold was just rebased onto products + freight, because
+   "mi pedido" is what a shopper means by an order and the fee is ours to
+   define. This bar is a different thing that happens to look similar: it
+   measures distance to PERU'S $200 de minimis, which is assessed on
+   DECLARED VALUE — the goods — and not on what it cost to fly them here.
+
+   Adding freight to this base would make the bar announce "supera los
+   $200 y entrará en zona de impuestos" for a $180 order carrying $25 of
+   freight, which is a false statement about a government charge and
+   would talk shoppers out of orders that are not taxed at all. The two
+   bases differ because the two thresholds are different rules, one ours
+   and one the state's. Do not "reconcile" them. */
 // Lives on the cart page (not checkout) per the brief — never distract at
 // the payment step. usdSubtotal is the same USD FOB total (pre-shipping)
 // used for the freight quote, computed from cartTotals().priceUsd.
@@ -9250,9 +10054,12 @@ function productCardHTML(p, opts){
      card says the freight is being confirmed instead. A weight we
      actually have a row for still quotes, however heavy it is — that is
      what the "Flete alto" badge is for. */
-  const weightUnderReview = p.weightNeedsReview === true
-    || localDetail?.needsReview === true
-    || (reviewKind === 'gap' && freightShare != null && freightShare > FREIGHT_FEATURE_CEILING);
+  const weightUnderReview = !freightQuotable({
+    kg: weightKg,
+    needsReview: p.weightNeedsReview === true || localDetail?.needsReview === true,
+    reviewKind,
+    source: p.weightSource,
+  }, price).quotable;
   // A struck-through original only when there is a real one above the
   // current price — auto parts carry no originalPrice at all.
   const original = Number(p.originalPrice);

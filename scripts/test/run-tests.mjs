@@ -14,14 +14,14 @@
    ============================================================ */
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice } from "./_page-script.mjs";
+import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
 import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
-import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN } from "../../weight-data.js";
+import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
@@ -34,6 +34,9 @@ import * as shippingRegistry from "../../netlify/functions/_shipping/registry.js
 import * as shippingService from "../../netlify/functions/_shipping/service.js";
 import { makeAviTracking } from "../../netlify/functions/_shipping/avi-adapter.js";
 import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courier-economics.js";
+import * as fitment from "../lib/fitment.js";
+import * as autoSources from "../lib/auto-sources.js";
+import * as supplements from "../lib/supplement-weight.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -65,6 +68,9 @@ const page = loadPageWeightSlice();
 const pageQuery = loadPageQuerySlice();
 const pageShipping = loadPageShippingSlice();
 const pageSupport = loadPageSupportSlice();
+const pageFee = loadPageFeeSlice();
+const pageFitment = loadPageFitmentSlice();
+const pageAuto = loadPageAutoSourcesSlice();
 
 /* ------------------------------------------------------------------
    P1.1 — the beauty table, row by row, against the brief's own figures.
@@ -862,9 +868,48 @@ check("the fee is config, never inlined in a template", () => {
 });
 
 check("the server recomputes the fee rather than trusting the browser", () => {
-  const src = readFileSync(root("netlify/functions/orders-create.js"), "utf8");
-  if (!src.includes("smallOrderFeePen(productsPen)")) {
-    throw new Error("orders-create.js does not recompute the fee from the real subtotal");
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  // Recomputed from the server's own order base, never read off the request.
+  if (!/smallOrderFeePen\(orderBasePen\)/.test(src)) {
+    throw new Error("orders-create.js does not recompute the fee from its own order base");
+  }
+  if (/body\.smallOrderFeePen|quote\.smallOrderFeePen/.test(src)) {
+    throw new Error("orders-create.js trusts a browser-supplied fee");
+  }
+  // …and that base is products + freight, not products alone.
+  if (!/priceUsdTotal \+ freightUsdQuoted/.test(src)) {
+    throw new Error("the server fee base is not products + freight");
+  }
+});
+
+check("the fee is measured against the order, not the products alone", () => {
+  /* REPORTED LIVE: S/ 44.69 of shirt plus S/ 10.07 of freight — S/ 54.76
+     all in — charged the S/ 10 fee under a label promising no charge
+     from S/ 50. */
+  eq(smallOrderFeePen(44.69 + 10.07), 0, "the reported cart pays no fee");
+  eq(smallOrderFeePen(44.69), SMALL_ORDER_FEE_PEN, "products alone would still have charged it");
+  // The line itself: at the threshold is free, a cent under is not.
+  eq(smallOrderFeePen(SMALL_ORDER_THRESHOLD_PEN), 0, "exactly S/ 50 is not a small order");
+  eq(smallOrderFeePen(SMALL_ORDER_THRESHOLD_PEN - 0.01), SMALL_ORDER_FEE_PEN, "a cent under still pays");
+  // A genuinely small order still pays it — the fee keeps its job.
+  eq(smallOrderFeePen(30 + 5), SMALL_ORDER_FEE_PEN, "a S/ 35 order all in");
+});
+
+check("the note states the basis the code actually uses", () => {
+  // The bug was a label that said "pedidos" over code that measured
+  // products. Whatever the note claims, it now says which.
+  if (!/productos \+ flete/i.test(SMALL_ORDER_FEE_NOTE)) {
+    throw new Error(`the note does not state its basis: "${SMALL_ORDER_FEE_NOTE}"`);
+  }
+  eq(pageFee.SMALL_ORDER_FEE_NOTE, SMALL_ORDER_FEE_NOTE, "index.html mirror");
+  // Every surface that charges it measures the same thing.
+  const cart = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/smallOrderFeePen\(orderBasePen\)/.test(cart)) {
+    throw new Error("the cart does not use the products+freight base");
+  }
+  const checkout = stripComments(readFileSync(root("checkout.html"), "utf8"));
+  if (!/currentValor\(\) \+ currentFreightUsd\(\)/.test(checkout)) {
+    throw new Error("checkout does not use the products+freight base");
   }
 });
 
@@ -1813,6 +1858,327 @@ check("index.html mirrors the support constants", () => {
   for (const kind of ["returns", "order", "general"]) {
     eq(pageSupport.SUPPORT_LINKS[kind](), support.SUPPORT_LINKS[kind](), kind);
   }
+});
+
+
+/* ------------------------------------------------------------------
+   ARIA AUTO — the YMM picker filters, or it says nothing
+   ------------------------------------------------------------------ */
+group("auto: fitment matching");
+
+const SONATA = { year: "2020", make: "Hyundai", model: "Sonata" };
+const COROLLA = { year: "2014", make: "Toyota", model: "Corolla" };
+
+check("the reported compatibility list matches the reported car", () => {
+  // Danny's live example, verbatim.
+  const text = "fits Hyundai Sonata, Hyundai Tucson, Kia K5, Kia Sportage 2020–2024";
+  const vehicles = fitment.parseFitmentText(text);
+  if (vehicles.length !== 4) throw new Error(`parsed ${vehicles.length} vehicles, expected 4`);
+  eq(fitment.matchesVehicle(vehicles, SONATA), true, "the Sonata is on the list");
+  eq(fitment.matchesVehicle(vehicles, { ...SONATA, model: "Tucson" }), true, "so is the Tucson");
+  eq(fitment.matchesVehicle(vehicles, COROLLA), false, "the Corolla is not");
+  // The trailing range applies to every entry that has no year of its own.
+  eq(fitment.matchesVehicle(vehicles, { ...SONATA, year: "2019" }), false, "a year below the range");
+  eq(fitment.matchesVehicle(vehicles, { ...SONATA, year: "2025" }), false, "a year above it");
+});
+
+check("the second test case from the brief", () => {
+  const vehicles = fitment.parseFitmentText("Fits: 2014-2019 Toyota Corolla");
+  eq(fitment.matchesVehicle(vehicles, COROLLA), true);
+  eq(fitment.matchesVehicle(vehicles, SONATA), false);
+  eq(fitment.matchesVehicle(vehicles, { ...COROLLA, year: "2013" }), false);
+});
+
+check("two-word makes and hyphenated models survive parsing", () => {
+  // An earlier cut stripped every range separator wherever it appeared,
+  // which ate the hyphen in "Mercedes-Benz" and the "a" inside "Toyota".
+  const mb = fitment.parseFitmentText("Compatible with Mercedes-Benz C-Class 2018-2022");
+  eq(fitment.matchesVehicle(mb, { year: "2020", make: "Mercedes-Benz", model: "C-Class" }), true);
+  const f150 = fitment.parseFitmentText("Fits Ford F-150 2015-2020");
+  eq(fitment.matchesVehicle(f150, { year: "2018", make: "Ford", model: "F-150" }), true);
+  eq(fitment.matchesVehicle(f150, { year: "2022", make: "Ford", model: "F-150" }), false);
+  const toyota = fitment.parseFitmentText("Fits Toyota Corolla");
+  eq(fitment.matchesVehicle(toyota, COROLLA), true, "a list with no year still names the model line");
+});
+
+check("a trim is not a different car", () => {
+  const v = fitment.parseFitmentText("Fits Hyundai Sonata SE 2020-2024");
+  eq(fitment.matchesVehicle(v, SONATA), true);
+});
+
+check("the verdict has three values and no maybe", () => {
+  // No list at all is an ABSENCE, never a soft yes.
+  eq(fitment.fitmentVerdict({ vehicle_fitment: "VEHICLE_SPECIFIC", specs: { "Pad Type": "Ceramic" } }, SONATA), "unknown");
+  eq(fitment.fitmentVerdict({ specs: { Fits: "Hyundai Sonata 2020-2024" } }, SONATA), "fits");
+  eq(fitment.fitmentVerdict({ specs: { Fits: "Hyundai Sonata 2020-2024" } }, COROLLA), "does-not-fit");
+  eq(fitment.fitmentVerdict({ fitment: [{ make: "Hyundai", model: "Sonata", yearFrom: 2020, yearTo: 2024 }] }, SONATA), "fits");
+  eq(fitment.fitmentVerdict(null, SONATA), "unknown");
+});
+
+check("VEHICLE_SPECIFIC alone never earns a fit", () => {
+  /* It was the only signal the old code had, and it means "sold per
+     vehicle" — not "fits YOUR vehicle". Every one of the 9,285 cached
+     AutoZone items carries it, which is exactly why the picker did
+     nothing. */
+  for (const raw of [
+    { vehicle_fitment: "VEHICLE_SPECIFIC" },
+    { vehicle_fitment: "UNIVERSAL" },
+    { vehicle_fitment: "VEHICLE_SPECIFIC", location: "Front", part_type: "Brake Pads" },
+  ]) {
+    eq(fitment.fitmentVerdict(raw, SONATA), "unknown", JSON.stringify(raw));
+  }
+});
+
+check("index.html mirrors the matcher", () => {
+  const cases = [
+    ["fits Hyundai Sonata, Hyundai Tucson, Kia K5, Kia Sportage 2020–2024", SONATA],
+    ["Fits: 2014-2019 Toyota Corolla", COROLLA],
+    ["Fits Ford F-150 2015-2020", { year: "2018", make: "Ford", model: "F-150" }],
+    ["Fits Honda Civic 2016-2021", SONATA],
+  ];
+  for (const [text, v] of cases) {
+    eq(
+      pageFitment.matchesVehicle(pageFitment.parseFitmentText(text), v),
+      fitment.matchesVehicle(fitment.parseFitmentText(text), v),
+      `${text} / ${v.make} ${v.model}`,
+    );
+  }
+  eq(pageFitment.fitmentVerdict({ specs: { Fits: "Hyundai Sonata 2020-2024" } }, SONATA), "fits", "page verdict");
+});
+
+group("auto: the banned middle ground is gone");
+
+check("no 'verifica el calce' copy is rendered anywhere", () => {
+  const html = readFileSync(root("index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const code = stripComments(html);
+  for (const banned of ["Verifica el calce", "verifícalo antes de pedir", "La tienda no confirma el calce"]) {
+    if (code.includes(banned)) throw new Error(`the banned disclaimer survives: "${banned}"`);
+  }
+});
+
+check("the badge has one branch, and it is green", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function fitmentBadgeHTML("), src.indexOf("function vehicleFittedItems("));
+  if (!/if \(!verified\) return '';/.test(fn)) throw new Error("the badge still renders an unverified state");
+  if (/8A6B1F/.test(fn)) throw new Error("the amber 'verify it yourself' badge is back");
+  if (!/1E7A43/.test(fn)) throw new Error("the green confirmed badge is gone");
+});
+
+check("the results path filters on fitment, not on VEHICLE_SPECIFIC", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (/vehicle_fitment/.test(src)) throw new Error("the old VEHICLE_SPECIFIC gate is still live code");
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("async function searchAutoParts("));
+  if (!/vehicleFittedItems\(rawItems, vehicle\)/.test(block)) {
+    throw new Error("the block does not filter to confirmed-fit items");
+  }
+  if (!/hasFitmentData\(rawItems, vehicle\)/.test(block) || !/fitmentGapHTML\(/.test(block)) {
+    throw new Error("the honest empty state is not the no-data outcome");
+  }
+});
+
+group("auto: sources are a registry, and not Tiendas");
+
+check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
+  eq(autoSources.AUTO_SOURCES.rockauto.label, "RockAuto");
+  eq(autoSources.AUTO_SOURCES.oreilly.excluded, true, "O'Reilly stays out");
+  if (!autoSources.AUTO_SOURCES.oreilly.excludedReason) throw new Error("no reason recorded for O'Reilly");
+  eq(autoSources.AUTO_SOURCES.advanceauto.probe, "not-run", "Advance Auto could not be probed from here");
+  // An excluded or unprobed source is never shown to a shopper.
+  const visible = autoSources.visibleAutoSources().map((s) => s.key);
+  if (visible.includes("oreilly")) throw new Error("O'Reilly is being shown");
+  if (visible.includes("advanceauto")) throw new Error("an unprobed source is being shown");
+  if (!visible.includes("rockauto")) throw new Error("RockAuto is not shown");
+  if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
+});
+
+check("the parts sources never enter the Tiendas grid", () => {
+  // The grid stays at its symmetric eight.
+  const tiendas = Object.keys(RETAILERS).filter((k) => !RETAILERS[k].retired);
+  eq(tiendas.length, 8, `Tiendas shows ${tiendas.length} stores`);
+  for (const key of Object.keys(autoSources.AUTO_SOURCES)) {
+    if (key === "autozone") continue;   // predates the split, and Aria Auto's own source
+    if (tiendas.includes(key)) throw new Error(`${key} leaked into the Tiendas grid`);
+  }
+});
+
+check("a source with no verified actor is not queried", () => {
+  // Same rule as the beauty stores: a guessed actor returns an empty run,
+  // which reads as "this store has nothing for your car" — a lie.
+  eq(autoSources.AUTO_SOURCES.rockauto.search, false);
+  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
+});
+
+check("index.html mirrors the source registry", () => {
+  eq(Object.keys(pageAuto.AUTO_SOURCES).join(","), Object.keys(autoSources.AUTO_SOURCES).join(","), "rows");
+  for (const [key, row] of Object.entries(autoSources.AUTO_SOURCES)) {
+    eq(pageAuto.AUTO_SOURCES[key].label, row.label, `${key} label`);
+    eq(pageAuto.AUTO_SOURCES[key].search, row.search, `${key} search`);
+    eq(Boolean(pageAuto.AUTO_SOURCES[key].excluded), Boolean(row.excluded), `${key} excluded`);
+  }
+});
+
+check("the auto scrape asks for the mode that carries fitment", () => {
+  /* The cache was built in "overview" mode, which returns no
+     description, no features and a two-key specs object — an audit of
+     all 9,285 cached items found zero compatibility lists. */
+  const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (!/const AUTO_SCRAPE_MODE = process\.env\.AUTO_SCRAPE_MODE \|\| "detail"/.test(src)) {
+    throw new Error("auto scrapes no longer request the detail mode");
+  }
+  const autozone = src.slice(src.indexOf("  autozone: {"), src.indexOf("  nordstrom:"));
+  if (/scrapeMode: "overview"/.test(autozone)) throw new Error("autozone is pinned back to overview mode");
+});
+
+/* ------------------------------------------------------------------
+   WEIGHT — the 0.68 and the 1.08
+   ------------------------------------------------------------------ */
+group("weight: the reported vitamin bottles");
+
+check("no single number serves two unrelated products", () => {
+  /* REPORTED LIVE: a 180-softgel bottle and a 5 fl oz liquid both quoted
+     0.68 kg. It was not the generic fallback — 0.68 is withBuffer(0.5,
+     "reasoned"), the one `vitamins|supplement` row that covered the
+     whole aisle. */
+  const d3 = estimateWeightDetail("Nature Made Vitamin D3 2000 IU, 180 Softgels");
+  const liquid = estimateWeightDetail("Soapbox Vitamin Booster Hair Serum, 5 fl oz");
+  const gummies = estimateWeightDetail("Nature's Way Sambucus Elderberry Gummies, 60 Count");
+  if (d3.kg === liquid.kg) throw new Error("two unrelated products still share one number");
+  for (const [name, d] of [["D3", d3], ["liquid", liquid], ["gummies", gummies]]) {
+    if (d.kg === 0.68) throw new Error(`${name} still quotes the 0.68 constant`);
+    if (!(d.kg > 0 && d.kg < 0.4)) throw new Error(`${name} is not a plausible small bottle: ${d.kg} kg`);
+  }
+  // …and the coarse row that produced it is gone from both tables.
+  for (const rel of ["scripts/lib/sales-sources.js", "index.html"]) {
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/vitamins\?\\b\|multivitamin/.test(src)) throw new Error(`${rel} still has the coarse vitamins row`);
+  }
+});
+
+check("the freight these bottles earn no longer manufactures a badge", () => {
+  // S/ 46.88 at the FX in the screenshot is about $12.
+  const d3 = estimateWeightDetail("Nature Made Vitamin D3 2000 IU, 180 Softgels");
+  const share = itemWeight.freightShare(d3.kg, 12, 13);
+  if (share > itemWeight.FREIGHT_BADGE_SHARE) {
+    throw new Error(`a vitamin bottle still reads as high-freight: ${Math.round(share * 100)}%`);
+  }
+  // The old number did, which is the bug the badge was faithfully reporting.
+  if (!(itemWeight.freightShare(0.68, 12, 13) > itemWeight.FREIGHT_BADGE_SHARE)) {
+    throw new Error("the fixture no longer reproduces the reported badge");
+  }
+});
+
+check("count, form and volume each change the answer", () => {
+  const kg = (t) => supplements.supplementWeightKg(t);
+  // Gummies are dense: 60 of them are not 60 tablets.
+  if (!(kg("Elderberry Gummies, 60 Count") > kg("Vitamin C Tablets, 60 Count"))) {
+    throw new Error("form is being ignored");
+  }
+  // More count, more weight.
+  if (!(kg("Vitamin D3, 300 Softgels") > kg("Vitamin D3, 60 Softgels"))) {
+    throw new Error("count is being ignored");
+  }
+  // A stated volume is read directly.
+  eq(kg("Elderberry Syrup, 5 fl oz"), 0.203, "5 fl oz = 148 ml + container");
+  // Sold by mass, not by count: the title's own weight wins upstream.
+  eq(kg("Gold Standard Whey Protein Powder, 2 lb"), null, "protein is not a handful of capsules");
+  // A dose is not a count.
+  if (kg("Vitamin D3 2000 IU") > 0.3) throw new Error("an IU dose was read as a pill count");
+});
+
+check("a vitamin bottle over half a kilo fails closed", () => {
+  const band = itemWeight.bandFor("Nature Made Vitamin D3, 180 Softgels");
+  eq(band.key, "suplemento");
+  eq(band.maxKg, 0.5);
+  eq(itemWeight.weightSanity("Nature Made Vitamin D3, 180 Softgels", 0.68).outOfBand, true,
+     "the old number would now be refused outright");
+});
+
+check("a stated volume beats a beauty row's flat figure", () => {
+  // The serum row is calibrated for a 30 ml dropper bottle; answering
+  // 0.10 kg for a 148 ml bottle under-quoted by half.
+  eq(beauty.beautyWeightDetail("The Ordinary Niacinamide Serum 30ml", {}).kg, 0.1, "the reference size is unchanged");
+  const big = beauty.beautyWeightDetail("Hair Serum, 5 fl oz", {});
+  if (!(big.kg > 0.18 && big.kg < 0.26)) throw new Error(`a 148 ml bottle came out at ${big.kg} kg`);
+  // And the band follows the size, so the honest answer is not flagged.
+  eq(itemWeight.weightSanity("CeraVe Moisturizing Cream 16 oz", 0.62).outOfBand, false,
+     "a 473 ml tub really does weigh this much");
+});
+
+group("weight: one generic fallback, and it does not reach a cart");
+
+check("the 1.08 generic is dead everywhere", () => {
+  eq(itemWeight.GENERIC_FALLBACK_KG, 0.6, "one constant");
+  const unknown = "Totally Unknown Widget XYZ";
+  eq(estimateWeightDetail(unknown).kg, itemWeight.GENERIC_FALLBACK_KG, "the module");
+  eq(page.estimateRetailWeightDetail(unknown).kg, itemWeight.GENERIC_FALLBACK_KG, "index.html");
+  eq(resolveItemWeight({ title: unknown }).weightKg, itemWeight.GENERIC_FALLBACK_KG, "the checkout resolver");
+  // The number itself must not survive as a literal anywhere it could
+  // become an estimate again.
+  for (const rel of ["scripts/lib/sales-sources.js", "netlify/functions/_weight-resolve.js"]) {
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/DEFAULT_RETAIL_WEIGHT_KG/.test(src)) throw new Error(`${rel} still has a second generic constant`);
+  }
+});
+
+check("the page and the checkout resolver agree on an unclassified item", () => {
+  /* They did not: the page said 1.08 and the resolver said 0.6, under a
+     comment in the resolver asserting they matched. An unclassified item
+     got heavier between the cart and the payment page. */
+  for (const title of ["Totally Unknown Widget XYZ", "Mystery Gadget 3000", "Unbranded Thing"]) {
+    eq(page.estimateRetailWeightDetail(title).kg, resolveItemWeight({ title }).weightKg, title);
+  }
+});
+
+check("the PDP and the cart tell the same story", () => {
+  /* REPORTED LIVE: a conditioner's page said "Flete por confirmar — lo
+     cotizamos antes de que pagues" and the cart charged S/ 47.29 of
+     freight on the same S/ 40.18 item. The card had the rule; the cart
+     and checkout had half of it. */
+  const cases = [
+    { title: "Totally Unknown Widget XYZ", priceUsd: 4, quotable: false },
+    { title: "Totally Unknown Widget XYZ", priceUsd: 60, quotable: true },
+    { title: "Nature Made Vitamin D3 2000 IU, 180 Softgels", priceUsd: 12, quotable: true },
+    { title: "By Veira Hydrating Conditioner, 10 fl oz", priceUsd: 10.6, quotable: true },
+  ];
+  for (const c of cases) {
+    const moduleVerdict = itemWeight.freightQuotable(estimateWeightDetail(c.title), c.priceUsd, 13).quotable;
+    const pageVerdict = page.freightQuotable(page.estimateRetailWeightDetail(c.title), c.priceUsd).quotable;
+    const cart = resolveCartWeights([{ title: c.title, priceUsd: c.priceUsd, qty: 1 }]);
+    eq(moduleVerdict, c.quotable, `module: ${c.title} at $${c.priceUsd}`);
+    eq(pageVerdict, c.quotable, `page: ${c.title} at $${c.priceUsd}`);
+    // The cart's verdict is the inverse: unquotable means it stops.
+    eq(!cart.needsReview, c.quotable, `cart: ${c.title} at $${c.priceUsd}`);
+  }
+});
+
+check("a blocked checkout gives the shopper somewhere to go", () => {
+  // "Lo cotizamos antes de que pagues" is only honest if checkout stops
+  // AND there is a way to reach a person from the stopped state.
+  const src = readFileSync(root("checkout.html"), "utf8");
+  const notice = src.slice(src.indexOf("function renderWeightReviewNotice()"), src.indexOf("function renderFragranceNotice()"));
+  if (!/data-support="order"/.test(notice)) throw new Error("the blocked state offers no way to write to us");
+  if (!/href="mailto:/.test(notice)) throw new Error("the contact is not a real mailto");
+  // …and Pagar really is disabled on that path.
+  if (!/weightReview\.needsReview[\s\S]{0,200}payBtn\.disabled = true/.test(src)) {
+    throw new Error("checkout does not actually stop before payment");
+  }
+});
+
+check("the retailer's own weight is no longer dropped at ingestion", () => {
+  /* AUDITED: all 144 products in department-cache.json carry eight
+     fields and not one weight-shaped key, because slimItem()'s allowlist
+     had none — layer 1 of the pipeline was deleted one step before the
+     extractor that reads it. */
+  const src = readFileSync(root("scripts/refresh-department-cache.js"), "utf8");
+  const resolver = readFileSync(root("netlify/functions/_weight-resolve.js"), "utf8");
+  const wanted = resolver.match(/const WEIGHT_FIELDS = \[([\s\S]*?)\]/)[1]
+    .match(/"([^"]+)"/g).map((s) => s.replace(/"/g, ""));
+  for (const field of wanted) {
+    if (!src.includes(`"${field}"`)) throw new Error(`the cache still drops ${field}`);
+  }
+  if (!src.includes('"specifications"')) throw new Error("the specifications array is still dropped");
+  // And every run reports whether layer 1 actually produced anything.
+  if (!/specWeightKg\(/.test(src)) throw new Error("no spec-weight coverage is reported");
 });
 
 /* ------------------------------------------------------------------ */

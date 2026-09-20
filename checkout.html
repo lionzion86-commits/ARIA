@@ -658,8 +658,19 @@
           ${weightReview.items.map(it => escapeHtmlLocal(String(it.title || '').slice(0, 60))).join(' · ')}
         </div>
         <div class="text-[12.5px] leading-snug mt-1.5" style="color:#8A6B1F">
-          Preferimos no cobrarte un flete que no podemos sostener. Escríbenos y te confirmamos el costo real antes de cobrar nada.
+          Preferimos no cobrarte un flete que no podemos sostener. Te confirmamos el costo real
+          y recién entonces pagas: el botón de pago queda cerrado hasta que lo apruebes.
         </div>
+        <!-- THE PROMISE NEEDS A DOOR (2026-09-20). The card says "lo
+             cotizamos antes de que pagues" and this page is where that
+             becomes true — the total is withheld and Pagar is disabled
+             above. What was missing was the way to actually reach us
+             from the blocked state, so a shopper was told to write
+             without being given anywhere to write to. Same support
+             address as every other CTA (scripts/lib/support.js). -->
+        <a data-support="order" href="mailto:daniel.leon@ariashop.pe?subject=Ayuda%20con%20mi%20pedido"
+           class="inline-flex items-center h-9 px-4 mt-2.5 rounded-full text-white text-[12.5px] font-bold no-underline focus-ring"
+           style="background:#8A6B1F">Escríbenos y confirmamos el flete</a>
       </div>
     </div>`;
   }
@@ -707,9 +718,24 @@
      compare, so the fee is 0 and its row stays hidden rather than being
      guessed at a made-up rate; the page is already in its USD-only
      degraded mode in that case. */
+  /* PRODUCTS + FLETE (2026-09-20). The threshold is measured against the
+     order, not the product subtotal — see smallOrderFeePen() in
+     weight-data.js. Before the live quote lands the fallback estimate's
+     freight is used, which is the same number the summary is already
+     showing the shopper; once the real quote arrives this recomputes on
+     it, so the fee can never be decided on a figure that is not on
+     screen. */
+  function currentFreightUsd(){
+    if (latestQuote) return Number(latestQuote.flete_usd) || 0;
+    const kg = currentKg(), valor = currentValor();
+    if (!(kg > 0 && valor > 0)) return 0;
+    return Number(fallbackQuote(kg, valor).flete_usd) || 0;
+  }
+
   function currentSmallOrderFeePen(){
     if (!fxRates) return 0;
-    return smallOrderFeePen(round2(currentValor() * fxRates.venta));
+    const orderUsd = currentValor() + currentFreightUsd();
+    return smallOrderFeePen(round2(orderUsd * fxRates.venta));
   }
 
   function renderSmallOrderRow(fee){

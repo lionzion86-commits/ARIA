@@ -118,29 +118,29 @@ export const BEAUTY_FALLBACK_KG = [
     match: /\b(foundation|base de maquillaje|base l[ií]quida)\b/i,
     needs: /\b(foundation|base)\b/i,
     not: /\b(foundation (?:repair|crack|vent|wall)|bed foundation|mattress foundation)\b/i,
-    kg: 0.15, pack: "carton" },
+    kg: 0.15, pack: "carton", refMl: 30 },
   { key: "polvo / rubor / bronceador",
     match: /\b(pressed powder|setting powder|loose powder|face powder|compact powder|blush|bronzer|highlighter|contour|polvo compacto|polvos? (?:sueltos?|compactos?|traslúcidos?)|rubor|colorete|bronceador|iluminador)\b/i,
     kg: 0.08, pack: "carton" },
   { key: "spray fijador",
     match: /\b(setting spray|makeup setting|fixing spray|spray fijador|fijador de maquillaje|bruma fijadora)\b/i,
-    kg: 0.15, pack: "carton" },
+    kg: 0.15, pack: "carton", refMl: 118 },
 
   /* --- nails --------------------------------------------------- */
   { key: "esmalte de uñas",
     match: /\b(nail ?polish|nail ?lacquer|nail ?enamel|gel polish|esmalte de u[ñn]as|esmalte para u[ñn]as)\b/i,
-    kg: 0.05, pack: "carton" },
+    kg: 0.05, pack: "carton", refMl: 15 },
 
   /* --- skincare ------------------------------------------------ */
   // Glass dropper bottle.
   { key: "sérum",
     match: /\b(serum|s[ée]rum|suero facial|ampolla)\b/i,
-    kg: 0.10, pack: "carton" },
+    kg: 0.10, pack: "carton", refMl: 30 },
   // A 50 ml jar is the heaviest thing on this list that is not a bottle:
   // most of the mass is the glass.
   { key: "crema hidratante",
     match: /\b(moisturi[sz]er|moisturi[sz]ing (?:cream|lotion|gel)|face cream|night cream|day cream|gel cream|crema hidratante|hidratante facial|crema facial|crema de noche|crema de d[ií]a)\b/i,
-    kg: 0.20, pack: "carton" },
+    kg: 0.20, pack: "carton", refMl: 50 },
 
   /* --- EXTENSIONS beyond the brief's 18 rows -------------------
      Victoria's Secret's catalogue is overwhelmingly body mists and
@@ -151,10 +151,10 @@ export const BEAUTY_FALLBACK_KG = [
      they are easy to find when the brief's table is next revised. */
   { key: "bruma corporal",
     match: /\b(body mist|body splash|fragrance mist|bruma corporal|body spray)\b/i,
-    kg: 0.35, pack: "carton" },
+    kg: 0.35, pack: "carton", refMl: 250 },
   { key: "loción / crema corporal",
     match: /\b(body lotion|body cream|body butter|hand cream|loci[óo]n corporal|crema corporal|manteca corporal|crema de manos)\b/i,
-    kg: 0.35, pack: "carton" },
+    kg: 0.35, pack: "carton", refMl: 236 },
 ];
 
 /* PERFUME sizes its own row: the bottle is most of the weight and the
@@ -263,13 +263,65 @@ export function beautyWeightDetail(title, hints = {}) {
   }
 
   const row = beautyRowFor(t);
-  if (row) return { kg: beautyRound2(row.kg + packAllowance(row.pack)), key: row.key, pack: row.pack };
+  if (row) {
+    /* A STATED VOLUME BEATS THE ROW'S FLAT FIGURE (2026-09-20).
+
+       Each liquid row's kg is calibrated for one typical size — the
+       sérum row is a 30 ml dropper bottle. A title that says "5 fl oz"
+       is selling five times that, and answering 0.10 kg for a 148 ml
+       bottle under-quotes by half. Fragrances have read their own volume
+       since this file was written (see perfumeWeightKg); this extends
+       the same courtesy to everything else that arrives in a bottle.
+
+       The row's figure is still the anchor: the container mass is
+       derived from it (row kg minus its reference volume), and only the
+       contents scale. So a calibrated row stays calibrated, and a size
+       it was not written for is answered by arithmetic rather than by
+       the wrong number. */
+    const ml = row.refMl != null ? titleVolumeMl(t) : null;
+    if (ml != null && ml > 0) {
+      const containerKg = Math.max(0.01, row.kg - row.refMl / 1000);
+      return {
+        kg: beautyRound2(containerKg + ml / 1000 + packAllowance(row.pack)),
+        key: `${row.key} (${ml} ml)`,
+        pack: row.pack,
+      };
+    }
+    return { kg: beautyRound2(row.kg + packAllowance(row.pack)), key: row.key, pack: row.pack };
+  }
 
   // Nothing matched, but we know it is beauty: 0.05 kg, never the generic.
   if (isBeautyItem(t, hints)) {
     return { kg: beautyRound2(BEAUTY_DEFAULT_KG + packAllowance("polybag")), key: "belleza (sin fila)", pack: "polybag" };
   }
   return null;
+}
+
+/* THE PLAUSIBLE BAND FOR A BEAUTY TITLE.
+
+   Flat [0.02, 0.6] was right while every row answered one fixed size. Now
+   that a stated volume scales the estimate (see beautyWeightDetail), a
+   473 ml tub of moisturiser legitimately weighs 0.62 kg and a flat
+   ceiling of 0.6 would flag it for review — the band would be rejecting
+   the arithmetic that made it accurate.
+
+   So the band follows the size when the title states one: roughly half
+   to a bit over twice the liquid's own mass, which catches a bottle
+   quoted as if it were empty and one quoted as if it were a brick,
+   while leaving the honest middle alone. With no volume stated, the
+   original flat band applies unchanged. */
+export const BEAUTY_BAND_KG = [0.02, 0.6];
+
+export function beautyBandKg(title) {
+  const t = String(title || "");
+  if (!beautyRowFor(t) && !PERFUME_RE.test(t)) return null;
+  const ml = titleVolumeMl(t);
+  if (ml == null || ml <= 0) return BEAUTY_BAND_KG;
+  const contents = ml / 1000;
+  return [
+    Math.max(BEAUTY_BAND_KG[0], beautyRound2(contents * 0.6)),
+    beautyRound2(contents * 2.2 + 0.2),
+  ];
 }
 
 /** Just the weight. Null when the title is not beauty. */

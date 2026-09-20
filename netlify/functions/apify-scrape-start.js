@@ -174,6 +174,11 @@ export const INPUT_SHAPES = {
   searchTerm: (query, maxItems) => ({ searchTerm: query, maxItems }),
 };
 
+/* The scrape mode auto-parts sources run in. "detail" is what returns a
+   product's compatibility list; "overview" is what the cache was built
+   with and carries none. See the note on autozone below. */
+const AUTO_SCRAPE_MODE = process.env.AUTO_SCRAPE_MODE || "detail";
+
 const RETAILER_CONFIG = {
   // Removed: mrdoe/bestbuy-product-scraper required RESIDENTIAL proxy to
   // return results reliably (dropping it made runs hang instead of
@@ -268,9 +273,26 @@ const RETAILER_CONFIG = {
     // tier ("userTier": "FREE"). Real prices, titles, images, part
     // numbers all came back correctly.
     actorId: "sian.agency/autozone-product-scraper",
+    /* SCRAPE MODE DECIDES WHETHER ARIA AUTO WORKS AT ALL (2026-09-20).
+
+       Aria Auto's whole contract is "confirmed fit or an honest empty
+       state" (see scripts/lib/fitment.js), and a confirmed fit needs the
+       product's compatibility list — "fits Hyundai Sonata, Hyundai
+       Tucson, Kia K5, Kia Sportage 2020-2024". An audit of all 9,285
+       cached items found ZERO of those: every one was scraped in
+       "overview" mode, which returns description: null, features: [] and
+       a two-key specs object. The lists live on the product detail page.
+
+       So auto searches ask for the detail mode. AUTO_SCRAPE_MODE is the
+       one place to change it, because the mode name is the only thing
+       here that is unverified — apify.com is unreachable from the build
+       environment, so it could not be confirmed against the actor's
+       schema. If a refresh comes back with no compatibility lists, this
+       string is the first thing to check, and the honest empty state is
+       what shoppers see meanwhile rather than a wrong answer. */
     buildInput: (query, maxItems) => ({
       keywords: [query],
-      scrapeMode: "overview",
+      scrapeMode: AUTO_SCRAPE_MODE,
       maxResults: maxItems,
     }),
   },

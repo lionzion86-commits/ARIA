@@ -33,7 +33,8 @@
    end of the realistic range for the category, and these buffers add a
    further margin on top (raised 2026-09-18 from 1.10/1.20). Never lower
    an entry to make a price look better. */
-import { beautyRowFor, PERFUME_RE } from "./beauty-weight.js";
+import { beautyRowFor, PERFUME_RE, beautyBandKg } from "./beauty-weight.js";
+import { supplementWeightDetail, SUPPLEMENT_RE } from "./supplement-weight.js";
 
 export const CONFIDENCE_BUFFER = { cited: 1.15, reasoned: 1.35 };
 
@@ -393,6 +394,26 @@ export function bulkyWeightKg(text) {
    published is a measurement and is never band-checked — see
    resolveItemWeight().
    ============================================================ */
+/* THE ONE GENERIC FALLBACK, AND WHY IT IS LOW (2026-09-20).
+
+   There were two. The card and the Ofertas feed used
+   withBuffer(0.8, "reasoned") = 1.08 kg; the checkout resolver used 0.6
+   and carried a comment claiming the two matched. They did not, and had
+   not since the comment was written: an unclassified item got heavier
+   between the cart and the payment page. Live, that 1.08 kg charged
+   S/ 47.29 of freight on a S/ 40.18 conditioner.
+
+   Now there is one number, and it is the lower of the two. A generic
+   fallback is not an estimate — it is the admission that no table
+   matched — so it should be small, it should always be labelled "peso
+   estimado", it should never be quotable when it would cost more than
+   the product (see freightQuotable), and it should reach the review
+   queue every time (reviewKind "gap", printed by the refresh scripts).
+   Where it is too light we absorb the difference and reconcile it when
+   the parcel is weighed in Miami; where it was too heavy we lost the
+   sale, which is worse and is what happened. */
+export const GENERIC_FALLBACK_KG = 0.6;
+
 export const MIN_PUBLISHABLE_KG = 0.01;
 
 /* A cable "for TV" is not a TV. Shared with sales-sources.js, which uses
@@ -424,7 +445,15 @@ export const WEIGHT_SANITY_BOUNDS = [
      share a name with a shoe brand ("Puma Energy Eau de Toilette"), so
      without this row a perfume could be floored to the calzado minimum
      and quoted as a pair of trainers. */
-  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02, maxKg: 0.6 },
+  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), band: beautyBandKg },
+  /* SUPPLEMENTS RUN EARLY AND LOW, for the same reason beauty does.
+     REPORTED LIVE: a 180-softgel bottle and a 5 fl oz liquid both quoted
+     0.68 kg — one coarse category row serving a whole aisle. A vitamin
+     bottle above half a kilo is a bottle we have got wrong, so the
+     ceiling is where the smell starts and anything past it fails closed
+     into review rather than quoting. Protein tubs are excluded from the
+     table itself (SUPPLEMENT_BULK_RE) and so are not judged here. */
+  { key: "suplemento", test: (t) => supplementWeightDetail(t) != null, minKg: 0.02, maxKg: 0.5 },
   /* Books run early and light, for the same reason beauty does: a
      colouring book weighs 120 grams, and every catch-all bound below it
      is written for objects that weigh kilos. Tier-aware, so a paperback
@@ -623,6 +652,63 @@ export function freightShare(weightKg, priceUsd, chargePerKg) {
 /** True when freight is a big enough slice of the price to say so on the card. */
 export function freightIsHigh(weightKg, priceUsd, chargePerKg) {
   return freightShare(weightKg, priceUsd, chargePerKg) > FREIGHT_BADGE_SHARE;
+}
+
+/* ============================================================
+   ONE RULE FOR "WE WILL NOT QUOTE THIS FREIGHT"
+
+   REPORTED LIVE (2026-09-20): a conditioner's product page said "Flete
+   por confirmar — lo cotizamos antes de que pagues", and the cart then
+   charged S/ 47.29 of freight on the same S/ 40.18 item. Two surfaces,
+   two different rules, and the one that took the money was the one that
+   had not been told.
+
+   The card had the newer rule (an unbelievable weight, OR a generic
+   guess whose freight exceeds the product's own price) and the cart and
+   checkout still had only the older half of it. So the rule lives here
+   now, in one function, and every surface that could print a freight
+   figure asks it: the card, the cart, and the checkout resolver.
+
+   A PROMISE NEEDS A MECHANISM. "Lo cotizamos antes de que pagues" is
+   only honest because checkout actually stops: an unquotable line
+   withholds the total and disables Pagar until a human confirms the
+   freight (see checkout.html's weightReview branch and the cart's own
+   blocked button). The copy and the behaviour are the same fact.
+   ============================================================ */
+
+/**
+ * May we print a freight figure for this item?
+ *
+ * @param {object} detail  an estimate from estimateWeightDetail() /
+ *                         resolveItemWeight(): { kg, needsReview, reviewKind }
+ * @param {number} priceUsd  the product price the shopper is seeing
+ * @returns {{ quotable: boolean, reason: string|null }}
+ */
+export function freightQuotable(detail, priceUsd, chargePerKg) {
+  if (!detail) return { quotable: true, reason: null };
+
+  // A weight outside its category's plausible band is not a number to
+  // build a price on, in either direction.
+  if (detail.needsReview) {
+    return { quotable: false, reason: detail.reviewReason || detail.reason || "peso fuera de banda" };
+  }
+
+  /* A GENERIC GUESS THAT COSTS MORE THAN THE PRODUCT. A "gap" is
+     quotable by design — most of the time the generic estimate is
+     roughly right, and saying nothing is worse. But when that guess
+     produces a freight bill larger than the item itself, the guess is
+     doing all the work and none of it is knowledge. */
+  if (detail.reviewKind === "gap" || detail.source === "fallback") {
+    const share = freightShare(detail.kg, priceUsd, chargePerKg);
+    if (share > FREIGHT_FEATURE_CEILING) {
+      return {
+        quotable: false,
+        reason: `estimado genérico de ${detail.kg} kg: el flete supera el precio del producto`,
+      };
+    }
+  }
+
+  return { quotable: true, reason: null };
 }
 
 /**

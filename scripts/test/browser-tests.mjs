@@ -310,6 +310,122 @@ await check("no courier name is rendered anywhere a shopper browses", async () =
   await ctx.close();
 });
 
+await check("Aria Auto filters on fitment, and never shows a maybe", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+
+  const r = await page.evaluate(() => {
+    const vehicle = { year: "2020", make: "Hyundai", model: "Sonata" };
+    // Exactly the payload shape the cache holds today: VEHICLE_SPECIFIC
+    // and nothing else. This is the live bug.
+    const noFitment = [{ title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
+      raw: { vehicle_fitment: "VEHICLE_SPECIFIC", specs: { "Pad Type": "Ceramic" } } }];
+    // …and the shape the detail scrape returns.
+    const withFitment = [
+      { title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
+        raw: { specs: { Fits: "Hyundai Sonata, Hyundai Tucson, Kia K5 2020-2024" }, location: "Front" } },
+      { title: "Wrong Pads For Another Car", price: 21.5,
+        raw: { specs: { Fits: "Honda Civic 2016-2021" } } },
+    ];
+    /* selectedVehicle is a top-level `let`, not a window property, so
+       assigning window.selectedVehicle would silently do nothing. Drive
+       the page's own selectors instead — which also exercises the real
+       path a shopper takes. */
+    const setSel = (id, value) => {
+      const el = document.getElementById(id);
+      el.innerHTML = `<option value="${value}">${value}</option>`;
+      el.value = value;
+      el.disabled = false;
+    };
+    setSel("autoYearSelect", vehicle.year);
+    setSel("autoMakeSelect", vehicle.make);
+    setSel("autoModelSelect", vehicle.model);
+    maybeRevealPartSearch();
+
+    const gap = renderAutoPartBlock("AutoZone", { ok: true, items: noFitment }, "pastillas de freno", "autozone");
+    const good = renderAutoPartBlock("AutoZone", { ok: true, items: withFitment }, "pastillas de freno", "autozone");
+    return {
+      gapIsEmptyState: /No tenemos datos de calce/.test(gap),
+      gapShowsProducts: /Duralast/.test(gap),
+      goodShowsConfirmed: /Compatible con tu/.test(good),
+      goodShowsWrongCar: /Wrong Pads/.test(good),
+      anyMaybe: /Verifica el calce|verifícalo antes de pedir/.test(gap + good),
+    };
+  });
+  eq(r.gapIsEmptyState, true, "no fitment data must give the honest empty state");
+  eq(r.gapShowsProducts, false, "unfiltered keyword results must never be shown");
+  eq(r.goodShowsConfirmed, true, "a confirmed part gets the green badge");
+  eq(r.goodShowsWrongCar, false, "a part whose list names another car is excluded");
+  eq(r.anyMaybe, false, "the banned middle ground is rendered nowhere");
+  await ctx.close();
+});
+
+await check("Aria Auto lists its sources without touching the Tiendas grid", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  const r = await page.evaluate(() => ({
+    sources: AUTO_PARTS_SOURCES.map((s) => `${s.id}:${s.pending ? "pending" : "live"}`),
+    pendingBlock: autoPendingBlockHTML({ id: "rockauto", label: "RockAuto", pendingNote: "Conectando el catálogo" },
+      { year: "2020", make: "Hyundai", model: "Sonata" }, "pastillas de freno"),
+    tiendas: Object.values(RETAILERS).filter((r) => !r.retired).length,
+  }));
+  eq(r.sources.join(","), "autozone:live,rockauto:pending", "the source list comes from the registry");
+  if (!/RockAuto/.test(r.pendingBlock)) throw new Error("the pending source has no block of its own");
+  if (!/Conectando el catálogo/.test(r.pendingBlock)) throw new Error("the pending block is not honest about why");
+  eq(r.tiendas, 8, "the Tiendas grid is still eight");
+  await ctx.close();
+});
+
+await check("the reported vitamin bottles price sanely on a real card", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  const r = await page.evaluate(() => {
+    const out = {};
+    for (const [key, title, priceUsd] of [
+      ["d3", "Nature Made Vitamin D3 2000 IU, 180 Softgels", 12],
+      ["gummies", "Nature's Way Sambucus Elderberry Gummies, 60 Count", 13],
+      ["serum", "Soapbox Vitamin Booster Hair Serum, 5 fl oz", 13],
+    ]) {
+      const kg = estimateRetailWeightDetail(title).kg;
+      const card = productCardHTML({ title, price: priceUsd, weightKg: kg, retailer: "walmart" }, { open: "" });
+      out[key] = { kg, badge: /Flete alto/.test(card), shown: /0\.68 kg|1\.08 kg/.test(card) };
+    }
+    return out;
+  });
+  for (const [key, v] of Object.entries(r)) {
+    if (v.kg >= 0.4) throw new Error(`${key} still estimates ${v.kg} kg`);
+    eq(v.badge, false, `${key} still wears a manufactured Flete alto`);
+    eq(v.shown, false, `${key} still prints a banned constant`);
+  }
+  await ctx.close();
+});
+
+await check("the small-order fee follows the order, not the products", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  const r = await page.evaluate(() => ({
+    reported: smallOrderFeePen(44.69 + 10.07),   // the live cart: S/ 54.76
+    productsOnly: smallOrderFeePen(44.69),
+    small: smallOrderFeePen(35),
+    atLine: smallOrderFeePen(50),
+    note: SMALL_ORDER_FEE_NOTE,
+  }));
+  eq(r.reported, 0, "the reported S/ 54.76 cart must pay no fee");
+  eq(r.productsOnly, 10, "products alone would still have charged it");
+  eq(r.small, 10, "a genuinely small order still pays");
+  eq(r.atLine, 0, "exactly S/ 50 is not small");
+  if (!/productos \+ flete/i.test(r.note)) throw new Error(`the note hides its basis: ${r.note}`);
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
