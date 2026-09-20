@@ -12,7 +12,7 @@
 
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice } from "./_page-script.mjs";
 
@@ -1228,6 +1228,68 @@ check("the page mirrors the whole vocabulary", () => {
     eq(pageQuery.ES_EN_PHRASES[i][0], es, `phrase ${i} key`);
     eq(pageQuery.ES_EN_PHRASES[i][1], en, `phrase ${i} value`);
   });
+});
+
+
+/* ------------------------------------------------------------------
+   STORE LOGOS — the retailer's art, rendered as they published it.
+   ------------------------------------------------------------------ */
+group("store logos on Tiendas");
+
+check("every logo a store row names actually exists", () => {
+  for (const r of Object.values(RETAILERS)) {
+    if (!r.logo) continue;
+    if (!existsSync(root(r.logo))) throw new Error(`${r.key} points at a missing file: ${r.logo}`);
+  }
+});
+
+check("a real logo is never greyed out, however pending the store", () => {
+  /* The muted plate and the "Conectando el catálogo" badge are how a
+     card says the catalogue is still being wired up. Greying the logo
+     with them would ship Victoria's Secret's pink and Bath & Body
+     Works' blue as grey — a retailer's mark is not ours to recolour. */
+  const src = readFileSync(root("index.html"), "utf8");
+  for (const fn of ["function storeCardHTML(", "function homeStoreChipHTML("]) {
+    const from = src.indexOf(fn);
+    if (from < 0) throw new Error(`${fn} is gone`);
+    // Comments first: the note explaining why the filter is gone names
+    // it in prose, and prose is not code.
+    const body = stripComments(src.slice(from, src.indexOf("\n}", from)))
+      .replace(/<!--[\s\S]*?-->/g, "");
+    for (const m of body.matchAll(/grayscale\(1\)/g)) {
+      const guard = body.slice(Math.max(0, m.index - 120), m.index);
+      if (!/pending && !r\.logo/.test(guard)) {
+        throw new Error(`${fn} greys out a real logo file`);
+      }
+    }
+  }
+});
+
+check("every store mark is contain-fit and capped, never stretched", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  // Each <img> that draws a store mark: a height cap, a width cap, and
+  // contain — which is what lets a 1200x631 banner and a square file
+  // share a tile without either being distorted.
+  const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,320}?>/g) || [];
+  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
+  for (const img of imgs) {
+    if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
+    if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
+    if (!/max-width:\s*\d+px/.test(img)) throw new Error("a store mark has no width cap");
+    if (/\bfilter:/.test(img)) throw new Error("a store mark carries a CSS filter");
+    // Never a bare width/height, which would ignore the file's own ratio.
+    if (/style="[^"]*[;\s]height:\s*\d/.test(img)) throw new Error("a store mark sets a fixed height");
+    if (!/onerror=/.test(img)) throw new Error("a store mark has no fallback if the file is missing");
+  }
+});
+
+check("the three beauty stores are still listed and still honest", () => {
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`${key} left the registry`);
+    eq(r.search, false, `${key} is still pending`);
+    eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
+  }
 });
 
 /* ------------------------------------------------------------------ */

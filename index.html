@@ -3027,7 +3027,16 @@ function storeCardHTML(r){
      source. A logo file gets an <img> sized to the plate; a store with no
      file gets its wordmark on its own brand colour — a designed
      treatment, not a fallback a shopper can pick out. Neither is a grey
-     pill and neither is an abbreviation. */
+     pill and neither is an abbreviation.
+
+     ONE HEIGHT CAP, CONTAIN-FIT, FOR EVERY ASPECT RATIO. Foot Locker's
+     wordmark is 9.5:1 and Target's bullseye is square; both are capped
+     at 34px tall and 130px wide and scaled inside that, so a square mark
+     and a wide one read at the same optical height and nothing is ever
+     stretched. A banner-shaped file (Victoria's Secret ships 1200x631)
+     needs nothing special — it lands 34px tall and ~65px wide. The plate
+     is the card's own background, so a transparent PNG sits directly on
+     it with no box or backdrop behind it. */
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
          style="max-height:34px; max-width:130px; object-fit:contain"
@@ -3044,7 +3053,18 @@ function storeCardHTML(r){
   return `<button onclick="${action}"
     class="group text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_14px_30px_rgba(10,31,68,0.10)] flex flex-col"
     style="border-color:${pending ? 'var(--line)' : 'rgba(10,31,68,0.14)'}">
-    <div class="h-[92px] grid place-items-center px-4" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending ? 'filter:grayscale(1); opacity:.62' : ''}">
+    <!-- A PENDING STORE IS MUTED, ITS LOGO IS NOT (2026-09-20).
+
+         The muted plate and the "Conectando el catálogo" badge are how
+         this card says the catalogue is still being wired up, and both
+         stay. What used to come with them was filter:grayscale(1) over
+         the whole plate — which is fine over our own wordmark pill, and
+         wrong over a brand's actual logo file: it would have shipped
+         Victoria's Secret's pink and Bath & Body Works' blue as grey.
+         A store's logo is their art, not ours to restyle, so the muting
+         now applies to the plate and to the wordmark treatment, never to
+         a real logo. -->
+    <div class="h-[92px] grid place-items-center px-4" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
       ${mark}
     </div>
     <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">
@@ -3074,7 +3094,7 @@ function homeStoreChipHTML(r){
     : `<span class="text-[11.5px] font-extrabold text-white px-2 py-1 rounded-md text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
   const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;
   return `<button onclick="${action}" class="relative h-[62px] rounded-xl border bg-white grid place-items-center px-3 focus-ring transition hover:shadow-[0_8px_18px_rgba(10,31,68,0.08)]"
-    style="border-color:var(--line); ${pending ? 'filter:grayscale(1); opacity:.6' : ''}" title="${escapeHtml(r.label)}${pending ? ' — ' + escapeHtml(r.pendingNote || 'Próximamente') : ''}">
+    style="border-color:var(--line); ${pending && !r.logo ? 'filter:grayscale(1); opacity:.6' : ''}" title="${escapeHtml(r.label)}${pending ? ' — ' + escapeHtml(r.pendingNote || 'Próximamente') : ''}">
     ${mark}
     ${pending ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>` : ''}
   </button>`;
