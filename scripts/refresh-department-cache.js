@@ -20,11 +20,22 @@ import fs from "node:fs/promises";
 import { estimateWeightDetail } from "./lib/sales-sources.js";
 import { DEPARTMENT_CONFIG, BRAND_CONFIG } from "../netlify/functions/apify-scrape-start.js";
 import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
+import { quotasFor, targetDepth, plannedRuns, ITEMS_PER_QUOTA, MIN_HONEST_STOREFRONT, isHonestStorefront } from "./lib/catalog-quotas.js";
+import { retailerFor } from "./lib/retailers.js";
 
 const SITE = "https://ariashop.pe";
 const OUT_FILE = new URL("../department-cache.json", import.meta.url);
 const FETCH_TIMEOUT_MS = 60000;
-const ITEMS_PER_DEPARTMENT = 24;
+/* CATALOG DEPTH (2026-09-20). ITEMS_PER_DEPARTMENT was 24: one scrape
+   per department, capped at 24 rows, whatever mix the actor happened to
+   return. That is how Old Navy women's rendered three to eight T-shirts
+   and presented it as the store.
+
+   Depth is declared per category now — see scripts/lib/catalog-quotas.js
+   — and this is the per-run ceiling those quotas fill to. More rows per
+   run is the cheapest depth there is: one run returning 60 costs the
+   same as one returning 24. */
+const ITEMS_PER_DEPARTMENT = ITEMS_PER_QUOTA;
 const ITEMS_PER_BRAND = 24;
 const RUN_TIMEOUT_MS = 120000;
 const POLL_INTERVAL_MS = 3000;

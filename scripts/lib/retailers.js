@@ -113,6 +113,22 @@ export const RETAILERS = {
     search: false,
     pendingNote: "Conectando el catálogo",
   },
+  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
+     the audience this shop is being launched for, and it is the eighth
+     store — which is what makes the stores grid symmetric at 4x2 instead
+     of leaving a hole. Same status as the other two beauty stores: a
+     real row, quotas written, no verified actor yet. */
+  bathandbodyworks: {
+    key: "bathandbodyworks",
+    label: "Bath & Body Works",
+    color: "#0F4C81",
+    logo: null,
+    tagline: "Cremas, jabones y velas aromáticas",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
   autozone: {
     key: "autozone",
     label: "AutoZone",

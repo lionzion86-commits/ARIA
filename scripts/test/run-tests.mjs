@@ -701,7 +701,7 @@ check("the projection uses the TOP of the observed cost range", () => {
   // A spend guard that under-projects is not a guard.
   eq(refreshTiers.DEFAULT_COST_PER_RUN_USD, 0.06);
   eq(refreshTiers.projectedCostUsd("sale", 0.06), 0.72);
-  eq(refreshTiers.projectedCostUsd("catalog", 0.06), 1.56);
+  eq(refreshTiers.projectedCostUsd("catalog", 0.06), 1.26);
 });
 
 check("every refresh script is guarded before it spends", () => {

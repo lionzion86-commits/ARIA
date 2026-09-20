@@ -378,7 +378,13 @@ export async function handler(event) {
       };
     }
 
-    const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 50);
+    /* The per-run ceiling. Raised from 50 to 60 with the catalog quota
+       model (scripts/lib/catalog-quotas.js): rows per run are the
+       cheapest depth there is — one run returning 60 costs the same as
+       one returning 24 — and 24 is what made an eight-product
+       storefront. Still a hard cap: an unbounded maxItems is an
+       unbounded bill. */
+    const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 60);
 
     /* ON-DEMAND STORE SEARCH (2026-09-20).
 

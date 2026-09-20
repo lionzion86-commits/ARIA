@@ -67,7 +67,12 @@ export const REFRESH_TIERS = {
     script: "scripts/refresh-department-cache.js",
     cron: "0 13 */3 * *",
     cadence: "every 3 days",
-    runs: 26,
+    /* One run per QUOTA (scripts/lib/catalog-quotas.js), counted across
+       the stores whose scrapers are actually wired up: Old Navy 6,
+       Walmart 6, Target 6, Foot Locker 3. The three beauty stores add
+       13 more the day their actors land — update this number then, or
+       the budget guard is projecting a cycle that no longer exists. */
+    runs: 21,
     essential: false,
   },
   /* A brake pad's listing does not move. Weekly is generous. */

@@ -467,13 +467,16 @@
            Nordstrom, Victoria's Secret, Bath & Body Works, Coach, Michael
            Kors, Kate Spade), which misrepresented site capability. Update
            this alongside LIVE_RETAILERS if a retailer is added/removed. -->
-      <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU. en vivo</div>
-      <div class="flex items-center justify-center flex-wrap gap-x-3 gap-y-3">
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#0071CE">Walmart</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#CC0000">Target</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[14px] font-extrabold tracking-[-0.02em]" style="border-color:var(--line); color:#001E62">Old Navy</span>
-        <span class="h-9 px-4 rounded-full border bg-white grid place-items-center text-[13px] font-extrabold tracking-[-0.01em]" style="border-color:var(--line); color:#000">Foot Locker</span>
-      </div>
+      <!-- THE 4x2 STORES ROW (2026-09-20). Four hand-written text pills
+           lived here and named four of the eight stores; the list was
+           already wrong twice before (it once named stores we never
+           searched). It is rendered from the RETAILERS registry now, at
+           four per row and two rows, so adding a ninth store is a row in
+           the registry and nothing here. Real marks at one size, and the
+           stores still being onboarded carry their badge rather than
+           being quietly left out. -->
+      <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU.</div>
+      <div id="homeStoresRow" class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-[760px] mx-auto"></div>
     </div>
   </div>
 
@@ -683,7 +686,7 @@
     </button>
     <div id="storeResultsHero" class="mb-3"></div>
     <p id="storeResultsSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
-    <div id="storeResultsGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+    <div id="storeResultsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
   </div>
 </div>
 
@@ -977,7 +980,19 @@
     </div>
   </section>
 
+  <!-- THE PRECIO HONESTO RHYTHM (2026-09-20). Danny's verdict on the old
+       page was "terrible, day-one rendering": one navy hero, then six
+       white cards stacked on white, then a navy box at the end. The
+       homepage's Precio Honesto section is the template for the WHOLE
+       page — navy and white alternating, gold as an accent in both — so
+       the steps sit in banded groups instead of one undifferentiated
+       column. The white top nav is untouched; yellow appears nowhere. -->
+  <section style="background:var(--paper)">
   <div class="max-w-[1080px] mx-auto px-5 py-14">
+    <div class="ariaKicker ariaKicker--onLight mb-3">Antes de comprar</div>
+    <h2 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.15] mb-8 max-w-[24ch]" style="color:var(--navy)">
+      Buscas, comparas el <span style="color:var(--amber)">total real</span>, y decides.
+    </h2>
 
     <div class="space-y-6">
 
@@ -1038,6 +1053,20 @@
         </div>
       </div>
 
+    </div>
+  </div>
+  </section>
+
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1080px] mx-auto px-5 py-14">
+    <div class="ariaKicker mb-3">Nosotros compramos</div>
+    <h2 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.15] mb-8 max-w-[24ch]" style="color:#fff">
+      Lo compramos en la tienda y lo <span style="color:#F4C463">consolidamos</span> en Miami.
+    </h2>
+
+    <div class="space-y-6">
+
       <!-- STEP 3 -->
       <div class="ariaCard ariaCard--light">
         <div class="grid md:grid-cols-2 gap-8 md:gap-10 items-center w-full">
@@ -1081,6 +1110,19 @@
         </div>
         </div>
       </div>
+
+    </div>
+  </div>
+  </section>
+
+  <section style="background:#fff">
+  <div class="max-w-[1080px] mx-auto px-5 py-14">
+    <div class="ariaKicker ariaKicker--onLight mb-3">Hasta tu puerta</div>
+    <h2 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.15] mb-8 max-w-[26ch]" style="color:var(--navy)">
+      La aduana es <span style="color:var(--amber)">nuestro</span> trámite, no el tuyo.
+    </h2>
+
+    <div class="space-y-6">
 
       <!-- STEP 5 -->
       <div class="ariaCard ariaCard--light">
@@ -1131,11 +1173,14 @@
       </div>
 
     </div>
+  </div>
+  </section>
 
-    <!-- The killer argument. It was a pale blue box; it carries the whole
-         case for the service, so it gets the weight of a navy band. -->
-    <div class="mt-16 rounded-3xl px-7 py-9 sm:px-12 sm:py-12 relative overflow-hidden ariaNavyBand">
-      <div class="ariaGoldHair"></div>
+  <!-- The killer argument. It carries the whole case for the service, so
+       it is a full navy band, not a box inside a white page. -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1080px] mx-auto px-5 py-16 sm:py-20">
       <div class="ariaKicker mb-4">La diferencia</div>
       <h2 class="text-[22px] sm:text-[30px] font-extrabold tracking-[-0.02em] leading-[1.2] mb-5 max-w-[26ch]" style="color:#fff">
         ¿Por qué no comprar directo o usar un <span style="color:#F4C463">casillero</span>?
@@ -1143,46 +1188,127 @@
       <p class="text-[15px] sm:text-[16.5px] leading-relaxed max-w-[58ch]" style="color:#AFBBD6">
         Los casilleros tradicionales cobran por peso y no muestran el costo final hasta que tu paquete ya está en camino. Aria te muestra el total exacto antes de pagar, y compra por ti para que no necesites una tarjeta internacional ni lidiar con la tienda directamente.
       </p>
+      <button onclick="goHome()" class="mt-8 h-12 px-7 rounded-full text-[14.5px] font-bold focus-ring transition" style="background:#F4C463; color:#0A1F44">
+        Buscar un producto
+      </button>
     </div>
-  </div>
+  </section>
 </div>
 
 <!-- ============ STORES VIEW ============ -->
 <div id="storesView" class="view">
-  <!-- INTERIOR PAGE SYSTEM (2026-09-20). This page was a bare h1 on white
-       over a grid of outline cards — the "like looking at Excel" note in
-       the brief. It now opens the same way Cómo funciona and Nosotros do:
-       the white top nav stays, and directly under it a navy band carries
-       the page title and one line of context, with a single gold hairline
-       and a gold accent word. Gold is for accents only; yellow never
-       appears on a header. -->
+  <!-- THE PRECIO HONESTO RHYTHM (2026-09-20).
+
+       The verdict on the old page was "looks fucking awful": one navy
+       hero on top of a wall of white with grey outline cards. The
+       Precio Honesto homepage section is the template for a WHOLE page,
+       not just its top — navy bands and white bands alternating, gold as
+       an accent inside both, never a section that is just white with a
+       border. That rhythm is what this page has now: navy hero, white
+       store grid, navy proof band, white FAQ, navy CTA.
+
+       The white top nav stays. Gold is for accents; yellow is only ever
+       a sale badge, never a header. -->
   <section class="ariaNavyBand relative overflow-hidden">
     <div class="ariaGoldHair"></div>
-    <div class="max-w-[1080px] mx-auto px-5 py-14 sm:py-16">
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
       <div class="max-w-[62ch]">
-        <div class="ariaKicker mb-4">Tiendas</div>
-        <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
+        <div class="ariaKicker mb-4">Tiendas en EE. UU.</div>
+        <h1 class="text-[32px] sm:text-[46px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-5" style="color:#fff">
           Compramos en <span style="color:#F4C463">tiendas oficiales</span>.
         </h1>
-        <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
-          Nunca a través de un revendedor externo, así que sabes exactamente de dónde viene tu producto.
+        <p class="text-[15px] sm:text-[17px] leading-relaxed" style="color:#AFBBD6">
+          Nunca a través de un revendedor externo. Cada producto dice de qué tienda viene, y te llega con un solo
+          precio total: producto, flete y aranceles, calculados antes de pagar.
         </p>
       </div>
     </div>
   </section>
 
-  <div class="max-w-[1080px] mx-auto px-5 py-14">
-    <!-- RULE: this grid is rendered from the RETAILERS registry, not
-         hand-written. It used to be one <button> per store copied by
-         hand, which is how the list drifted out of sync with what Aria
-         could really search (it once listed Costco, Nordstrom, Victoria's
-         Secret, Bath & Body Works, Coach, Michael Kors, Kate Spade and
-         Vitamin Shoppe, none of them integrated). A store is a row in
-         RETAILERS now — see the registry comment in this page's script
-         and scripts/lib/retailers.js. -->
-    <div id="storesGrid" class="grid sm:grid-cols-2 gap-4"></div>
-    <div class="mt-8 text-[13px] text-zinc-500">Estamos evaluando sumar más tiendas. ¿Buscas algo de una tienda que no está en la lista? Escríbenos.</div>
-  </div>
+  <section style="background:var(--paper)">
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="ariaKicker ariaKicker--onLight mb-3">Dónde compramos</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">
+        Ocho tiendas, todas reales.
+      </h2>
+      <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-9" style="color:#4A5568">
+        Las que ya tienen catálogo cargado se abren aquí mismo. Las que estamos conectando lo dicen —
+        preferimos un "próximamente" honesto a un logo que no lleva a ningún lado.
+      </p>
+      <!-- 4x2. Eight stores fit; seven left a hole. Rendered from the
+           RETAILERS registry, never hand-written. -->
+      <div id="storesGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
+      <div class="mt-8 text-[13px]" style="color:#6B7487">¿Buscas algo de una tienda que no está en la lista? Escríbenos por el chat y la conseguimos.</div>
+    </div>
+  </section>
+
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="ariaKicker mb-4">Por qué importa</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-10 max-w-[24ch]" style="color:#fff">
+        Comprar en la tienda oficial no es un detalle.
+      </h2>
+      <div class="grid sm:grid-cols-3 gap-5">
+        <div class="ariaCard" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+          <div class="ariaCardIcon" style="background:rgba(244,196,99,0.16); border:1px solid rgba(244,196,99,0.38)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2"><path d="M12 3 4 6.5V12c0 4.6 3.2 7.9 8 9 4.8-1.1 8-4.4 8-9V6.5Z"/><path d="m9 12 2 2 4-4"/></svg>
+          </div>
+          <div class="text-[15.5px] font-extrabold mb-1.5" style="color:#fff">Producto genuino</div>
+          <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Compramos en el catálogo de la tienda, no a un revendedor. Lo que llega es lo que ellos venden.</p>
+        </div>
+        <div class="ariaCard" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+          <div class="ariaCardIcon" style="background:rgba(244,196,99,0.16); border:1px solid rgba(244,196,99,0.38)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2"><path d="M3 6h18M3 12h18M3 18h12"/></svg>
+          </div>
+          <div class="text-[15.5px] font-extrabold mb-1.5" style="color:#fff">El precio de la tienda</div>
+          <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Partimos del precio real de su web. Nuestro margen va aparte y a la vista, no escondido en el producto.</p>
+        </div>
+        <div class="ariaCard" style="background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22)">
+          <div class="ariaCardIcon" style="background:rgba(244,196,99,0.16); border:1px solid rgba(244,196,99,0.38)">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2"><path d="M20 7 9 18l-5-5"/></svg>
+          </div>
+          <div class="text-[15.5px] font-extrabold mb-1.5" style="color:#fff">Devolución con respaldo</div>
+          <p class="text-[13.5px] leading-relaxed" style="color:#AFBBD6">Una compra en la tienda oficial tiene garantía y política de devolución reales detrás.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:#fff">
+    <div class="max-w-[860px] mx-auto px-5 py-16 sm:py-20">
+      <div class="ariaKicker ariaKicker--onLight mb-3">Preguntas</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-9" style="color:var(--navy)">
+        Lo que nos preguntan de las tiendas.
+      </h2>
+      <div class="space-y-4">
+        <div class="ariaCard ariaCard--light">
+          <div class="text-[15.5px] font-extrabold mb-1.5" style="color:var(--navy)">¿Puedo pedir algo que no veo en el catálogo?</div>
+          <p class="text-[14px] leading-relaxed" style="color:#4A5568">Sí. Busca el producto y, si no aparece, usa "Buscar más en [Tienda]" — vamos al catálogo real de esa tienda en ese momento y te lo traemos con precio puerta a puerta.</p>
+        </div>
+        <div class="ariaCard ariaCard--light">
+          <div class="text-[15.5px] font-extrabold mb-1.5" style="color:var(--navy)">¿Por qué algunas tiendas dicen "Próximamente"?</div>
+          <p class="text-[14px] leading-relaxed" style="color:#4A5568">Porque todavía estamos conectando su catálogo. Compramos ahí por encargo mientras tanto: escríbenos con el producto y lo cotizamos.</p>
+        </div>
+        <div class="ariaCard ariaCard--light">
+          <div class="text-[15.5px] font-extrabold mb-1.5" style="color:var(--navy)">¿El precio que veo es el final?</div>
+          <p class="text-[14px] leading-relaxed" style="color:#4A5568">El precio del producto sí. El flete y los aranceles se calculan en el checkout con el peso real de tu pedido, y ahí ves el total exacto antes de pagar — nada aparece después.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-14 sm:py-16 text-center">
+      <h2 class="text-[24px] sm:text-[32px] font-extrabold tracking-[-0.03em] leading-[1.15] mb-4 max-w-[26ch] mx-auto" style="color:#fff">
+        Busca cualquier producto de <span style="color:#F4C463">cualquiera</span> de estas tiendas.
+      </h2>
+      <button onclick="goHome()" class="h-12 px-7 rounded-full text-[14.5px] font-bold focus-ring transition" style="background:#F4C463; color:#0A1F44">
+        Empezar a buscar
+      </button>
+    </div>
+  </section>
 </div>
 
 <!-- ============ ARIA AUTO VIEW ============ -->
@@ -2669,7 +2795,23 @@ loadFxRate(); // kick off the fetch as early as possible; render paths below awa
    DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the source
    of truth.
    ============================================================ */
-let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map(), searchTerm: '' };
+/* The grid every listing surface uses: 2-across, large cards, the
+   browsing density Ofertas was approved at. Named so a new surface
+   cannot quietly invent a tighter one. */
+const LISTING_GRID_CLASS = 'grid grid-cols-1 md:grid-cols-2 gap-5';
+
+/* BROWSING, NOT A DEAD END. Big cards mean fewer per screen, so a
+   category that holds 300 products must not render 300 at once (slow) or
+   24 with no way onward (a dead end). It renders a page and offers the
+   next one, Bring-a-Trailer style: you scroll, and there is more. */
+const LISTING_PAGE_SIZE = 24;
+
+/* Declared HERE, above catalogState, and not next to the card helpers
+   that use them. catalogState's initialiser reads LISTING_PAGE_SIZE, and
+   a `const` referenced before its declaration is a temporal-dead-zone
+   throw that kills the whole page script on load — the same way
+   GENERAL_RETAILERS once did (see its comment). Keep declaration order. */
+let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
 
 function catalogGoBack(){
   // In-page "Volver" and the browser's back arrow have to agree.
@@ -2721,7 +2863,7 @@ async function openCatalog(kind, key, opts = {}){
   }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
-  catalogState = { kind, key, retailerFilter, byRetailer, searchTerm: '' };
+  catalogState = { kind, key, retailerFilter, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
   renderCatalogFeed();
 }
 
@@ -2764,6 +2906,7 @@ function catalogStoreChipsHTML(){
 function catalogSearchSubmit(){
   const input = document.getElementById('catalogSearchInput');
   catalogState.searchTerm = input ? input.value.trim() : '';
+  catalogState.pageSize = LISTING_PAGE_SIZE;   // a new question, a first page
   renderCatalogFeed();
   // The bar is re-rendered by renderCatalogFeed, so the term has to be
   // put back on the new node or it vanishes as you search.
@@ -2808,6 +2951,7 @@ function renderCatalogFeed(){
   // Best price first, the same default as search. An item with no price
   // can never be the cheapest, so it sorts last either way.
   items.sort(byDoorToDoor(sortBy));
+  const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
   const n = items.length;
@@ -2828,8 +2972,9 @@ function renderCatalogFeed(){
         <option value="priceDesc">Total a tu puerta: mayor a menor</option>
       </select>
     </div>
-    <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
-      items.map(it => catalogTileHTML(it, it.retailer)).join('')}</div>
+    <div id="catalogGrid" class="${LISTING_GRID_CLASS}">${
+      shown.map(it => listingCardHTML(it, it.retailer)).join('')}</div>
+    ${catalogLoadMoreHTML(items.length, shown.length)}
     ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
     <div id="catalogOnDemandWrap" class="mt-6"></div>`;
   // The <select> was just re-created, so put the chosen sort back on it.
@@ -2862,19 +3007,60 @@ function renderCatalogFeed(){
    ============================================================ */
 function storeCardHTML(r){
   const pending = !r.search;
-  const logo = r.logo
-    ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
-    : `<span class="store-logo-fallback" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
+  /* A store's mark, rendered at ONE size on a white plate whatever the
+     source. A logo file gets an <img> sized to the plate; a store with no
+     file gets its wordmark on its own brand colour — a designed
+     treatment, not a fallback a shopper can pick out. Neither is a grey
+     pill and neither is an abbreviation. */
+  const mark = r.logo
+    ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
+         style="max-height:34px; max-width:130px; object-fit:contain"
+         onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+    : `<span class="inline-flex items-center h-[30px] px-3 rounded-lg text-[13px] font-extrabold text-white text-center leading-tight"
+         style="background:${r.color}">${escapeHtml(r.label)}</span>`;
+
+  /* "Próximamente" is a distinct treatment, not a disabled clone: muted
+     plate, a badge that says what is happening, and a real action — it
+     opens the store page, which explains that we buy there by request
+     while the catalogue is connected. A logo that goes nowhere is worse
+     than no logo. */
   const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;
-  return `<button onclick="${action}" class="rounded-2xl border p-5 flex items-center gap-4 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-    <div class="store-logo-tile">${logo}</div>
-    <div class="min-w-0">
-      <div class="font-bold text-[15px] flex items-center gap-2 flex-wrap">
-        <span>${escapeHtml(r.label)}</span>
-        ${pending ? `<span class="text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:var(--sky); color:var(--navy)">${escapeHtml(r.pendingNote || 'Próximamente')}</span>` : ''}
-      </div>
-      <div class="text-[12.5px] text-zinc-500">${escapeHtml(r.tagline || '')}</div>
+  return `<button onclick="${action}"
+    class="group text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_14px_30px_rgba(10,31,68,0.10)] flex flex-col"
+    style="border-color:${pending ? 'var(--line)' : 'rgba(10,31,68,0.14)'}">
+    <div class="h-[92px] grid place-items-center px-4" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending ? 'filter:grayscale(1); opacity:.62' : ''}">
+      ${mark}
     </div>
+    <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">
+      <div class="text-[13.5px] font-extrabold leading-tight" style="color:var(--navy)">${escapeHtml(r.label)}</div>
+      <div class="text-[12px] leading-snug mt-0.5 flex-1" style="color:#6B7487">${escapeHtml(r.tagline || '')}</div>
+      ${pending
+        ? `<div class="mt-2.5 inline-flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-full self-start" style="background:var(--sky); color:var(--navy)">
+             <span class="w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>${escapeHtml(r.pendingNote || 'Próximamente')}
+           </div>`
+        : `<div class="mt-2.5 text-[11.5px] font-bold inline-flex items-center gap-1" style="color:var(--blue)">
+             Ver catálogo
+             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="m9 18 6-6-6-6"/></svg>
+           </div>`}
+    </div>
+  </button>`;
+}
+
+/* The compact mark used in the homepage row: the same real logo or
+   wordmark as the full card, at one consistent size, with the same
+   honest muting for a store still being connected. */
+function homeStoreChipHTML(r){
+  const pending = !r.search;
+  const mark = r.logo
+    ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
+         style="max-height:26px; max-width:96px; object-fit:contain"
+         onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+    : `<span class="text-[11.5px] font-extrabold text-white px-2 py-1 rounded-md text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
+  const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;
+  return `<button onclick="${action}" class="relative h-[62px] rounded-xl border bg-white grid place-items-center px-3 focus-ring transition hover:shadow-[0_8px_18px_rgba(10,31,68,0.08)]"
+    style="border-color:var(--line); ${pending ? 'filter:grayscale(1); opacity:.6' : ''}" title="${escapeHtml(r.label)}${pending ? ' — ' + escapeHtml(r.pendingNote || 'Próximamente') : ''}">
+    ${mark}
+    ${pending ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>` : ''}
   </button>`;
 }
 
@@ -2903,9 +3089,11 @@ function renderHowItWorksStores(){
 window.addEventListener('DOMContentLoaded', renderHowItWorksStores);
 
 function renderStoresGrid(){
+  const stores = activeRetailers();
   const grid = document.getElementById('storesGrid');
-  if (!grid) return;
-  grid.innerHTML = activeRetailers().map(storeCardHTML).join('');
+  if (grid) grid.innerHTML = stores.map(storeCardHTML).join('');
+  const row = document.getElementById('homeStoresRow');
+  if (row) row.innerHTML = stores.map(homeStoreChipHTML).join('');
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
 
@@ -2991,45 +3179,61 @@ async function openStoreResults(retailer, query){
     document.getElementById('storeResultsSubtitle').textContent = items.length
       ? `${items.length} resultado${items.length > 1 ? 's' : ''} para "${query}"`
       : `Sin resultados en vivo para "${query}" en este momento.`;
-    document.getElementById('storeResultsGrid').innerHTML = items.map(it => catalogTileHTML(it, retailer)).join('');
+    document.getElementById('storeResultsGrid').innerHTML = items.map(it => listingCardHTML(it, retailer)).join('');
   } catch (err) {
     document.getElementById('storeResultsSubtitle').textContent = 'No pudimos completar esta búsqueda — intenta de nuevo.';
   }
 }
 
-// Same visual shape as saleCardHTML()'s grid tile, but works for any
-// item (not just ones already known to be on sale) — shows the
-// discount badge only when the item's own real onSale flag is true.
-// RULE: single button into showProduct()/productView, same as every
-// other product card on the site — never link out to the retailer.
-function catalogTileHTML(p, retailer){
-  /* Same rule as saleCardHTML(): a discount percentage that freight wipes
-     out is not a discount. Department tiles render from live scrapes, which
-     never passed through the Ofertas freight gate, so a 36kg TV stand could
-     still show "-45%" here. It shows "Flete alto" instead. */
-  const tileWeightKg = Number(p.weightKg);
-  const tileFreightHeavy = Number.isFinite(tileWeightKg) && tileWeightKg > 0
-    && freightSharePct(tileWeightKg, p.price) > FREIGHT_BADGE_SHARE;
-  return `
-  <button onclick="showProduct('${retailer}', '${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(retailer, p.title)}, '${sizeCategoryFor(retailer, p.title)}', '${jsAttr(p.rating != null ? String(p.rating) : '')}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-    <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
-      ${p.image ? `<img src="${escapeHtml(p.image)}" alt="" class="w-full h-full object-cover">` : ''}
-      ${p.onSale ? (tileFreightHeavy
-        ? `<span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:#8A6B1F; color:#fff">Flete alto</span>`
-        : `<span class="absolute top-2 left-2 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:var(--yellow); color:var(--navy)">-${Math.round((1 - p.price / p.originalPrice) * 100)}%</span>`) : ''}
-    </div>
-    <div class="p-3">
-      <div class="mb-1">${retailerBadgeHTML(retailer, 16)}</div>
-      <div class="text-[12.5px] sm:text-[13px] font-bold leading-tight mt-0.5 truncate">${escapeHtml(p.title)}</div>
-      <div class="flex items-center gap-2 mt-1.5">
-        ${p.onSale ? `<span class="text-[11px] text-zinc-400 line-through tabular">${fmtPEN(displayPriceUsd(p.originalPrice))}</span>` : ''}
-        <span class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${p.price != null ? fmtDisplayPrice(p.price) : 'N/D'}</span>
-      </div>
-      ${p.price != null ? taxIncludedNoteHTML(p.price, 'text-[10.5px] mt-0.5') : ''}
-      ${weightLabelHTML(p.title, 'text-[10.5px] mt-0.5 font-semibold')}
-    </div>
-  </button>`;
+/* ONE CARD, EVERY SURFACE (2026-09-20).
+
+   catalogTileHTML() lived here: a small 4-across tile with a 130px
+   center-cropped image, used by the category feed and by a store's own
+   search results while Ofertas, search and Aria Auto used the big card.
+   Two card styles meant two answers to every question — how a discount
+   is badged, how a doubtful weight is disclosed, whether a model shot
+   gets its head cropped off — and the small one kept losing.
+
+   There is one card now: productCardHTML(). Everything that lists
+   products uses it, at the same 2-across density, so a category page is
+   the same object as the Ofertas page with different contents.
+
+   productCardOpenExpr() is the one thing the tile did that the card did
+   not: build the showProduct() call. It is shared so a new surface gets
+   the right click target for free. */
+function productCardOpenExpr(p, retailer){
+  const r = retailer || p.retailer;
+  return `showProduct('${jsAttr(r)}', '${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, `
+    + `'${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, `
+    + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
+    + `'${jsAttr(p.rating != null ? String(p.rating) : '')}')`;
 }
+
+/** The standard card for any listed product, on any surface. */
+function listingCardHTML(p, retailer){
+  const item = retailer && !p.retailer ? { ...p, retailer } : p;
+  return productCardHTML(item, { open: productCardOpenExpr(item, retailer) });
+}
+
+function catalogLoadMoreHTML(total, shownCount){
+  if (shownCount >= total) return '';
+  const left = total - shownCount;
+  return `<div class="flex flex-col items-center gap-2 mt-8">
+    <button onclick="catalogShowMore()" class="h-12 px-7 rounded-full text-white text-[14px] font-bold focus-ring transition" style="background:var(--blue)">
+      Ver más productos
+    </button>
+    <div class="text-[12px]" style="color:#6B7487">${shownCount} de ${total} · quedan ${left}</div>
+  </div>`;
+}
+
+function catalogShowMore(){
+  catalogState.pageSize = (catalogState.pageSize || LISTING_PAGE_SIZE) + LISTING_PAGE_SIZE;
+  renderCatalogFeed();
+  // Keep the shopper where they were rather than jumping to the top.
+  const grid = document.getElementById('catalogGrid');
+  if (grid) grid.lastElementChild?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
 
 const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView','adminView'];
 
@@ -4090,6 +4294,7 @@ const RETAILERS = {
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.svg', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
   sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: null,                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: null,                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: null,              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
@@ -8028,9 +8233,25 @@ function productCardHTML(p, opts){
         : '';
   return `
   <div class="group bg-white border rounded-2xl overflow-hidden transition hover:shadow-[0_14px_34px_rgba(10,31,68,0.10)] h-full flex flex-col" style="border-color:var(--line)">
-    <div class="relative cursor-pointer" style="aspect-ratio:4/5; background:var(--sky)" onclick="${open}">
+    <!-- THE IMAGE CONTAINER (2026-09-20).
+
+         Two rules, and they are the same rule twice.
+
+         PRESERVE THE ASPECT RATIO. object-fit:contain, never cover and
+         never a bare width/height: a retailer's photo arrives at
+         whatever proportions it likes, and stretching a model shot to
+         fill a box is the "squished" look the QA flagged.
+
+         NEVER CROP A PERSON. A cover fit on a 4:5 box turns a full-length
+         model shot into a headless torso, which is the single ugliest
+         thing this grid can render. Contain shows the whole frame with
+         white either side — an honest product photo beats a well-filled
+         box. The field is white rather than tinted because retail
+         photography is shot on white and a tint draws the seam. -->
+    <div class="relative cursor-pointer" style="aspect-ratio:4/5; background:#fff" onclick="${open}">
       ${p.image
-        ? `<img src="${escapeHtml(p.image)}" alt="" loading="lazy" class="w-full h-full" style="object-fit:contain">`
+        ? `<img src="${escapeHtml(p.image)}" alt="" loading="lazy" class="w-full h-full"
+             style="object-fit:contain; object-position:center; padding:10px">`
         : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`}
       ${badgeHTML}
     </div>
