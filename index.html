@@ -3212,17 +3212,36 @@ function storeCardHTML(r){
      treatment, not a fallback a shopper can pick out. Neither is a grey
      pill and neither is an abbreviation.
 
-     ONE HEIGHT CAP, CONTAIN-FIT, FOR EVERY ASPECT RATIO. Foot Locker's
-     wordmark is 9.5:1 and Target's bullseye is square; both are capped
-     at 34px tall and 130px wide and scaled inside that, so a square mark
-     and a wide one read at the same optical height and nothing is ever
-     stretched. A banner-shaped file (Victoria's Secret ships 1200x631)
-     needs nothing special — it lands 34px tall and ~65px wide. The plate
-     is the card's own background, so a transparent PNG sits directly on
-     it with no box or backdrop behind it. */
+     A LOGO ZONE, NOT A HEIGHT CAP (2026-09-20). Every mark is contain-fit
+     inside the same 130x56 box, so each one grows until it maxes out
+     whichever dimension its own proportions reach first, and nothing is
+     ever stretched. `width:100%` is the part that makes it a zone rather
+     than a ceiling: max-* alone only clamps, it never grows a file that
+     is already small, so a mark could sit well inside the plate and there
+     was nothing to push it out.
+
+     WHY 130x56 AND NOT 130x34, which is what this shipped as first. That
+     older box has an aspect of 3.8 — the shape of a wordmark. Walmart
+     (5.3:1) and Foot Locker (9.5:1) reached the width and drew 130px
+     across; anything square reached the 34px height and drew 34x34, a
+     quarter of the ink. Worst hit was Sephora, whose artwork is portrait
+     (283x400 of ink on its canvas), so it came out 24px wide — a sliver
+     beside Walmart.
+
+     The zone aspect that makes a square mark and a w:1 wordmark cover the
+     SAME AREA is sqrt(w): a square gets HxH, a wordmark gets WxW/w, and
+     those are equal when W/H = sqrt(w). Walmart is our widest real
+     wordmark at 5.26:1, so sqrt(5.26) = 2.29, and 130/56 = 2.32. A square
+     mark lands 56x56 and Walmart lands 130x25 — within 3% of each other.
+     That is what "the same visual size" has to mean for logos of
+     different shapes; equal HEIGHTS would mean the opposite, which is the
+     mistake the old cap encoded.
+
+     The plate is the card's own background, so a transparent PNG sits
+     directly on it with no box or backdrop behind it. */
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
-         style="max-height:34px; max-width:130px; object-fit:contain"
+         style="width:100%; max-height:56px; max-width:130px; object-fit:contain"
          onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="inline-flex items-center h-[30px] px-3 rounded-lg text-[13px] font-extrabold text-white text-center leading-tight"
          style="background:${r.color}">${escapeHtml(r.label)}</span>`;
@@ -3266,13 +3285,18 @@ function storeCardHTML(r){
 }
 
 /* The compact mark used in the homepage row: the same real logo or
-   wordmark as the full card, at one consistent size, with the same
-   honest muting for a store still being connected. */
+   wordmark as the full card, in the same kind of contain-fit zone, with
+   the same honest muting for a store still being connected.
+
+   96x42 is storeCardHTML's 130x56 scaled down to the 62px chip, and it is
+   the same sqrt(5.26) = 2.29 aspect, so a square mark and Walmart's
+   wordmark cover the same area here too. Sizing this one on height alone
+   is what left Sephora a 19px sliver in the homepage row. */
 function homeStoreChipHTML(r){
   const pending = !r.search;
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
-         style="max-height:26px; max-width:96px; object-fit:contain"
+         style="width:100%; max-height:42px; max-width:96px; object-fit:contain"
          onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="text-[11.5px] font-extrabold text-white px-2 py-1 rounded-md text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
   const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;

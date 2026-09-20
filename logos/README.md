@@ -8,8 +8,8 @@ every price-comparison site relies on.
 SVG is preferred where the retailer publishes one, because it stays crisp
 at every size. PNG is fine where they do not: the tiles size every mark
 with `object-fit: contain`, so the format makes no difference to the
-layout. Supply a PNG at roughly 3x the largest rendered size (the Tiendas
-tile caps a mark at 34px tall) so it does not soften on a retina screen.
+layout. A Tiendas tile draws a mark up to 130x56, so supply a PNG of at
+least 400px on its long edge and it will not soften on a retina screen.
 
 ## Adding one
 
@@ -23,18 +23,45 @@ that draws a store mark reads the registry row.
 
 ## How a mark is sized, whatever shape it is
 
-One height cap and `object-fit: contain`, everywhere. Foot Locker's
-wordmark is 9.5:1 and Target's bullseye is square; both are capped at
-34px tall and 130px wide on a Tiendas tile (26 x 96 on the homepage chip)
-and scaled inside that box. So:
+Every mark is contain-fit inside the same zone: **130 x 56** on a Tiendas
+tile, **96 x 42** on the homepage chip. Each file grows until it reaches
+whichever edge its own proportions meet first, so:
 
-- a square mark and a wide one read at the same optical height,
-- a banner-shaped file lands at the cap height and whatever width its
-  own proportions give it,
+- a wordmark reaches the zone's width and a square mark reaches its
+  height, and the two cover about the same area,
+- a banner-shaped file needs nothing special — Victoria's Secret ships
+  1200x631 and lands 106 x 56,
 - nothing is ever stretched, and no file needs pre-processing to fit.
 
 A transparent PNG sits directly on the tile's own background. There is no
 plate, box or backdrop drawn behind a mark.
+
+### Why those numbers, and why a `width` as well as the caps
+
+Two things went wrong the first time, and both are easy to reintroduce.
+
+**`max-height` and `max-width` alone are a ceiling, not a zone.** They
+clamp a file that is too big; they never grow one that is small. The
+`width: 100%` alongside them is what makes a mark fill the space it is
+given. Dropping it is invisible in a diff and immediately visible on the
+page.
+
+**The zone's shape decides who gets starved.** The zone was 130 x 34 —
+an aspect of 3.8, which is the shape of a wordmark. Walmart (5.3:1) and
+Foot Locker (9.5:1) reached the width and drew 130px across; anything
+square reached the 34px height and drew 34 x 34, roughly a third of
+Walmart's ink. Sephora came off worst: its artwork is portrait (283 x 400
+of ink on its canvas), so it drew 24px wide — a sliver beside Walmart.
+
+A square mark and a `w:1` wordmark cover the same area when the zone's
+`width / height` equals `sqrt(w)`. Walmart is the widest real wordmark at
+5.26:1, so the target aspect is 2.29; 130/56 is 2.32 and 96/42 is 2.29.
+Measured on the page, a square mark now draws at 98-101% of Walmart's
+area instead of 36%.
+
+Both suites guard this. `run-tests.mjs` requires the `width: 100%` and
+refuses a zone wider than 2.5:1; `browser-tests.mjs` renders all eight
+marks and fails if any of them drops below 60% of Walmart's drawn area.
 
 ## A logo is the retailer's art, not ours to restyle
 

@@ -1336,12 +1336,13 @@ check("a real logo is never greyed out, however pending the store", () => {
   }
 });
 
-check("every store mark is contain-fit and capped, never stretched", () => {
+check("every store mark fills its zone, contain-fit, never stretched", () => {
   const src = readFileSync(root("index.html"), "utf8");
-  // Each <img> that draws a store mark: a height cap, a width cap, and
-  // contain — which is what lets a 1200x631 banner and a square file
-  // share a tile without either being distorted.
-  const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,320}?>/g) || [];
+  /* Each <img> that draws a store mark gets a ZONE — a width, a height
+     cap and a width cap — and contains inside it. That is what lets a
+     1200x631 banner and a square file share a tile without either being
+     distorted, AND what makes them read at the same size. */
+  const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
   if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
@@ -1351,6 +1352,33 @@ check("every store mark is contain-fit and capped, never stretched", () => {
     // Never a bare width/height, which would ignore the file's own ratio.
     if (/style="[^"]*[;\s]height:\s*\d/.test(img)) throw new Error("a store mark sets a fixed height");
     if (!/onerror=/.test(img)) throw new Error("a store mark has no fallback if the file is missing");
+
+    /* WITHOUT width:100% THE CAPS ARE A CEILING, NOT A ZONE. max-* only
+       clamps a file that is too big; it never grows one that is small,
+       so a mark can sit well inside its plate with nothing pushing it
+       out. This is the half of the fix that is easy to drop in a later
+       edit and impossible to see in a diff. */
+    if (!/[";\s]width:\s*100%/.test(img)) throw new Error("a store mark does not fill its zone (no width:100%)");
+
+    /* THE ZONE'S SHAPE DECIDES WHO GETS STARVED. Contain-fit means a
+       square mark uses the zone's height and a wordmark uses its width,
+       so a zone shaped like a wordmark hands the wordmark several times
+       the ink area. Sephora shipped 24px wide beside Walmart's 130px
+       under a 130x34 zone (aspect 3.8) for exactly this reason.
+
+       Equal area for a square mark and a w:1 wordmark needs
+       width/height = sqrt(w). Walmart, our widest real wordmark, is
+       5.26:1, so the target is 2.29 and anything past 2.5 is starving
+       square marks again. */
+    const maxH = Number(/max-height:\s*(\d+)px/.exec(img)[1]);
+    const maxW = Number(/max-width:\s*(\d+)px/.exec(img)[1]);
+    const aspect = maxW / maxH;
+    if (aspect > 2.5) {
+      throw new Error(
+        `store-mark zone is ${maxW}x${maxH} (aspect ${aspect.toFixed(2)}): too wordmark-shaped, ` +
+        `square marks like Sephora and Target render a fraction of Walmart's area`,
+      );
+    }
   }
 });
 

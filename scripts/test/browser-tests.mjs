@@ -507,6 +507,96 @@ await check("the three beauty stores render their real logo, unfiltered", async 
   await ctx.close();
 });
 
+await check("no store logo is dwarfed by the wordmarks beside it", async () => {
+  /* THE BUG: reported live on the Tiendas grid — "Sephora is a tiny
+     sliver, Victoria's Secret and Bath & Body Works are small thumbnails,
+     while Walmart/Target/Old Navy fill their cards". The files were fine.
+     The zone was 130x34, which is a wordmark's shape, so Walmart drew
+     130px across and anything square drew 34x34. Sephora's artwork is
+     portrait, so it drew 24px wide.
+
+     Checking the CSS string is not enough — the numbers only mean
+     something once each file's own proportions are applied to them. So
+     this measures what actually gets drawn. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => showPage("storesView"));
+  await page.waitForTimeout(400);
+
+  const marks = await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll("#storesGrid img")];
+    await Promise.all(imgs.map((i) => (i.complete ? null : new Promise((res) => { i.onload = res; i.onerror = res; }))));
+
+    /* Tailwind's CDN is blocked in this harness, so the card and its
+       plate come out unstyled and shrink-to-fit around their contents —
+       which would cap the zone at each file's own intrinsic width and
+       measure the harness rather than the page. Widen them to what the
+       real grid gives a card, so every mark gets the whole zone. */
+    for (const img of imgs) {
+      for (let el = img.parentElement, n = 0; el && n < 2; el = el.parentElement, n++) {
+        el.style.display = "block";
+        el.style.width = "240px";
+      }
+    }
+
+    return imgs.map((img) => {
+      const box = img.getBoundingClientRect();
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      // What object-fit:contain actually paints inside that box.
+      const scale = Math.min(box.width / nw, box.height / nh);
+      return {
+        key: img.getAttribute("data-retailer"),
+        drawnW: nw * scale,
+        drawnH: nh * scale,
+        zoneW: box.width,
+        zoneH: box.height,
+      };
+    });
+  });
+
+  eq(marks.length, 8, "store marks measured");
+
+  /* Every mark reaches an edge of the zone. A mark that touches neither
+     is one max-* rule short of filling anything — which is what happens
+     the moment someone drops the width:100% that makes the caps a zone. */
+  for (const m of marks) {
+    const fillsWidth = Math.abs(m.drawnW - m.zoneW) < 1.5;
+    const fillsHeight = Math.abs(m.drawnH - m.zoneH) < 1.5;
+    if (!fillsWidth && !fillsHeight) {
+      throw new Error(
+        `${m.key} draws ${m.drawnW.toFixed(1)}x${m.drawnH.toFixed(1)} inside a ` +
+        `${m.zoneW.toFixed(0)}x${m.zoneH.toFixed(0)} zone — it fills neither dimension`,
+      );
+    }
+  }
+
+  const by = Object.fromEntries(marks.map((m) => [m.key, m]));
+  const area = (m) => m.drawnW * m.drawnH;
+  const walmart = by.walmart;
+  if (!walmart) throw new Error("Walmart has no mark to compare against");
+
+  /* Walmart is the reference because it is the one Danny named as
+     rendering correctly, and it is the widest real wordmark (5.26:1), so
+     it is the hardest case for a square mark to match. Anything under
+     60% of its area reads as "a thumbnail next to a logo". Before the
+     fix Sephora sat at 25%. */
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks", "target"]) {
+    const m = by[key];
+    if (!m) throw new Error(`${key} has no mark on the grid`);
+    const ratio = area(m) / area(walmart);
+    if (ratio < 0.6) {
+      throw new Error(
+        `${key} draws ${m.drawnW.toFixed(0)}x${m.drawnH.toFixed(0)} — ${(ratio * 100).toFixed(0)}% of ` +
+        `Walmart's area (${walmart.drawnW.toFixed(0)}x${walmart.drawnH.toFixed(0)}). It reads as a thumbnail.`,
+      );
+    }
+  }
+
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
