@@ -15,6 +15,7 @@ import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
 import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
+import { smallOrderFeePen } from "../../weight-data.js";
 
 const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
@@ -75,7 +76,16 @@ export async function handler(event) {
     const priceUsdTotal = items.reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
     const weightKgTotal = items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
     const fxRateVenta = typeof body.fxRateVenta === "number" ? body.fxRateVenta : null;
-    const totalPen = fxRateVenta ? Math.round(quote.total_usd * fxRateVenta * 100) / 100 : null;
+    /* SMALL-ORDER FEE. The browser sends what it showed, but the server
+       decides what is charged: the fee is recomputed here from the real
+       product subtotal in soles, so a tampered request cannot zero it and
+       a stale page cannot charge one that no longer applies. The rule and
+       both numbers live in weight-data.js — never inlined. */
+    const productsPen = fxRateVenta ? Math.round(priceUsdTotal * fxRateVenta * 100) / 100 : null;
+    const smallOrderFeePenCharged = productsPen != null ? smallOrderFeePen(productsPen) : 0;
+    const totalPen = fxRateVenta
+      ? Math.round((quote.total_usd * fxRateVenta + smallOrderFeePenCharged) * 100) / 100
+      : null;
     /* SALDO ARIA. The browser asks for an amount; the server decides it.
        The balance is re-read here and capped against both the real
        balance and the order total, so a tampered request can only ever
@@ -117,6 +127,9 @@ export async function handler(event) {
       buyerEmail: buyerEmail || null,
       fxRateUsed: fxRateVenta,
       freteChargedUsd: typeof quote.flete_usd === "number" ? quote.flete_usd : null,
+      // Itemised on the record, not folded into the total, so the margin
+      // view can tell handling revenue apart from freight and product.
+      smallOrderFeePen: smallOrderFeePenCharged,
       totalUsd: quote.total_usd,
       gatewayFeeEstimatePen,
       quoteSource: quote.source || null,

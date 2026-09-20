@@ -98,6 +98,8 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M20 7 12 3 4 7v10l8 4 8-4Z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>
             Tu pedido
           </h2>
+          <div id="checkoutWeightReviewWrap"></div>
+          <div id="checkoutFragranceWrap"></div>
           <div id="checkoutItemsWrap" class="space-y-4"></div>
         </section>
         </div>
@@ -120,6 +122,18 @@
             </div>
             <div class="flex justify-between"><span>Valor total declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
             <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+            <!-- SMALL-ORDER FEE (2026-09-20). Rendered only when it
+                 applies, as its own named line with the threshold stated
+                 underneath. It is the real cost of receiving, checking
+                 and delivering a small parcel, and it is worded as that
+                 rather than as a penalty. -->
+            <div id="sumSmallOrderRow" class="flex items-start justify-between gap-2" hidden>
+              <span class="flex flex-col">
+                <span id="sumSmallOrderLabel">Pedido pequeño</span>
+                <span id="sumSmallOrderNote" class="text-[11px]" style="color:#8A93A8"></span>
+              </span>
+              <span id="sumSmallOrder" class="tabular font-semibold" style="color:var(--navy)">—</span>
+            </div>
           </div>
           <!-- BUG FIX (2026-09-17): the total previously included AVI's real
                Peru import duty/IGV charge (applies automatically over a $200
@@ -385,7 +399,11 @@
 </div>
 
 <script type="module">
-  import { CHARGE_PER_KG, BASE_FEE, DUTY_THRESHOLD_USD, DUTY_RATE } from './weight-data.js';
+  import { CHARGE_PER_KG, BASE_FEE, DUTY_THRESHOLD_USD, DUTY_RATE,
+           SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN, smallOrderFeePen,
+           SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE } from './weight-data.js';
+  import { RETAILER_LABELS, RETAILER_COLORS, RETAILER_LOGOS } from './scripts/lib/retailers.js';
+  import { MAX_FRAGRANCES_PER_SHIPMENT, fragranceLimitState } from './scripts/lib/beauty-weight.js';
 
   const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const pen = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
@@ -424,12 +442,14 @@
   }
 
   // BUG FIX (2026-09-17): checkout never named which store a product came
-  // from at all. Small self-contained copy of index.html's retailer badge
-  // (same logo files, same colored-text-pill fallback) — this page has no
-  // access to index.html's script, so it can't just import the function.
-  const LIVE_RETAILER_LABEL = { walmart: 'Walmart', target: 'Target', oldnavy: 'Old Navy', footlocker: 'Foot Locker', autozone: 'AutoZone' };
-  const RETAILER_BADGE_COLOR = { walmart: '#0071CE', target: '#CC0000', oldnavy: '#001E62', footlocker: '#000', autozone: '#1C8A4B' };
-  const RETAILER_LOGO_FILE = { walmart: 'logos/walmart.svg', target: 'logos/target.svg', oldnavy: 'logos/oldnavy.svg', footlocker: 'logos/footlocker.svg', autozone: 'logos/autozone.svg' };
+  // from at all. The badge markup is still local to this page (it has no
+  // access to index.html's script), but the store facts behind it are
+  // NOT: three hand-copied maps used to live here, and they were already
+  // one store out of date. They come from the registry now — this page is
+  // a module, so it can simply import it.
+  const LIVE_RETAILER_LABEL = RETAILER_LABELS;
+  const RETAILER_BADGE_COLOR = RETAILER_COLORS;
+  const RETAILER_LOGO_FILE = RETAILER_LOGOS;
   function escapeHtmlLocal(str){
     return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
@@ -461,6 +481,8 @@
   const sumDutyRow = document.getElementById('sumDutyRow');
   const sumDuty = document.getElementById('sumDuty');
   const sumFlete = document.getElementById('sumFlete');
+  const sumSmallOrderRow = document.getElementById('sumSmallOrderRow');
+  const sumSmallOrder = document.getElementById('sumSmallOrder');
   const sumTotal = document.getElementById('sumTotal');
   const sumWalletRow = document.getElementById('sumWalletRow');
   const sumWallet = document.getElementById('sumWallet');
@@ -539,6 +561,15 @@
     renderSummary();
   }
 
+  /* The whole order in soles, fee included — the figure saldo is capped
+     against and the figure the card is charged. One definition, used by
+     renderSummary and by the submit handler, so the two can never send a
+     different number than the one on screen. */
+  function orderTotalPenNow(){
+    if (!fxRates || !latestQuote) return 0;
+    return round2(latestQuote.total_usd * fxRates.venta + currentSmallOrderFeePen());
+  }
+
   // What this order can actually consume: never more than the balance,
   // never more than the order. Mirrors applicableCreditPen() server-side.
   function walletAppliedPen(orderTotalPen){
@@ -587,6 +618,67 @@
   let requestSeq = 0;
   let debounceTimer;
 
+  /* THE COURIER'S FOUR-FRAGRANCE CLAUSE, at the payment step.
+     The cart already blocks on this, but a cart can be edited in another
+     tab and a checkout can be reloaded, so the rule is enforced here too
+     — on the same shared helper, so the two can never disagree. */
+  let fragranceState = { count: 0, limit: MAX_FRAGRANCES_PER_SHIPMENT, overLimit: false, remaining: MAX_FRAGRANCES_PER_SHIPMENT };
+
+  /* FAIL CLOSED ON A WEIGHT WE DO NOT BELIEVE (2026-09-20).
+
+     The server resolver checks every ESTIMATED weight against what its
+     category can plausibly weigh, in both directions, and says so. When
+     a line comes back out of band this page refuses to quote at all
+     rather than print a freight figure and a total built on it — a
+     projector at 0.065 kg and a men's sneaker at 1.94 kg are both wrong,
+     and we honour whatever we quote, so both cost real money.
+
+     The page never decides this for itself: it is the resolver's
+     verdict, the same one the cart and the refresh scripts read. */
+  let weightReview = { needsReview: false, items: [] };
+
+  function renderWeightReviewNotice(){
+    const wrap = document.getElementById('checkoutWeightReviewWrap');
+    if (!wrap) return;
+    if (!weightReview.needsReview){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 mb-4 flex items-start gap-3" style="background:#FFF6E0; border:1px solid #F0D28A">
+      <svg class="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A6B1F" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+      <div>
+        <div class="text-[13.5px] font-extrabold" style="color:#5C4813">Estamos confirmando el peso de ${weightReview.items.length === 1 ? 'un producto' : `${weightReview.items.length} productos`}</div>
+        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#8A6B1F">
+          ${weightReview.items.map(it => escapeHtmlLocal(String(it.title || '').slice(0, 60))).join(' · ')}
+        </div>
+        <div class="text-[12.5px] leading-snug mt-1.5" style="color:#8A6B1F">
+          Preferimos no cobrarte un flete que no podemos sostener. Escríbenos y te confirmamos el costo real antes de cobrar nada.
+        </div>
+      </div>
+    </div>`;
+  }
+
+  function renderFragranceNotice(){
+    const wrap = document.getElementById('checkoutFragranceWrap');
+    if (!wrap) return;
+    if (!fragranceState.count){ wrap.innerHTML = ''; return; }
+    if (fragranceState.overLimit){
+      wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 mb-4 flex items-start gap-3" style="background:#FDEDEC; border:1px solid #E6B0AA">
+        <svg class="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#A93226" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+        <div>
+          <div class="text-[13.5px] font-extrabold" style="color:#922B21">Tienes ${fragranceState.count} perfumes y el máximo por envío es ${fragranceState.limit}</div>
+          <div class="text-[12.5px] leading-snug mt-0.5" style="color:#A93226">
+            Los perfumes y las brumas corporales son carga restringida por aire. Vuelve al carrito y quita ${fragranceState.count - fragranceState.limit}, o haz un segundo pedido con el resto.
+          </div>
+        </div>
+      </div>`;
+      return;
+    }
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 flex items-start gap-3" style="background:#FFF4D6; border:1px solid #E8C877">
+      <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7A5B12" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+      <div class="text-[12.5px] leading-snug" style="color:#7A5B12">
+        <b>${fragranceState.count} de ${fragranceState.limit} perfumes</b> en este envío. Nuestro courier permite hasta ${fragranceState.limit} por paquete.
+      </div>
+    </div>`;
+  }
+
   // BUG FIX (2026-09-17): the nav says "Perú · PEN" but every number on
   // this page used to lead with USD, with PEN only ever shown as a small
   // "≈" afterthought next to the final total — a real misread risk (off
@@ -599,9 +691,30 @@
     return pen.format(round2(usdAmount * fxRates.venta));
   }
 
+  /* The small-order fee is quoted in SOLES — it is a Peru-side handling
+     cost — and the threshold is compared against the product subtotal AS
+     THE SHOPPER SEES IT: the displayed soles price, markup and FX
+     included. Without a live FX rate there is no soles subtotal to
+     compare, so the fee is 0 and its row stays hidden rather than being
+     guessed at a made-up rate; the page is already in its USD-only
+     degraded mode in that case. */
+  function currentSmallOrderFeePen(){
+    if (!fxRates) return 0;
+    return smallOrderFeePen(round2(currentValor() * fxRates.venta));
+  }
+
+  function renderSmallOrderRow(fee){
+    document.getElementById('sumSmallOrderLabel').textContent = SMALL_ORDER_FEE_LABEL;
+    document.getElementById('sumSmallOrderNote').textContent = SMALL_ORDER_FEE_NOTE;
+    sumSmallOrder.textContent = fmtWalletPen(fee);
+    sumSmallOrderRow.hidden = !(fee > 0);
+  }
+
   function renderSummary({ loading = false } = {}){
     const kg = currentKg();
     const valor = currentValor();
+    const smallOrderFee = currentSmallOrderFeePen();
+    renderSmallOrderRow(smallOrderFee);
     sumWeight.textContent = kg.toFixed(2) + ' kg';
     sumValor.textContent = fmtPrimary(valor);
 
@@ -620,7 +733,9 @@
         sumDuty.textContent = fmtPrimary(pendingDuty) + ' (estimado)';
         sumDutyRow.hidden = !(pendingDuty > 0.01);
         sumFlete.textContent = fmtPrimary(q.flete_usd) + ' (estimado)';
-        sumTotal.textContent = fmtPrimary(q.total_usd) + ' (estimado)';
+        sumTotal.textContent = (fxRates
+          ? pen.format(round2(q.total_usd * fxRates.venta + smallOrderFee))
+          : fmtPrimary(q.total_usd)) + ' (estimado)';
       } else {
         sumDutyRow.hidden = true;
         sumFlete.textContent = '—';
@@ -652,7 +767,32 @@
     // Saldo comes off the top of what the card pays. Without a live FX
     // rate the total is in USD and a soles balance cannot be applied
     // honestly, so the row stays hidden rather than guessing a rate.
-    const orderTotalPen = fxRates ? round2(latestQuote.total_usd * fxRates.venta) : 0;
+    // The small-order fee is part of the order total, so saldo applies
+    // against it too and it is inside every figure below.
+    const orderTotalPen = fxRates ? round2(latestQuote.total_usd * fxRates.venta + smallOrderFee) : 0;
+
+    /* A weight we do not believe must not become a price. Everything on
+       the line is still shown — the customer can see what is in the
+       order — but the total is withheld and Pagar stays closed until a
+       human confirms the freight. */
+    if (weightReview.needsReview){
+      sumWalletRow.hidden = true;
+      sumTotal.textContent = '—';
+      payBtn.disabled = true;
+      payBtn.textContent = 'Confirmando el peso del pedido';
+      return;
+    }
+
+    /* A shipment the courier will not carry must not be payable. Four
+       fragrances is a contract limit, not a guideline. */
+    if (fragranceState.overLimit){
+      sumWalletRow.hidden = true;
+      sumTotal.textContent = fxRates ? pen.format(orderTotalPen) : fmtPrimary(latestQuote.total_usd);
+      payBtn.disabled = true;
+      payBtn.textContent = `Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío`;
+      return;
+    }
+
     const applied = walletAppliedPen(orderTotalPen);
     if (applied > 0){
       sumWallet.textContent = '- ' + fmtWalletPen(applied);
@@ -667,9 +807,10 @@
       return;
     }
     sumWalletRow.hidden = true;
-    sumTotal.textContent = fmtPrimary(latestQuote.total_usd);
+    const totalLabel = fxRates ? pen.format(orderTotalPen) : fmtPrimary(latestQuote.total_usd);
+    sumTotal.textContent = totalLabel;
     payBtn.disabled = false;
-    payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
+    payBtn.textContent = 'Pagar ' + totalLabel;
   }
 
   function requestQuote(){
@@ -722,6 +863,9 @@
      generic is the same 0.6kg the product cards and cart already show, so
      nothing gets heavier between the cart and checkout. */
   const GENERIC_FALLBACK_KG = 0.6;
+  /* The instant local estimate deliberately reports needsReview:
+     undefined rather than false — it is a placeholder, and it must not
+     be able to clear a verdict the server already gave. */
   function localWeightFallback(items){
     const totalKg = items.reduce((sum, it) => {
       const qty = Math.max(1, Math.round(Number(it.qty) || 1));
@@ -749,6 +893,16 @@
   }
 
   function applyResolvedWeight(resolved){
+    // The weight resolver answers the fragrance clause in the same call
+    // (it is reading the same titles), so take its answer when it has one.
+    if (resolved?.fragrance){
+      fragranceState = resolved.fragrance;
+      renderFragranceNotice();
+    }
+    if (resolved?.needsReview !== undefined){
+      weightReview = { needsReview: Boolean(resolved.needsReview), items: resolved.reviewItems || [] };
+      renderWeightReviewNotice();
+    }
     const kg = Number(resolved?.totalKg);
     if (!(Number.isFinite(kg) && kg > 0)) return;   // 0 is never an answer
     kgInput.value = kg.toFixed(2);
@@ -825,6 +979,9 @@
        freight line and a S/ 0.00 total. Reproduced with "Apple AirPods Max
        2 - Starlight". The field stays disabled either way: the system owns
        this number, not the customer. */
+    fragranceState = fragranceLimitState(cart);
+    renderFragranceNotice();
+
     kgInput.disabled = true;
     applyResolvedWeight(localWeightFallback(cart));   // instant, never 0
     resolveWeights(cart).then(applyResolvedWeight);   // authoritative
@@ -861,6 +1018,14 @@
   document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    if (weightReview.needsReview){
+      showToast('Estamos confirmando el peso de un producto — te cotizamos el flete real antes de cobrar.');
+      return;
+    }
+    if (fragranceState.overLimit){
+      showToast(`Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío — ajusta tu carrito.`);
+      return;
+    }
     if (!form.checkValidity() || !latestQuote){
       form.reportValidity();
       showToast(latestQuote ? 'Completa todos los campos obligatorios.' : 'Espera a que termine la cotización antes de pagar.');
@@ -892,7 +1057,11 @@
           fxRateVenta: fxRates?.venta ?? null,
           // A request, not an instruction: orders-create.js re-reads the
           // balance and caps this against it and against the order total.
-          applyWalletPen: walletAppliedPen(fxRates ? round2(latestQuote.total_usd * fxRates.venta) : 0),
+          applyWalletPen: walletAppliedPen(orderTotalPenNow()),
+          // The Peru-side handling fee, in soles, exactly as shown. Sent
+          // so the order record and the margin view carry it rather than
+          // having to re-derive it from a subtotal and a threshold.
+          smallOrderFeePen: currentSmallOrderFeePen(),
         }),
       });
       const data = await res.json();

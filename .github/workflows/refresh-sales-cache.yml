@@ -1,43 +1,85 @@
-# Keeps the Ofertas deals cache warm server-side, so no visitor's browser
-# ever has to write it.
+# Keeps the caches warm server-side, so no visitor's browser ever has to.
 #
-# Once a day, 12:00 UTC (07:00 Peru time, before the day's traffic). Cost
-# is 12 Apify actor runs per refresh, so 12 runs/day at roughly $0.01-0.03
-# each.
+# THE $88 CYCLE, AND WHAT CHANGED (2026-09-20)
+# One cycle burned ~$88 across 1,000+ Apify runs and 14,295 dataset reads.
+# Two causes, both fixed:
 #
-# KNOWN AND ACCEPTED: the cache TTL is 6h, so from ~18:00 UTC each day the
-# cache reads stale and visitors fall back to a live browser scan until the
-# next run. That is deliberate pre-launch — it keeps Apify spend down while
-# traffic is minimal — and is to be revisited when ad traffic starts, by
-# moving back to a cron at or under the 6h TTL (e.g. "0 */6 * * *").
+#   1. BROWSING SCRAPED. Ofertas ran a twelve-actor live scan from the
+#      VISITOR'S browser whenever the cache was older than its 6h TTL —
+#      and with a once-a-day refresh it was stale ~18 hours out of 24, so
+#      nearly every visitor paid for twelve runs and the results were
+#      thrown away afterwards. index.html no longer scrapes at all; the
+#      only actor runs left are this workflow and the on-demand store
+#      search a shopper explicitly asks for (capped and cached).
+#
+#   2. ONE CADENCE FOR EVERYTHING. Deals move daily. A store's general
+#      catalogue does not, and a brake pad's listing certainly does not.
+#      They are three tiers now, on three clocks.
+#
+# THIS WORKFLOW IS THE ONLY SCHEDULER. No Apify-side schedules, ever —
+# deliberately, so there is exactly one place to look when spend moves
+# and exactly one place to change it.
+#
+# Tier definitions, run counts and the budget guard live in
+# scripts/lib/refresh-tiers.js. The cron lines below must match the
+# `cron` field on each tier there; a test asserts they do.
 #
 # Required repository secret:
 #   SALES_REFRESH_TOKEN   must match the SALES_REFRESH_TOKEN environment
 #                         variable set on the Netlify site
-name: Refresh Ofertas cache
+# Optional repository variables (spend guard):
+#   APIFY_CYCLE_BUDGET_USD   default 3.00 per cycle
+#   APIFY_COST_PER_RUN_USD   default 0.06 (top of the observed range)
+name: Refresh caches (tiered)
 
 on:
   schedule:
+    # Deals — daily. The one tier the budget guard will not skip.
     - cron: "0 12 * * *"
-  workflow_dispatch: {}      # lets an operator run it by hand from the Actions tab
+    # General catalogue — every 3 days. NOTE: cron's day-of-month step
+    # restarts each month, so the gap across a month boundary can be one
+    # day rather than three. Harmless for a catalogue; documented so
+    # nobody reads the log and thinks it misfired.
+    - cron: "0 13 */3 * *"
+    # Aria Auto parts — weekly, Monday.
+    - cron: "0 14 * * 1"
+  workflow_dispatch:
+    inputs:
+      tier:
+        description: "Which tier to refresh by hand"
+        required: true
+        default: sale
+        type: choice
+        options: [sale, catalog, auto]
 
 concurrency:
-  # Two overlapping refreshes would just burn Apify credits racing to write
-  # the same key.
-  group: refresh-sales-cache
+  # Two overlapping refreshes of the same tier would just burn Apify
+  # credits racing to write the same key.
+  group: refresh-${{ github.event.inputs.tier || github.event.schedule }}
   cancel-in-progress: false
 
 jobs:
   refresh:
     runs-on: ubuntu-latest
-    timeout-minutes: 20       # a full scan polls 12 sources; 20m is generous headroom
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Refresh the deals cache
+
+      - name: Resolve which tier this run is
+        id: tier
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          MANUAL: ${{ github.event.inputs.tier }}
+        run: node scripts/resolve-refresh-tier.js >> "$GITHUB_OUTPUT"
+
+      - name: Refresh ${{ steps.tier.outputs.label }}
         env:
           SITE: https://ariashop.pe
           SALES_REFRESH_TOKEN: ${{ secrets.SALES_REFRESH_TOKEN }}
-        run: node scripts/refresh-sales-cache.js
+          APIFY_CYCLE_BUDGET_USD: ${{ vars.APIFY_CYCLE_BUDGET_USD }}
+          APIFY_COST_PER_RUN_USD: ${{ vars.APIFY_COST_PER_RUN_USD }}
+          REFRESH_TIER: ${{ steps.tier.outputs.tier }}
+        run: node "${{ steps.tier.outputs.script }}"

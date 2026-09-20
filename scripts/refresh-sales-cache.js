@@ -34,6 +34,8 @@ import {
   normalizeDeal,
   collapseVariants,
 } from "./lib/sales-sources.js";
+import { FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING } from "./lib/item-weight.js";
+import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
 
 const SITE = (process.env.SITE || "https://ariashop.pe").replace(/\/$/, "");
 const TOKEN = (process.env.SALES_REFRESH_TOKEN || "").trim();
@@ -94,7 +96,42 @@ async function mapWithConcurrency(list, limit, fn) {
   return results;
 }
 
+
+/* ============================================================
+   THE SPEND GUARD (2026-09-20).
+
+   Before this cycle starts a single actor run it projects what the run
+   is about to cost and compares it with the per-cycle budget. Over
+   budget, a non-essential tier SKIPS and says so at the top of the log
+   in a line nobody can miss. Silence is how $88 happens: the incident
+   that put this here was 1,000+ runs that nothing ever announced.
+
+   Tier definitions, run counts and the budget live in
+   scripts/lib/refresh-tiers.js.
+   ============================================================ */
+function guardSpend(tierKey) {
+  const { costPerRun, budgetUsd } = budgetFromEnv();
+  const decision = spendDecision(tierKey, { costPerRun, budgetUsd });
+  const tier = tierFor(tierKey);
+  console.log(
+    `\n  presupuesto: ~${tier?.runs ?? "?"} runs x $${costPerRun} = $${decision.projectedUsd} ` +
+      `(tope por ciclo $${decision.budgetUsd})`,
+  );
+  if (decision.reason) {
+    console.log("\n  ====================================================");
+    console.log(`  ${decision.reason}`);
+    console.log("  ====================================================\n");
+  }
+  if (!decision.allowed) {
+    console.log("  No se ejecutó ningún run de Apify en este ciclo.\n");
+    return false;
+  }
+  return true;
+}
+
 async function main() {
+  if (!guardSpend("sale")) return;
+
   console.log(`Refreshing Ofertas cache from ${SITE}`);
   console.log(`${SALES_SOURCES.length} sources, concurrency ${CONCURRENCY}${DRY_RUN ? " (dry run)" : ""}\n`);
 
@@ -123,12 +160,22 @@ async function main() {
      implausible is allowed to publish quietly. estimateWeightDetail()
      already applied the category floor; this prints what it had to
      correct, so the fix is a real table row rather than a floor. */
-  const flagged = deals.filter((d) => d.weightFlagged);
-  if (flagged.length) {
-    console.log(`\n  ${flagged.length} deal(s) needed a weight sanity floor — add a category row for these:`);
-    for (const d of flagged) console.log(`    ${d.weightKg}kg  ${d.title.slice(0, 66)}\n      ${d.weightFlagReason}`);
-  } else {
-    console.log("  weights: all within their category bounds");
+  /* Nothing with a doubtful weight reaches this list any more: an
+     out-of-band estimate and a title with no category row are both
+     dropped before a deal is built (see dealFrom). So what is left to
+     report is what IS here — the beauty rows still waiting to be checked
+     against a real parcel — and how many were dropped on the way. */
+  const beautyEstimated = deals.filter((d) => d.weightSource === "beauty");
+  const heavy = deals.filter((d) => d.freightHigh);
+  console.log(`  weights: every published deal is inside its category band`);
+  console.log(`  freight: nothing over ${Math.round(FREIGHT_FEATURE_CEILING * 100)}% of price is featured (still listed and badged everywhere else)`);
+  if (heavy.length) {
+    console.log(`  ${heavy.length} deal(s) carry a "Flete alto" badge (freight over ${Math.round(FREIGHT_BADGE_SHARE * 100)}% of price) — featured, not hidden`);
+  }
+  if (beautyEstimated.length) {
+    console.log(`\n  ${beautyEstimated.length} beauty deal(s) on estimated weights — calibrate against the first real order:`);
+    for (const d of beautyEstimated.slice(0, 20)) console.log(`    ${d.weightKg}kg  ${d.title.slice(0, 66)}`);
+    if (beautyEstimated.length > 20) console.log(`    … and ${beautyEstimated.length - 20} more`);
   }
 
   // Never replace a good cache with nothing. An empty result is

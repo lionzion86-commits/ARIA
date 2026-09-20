@@ -19,11 +19,23 @@
 import fs from "node:fs/promises";
 import { estimateWeightDetail } from "./lib/sales-sources.js";
 import { DEPARTMENT_CONFIG, BRAND_CONFIG } from "../netlify/functions/apify-scrape-start.js";
+import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
+import { quotasFor, targetDepth, plannedRuns, ITEMS_PER_QUOTA, MIN_HONEST_STOREFRONT, isHonestStorefront } from "./lib/catalog-quotas.js";
+import { retailerFor } from "./lib/retailers.js";
 
 const SITE = "https://ariashop.pe";
 const OUT_FILE = new URL("../department-cache.json", import.meta.url);
 const FETCH_TIMEOUT_MS = 60000;
-const ITEMS_PER_DEPARTMENT = 24;
+/* CATALOG DEPTH (2026-09-20). ITEMS_PER_DEPARTMENT was 24: one scrape
+   per department, capped at 24 rows, whatever mix the actor happened to
+   return. That is how Old Navy women's rendered three to eight T-shirts
+   and presented it as the store.
+
+   Depth is declared per category now — see scripts/lib/catalog-quotas.js
+   — and this is the per-run ceiling those quotas fill to. More rows per
+   run is the cheapest depth there is: one run returning 60 costs the
+   same as one returning 24. */
+const ITEMS_PER_DEPARTMENT = ITEMS_PER_QUOTA;
 const ITEMS_PER_BRAND = 24;
 const RUN_TIMEOUT_MS = 120000;
 const POLL_INTERVAL_MS = 3000;
@@ -238,7 +250,42 @@ function buildTasks() {
   return tasks;
 }
 
+
+/* ============================================================
+   THE SPEND GUARD (2026-09-20).
+
+   Before this cycle starts a single actor run it projects what the run
+   is about to cost and compares it with the per-cycle budget. Over
+   budget, a non-essential tier SKIPS and says so at the top of the log
+   in a line nobody can miss. Silence is how $88 happens: the incident
+   that put this here was 1,000+ runs that nothing ever announced.
+
+   Tier definitions, run counts and the budget live in
+   scripts/lib/refresh-tiers.js.
+   ============================================================ */
+function guardSpend(tierKey) {
+  const { costPerRun, budgetUsd } = budgetFromEnv();
+  const decision = spendDecision(tierKey, { costPerRun, budgetUsd });
+  const tier = tierFor(tierKey);
+  console.log(
+    `\n  presupuesto: ~${tier?.runs ?? "?"} runs x $${costPerRun} = $${decision.projectedUsd} ` +
+      `(tope por ciclo $${decision.budgetUsd})`,
+  );
+  if (decision.reason) {
+    console.log("\n  ====================================================");
+    console.log(`  ${decision.reason}`);
+    console.log("  ====================================================\n");
+  }
+  if (!decision.allowed) {
+    console.log("  No se ejecutó ningún run de Apify en este ciclo.\n");
+    return false;
+  }
+  return true;
+}
+
 async function main() {
+  if (!guardSpend("catalog")) return;
+
   await loadExistingCache();
 
   const tasks = buildTasks();
@@ -317,23 +364,48 @@ async function main() {
      raw scrapes and the page estimates weight at render time, so nothing
      is rewritten here — but an implausible weight must never reach the
      storefront unannounced, and this is where a human is watching. */
-  const flagged = [];
+  /* TWO QUEUES, NOT ONE (2026-09-20). A flagged weight used to mean one
+     thing — "this has no category row, write one". Beauty weights are
+     flagged too, but for the opposite reason: they DO have a row, and the
+     row is a conservative estimate waiting to be checked against a real
+     parcel on a real scale. Printing them under "add a category row"
+     would bury the genuine gaps under a list of things that are working
+     as designed, so they get their own heading and their own count. */
+  const outOfBand = [];
+  const gaps = [];
+  const beautyEstimates = [];
   for (const bucket of Object.values(out.retailers || {})) {
     for (const group of [bucket.departments || {}, bucket.brands || {}]) {
       for (const dept of Object.values(group)) {
         for (const item of dept.items || []) {
           const title = item.name || item.title || "";
           const w = estimateWeightDetail(title);
-          if (w.flagged) flagged.push(`${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`);
+          const line = `${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`;
+          if (w.reviewKind === "out-of-band") outOfBand.push(line);
+          else if (w.reviewKind === "gap") gaps.push(line);
+          else if (w.reviewKind === "calibration") beautyEstimates.push(line);
         }
       }
     }
   }
-  if (flagged.length) {
-    console.log(`\n  ${flagged.length} item(s) needed a weight sanity floor — add a category row for these:`);
-    for (const line of [...new Set(flagged)]) console.log(`    ${line}`);
-  } else {
-    console.log("\n  weights: every item is within its category bounds");
+  /* Loudest first: an out-of-band weight is not quotable at all — the
+     storefront refuses to price those items until a human fixes them. */
+  if (outOfBand.length) {
+    console.log(`\n  ${outOfBand.length} item(s) OUT OF BAND — not quotable until fixed:`);
+    for (const line of [...new Set(outOfBand)]) console.log(`    ${line}`);
+  }
+  if (gaps.length) {
+    console.log(`\n  ${gaps.length} item(s) with no category row — add one (they quote on the generic estimate and stay out of Ofertas):`);
+    for (const line of [...new Set(gaps)]) console.log(`    ${line}`);
+  }
+  if (!outOfBand.length && !gaps.length) {
+    console.log("\n  weights: every item is inside its category band");
+  }
+  const beautyUnique = [...new Set(beautyEstimates)];
+  if (beautyUnique.length) {
+    console.log(`\n  ${beautyUnique.length} beauty item(s) on estimated weights — calibrate against the first real order:`);
+    for (const line of beautyUnique.slice(0, 20)) console.log(`    ${line}`);
+    if (beautyUnique.length > 20) console.log(`    … and ${beautyUnique.length - 20} more`);
   }
 
   console.log(`\nWrote ${OUT_FILE.pathname}`);

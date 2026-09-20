@@ -23,6 +23,13 @@
 // Exported (alongside BRAND_CONFIG below) so refresh-department-cache.js
 // can import the exact same department/brand keys rather than
 // hand-duplicating this list and risking drift.
+import { connectLambda } from "@netlify/blobs";
+import { retailerFor } from "../../scripts/lib/retailers.js";
+import {
+  readOndemandCache, recordOndemandRun, acquireOndemandLease, ondemandInFlight,
+  ondemandUserKey, MAX_CONCURRENT_PER_USER,
+} from "./_ondemand.js";
+
 export const DEPARTMENT_CONFIG = {
   // All 6 Walmart URLs and all 6 Target URLs below are REAL-TEST CONFIRMED
   // (2026-09-17) — actual Apify runs against this exact actor+URL,
@@ -143,6 +150,30 @@ export const BRAND_CONFIG = {
   // search there stays a plain keyword search using the brand name itself.
 };
 
+/* ============================================================
+   REUSABLE ACTOR INPUT SHAPES (2026-09-20)
+
+   Every retailer below used to need a hand-written buildInput, which made
+   "add a store" a code change even when the actor wanted nothing more
+   exotic than a keyword and a limit. Most Apify scrapers take exactly
+   that, in one of a handful of field spellings — so those spellings are
+   named here and a new retailer can say `inputShape: "searchQuery"` and
+   be done. Bespoke buildInput is still there for the four stores that do
+   real category/brand browsing, which genuinely needs code.
+
+   The shape receives (query, maxItems) and returns the actor's input
+   object. Add a spelling here rather than a new buildInput whenever a new
+   actor turns out to want one.
+   ============================================================ */
+export const INPUT_SHAPES = {
+  searchQuery: (query, maxItems) => ({ searchQuery: query, maxItems }),
+  searchQueries: (query, maxItems) => ({ searchQueries: [query], maxItems }),
+  query: (query, maxItems) => ({ query, maxItems }),
+  keywords: (query, maxItems) => ({ keywords: [query], maxResults: maxItems }),
+  targets: (query, maxItems) => ({ targets: [query], maxResults: maxItems }),
+  searchTerm: (query, maxItems) => ({ searchTerm: query, maxItems }),
+};
+
 const RETAILER_CONFIG = {
   // Removed: mrdoe/bestbuy-product-scraper required RESIDENTIAL proxy to
   // return results reliably (dropping it made runs hang instead of
@@ -254,15 +285,42 @@ const RETAILER_CONFIG = {
   //     maxPagesPerUrl: 1,
   //   }),
   nordstrom: null,
-  // No vetted Apify Actor found for Victoria's Secret at the time this was written.
-  // Pick one from https://apify.com/store, then add its actorId + buildInput here
-  // the same way as the retailers above.
+  /* SEPHORA AND VICTORIA'S SECRET (2026-09-20).
+
+     Both are mandatory retailers and both are already real rows in
+     scripts/lib/retailers.js — they show on Tiendas, they carry their own
+     brand treatment, and the beauty weight estimator was written for
+     their catalogues. What is missing is the one fact that can only come
+     from outside: a verified Apify actor ID. apify.com is not reachable
+     from this build environment, and a guessed actor ID does not fail
+     loudly — it completes with zero items, which reads to everyone
+     downstream as "this store has no products".
+
+     So they are left null, deliberately, and the handler below turns that
+     into an explicit, named error instead of a silent empty result.
+
+     TO FINISH THE INTEGRATION — no new code, two edits:
+       1. Pick an actor from https://apify.com/store (search "sephora" /
+          "victoria's secret"), run it once by hand to confirm it returns
+          real titles and prices, then replace the null with:
+             { actorId: "<owner>/<actor>", inputShape: "searchQuery" }
+          picking whichever INPUT_SHAPES spelling that actor's schema uses
+          (its docs name the field). If it wants something not listed
+          there, add the spelling to INPUT_SHAPES rather than writing a
+          bespoke buildInput.
+       2. Flip `search: true` on the store's row in
+          scripts/lib/retailers.js (and its index.html mirror).
+     Add a DEPARTMENT_CONFIG block only if the actor supports real
+     category browsing; without one, the store answers keyword searches,
+     which is enough to launch on. */
+  sephora: null,
   victoriassecret: null,
 };
 
 const DEFAULT_MAX_ITEMS = 20;
 
 export async function handler(event) {
+  connectLambda(event);
   const headers = {
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -282,17 +340,25 @@ export async function handler(event) {
   }
 
   try {
-    const { retailer, query, maxItems, department, brand } = JSON.parse(event.body || "{}");
+    const { retailer, query, maxItems, department, brand, onDemand } = JSON.parse(event.body || "{}");
 
     const config = RETAILER_CONFIG[retailer];
     if (!config) {
+      /* Tell the two cases apart. A store we know but have not wired a
+         scraper for yet is a pending integration, not a typo, and saying
+         so is the difference between an operator fixing it in two lines
+         and an operator hunting for a bug that is not there. */
+      const known = retailerFor(retailer);
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
-          error: `Unsupported or unconfigured retailer: "${retailer}". Supported: ${Object.keys(RETAILER_CONFIG)
-            .filter((k) => RETAILER_CONFIG[k])
-            .join(", ")}`,
+          error: known
+            ? `Retailer "${retailer}" (${known.label}) has no Apify actor configured yet — see the TO FINISH THE INTEGRATION note in apify-scrape-start.js.`
+            : `Unsupported or unconfigured retailer: "${retailer}". Supported: ${Object.keys(RETAILER_CONFIG)
+                .filter((k) => RETAILER_CONFIG[k])
+                .join(", ")}`,
+          pendingIntegration: Boolean(known),
         }),
       };
     }
@@ -312,8 +378,84 @@ export async function handler(event) {
       };
     }
 
-    const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 50);
-    const actorInput = config.buildInput((query || "").trim(), cappedMaxItems, department, brand);
+    /* The per-run ceiling. Raised from 50 to 60 with the catalog quota
+       model (scripts/lib/catalog-quotas.js): rows per run are the
+       cheapest depth there is — one run returning 60 costs the same as
+       one returning 24 — and 24 is what made an eight-product
+       storefront. Still a hard cap: an unbounded maxItems is an
+       unbounded bill. */
+    const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 60);
+
+    /* ON-DEMAND STORE SEARCH (2026-09-20).
+
+       A shopper asked us to go and look in one store, right now, for one
+       query. That is a real Apify run and it costs real money, so two
+       things happen before one is started — and both happen HERE rather
+       than in the browser, because a guard the client can skip is not a
+       guard.
+
+       1. THE SHARED CACHE. A query another shopper already paid for
+          comes straight back, no run, no lease, no spend. The cache is
+          written by apify-scrape-status from Apify's own response, under
+          the key recorded below, so nothing a browser says can enter it.
+
+       2. THE SPEND CAP. Two runs in flight per user. The lease is
+          released when the run finishes (or expires on its own if the
+          browser is closed mid-poll — see LEASE_TTL_MS). */
+    const isOnDemand = onDemand === true && !hasDepartment && !hasBrand;
+    let userKey = null;
+    if (isOnDemand) {
+      const cached = await readOndemandCache(retailer, query);
+      if (cached) {
+        return {
+          statusCode: 200,
+          headers,
+          body: JSON.stringify({
+            retailer, cached: true, items: cached.items,
+            generatedAt: cached.generatedAt,
+          }),
+        };
+      }
+
+      /* CHECKED BEFORE THE RUN, CLAIMED AFTER IT. The check has to come
+         first or the money is already spent by the time we refuse; the
+         claim has to come second because a lease is keyed on the runId,
+         which does not exist yet. The gap between them is the race the
+         module header documents — worth cents, not worth a second
+         storage primitive. */
+      userKey = await ondemandUserKey(event);
+      const inFlight = await ondemandInFlight(userKey);
+      if (inFlight >= MAX_CONCURRENT_PER_USER) {
+        return {
+          statusCode: 429,
+          headers,
+          body: JSON.stringify({
+            error: `Ya tienes ${inFlight} búsqueda${inFlight === 1 ? "" : "s"} en curso. Espera a que termine antes de pedir otra.`,
+            limit: MAX_CONCURRENT_PER_USER,
+            inFlight,
+            rateLimited: true,
+          }),
+        };
+      }
+    }
+
+    /* A config gives EITHER a bespoke buildInput (the stores that do real
+       category/brand browsing) OR the name of a shared input shape. The
+       second path is what makes adding a store data entry rather than
+       code — see INPUT_SHAPES above. */
+    const shape = !config.buildInput && config.inputShape ? INPUT_SHAPES[config.inputShape] : null;
+    if (!config.buildInput && !shape) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          error: `Retailer "${retailer}" declares inputShape "${config.inputShape}", which is not one of: ${Object.keys(INPUT_SHAPES).join(", ")}`,
+        }),
+      };
+    }
+    const actorInput = config.buildInput
+      ? config.buildInput((query || "").trim(), cappedMaxItems, department, brand)
+      : shape((query || "").trim(), cappedMaxItems);
     const actorPath = config.actorId.replace("/", "~");
 
     const runResponse = await fetch(`https://api.apify.com/v2/actors/${actorPath}/runs`, {
@@ -335,10 +477,23 @@ export async function handler(event) {
       };
     }
 
+    const runId = runData.data.id;
+
+    /* Record what this run IS, at the one point in the system that knows
+       for certain: the server just built the actor input from these
+       values. apify-scrape-status reads this back to decide where the
+       results belong, which is what keeps the cache un-poisonable. The
+       lease is re-keyed onto the real runId so the status call can
+       release exactly this run's slot. */
+    if (isOnDemand) {
+      await recordOndemandRun(runId, { retailer, query: (query || "").trim(), userKey });
+      await acquireOndemandLease(userKey, runId);
+    }
+
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify({ retailer, runId: runData.data.id }),
+      body: JSON.stringify({ retailer, runId }),
     };
   } catch (error) {
     return {
