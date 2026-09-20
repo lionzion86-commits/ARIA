@@ -250,7 +250,9 @@
       </div>
       <button onclick="openCategories()" class="text-[13px] font-bold focus-ring rounded flex-shrink-0 pb-1" style="color:var(--blue)">Ver todas las categorías →</button>
     </div>
-    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4" id="catGrid"></div>
+    <!-- Same treatment as Ofertas and Categorías: no little squares
+         anywhere, here included. -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="catGrid"></div>
   </div>
 
   <!-- WHY SHOP WITH US -->
@@ -961,7 +963,9 @@
             <option value="count">Más productos primero</option>
           </select>
         </div>
-        <div id="categoriesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"></div>
+        <!-- The Ofertas grid, not a square grid: two across, big cards,
+             scrolled. See the note on CARD_SHELL_CLASS. -->
+        <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
       </div>
     </div>
   </div>
@@ -1668,7 +1672,17 @@
           <div class="font-extrabold text-[16px] mb-1" style="color:var(--navy)">¿Necesitas ayuda con una devolución?</div>
           <div class="text-[13.5px]" style="color:#4A5568">Nuestro equipo te acompaña en todo el proceso.</div>
         </div>
-        <button onclick="toggleAssistant()" class="h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring flex-shrink-0" style="background:var(--blue)">Contactar soporte</button>
+        <!-- REPORTED LIVE (2026-09-20): this button called
+             toggleAssistant() — a shopper with a returns problem clicked
+             "Contactar soporte" and got the chatbot back. An <a> with a
+             real mailto href now, not a button with a handler: it works
+             on a phone, it works with JavaScript off, and it can be
+             long-pressed to copy the address. The address itself comes
+             from SUPPORT_EMAIL (scripts/lib/support.js); the href
+             authored here is the no-JS fallback and a test fails if the
+             two ever disagree. -->
+        <a data-support="returns" href="mailto:daniel.leon@ariashop.pe?subject=Ayuda%20con%20una%20devoluci%C3%B3n"
+           class="h-11 px-6 rounded-full text-white text-[13.5px] font-bold focus-ring flex-shrink-0 inline-flex items-center justify-center no-underline" style="background:var(--blue)">Contactar soporte</a>
       </div>
     </div>
   </section>
@@ -1709,7 +1723,11 @@
       </div>
       <div>
         <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Contacto</h2>
-        <p>¿Preguntas sobre estos términos? Escríbenos a <a href="mailto:contacto@ariashop.pe" class="font-semibold" style="color:var(--blue)">contacto@ariashop.pe</a> o <button onclick="toggleAssistant()" class="font-semibold underline" style="color:var(--blue)">chatea con nosotros</button>.</p>
+        <!-- The chat is offered BESIDE a working address here, not instead
+             of one, so it stays: a shopper who prefers to type at a bot
+             may, and a shopper who wants a person has one. That is the
+             difference between this and the Devoluciones button. -->
+        <p>¿Preguntas sobre estos términos? Escríbenos a <a data-support="general" href="mailto:contacto@ariashop.pe" class="font-semibold" style="color:var(--blue)">contacto@ariashop.pe</a> o <button onclick="toggleAssistant()" class="font-semibold underline" style="color:var(--blue)">chatea con nosotros</button>.</p>
       </div>
     </div>
   </div>
@@ -1778,6 +1796,96 @@
           <span id="adminRefreshOfertasStatus" class="text-[12px] text-zinc-500"></span>
         </div>
       </div>
+
+      <!-- ============================================================
+           ENVÍOS — the ops side of the multi-courier seam.
+
+           Everything on this panel talks to ONE endpoint
+           (netlify/functions/admin-shipping.js) behind ONE admin gate.
+           The page knows nothing about how a courier works: it lists
+           whatever the registry returns, and the buttons it draws are
+           the five contract operations. Adding courier number two puts a
+           new row in this table with no change to this markup.
+
+           The internal cost column is the reason this panel is
+           admin-only. It is never rendered anywhere a shopper can reach,
+           and the customer-facing tracking endpoint shares no code path
+           with the call that fills it.
+           ============================================================ -->
+      <div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line)">
+        <div class="flex items-center justify-between gap-3 mb-1 flex-wrap">
+          <div class="font-bold text-[14px]">Envíos</div>
+          <button onclick="loadAdminShipping()" class="h-8 px-3 rounded-full border text-[12px] font-bold focus-ring" style="border-color:var(--line)">Actualizar</button>
+        </div>
+        <p class="text-[12px] text-zinc-500 mb-4 leading-snug">
+          Couriers, cola de envíos y margen real. El cliente nunca ve el courier ni el costo interno.
+        </p>
+
+        <div id="shippingBlocked" class="hidden rounded-xl px-4 py-3 mb-4 text-[12.5px] font-semibold" style="background:#FDF3E3; color:#8A6B1F"></div>
+
+        <div class="font-bold text-[12.5px] uppercase tracking-wide mb-2" style="color:#6B7487">Couriers</div>
+        <div id="shippingProviders" class="mb-6"></div>
+
+        <div class="flex items-center justify-between gap-3 mb-2 flex-wrap">
+          <div class="font-bold text-[12.5px] uppercase tracking-wide" style="color:#6B7487">Cola de envíos</div>
+          <div class="flex items-center gap-2">
+            <button onclick="adminDownloadManifest()" class="h-8 px-3 rounded-full border text-[12px] font-bold focus-ring" style="border-color:var(--line)">Descargar manifiesto (CSV)</button>
+            <button onclick="toggleShipmentForm()" class="h-8 px-3 rounded-full text-white text-[12px] font-bold focus-ring" style="background:var(--blue)">Nuevo envío</button>
+          </div>
+        </div>
+
+        <!-- Creating a shipment by hand is the Phase 1 flow, not a
+             placeholder: consolidation is an ops judgement (which orders
+             share a box) and nothing automatic should be guessing it. -->
+        <form id="shipmentForm" class="hidden rounded-xl border p-4 mb-4" style="border-color:var(--line); background:#FAFBFD" onsubmit="adminCreateShipment(event)">
+          <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-3">
+            <label class="text-[12px] font-bold">Pedidos (separados por coma)
+              <input id="shipOrderIds" required placeholder="ARIA-20260920-A1B2C3" class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+            </label>
+            <label class="text-[12px] font-bold">Nombre
+              <input id="shipName" required class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+            </label>
+            <label class="text-[12px] font-bold">Documento (DNI/CE)
+              <input id="shipId" required class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+            </label>
+            <label class="text-[12px] font-bold">Teléfono
+              <input id="shipPhone" required class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+            </label>
+            <label class="text-[12px] font-bold sm:col-span-2">Dirección
+              <input id="shipAddress" required class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+            </label>
+            <label class="text-[12px] font-bold">Ciudad
+              <input id="shipCity" required value="Lima" class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+            </label>
+            <label class="text-[12px] font-bold">Peso real en balanza (kg)
+              <input id="shipWeight" required type="number" step="0.01" min="0.01" class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+              <span class="block text-[10.5px] font-normal text-zinc-500 mt-0.5">Peso real, nunca volumétrico.</span>
+            </label>
+            <label class="text-[12px] font-bold">Valor declarado (USD)
+              <input id="shipValue" required type="number" step="0.01" min="0.01" class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+              <span class="block text-[10.5px] font-normal text-zinc-500 mt-0.5">Máx. $200 por caja por persona.</span>
+            </label>
+            <label class="text-[12px] font-bold">Fragancias en la caja
+              <input id="shipFragrances" type="number" step="1" min="0" value="0" class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+              <span class="block text-[10.5px] font-normal text-zinc-500 mt-0.5">Máx. 4 por envío.</span>
+            </label>
+            <label class="text-[12px] font-bold">Flete cobrado al cliente (USD)
+              <input id="shipCharged" type="number" step="0.01" min="0" class="mt-1 w-full h-9 border rounded-lg px-2 text-[13px] font-normal" style="border-color:var(--line)">
+              <span class="block text-[10.5px] font-normal text-zinc-500 mt-0.5">Opcional. Sin esto el margen queda como desconocido, no como cero.</span>
+            </label>
+          </div>
+          <div class="flex items-center gap-3 flex-wrap">
+            <button type="submit" class="h-9 px-4 rounded-full text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Crear y enrutar</button>
+            <button type="button" onclick="toggleShipmentForm()" class="h-9 px-4 rounded-full border text-[13px] font-bold focus-ring" style="border-color:var(--line)">Cancelar</button>
+            <span id="shipFormStatus" class="text-[12px]"></span>
+          </div>
+        </form>
+
+        <div id="shipmentsList" class="mb-6"></div>
+
+        <div class="font-bold text-[12.5px] uppercase tracking-wide mb-2" style="color:#6B7487">Volumen y margen por courier</div>
+        <div id="shippingRollup"></div>
+      </div>
       <div id="adminOrdersList"></div>
     </div>
   </div>
@@ -1788,9 +1896,15 @@
      like before), so it renders on every page, including checkout.html
      (which has its own matching copy of this block). Legal-status line is
      honest about where things stand (LLC filed today, EIN pending) rather
-     than showing a fabricated RUC/address; "Contactar soporte" routes to
-     the real, working AI chat widget already on this page instead of an
-     email/phone that might not be monitored. -->
+     than showing a fabricated RUC/address.
+
+     2026-09-20: the note that used to sit here said support routed to
+     the AI chat rather than "an email/phone that might not be
+     monitored". That reasoning is what produced the Devoluciones dead
+     end. A monitored inbox is the bar to clear, not an argument for
+     sending people back to the bot — every support CTA on this site now
+     reaches a person, and the chat is only ever offered alongside one.
+     See scripts/lib/support.js. -->
 <footer class="border-t" style="border-color:var(--line); background:#fff">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
@@ -1805,7 +1919,7 @@
         <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
         <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
         <a href="#" onclick="showPage('termsView');return false;" class="hover:text-[color:var(--navy)] transition">Términos</a>
-        <a href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
+        <a data-support="general" href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
         <button onclick="toggleAssistant()" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Chatea con nosotros</button>
       </div>
     </div>
@@ -2701,6 +2815,57 @@ function collectTiles(kind){
    logos; `t.retailers` is still collected because the store chips on the
    category page itself are built from it. */
 
+/* ============================================================
+   ONE CARD CHASSIS, SHARED BY EVERY GRID ON THE SITE
+
+   WHAT DANNY REJECTED (2026-09-20): Categorías was a grid of small
+   squares — four across on a laptop — each showing a fragment of a
+   product photo. A third of a shirt. Half a bag. A sliver of
+   headphones. His verdict, and it applies site-wide: no little squares
+   anywhere.
+
+   The fix is not "make the squares bigger". Ofertas already had the
+   right treatment — a large 4:5 photo that shows the whole item, two
+   across, scrolled rather than crammed — so the category tile now
+   renders on the SAME PARTS Ofertas does, rather than in a second style
+   that looks almost like it. These three helpers are those parts, and a
+   test asserts both callers use them.
+
+   WHY 4:5 AND CONTAIN, restated here because this is now the one place
+   it is decided: a retailer's photo arrives at whatever proportions it
+   likes. `cover` would fill the box perfectly and crop a full-length
+   model shot into a headless torso; a bare width/height would stretch
+   it. `contain` shows the whole frame with white either side. An honest
+   product photo beats a well-filled box — that is the entire rule, and
+   it is why nothing on this site crops a product into a square.
+
+   SCROLLING IS FINE. Two across means fewer tiles on the first screen,
+   and that is the trade Danny asked for explicitly: big and beautiful,
+   scrolled, over everything visible at once and cramped.
+   ============================================================ */
+const CARD_SHELL_CLASS = 'group bg-white border rounded-2xl overflow-hidden transition hover:shadow-[0_14px_34px_rgba(10,31,68,0.10)] h-full flex flex-col';
+
+/* The 4:5 photo field. `inner` fills it; `overlay` is anything absolutely
+   positioned on top (Ofertas puts its discount and "Flete alto" badges
+   there). White, because retail photography is shot on white and a tint
+   draws a seam around the product. */
+function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff' }){
+  return `<div class="relative${open ? ' cursor-pointer' : ''}" style="aspect-ratio:4/5; background:${background}"${open ? ` onclick="${open}"` : ''}>
+      ${inner}
+      ${overlay}
+    </div>`;
+}
+
+/* A product photo, whole. Never cover, never a bare width/height — see
+   the note above. `onerror` is optional because a product card has no
+   fallback art to swap to and a category tile does. */
+function cardPhotoHTML(src, { alt = '', onerror = '' } = {}){
+  return src
+    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"
+             style="object-fit:contain; object-position:center; padding:10px"${onerror ? ` onerror="${onerror}"` : ''}>`
+    : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`;
+}
+
 /* OFERTAS IS DESIGNED, NOT SCRAPED.
 
    It was showing whatever product the deals cache happened to surface —
@@ -2719,30 +2884,42 @@ function ofertasTileArtHTML(){
   </div>`;
 }
 
+/* THE CATEGORY TILE IS AN OFERTAS CARD (2026-09-20).
+
+   It used to be a 124px square with a cropped thumbnail and a truncated
+   label — the "little squares" Danny rejected outright. It is now built
+   from the same three parts Ofertas is built from (CARD_SHELL_CLASS,
+   cardImageFrameHTML, cardPhotoHTML), so the two grids share a treatment
+   rather than resembling one another: same 4:5 photo field, same
+   contain-fit so the whole product shows, same border, radius and hover,
+   same body padding, and a full-width action of the same height as a
+   product card's "Comprar".
+
+   What is deliberately NOT shared is the content. A category has no
+   price, no rating and no store, and inventing them to reuse
+   productCardHTML wholesale would be worse than a second style. The
+   chassis is shared; what sits in it is not. */
 function deptTileHTML(t, kind){
   const count = Number(t.count) || 0;
   const isOfertas = kind === 'department' && t.key === 'sale';
-  /* CONTAIN, NOT COVER. A cover fit crops a portrait product shot to a
-     landscape box, which is how an apparel tile ended up showing a
-     fragment of a torso. Contain keeps the whole product, centred, with
-     the field showing either side — nothing is ever cut. */
+  const open = `openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')`;
+
   const art = isOfertas
     ? ofertasTileArtHTML()
     : (t.thumb
-        ? `<img src="${escapeHtml(t.thumb)}" alt="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.icon || '')}" loading="lazy"
-             class="w-full h-full group-hover:scale-[1.04] transition duration-500"
-             style="object-fit:contain; object-position:center; padding:12px" onerror="handleDeptThumbError(this)">`
-        : t.icon);
-  return `<button onclick="openCatalog('${kind}','${t.key}')" class="group text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_12px_28px_rgba(10,31,68,0.10)]" style="border-color:var(--line)">
-    <div class="h-[124px] sm:h-[146px] overflow-hidden grid place-items-center text-[38px]" style="background:${isOfertas ? 'var(--navy)' : 'var(--sky)'}">
-      ${art}
-    </div>
-    <div class="p-3.5">
-      <div class="text-[14px] font-extrabold tracking-[-0.01em] flex items-center justify-between gap-2">
-        <span class="truncate">${escapeHtml(t.label)}</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" class="flex-shrink-0"><path d="m9 18 6-6-6-6"/></svg>
+        ? cardPhotoHTML(t.thumb, { alt: t.label, onerror: 'handleDeptThumbError(this)' }).replace('<img ', `<img data-icon="${escapeHtml(t.icon || '')}" `)
+        : `<div class="w-full h-full grid place-items-center text-[56px]">${t.icon || ''}</div>`);
+
+  return `<button onclick="${open}" class="${CARD_SHELL_CLASS} text-left focus-ring w-full">
+    ${cardImageFrameHTML({ inner: art, background: isOfertas ? 'var(--navy)' : '#fff' })}
+    <div class="p-4 flex flex-col flex-1">
+      <div class="text-[17px] font-extrabold tracking-[-0.01em] leading-snug mb-1" style="color:var(--navy)">${escapeHtml(t.label)}</div>
+      <div class="text-[12.5px] mb-3.5 flex-1" style="color:#6B7487">${
+        count ? `${count} producto${count === 1 ? '' : 's'} · precio puerta a puerta` : 'Ver lo que hay disponible'
+      }</div>
+      <div class="w-full h-11 rounded-xl text-white text-[14px] font-bold grid place-items-center" style="background:var(--blue)">
+        Ver categoría
       </div>
-      ${count ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">${count} producto${count === 1 ? '' : 's'}</div>` : ''}
     </div>
   </button>`;
 }
@@ -2751,9 +2928,10 @@ function deptTileHTML(t, kind){
    as raw alt text across a 146px block — same rule as the store logos.
    The tile falls back to its own category icon. */
 function handleDeptThumbError(img){
-  const tile = img.parentElement;
-  if (!tile) { img.remove(); return; }
-  tile.textContent = img.dataset.icon || '\uD83D\uDECD\uFE0F';
+  const fallback = document.createElement('div');
+  fallback.className = 'w-full h-full grid place-items-center text-[56px]';
+  fallback.textContent = img.dataset.icon || '\uD83D\uDECD\uFE0F';
+  img.replaceWith(fallback);
 }
 
 function initDepartmentTiles(){
@@ -3507,6 +3685,47 @@ function scrollToSection(id){
   if (!el) return;
   requestAnimationFrame(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
+
+/* ============================================================
+   SUPPORT LINKS — one address, every CTA
+
+   REPORTED LIVE (2026-09-20): "Contactar soporte" at the bottom of
+   Devoluciones re-opened the AI chat. A shopper with a returns problem
+   was handed the robot instead of a person — a dead end dressed as a
+   door. Every support CTA is a plain mailto now.
+
+   The addresses are mirrored from scripts/lib/support.js (this page is a
+   plain <script> and cannot import). Each CTA also carries the correct
+   href in its own markup, so the link works before this script runs and
+   if it never runs at all; applySupportLinks() then rewrites them from
+   the constants so changing an address is a one-line change. A test
+   fails if an authored href and its constant ever disagree.
+   ============================================================ */
+const SUPPORT_EMAIL = 'daniel.leon@ariashop.pe';
+const GENERAL_CONTACT_EMAIL = 'contacto@ariashop.pe';
+const SUPPORT_SUBJECT_RETURNS = 'Ayuda con una devolución';
+const SUPPORT_SUBJECT_ORDER = 'Ayuda con mi pedido';
+
+function supportMailto(subject, email = SUPPORT_EMAIL){
+  const address = String(email || SUPPORT_EMAIL);
+  const s = String(subject || '').trim();
+  return s ? `mailto:${address}?subject=${encodeURIComponent(s)}` : `mailto:${address}`;
+}
+
+const SUPPORT_LINKS = {
+  returns: () => supportMailto(SUPPORT_SUBJECT_RETURNS),
+  order:   () => supportMailto(SUPPORT_SUBJECT_ORDER),
+  general: () => supportMailto('', GENERAL_CONTACT_EMAIL),
+};
+
+/* Every [data-support] anchor, pointed at the constant for its kind. */
+function applySupportLinks(){
+  document.querySelectorAll('a[data-support]').forEach(a => {
+    const build = SUPPORT_LINKS[a.dataset.support];
+    if (build) a.href = build();
+  });
+}
+window.addEventListener('DOMContentLoaded', applySupportLinks);
 
 function toggleMobileMenu(){
   document.getElementById('mobileMenu').classList.toggle('hidden');
@@ -7802,10 +8021,10 @@ const TAX_ZONE_AMBER_START_USD = 150;
 
 // Lives on the cart page (not checkout) per the brief — never distract at
 // the payment step. usdSubtotal is the same USD FOB total (pre-shipping)
-// used for the AVI Courier quote, computed from cartTotals().priceUsd.
+// used for the freight quote, computed from cartTotals().priceUsd.
 // Informational only: states the real rule, never coaches splitting
 // orders to dodge duties (Peru's anti-fraccionamiento rules are a real
-// legal question for AVI, not something to route around here).
+// legal question for the courier, not something to route around here).
 function renderTaxZoneBar(usdSubtotal){
   const wrap = document.getElementById('taxZoneBarWrap');
   if (!wrap) return;
@@ -7841,7 +8060,7 @@ function renderTaxZoneBar(usdSubtotal){
 
    Two bands, both keyed on cart declared value in USD (the FOB product
    subtotal — the same basis Peruvian customs uses, and the same figure
-   the bar and the AVI quote use):
+   the bar and the freight quote use):
 
      $150-$199  a heads-up that crossing $200 adds ~23% in aranceles e
                 impuestos paid to the Peruvian government
@@ -7852,7 +8071,7 @@ function renderTaxZoneBar(usdSubtotal){
    TONE IS A HARD REQUIREMENT, not styling. This states the rule and the
    arithmetic and stops. It must never suggest splitting an order or
    staying under the line: Peru's anti-fraccionamiento rules make that a
-   real legal question for the customer and for AVI, and a store nudging
+   real legal question for the customer and for the courier, and a store nudging
    people toward it would be advising them into risk. Neutral disclosure
    only.
 
@@ -8088,6 +8307,322 @@ async function loadOrderCapStatus(){
    server actually allowed; a 403 here just shows "no access", it isn't
    the real gate.
    ============================================================ */
+/* ============================================================
+   ENVÍOS (ADMIN) — the ops face of the ShippingProvider seam.
+
+   The rule this page is built to respect: it does not know what a
+   courier is. It renders whatever rows admin-shipping.js returns and
+   calls back with the five contract operations. Courier number two shows
+   up in this table on its own, with no change here.
+
+   NORMALIZED STATUSES, MIRRORED. index.html is a plain <script> and
+   cannot import, so the vocabulary from scripts/lib/shipping-status.js
+   is duplicated below; test-shipping asserts the two agree word for
+   word. There is exactly one set of status names on this site and a
+   courier's own wording is not in it.
+   ============================================================ */
+/* The happy path, in order. `exception` and `cancelled` are off it: they
+   can be reached from anywhere and they are where a shipment stops. */
+const SHIPPING_FLOW = [
+  "created",
+  "in_transit",
+  "in_customs",
+  "out_for_delivery",
+  "delivered",
+];
+
+const SHIPPING_TERMINAL = ["delivered", "cancelled"];
+
+const SHIPPING_STATUSES = [...SHIPPING_FLOW, "exception", "cancelled"];
+
+/* What the shopper reads. Spanish (Peru), plain, and never a translation
+   of a courier's own jargon — these are Aria's words for Aria's states.
+   `note` is the one-line explanation the tracking view shows underneath,
+   because "En aduana" on its own reads as a problem when it is routine. */
+const SHIPPING_STATUS_ES = {
+  created:          { label: "Pedido registrado",   note: "Lo estamos preparando para enviar desde Miami." },
+  in_transit:       { label: "En camino",           note: "Tu paquete salió de Miami rumbo a Lima." },
+  in_customs:       { label: "En aduana",           note: "Trámite normal de importación. No tienes que hacer nada." },
+  out_for_delivery: { label: "En reparto",          note: "Sale hoy hacia tu dirección." },
+  delivered:        { label: "Entregado",           note: "Tu pedido llegó. Nada más que pagar." },
+  exception:        { label: "Con novedad",         note: "Hubo un inconveniente y ya lo estamos revisando. Te escribimos." },
+  cancelled:        { label: "Cancelado",           note: "Este envío fue cancelado." },
+};
+
+function isShippingStatus(value) {
+  return SHIPPING_STATUSES.includes(String(value || ""));
+}
+
+function isTerminalStatus(value) {
+  return SHIPPING_TERMINAL.includes(String(value || ""));
+}
+
+/** Where a status sits on the happy path, or -1 for the two off it. */
+function flowIndex(status) {
+  return SHIPPING_FLOW.indexOf(String(status || ""));
+}
+
+/**
+ * May a shipment move from `from` to `to`?
+ *
+ * Forward along the flow, or out to exception/cancelled from anywhere
+ * that is not already terminal. Never backwards: a courier that re-sends
+ * an older event (they all do) must not walk a delivered parcel back to
+ * "in transit" on the customer's screen. An out-of-order event is still
+ * RECORDED in statusHistory — it is just not allowed to become the
+ * current state.
+ */
+function canTransition(from, to) {
+  if (!isShippingStatus(to)) return false;
+  if (from == null || from === "") return to === "created";
+  if (!isShippingStatus(from)) return false;
+  if (isTerminalStatus(from)) return false;
+  if (to === "exception" || to === "cancelled") return true;
+  const a = flowIndex(from);
+  const b = flowIndex(to);
+  // An exception can be worked back onto the path from wherever it is.
+  if (a === -1) return b >= 0;
+  return b > a;
+}
+
+/** The customer-facing label, never a provider's own string. */
+function statusLabelEs(status) {
+  return SHIPPING_STATUS_ES[String(status || "")]?.label || "Estado no disponible";
+}
+
+function statusNoteEs(status) {
+  return SHIPPING_STATUS_ES[String(status || "")]?.note || "";
+}
+
+let adminShippingState = { providers: [], shipments: [], rollup: [], settings: null };
+
+function shippingEsc(v){ return escapeHtml(String(v ?? '')); }
+
+async function loadAdminShipping(){
+  try {
+    const res = await fetch('/.netlify/functions/admin-shipping');
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'No se pudo cargar Envíos');
+    adminShippingState = await res.json();
+    renderAdminShipping();
+  } catch (err) {
+    document.getElementById('shipmentsList').innerHTML =
+      `<div class="text-[12.5px]" style="color:#8A6B1F">${shippingEsc(err.message)}</div>`;
+  }
+}
+
+/* Every write goes through here so the refusal path is handled in one
+   place. A 409 is the system working as designed — no courier enabled,
+   or an override onto a disabled one — so it is shown as the plain
+   sentence the server wrote, never as "error 409". */
+async function adminShippingPost(payload){
+  const res = await fetch('/.netlify/functions/admin-shipping', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || 'No se pudo completar la acción');
+  return data;
+}
+
+function renderAdminShipping(){
+  const { providers = [], shipments = [], rollup = [], blocked } = adminShippingState;
+
+  const banner = document.getElementById('shippingBlocked');
+  banner.textContent = blocked || '';
+  banner.classList.toggle('hidden', !blocked);
+
+  document.getElementById('shippingProviders').innerHTML = providers.length
+    ? `<div class="space-y-2">${providers.map(p => `
+        <div class="flex items-start justify-between gap-4 rounded-xl border px-4 py-3" style="border-color:var(--line); ${p.enabled ? '' : 'background:#FAFBFD'}">
+          <div class="min-w-0">
+            <div class="text-[13.5px] font-extrabold flex items-center gap-2 flex-wrap" style="color:var(--navy)">
+              ${shippingEsc(p.label)}
+              <span class="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:var(--sky); color:var(--navy)">${shippingEsc(p.role)}</span>
+              ${p.mode === 'manual' ? `<span class="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:#FDF3E3; color:#8A6B1F">manifiesto</span>` : ''}
+              ${p.isPrimary ? `<span class="text-[10px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:#E7F0E9; color:#2E6B3E">primario</span>` : ''}
+            </div>
+            <div class="text-[11.5px] mt-0.5 leading-snug" style="color:#6B7487">${shippingEsc(p.note || '')}</div>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${p.isPrimary ? '' : `<button onclick="setShippingPrimary('${jsAttr(p.key)}')" class="h-8 px-3 rounded-full border text-[11.5px] font-bold focus-ring" style="border-color:var(--line)">Hacer primario</button>`}
+            <button onclick="toggleShippingProvider('${jsAttr(p.key)}', ${p.enabled ? 'false' : 'true'})"
+              class="h-8 px-3 rounded-full text-[11.5px] font-bold focus-ring ${p.enabled ? 'text-white' : 'border'}"
+              style="${p.enabled ? 'background:#2E6B3E' : 'border-color:var(--line); color:#8A6B1F'}">
+              ${p.enabled ? 'Activo' : 'Desactivado'}
+            </button>
+          </div>
+        </div>`).join('')}</div>`
+    : `<div class="text-[12.5px] text-zinc-500">No hay couriers en el registro.</div>`;
+
+  document.getElementById('shipmentsList').innerHTML = shipments.length
+    ? `<div class="space-y-2">${shipments.map(shipmentRowHTML).join('')}</div>`
+    : `<div class="text-[12.5px] text-zinc-500">Todavía no hay envíos.</div>`;
+
+  document.getElementById('shippingRollup').innerHTML = rollup.length
+    ? `<div class="overflow-x-auto"><table class="w-full text-[12.5px]">
+        <thead><tr class="text-left" style="color:#6B7487">
+          <th class="py-1.5 pr-3 font-bold">Día</th><th class="py-1.5 pr-3 font-bold">Courier</th>
+          <th class="py-1.5 pr-3 font-bold">Envíos</th><th class="py-1.5 pr-3 font-bold">Kg</th>
+          <th class="py-1.5 pr-3 font-bold">Costo interno</th><th class="py-1.5 pr-3 font-bold">Flete cobrado</th>
+          <th class="py-1.5 font-bold">Margen</th>
+        </tr></thead>
+        <tbody>${rollup.map(r => `<tr class="border-t" style="border-color:var(--line)">
+          <td class="py-1.5 pr-3 tabular">${shippingEsc(r.day)}</td>
+          <td class="py-1.5 pr-3">${shippingEsc(r.provider || '—')}</td>
+          <td class="py-1.5 pr-3 tabular">${r.shipments}</td>
+          <td class="py-1.5 pr-3 tabular">${r.weightKg}</td>
+          <td class="py-1.5 pr-3 tabular">$${r.internalCostUsd}</td>
+          <td class="py-1.5 pr-3 tabular">${r.chargedComplete ? '$' + r.chargedFreightUsd : '—'}</td>
+          <td class="py-1.5 tabular font-bold" style="color:${r.marginUsd == null ? '#8A6B1F' : r.marginUsd >= 0 ? '#2E6B3E' : '#C0392B'}">
+            ${r.marginUsd == null ? 'desconocido' : '$' + r.marginUsd}
+          </td>
+        </tr>`).join('')}</tbody></table>
+        <p class="text-[11px] text-zinc-500 mt-2">Un margen "desconocido" es un envío sin flete cobrado registrado — nunca se cuenta como cero.</p>
+      </div>`
+    : `<div class="text-[12.5px] text-zinc-500">Sin datos todavía.</div>`;
+}
+
+/* The next step on the happy path, plus the two ways off it. The buttons
+   come from SHIPPING_FLOW rather than a hand-written list, so the day a
+   state is added to the vocabulary this dashboard already offers it. */
+function nextShippingStatuses(status){
+  if (isTerminalStatus(status)) return [];
+  const i = flowIndex(status);
+  const forward = i >= 0 && i < SHIPPING_FLOW.length - 1 ? [SHIPPING_FLOW[i + 1]] : [];
+  return [...forward, 'exception'];
+}
+
+function shipmentRowHTML(s){
+  const flags = (s.restrictedFlags || []);
+  return `<div class="rounded-xl border px-4 py-3" style="border-color:var(--line)">
+    <div class="flex items-start justify-between gap-4 flex-wrap">
+      <div class="min-w-0">
+        <div class="text-[13px] font-extrabold tabular" style="color:var(--navy)">${shippingEsc(s.shipmentId)}</div>
+        <div class="text-[11.5px] mt-0.5" style="color:#6B7487">
+          ${shippingEsc((s.orderIds || []).join(', '))} · ${shippingEsc(s.recipient?.name)} · ${shippingEsc(s.recipient?.city)}
+        </div>
+        <div class="text-[11.5px] mt-0.5" style="color:#6B7487">
+          ${shippingEsc(String(s.weightKg))} kg · $${shippingEsc(String(s.declaredValueUsd))} declarado
+          ${flags.length ? ` · <span style="color:#8A6B1F">${shippingEsc(flags.join(', '))}</span>` : ''}
+        </div>
+        <!-- Ops-only: the courier, its tracking number and what it costs
+             us. None of this is in the customer's tracking view. -->
+        <div class="text-[11px] mt-1" style="color:#8A93A8">
+          ${shippingEsc(s.provider)} · ${shippingEsc(s.trackingNumber)} · costo interno $${shippingEsc(String(s.internalCostUsd))}${s.internalCostEstimated ? ' (estimado)' : ''}
+        </div>
+        <div class="text-[11px] mt-0.5 italic" style="color:#8A93A8">${shippingEsc(s.routingReason || '')}</div>
+      </div>
+      <div class="flex-shrink-0 text-right">
+        <div class="text-[12px] font-extrabold px-2.5 py-1 rounded-full inline-block" style="background:var(--sky); color:var(--navy)">${shippingEsc(statusLabelEs(s.status))}</div>
+        <div class="flex flex-wrap gap-1.5 mt-2 justify-end">
+          ${nextShippingStatuses(s.status).map(st => `
+            <button onclick="adminAdvanceStatus('${jsAttr(s.shipmentId)}','${jsAttr(st)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line)">${shippingEsc(statusLabelEs(st))}</button>`).join('')}
+          ${isTerminalStatus(s.status) ? '' : `
+            <button onclick="adminOverrideProvider('${jsAttr(s.shipmentId)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line)">Mover courier</button>
+            <button onclick="adminCancelShipment('${jsAttr(s.shipmentId)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line); color:#C0392B">Cancelar</button>`}
+          ${s.status === 'delivered' ? `<button onclick="adminConfirmDelivery('${jsAttr(s.shipmentId)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line)">Ver confirmación</button>` : ''}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleShipmentForm(){
+  document.getElementById('shipmentForm').classList.toggle('hidden');
+}
+
+async function toggleShippingProvider(key, enabled){
+  try {
+    const data = await adminShippingPost({ action: 'setProviderEnabled', provider: key, enabled });
+    // The server decides whether turning this one off blocked the system;
+    // the page just repeats what it said.
+    adminShippingState = { ...adminShippingState, ...data, blocked: data.blocked };
+    await loadAdminShipping();
+    if (data.blocked) showToast(data.blocked);
+  } catch (err) { showToast(err.message); }
+}
+
+async function setShippingPrimary(key){
+  try { await adminShippingPost({ action: 'setPrimary', provider: key }); await loadAdminShipping(); }
+  catch (err) { showToast(err.message); }
+}
+
+async function adminCreateShipment(ev){
+  ev.preventDefault();
+  const status = document.getElementById('shipFormStatus');
+  status.textContent = 'Creando…';
+  status.style.color = '#6B7487';
+  const chargedRaw = document.getElementById('shipCharged').value;
+  try {
+    const data = await adminShippingPost({
+      action: 'createShipment',
+      chargedFreightUsd: chargedRaw === '' ? null : Number(chargedRaw),
+      shipment: {
+        orderIds: document.getElementById('shipOrderIds').value.split(',').map(s => s.trim()).filter(Boolean),
+        recipient: {
+          name: document.getElementById('shipName').value,
+          idNumber: document.getElementById('shipId').value,
+          phone: document.getElementById('shipPhone').value,
+          address: document.getElementById('shipAddress').value,
+          city: document.getElementById('shipCity').value,
+        },
+        weightKg: Number(document.getElementById('shipWeight').value),
+        declaredValueUsd: Number(document.getElementById('shipValue').value),
+        fragranceCount: Number(document.getElementById('shipFragrances').value) || 0,
+      },
+    });
+    status.textContent = `Creado: ${data.shipment.shipmentId}`;
+    status.style.color = '#2E6B3E';
+    document.getElementById('shipmentForm').reset();
+    await loadAdminShipping();
+  } catch (err) {
+    status.textContent = err.message;
+    status.style.color = '#C0392B';
+  }
+}
+
+async function adminAdvanceStatus(shipmentId, statusKey){
+  try {
+    const data = await adminShippingPost({ action: 'updateStatus', shipmentId, status: statusKey });
+    // A rejected transition is not an error: the event was recorded, it
+    // just did not move the parcel. Say which happened.
+    if (data.rejected) showToast(data.rejected);
+    await loadAdminShipping();
+  } catch (err) { showToast(err.message); }
+}
+
+async function adminOverrideProvider(shipmentId){
+  const options = adminShippingState.providers.filter(p => p.enabled).map(p => p.key);
+  if (!options.length) { showToast('No hay couriers activos a los que mover el envío.'); return; }
+  const provider = prompt(`Mover a qué courier?\nActivos: ${options.join(', ')}`, options[0]);
+  if (!provider) return;
+  try { await adminShippingPost({ action: 'overrideProvider', shipmentId, provider: provider.trim() }); await loadAdminShipping(); }
+  catch (err) { showToast(err.message); }
+}
+
+async function adminCancelShipment(shipmentId){
+  if (!confirm('¿Cancelar este envío?')) return;
+  try { await adminShippingPost({ action: 'cancel', shipmentId }); await loadAdminShipping(); }
+  catch (err) { showToast(err.message); }
+}
+
+async function adminConfirmDelivery(shipmentId){
+  try {
+    const data = await adminShippingPost({ action: 'confirmDelivery', shipmentId });
+    const c = data.confirmation || {};
+    showToast(c.deliveredAt
+      ? `Entregado ${new Date(c.deliveredAt).toLocaleString('es-PE')} · confirmado por ${c.proof?.by || 'ops'}`
+      : 'El courier todavía no confirma la entrega.');
+  } catch (err) { showToast(err.message); }
+}
+
+function adminDownloadManifest(){
+  // A plain navigation, so the browser's own download handling applies
+  // and the CSV keeps the filename the server set.
+  window.location.href = '/.netlify/functions/admin-shipping?format=csv&status=created';
+}
+
 let adminOrdersCache = [];
 
 async function openAdmin(){
@@ -8111,6 +8646,7 @@ async function openAdmin(){
     document.getElementById('adminGate').innerHTML = '';
     document.getElementById('adminContent').hidden = false;
     await loadAdminOrders();
+    await loadAdminShipping();
   } catch {
     document.getElementById('adminGate').innerHTML = '<p class="text-[13px] text-zinc-500">No se pudo cargar — intenta de nuevo.</p>';
   }
@@ -8728,29 +9264,8 @@ function productCardHTML(p, opts){
         ? `<span class="absolute top-3 left-3 text-[15px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#C0392B; color:#fff">-${discountPct(p)}%</span>`
         : '';
   return `
-  <div class="group bg-white border rounded-2xl overflow-hidden transition hover:shadow-[0_14px_34px_rgba(10,31,68,0.10)] h-full flex flex-col" style="border-color:var(--line)">
-    <!-- THE IMAGE CONTAINER (2026-09-20).
-
-         Two rules, and they are the same rule twice.
-
-         PRESERVE THE ASPECT RATIO. object-fit:contain, never cover and
-         never a bare width/height: a retailer's photo arrives at
-         whatever proportions it likes, and stretching a model shot to
-         fill a box is the "squished" look the QA flagged.
-
-         NEVER CROP A PERSON. A cover fit on a 4:5 box turns a full-length
-         model shot into a headless torso, which is the single ugliest
-         thing this grid can render. Contain shows the whole frame with
-         white either side — an honest product photo beats a well-filled
-         box. The field is white rather than tinted because retail
-         photography is shot on white and a tint draws the seam. -->
-    <div class="relative cursor-pointer" style="aspect-ratio:4/5; background:#fff" onclick="${open}">
-      ${p.image
-        ? `<img src="${escapeHtml(p.image)}" alt="" loading="lazy" class="w-full h-full"
-             style="object-fit:contain; object-position:center; padding:10px">`
-        : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`}
-      ${badgeHTML}
-    </div>
+  <div class="${CARD_SHELL_CLASS}" style="border-color:var(--line)">
+    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image), open, overlay: badgeHTML })}
     <div class="p-4 flex flex-col flex-1">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div>${retailerBadgeHTML(p.retailer, 20)}</div>

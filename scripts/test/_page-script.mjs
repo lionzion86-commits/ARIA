@@ -89,3 +89,40 @@ export function loadPageQuerySlice() {
   );
   return sandbox.__exports;
 }
+
+const SHIPPING_START = "/* The happy path, in order.";
+const SHIPPING_END = "let adminShippingState";
+
+/** The normalized shipping-status mirror, on its own. */
+export function loadPageShippingSlice() {
+  return runSlice(SHIPPING_START, SHIPPING_END, "index.html#shipping-status",
+    "{ SHIPPING_FLOW, SHIPPING_STATUSES, SHIPPING_STATUS_ES, statusLabelEs, statusNoteEs, canTransition, isTerminalStatus, flowIndex }");
+}
+
+const SUPPORT_START = "const SUPPORT_EMAIL = 'daniel.leon@ariashop.pe';";
+const SUPPORT_END = "function toggleMobileMenu(){";
+
+/** The support-address mirror, on its own. */
+export function loadPageSupportSlice() {
+  return runSlice(SUPPORT_START, SUPPORT_END, "index.html#support",
+    "{ SUPPORT_EMAIL, GENERAL_CONTACT_EMAIL, SUPPORT_SUBJECT_RETURNS, SUPPORT_SUBJECT_ORDER, supportMailto, SUPPORT_LINKS }");
+}
+
+/* Both mirrors end with a DOMContentLoaded registration, so the sandbox
+   needs just enough browser to let the slice finish evaluating. */
+function runSlice(startMarker, endMarker, filename, exportsExpr) {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(startMarker);
+  const to = html.indexOf(endMarker, from);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error(`index.html slice markers moved (${filename}) — update scripts/test/_page-script.mjs`);
+  }
+  const sandbox = {
+    console,
+    window: { addEventListener() {} },
+    document: { querySelectorAll: () => [] },
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(html.slice(from, to) + `\n;globalThis.__exports = ${exportsExpr};`, sandbox, { filename });
+  return sandbox.__exports;
+}

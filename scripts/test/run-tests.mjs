@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice } from "./_page-script.mjs";
+import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -27,6 +27,13 @@ import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import { CHARGE_PER_KG as chargePerKg } from "../../weight-data.js";
+import * as shippingStatus from "../lib/shipping-status.js";
+import * as support from "../lib/support.js";
+import * as shippingProvider from "../../netlify/functions/_shipping/provider.js";
+import * as shippingRegistry from "../../netlify/functions/_shipping/registry.js";
+import * as shippingService from "../../netlify/functions/_shipping/service.js";
+import { makeAviTracking } from "../../netlify/functions/_shipping/avi-adapter.js";
+import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courier-economics.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -56,6 +63,8 @@ function stripComments(src) {
 
 const page = loadPageWeightSlice();
 const pageQuery = loadPageQuerySlice();
+const pageShipping = loadPageShippingSlice();
+const pageSupport = loadPageSupportSlice();
 
 /* ------------------------------------------------------------------
    P1.1 — the beauty table, row by row, against the brief's own figures.
@@ -880,11 +889,18 @@ check("category tiles carry no retailer logos at all", () => {
 });
 
 check("tiles fit the image rather than cropping it", () => {
+  /* 2026-09-20: the tile no longer carries its own image markup — it
+     renders through cardPhotoHTML, the same helper the Ofertas card
+     uses, which is the point of the rebuild. So the rule is asserted
+     where it now lives, plus the fact that the tile really does go
+     through it. */
   const html = readFileSync(root("index.html"), "utf8");
   const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
-  if (/object-cover/.test(tile)) throw new Error("the tile still crops with object-cover");
-  if (!/object-fit:contain/.test(tile)) throw new Error("the tile does not contain-fit its image");
-  if (!/object-position:center/.test(tile)) throw new Error("the tile image is not centred");
+  if (!/cardPhotoHTML\(/.test(tile)) throw new Error("the tile stopped using the shared photo helper");
+  const photo = html.slice(html.indexOf("function cardPhotoHTML"), html.indexOf("function ofertasTileArtHTML"));
+  if (/object-cover|object-fit:\s*cover/.test(photo)) throw new Error("the shared photo crops with cover");
+  if (!/object-fit:\s*contain/.test(photo)) throw new Error("the shared photo does not contain-fit");
+  if (!/object-position:\s*center/.test(photo)) throw new Error("the shared photo is not centred");
 });
 
 check("selection prefers the face of a category over its peripherals", () => {
@@ -1289,6 +1305,513 @@ check("the three beauty stores are still listed and still honest", () => {
     if (!r) throw new Error(`${key} left the registry`);
     eq(r.search, false, `${key} is still pending`);
     eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
+  }
+});
+
+
+/* ------------------------------------------------------------------
+   A — THE MULTI-COURIER SHIPPING SEAM (Phase 1)
+   ------------------------------------------------------------------ */
+group("A. shipping: the provider contract");
+
+const aviDeps = { readShipmentByTracking: async () => null };
+
+function sampleShipment(over = {}) {
+  return {
+    orderIds: ["ARIA-20260920-A1B2C3"],
+    recipient: {
+      name: "Ana Quispe", address: "Av. Arequipa 1234, Dpto 502",
+      city: "Lima", phone: "+51 999 888 777", idNumber: "45678912",
+    },
+    weightKg: 2.4,
+    declaredValueUsd: 120,
+    ...over,
+  };
+}
+
+check("every courier in the registry implements all five operations", () => {
+  for (const key of Object.keys(shippingRegistry.PROVIDER_REGISTRY)) {
+    const adapter = shippingRegistry.buildProvider(key, aviDeps);
+    // buildProvider asserts internally; this also pins the list itself,
+    // so removing an operation from the contract is a deliberate act.
+    for (const op of shippingProvider.PROVIDER_OPERATIONS) {
+      if (typeof adapter[op] !== "function") throw new Error(`${key} has no ${op}()`);
+    }
+  }
+  eq(shippingProvider.PROVIDER_OPERATIONS.length, 5, "the contract is five operations");
+});
+
+check("a half-written adapter is refused with its own name", () => {
+  let msg = "";
+  try {
+    shippingProvider.assertImplementsProvider({ quote() {}, track() {} }, "medio-courier");
+  } catch (e) { msg = e.message; }
+  if (!/medio-courier/.test(msg)) throw new Error("the error does not name the courier");
+  for (const op of ["createShipment", "confirmDelivery", "cancel"]) {
+    if (!msg.includes(op)) throw new Error(`the error does not name the missing ${op}`);
+  }
+});
+
+check("provider jargon cannot leave an adapter", () => {
+  // The guard that keeps a courier's own wording off a customer's screen.
+  eq(shippingProvider.assertNormalized("in_customs", "avi"), "in_customs");
+  let threw = false;
+  try { shippingProvider.assertNormalized("EN_RUTA_LIMA", "avi"); } catch { threw = true; }
+  eq(threw, true, "a raw provider status is refused");
+});
+
+group("A. shipping: the shipment model");
+
+check("a complete shipment validates", () => {
+  const { shipment, errors } = shippingProvider.normalizeShipment(sampleShipment());
+  eq(errors.length, 0, `unexpected: ${errors.join(" | ")}`);
+  eq(shipment.weightKg, 2.4);
+  eq(shipment.declaredValueUsd, 120);
+});
+
+check("every recipient field is required", () => {
+  for (const field of ["name", "address", "city", "phone", "idNumber"]) {
+    const recipient = { ...sampleShipment().recipient, [field]: "" };
+    const { errors } = shippingProvider.normalizeShipment(sampleShipment({ recipient }));
+    if (!errors.length) throw new Error(`a shipment with no ${field} was accepted`);
+  }
+});
+
+check("the de minimis is enforced, not merely recorded", () => {
+  const { shipment, errors } = shippingProvider.normalizeShipment(sampleShipment({ declaredValueUsd: 240 }));
+  if (!errors.some((e) => /de minimis/i.test(e))) throw new Error("no de minimis error");
+  if (!shipment.restrictedFlags.includes(shippingProvider.RESTRICTION_OVER_DE_MINIMIS)) {
+    throw new Error("the shipment is not flagged");
+  }
+  eq(shippingProvider.DE_MINIMIS_USD, 200);
+  // Exactly at the line is fine; the rule is "over".
+  eq(shippingProvider.normalizeShipment(sampleShipment({ declaredValueUsd: 200 })).errors.length, 0);
+});
+
+check("the fragrance limit is the beauty table's, not a second copy", () => {
+  eq(shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 4 })).errors.length, 0, "4 is allowed");
+  const over = shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 5 }));
+  if (!over.errors.some((e) => /fragancias/i.test(e))) throw new Error("5 fragrances was accepted");
+  // Under the limit still flags: the courier is told there is perfume.
+  const under = shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 1 }));
+  if (!under.shipment.restrictedFlags.includes(shippingProvider.RESTRICTION_FRAGRANCE_LIMIT)) {
+    throw new Error("perfume in the box was not declared to the courier");
+  }
+});
+
+check("a shipment consolidates at most five orders", () => {
+  const ids = (n) => Array.from({ length: n }, (_, i) => `ARIA-2026092${i}-AAA`);
+  eq(shippingProvider.normalizeShipment(sampleShipment({ orderIds: ids(5) })).errors.length, 0);
+  if (!shippingProvider.normalizeShipment(sampleShipment({ orderIds: ids(6) })).errors.length) {
+    throw new Error("six orders went into one box");
+  }
+  if (!shippingProvider.normalizeShipment(sampleShipment({ orderIds: [] })).errors.length) {
+    throw new Error("a shipment with no orders was accepted");
+  }
+});
+
+check("volumetric weight has no way in", () => {
+  // The contract bills actual scale weight. Nothing on the model reads a
+  // dimension, and no dimensional helper survives in the codebase.
+  const { shipment } = shippingProvider.normalizeShipment(
+    sampleShipment({ boxCm: [40, 30, 20], dimCm: [40, 30, 20], volumetricKg: 9 }),
+  );
+  eq(shipment.weightKg, 2.4, "the scale weight is what is kept");
+  for (const k of ["boxCm", "dimCm", "volumetricKg", "billableWeightKg"]) {
+    if (k in shipment) throw new Error(`the shipment model carries ${k}`);
+  }
+  const src = stripComments(readFileSync(root("netlify/functions/_shipping/provider.js"), "utf8"));
+  if (/volumetric|dimensional|dimCm|boxCm/i.test(src)) {
+    throw new Error("a dimensional-weight concept is back in the shipment model");
+  }
+});
+
+group("A. shipping: routing, and failing closed");
+
+check("Phase 1 routes to the primary and says why", () => {
+  const routed = shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS);
+  eq(routed.key, "avi");
+  if (!routed.reason) throw new Error("no routingReason was produced");
+  // AVI is classed secondary; with nothing else enabled the reason must
+  // say so rather than reading as though a primary had been chosen.
+  if (!/único courier activo/i.test(routed.reason)) {
+    throw new Error(`the reason hides that the only courier is the overflow one: ${routed.reason}`);
+  }
+});
+
+check("no courier enabled means no shipment, with a clear error", () => {
+  let err = null;
+  try { shippingRegistry.selectProvider({ enabled: { avi: false }, primary: "avi" }); }
+  catch (e) { err = e; }
+  if (!err) throw new Error("a shipment was routed with every courier disabled");
+  eq(err.name, "NoProviderError");
+  eq(err.code, "NO_PROVIDER_ENABLED");
+  if (!/activ/i.test(err.message)) throw new Error("the error does not say what to do");
+});
+
+check("an override onto a disabled courier is refused, not honoured", () => {
+  let threw = false;
+  try {
+    shippingRegistry.selectProvider({ enabled: { avi: false }, primary: "avi" }, { override: "avi" });
+  } catch (e) { threw = e instanceof shippingRegistry.NoProviderError; }
+  eq(threw, true, "the misroute this whole system exists to prevent");
+  // A valid override is honoured, and recorded as manual.
+  const routed = shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS, { override: "avi" });
+  if (!/override manual/i.test(routed.reason)) throw new Error("a manual override is not recorded as one");
+});
+
+check("an unknown courier is refused", () => {
+  let threw = false;
+  try { shippingRegistry.buildProvider("fedex-imaginario", aviDeps); } catch { threw = true; }
+  eq(threw, true);
+});
+
+group("A. shipping: normalized statuses");
+
+check("the vocabulary is exactly the five plus two", () => {
+  eq(shippingStatus.SHIPPING_FLOW.join(" "), "created in_transit in_customs out_for_delivery delivered");
+  eq(shippingStatus.SHIPPING_STATUSES.length, 7);
+  for (const s of ["exception", "cancelled"]) {
+    if (!shippingStatus.SHIPPING_STATUSES.includes(s)) throw new Error(`${s} is missing`);
+  }
+  // Every one of them has customer-facing Spanish.
+  for (const s of shippingStatus.SHIPPING_STATUSES) {
+    if (!shippingStatus.SHIPPING_STATUS_ES[s]?.label) throw new Error(`${s} has no Spanish label`);
+  }
+});
+
+check("index.html mirrors the vocabulary word for word", () => {
+  eq(pageShipping.SHIPPING_STATUSES.join(","), shippingStatus.SHIPPING_STATUSES.join(","), "status list");
+  eq(pageShipping.SHIPPING_FLOW.join(","), shippingStatus.SHIPPING_FLOW.join(","), "flow order");
+  for (const s of shippingStatus.SHIPPING_STATUSES) {
+    eq(pageShipping.statusLabelEs(s), shippingStatus.statusLabelEs(s), `${s} label`);
+    eq(pageShipping.SHIPPING_STATUS_ES[s].note, shippingStatus.SHIPPING_STATUS_ES[s].note, `${s} note`);
+  }
+});
+
+check("a parcel never walks backwards on a customer's screen", () => {
+  const { canTransition } = shippingStatus;
+  eq(canTransition(null, "created"), true);
+  eq(canTransition("created", "in_transit"), true);
+  eq(canTransition("in_transit", "delivered"), true, "skipping ahead is real: some parcels clear customs unseen");
+  eq(canTransition("delivered", "in_transit"), false, "a re-sent old event must not un-deliver a parcel");
+  eq(canTransition("cancelled", "in_transit"), false);
+  eq(canTransition("in_transit", "exception"), true);
+  eq(canTransition("exception", "out_for_delivery"), true, "an exception can be worked back onto the path");
+});
+
+check("a rejected event is still recorded, just not applied", () => {
+  let s = { status: "delivered", statusHistory: [{ status: "delivered", at: "2026-09-20T10:00:00Z" }] };
+  const r = shippingService.applyStatusUpdate(s, { status: "in_transit", by: "courier-replay" });
+  eq(r.changed, false, "it did not move the parcel");
+  eq(r.shipment.status, "delivered", "the customer still sees delivered");
+  eq(r.shipment.statusHistory.length, 2, "ops can still see the event arrived");
+  if (!r.rejected) throw new Error("no explanation for ops");
+});
+
+group("A. shipping: what the customer may see");
+
+check("the public view leaks nothing, by construction", () => {
+  const stuffed = {
+    shipmentId: "ARIA-SHIP-260920-AB", status: "in_transit",
+    orderIds: ["ARIA-20260920-A1B2C3"],
+    // Everything that must never reach a shopper:
+    provider: "avi", trackingNumber: "AVI-260920-AF278B",
+    providerShipmentId: "avi-manual-AVI-260920-AF278B",
+    internalCostUsd: 21.6, chargedFreightUsd: 31.2,
+    routingReason: "AVI Courier es el único courier activo",
+    recipient: { name: "Ana Quispe", phone: "+51 999 888 777", idNumber: "45678912" },
+    aFieldAddedNextMonth: "secreto",
+    statusHistory: [{ status: "in_transit", at: "2026-09-20T10:00:00Z", by: "ops@aria.pe", raw: "EN_RUTA_LIMA" }],
+  };
+  const view = shippingService.publicTrackingView(stuffed);
+  const json = JSON.stringify(view);
+  for (const secret of [
+    "avi", "AVI", "21.6", "31.2", "ops@aria.pe", "EN_RUTA_LIMA",
+    "45678912", "999 888 777", "secreto", "routingReason",
+  ]) {
+    if (json.includes(secret)) throw new Error(`the customer view leaks "${secret}": ${json}`);
+  }
+  eq(view.status, "in_transit");
+  eq(view.label, "En camino", "and it says it in Aria's own words");
+});
+
+check("the customer's reference is Aria's, not the courier's", () => {
+  const id = shippingService.makeShipmentId("2026-09-20", "ab12");
+  if (!/^ARIA-SHIP-/.test(id)) throw new Error(`a customer-facing id that is not ours: ${id}`);
+  // AVI's own number is the one that names a courier, and it stays in ops.
+  if (!/^AVI-/.test(makeAviTracking(new Date("2026-09-20T12:00:00Z")))) {
+    throw new Error("the AVI tracking format changed — check nothing renders it");
+  }
+});
+
+check("no courier is named anywhere a shopper can reach", () => {
+  // The acceptance criterion, asserted rather than eyeballed: adding
+  // courier #2 must not require touching checkout, and courier #1 must
+  // not be visible at checkout today.
+  for (const rel of ["index.html", "checkout.html"]) {
+    const src = readFileSync(root(rel), "utf8");
+    if (/AVI\s*Courier|avi-courier/i.test(src)) throw new Error(`${rel} names a courier`);
+  }
+  const shippingSrc = readFileSync(root("scripts/lib/shipping-status.js"), "utf8");
+  if (/AVI|courier name/i.test(shippingSrc.replace(/courier/gi, ""))) {
+    throw new Error("the browser-facing status module names a courier");
+  }
+});
+
+group("A. shipping: the AVI adapter and the manifest");
+
+const aviQuote = await shippingRegistry.buildProvider("avi", aviDeps).quote({ weightKg: 2 });
+check("AVI quotes from the contract rate and says it is an estimate", () => {
+  const q = aviQuote;
+  // 2 kg at the internal contract rate. Never the customer's rate.
+  eq(q.costUsd, Math.round(2 * courierCostPerKg * 100) / 100);
+  eq(q.estimated, true, "a contract calculation is not a live quote");
+  if (!(q.transitDaysMin > 0 && q.transitDaysMax >= q.transitDaysMin)) {
+    throw new Error("the transit window is not a window");
+  }
+});
+
+check("the margin is the spread, and an unknown charge is not zero", () => {
+  const day = "2026-09-20";
+  const base = { createdAt: `${day}T12:00:00Z`, provider: "avi", weightKg: 2, status: "in_transit" };
+  const known = shippingService.dailyRollup([
+    { ...base, internalCostUsd: 18, chargedFreightUsd: 26 },
+  ])[0];
+  eq(known.marginUsd, 8, "$13/kg charged less $9/kg cost, on 2 kg");
+  eq(known.chargedComplete, true);
+
+  const partial = shippingService.dailyRollup([
+    { ...base, internalCostUsd: 18, chargedFreightUsd: 26 },
+    { ...base, internalCostUsd: 18, chargedFreightUsd: null },
+  ])[0];
+  eq(partial.marginUsd, null, "a missing charge makes the margin unknown, never zero");
+  eq(partial.chargedComplete, false);
+
+  // A cancelled box is not volume and not cost.
+  eq(shippingService.dailyRollup([{ ...base, status: "cancelled", internalCostUsd: 18 }]).length, 0);
+});
+
+check("the manifest carries what a courier needs and no money of ours", () => {
+  const csv = shippingService.manifestCsv([{
+    shipmentId: "ARIA-SHIP-260920-AB", trackingNumber: "AVI-260920-AF278B",
+    orderIds: ["ARIA-20260920-A1B2C3"],
+    recipient: { name: "Ana Quispe", address: 'Av. "Arequipa", 1234', city: "Lima", phone: "999888777", idNumber: "45678912" },
+    weightKg: 2.4, declaredValueUsd: 120, restrictedFlags: ["fragrance_limit"],
+    status: "created", notes: "",
+    internalCostUsd: 21.6, chargedFreightUsd: 31.2,
+  }]);
+  for (const needed of ["ARIA-SHIP-260920-AB", "Ana Quispe", "45678912", "Lima", "2.4", "120", "fragrance_limit"]) {
+    if (!csv.includes(needed)) throw new Error(`the manifest omits ${needed}`);
+  }
+  for (const secret of ["21.6", "31.2"]) {
+    if (csv.includes(secret)) throw new Error(`the manifest hands the courier our margin (${secret})`);
+  }
+  if (!csv.startsWith("﻿")) throw new Error("no BOM — Lima addresses will open mangled in Excel");
+  if (!csv.includes('"Av. ""Arequipa"", 1234"')) throw new Error("a comma/quote in an address breaks the CSV");
+});
+
+check("internal courier cost is served only behind the admin gate", () => {
+  const publicSrc = readFileSync(root("netlify/functions/shipment-track.js"), "utf8");
+  if (/COST_PER_KG|internalCostUsd|courier-economics/.test(stripComments(publicSrc))) {
+    throw new Error("the public tracking endpoint touches internal cost");
+  }
+  const adminSrc = readFileSync(root("netlify/functions/admin-shipping.js"), "utf8");
+  if (!/isAdmin\(email\)/.test(adminSrc)) throw new Error("the admin shipping endpoint is not gated");
+});
+
+/* ------------------------------------------------------------------
+   B — CATEGORY TILES ARE OFERTAS CARDS
+   ------------------------------------------------------------------ */
+group("A. shipping: a test order, end to end");
+
+/* THE ACCEPTANCE CRITERION, RUN. An order goes through the interface to
+   AVI: routed, manifest generated, tracking recorded, delivery confirmed
+   — over the same five operations any future courier will implement, with
+   an in-memory stand-in for the Blobs store so it runs anywhere. */
+const e2e = await (async () => {
+  const saved = new Map();
+  const deps = { readShipmentByTracking: async (t) => saved.get(t) || null };
+  const adapter = shippingRegistry.buildProvider(
+    shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS).key, deps);
+
+  const routed = shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS);
+  const { shipment: model, errors } = shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 2 }));
+  const quote = await adapter.quote(model);
+  const created = await adapter.createShipment(model);
+
+  let ship = {
+    ...model,
+    shipmentId: shippingService.makeShipmentId("2026-09-20", "e2e1"),
+    createdAt: "2026-09-20T12:00:00Z",
+    provider: routed.key, routingReason: routed.reason,
+    providerShipmentId: created.providerShipmentId, trackingNumber: created.trackingNumber,
+    internalCostUsd: quote.costUsd, chargedFreightUsd: 31.2,
+    transitDaysMin: quote.transitDaysMin, transitDaysMax: quote.transitDaysMax,
+    status: null, statusHistory: [],
+  };
+  const save = () => saved.set(ship.trackingNumber, ship);
+
+  const steps = [];
+  for (const status of shippingStatus.SHIPPING_FLOW) {
+    const r = shippingService.applyStatusUpdate(ship, { status, by: "ops@ariashop.pe" });
+    ship = r.shipment; save();
+    steps.push({ status, changed: r.changed });
+  }
+
+  const csv = shippingService.manifestCsv([ship]);
+  const tracked = await adapter.track(ship.trackingNumber);
+  const delivery = await adapter.confirmDelivery(ship.trackingNumber);
+  return { errors, routed, created, ship, steps, csv, tracked, delivery, quote };
+})();
+
+check("the order was routed to a courier, with the reason recorded", () => {
+  eq(e2e.errors.length, 0, `model errors: ${e2e.errors.join(" | ")}`);
+  eq(e2e.ship.provider, "avi");
+  if (!e2e.ship.routingReason) throw new Error("no routingReason on the shipment");
+  if (!e2e.ship.shipmentId.startsWith("ARIA-SHIP-")) throw new Error("no Aria reference");
+});
+
+check("a manifest was generated for the courier", () => {
+  if (!e2e.created.manifestRequired) throw new Error("AVI did not ask for a manifest");
+  eq(e2e.created.labelUrl, null, "no API, so no label URL is invented");
+  if (!e2e.csv.includes(e2e.ship.shipmentId)) throw new Error("the shipment is not on the manifest");
+  if (!e2e.csv.includes(e2e.ship.trackingNumber)) throw new Error("the tracking number is not on the manifest");
+});
+
+check("tracking was recorded through every normalized state", () => {
+  eq(e2e.steps.every((s) => s.changed), true, "a step was rejected");
+  eq(e2e.steps.map((s) => s.status).join(","), shippingStatus.SHIPPING_FLOW.join(","));
+  eq(e2e.tracked.found, true);
+  eq(e2e.tracked.status, "delivered");
+  eq(e2e.tracked.events.length, 5);
+  for (const ev of e2e.tracked.events) {
+    if (!shippingStatus.SHIPPING_STATUSES.includes(ev.status)) throw new Error(`jargon leaked: ${ev.status}`);
+  }
+});
+
+check("delivery was confirmed, with a real audit trail", () => {
+  if (!e2e.delivery.deliveredAt) throw new Error("no delivery confirmation");
+  eq(e2e.delivery.proof.kind, "ops_confirmation", "honest about how it was confirmed");
+  eq(e2e.delivery.proof.by, "ops@ariashop.pe");
+});
+
+check("the customer sees the whole journey and none of the plumbing", () => {
+  const view = shippingService.publicTrackingView(e2e.ship);
+  eq(view.label, "Entregado");
+  eq(view.history.length, 5, "the full journey, in Aria's words");
+  eq(view.history.map((h) => h.label).join(" → "),
+     "Pedido registrado → En camino → En aduana → En reparto → Entregado");
+  const json = JSON.stringify(view);
+  for (const secret of ["avi", "AVI", String(e2e.quote.costUsd), "ops@ariashop.pe"]) {
+    if (json.includes(secret)) throw new Error(`the customer view leaks "${secret}"`);
+  }
+});
+
+group("B. no little squares anywhere");
+
+check("the category tile is built from the Ofertas card's own parts", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function handleDeptThumbError("));
+  for (const part of ["CARD_SHELL_CLASS", "cardImageFrameHTML"]) {
+    if (!tile.includes(part)) throw new Error(`the category tile does not use ${part}`);
+  }
+  // …and so is the product card, so there is one style rather than two.
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  for (const part of ["CARD_SHELL_CLASS", "cardImageFrameHTML", "cardPhotoHTML"]) {
+    if (!card.includes(part)) throw new Error(`the Ofertas card does not use ${part}`);
+  }
+});
+
+check("both category grids are the Ofertas grid, two across", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  for (const id of ["categoriesGrid", "catGrid"]) {
+    const at = src.indexOf(`id="${id}"`);
+    if (at < 0) throw new Error(`#${id} is gone`);
+    // The <div> that carries the id, class attribute and all.
+    const tag = src.slice(src.lastIndexOf("<div", at), src.indexOf(">", at) + 1);
+    if (!/grid-cols-1 md:grid-cols-2/.test(tag)) {
+      throw new Error(`#${id} is not on the two-across Ofertas grid: ${tag}`);
+    }
+    if (/grid-cols-[34]|sm:grid-cols-3|md:grid-cols-4|lg:grid-cols-4/.test(tag)) {
+      throw new Error(`#${id} still has a small-square column count: ${tag}`);
+    }
+  }
+  // Ofertas' own grid, for comparison: the same class, from one constant.
+  const listing = src.match(/const LISTING_GRID_CLASS = '([^']+)'/)?.[1];
+  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the shared grid class");
+});
+
+check("no product image on any grid is cropped", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const frame = src.slice(src.indexOf("function cardImageFrameHTML("), src.indexOf("function deptTileHTML("));
+  if (!/object-fit:\s*contain/.test(frame)) throw new Error("the shared photo is not contain-fit");
+  if (/object-fit:\s*cover/.test(frame)) throw new Error("a cover fit is back — it crops people in half");
+  if (!/aspect-ratio:4\/5/.test(frame)) throw new Error("the shared 4:5 field is gone");
+});
+
+/* ------------------------------------------------------------------
+   C — SUPPORT REACHES A PERSON
+   ------------------------------------------------------------------ */
+group("C. contactar soporte opens email");
+
+check("the returns CTA is a mailto with the subject pre-filled", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const returns = src.slice(src.indexOf('<div id="returnsView"'), src.indexOf('<!-- ============ TERMS VIEW'));
+  const cta = returns.match(/<[^>]*>\s*Contactar soporte\s*<\/[^>]+>/)?.[0] || "";
+  if (!cta) throw new Error("the Contactar soporte CTA is gone");
+  if (/<button/i.test(cta)) throw new Error("it is still a <button>, not a link");
+  if (!/href="mailto:/.test(cta)) throw new Error("it has no mailto href");
+  if (/onclick=/.test(cta)) throw new Error("it still carries a JS handler");
+  if (!cta.includes(encodeURIComponent(support.SUPPORT_SUBJECT_RETURNS))) {
+    throw new Error(`the subject is not pre-filled: ${cta}`);
+  }
+  if (!cta.includes(support.SUPPORT_EMAIL)) throw new Error("it does not reach the support address");
+  eq(support.SUPPORT_EMAIL, "daniel.leon@ariashop.pe");
+  eq(support.SUPPORT_SUBJECT_RETURNS, "Ayuda con una devolución");
+});
+
+check("no support CTA anywhere loops back into the chatbot alone", () => {
+  for (const rel of ["index.html", "checkout.html"]) {
+    const src = readFileSync(root(rel), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    // Any element whose visible text is a support/contact CTA must carry
+    // a mailto. The chat may be offered BESIDE one, never instead of it.
+    const re = /<(button|a)\b[^>]*>\s*([^<]*\b(?:Contactar soporte|contactar soporte)\b[^<]*)\s*<\/\1>/g;
+    for (const m of src.matchAll(re)) {
+      if (!/href="mailto:/.test(m[0])) throw new Error(`${rel}: "${m[2].trim()}" does not reach a person`);
+    }
+  }
+});
+
+check("every authored address matches its constant", () => {
+  // The markup carries a real href so the link works with JS off; this
+  // is what stops that copy drifting from scripts/lib/support.js.
+  const expected = {
+    returns: support.SUPPORT_LINKS.returns(),
+    order: support.SUPPORT_LINKS.order(),
+    general: support.SUPPORT_LINKS.general(),
+  };
+  let seen = 0;
+  for (const rel of ["index.html", "checkout.html"]) {
+    const src = readFileSync(root(rel), "utf8");
+    for (const m of src.matchAll(/<a\s[^>]*data-support="(\w+)"[^>]*href="([^"]+)"[^>]*>/g)) {
+      const [, kind, href] = m;
+      if (!expected[kind]) throw new Error(`${rel}: unknown data-support="${kind}"`);
+      if (decodeURIComponent(href) !== decodeURIComponent(expected[kind])) {
+        throw new Error(`${rel}: data-support="${kind}" href is ${href}, constant says ${expected[kind]}`);
+      }
+      seen++;
+    }
+  }
+  if (seen < 3) throw new Error(`only ${seen} tagged support links found`);
+});
+
+check("index.html mirrors the support constants", () => {
+  eq(pageSupport.SUPPORT_EMAIL, support.SUPPORT_EMAIL);
+  eq(pageSupport.GENERAL_CONTACT_EMAIL, support.GENERAL_CONTACT_EMAIL);
+  eq(pageSupport.SUPPORT_SUBJECT_RETURNS, support.SUPPORT_SUBJECT_RETURNS);
+  for (const kind of ["returns", "order", "general"]) {
+    eq(pageSupport.SUPPORT_LINKS[kind](), support.SUPPORT_LINKS[kind](), kind);
   }
 });
 

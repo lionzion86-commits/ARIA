@@ -1,4 +1,27 @@
-// Secure middleman between ariashop.pe and AVI Courier's shipping quote API
+/* Secure middleman between ariashop.pe and the courier's quote API.
+ *
+ * RENAMED from avi-courier-quote.js (2026-09-20). The endpoint a shopper's
+ * browser calls must not name a courier: it shows up in devtools, it
+ * would have to be renamed the day a second courier existed, and the
+ * customer's freight price does not depend on who carries the box
+ * anyway. Which courier actually ships is decided later, in ops, through
+ * the ShippingProvider registry (netlify/functions/_shipping/) — not
+ * here, and never at checkout.
+ *
+ * WHAT THIS DOES NOT DO, deliberately: rate shopping. The customer pays
+ * the flat published CHARGE_PER_KG whatever our cost turns out to be. A
+ * freight price that moves with our supplier negotiations is not a price
+ * anyone can plan around, and the whole Precio Honesto argument rests on
+ * the number being the same for everybody.
+ *
+ * KNOWN LIMIT, for whoever adds courier #2: the rescale below derives the
+ * customer's freight from THIS courier's cost via CHARGE_PER_KG/COST_PER_KG.
+ * That is correct while one courier's economics are the only ones in
+ * play. With a second courier on different rates it must become a flat
+ * CHARGE_PER_KG x weight calculation that never consults a courier at
+ * all. Left as-is today because changing the checkout quote was
+ * explicitly out of scope for Phase 1.
+ */
 import { CHARGE_PER_KG } from "../../weight-data.js";
 // Internal cost lives server-side only — see _courier-economics.js.
 import { COST_PER_KG } from "./_courier-economics.js";

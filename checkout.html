@@ -121,7 +121,7 @@
               <span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span>
             </div>
             <div class="flex justify-between"><span>Valor total declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
-            <div class="flex justify-between"><span>Flete (AVI Courier)</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+            <div class="flex justify-between"><span>Flete</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
             <!-- SMALL-ORDER FEE (2026-09-20). Rendered only when it
                  applies, as its own named line with the threshold stated
                  underneath. It is the real cost of receiving, checking
@@ -135,7 +135,7 @@
               <span id="sumSmallOrder" class="tabular font-semibold" style="color:var(--navy)">—</span>
             </div>
           </div>
-          <!-- BUG FIX (2026-09-17): the total previously included AVI's real
+          <!-- BUG FIX (2026-09-17): the total previously included the courier's real
                Peru import duty/IGV charge (applies automatically over a $200
                declared value) with no line item showing it, so the total
                looked unexplained/wrong even though the math was correct.
@@ -330,7 +330,7 @@
             <label for="descInput" class="block text-[12px] font-bold mb-1.5">Descripción del contenido</label>
             <input id="descInput" name="descInput" type="text" required placeholder="Ej. Ropa y zapatillas"
               class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
-            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Completa peso, valor y descripción para cotizar con AVI Courier.</p>
+            <p id="quoteStatus" class="text-[12px] mt-2" style="color:#8A93A8">Completa peso, valor y descripción para calcular tu flete.</p>
           </div>
         </section>
         </div>
@@ -383,7 +383,7 @@
       </div>
       <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
         <a href="index.html" class="hover:text-[color:var(--navy)] transition">Términos</a>
-        <a href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
+        <a data-support="general" href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
         <a href="index.html" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Vuelve a la tienda para chatear con nosotros</a>
       </div>
     </div>
@@ -404,6 +404,15 @@
            SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE } from './weight-data.js';
   import { RETAILER_LABELS, RETAILER_COLORS, RETAILER_LOGOS } from './scripts/lib/retailers.js';
   import { MAX_FRAGRANCES_PER_SHIPMENT, fragranceLimitState } from './scripts/lib/beauty-weight.js';
+  import { SUPPORT_LINKS } from './scripts/lib/support.js';
+
+  /* Support addresses come from one constant, here as on index.html. The
+     href authored in the footer markup is the no-JS fallback; this keeps
+     it in step with scripts/lib/support.js when the address changes. */
+  document.querySelectorAll('a[data-support]').forEach(a => {
+    const build = SUPPORT_LINKS[a.dataset.support];
+    if (build) a.href = build();
+  });
 
   const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
   const pen = new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' });
@@ -537,7 +546,7 @@
       fxRatesWrap.hidden = false;
     } catch (err) {
       // No real rate available — leave fxRates null. renderSummary falls
-      // back to AVI's own total_pen (when it has one) rather than
+      // back to the courier quote's own total_pen (when it has one) rather than
       // blocking checkout on a currency-display feature.
       fxRatesWrap.hidden = true;
     }
@@ -587,24 +596,24 @@
     return Number.isFinite(raw) && raw > 0 ? raw : 0;
   }
 
-  // Flat local estimate — only used if the live AVI Courier quote can't be reached.
+  // Flat local estimate — only used if the live freight quote can't be reached.
   // Total is the declared product value plus shipping, matching what the
   // live quote's total_usd represents (flete_usd is shipping alone).
   function fallbackQuote(kg, valorUsd){
     const flete = kg * CHARGE_PER_KG + BASE_FEE;
-    // Same real, publicly disclosed Peru duty/IGV policy AVI's live quote
+    // Same real, publicly disclosed Peru duty/IGV policy the live quote
     // already applies (see DUTY_THRESHOLD_USD/DUTY_RATE in weight-data.js)
-    // — added here so the fallback (only used when AVI's API is
+    // — added here so the fallback (only used when the quote API is
     // unreachable) doesn't silently under-quote an order that's actually
     // over the duty threshold, which would have made the real charge at
-    // AVI's next successful quote look like a bug rather than a real cost
+    // the next successful quote look like a bug rather than a real cost
     // that was simply missing from the estimate.
     const duty = valorUsd > DUTY_THRESHOLD_USD ? Math.round(valorUsd * DUTY_RATE * 100) / 100 : 0;
     return { total_usd: valorUsd + flete + duty, total_pen: null, flete_usd: flete, source: 'fallback' };
   }
 
   async function fetchQuote(kg, valorUsd, description){
-    const res = await fetch('/.netlify/functions/avi-courier-quote', {
+    const res = await fetch('/.netlify/functions/shipping-quote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ peso_kg: kg, valor_usd: valorUsd, description }),
@@ -720,7 +729,7 @@
 
     /* A freight line that reads "—" and a total that reads S/ 0.00 are not
        honest placeholders: they look like a quote of nothing. While the
-       live AVI quote is in flight (or before it can run) the summary shows
+       live quote is in flight (or before it can run) the summary shows
        the arithmetic we already know — weight x $13/kg, plus duty over the
        threshold — marked as an estimate. Pagar still waits for the real
        quote; only the numbers on screen are filled in. */
@@ -743,17 +752,17 @@
       }
       sumWalletRow.hidden = true;
       payBtn.disabled = true;
-      payBtn.textContent = loading ? 'Cotizando con AVI Courier…' : 'Completa el formulario para cotizar';
+      payBtn.textContent = loading ? 'Calculando tu flete…' : 'Completa el formulario para cotizar';
       return;
     }
 
-    // BUG FIX (2026-09-17): total_usd from AVI (or the fallback estimate)
+    // BUG FIX (2026-09-17): total_usd from the quote (or the fallback estimate)
     // includes a real Peru duty/IGV charge whenever the declared value is
     // over $200 — previously this was folded silently into the total with
     // no line item, so the total didn't visibly add up from Peso+Valor+
     // Flete alone even though the math was correct. Deriving it back out
     // here (rather than hardcoding the rate) keeps this exactly in sync
-    // with whatever AVI's real quote actually charged.
+    // with whatever the courier's real quote actually charged.
     const duty = round2(latestQuote.total_usd - valor - latestQuote.flete_usd);
     if (duty > 0.01){
       sumDuty.textContent = fmtPrimary(duty) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
@@ -821,7 +830,7 @@
 
     if (kg <= 0 || valor <= 0 || !description){
       latestQuote = null;
-      quoteStatus.textContent = 'Completa peso, valor y descripción para cotizar con AVI Courier.';
+      quoteStatus.textContent = 'Completa peso, valor y descripción para calcular tu flete.';
       renderSummary();
       return;
     }
@@ -835,12 +844,12 @@
         const quote = await fetchQuote(kg, valor, description);
         if (seq !== requestSeq) return;
         latestQuote = quote;
-        quoteStatus.textContent = 'Cotización de AVI Courier actualizada.';
+        quoteStatus.textContent = 'Flete actualizado.';
       } catch (err) {
         if (seq !== requestSeq) return;
         latestQuote = fallbackQuote(kg, valor);
-        quoteStatus.textContent = 'No pudimos conectar con AVI Courier — usando un estimado.';
-        showToast('No pudimos conectar con AVI Courier — usando un estimado.');
+        quoteStatus.textContent = 'No pudimos calcular el flete en línea — usando un estimado.';
+        showToast('No pudimos calcular el flete en línea — usando un estimado.');
       }
       renderSummary();
     }, 500);
@@ -852,7 +861,7 @@
   // URL query params for exactly one product. It now reads the real cart
   // — same localStorage key/shape as index.html's cart (see the CART
   // section of index.html's script) — lists every line item, and sums
-  // weight/value across all of them for one combined AVI Courier quote
+  // weight/value across all of them for one combined freight quote
   // (one shipment). kg/valor/desc are computed, not typed by the
   // customer, so they always match what the cart actually contains —
   // disabled inputs, never editable (declaring a lower value than what's
