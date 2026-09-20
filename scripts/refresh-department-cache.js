@@ -22,6 +22,7 @@ import { DEPARTMENT_CONFIG, BRAND_CONFIG } from "../netlify/functions/apify-scra
 import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
 import { quotasFor, targetDepth, plannedRuns, ITEMS_PER_QUOTA, MIN_HONEST_STOREFRONT, isHonestStorefront } from "./lib/catalog-quotas.js";
 import { retailerFor } from "./lib/retailers.js";
+import { specWeightKg } from "../netlify/functions/_weight-resolve.js";
 
 const SITE = "https://ariashop.pe";
 const OUT_FILE = new URL("../department-cache.json", import.meta.url);
@@ -80,6 +81,35 @@ const LABELS = {
 // drastically (was ~1.2MB unslimmed for ~500 items) with no loss of real
 // data. Field list must stay in sync with normalizeLiveItem() in
 // index.html.
+/* THE WEIGHT FIELDS WERE MISSING FROM THIS LIST (2026-09-20).
+
+   AUDITED, not guessed: every one of the 144 products in
+   department-cache.json carries exactly eight fields — title, price,
+   imageUrl, rating, isOnSale, savingsAmount, savingsPercent,
+   regularPrice — and not one weight-shaped key among them. The
+   allowlist below is why. netlify/functions/_weight-resolve.js has read
+   shippingWeight, itemWeight, weightLb and the `specifications` array
+   since it was written, and this function was deleting all of them one
+   step earlier. Layer 1 of the weight pipeline — the retailer's own
+   published weight, the only figure in the chain that is a measurement
+   rather than an estimate — was being thrown away at ingestion.
+
+   So the names here are kept deliberately in step with WEIGHT_FIELDS in
+   _weight-resolve.js; a test asserts they still are. Costs a few bytes
+   per item and removes the estimate entirely for every product whose
+   retailer publishes a weight.
+
+   NOTE FOR THE NEXT SCRAPE: keeping the fields is necessary and may not
+   be sufficient. Listing-level actor output often omits weights that the
+   product DETAIL page carries, so if a refresh still writes no weights,
+   the next thing to check is the actor's scrape mode — not this list. */
+const WEIGHT_FIELDS_FROM_RETAILER = [
+  "weightKg", "weight_kg", "shippingWeightKg",
+  "weight", "itemWeight", "item_weight", "shippingWeight", "shipping_weight",
+  "weightLb", "weight_lb", "weightPounds",
+  "specifications",
+];
+
 const KEEP_FIELDS = [
   "title", "name", "productTitle", "productName",
   "price", "currentPrice", "salePrice", "effectivePrice",
@@ -88,6 +118,7 @@ const KEEP_FIELDS = [
   "availableSizes",
   "onSale", "isOnSale", "savingsAmount", "savingsPercent", "percentageOff", "percentOff",
   "regularPrice", "wasPrice", "was_price", "originalPrice",
+  ...WEIGHT_FIELDS_FROM_RETAILER,
 ];
 // IMAGE-QUALITY RULE (2026-09-18): product images must not have a price
 // rendered into them. The image shows the US sticker price while ours adds
@@ -374,11 +405,21 @@ async function main() {
   const outOfBand = [];
   const gaps = [];
   const beautyEstimates = [];
-  for (const bucket of Object.values(out.retailers || {})) {
+  /* LAYER 1 COVERAGE. The retailer's own published weight is the only
+     figure in the whole pipeline that is a measurement; everything below
+     it is an estimate we are choosing to stand behind. So every run
+     reports how many items arrived carrying one, per store. If this
+     reads 0% after a refresh, the allowlist above is not the remaining
+     problem — the actor's scrape mode is. */
+  const specCoverage = {};
+  for (const [retailerKey, bucket] of Object.entries(out.retailers || {})) {
     for (const group of [bucket.departments || {}, bucket.brands || {}]) {
       for (const dept of Object.values(group)) {
         for (const item of dept.items || []) {
           const title = item.name || item.title || "";
+          const cov = (specCoverage[retailerKey] ||= { total: 0, withSpec: 0 });
+          cov.total += 1;
+          if (specWeightKg({ ...item, weightEstimated: false })) cov.withSpec += 1;
           const w = estimateWeightDetail(title);
           const line = `${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`;
           if (w.reviewKind === "out-of-band") outOfBand.push(line);
@@ -387,6 +428,17 @@ async function main() {
         }
       }
     }
+  }
+
+  console.log("\n  peso publicado por la tienda (capa 1 — un dato, no un estimado):");
+  for (const [retailerKey, cov] of Object.entries(specCoverage)) {
+    const pct = cov.total ? Math.round((cov.withSpec / cov.total) * 100) : 0;
+    console.log(`    ${retailerKey.padEnd(12)} ${String(cov.withSpec).padStart(4)}/${String(cov.total).padEnd(4)}  ${pct}%`);
+  }
+  if (Object.values(specCoverage).every((c) => c.withSpec === 0)) {
+    console.log("    NINGUNA tienda devolvió un peso publicado. Revisa el scrapeMode del actor");
+    console.log("    en netlify/functions/apify-scrape-start.js — el listado suele omitir el peso");
+    console.log("    que sí trae la ficha del producto. La lista KEEP_FIELDS ya los conserva.");
   }
   /* Loudest first: an out-of-band weight is not quotable at all — the
      storefront refuses to price those items until a human fixes them. */

@@ -43,7 +43,7 @@ export function loadPageWeightSlice() {
     console,
   };
   vm.createContext(sandbox);
-  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
   return sandbox.__exports;
 }
 
@@ -88,4 +88,68 @@ export function loadPageQuerySlice() {
     { filename: "index.html#query-translate" },
   );
   return sandbox.__exports;
+}
+
+const SHIPPING_START = "/* The happy path, in order.";
+const SHIPPING_END = "let adminShippingState";
+
+/** The normalized shipping-status mirror, on its own. */
+export function loadPageShippingSlice() {
+  return runSlice(SHIPPING_START, SHIPPING_END, "index.html#shipping-status",
+    "{ SHIPPING_FLOW, SHIPPING_STATUSES, SHIPPING_STATUS_ES, statusLabelEs, statusNoteEs, canTransition, isTerminalStatus, flowIndex }");
+}
+
+const SUPPORT_START = "const SUPPORT_EMAIL = 'daniel.leon@ariashop.pe';";
+const SUPPORT_END = "function toggleMobileMenu(){";
+
+/** The support-address mirror, on its own. */
+export function loadPageSupportSlice() {
+  return runSlice(SUPPORT_START, SUPPORT_END, "index.html#support",
+    "{ SUPPORT_EMAIL, GENERAL_CONTACT_EMAIL, SUPPORT_SUBJECT_RETURNS, SUPPORT_SUBJECT_ORDER, supportMailto, SUPPORT_LINKS }");
+}
+
+/* Both mirrors end with a DOMContentLoaded registration, so the sandbox
+   needs just enough browser to let the slice finish evaluating. */
+function runSlice(startMarker, endMarker, filename, exportsExpr) {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(startMarker);
+  const to = html.indexOf(endMarker, from);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error(`index.html slice markers moved (${filename}) — update scripts/test/_page-script.mjs`);
+  }
+  const sandbox = {
+    console,
+    window: { addEventListener() {} },
+    document: { querySelectorAll: () => [] },
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(html.slice(from, to) + `\n;globalThis.__exports = ${exportsExpr};`, sandbox, { filename });
+  return sandbox.__exports;
+}
+
+const FEE_START = "const SMALL_ORDER_THRESHOLD_PEN = 50;";
+const FEE_END = "/* CONSERVATIVE BIAS (2026-09-18)";
+
+/** The small-order fee mirror, on its own. */
+export function loadPageFeeSlice() {
+  return runSlice(FEE_START, FEE_END, "index.html#small-order-fee",
+    "{ SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN, SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE, smallOrderFeePen }");
+}
+
+const FITMENT_START = "const VEHICLE_MAKES = [";
+const FITMENT_END = "// Cache key must exactly match scripts/refresh-auto-cache.js's format.";
+
+/** The fitment matcher mirror, on its own. */
+export function loadPageFitmentSlice() {
+  return runSlice(FITMENT_START, FITMENT_END, "index.html#fitment",
+    "{ parseFitmentText, matchesVehicle, fitmentVerdict, extractFitment, splitMakeModel, canonicalMake, canonicalModel, VEHICLE_MAKES }");
+}
+
+const AUTOSRC_START = "const AUTO_SOURCES = {";
+const AUTOSRC_END = "/* A source's own mark.";
+
+/** The Aria Auto parts-source registry mirror, on its own. */
+export function loadPageAutoSourcesSlice() {
+  return runSlice(AUTOSRC_START, AUTOSRC_END, "index.html#auto-sources",
+    "{ AUTO_SOURCES, searchableAutoSources, visibleAutoSources, autoSourceFor, autoSourceLabel }");
 }

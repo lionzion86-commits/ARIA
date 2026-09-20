@@ -49,14 +49,17 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { titleWeight, weightSanity } from "../../scripts/lib/item-weight.js";
+import { titleWeight, weightSanity, freightQuotable, GENERIC_FALLBACK_KG } from "../../scripts/lib/item-weight.js";
 import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
+// The PUBLIC charged rate only — the internal courier cost never travels
+// with anything a browser can reach, and this module answers checkout.
+import { CHARGE_PER_KG } from "../../weight-data.js";
 
-// Deliberately the same generic the product cards and cart already show
-// (DEFAULT_RETAIL_WEIGHT_KG x the reasoned buffer, index.html), so an
-// unclassified item does not quietly get heavier between the cart and
-// checkout. Where it is too light, we absorb it — see PRICING PROMISE.
-export const GENERIC_FALLBACK_KG = 0.6;
+/* Re-exported, not redeclared. This file used to define its own 0.6
+   beside index.html's 1.08 under a comment asserting they were the same
+   number — which is how an unclassified item got heavier between the
+   cart and checkout. One definition now, in item-weight.js. */
+export { GENERIC_FALLBACK_KG };
 
 const KG_PER_LB = 0.45359237;
 const KG_PER_OZ = 0.028349523;
@@ -164,7 +167,7 @@ export function resolveItemWeight(item) {
   /* Every branch below is an ESTIMATE, so each one goes through the band
      check on its way out. banded() is the single exit so no future branch
      can be added that skips it. */
-  const banded = (kg, source, basis) => {
+  const banded = (kg, source, basis, reviewKind = null) => {
     const check = weightSanity(title, kg);
     return {
       weightKg: check.kg,
@@ -172,6 +175,9 @@ export function resolveItemWeight(item) {
       estimated: source !== "title",
       basis,
       needsReview: check.outOfBand,
+      // `gap` marks the generic guess, so freightQuotable() can tell it
+      // apart from an estimate that actually has a category behind it.
+      reviewKind: check.outOfBand ? "out-of-band" : reviewKind,
       reviewReason: check.reason,
       bound: check.key,
       minKg: check.minKg,
@@ -197,7 +203,7 @@ export function resolveItemWeight(item) {
     return banded(category, "category", "categoría del producto");
   }
 
-  return banded(GENERIC_FALLBACK_KG, "fallback", "estimado genérico");
+  return banded(GENERIC_FALLBACK_KG, "fallback", "estimado genérico", "gap");
 }
 
 /** Whole cart: per-item weights plus the total the quote is built on. */
@@ -206,7 +212,27 @@ export function resolveCartWeights(items) {
   const resolved = list.map((it) => {
     const qty = Math.max(1, Math.round(Number(it?.qty) || 1));
     const r = resolveItemWeight(it);
-    return { ...r, qty, lineKg: Math.round(r.weightKg * qty * 100) / 100, title: String(it?.title ?? it?.name ?? "") };
+    /* THE SAME RULE THE PRODUCT CARD USES (2026-09-20). A conditioner's
+       page said "flete por confirmar" while the cart charged S/ 47.29 of
+       freight on it, because the card had this rule and the cart did
+       not. One function decides now, and it needs the line's price to do
+       it — a generic guess is only unquotable when it costs more than
+       the thing it is shipping. */
+    const priceUsd = Number(it?.priceUsd ?? it?.price);
+    const verdict = freightQuotable(
+      { kg: r.weightKg, needsReview: r.needsReview, reviewKind: r.reviewKind, source: r.source },
+      priceUsd,
+      CHARGE_PER_KG,
+    );
+    const needsReview = r.needsReview || !verdict.quotable;
+    return {
+      ...r,
+      needsReview,
+      reviewReason: r.reviewReason || verdict.reason,
+      qty,
+      lineKg: Math.round(r.weightKg * qty * 100) / 100,
+      title: String(it?.title ?? it?.name ?? ""),
+    };
   });
   const totalKg = Math.round(resolved.reduce((sum, r) => sum + r.lineKg, 0) * 100) / 100;
   return {

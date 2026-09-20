@@ -77,12 +77,22 @@ export async function handler(event) {
     const weightKgTotal = items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
     const fxRateVenta = typeof body.fxRateVenta === "number" ? body.fxRateVenta : null;
     /* SMALL-ORDER FEE. The browser sends what it showed, but the server
-       decides what is charged: the fee is recomputed here from the real
-       product subtotal in soles, so a tampered request cannot zero it and
-       a stale page cannot charge one that no longer applies. The rule and
-       both numbers live in weight-data.js — never inlined. */
+       decides what is charged: the fee is recomputed here, so a tampered
+       request cannot zero it and a stale page cannot charge one that no
+       longer applies. The rule and both numbers live in weight-data.js —
+       never inlined.
+
+       BASE: PRODUCTS + INTERNATIONAL FREIGHT (2026-09-20). Measuring the
+       threshold against products alone charged a "pedido pequeño" fee on
+       a S/ 54.76 order whose own label promised no charge from S/ 50.
+       The freight component comes off the same quote the customer was
+       shown; duty is deliberately excluded (see weight-data.js). */
     const productsPen = fxRateVenta ? Math.round(priceUsdTotal * fxRateVenta * 100) / 100 : null;
-    const smallOrderFeePenCharged = productsPen != null ? smallOrderFeePen(productsPen) : 0;
+    const freightUsdQuoted = typeof quote.flete_usd === "number" ? quote.flete_usd : 0;
+    const orderBasePen = productsPen == null
+      ? null
+      : Math.round((priceUsdTotal + freightUsdQuoted) * fxRateVenta * 100) / 100;
+    const smallOrderFeePenCharged = orderBasePen != null ? smallOrderFeePen(orderBasePen) : 0;
     const totalPen = fxRateVenta
       ? Math.round((quote.total_usd * fxRateVenta + smallOrderFeePenCharged) * 100) / 100
       : null;

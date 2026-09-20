@@ -12,21 +12,31 @@
 
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice } from "./_page-script.mjs";
+import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
 import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
-import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN } from "../../weight-data.js";
+import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import { CHARGE_PER_KG as chargePerKg } from "../../weight-data.js";
+import * as shippingStatus from "../lib/shipping-status.js";
+import * as support from "../lib/support.js";
+import * as shippingProvider from "../../netlify/functions/_shipping/provider.js";
+import * as shippingRegistry from "../../netlify/functions/_shipping/registry.js";
+import * as shippingService from "../../netlify/functions/_shipping/service.js";
+import { makeAviTracking } from "../../netlify/functions/_shipping/avi-adapter.js";
+import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courier-economics.js";
+import * as fitment from "../lib/fitment.js";
+import * as autoSources from "../lib/auto-sources.js";
+import * as supplements from "../lib/supplement-weight.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -56,6 +66,11 @@ function stripComments(src) {
 
 const page = loadPageWeightSlice();
 const pageQuery = loadPageQuerySlice();
+const pageShipping = loadPageShippingSlice();
+const pageSupport = loadPageSupportSlice();
+const pageFee = loadPageFeeSlice();
+const pageFitment = loadPageFitmentSlice();
+const pageAuto = loadPageAutoSourcesSlice();
 
 /* ------------------------------------------------------------------
    P1.1 — the beauty table, row by row, against the brief's own figures.
@@ -853,9 +868,48 @@ check("the fee is config, never inlined in a template", () => {
 });
 
 check("the server recomputes the fee rather than trusting the browser", () => {
-  const src = readFileSync(root("netlify/functions/orders-create.js"), "utf8");
-  if (!src.includes("smallOrderFeePen(productsPen)")) {
-    throw new Error("orders-create.js does not recompute the fee from the real subtotal");
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  // Recomputed from the server's own order base, never read off the request.
+  if (!/smallOrderFeePen\(orderBasePen\)/.test(src)) {
+    throw new Error("orders-create.js does not recompute the fee from its own order base");
+  }
+  if (/body\.smallOrderFeePen|quote\.smallOrderFeePen/.test(src)) {
+    throw new Error("orders-create.js trusts a browser-supplied fee");
+  }
+  // …and that base is products + freight, not products alone.
+  if (!/priceUsdTotal \+ freightUsdQuoted/.test(src)) {
+    throw new Error("the server fee base is not products + freight");
+  }
+});
+
+check("the fee is measured against the order, not the products alone", () => {
+  /* REPORTED LIVE: S/ 44.69 of shirt plus S/ 10.07 of freight — S/ 54.76
+     all in — charged the S/ 10 fee under a label promising no charge
+     from S/ 50. */
+  eq(smallOrderFeePen(44.69 + 10.07), 0, "the reported cart pays no fee");
+  eq(smallOrderFeePen(44.69), SMALL_ORDER_FEE_PEN, "products alone would still have charged it");
+  // The line itself: at the threshold is free, a cent under is not.
+  eq(smallOrderFeePen(SMALL_ORDER_THRESHOLD_PEN), 0, "exactly S/ 50 is not a small order");
+  eq(smallOrderFeePen(SMALL_ORDER_THRESHOLD_PEN - 0.01), SMALL_ORDER_FEE_PEN, "a cent under still pays");
+  // A genuinely small order still pays it — the fee keeps its job.
+  eq(smallOrderFeePen(30 + 5), SMALL_ORDER_FEE_PEN, "a S/ 35 order all in");
+});
+
+check("the note states the basis the code actually uses", () => {
+  // The bug was a label that said "pedidos" over code that measured
+  // products. Whatever the note claims, it now says which.
+  if (!/productos \+ flete/i.test(SMALL_ORDER_FEE_NOTE)) {
+    throw new Error(`the note does not state its basis: "${SMALL_ORDER_FEE_NOTE}"`);
+  }
+  eq(pageFee.SMALL_ORDER_FEE_NOTE, SMALL_ORDER_FEE_NOTE, "index.html mirror");
+  // Every surface that charges it measures the same thing.
+  const cart = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/smallOrderFeePen\(orderBasePen\)/.test(cart)) {
+    throw new Error("the cart does not use the products+freight base");
+  }
+  const checkout = stripComments(readFileSync(root("checkout.html"), "utf8"));
+  if (!/currentValor\(\) \+ currentFreightUsd\(\)/.test(checkout)) {
+    throw new Error("checkout does not use the products+freight base");
   }
 });
 
@@ -880,11 +934,18 @@ check("category tiles carry no retailer logos at all", () => {
 });
 
 check("tiles fit the image rather than cropping it", () => {
+  /* 2026-09-20: the tile no longer carries its own image markup — it
+     renders through cardPhotoHTML, the same helper the Ofertas card
+     uses, which is the point of the rebuild. So the rule is asserted
+     where it now lives, plus the fact that the tile really does go
+     through it. */
   const html = readFileSync(root("index.html"), "utf8");
   const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
-  if (/object-cover/.test(tile)) throw new Error("the tile still crops with object-cover");
-  if (!/object-fit:contain/.test(tile)) throw new Error("the tile does not contain-fit its image");
-  if (!/object-position:center/.test(tile)) throw new Error("the tile image is not centred");
+  if (!/cardPhotoHTML\(/.test(tile)) throw new Error("the tile stopped using the shared photo helper");
+  const photo = html.slice(html.indexOf("function cardPhotoHTML"), html.indexOf("function ofertasTileArtHTML"));
+  if (/object-cover|object-fit:\s*cover/.test(photo)) throw new Error("the shared photo crops with cover");
+  if (!/object-fit:\s*contain/.test(photo)) throw new Error("the shared photo does not contain-fit");
+  if (!/object-position:\s*center/.test(photo)) throw new Error("the shared photo is not centred");
 });
 
 check("selection prefers the face of a category over its peripherals", () => {
@@ -1228,6 +1289,896 @@ check("the page mirrors the whole vocabulary", () => {
     eq(pageQuery.ES_EN_PHRASES[i][0], es, `phrase ${i} key`);
     eq(pageQuery.ES_EN_PHRASES[i][1], en, `phrase ${i} value`);
   });
+});
+
+
+/* ------------------------------------------------------------------
+   STORE LOGOS — the retailer's art, rendered as they published it.
+   ------------------------------------------------------------------ */
+group("store logos on Tiendas");
+
+check("every logo a store row names actually exists", () => {
+  for (const r of Object.values(RETAILERS)) {
+    if (!r.logo) continue;
+    if (!existsSync(root(r.logo))) throw new Error(`${r.key} points at a missing file: ${r.logo}`);
+  }
+});
+
+check("a real logo is never greyed out, however pending the store", () => {
+  /* The muted plate and the "Conectando el catálogo" badge are how a
+     card says the catalogue is still being wired up. Greying the logo
+     with them would ship Victoria's Secret's pink and Bath & Body
+     Works' blue as grey — a retailer's mark is not ours to recolour. */
+  const src = readFileSync(root("index.html"), "utf8");
+  for (const fn of ["function storeCardHTML(", "function homeStoreChipHTML("]) {
+    const from = src.indexOf(fn);
+    if (from < 0) throw new Error(`${fn} is gone`);
+    // Comments first: the note explaining why the filter is gone names
+    // it in prose, and prose is not code.
+    const body = stripComments(src.slice(from, src.indexOf("\n}", from)))
+      .replace(/<!--[\s\S]*?-->/g, "");
+    for (const m of body.matchAll(/grayscale\(1\)/g)) {
+      const guard = body.slice(Math.max(0, m.index - 120), m.index);
+      if (!/pending && !r\.logo/.test(guard)) {
+        throw new Error(`${fn} greys out a real logo file`);
+      }
+    }
+  }
+});
+
+check("every store mark is contain-fit and capped, never stretched", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  // Each <img> that draws a store mark: a height cap, a width cap, and
+  // contain — which is what lets a 1200x631 banner and a square file
+  // share a tile without either being distorted.
+  const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,320}?>/g) || [];
+  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
+  for (const img of imgs) {
+    if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
+    if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
+    if (!/max-width:\s*\d+px/.test(img)) throw new Error("a store mark has no width cap");
+    if (/\bfilter:/.test(img)) throw new Error("a store mark carries a CSS filter");
+    // Never a bare width/height, which would ignore the file's own ratio.
+    if (/style="[^"]*[;\s]height:\s*\d/.test(img)) throw new Error("a store mark sets a fixed height");
+    if (!/onerror=/.test(img)) throw new Error("a store mark has no fallback if the file is missing");
+  }
+});
+
+check("the three beauty stores are still listed and still honest", () => {
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`${key} left the registry`);
+    eq(r.search, false, `${key} is still pending`);
+    eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
+  }
+});
+
+
+/* ------------------------------------------------------------------
+   A — THE MULTI-COURIER SHIPPING SEAM (Phase 1)
+   ------------------------------------------------------------------ */
+group("A. shipping: the provider contract");
+
+const aviDeps = { readShipmentByTracking: async () => null };
+
+function sampleShipment(over = {}) {
+  return {
+    orderIds: ["ARIA-20260920-A1B2C3"],
+    recipient: {
+      name: "Ana Quispe", address: "Av. Arequipa 1234, Dpto 502",
+      city: "Lima", phone: "+51 999 888 777", idNumber: "45678912",
+    },
+    weightKg: 2.4,
+    declaredValueUsd: 120,
+    ...over,
+  };
+}
+
+check("every courier in the registry implements all five operations", () => {
+  for (const key of Object.keys(shippingRegistry.PROVIDER_REGISTRY)) {
+    const adapter = shippingRegistry.buildProvider(key, aviDeps);
+    // buildProvider asserts internally; this also pins the list itself,
+    // so removing an operation from the contract is a deliberate act.
+    for (const op of shippingProvider.PROVIDER_OPERATIONS) {
+      if (typeof adapter[op] !== "function") throw new Error(`${key} has no ${op}()`);
+    }
+  }
+  eq(shippingProvider.PROVIDER_OPERATIONS.length, 5, "the contract is five operations");
+});
+
+check("a half-written adapter is refused with its own name", () => {
+  let msg = "";
+  try {
+    shippingProvider.assertImplementsProvider({ quote() {}, track() {} }, "medio-courier");
+  } catch (e) { msg = e.message; }
+  if (!/medio-courier/.test(msg)) throw new Error("the error does not name the courier");
+  for (const op of ["createShipment", "confirmDelivery", "cancel"]) {
+    if (!msg.includes(op)) throw new Error(`the error does not name the missing ${op}`);
+  }
+});
+
+check("provider jargon cannot leave an adapter", () => {
+  // The guard that keeps a courier's own wording off a customer's screen.
+  eq(shippingProvider.assertNormalized("in_customs", "avi"), "in_customs");
+  let threw = false;
+  try { shippingProvider.assertNormalized("EN_RUTA_LIMA", "avi"); } catch { threw = true; }
+  eq(threw, true, "a raw provider status is refused");
+});
+
+group("A. shipping: the shipment model");
+
+check("a complete shipment validates", () => {
+  const { shipment, errors } = shippingProvider.normalizeShipment(sampleShipment());
+  eq(errors.length, 0, `unexpected: ${errors.join(" | ")}`);
+  eq(shipment.weightKg, 2.4);
+  eq(shipment.declaredValueUsd, 120);
+});
+
+check("every recipient field is required", () => {
+  for (const field of ["name", "address", "city", "phone", "idNumber"]) {
+    const recipient = { ...sampleShipment().recipient, [field]: "" };
+    const { errors } = shippingProvider.normalizeShipment(sampleShipment({ recipient }));
+    if (!errors.length) throw new Error(`a shipment with no ${field} was accepted`);
+  }
+});
+
+check("the de minimis is enforced, not merely recorded", () => {
+  const { shipment, errors } = shippingProvider.normalizeShipment(sampleShipment({ declaredValueUsd: 240 }));
+  if (!errors.some((e) => /de minimis/i.test(e))) throw new Error("no de minimis error");
+  if (!shipment.restrictedFlags.includes(shippingProvider.RESTRICTION_OVER_DE_MINIMIS)) {
+    throw new Error("the shipment is not flagged");
+  }
+  eq(shippingProvider.DE_MINIMIS_USD, 200);
+  // Exactly at the line is fine; the rule is "over".
+  eq(shippingProvider.normalizeShipment(sampleShipment({ declaredValueUsd: 200 })).errors.length, 0);
+});
+
+check("the fragrance limit is the beauty table's, not a second copy", () => {
+  eq(shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 4 })).errors.length, 0, "4 is allowed");
+  const over = shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 5 }));
+  if (!over.errors.some((e) => /fragancias/i.test(e))) throw new Error("5 fragrances was accepted");
+  // Under the limit still flags: the courier is told there is perfume.
+  const under = shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 1 }));
+  if (!under.shipment.restrictedFlags.includes(shippingProvider.RESTRICTION_FRAGRANCE_LIMIT)) {
+    throw new Error("perfume in the box was not declared to the courier");
+  }
+});
+
+check("a shipment consolidates at most five orders", () => {
+  const ids = (n) => Array.from({ length: n }, (_, i) => `ARIA-2026092${i}-AAA`);
+  eq(shippingProvider.normalizeShipment(sampleShipment({ orderIds: ids(5) })).errors.length, 0);
+  if (!shippingProvider.normalizeShipment(sampleShipment({ orderIds: ids(6) })).errors.length) {
+    throw new Error("six orders went into one box");
+  }
+  if (!shippingProvider.normalizeShipment(sampleShipment({ orderIds: [] })).errors.length) {
+    throw new Error("a shipment with no orders was accepted");
+  }
+});
+
+check("volumetric weight has no way in", () => {
+  // The contract bills actual scale weight. Nothing on the model reads a
+  // dimension, and no dimensional helper survives in the codebase.
+  const { shipment } = shippingProvider.normalizeShipment(
+    sampleShipment({ boxCm: [40, 30, 20], dimCm: [40, 30, 20], volumetricKg: 9 }),
+  );
+  eq(shipment.weightKg, 2.4, "the scale weight is what is kept");
+  for (const k of ["boxCm", "dimCm", "volumetricKg", "billableWeightKg"]) {
+    if (k in shipment) throw new Error(`the shipment model carries ${k}`);
+  }
+  const src = stripComments(readFileSync(root("netlify/functions/_shipping/provider.js"), "utf8"));
+  if (/volumetric|dimensional|dimCm|boxCm/i.test(src)) {
+    throw new Error("a dimensional-weight concept is back in the shipment model");
+  }
+});
+
+group("A. shipping: routing, and failing closed");
+
+check("Phase 1 routes to the primary and says why", () => {
+  const routed = shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS);
+  eq(routed.key, "avi");
+  if (!routed.reason) throw new Error("no routingReason was produced");
+  // AVI is classed secondary; with nothing else enabled the reason must
+  // say so rather than reading as though a primary had been chosen.
+  if (!/único courier activo/i.test(routed.reason)) {
+    throw new Error(`the reason hides that the only courier is the overflow one: ${routed.reason}`);
+  }
+});
+
+check("no courier enabled means no shipment, with a clear error", () => {
+  let err = null;
+  try { shippingRegistry.selectProvider({ enabled: { avi: false }, primary: "avi" }); }
+  catch (e) { err = e; }
+  if (!err) throw new Error("a shipment was routed with every courier disabled");
+  eq(err.name, "NoProviderError");
+  eq(err.code, "NO_PROVIDER_ENABLED");
+  if (!/activ/i.test(err.message)) throw new Error("the error does not say what to do");
+});
+
+check("an override onto a disabled courier is refused, not honoured", () => {
+  let threw = false;
+  try {
+    shippingRegistry.selectProvider({ enabled: { avi: false }, primary: "avi" }, { override: "avi" });
+  } catch (e) { threw = e instanceof shippingRegistry.NoProviderError; }
+  eq(threw, true, "the misroute this whole system exists to prevent");
+  // A valid override is honoured, and recorded as manual.
+  const routed = shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS, { override: "avi" });
+  if (!/override manual/i.test(routed.reason)) throw new Error("a manual override is not recorded as one");
+});
+
+check("an unknown courier is refused", () => {
+  let threw = false;
+  try { shippingRegistry.buildProvider("fedex-imaginario", aviDeps); } catch { threw = true; }
+  eq(threw, true);
+});
+
+group("A. shipping: normalized statuses");
+
+check("the vocabulary is exactly the five plus two", () => {
+  eq(shippingStatus.SHIPPING_FLOW.join(" "), "created in_transit in_customs out_for_delivery delivered");
+  eq(shippingStatus.SHIPPING_STATUSES.length, 7);
+  for (const s of ["exception", "cancelled"]) {
+    if (!shippingStatus.SHIPPING_STATUSES.includes(s)) throw new Error(`${s} is missing`);
+  }
+  // Every one of them has customer-facing Spanish.
+  for (const s of shippingStatus.SHIPPING_STATUSES) {
+    if (!shippingStatus.SHIPPING_STATUS_ES[s]?.label) throw new Error(`${s} has no Spanish label`);
+  }
+});
+
+check("index.html mirrors the vocabulary word for word", () => {
+  eq(pageShipping.SHIPPING_STATUSES.join(","), shippingStatus.SHIPPING_STATUSES.join(","), "status list");
+  eq(pageShipping.SHIPPING_FLOW.join(","), shippingStatus.SHIPPING_FLOW.join(","), "flow order");
+  for (const s of shippingStatus.SHIPPING_STATUSES) {
+    eq(pageShipping.statusLabelEs(s), shippingStatus.statusLabelEs(s), `${s} label`);
+    eq(pageShipping.SHIPPING_STATUS_ES[s].note, shippingStatus.SHIPPING_STATUS_ES[s].note, `${s} note`);
+  }
+});
+
+check("a parcel never walks backwards on a customer's screen", () => {
+  const { canTransition } = shippingStatus;
+  eq(canTransition(null, "created"), true);
+  eq(canTransition("created", "in_transit"), true);
+  eq(canTransition("in_transit", "delivered"), true, "skipping ahead is real: some parcels clear customs unseen");
+  eq(canTransition("delivered", "in_transit"), false, "a re-sent old event must not un-deliver a parcel");
+  eq(canTransition("cancelled", "in_transit"), false);
+  eq(canTransition("in_transit", "exception"), true);
+  eq(canTransition("exception", "out_for_delivery"), true, "an exception can be worked back onto the path");
+});
+
+check("a rejected event is still recorded, just not applied", () => {
+  let s = { status: "delivered", statusHistory: [{ status: "delivered", at: "2026-09-20T10:00:00Z" }] };
+  const r = shippingService.applyStatusUpdate(s, { status: "in_transit", by: "courier-replay" });
+  eq(r.changed, false, "it did not move the parcel");
+  eq(r.shipment.status, "delivered", "the customer still sees delivered");
+  eq(r.shipment.statusHistory.length, 2, "ops can still see the event arrived");
+  if (!r.rejected) throw new Error("no explanation for ops");
+});
+
+group("A. shipping: what the customer may see");
+
+check("the public view leaks nothing, by construction", () => {
+  const stuffed = {
+    shipmentId: "ARIA-SHIP-260920-AB", status: "in_transit",
+    orderIds: ["ARIA-20260920-A1B2C3"],
+    // Everything that must never reach a shopper:
+    provider: "avi", trackingNumber: "AVI-260920-AF278B",
+    providerShipmentId: "avi-manual-AVI-260920-AF278B",
+    internalCostUsd: 21.6, chargedFreightUsd: 31.2,
+    routingReason: "AVI Courier es el único courier activo",
+    recipient: { name: "Ana Quispe", phone: "+51 999 888 777", idNumber: "45678912" },
+    aFieldAddedNextMonth: "secreto",
+    statusHistory: [{ status: "in_transit", at: "2026-09-20T10:00:00Z", by: "ops@aria.pe", raw: "EN_RUTA_LIMA" }],
+  };
+  const view = shippingService.publicTrackingView(stuffed);
+  const json = JSON.stringify(view);
+  for (const secret of [
+    "avi", "AVI", "21.6", "31.2", "ops@aria.pe", "EN_RUTA_LIMA",
+    "45678912", "999 888 777", "secreto", "routingReason",
+  ]) {
+    if (json.includes(secret)) throw new Error(`the customer view leaks "${secret}": ${json}`);
+  }
+  eq(view.status, "in_transit");
+  eq(view.label, "En camino", "and it says it in Aria's own words");
+});
+
+check("the customer's reference is Aria's, not the courier's", () => {
+  const id = shippingService.makeShipmentId("2026-09-20", "ab12");
+  if (!/^ARIA-SHIP-/.test(id)) throw new Error(`a customer-facing id that is not ours: ${id}`);
+  // AVI's own number is the one that names a courier, and it stays in ops.
+  if (!/^AVI-/.test(makeAviTracking(new Date("2026-09-20T12:00:00Z")))) {
+    throw new Error("the AVI tracking format changed — check nothing renders it");
+  }
+});
+
+check("no courier is named anywhere a shopper can reach", () => {
+  // The acceptance criterion, asserted rather than eyeballed: adding
+  // courier #2 must not require touching checkout, and courier #1 must
+  // not be visible at checkout today.
+  for (const rel of ["index.html", "checkout.html"]) {
+    const src = readFileSync(root(rel), "utf8");
+    if (/AVI\s*Courier|avi-courier/i.test(src)) throw new Error(`${rel} names a courier`);
+  }
+  const shippingSrc = readFileSync(root("scripts/lib/shipping-status.js"), "utf8");
+  if (/AVI|courier name/i.test(shippingSrc.replace(/courier/gi, ""))) {
+    throw new Error("the browser-facing status module names a courier");
+  }
+});
+
+group("A. shipping: the AVI adapter and the manifest");
+
+const aviQuote = await shippingRegistry.buildProvider("avi", aviDeps).quote({ weightKg: 2 });
+check("AVI quotes from the contract rate and says it is an estimate", () => {
+  const q = aviQuote;
+  // 2 kg at the internal contract rate. Never the customer's rate.
+  eq(q.costUsd, Math.round(2 * courierCostPerKg * 100) / 100);
+  eq(q.estimated, true, "a contract calculation is not a live quote");
+  if (!(q.transitDaysMin > 0 && q.transitDaysMax >= q.transitDaysMin)) {
+    throw new Error("the transit window is not a window");
+  }
+});
+
+check("the margin is the spread, and an unknown charge is not zero", () => {
+  const day = "2026-09-20";
+  const base = { createdAt: `${day}T12:00:00Z`, provider: "avi", weightKg: 2, status: "in_transit" };
+  const known = shippingService.dailyRollup([
+    { ...base, internalCostUsd: 18, chargedFreightUsd: 26 },
+  ])[0];
+  eq(known.marginUsd, 8, "$13/kg charged less $9/kg cost, on 2 kg");
+  eq(known.chargedComplete, true);
+
+  const partial = shippingService.dailyRollup([
+    { ...base, internalCostUsd: 18, chargedFreightUsd: 26 },
+    { ...base, internalCostUsd: 18, chargedFreightUsd: null },
+  ])[0];
+  eq(partial.marginUsd, null, "a missing charge makes the margin unknown, never zero");
+  eq(partial.chargedComplete, false);
+
+  // A cancelled box is not volume and not cost.
+  eq(shippingService.dailyRollup([{ ...base, status: "cancelled", internalCostUsd: 18 }]).length, 0);
+});
+
+check("the manifest carries what a courier needs and no money of ours", () => {
+  const csv = shippingService.manifestCsv([{
+    shipmentId: "ARIA-SHIP-260920-AB", trackingNumber: "AVI-260920-AF278B",
+    orderIds: ["ARIA-20260920-A1B2C3"],
+    recipient: { name: "Ana Quispe", address: 'Av. "Arequipa", 1234', city: "Lima", phone: "999888777", idNumber: "45678912" },
+    weightKg: 2.4, declaredValueUsd: 120, restrictedFlags: ["fragrance_limit"],
+    status: "created", notes: "",
+    internalCostUsd: 21.6, chargedFreightUsd: 31.2,
+  }]);
+  for (const needed of ["ARIA-SHIP-260920-AB", "Ana Quispe", "45678912", "Lima", "2.4", "120", "fragrance_limit"]) {
+    if (!csv.includes(needed)) throw new Error(`the manifest omits ${needed}`);
+  }
+  for (const secret of ["21.6", "31.2"]) {
+    if (csv.includes(secret)) throw new Error(`the manifest hands the courier our margin (${secret})`);
+  }
+  if (!csv.startsWith("﻿")) throw new Error("no BOM — Lima addresses will open mangled in Excel");
+  if (!csv.includes('"Av. ""Arequipa"", 1234"')) throw new Error("a comma/quote in an address breaks the CSV");
+});
+
+check("internal courier cost is served only behind the admin gate", () => {
+  const publicSrc = readFileSync(root("netlify/functions/shipment-track.js"), "utf8");
+  if (/COST_PER_KG|internalCostUsd|courier-economics/.test(stripComments(publicSrc))) {
+    throw new Error("the public tracking endpoint touches internal cost");
+  }
+  const adminSrc = readFileSync(root("netlify/functions/admin-shipping.js"), "utf8");
+  if (!/isAdmin\(email\)/.test(adminSrc)) throw new Error("the admin shipping endpoint is not gated");
+});
+
+/* ------------------------------------------------------------------
+   B — CATEGORY TILES ARE OFERTAS CARDS
+   ------------------------------------------------------------------ */
+group("A. shipping: a test order, end to end");
+
+/* THE ACCEPTANCE CRITERION, RUN. An order goes through the interface to
+   AVI: routed, manifest generated, tracking recorded, delivery confirmed
+   — over the same five operations any future courier will implement, with
+   an in-memory stand-in for the Blobs store so it runs anywhere. */
+const e2e = await (async () => {
+  const saved = new Map();
+  const deps = { readShipmentByTracking: async (t) => saved.get(t) || null };
+  const adapter = shippingRegistry.buildProvider(
+    shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS).key, deps);
+
+  const routed = shippingRegistry.selectProvider(shippingRegistry.DEFAULT_SHIPPING_SETTINGS);
+  const { shipment: model, errors } = shippingProvider.normalizeShipment(sampleShipment({ fragranceCount: 2 }));
+  const quote = await adapter.quote(model);
+  const created = await adapter.createShipment(model);
+
+  let ship = {
+    ...model,
+    shipmentId: shippingService.makeShipmentId("2026-09-20", "e2e1"),
+    createdAt: "2026-09-20T12:00:00Z",
+    provider: routed.key, routingReason: routed.reason,
+    providerShipmentId: created.providerShipmentId, trackingNumber: created.trackingNumber,
+    internalCostUsd: quote.costUsd, chargedFreightUsd: 31.2,
+    transitDaysMin: quote.transitDaysMin, transitDaysMax: quote.transitDaysMax,
+    status: null, statusHistory: [],
+  };
+  const save = () => saved.set(ship.trackingNumber, ship);
+
+  const steps = [];
+  for (const status of shippingStatus.SHIPPING_FLOW) {
+    const r = shippingService.applyStatusUpdate(ship, { status, by: "ops@ariashop.pe" });
+    ship = r.shipment; save();
+    steps.push({ status, changed: r.changed });
+  }
+
+  const csv = shippingService.manifestCsv([ship]);
+  const tracked = await adapter.track(ship.trackingNumber);
+  const delivery = await adapter.confirmDelivery(ship.trackingNumber);
+  return { errors, routed, created, ship, steps, csv, tracked, delivery, quote };
+})();
+
+check("the order was routed to a courier, with the reason recorded", () => {
+  eq(e2e.errors.length, 0, `model errors: ${e2e.errors.join(" | ")}`);
+  eq(e2e.ship.provider, "avi");
+  if (!e2e.ship.routingReason) throw new Error("no routingReason on the shipment");
+  if (!e2e.ship.shipmentId.startsWith("ARIA-SHIP-")) throw new Error("no Aria reference");
+});
+
+check("a manifest was generated for the courier", () => {
+  if (!e2e.created.manifestRequired) throw new Error("AVI did not ask for a manifest");
+  eq(e2e.created.labelUrl, null, "no API, so no label URL is invented");
+  if (!e2e.csv.includes(e2e.ship.shipmentId)) throw new Error("the shipment is not on the manifest");
+  if (!e2e.csv.includes(e2e.ship.trackingNumber)) throw new Error("the tracking number is not on the manifest");
+});
+
+check("tracking was recorded through every normalized state", () => {
+  eq(e2e.steps.every((s) => s.changed), true, "a step was rejected");
+  eq(e2e.steps.map((s) => s.status).join(","), shippingStatus.SHIPPING_FLOW.join(","));
+  eq(e2e.tracked.found, true);
+  eq(e2e.tracked.status, "delivered");
+  eq(e2e.tracked.events.length, 5);
+  for (const ev of e2e.tracked.events) {
+    if (!shippingStatus.SHIPPING_STATUSES.includes(ev.status)) throw new Error(`jargon leaked: ${ev.status}`);
+  }
+});
+
+check("delivery was confirmed, with a real audit trail", () => {
+  if (!e2e.delivery.deliveredAt) throw new Error("no delivery confirmation");
+  eq(e2e.delivery.proof.kind, "ops_confirmation", "honest about how it was confirmed");
+  eq(e2e.delivery.proof.by, "ops@ariashop.pe");
+});
+
+check("the customer sees the whole journey and none of the plumbing", () => {
+  const view = shippingService.publicTrackingView(e2e.ship);
+  eq(view.label, "Entregado");
+  eq(view.history.length, 5, "the full journey, in Aria's words");
+  eq(view.history.map((h) => h.label).join(" → "),
+     "Pedido registrado → En camino → En aduana → En reparto → Entregado");
+  const json = JSON.stringify(view);
+  for (const secret of ["avi", "AVI", String(e2e.quote.costUsd), "ops@ariashop.pe"]) {
+    if (json.includes(secret)) throw new Error(`the customer view leaks "${secret}"`);
+  }
+});
+
+group("B. no little squares anywhere");
+
+check("the category tile is built from the Ofertas card's own parts", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function handleDeptThumbError("));
+  for (const part of ["CARD_SHELL_CLASS", "cardImageFrameHTML"]) {
+    if (!tile.includes(part)) throw new Error(`the category tile does not use ${part}`);
+  }
+  // …and so is the product card, so there is one style rather than two.
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  for (const part of ["CARD_SHELL_CLASS", "cardImageFrameHTML", "cardPhotoHTML"]) {
+    if (!card.includes(part)) throw new Error(`the Ofertas card does not use ${part}`);
+  }
+});
+
+check("both category grids are the Ofertas grid, two across", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  for (const id of ["categoriesGrid", "catGrid"]) {
+    const at = src.indexOf(`id="${id}"`);
+    if (at < 0) throw new Error(`#${id} is gone`);
+    // The <div> that carries the id, class attribute and all.
+    const tag = src.slice(src.lastIndexOf("<div", at), src.indexOf(">", at) + 1);
+    if (!/grid-cols-1 md:grid-cols-2/.test(tag)) {
+      throw new Error(`#${id} is not on the two-across Ofertas grid: ${tag}`);
+    }
+    if (/grid-cols-[34]|sm:grid-cols-3|md:grid-cols-4|lg:grid-cols-4/.test(tag)) {
+      throw new Error(`#${id} still has a small-square column count: ${tag}`);
+    }
+  }
+  // Ofertas' own grid, for comparison: the same class, from one constant.
+  const listing = src.match(/const LISTING_GRID_CLASS = '([^']+)'/)?.[1];
+  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the shared grid class");
+});
+
+check("no product image on any grid is cropped", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const frame = src.slice(src.indexOf("function cardImageFrameHTML("), src.indexOf("function deptTileHTML("));
+  if (!/object-fit:\s*contain/.test(frame)) throw new Error("the shared photo is not contain-fit");
+  if (/object-fit:\s*cover/.test(frame)) throw new Error("a cover fit is back — it crops people in half");
+  if (!/aspect-ratio:4\/5/.test(frame)) throw new Error("the shared 4:5 field is gone");
+});
+
+/* ------------------------------------------------------------------
+   C — SUPPORT REACHES A PERSON
+   ------------------------------------------------------------------ */
+group("C. contactar soporte opens email");
+
+check("the returns CTA is a mailto with the subject pre-filled", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const returns = src.slice(src.indexOf('<div id="returnsView"'), src.indexOf('<!-- ============ TERMS VIEW'));
+  const cta = returns.match(/<[^>]*>\s*Contactar soporte\s*<\/[^>]+>/)?.[0] || "";
+  if (!cta) throw new Error("the Contactar soporte CTA is gone");
+  if (/<button/i.test(cta)) throw new Error("it is still a <button>, not a link");
+  if (!/href="mailto:/.test(cta)) throw new Error("it has no mailto href");
+  if (/onclick=/.test(cta)) throw new Error("it still carries a JS handler");
+  if (!cta.includes(encodeURIComponent(support.SUPPORT_SUBJECT_RETURNS))) {
+    throw new Error(`the subject is not pre-filled: ${cta}`);
+  }
+  if (!cta.includes(support.SUPPORT_EMAIL)) throw new Error("it does not reach the support address");
+  eq(support.SUPPORT_EMAIL, "daniel.leon@ariashop.pe");
+  eq(support.SUPPORT_SUBJECT_RETURNS, "Ayuda con una devolución");
+});
+
+check("no support CTA anywhere loops back into the chatbot alone", () => {
+  for (const rel of ["index.html", "checkout.html"]) {
+    const src = readFileSync(root(rel), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+    // Any element whose visible text is a support/contact CTA must carry
+    // a mailto. The chat may be offered BESIDE one, never instead of it.
+    const re = /<(button|a)\b[^>]*>\s*([^<]*\b(?:Contactar soporte|contactar soporte)\b[^<]*)\s*<\/\1>/g;
+    for (const m of src.matchAll(re)) {
+      if (!/href="mailto:/.test(m[0])) throw new Error(`${rel}: "${m[2].trim()}" does not reach a person`);
+    }
+  }
+});
+
+check("every authored address matches its constant", () => {
+  // The markup carries a real href so the link works with JS off; this
+  // is what stops that copy drifting from scripts/lib/support.js.
+  const expected = {
+    returns: support.SUPPORT_LINKS.returns(),
+    order: support.SUPPORT_LINKS.order(),
+    general: support.SUPPORT_LINKS.general(),
+  };
+  let seen = 0;
+  for (const rel of ["index.html", "checkout.html"]) {
+    const src = readFileSync(root(rel), "utf8");
+    for (const m of src.matchAll(/<a\s[^>]*data-support="(\w+)"[^>]*href="([^"]+)"[^>]*>/g)) {
+      const [, kind, href] = m;
+      if (!expected[kind]) throw new Error(`${rel}: unknown data-support="${kind}"`);
+      if (decodeURIComponent(href) !== decodeURIComponent(expected[kind])) {
+        throw new Error(`${rel}: data-support="${kind}" href is ${href}, constant says ${expected[kind]}`);
+      }
+      seen++;
+    }
+  }
+  if (seen < 3) throw new Error(`only ${seen} tagged support links found`);
+});
+
+check("index.html mirrors the support constants", () => {
+  eq(pageSupport.SUPPORT_EMAIL, support.SUPPORT_EMAIL);
+  eq(pageSupport.GENERAL_CONTACT_EMAIL, support.GENERAL_CONTACT_EMAIL);
+  eq(pageSupport.SUPPORT_SUBJECT_RETURNS, support.SUPPORT_SUBJECT_RETURNS);
+  for (const kind of ["returns", "order", "general"]) {
+    eq(pageSupport.SUPPORT_LINKS[kind](), support.SUPPORT_LINKS[kind](), kind);
+  }
+});
+
+
+/* ------------------------------------------------------------------
+   ARIA AUTO — the YMM picker filters, or it says nothing
+   ------------------------------------------------------------------ */
+group("auto: fitment matching");
+
+const SONATA = { year: "2020", make: "Hyundai", model: "Sonata" };
+const COROLLA = { year: "2014", make: "Toyota", model: "Corolla" };
+
+check("the reported compatibility list matches the reported car", () => {
+  // Danny's live example, verbatim.
+  const text = "fits Hyundai Sonata, Hyundai Tucson, Kia K5, Kia Sportage 2020–2024";
+  const vehicles = fitment.parseFitmentText(text);
+  if (vehicles.length !== 4) throw new Error(`parsed ${vehicles.length} vehicles, expected 4`);
+  eq(fitment.matchesVehicle(vehicles, SONATA), true, "the Sonata is on the list");
+  eq(fitment.matchesVehicle(vehicles, { ...SONATA, model: "Tucson" }), true, "so is the Tucson");
+  eq(fitment.matchesVehicle(vehicles, COROLLA), false, "the Corolla is not");
+  // The trailing range applies to every entry that has no year of its own.
+  eq(fitment.matchesVehicle(vehicles, { ...SONATA, year: "2019" }), false, "a year below the range");
+  eq(fitment.matchesVehicle(vehicles, { ...SONATA, year: "2025" }), false, "a year above it");
+});
+
+check("the second test case from the brief", () => {
+  const vehicles = fitment.parseFitmentText("Fits: 2014-2019 Toyota Corolla");
+  eq(fitment.matchesVehicle(vehicles, COROLLA), true);
+  eq(fitment.matchesVehicle(vehicles, SONATA), false);
+  eq(fitment.matchesVehicle(vehicles, { ...COROLLA, year: "2013" }), false);
+});
+
+check("two-word makes and hyphenated models survive parsing", () => {
+  // An earlier cut stripped every range separator wherever it appeared,
+  // which ate the hyphen in "Mercedes-Benz" and the "a" inside "Toyota".
+  const mb = fitment.parseFitmentText("Compatible with Mercedes-Benz C-Class 2018-2022");
+  eq(fitment.matchesVehicle(mb, { year: "2020", make: "Mercedes-Benz", model: "C-Class" }), true);
+  const f150 = fitment.parseFitmentText("Fits Ford F-150 2015-2020");
+  eq(fitment.matchesVehicle(f150, { year: "2018", make: "Ford", model: "F-150" }), true);
+  eq(fitment.matchesVehicle(f150, { year: "2022", make: "Ford", model: "F-150" }), false);
+  const toyota = fitment.parseFitmentText("Fits Toyota Corolla");
+  eq(fitment.matchesVehicle(toyota, COROLLA), true, "a list with no year still names the model line");
+});
+
+check("a trim is not a different car", () => {
+  const v = fitment.parseFitmentText("Fits Hyundai Sonata SE 2020-2024");
+  eq(fitment.matchesVehicle(v, SONATA), true);
+});
+
+check("the verdict has three values and no maybe", () => {
+  // No list at all is an ABSENCE, never a soft yes.
+  eq(fitment.fitmentVerdict({ vehicle_fitment: "VEHICLE_SPECIFIC", specs: { "Pad Type": "Ceramic" } }, SONATA), "unknown");
+  eq(fitment.fitmentVerdict({ specs: { Fits: "Hyundai Sonata 2020-2024" } }, SONATA), "fits");
+  eq(fitment.fitmentVerdict({ specs: { Fits: "Hyundai Sonata 2020-2024" } }, COROLLA), "does-not-fit");
+  eq(fitment.fitmentVerdict({ fitment: [{ make: "Hyundai", model: "Sonata", yearFrom: 2020, yearTo: 2024 }] }, SONATA), "fits");
+  eq(fitment.fitmentVerdict(null, SONATA), "unknown");
+});
+
+check("VEHICLE_SPECIFIC alone never earns a fit", () => {
+  /* It was the only signal the old code had, and it means "sold per
+     vehicle" — not "fits YOUR vehicle". Every one of the 9,285 cached
+     AutoZone items carries it, which is exactly why the picker did
+     nothing. */
+  for (const raw of [
+    { vehicle_fitment: "VEHICLE_SPECIFIC" },
+    { vehicle_fitment: "UNIVERSAL" },
+    { vehicle_fitment: "VEHICLE_SPECIFIC", location: "Front", part_type: "Brake Pads" },
+  ]) {
+    eq(fitment.fitmentVerdict(raw, SONATA), "unknown", JSON.stringify(raw));
+  }
+});
+
+check("index.html mirrors the matcher", () => {
+  const cases = [
+    ["fits Hyundai Sonata, Hyundai Tucson, Kia K5, Kia Sportage 2020–2024", SONATA],
+    ["Fits: 2014-2019 Toyota Corolla", COROLLA],
+    ["Fits Ford F-150 2015-2020", { year: "2018", make: "Ford", model: "F-150" }],
+    ["Fits Honda Civic 2016-2021", SONATA],
+  ];
+  for (const [text, v] of cases) {
+    eq(
+      pageFitment.matchesVehicle(pageFitment.parseFitmentText(text), v),
+      fitment.matchesVehicle(fitment.parseFitmentText(text), v),
+      `${text} / ${v.make} ${v.model}`,
+    );
+  }
+  eq(pageFitment.fitmentVerdict({ specs: { Fits: "Hyundai Sonata 2020-2024" } }, SONATA), "fits", "page verdict");
+});
+
+group("auto: the banned middle ground is gone");
+
+check("no 'verifica el calce' copy is rendered anywhere", () => {
+  const html = readFileSync(root("index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const code = stripComments(html);
+  for (const banned of ["Verifica el calce", "verifícalo antes de pedir", "La tienda no confirma el calce"]) {
+    if (code.includes(banned)) throw new Error(`the banned disclaimer survives: "${banned}"`);
+  }
+});
+
+check("the badge has one branch, and it is green", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function fitmentBadgeHTML("), src.indexOf("function vehicleFittedItems("));
+  if (!/if \(!verified\) return '';/.test(fn)) throw new Error("the badge still renders an unverified state");
+  if (/8A6B1F/.test(fn)) throw new Error("the amber 'verify it yourself' badge is back");
+  if (!/1E7A43/.test(fn)) throw new Error("the green confirmed badge is gone");
+});
+
+check("the results path filters on fitment, not on VEHICLE_SPECIFIC", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (/vehicle_fitment/.test(src)) throw new Error("the old VEHICLE_SPECIFIC gate is still live code");
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("async function searchAutoParts("));
+  if (!/vehicleFittedItems\(rawItems, vehicle\)/.test(block)) {
+    throw new Error("the block does not filter to confirmed-fit items");
+  }
+  if (!/hasFitmentData\(rawItems, vehicle\)/.test(block) || !/fitmentGapHTML\(/.test(block)) {
+    throw new Error("the honest empty state is not the no-data outcome");
+  }
+});
+
+group("auto: sources are a registry, and not Tiendas");
+
+check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
+  eq(autoSources.AUTO_SOURCES.rockauto.label, "RockAuto");
+  eq(autoSources.AUTO_SOURCES.oreilly.excluded, true, "O'Reilly stays out");
+  if (!autoSources.AUTO_SOURCES.oreilly.excludedReason) throw new Error("no reason recorded for O'Reilly");
+  eq(autoSources.AUTO_SOURCES.advanceauto.probe, "not-run", "Advance Auto could not be probed from here");
+  // An excluded or unprobed source is never shown to a shopper.
+  const visible = autoSources.visibleAutoSources().map((s) => s.key);
+  if (visible.includes("oreilly")) throw new Error("O'Reilly is being shown");
+  if (visible.includes("advanceauto")) throw new Error("an unprobed source is being shown");
+  if (!visible.includes("rockauto")) throw new Error("RockAuto is not shown");
+  if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
+});
+
+check("the parts sources never enter the Tiendas grid", () => {
+  // The grid stays at its symmetric eight.
+  const tiendas = Object.keys(RETAILERS).filter((k) => !RETAILERS[k].retired);
+  eq(tiendas.length, 8, `Tiendas shows ${tiendas.length} stores`);
+  for (const key of Object.keys(autoSources.AUTO_SOURCES)) {
+    if (key === "autozone") continue;   // predates the split, and Aria Auto's own source
+    if (tiendas.includes(key)) throw new Error(`${key} leaked into the Tiendas grid`);
+  }
+});
+
+check("a source with no verified actor is not queried", () => {
+  // Same rule as the beauty stores: a guessed actor returns an empty run,
+  // which reads as "this store has nothing for your car" — a lie.
+  eq(autoSources.AUTO_SOURCES.rockauto.search, false);
+  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
+});
+
+check("index.html mirrors the source registry", () => {
+  eq(Object.keys(pageAuto.AUTO_SOURCES).join(","), Object.keys(autoSources.AUTO_SOURCES).join(","), "rows");
+  for (const [key, row] of Object.entries(autoSources.AUTO_SOURCES)) {
+    eq(pageAuto.AUTO_SOURCES[key].label, row.label, `${key} label`);
+    eq(pageAuto.AUTO_SOURCES[key].search, row.search, `${key} search`);
+    eq(Boolean(pageAuto.AUTO_SOURCES[key].excluded), Boolean(row.excluded), `${key} excluded`);
+  }
+});
+
+check("the auto scrape asks for the mode that carries fitment", () => {
+  /* The cache was built in "overview" mode, which returns no
+     description, no features and a two-key specs object — an audit of
+     all 9,285 cached items found zero compatibility lists. */
+  const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (!/const AUTO_SCRAPE_MODE = process\.env\.AUTO_SCRAPE_MODE \|\| "detail"/.test(src)) {
+    throw new Error("auto scrapes no longer request the detail mode");
+  }
+  const autozone = src.slice(src.indexOf("  autozone: {"), src.indexOf("  nordstrom:"));
+  if (/scrapeMode: "overview"/.test(autozone)) throw new Error("autozone is pinned back to overview mode");
+});
+
+/* ------------------------------------------------------------------
+   WEIGHT — the 0.68 and the 1.08
+   ------------------------------------------------------------------ */
+group("weight: the reported vitamin bottles");
+
+check("no single number serves two unrelated products", () => {
+  /* REPORTED LIVE: a 180-softgel bottle and a 5 fl oz liquid both quoted
+     0.68 kg. It was not the generic fallback — 0.68 is withBuffer(0.5,
+     "reasoned"), the one `vitamins|supplement` row that covered the
+     whole aisle. */
+  const d3 = estimateWeightDetail("Nature Made Vitamin D3 2000 IU, 180 Softgels");
+  const liquid = estimateWeightDetail("Soapbox Vitamin Booster Hair Serum, 5 fl oz");
+  const gummies = estimateWeightDetail("Nature's Way Sambucus Elderberry Gummies, 60 Count");
+  if (d3.kg === liquid.kg) throw new Error("two unrelated products still share one number");
+  for (const [name, d] of [["D3", d3], ["liquid", liquid], ["gummies", gummies]]) {
+    if (d.kg === 0.68) throw new Error(`${name} still quotes the 0.68 constant`);
+    if (!(d.kg > 0 && d.kg < 0.4)) throw new Error(`${name} is not a plausible small bottle: ${d.kg} kg`);
+  }
+  // …and the coarse row that produced it is gone from both tables.
+  for (const rel of ["scripts/lib/sales-sources.js", "index.html"]) {
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/vitamins\?\\b\|multivitamin/.test(src)) throw new Error(`${rel} still has the coarse vitamins row`);
+  }
+});
+
+check("the freight these bottles earn no longer manufactures a badge", () => {
+  // S/ 46.88 at the FX in the screenshot is about $12.
+  const d3 = estimateWeightDetail("Nature Made Vitamin D3 2000 IU, 180 Softgels");
+  const share = itemWeight.freightShare(d3.kg, 12, 13);
+  if (share > itemWeight.FREIGHT_BADGE_SHARE) {
+    throw new Error(`a vitamin bottle still reads as high-freight: ${Math.round(share * 100)}%`);
+  }
+  // The old number did, which is the bug the badge was faithfully reporting.
+  if (!(itemWeight.freightShare(0.68, 12, 13) > itemWeight.FREIGHT_BADGE_SHARE)) {
+    throw new Error("the fixture no longer reproduces the reported badge");
+  }
+});
+
+check("count, form and volume each change the answer", () => {
+  const kg = (t) => supplements.supplementWeightKg(t);
+  // Gummies are dense: 60 of them are not 60 tablets.
+  if (!(kg("Elderberry Gummies, 60 Count") > kg("Vitamin C Tablets, 60 Count"))) {
+    throw new Error("form is being ignored");
+  }
+  // More count, more weight.
+  if (!(kg("Vitamin D3, 300 Softgels") > kg("Vitamin D3, 60 Softgels"))) {
+    throw new Error("count is being ignored");
+  }
+  // A stated volume is read directly.
+  eq(kg("Elderberry Syrup, 5 fl oz"), 0.203, "5 fl oz = 148 ml + container");
+  // Sold by mass, not by count: the title's own weight wins upstream.
+  eq(kg("Gold Standard Whey Protein Powder, 2 lb"), null, "protein is not a handful of capsules");
+  // A dose is not a count.
+  if (kg("Vitamin D3 2000 IU") > 0.3) throw new Error("an IU dose was read as a pill count");
+});
+
+check("a vitamin bottle over half a kilo fails closed", () => {
+  const band = itemWeight.bandFor("Nature Made Vitamin D3, 180 Softgels");
+  eq(band.key, "suplemento");
+  eq(band.maxKg, 0.5);
+  eq(itemWeight.weightSanity("Nature Made Vitamin D3, 180 Softgels", 0.68).outOfBand, true,
+     "the old number would now be refused outright");
+});
+
+check("a stated volume beats a beauty row's flat figure", () => {
+  // The serum row is calibrated for a 30 ml dropper bottle; answering
+  // 0.10 kg for a 148 ml bottle under-quoted by half.
+  eq(beauty.beautyWeightDetail("The Ordinary Niacinamide Serum 30ml", {}).kg, 0.1, "the reference size is unchanged");
+  const big = beauty.beautyWeightDetail("Hair Serum, 5 fl oz", {});
+  if (!(big.kg > 0.18 && big.kg < 0.26)) throw new Error(`a 148 ml bottle came out at ${big.kg} kg`);
+  // And the band follows the size, so the honest answer is not flagged.
+  eq(itemWeight.weightSanity("CeraVe Moisturizing Cream 16 oz", 0.62).outOfBand, false,
+     "a 473 ml tub really does weigh this much");
+});
+
+group("weight: one generic fallback, and it does not reach a cart");
+
+check("the 1.08 generic is dead everywhere", () => {
+  eq(itemWeight.GENERIC_FALLBACK_KG, 0.6, "one constant");
+  const unknown = "Totally Unknown Widget XYZ";
+  eq(estimateWeightDetail(unknown).kg, itemWeight.GENERIC_FALLBACK_KG, "the module");
+  eq(page.estimateRetailWeightDetail(unknown).kg, itemWeight.GENERIC_FALLBACK_KG, "index.html");
+  eq(resolveItemWeight({ title: unknown }).weightKg, itemWeight.GENERIC_FALLBACK_KG, "the checkout resolver");
+  // The number itself must not survive as a literal anywhere it could
+  // become an estimate again.
+  for (const rel of ["scripts/lib/sales-sources.js", "netlify/functions/_weight-resolve.js"]) {
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/DEFAULT_RETAIL_WEIGHT_KG/.test(src)) throw new Error(`${rel} still has a second generic constant`);
+  }
+});
+
+check("the page and the checkout resolver agree on an unclassified item", () => {
+  /* They did not: the page said 1.08 and the resolver said 0.6, under a
+     comment in the resolver asserting they matched. An unclassified item
+     got heavier between the cart and the payment page. */
+  for (const title of ["Totally Unknown Widget XYZ", "Mystery Gadget 3000", "Unbranded Thing"]) {
+    eq(page.estimateRetailWeightDetail(title).kg, resolveItemWeight({ title }).weightKg, title);
+  }
+});
+
+check("the PDP and the cart tell the same story", () => {
+  /* REPORTED LIVE: a conditioner's page said "Flete por confirmar — lo
+     cotizamos antes de que pagues" and the cart charged S/ 47.29 of
+     freight on the same S/ 40.18 item. The card had the rule; the cart
+     and checkout had half of it. */
+  const cases = [
+    { title: "Totally Unknown Widget XYZ", priceUsd: 4, quotable: false },
+    { title: "Totally Unknown Widget XYZ", priceUsd: 60, quotable: true },
+    { title: "Nature Made Vitamin D3 2000 IU, 180 Softgels", priceUsd: 12, quotable: true },
+    { title: "By Veira Hydrating Conditioner, 10 fl oz", priceUsd: 10.6, quotable: true },
+  ];
+  for (const c of cases) {
+    const moduleVerdict = itemWeight.freightQuotable(estimateWeightDetail(c.title), c.priceUsd, 13).quotable;
+    const pageVerdict = page.freightQuotable(page.estimateRetailWeightDetail(c.title), c.priceUsd).quotable;
+    const cart = resolveCartWeights([{ title: c.title, priceUsd: c.priceUsd, qty: 1 }]);
+    eq(moduleVerdict, c.quotable, `module: ${c.title} at $${c.priceUsd}`);
+    eq(pageVerdict, c.quotable, `page: ${c.title} at $${c.priceUsd}`);
+    // The cart's verdict is the inverse: unquotable means it stops.
+    eq(!cart.needsReview, c.quotable, `cart: ${c.title} at $${c.priceUsd}`);
+  }
+});
+
+check("a blocked checkout gives the shopper somewhere to go", () => {
+  // "Lo cotizamos antes de que pagues" is only honest if checkout stops
+  // AND there is a way to reach a person from the stopped state.
+  const src = readFileSync(root("checkout.html"), "utf8");
+  const notice = src.slice(src.indexOf("function renderWeightReviewNotice()"), src.indexOf("function renderFragranceNotice()"));
+  if (!/data-support="order"/.test(notice)) throw new Error("the blocked state offers no way to write to us");
+  if (!/href="mailto:/.test(notice)) throw new Error("the contact is not a real mailto");
+  // …and Pagar really is disabled on that path.
+  if (!/weightReview\.needsReview[\s\S]{0,200}payBtn\.disabled = true/.test(src)) {
+    throw new Error("checkout does not actually stop before payment");
+  }
+});
+
+check("the retailer's own weight is no longer dropped at ingestion", () => {
+  /* AUDITED: all 144 products in department-cache.json carry eight
+     fields and not one weight-shaped key, because slimItem()'s allowlist
+     had none — layer 1 of the pipeline was deleted one step before the
+     extractor that reads it. */
+  const src = readFileSync(root("scripts/refresh-department-cache.js"), "utf8");
+  const resolver = readFileSync(root("netlify/functions/_weight-resolve.js"), "utf8");
+  const wanted = resolver.match(/const WEIGHT_FIELDS = \[([\s\S]*?)\]/)[1]
+    .match(/"([^"]+)"/g).map((s) => s.replace(/"/g, ""));
+  for (const field of wanted) {
+    if (!src.includes(`"${field}"`)) throw new Error(`the cache still drops ${field}`);
+  }
+  if (!src.includes('"specifications"')) throw new Error("the specifications array is still dropped");
+  // And every run reports whether layer 1 actually produced anything.
+  if (!/specWeightKg\(/.test(src)) throw new Error("no spec-weight coverage is reported");
 });
 
 /* ------------------------------------------------------------------ */

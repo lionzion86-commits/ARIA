@@ -38,8 +38,10 @@ export const MIN_DISCOUNT_PCT = 5;
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
   titleWeight, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
+  GENERIC_FALLBACK_KG,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
+import { supplementWeightKg } from "./supplement-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
 // internal courier cost and margin; neither may travel with anything that
@@ -105,7 +107,16 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned" },
   { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned" },
   { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned" },
-  { match: /\bvitamins?\b|multivitamin|\bsupplement\b|suplementos?\b|\bsoftgels?\b|\btablets?\b.*\bcount\b/i, kg: 0.5, tier: "reasoned" },
+  /* THE VITAMINS ROW IS GONE (2026-09-20). It was
+     `/vitamins?|supplement|softgels?|tablets?.*count/ -> 0.5 kg`, and
+     withBuffer made that 0.68 — the identical number a 180-softgel
+     bottle and a 5 fl oz liquid both quoted live, on their way to a
+     manufactured "Flete alto" badge. One row cannot serve an aisle that
+     runs from a 30-tablet bottle to a tub of protein. Supplements are
+     now read by scripts/lib/supplement-weight.js, which does the
+     arithmetic the title already contains: count x form, or volume.
+     Protein and greens powders state their own weight and are handled
+     by titleWeight() before any table is consulted. */
   /* PROJECTORS (2026-09-20). There was no row at all, which is how a "5G
      WiFi Bluetooth Projector" ended up quoting freight on 0.065 kg — the
      "5G" parsed as five grams and nothing downstream knew better. The
@@ -117,7 +128,8 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\b(mini|portable|pocket|pico|port[áa]til)\b[^,]{0,28}\b(projectors?|proyector(?:es)?)\b|\b(projectors?|proyector(?:es)?)\b[^,]{0,28}\b(mini|portable|pocket|pico|port[áa]til)\b/i, kg: 1, tier: "reasoned" },
   { match: /\b(projectors?|proyector(?:es)?)\b/i, kg: 2.2, tier: "reasoned" },
 ];
-const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // unclassified: a rough placeholder, so 'reasoned'
+// The generic fallback lives in item-weight.js — one number for the
+// whole site, deliberately low. See GENERIC_FALLBACK_KG there.
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
 
 function tvWeightKg(title) {
@@ -150,6 +162,11 @@ export function categoryWeightKg(title, hints = {}) {
      Temporary" hardcover is a book, not a pair of trainers. */
   const book = bookWeightKg(t);
   if (book != null) return book;
+  /* Supplements before footwear for the brand-collision reason again,
+     and after beauty because a "Vitamin C Serum" is skincare sold in a
+     dropper bottle, not a bottle of pills. */
+  const supplement = supplementWeightKg(t, hints);
+  if (supplement != null) return supplement;
   // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
   const shoes = footwearWeightKg(t);
   if (shoes != null) return shoes;
@@ -202,7 +219,7 @@ export function estimateWeightDetail(title, hints = {}) {
         const category = categoryWeightKg(title, hints);
         return category != null
           ? { kg: category, source: "category" }
-          : { kg: withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned"), source: "fallback" };
+          : { kg: GENERIC_FALLBACK_KG, source: "fallback" };
       })();
 
   const check = weightSanity(title, raw.kg);
