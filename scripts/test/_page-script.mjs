@@ -34,3 +34,24 @@ export function loadPageWeightSlice() {
   vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, weightSanity, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT };", sandbox, { filename: "index.html#weights" });
   return sandbox.__exports;
 }
+
+const TILE_START = "const DEPARTMENT_THUMB_EXCLUDE = {";
+const TILE_END = "// One tile per unique department/brand key found anywhere in the cache";
+
+/** The category-tile image selection block, on its own. */
+export function loadPageTileSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(TILE_START);
+  const to = html.indexOf(TILE_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html tile slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { scoreTileCandidate, pickTileImage, CATEGORY_IMAGE_PIN, TILE_IMAGE_HERO };",
+    sandbox,
+    { filename: "index.html#tiles" },
+  );
+  return sandbox.__exports;
+}

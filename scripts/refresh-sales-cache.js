@@ -123,12 +123,21 @@ async function main() {
      implausible is allowed to publish quietly. estimateWeightDetail()
      already applied the category floor; this prints what it had to
      correct, so the fix is a real table row rather than a floor. */
-  const flagged = deals.filter((d) => d.weightFlagged);
+  /* Two queues: a genuine gap in the tables, and a beauty weight that has
+     a row and is waiting to be checked against a real parcel. Mixing them
+     buries the first under the second. */
+  const flagged = deals.filter((d) => d.weightFlagged && d.weightSource !== "beauty");
+  const beautyEstimated = deals.filter((d) => d.weightSource === "beauty");
   if (flagged.length) {
     console.log(`\n  ${flagged.length} deal(s) needed a weight sanity floor — add a category row for these:`);
     for (const d of flagged) console.log(`    ${d.weightKg}kg  ${d.title.slice(0, 66)}\n      ${d.weightFlagReason}`);
   } else {
     console.log("  weights: all within their category bounds");
+  }
+  if (beautyEstimated.length) {
+    console.log(`\n  ${beautyEstimated.length} beauty deal(s) on estimated weights — calibrate against the first real order:`);
+    for (const d of beautyEstimated.slice(0, 20)) console.log(`    ${d.weightKg}kg  ${d.title.slice(0, 66)}`);
+    if (beautyEstimated.length > 20) console.log(`    … and ${beautyEstimated.length - 20} more`);
   }
 
   // Never replace a good cache with nothing. An empty result is

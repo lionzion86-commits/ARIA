@@ -317,23 +317,39 @@ async function main() {
      raw scrapes and the page estimates weight at render time, so nothing
      is rewritten here — but an implausible weight must never reach the
      storefront unannounced, and this is where a human is watching. */
-  const flagged = [];
+  /* TWO QUEUES, NOT ONE (2026-09-20). A flagged weight used to mean one
+     thing — "this has no category row, write one". Beauty weights are
+     flagged too, but for the opposite reason: they DO have a row, and the
+     row is a conservative estimate waiting to be checked against a real
+     parcel on a real scale. Printing them under "add a category row"
+     would bury the genuine gaps under a list of things that are working
+     as designed, so they get their own heading and their own count. */
+  const gaps = [];
+  const beautyEstimates = [];
   for (const bucket of Object.values(out.retailers || {})) {
     for (const group of [bucket.departments || {}, bucket.brands || {}]) {
       for (const dept of Object.values(group)) {
         for (const item of dept.items || []) {
           const title = item.name || item.title || "";
           const w = estimateWeightDetail(title);
-          if (w.flagged) flagged.push(`${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`);
+          if (!w.flagged) continue;
+          const line = `${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`;
+          (w.source === "beauty" ? beautyEstimates : gaps).push(line);
         }
       }
     }
   }
-  if (flagged.length) {
-    console.log(`\n  ${flagged.length} item(s) needed a weight sanity floor — add a category row for these:`);
-    for (const line of [...new Set(flagged)]) console.log(`    ${line}`);
+  if (gaps.length) {
+    console.log(`\n  ${gaps.length} item(s) needed a weight sanity floor — add a category row for these:`);
+    for (const line of [...new Set(gaps)]) console.log(`    ${line}`);
   } else {
     console.log("\n  weights: every item is within its category bounds");
+  }
+  const beautyUnique = [...new Set(beautyEstimates)];
+  if (beautyUnique.length) {
+    console.log(`\n  ${beautyUnique.length} beauty item(s) on estimated weights — calibrate against the first real order:`);
+    for (const line of beautyUnique.slice(0, 20)) console.log(`    ${line}`);
+    if (beautyUnique.length > 20) console.log(`    … and ${beautyUnique.length - 20} more`);
   }
 
   console.log(`\nWrote ${OUT_FILE.pathname}`);

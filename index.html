@@ -74,6 +74,29 @@
   .ariaCard--light .ariaCardIcon{ background:rgba(244,196,99,0.20); border-color:rgba(184,134,11,0.38) }
   @media (min-width:640px){ .ariaCard{ padding:32px } }
   /* A line worth stopping on, in both bands. */
+  /* ONE ILLUSTRATION STYLE FOR CÓMO FUNCIONA (2026-09-20).
+
+     The six steps were illustrated six different ways: two line-art SVGs
+     floating in bordered boxes, a grey square standing in for a product
+     photo, a fake button, a mini price table and a list of rows. The
+     "entrega puerta a puerta" box in particular read as clip art dropped
+     into a page.
+
+     Now every step's art sits in the same frame (.ariaStepArt) at the
+     same height, and every step that is illustrated rather than
+     demonstrated uses the same plate (.ariaStepIcon): a navy tile, one
+     gold line icon at a single stroke weight, a gold hairline ring. Gold
+     is an accent here and nowhere else; yellow never appears. */
+  .ariaStepArt{ border-radius:20px; border:1px solid var(--line); background:var(--paper);
+    padding:22px; min-height:188px; display:flex; flex-direction:column; justify-content:center }
+  .ariaStepFigure{ display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center }
+  .ariaStepIcon{ width:78px; height:78px; border-radius:24px; display:grid; place-items:center; position:relative;
+    background:linear-gradient(160deg,#0A1F44 0%,#14336B 100%); box-shadow:0 12px 26px rgba(10,31,68,0.20) }
+  .ariaStepIcon::after{ content:''; position:absolute; inset:-1px; border-radius:25px;
+    border:1px solid rgba(244,196,99,0.45); pointer-events:none }
+  .ariaStepIcon svg{ stroke:#F4C463; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
+  .ariaStepCaption{ font-size:13px; font-weight:800; letter-spacing:-0.01em; color:var(--navy) }
+  .ariaStepSub{ font-size:11.5px; color:#6B7487; margin-top:2px }
   .ariaPullQuote{ border-left:3px solid #F4C463; padding-left:22px; font-weight:800; letter-spacing:-0.02em; line-height:1.3 }
   /* THE NAV (2026-09-19). It read as flat grey typewriter text, wrapped
      mid-phrase ("Cómo fun / ciona") and left "🚗 Aria Auto" sitting off
@@ -936,18 +959,18 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Busca cualquier producto</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Escribe lo que quieres comprar, desde electrónica hasta ropa, artículos para el hogar o vitaminas. Buscamos en varias tiendas de Estados Unidos a la vez.</div>
         </div>
-        <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--paper)">
+        <div class="ariaStepArt">
           <div class="relative">
             <div class="h-12 rounded-xl bg-white border flex items-center px-4 text-[13px] text-zinc-400 gap-2.5" style="border-color:var(--line)">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
               MacBook Air M4
             </div>
           </div>
-          <div class="flex gap-2 mt-3">
-            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Target</span>
-            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">Walmart</span>
-            <span class="px-3 h-7 rounded-full bg-white border text-[11px] font-semibold grid place-items-center" style="border-color:var(--line); color:var(--navy)">+2</span>
-          </div>
+          <!-- Real logos, and a count that is computed rather than typed:
+               "+2" was hardcoded and would have been a lie the moment a
+               store was added or paused. Filled by renderHowStoreChips()
+               from the same registry the rest of the site reads. -->
+          <div id="howStoreChips" class="flex items-center gap-4 mt-3 min-h-[22px]"></div>
         </div>
         </div>
       </div>
@@ -960,22 +983,24 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Compara el precio total real</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Te mostramos el costo completo antes de pagar: producto, envío internacional, aranceles e impuestos de aduana, todo sumado en soles. El flete y los aranceles se calculan en el checkout, y nada aparece después, al momento de recibir tu pedido.</div>
         </div>
-        <div class="md:order-1 rounded-2xl border overflow-hidden" style="border-color:var(--line)">
+        <div class="md:order-1 ariaStepArt" style="padding:0; overflow:hidden">
           <div class="px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-wide text-zinc-400 border-b flex justify-between" style="border-color:var(--line); background:#FBFBFA">
             <span>Tienda</span><span>Total a Perú</span>
           </div>
+          <!-- These two rows used to show "TGT" and "WMT" in coloured
+               squares — stock tickers, not stores. Nobody in Peru reads a
+               NYSE symbol as a shop. Real logos, same as every other
+               store badge on the site, filled by renderHowCompareRows(). -->
           <div class="px-4 py-3 flex items-center justify-between border-b" style="border-color:var(--line); background:var(--green-bg)">
             <div class="flex items-center gap-2.5">
-              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#CC0000">TGT</span>
-              <span class="text-[12.5px] font-bold">Target</span>
+              <span class="howStoreLogo" data-retailer="target"></span>
               <span class="text-[9.5px] font-bold text-white px-1.5 py-0.5 rounded-full" style="background:var(--green)">Mejor precio</span>
             </div>
             <span class="text-[13px] font-bold tabular" style="color:var(--navy)">S/ 4,553</span>
           </div>
           <div class="px-4 py-3 flex items-center justify-between">
-            <div class="flex items-center gap-2.5">
-              <span class="w-7 h-7 rounded-lg grid place-items-center text-[8px] font-extrabold text-white" style="background:#0071CE">WMT</span>
-              <span class="text-[12.5px] font-bold text-zinc-600">Walmart</span>
+            <div class="flex items-center gap-2.5 opacity-70">
+              <span class="howStoreLogo" data-retailer="walmart"></span>
             </div>
             <span class="text-[13px] tabular text-zinc-500">S/ 4,820</span>
           </div>
@@ -991,18 +1016,15 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Pide con Aria</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Al confirmar tu pedido, nosotros lo compramos directamente en la tienda de origen, verificando que sea producto genuino y no de un revendedor externo.</div>
         </div>
-        <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-14 h-14 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>
-            <div>
-              <div class="text-[13.5px] font-bold">MacBook Air 13" M4</div>
-              <div class="text-[11.5px] text-zinc-500">Target · Verificado</div>
+        <div class="ariaStepArt">
+          <div class="ariaStepFigure">
+            <div class="ariaStepIcon">
+              <svg width="36" height="36" viewBox="0 0 24 24"><path d="M9 11V7a3 3 0 0 1 6 0v4"/><path d="M4.5 9h15l-1.2 10.2a2 2 0 0 1-2 1.8H7.7a2 2 0 0 1-2-1.8Z"/><path d="m9.6 14.4 1.8 1.8 3.4-3.4"/></svg>
             </div>
-          </div>
-          <button class="w-full h-11 rounded-full text-white text-[13px] font-bold" style="background:var(--blue)">Pedir con Aria</button>
-          <div class="flex items-center gap-1.5 mt-3 text-[11px] text-zinc-500">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-            Compra directa, nunca de un revendedor
+            <div>
+              <div class="ariaStepCaption">Compra directa en la tienda</div>
+              <div class="ariaStepSub">Producto genuino, nunca de un revendedor</div>
+            </div>
           </div>
         </div>
         </div>
@@ -1016,12 +1038,14 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Consolidamos en Miami</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Tu compra llega primero a nuestro almacén en Miami, donde se prepara para el envío internacional hacia Perú.</div>
         </div>
-        <div class="md:order-1 rounded-2xl border p-6 grid place-items-center" style="border-color:var(--line); background:var(--paper)">
-          <div class="flex items-center gap-4">
-            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><rect x="1" y="7" width="15" height="13" rx="1"/><path d="M16 11h4l3 3v6h-7z"/><circle cx="5.5" cy="20.5" r="2"/><circle cx="18.5" cy="20.5" r="2"/></svg>
+        <div class="md:order-1 ariaStepArt">
+          <div class="ariaStepFigure">
+            <div class="ariaStepIcon">
+              <svg width="36" height="36" viewBox="0 0 24 24"><path d="M3 20V9.5l9-5.5 9 5.5V20"/><path d="M3 20h18"/><path d="M9 20v-5.5h6V20"/><path d="M7.5 11.5h2M14.5 11.5h2"/></svg>
+            </div>
             <div>
-              <div class="text-[13px] font-bold">Almacén Aria</div>
-              <div class="text-[11.5px] text-zinc-500">Miami, Estados Unidos</div>
+              <div class="ariaStepCaption">Almacén Aria</div>
+              <div class="ariaStepSub">Miami, Estados Unidos</div>
             </div>
           </div>
         </div>
@@ -1036,7 +1060,7 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Nos encargamos de la aduana</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Gestionamos todo el trámite de importación a Perú, para que tú no tengas que lidiar con papeleo ni pagos inesperados de aduana.</div>
         </div>
-        <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+        <div class="ariaStepArt">
           <div class="space-y-2.5 text-[13px]">
             <div class="flex justify-between text-zinc-600"><span>Aranceles e impuestos</span><span class="tabular font-semibold" style="color:var(--navy)">Incluido</span></div>
             <div class="flex justify-between text-zinc-600"><span>Trámite de importación</span><span class="tabular font-semibold" style="color:var(--navy)">Gestionado por Aria</span></div>
@@ -1058,12 +1082,18 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Te lo entregamos en la puerta</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Tu pedido llega directo a tu dirección en Perú. Sin costos adicionales al recibir, sin visitas a un casillero.</div>
         </div>
-        <div class="md:order-1 rounded-2xl border p-6 grid place-items-center" style="border-color:var(--line); background:var(--paper)">
-          <div class="flex items-center gap-4">
-            <svg width="46" height="46" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="1.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>
+        <!-- The box the brief named: a 3D-looking carton floating next to
+             two lines of text, in a style nothing else on the site used.
+             Same plate and same line grammar as every other step now, and
+             it shows the delivery rather than a generic cube. -->
+        <div class="md:order-1 ariaStepArt">
+          <div class="ariaStepFigure">
+            <div class="ariaStepIcon">
+              <svg width="36" height="36" viewBox="0 0 24 24"><path d="M3 20.5V10l6-4.5 6 4.5v10.5"/><path d="M2 20.5h20"/><path d="M6.5 20.5v-4.5h5v4.5"/><rect x="15.5" y="13.5" width="5.5" height="4.5" rx="0.8"/><path d="M16.6 13.5v-1.2a1.15 1.15 0 0 1 2.3 0v1.2"/></svg>
+            </div>
             <div>
-              <div class="text-[13px] font-bold">Entrega puerta a puerta</div>
-              <div class="text-[11.5px] text-zinc-500">Lima y todo el Perú</div>
+              <div class="ariaStepCaption">Entrega puerta a puerta</div>
+              <div class="ariaStepSub">Lima y todo el Perú</div>
             </div>
           </div>
         </div>
@@ -1127,13 +1157,26 @@
 
 <!-- ============ ARIA AUTO VIEW ============ -->
 <div id="ariaAutoView" class="view">
-  <div class="max-w-[900px] mx-auto px-5 py-12 sm:py-14">
-    <div class="text-center mb-10">
-      <span class="inline-block text-[11px] font-extrabold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-3" style="background:var(--green-bg); color:var(--green)">🚗 Aria Auto</span>
-      <h1 class="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.03em] mb-3" style="color:var(--navy)">Encuentra el repuesto exacto para tu auto</h1>
-      <p class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[52ch] mx-auto">Elige tu vehículo y busca la pieza que necesitas — comparamos precios en tiendas de repuestos de EE. UU. en tiempo real.</p>
+  <!-- INTERIOR PAGE SYSTEM (2026-09-20): white nav, then a navy band
+       carrying the title and one line of context, then the page's own
+       content in cards. Same treatment as Tiendas, Cómo funciona and
+       Nosotros, so the four stop reading like four different sites. -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1080px] mx-auto px-5 py-14 sm:py-16">
+      <div class="max-w-[62ch]">
+        <div class="ariaKicker mb-4">Aria Auto</div>
+        <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
+          El repuesto <span style="color:#F4C463">exacto</span> para tu auto.
+        </h1>
+        <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
+          Elige tu vehículo y busca la pieza que necesitas — comparamos precios en tiendas de repuestos de EE. UU. en tiempo real.
+        </p>
+      </div>
     </div>
+  </section>
 
+  <div class="max-w-[900px] mx-auto px-5 py-12 sm:py-14">
     <!-- VEHICLE SELECTOR -->
     <div class="rounded-3xl border p-5 sm:p-7" style="border-color:var(--line); background:linear-gradient(135deg,var(--sky) 0%,#fff 60%)">
       <div class="font-bold text-[15px] mb-4" style="color:var(--navy)">1. Elige tu vehículo</div>
@@ -1215,8 +1258,13 @@
 
       <div id="aboutStoryGrid" class="grid md:grid-cols-[1.35fr_1fr] gap-10 md:gap-14 items-start">
         <div class="max-w-[62ch]">
+          <!-- COPY FIX (2026-09-20): the headline above already says "Aria
+               lleva el nombre de mi hija." — it was the first sentence of
+               this paragraph too, so the page opened by saying the same
+               thing twice in a row. The line stays where it lands hardest
+               (the headline) and the body picks up from the promise. -->
           <p class="text-[15.5px] sm:text-[16.5px] leading-[1.75] mb-7" style="color:#3D4759">
-            Aria lleva el nombre de mi hija. Nació como una promesa: que ningún peruano vuelva a pagar de más
+            Nació como una promesa: que ningún peruano vuelva a pagar de más
             — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
             compra en una tienda en Estados Unidos.
           </p>
@@ -1267,8 +1315,12 @@
           Creemos algo simple: el valor de una persona no está en lo que tiene, sino en lo que construye
           — para sí misma y para los demás.
         </p>
+        <!-- COPY FIX (2026-09-20): "Aria lleva el nombre de mi hija" opened
+             this paragraph too — its third appearance on one page. Said
+             once, as the headline of La historia, it lands; said three
+             times it reads like a template. -->
         <p class="text-[16px] sm:text-[18px] leading-[1.8]" style="color:#D6DEF2">
-          Aria lleva el nombre de mi hija. Es para ella. Para que crezca en un mundo donde la honestidad sea
+          Es para ella. Para que crezca en un mundo donde la honestidad sea
           la regla y no la excepción. Donde nadie pague de más por no tener a alguien allá. Donde el precio
           que ves sea el precio que pagas, y donde el que se equivoca asuma su error en lugar de pasárselo
           al cliente.
@@ -1510,8 +1562,24 @@
      5 real-world actuals per order; everything else auto-fills from the
      order record orders-create.js already captured at checkout time. -->
 <div id="adminView" class="view">
+  <!-- INTERIOR PAGE SYSTEM (2026-09-20). Same navy band as Tiendas, Aria
+       Auto and Cómo funciona. The white nav above it is untouched. -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1100px] mx-auto px-5 py-12 sm:py-14">
+      <div class="max-w-[62ch]">
+        <div class="ariaKicker mb-4">Tu cuenta</div>
+        <h1 class="text-[30px] sm:text-[38px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-3" style="color:#fff">
+          Pedidos y <span style="color:#F4C463">margen real</span>.
+        </h1>
+        <p class="text-[15px] leading-relaxed" style="color:#AFBBD6">
+          Control de lanzamiento, pedidos de prueba y la cuenta real de cada envío.
+        </p>
+      </div>
+    </div>
+  </section>
+
   <div class="max-w-[1100px] mx-auto px-5 py-10">
-    <h1 class="text-[26px] font-extrabold tracking-[-0.02em] mb-6">Test Orders — Admin</h1>
     <div id="adminGate"></div>
     <div id="adminContent" hidden>
       <div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line)">
@@ -2111,6 +2179,154 @@ const DEPARTMENT_THUMB_EXCLUDE = {
   sporting_goods: /\bfirst aid\b|\bbandage\b|\bband-?aid\b/i,
 };
 
+/* ============================================================
+   CATEGORY TILE IMAGES (2026-09-20) — rebuilt in three layers.
+
+   REJECTED, AND WHY. The old rule was "first cached item with a non-empty
+   image field, unless it matches a small denylist". That is not a choice,
+   it is an accident of cache order, and it showed: half-objects, obscure
+   SKUs nobody recognises, and apparel shots cropped to a fragment of a
+   person because the tile was object-cover on a portrait photo.
+
+   LAYER 1 — A PIN BEATS EVERYTHING. CATEGORY_IMAGE_PIN below is the
+   manual override: put a key in it and that category's tile uses that
+   image permanently, whatever the scrape returns tomorrow. It takes a
+   local path (assets/category/<key>.jpg) or any URL. Nothing else needs
+   to change; this is the escape hatch for any tile the automatic choice
+   gets wrong.
+
+   LAYER 2 — SCORED SELECTION, NOT FIRST-PAST-THE-POST. Every candidate
+   item in the category is scored and the best one wins (see
+   scoreTileCandidate). The signals are the ones a title can actually
+   carry: is this a HERO product for the category (a television for
+   electronics, a pair of trainers for Moda Hombre) or a peripheral one;
+   is it an accessory, a refill, a spare part, a multipack, a gift card —
+   the things that photograph as an unrecognisable fragment; and is the
+   title short and plain, because a 140-character title with four variant
+   codes in it is almost never the category's most recognisable product.
+
+   LAYER 3 — NOTHING IS CROPPED. The tile fits the image inside itself
+   (object-fit: contain, centred) on a soft neutral field instead of
+   filling and cropping it. That is what actually kills the "cropped body
+   fragment" and "half-object" class of problem: a portrait apparel shot
+   now sits centred and whole with air either side, rather than having its
+   head and feet cut off to fill a landscape box. Retail product shots are
+   overwhelmingly on white, so they sit on the field cleanly.
+
+   HONEST LIMIT: none of this looks at the PIXELS. We score titles, not
+   photographs. A badly shot product with a perfect title can still win,
+   and that is exactly what layer 1 is for.
+   ============================================================ */
+
+/* MANUAL OVERRIDE — pin a category's tile image permanently.
+   e.g.  electronics: 'assets/category/electronics.jpg',
+         women:       'https://…/some-image.jpg',
+   A pinned key skips scoring entirely. Empty by default: nothing is
+   pinned until a human looks at a tile and decides. */
+const CATEGORY_IMAGE_PIN = {};
+
+/* Products that photograph as something unrecognisable, in any category:
+   accessories and spares (a photo of a bracket), refills and multipacks
+   (a photo of a pile of boxes), gift cards, and anything sold as a
+   fragment of a thing. Heavily penalised, never hard-excluded — a
+   category that sells nothing else still needs a tile.
+
+   A bare COUNT ("90ct", "120 Count") is deliberately NOT penalised: it is
+   ordinary retail labelling on a single bottle, and penalising it ranked
+   a weight-loss pill above a multivitamin on the Salud tile. Only a
+   genuine MULTIPACK counts against a candidate. */
+const TILE_IMAGE_PENALISE = /\b(refill|replacement|spare|repuesto|accessor\w*|adapter|adaptador|bracket|mount|soporte|strap|correa|filter|filtro|liner|insert|cartridge|cartucho|gift ?card|tarjeta de regalo|sticker|decal|label|etiqueta|sample|muestra|travel size|mini size|swatch|assorted|surtido|variety pack|bundle|\d{1,3}\s?[- ]?(?:pack|pk|pcs?|pieces?))\b/i;
+
+/* A raw model code in the title ("32S2V1", "WH1000XM5B") is a sign of a
+   listing written for a catalogue rather than for a person, and those
+   listings tend to carry the flattest, least recognisable photography.
+   A mild penalty, not a veto. */
+const TILE_SKU_NOISE_RE = /\b(?=[A-Z0-9-]{5,}\b)(?=[A-Z-]*\d)[A-Z0-9-]+\b/;
+
+/* The most recognisable thing each category sells — what a shopper would
+   draw if you asked them to draw the category. Two tiers, because "a
+   television" and "a webcam" are both electronics but only one of them
+   says ELECTRONICS at 146 pixels tall: [0] is the face of the category,
+   [1] is a solid second choice. */
+const TILE_IMAGE_HERO = {
+  electronics: [
+    /\b(tv|television|televisor|laptop|macbook|headphones?|aud[ií]fonos)\b/i,
+    /\b(speaker|parlante|tablet|ipad|smartwatch|console|playstation|xbox|nintendo|camera|c[áa]mara|monitor)\b/i,
+  ],
+  clothing: [
+    /\b(jeans?|jacket|coat|dress|casaca|vestido)\b/i,
+    /\b(hoodie|sweater|shirt|polo|chompa|camisa|pantal[óo]n)\b/i,
+  ],
+  men: [
+    /\b(jeans?|jacket|sneakers?|casaca|zapatillas)\b/i,
+    /\b(hoodie|sweater|shirt|polo|shoes?|boots?|camisa|chompa)\b/i,
+  ],
+  women: [
+    /\b(dress|jeans?|jacket|heels?|vestido|casaca)\b/i,
+    /\b(blouse|skirt|sweater|sneakers?|boots?|blusa|falda|chompa|zapatillas)\b/i,
+  ],
+  kids: [
+    /\b(jacket|sneakers?|dress|casaca|zapatillas)\b/i,
+    /\b(hoodie|shoes?|jeans?|t-?shirt|polo)\b/i,
+  ],
+  candy_chocolate: [
+    /\b(chocolate|chocolates|lollipop)\b/i,
+    /\b(candy|gummy|gummies|caramelo|chicle|bar)\b/i,
+  ],
+  sporting_goods: [
+    /\b(basketball|soccer ?ball|f[úu]tbol|bicycle|bike|bicicleta|pelota)\b/i,
+    /\b(football|baseball|dumbbell|yoga mat|tent|kayak|treadmill|racket|raqueta)\b/i,
+  ],
+  home_goods: [
+    /\b(comforter|duvet|quilt|pillow|blanket|rug|lamp|curtains?|edred[óo]n|almohada|cortinas?|alfombra)\b/i,
+    /\b(sheet set|towel|toalla|cushion|throw)\b/i,
+  ],
+  pharmacy: [
+    /\b(vitamin|multivitamin|vitamina|multivitam[íi]nico)\b/i,
+    /\b(supplement|suplemento|omega|probiotic|collagen|magnesium|magnesio)\b/i,
+  ],
+  beauty: [
+    /\b(lipstick|labial|perfume|eau de (?:parfum|toilette)|palette|paleta)\b/i,
+    /\b(mascara|r[ií]mel|foundation|base de maquillaje|serum|s[ée]rum|blush|rubor)\b/i,
+  ],
+};
+
+/* A title's own shape is a signal. Real hero products have short, plain
+   names ("Levi's 501 Original Fit Jeans"); the long ones are variant
+   soup ("... , Sizes XS-3XL, 12 Colors Available, Pack of 2, Style #4471B"). */
+const TILE_TITLE_IDEAL_LEN = 60;
+
+function scoreTileCandidate(title, key){
+  const t = String(title || '');
+  let score = 0;
+  const hero = TILE_IMAGE_HERO[key] || [];
+  if (hero[0] && hero[0].test(t)) score += 7;
+  else if (hero[1] && hero[1].test(t)) score += 5;
+  if (TILE_SKU_NOISE_RE.test(t)) score -= 1.5;
+  // The per-category denylist that already existed, kept and sharpened
+  // from a hard exclusion into the strongest single penalty.
+  const excluded = DEPARTMENT_THUMB_EXCLUDE[key];
+  if (excluded && excluded.test(t)) score -= 8;
+  if (TILE_IMAGE_PENALISE.test(t)) score -= 5;
+  // Length, as a gentle tiebreak only — never enough to beat a hero match.
+  score -= Math.min(3, Math.max(0, (t.length - TILE_TITLE_IDEAL_LEN) / 40));
+  if (t.length <= TILE_TITLE_IDEAL_LEN) score += 1;
+  return score;
+}
+
+/** The best image for a category tile, or null when there is none. */
+function pickTileImage(key, candidates){
+  if (CATEGORY_IMAGE_PIN[key]) return CATEGORY_IMAGE_PIN[key];
+  let best = null;
+  let bestScore = -Infinity;
+  for (const c of candidates){
+    if (!c.image) continue;
+    const score = scoreTileCandidate(c.title, key);
+    if (score > bestScore){ bestScore = score; best = c.image; }
+  }
+  return best;
+}
+
 // One tile per unique department/brand key found anywhere in the cache
 // — a key can exist for more than one retailer (e.g. "men" for both Old
 // Navy and Foot Locker), and one tile covers all of them at once.
@@ -2270,30 +2486,27 @@ function collectTiles(kind){
     : Object.keys(DEPARTMENT_SPEC);
   const byKey = {};
   for (const key of keys){
-    byKey[key] = { key, retailers: [], thumb: null, fallbackThumb: null, count: 0 };
-    const excludePattern = DEPARTMENT_THUMB_EXCLUDE[key];
+    byKey[key] = { key, retailers: [], candidates: [], count: 0 };
     for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
       const entryItems = departmentItemsFor(data, kind, key);
       if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
-      if (byKey[key].thumb) continue; // already found an acceptable image
-      for (const it of entryItems.map(normalizeLiveItem)){
-        if (!it.image) continue;
-        if (!byKey[key].fallbackThumb) byKey[key].fallbackThumb = it.image;
-        if (!excludePattern || !excludePattern.test(it.title)){
-          byKey[key].thumb = it.image;
-          break;
-        }
+      /* EVERY item with an image is a candidate, across every carrying
+         store — the old code took the first acceptable one it met and
+         stopped, which made the tile a function of cache order. Scoring
+         needs to see the whole field to pick the best of it. */
+      for (const raw of entryItems){
+        const it = normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined });
+        if (it.image) byKey[key].candidates.push({ title: it.title, image: it.image });
       }
     }
   }
   // A department no retailer carries gets no tile at all.
   for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
-  // Never show nothing: fall back to the first image found at all if
-  // every candidate happened to match the exclude pattern.
   for (const t of Object.values(byKey)){
-    if (!t.thumb) t.thumb = t.fallbackThumb;
+    t.thumb = pickTileImage(t.key, t.candidates);
+    delete t.candidates;
   }
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
 }
@@ -2305,11 +2518,66 @@ function collectTiles(kind){
    and, on the page that exists to say which stores we buy from, a bad
    look. It is real store badges now, wrapped rather than cut off, and the
    card is big enough to carry them. */
+/* AT MOST THREE LOGOS, THEN "+N" (2026-09-20).
+
+   The row used to render every carrying store's logo. With four stores it
+   already wrapped to two lines; with eight it would either wrap to three
+   or force the logos down to an illegible size, and neither is acceptable
+   — the whole point of showing a real logo is that it can be read. Three
+   at full size plus an honest count of the rest fits one line at every
+   width, and the count is a real number, not a "…".
+
+   The tile is never enlarged and the logos are never shrunk to fit. */
+const TILE_MAX_LOGOS = 3;
+
+function tileRetailerRowHTML(retailers){
+  const list = Array.isArray(retailers) ? retailers : [];
+  const shown = list.slice(0, TILE_MAX_LOGOS);
+  const hidden = list.length - shown.length;
+  const more = hidden > 0
+    ? `<span class="inline-flex items-center h-[18px] px-2 rounded-full text-[11px] font-extrabold flex-shrink-0"
+         style="background:var(--sky); color:var(--navy)"
+         title="${escapeHtml(list.slice(TILE_MAX_LOGOS).map(r => LIVE_RETAILER_LABEL[r] || r).join(', '))}">+${hidden}</span>`
+    : '';
+  return `<div class="flex items-center gap-x-3 gap-y-2 mt-3 min-h-[18px]">${
+    shown.map(r => retailerBadgeHTML(r, 13)).join('')}${more}</div>`;
+}
+
+/* OFERTAS IS DESIGNED, NOT SCRAPED.
+
+   It was showing whatever product the deals cache happened to surface —
+   a collage of unrelated markdowns, which says nothing about what the
+   tile is for. Ofertas is not a category of products, it is a promise
+   about price, so it gets the promise: the Precio Honesto navy field, a
+   gold accent, and the one line that explains it. */
+function ofertasTileArtHTML(){
+  return `<div class="relative h-full w-full overflow-hidden ariaNavyBand grid place-items-center">
+    <div class="ariaGoldHair"></div>
+    <div class="text-center px-3">
+      <div class="text-[10px] font-extrabold tracking-[0.18em] uppercase mb-1" style="color:#F4C463">Precio Honesto</div>
+      <div class="text-[19px] sm:text-[22px] font-extrabold tracking-[-0.02em] leading-tight" style="color:#fff">Ofertas reales</div>
+      <div class="text-[11px] mt-1 leading-snug" style="color:#AFBBD6">Rebajas verificadas en la tienda de origen</div>
+    </div>
+  </div>`;
+}
+
 function deptTileHTML(t, kind){
   const count = Number(t.count) || 0;
+  const isOfertas = kind === 'department' && t.key === 'sale';
+  /* CONTAIN, NOT COVER. A cover fit crops a portrait product shot to a
+     landscape box, which is how an apparel tile ended up showing a
+     fragment of a torso. Contain keeps the whole product, centred, with
+     the field showing either side — nothing is ever cut. */
+  const art = isOfertas
+    ? ofertasTileArtHTML()
+    : (t.thumb
+        ? `<img src="${escapeHtml(t.thumb)}" alt="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.icon || '')}" loading="lazy"
+             class="w-full h-full group-hover:scale-[1.04] transition duration-500"
+             style="object-fit:contain; object-position:center; padding:12px" onerror="handleDeptThumbError(this)">`
+        : t.icon);
   return `<button onclick="openCatalog('${kind}','${t.key}')" class="group text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_12px_28px_rgba(10,31,68,0.10)]" style="border-color:var(--line)">
-    <div class="h-[124px] sm:h-[146px] overflow-hidden grid place-items-center text-[38px]" style="background:var(--sky)">
-      ${t.thumb ? `<img src="${escapeHtml(t.thumb)}" alt="${escapeHtml(t.label)}" data-icon="${escapeHtml(t.icon || '')}" class="w-full h-full object-cover group-hover:scale-[1.06] transition duration-500" onerror="handleDeptThumbError(this)">` : t.icon}
+    <div class="h-[124px] sm:h-[146px] overflow-hidden grid place-items-center text-[38px]" style="background:${isOfertas ? 'var(--navy)' : 'var(--sky)'}">
+      ${art}
     </div>
     <div class="p-3.5">
       <div class="text-[14px] font-extrabold tracking-[-0.01em] flex items-center justify-between gap-2">
@@ -2317,8 +2585,7 @@ function deptTileHTML(t, kind){
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" class="flex-shrink-0"><path d="m9 18 6-6-6-6"/></svg>
       </div>
       ${count ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">${count} producto${count === 1 ? '' : 's'}</div>` : ''}
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-2 mt-3">${
-        t.retailers.map(r => retailerBadgeHTML(r, 13)).join('')}</div>
+      ${tileRetailerRowHTML(t.retailers)}
     </div>
   </button>`;
 }
@@ -2547,6 +2814,30 @@ function storeCardHTML(r){
     </div>
   </button>`;
 }
+
+/* CÓMO FUNCIONA: real logos, and a count that cannot become a lie.
+
+   Step 1 showed three pills reading "Target", "Walmart", "+2" and step 2
+   showed "TGT" and "WMT" in coloured squares — NYSE tickers, which is not
+   how anyone in Peru identifies a shop. Both are real logos now, from the
+   same registry and through the same badge function as every other store
+   mark on the site, so a store added or paused updates this page too. */
+function renderHowItWorksStores(){
+  const chips = document.getElementById('howStoreChips');
+  if (chips){
+    const stores = GENERAL_RETAILERS;
+    const shown = stores.slice(0, 2);
+    const hidden = stores.length - shown.length;
+    chips.innerHTML = shown.map(r => retailerBadgeHTML(r, 18)).join('')
+      + (hidden > 0
+        ? `<span class="inline-flex items-center h-[20px] px-2 rounded-full text-[11px] font-extrabold" style="background:var(--sky); color:var(--navy)">+${hidden}</span>`
+        : '');
+  }
+  document.querySelectorAll('.howStoreLogo').forEach(el => {
+    el.innerHTML = retailerBadgeHTML(el.dataset.retailer, 18);
+  });
+}
+window.addEventListener('DOMContentLoaded', renderHowItWorksStores);
 
 function renderStoresGrid(){
   const grid = document.getElementById('storesGrid');
@@ -3337,7 +3628,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
-  const statedWeight = titleWeightLabel(name);
+  const statedWeight = contentLabelFor(name);
   document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0
     ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
     : 'Precio no disponible';
@@ -3371,7 +3662,10 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   // The net weight the retailer stated in the title — a real field, and
   // the one the freight line is built on.
   if (statedWeight) metaParts.push(`Contenido: ${escapeHtml(statedWeight)}`);
-  document.getElementById('productViewMeta').innerHTML = metaParts.map(t => `<div>${t}</div>`).join('');
+  document.getElementById('productViewMeta').innerHTML = metaParts.map(t => `<div>${t}</div>`).join('')
+    // The fragrance limit belongs on the page where the decision to add
+    // to the cart is made, not only on the card that led here.
+    + fragranceLimitChipHTML({ title: name });
 
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
@@ -3836,7 +4130,12 @@ function titleWeightLabel(title){
    The rule itself lives in the beauty module (MAX_FRAGRANCES_PER_SHIPMENT).
    ============================================================ */
 function fragranceLimitChipHTML(p){
-  if (!p || !p.restrictedFragrance) return '';
+  /* normalizeLiveItem() sets restrictedFragrance, but a card can also be
+     built from a cached deal or an older payload that predates the field
+     — so the title is read directly when the flag is absent. A fragrance
+     must never reach a card without its limit stated. */
+  const restricted = p && (p.restrictedFragrance ?? isFragrance(p.title));
+  if (!restricted) return '';
   return `<div class="inline-flex items-center gap-1.5 text-[11px] font-bold px-2 py-1 rounded-full mb-1"
     style="background:#FFF4D6; color:#7A5B12; border:1px solid #E8C877">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
@@ -3861,8 +4160,21 @@ function fragranceLimitNoticeHTML(){
   </div>`;
 }
 
+/* "10 oz / 283 g" is the right label for a bag of sweets and the wrong
+   one for a bottle of perfume: "3.4 oz" there is FLUID ounces, and
+   rendering it as 96 g states a weight the bottle does not have, two
+   lines above a freight figure built on 0.35 kg. A cosmetic states its
+   volume instead, in ml, which is what the retailer meant. */
+function contentLabelFor(title){
+  if (beautyWeightDetail(title, {})){
+    const ml = titleVolumeMl(title);
+    return ml ? `${Math.round(ml)} ml` : null;
+  }
+  return titleWeightLabel(title);
+}
+
 function weightLabelHTML(title, cls){
-  const label = titleWeightLabel(title);
+  const label = contentLabelFor(title);
   return label ? `<div class="${cls}" style="color:#7A8296">${escapeHtml(label)}</div>` : '';
 }
 

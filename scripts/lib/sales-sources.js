@@ -299,6 +299,7 @@ export function normalizeDeal(item, retailer) {
     // The card must be able to say "estimado" rather than print a guess
     // as a measurement; the refresh script prints the flagged ones.
     weightEstimated: weight.estimated,
+    weightSource: weight.source,
     ...(weight.flagged ? { weightFlagged: true, weightFlagReason: weight.reason } : {}),
     freightUsd: freight,
     freightShare: Math.round(share * 1000) / 1000,

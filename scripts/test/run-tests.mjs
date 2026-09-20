@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice } from "./_page-script.mjs";
+import { loadPageWeightSlice, loadPageTileSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -345,6 +345,109 @@ check("the server recomputes the fee rather than trusting the browser", () => {
   if (!src.includes("smallOrderFeePen(productsPen)")) {
     throw new Error("orders-create.js does not recompute the fee from the real subtotal");
   }
+});
+
+/* ------------------------------------------------------------------
+   P2.2 / P2.3 — category tiles.
+   ------------------------------------------------------------------ */
+group("P2.2 / P2.3 category tiles");
+
+const tiles = loadPageTileSlice();
+
+check("a tile shows at most 3 logos and counts the rest", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/const TILE_MAX_LOGOS = 3;/.test(html)) throw new Error("TILE_MAX_LOGOS is not 3");
+  if (!/slice\(0, TILE_MAX_LOGOS\)/.test(html)) throw new Error("the logo row does not cap the list");
+  if (!/\+\$\{hidden\}/.test(html)) throw new Error('the "+N" badge is missing');
+});
+
+check("tiles fit the image rather than cropping it", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
+  if (/object-cover/.test(tile)) throw new Error("the tile still crops with object-cover");
+  if (!/object-fit:contain/.test(tile)) throw new Error("the tile does not contain-fit its image");
+  if (!/object-position:center/.test(tile)) throw new Error("the tile image is not centred");
+});
+
+check("selection prefers the face of a category over its peripherals", () => {
+  const better = (key, win, lose) => {
+    const a = tiles.scoreTileCandidate(win, key);
+    const b = tiles.scoreTileCandidate(lose, key);
+    if (!(a > b)) throw new Error(`${key}: "${win}" (${a}) should outrank "${lose}" (${b})`);
+  };
+  better("electronics", 'TCL 55" QLED 4K Smart TV', "Sanus Full-Motion TV Wall Mount");
+  better("electronics", 'TCL 55" QLED 4K Smart TV', "6ft HDMI Cable, Black");
+  better("pharmacy", "Nature Made Multivitamin Tablets - 120ct", "Celsius Sparkling Energy Drink 12 oz");
+  better("sporting_goods", "Spalding NBA Street Basketball", "Johnson & Johnson First Aid Kit, 140 pieces");
+  better("home_goods", "Queen Comforter Set, Microfiber", "LANE LINEN 24 Pack Bulk Dish Towels for Kitchen");
+  better("candy_chocolate", "M&M'S Milk Chocolate Candy, Party Size", "Assorted Variety Pack Candy Bundle");
+  better("women", "Floral Midi Dress", "Replacement Bra Strap Extender, 3 Pack");
+});
+
+check("a bare count is not treated as a multipack", () => {
+  // Penalising "90ct" ranked a weight-loss pill above a multivitamin.
+  const vit = tiles.scoreTileCandidate("OLLY Women's Multivitamin Gummies - Berry - 90ct", "pharmacy");
+  const pill = tiles.scoreTileCandidate("PharmaPure Sugar Blocker Weight Loss Supplement, 90 Capsules", "pharmacy");
+  if (!(vit > pill)) throw new Error(`multivitamin (${vit}) should outrank the weight-loss pill (${pill})`);
+});
+
+check("a pinned image overrides scoring entirely", () => {
+  const candidates = [{ title: 'TCL 55" QLED 4K Smart TV', image: "scraped.jpg" }];
+  eq(tiles.pickTileImage("electronics", candidates), "scraped.jpg", "unpinned");
+  tiles.CATEGORY_IMAGE_PIN.electronics = "assets/category/electronics.jpg";
+  eq(tiles.pickTileImage("electronics", candidates), "assets/category/electronics.jpg", "pinned");
+  // A pin works even when there is nothing scraped at all.
+  eq(tiles.pickTileImage("electronics", []), "assets/category/electronics.jpg", "pinned with no candidates");
+  delete tiles.CATEGORY_IMAGE_PIN.electronics;
+});
+
+check("a candidate with no image never wins", () => {
+  eq(tiles.pickTileImage("electronics", [{ title: 'TCL 55" TV', image: "" }, { title: "USB Cable", image: "c.jpg" }]), "c.jpg");
+  eq(tiles.pickTileImage("electronics", []), null);
+});
+
+check("Ofertas is a designed tile, not a scraped product image", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/function ofertasTileArtHTML/.test(html)) throw new Error("the Ofertas tile art is missing");
+  const art = html.slice(html.indexOf("function ofertasTileArtHTML"), html.indexOf("function deptTileHTML"));
+  if (!/ariaNavyBand/.test(art)) throw new Error("the Ofertas tile is not on the Precio Honesto navy field");
+  if (!/Precio Honesto/.test(art)) throw new Error("the Ofertas tile does not carry the Precio Honesto language");
+  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
+  if (!/ofertasTileArtHTML\(\)/.test(tile)) throw new Error("deptTileHTML does not use it");
+});
+
+/* ------------------------------------------------------------------
+   P2.1 — Nosotros copy.
+   ------------------------------------------------------------------ */
+group("P2.1 Nosotros copy");
+
+check("the daughter line appears once, as the headline", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const about = html.slice(html.indexOf('<div id="aboutView"'), html.indexOf('<div id="returnsView"'));
+  const prose = about.replace(/<!--[\s\S]*?-->/g, "");
+  const hits = prose.match(/Aria lleva el nombre de mi hija/g) || [];
+  eq(hits.length, 1, "occurrences of the daughter line");
+  if (!/<h2[^>]*>\s*\n?\s*Aria lleva el nombre de mi hija\./.test(prose)) {
+    throw new Error("the surviving occurrence is not the headline");
+  }
+});
+
+check("the body and Nuestro porqué open on the lines the brief specifies", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const about = html.slice(html.indexOf('<div id="aboutView"'), html.indexOf('<div id="returnsView"'));
+  const prose = about.replace(/<!--[\s\S]*?-->/g, "");
+  if (!/>\s*\n?\s*Nació como una promesa: que ningún peruano vuelva a pagar de más/.test(prose)) {
+    throw new Error("the story body does not open on 'Nació como una promesa…'");
+  }
+  if (!/>\s*\n?\s*Es para ella\. Para que crezca en un mundo donde la honestidad sea/.test(prose)) {
+    throw new Error("'Nuestro porqué' does not open on 'Es para ella…'");
+  }
+});
+
+check("the sign-off the brief put out of scope is untouched", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  // It was never on the page; this asserts nobody added it by accident.
+  if (/Soy el papá de Aria/.test(html)) throw new Error("the deferred sign-off was added");
 });
 
 /* ------------------------------------------------------------------ */
