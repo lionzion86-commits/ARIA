@@ -98,6 +98,7 @@
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2"><path d="M20 7 12 3 4 7v10l8 4 8-4Z"/><path d="M4 7l8 4 8-4M12 11v10"/></svg>
             Tu pedido
           </h2>
+          <div id="checkoutWeightReviewWrap"></div>
           <div id="checkoutFragranceWrap"></div>
           <div id="checkoutItemsWrap" class="space-y-4"></div>
         </section>
@@ -623,6 +624,37 @@
      — on the same shared helper, so the two can never disagree. */
   let fragranceState = { count: 0, limit: MAX_FRAGRANCES_PER_SHIPMENT, overLimit: false, remaining: MAX_FRAGRANCES_PER_SHIPMENT };
 
+  /* FAIL CLOSED ON A WEIGHT WE DO NOT BELIEVE (2026-09-20).
+
+     The server resolver checks every ESTIMATED weight against what its
+     category can plausibly weigh, in both directions, and says so. When
+     a line comes back out of band this page refuses to quote at all
+     rather than print a freight figure and a total built on it — a
+     projector at 0.065 kg and a men's sneaker at 1.94 kg are both wrong,
+     and we honour whatever we quote, so both cost real money.
+
+     The page never decides this for itself: it is the resolver's
+     verdict, the same one the cart and the refresh scripts read. */
+  let weightReview = { needsReview: false, items: [] };
+
+  function renderWeightReviewNotice(){
+    const wrap = document.getElementById('checkoutWeightReviewWrap');
+    if (!wrap) return;
+    if (!weightReview.needsReview){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 mb-4 flex items-start gap-3" style="background:#FFF6E0; border:1px solid #F0D28A">
+      <svg class="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A6B1F" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+      <div>
+        <div class="text-[13.5px] font-extrabold" style="color:#5C4813">Estamos confirmando el peso de ${weightReview.items.length === 1 ? 'un producto' : `${weightReview.items.length} productos`}</div>
+        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#8A6B1F">
+          ${weightReview.items.map(it => escapeHtmlLocal(String(it.title || '').slice(0, 60))).join(' · ')}
+        </div>
+        <div class="text-[12.5px] leading-snug mt-1.5" style="color:#8A6B1F">
+          Preferimos no cobrarte un flete que no podemos sostener. Escríbenos y te confirmamos el costo real antes de cobrar nada.
+        </div>
+      </div>
+    </div>`;
+  }
+
   function renderFragranceNotice(){
     const wrap = document.getElementById('checkoutFragranceWrap');
     if (!wrap) return;
@@ -739,6 +771,18 @@
     // against it too and it is inside every figure below.
     const orderTotalPen = fxRates ? round2(latestQuote.total_usd * fxRates.venta + smallOrderFee) : 0;
 
+    /* A weight we do not believe must not become a price. Everything on
+       the line is still shown — the customer can see what is in the
+       order — but the total is withheld and Pagar stays closed until a
+       human confirms the freight. */
+    if (weightReview.needsReview){
+      sumWalletRow.hidden = true;
+      sumTotal.textContent = '—';
+      payBtn.disabled = true;
+      payBtn.textContent = 'Confirmando el peso del pedido';
+      return;
+    }
+
     /* A shipment the courier will not carry must not be payable. Four
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
@@ -819,6 +863,9 @@
      generic is the same 0.6kg the product cards and cart already show, so
      nothing gets heavier between the cart and checkout. */
   const GENERIC_FALLBACK_KG = 0.6;
+  /* The instant local estimate deliberately reports needsReview:
+     undefined rather than false — it is a placeholder, and it must not
+     be able to clear a verdict the server already gave. */
   function localWeightFallback(items){
     const totalKg = items.reduce((sum, it) => {
       const qty = Math.max(1, Math.round(Number(it.qty) || 1));
@@ -851,6 +898,10 @@
     if (resolved?.fragrance){
       fragranceState = resolved.fragrance;
       renderFragranceNotice();
+    }
+    if (resolved?.needsReview !== undefined){
+      weightReview = { needsReview: Boolean(resolved.needsReview), items: resolved.reviewItems || [] };
+      renderWeightReviewNotice();
     }
     const kg = Number(resolved?.totalKg);
     if (!(Number.isFinite(kg) && kg > 0)) return;   // 0 is never an answer
@@ -967,6 +1018,10 @@
   document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const form = e.target;
+    if (weightReview.needsReview){
+      showToast('Estamos confirmando el peso de un producto — te cotizamos el flete real antes de cobrar.');
+      return;
+    }
     if (fragranceState.overLimit){
       showToast(`Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío — ajusta tu carrito.`);
       return;

@@ -34,6 +34,7 @@ import {
   normalizeDeal,
   collapseVariants,
 } from "./lib/sales-sources.js";
+import { FREIGHT_BADGE_SHARE } from "./lib/item-weight.js";
 
 const SITE = (process.env.SITE || "https://ariashop.pe").replace(/\/$/, "");
 const TOKEN = (process.env.SALES_REFRESH_TOKEN || "").trim();
@@ -123,16 +124,16 @@ async function main() {
      implausible is allowed to publish quietly. estimateWeightDetail()
      already applied the category floor; this prints what it had to
      correct, so the fix is a real table row rather than a floor. */
-  /* Two queues: a genuine gap in the tables, and a beauty weight that has
-     a row and is waiting to be checked against a real parcel. Mixing them
-     buries the first under the second. */
-  const flagged = deals.filter((d) => d.weightFlagged && d.weightSource !== "beauty");
+  /* Nothing with a doubtful weight reaches this list any more: an
+     out-of-band estimate and a title with no category row are both
+     dropped before a deal is built (see dealFrom). So what is left to
+     report is what IS here — the beauty rows still waiting to be checked
+     against a real parcel — and how many were dropped on the way. */
   const beautyEstimated = deals.filter((d) => d.weightSource === "beauty");
-  if (flagged.length) {
-    console.log(`\n  ${flagged.length} deal(s) needed a weight sanity floor — add a category row for these:`);
-    for (const d of flagged) console.log(`    ${d.weightKg}kg  ${d.title.slice(0, 66)}\n      ${d.weightFlagReason}`);
-  } else {
-    console.log("  weights: all within their category bounds");
+  const heavy = deals.filter((d) => d.freightHigh);
+  console.log(`  weights: every published deal is inside its category band`);
+  if (heavy.length) {
+    console.log(`  ${heavy.length} deal(s) carry a "Flete alto" badge (freight over ${Math.round(FREIGHT_BADGE_SHARE * 100)}% of price) — listed, not hidden`);
   }
   if (beautyEstimated.length) {
     console.log(`\n  ${beautyEstimated.length} beauty deal(s) on estimated weights — calibrate against the first real order:`);

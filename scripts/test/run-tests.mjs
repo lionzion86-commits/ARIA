@@ -19,6 +19,7 @@ import { loadPageWeightSlice, loadPageTileSlice } from "./_page-script.mjs";
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
+import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
 import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
@@ -43,6 +44,10 @@ function eq(actual, expected, what) {
 
 function group(title) {
   console.log(`\n  ${title}`);
+}
+
+function stripComments(src) {
+  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
 }
 
 const page = loadPageWeightSlice();
@@ -104,16 +109,22 @@ check("an unrecognised beauty title falls to 0.05 kg, never the 1.08 generic", (
 });
 
 check("a retailer-stated weight still wins over the beauty table", () => {
-  const r = resolveItemWeight({ title: "Dior Sauvage Eau de Toilette 100ml", weightKg: 0.42 });
+  // weightEstimated: false is how a line says "this came from the store".
+  const r = resolveItemWeight({ title: "Dior Sauvage Eau de Toilette 100ml", weightKg: 0.42, weightEstimated: false });
   eq(r.weightKg, 0.42);
   eq(r.source, "spec");
   eq(r.estimated, false);
 });
 
-check("every beauty weight is flagged as an estimate and reaches the review queue", () => {
+check("every beauty weight is an estimate and reaches the review queue", () => {
   const detail = estimateWeightDetail("MAC Matte Lipstick");
   eq(detail.estimated, true, "estimated");
-  eq(detail.flagged, true, "flagged for the weight review queue");
+  // Its own queue: a beauty row is a conservative figure awaiting
+  // calibration, not a defect. Folding it in with the genuine gaps would
+  // bury them AND delist the whole beauty catalogue from Ofertas.
+  eq(detail.reviewKind, "calibration", "review queue it lands in");
+  eq(detail.flagged, false, "not a defect, so it still sells and still features");
+  if (!detail.reason) throw new Error("no line for the calibration queue");
   eq(resolveItemWeight({ title: "MAC Matte Lipstick" }).estimated, true);
 });
 
@@ -173,9 +184,6 @@ const SOURCE_FILES = [
   "index.html",
 ];
 
-function stripComments(src) {
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[ \t]*\/\/.*$/gm, "");
-}
 
 check("no volumetric code path survives anywhere", () => {
   for (const file of SOURCE_FILES) {
@@ -207,6 +215,234 @@ check("balls quote real mass times count", () => {
 check("a retailer's published DIMENSIONS are no longer a weight source", () => {
   const r = resolveItemWeight({ title: "Anker Soundcore Speaker", dimensions: "25 x 22 x 12 cm" });
   if (r.source === "spec") throw new Error("dimensions still resolving as a spec weight");
+});
+
+/* ------------------------------------------------------------------
+   P1.5 — the money-bleed fixes.
+   ------------------------------------------------------------------ */
+group("P1.5 weight estimator money-bleed fixes");
+
+check("a cellular generation is never parsed as grams", () => {
+  // Reported live: "5G" read as five grams, freight quoted on 0.065 kg.
+  for (const title of [
+    "5G WiFi Bluetooth Projector 1080P",
+    "Portable 4G LTE Mobile Hotspot",
+    "Samsung Galaxy S24 5G 256GB",
+    "Unlocked 3G/4G Smartphone",
+    "6G Ready Router Dual Band",
+  ]) {
+    eq(itemWeight.titleWeight(title), null, title);
+    eq(page.titleWeight(title), null, `${title} (page mirror)`);
+  }
+});
+
+check("a WiFi standard is not 802 grams of router", () => {
+  eq(itemWeight.titleWeight("802.11g Wireless Router"), null);
+  eq(itemWeight.titleWeight("802.11ac Dual Band Access Point"), null);
+  eq(page.titleWeight("802.11g Wireless Router"), null, "page mirror");
+});
+
+check("a unit must start its own token", () => {
+  // A version or model number may not donate its digits to a weight.
+  eq(itemWeight.titleWeight("Model X-500g Mount Bracket")?.kg ?? null, null, "hyphenated model code");
+  eq(itemWeight.titleWeight("v2.5kg Firmware Bundle")?.kg ?? null, null, "dotted version");
+});
+
+check("real stated weights still parse, in every form the catalogue uses", () => {
+  const cases = [
+    ["Great Value Gummy Bears Chewy Candy, 4 oz", 0.173],
+    ["BUBS Swedish Candy 10 oz", 0.343],
+    ["Protein Bar, 60 g", 0.12],
+    ["Coffee 1,5 kg", 1.56],
+    ["(4 pack) Chips 5.5 oz", 0.684],
+  ];
+  for (const [title, kg] of cases) {
+    eq(itemWeight.titleWeight(title)?.kg, kg, title);
+    eq(page.titleWeight(title)?.kg, kg, `${title} (page mirror)`);
+  }
+  eq(itemWeight.titleWeight("Tire rated load up to 300 lb"), null, "a limit is not a weight");
+});
+
+check("the projector that started this now lands on a real category row", () => {
+  const d = estimateWeightDetail("5G WiFi Bluetooth Projector 1080P");
+  eq(d.kg, 2.97, "weight");
+  eq(d.needsReview, false, "quotable");
+  eq(d.bound, "proyector", "banded");
+  eq(estimateWeightDetail("Mini Portable Projector 720p").kg, 1.35, "a pocket unit is not a home-theatre one");
+});
+
+check("an estimate ABOVE its category band fails closed", () => {
+  // The reported case: a men's leather sneaker at 1.94 kg against a
+  // plausible 0.8-1.6 — half a kilo of air, ~S/ 22 of phantom freight.
+  const over = itemWeight.weightSanity("Nike Air Force 1 Low Men's Leather Sneakers", 1.94);
+  eq(over.ok, false);
+  eq(over.outOfBand, true, "flagged for manual review");
+  eq(over.minKg, 0.8);
+  eq(over.maxKg, 1.6);
+  eq(over.kg, 1.94, "the original is kept: clamping DOWN would cost real money");
+  eq(page.weightSanity("Nike Air Force 1 Low Men's Leather Sneakers", 1.94).outOfBand, true, "page mirror");
+});
+
+check("an estimate BELOW its category band fails closed", () => {
+  // Same bug class as the 0 kg TV stand.
+  const under = itemWeight.weightSanity("5G WiFi Bluetooth Projector", 0.065);
+  eq(under.ok, false);
+  eq(under.outOfBand, true);
+  eq(under.minKg, 0.5, "a projector under half a kilo is not a projector");
+  eq(itemWeight.weightSanity('Samsung 55" QLED TV', 0.12).outOfBand, true, "the TV-stand class");
+  eq(itemWeight.weightSanity("Mainstay 4-Shelf TV Stand", 0).outOfBand, true, "a zero weight is a missing measurement");
+});
+
+check("the band is per footwear TIER, not one band for all shoes", () => {
+  // 0.28 kg is right for an infant shoe and absurd for a men's boot.
+  eq(itemWeight.footwearBandKg("Nike Baby Crib Shoe").join("-"), "0.1-0.6");
+  eq(itemWeight.footwearBandKg("Nike Air Force 1 Low Men's").join("-"), "0.8-1.6");
+  eq(itemWeight.footwearBandKg("Timberland 6-Inch Boots").join("-"), "0.9-3.2");
+  eq(itemWeight.weightSanity("Nike Baby Crib Shoe", 0.28).outOfBand, false, "infant shoe in band");
+  eq(itemWeight.weightSanity("Nike Air Force 1 Low Men's", 0.28).outOfBand, true, "same weight, wrong tier");
+  eq(itemWeight.footwearBandKg("New Balance 204L").join("-"), "0.4-2", "a shoe listed by model alone is still banded");
+});
+
+check("every current estimate sits inside its own band", () => {
+  const drift = [];
+  for (const title of [
+    "Nike Air Force 1 Low Men's", "Timberland 6-Inch Boots", "Reef Men's Sandals",
+    "Nike Baby Crib Shoe", "Toddler Nike Revolution", "Crocs Classic Clog",
+    "Women's Ankle Boots", "Adidas Samba Women's", "Nike Kids Air Max",
+    'Samsung 55" QLED 4K Smart TV', "5G WiFi Bluetooth Projector", "Mini Portable Projector",
+    "MAC Matte Lipstick", "Dior Sauvage Eau de Toilette 100ml",
+    "Queen Size Mattress", "6 Drawer Dresser", "Franklin Soccer Goal 12 x 6FT",
+    "Agility Ladder 20 ft Speed Training", "Trek Mountain Bike 27.5",
+  ]) {
+    const d = estimateWeightDetail(title);
+    if (d.needsReview) drift.push(`${title}: ${d.kg} kg — ${d.reason}`);
+  }
+  if (drift.length) throw new Error(drift.join("\n      "));
+});
+
+check("a retailer-published weight is a fact, and is never band-checked", () => {
+  const r = resolveItemWeight({ title: "Nike Air Force 1 Low Men's", weightKg: 1.94, weightEstimated: false });
+  eq(r.source, "spec");
+  eq(r.needsReview, false, "a measurement is not an estimate");
+  eq(r.weightKg, 1.94);
+  eq(resolveItemWeight({ title: "Some Item", shippingWeight: "3 lb" }).source, "spec", "a raw scrape field is still a spec");
+});
+
+check("the cart's own estimate is not mistaken for a retailer spec", () => {
+  /* The resolver used to read a cart line's weightKg as a published
+     measurement. It is our own title estimate, written by addToCart —
+     so checkout echoed it back as "confirmado por la tienda" and skipped
+     the bands at the one place money changes hands. */
+  const line = resolveItemWeight({ title: "Nike Air Force 1 Low Men's Sneakers, 4.5 lb", weightKg: 2.04 });
+  if (line.source === "spec") throw new Error("our own estimate is still read as a retailer spec");
+  eq(line.needsReview, true, "and it is now band-checked");
+  // An older cart with no provenance flag falls the same, safe way.
+  eq(resolveItemWeight({ title: "Mainstay 4-Shelf TV Stand", weightKg: 0.6 }).source !== "spec", true);
+});
+
+check("the page marks every cart line's weight as its own estimate", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const fn = html.slice(html.indexOf("function addToCart(item)"), html.indexOf("function removeFromCartByKey"));
+  if (!/weightEstimated/.test(fn)) throw new Error("addToCart does not record where the weight came from");
+});
+
+check("checkout refuses the whole quote when one line is out of band", () => {
+  const fine = resolveCartWeights([
+    { title: "MAC Matte Lipstick", qty: 1 },
+    { title: "Nike Air Force 1 Low Men's", qty: 1 },
+  ]);
+  eq(fine.needsReview, false, "believed weights quote normally");
+  eq(fine.reviewItems.length, 0);
+
+  const bad = resolveCartWeights([
+    { title: "MAC Matte Lipstick", qty: 1 },
+    { title: "Nike Air Force 1 Low Men's Sneakers, 4.5 lb", qty: 1 },
+  ]);
+  eq(bad.needsReview, true, "one bad line stops the whole quote");
+  eq(bad.reviewItems.length, 1, "and names only the line that needs a human");
+  if (!bad.reviewItems[0].reason) throw new Error("no reason given for the reviewer");
+});
+
+/* ------------------------------------------------------------------
+   P1.5 addendum — the Ofertas quality gate.
+   ------------------------------------------------------------------ */
+group("P1.5 addendum: Ofertas quality gate");
+
+// normalizeDeal needs a real on-sale signal, not just two prices —
+// Ofertas only ever carries genuine markdowns.
+const deal = (title, price, original) =>
+  salesSources.normalizeDeal(
+    { title, price, originalPrice: original, onSale: true, image: "https://example.com/y.jpg" },
+    "walmart",
+  );
+
+check("a flagged weight is not featured as a deal", () => {
+  // No category row: quotable elsewhere, never promoted here.
+  eq(deal("Totally Unknown Widget XYZ", 40, 80), null, "no category row");
+  // Out of band: not quotable at all.
+  eq(deal("Nike Air Force 1 Low Men's Sneakers, 4.5 lb", 90, 160), null, "out of band");
+});
+
+check("the same products stay available outside Ofertas", () => {
+  // They still resolve to a usable weight for search and the category
+  // feed — being kept out of Ofertas is not being delisted.
+  const r = resolveItemWeight({ title: "Totally Unknown Widget XYZ" });
+  if (!(r.weightKg > 0)) throw new Error("the gap case lost its weight entirely");
+  eq(r.needsReview, false, "a gap is quotable; only out-of-band is not");
+});
+
+check("a beauty estimate is still featured", () => {
+  const d = deal("MAC Matte Lipstick - Ruby Woo", 25, 50);
+  if (!d) throw new Error("beauty was excluded from Ofertas");
+  eq(d.weightSource, "beauty");
+  eq(d.weightKg, 0.05);
+});
+
+check('heavy freight is badged at 50%, not hidden', () => {
+  eq(itemWeight.FREIGHT_BADGE_SHARE, 0.5);
+  eq(page.FREIGHT_BADGE_SHARE, 0.5, "page mirror");
+  // A 40kg dresser at $180: freight is ~$700, far over the line.
+  const heavy = deal("6 Drawer Dresser", 180, 320);
+  if (!heavy) throw new Error("a heavy item was suppressed instead of badged");
+  eq(heavy.freightHigh, true, "carries the Flete alto badge");
+  // And an ordinary item does not.
+  const light = deal("Levi's 501 Original Fit Jeans", 60, 100);
+  if (!light) throw new Error("an ordinary deal was dropped");
+  eq(light.freightHigh, false);
+});
+
+check("the badge threshold is the only freight rule left", () => {
+  const src = stripComments(readFileSync(root("scripts/lib/sales-sources.js"), "utf8"));
+  if (/share > FREIGHT_BADGE_SHARE\) return null/.test(src)) {
+    throw new Error("freight still suppresses a deal");
+  }
+  const cache = stripComments(readFileSync(root("netlify/functions/sales-cache.js"), "utf8"));
+  if (/freight \/ price > .*\) return null/.test(cache)) {
+    throw new Error("the cache sanitizer still suppresses on freight share");
+  }
+});
+
+check("the page drops flagged items from the Ofertas feed", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/function passesOfertasWeightGate/.test(html)) throw new Error("no client-side Ofertas gate");
+  const uses = (html.match(/\.filter\(passesOfertasWeightGate\)/g) || []).length;
+  if (uses < 2) throw new Error(`the gate is applied ${uses} time(s); both cache and live paths need it`);
+});
+
+check("a card with an unconfirmed weight shows no freight figure", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const card = html.slice(html.indexOf("function productCardHTML"), html.indexOf("function renderSalesGrid"));
+  if (!/weightUnderReview/.test(card)) throw new Error("the card does not check the review state");
+  if (!/Flete por confirmar/.test(card)) throw new Error("the card has no honest stand-in for the freight line");
+});
+
+check("the cart and checkout both refuse to quote an unconfirmed weight", () => {
+  const index = readFileSync(root("index.html"), "utf8");
+  if (!/function cartWeightReviewItems/.test(index)) throw new Error("the cart does not detect it");
+  if (!/blockedByWeight/.test(index)) throw new Error("the cart does not block checkout on it");
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  if (!/weightReview\.needsReview/.test(checkout)) throw new Error("checkout does not read the resolver's verdict");
+  if (!/Confirmando el peso del pedido/.test(checkout)) throw new Error("Pagar is not closed on it");
 });
 
 /* ------------------------------------------------------------------

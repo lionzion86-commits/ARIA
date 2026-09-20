@@ -34,13 +34,22 @@
    Nothing here may return 0: a zero weight is not a cheap package, it is
    a missing measurement, and it silently breaks the whole quote.
 
+   PLAUSIBILITY BANDS, AND FAILING CLOSED (2026-09-20). Every ESTIMATE
+   below is checked against what its category can plausibly weigh, in
+   both directions — a projector at 0.065 kg and a men's sneaker at
+   1.94 kg are both wrong, and both used to become a freight quote. An
+   estimate outside its band comes back with needsReview: true, and
+   checkout must then refuse to quote rather than print a number nobody
+   believes. A weight the retailer PUBLISHED is a measurement, not an
+   estimate, and is never band-checked.
+
    PRICING PROMISE: an estimate that comes in low is our cost, not the
    customer's. The quote shown at checkout is the price honored; freight
    is never re-billed after the fact. Keep that true — do not add any
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { titleWeight } from "../../scripts/lib/item-weight.js";
+import { titleWeight, weightSanity } from "../../scripts/lib/item-weight.js";
 import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
 
 // Deliberately the same generic the product cards and cart already show
@@ -86,7 +95,27 @@ const WEIGHT_FIELDS = [
 export function specWeightKg(item) {
   if (!item || typeof item !== "object") return null;
 
+  /* OUR OWN ESTIMATE IS NOT A RETAILER SPEC (2026-09-20).
+
+     Cart lines carry a `weightKg`, and this function used to read that
+     as a published measurement. It almost never is — for every card on
+     this site it is our own title-based estimate, written into the cart
+     by addToCart(). So checkout echoed the estimate back, called it
+     "Peso confirmado por la tienda", and skipped the plausibility bands
+     at the one place money actually changes hands.
+
+     `weightKg` is OUR field name — it is what addToCart() writes and no
+     retailer payload in this pipeline publishes it — so it counts as a
+     spec only when the line explicitly says the weight was NOT estimated.
+     Everything else (weight, itemWeight, shippingWeight, weightLb, the
+     specifications array) only ever appears on a raw retailer record and
+     is read exactly as before. Carts written by older builds carry no
+     flag at all, and those fall through to a fresh estimate too, which is
+     the safe direction. */
+  const ownEstimate = item.weightEstimated !== false;
+
   for (const field of WEIGHT_FIELDS) {
+    if (ownEstimate && (field === "weightKg" || field === "weight")) continue;
     const raw = item[field];
     if (raw == null) continue;
     const unit = /lb|pound/i.test(field) ? "lb" : /kg/i.test(field) ? "kg" : null;
@@ -128,36 +157,47 @@ export function resolveItemWeight(item) {
   // over everything below, beauty included.
   const spec = specWeightKg(item);
   if (spec) {
-    return { weightKg: spec.kg, source: "spec", estimated: false, basis: spec.from };
+    // A published measurement, not an estimate: no band applies.
+    return { weightKg: spec.kg, source: "spec", estimated: false, basis: spec.from, needsReview: false };
   }
+
+  /* Every branch below is an ESTIMATE, so each one goes through the band
+     check on its way out. banded() is the single exit so no future branch
+     can be added that skips it. */
+  const banded = (kg, source, basis) => {
+    const check = weightSanity(title, kg);
+    return {
+      weightKg: check.kg,
+      source,
+      estimated: source !== "title",
+      basis,
+      needsReview: check.outOfBand,
+      reviewReason: check.reason,
+      bound: check.key,
+      minKg: check.minKg,
+      maxKg: check.maxKg,
+    };
+  };
 
   // Beauty before the title parse — a fragrance title states the liquid's
   // volume, not the parcel's weight. See beauty-weight.js.
   const beauty = beautyWeightDetail(title, hints);
-  if (beauty) {
-    return {
-      weightKg: beauty.kg, source: "beauty", estimated: true,
-      basis: `peso estimado de belleza (${beauty.key})`,
-    };
-  }
+  if (beauty) return banded(beauty.kg, "beauty", `peso estimado de belleza (${beauty.key})`);
 
   // A weight the retailer wrote in the title is a stated fact, not a
   // guess — it beats any category table. The carousel truncates titles on
   // screen, so this reads the full source title (see titleWeight).
   const stated = titleWeight(title);
   if (stated) {
-    return {
-      weightKg: stated.kg, source: "title", estimated: false,
-      basis: `peso declarado en el título (${stated.token} + empaque)`,
-    };
+    return banded(stated.kg, "title", `peso declarado en el título (${stated.token} + empaque)`);
   }
 
   const category = categoryWeightKg(title, hints);
   if (category != null && category > 0) {
-    return { weightKg: category, source: "category", estimated: true, basis: "categoría del producto" };
+    return banded(category, "category", "categoría del producto");
   }
 
-  return { weightKg: GENERIC_FALLBACK_KG, source: "fallback", estimated: true, basis: "estimado genérico" };
+  return banded(GENERIC_FALLBACK_KG, "fallback", "estimado genérico");
 }
 
 /** Whole cart: per-item weights plus the total the quote is built on. */
@@ -179,5 +219,13 @@ export function resolveCartWeights(items) {
        same call that answers the weight — so checkout never has to
        re-derive it from titles on its own. */
     fragrance: fragranceLimitState(list),
+    /* FAIL CLOSED. One line we do not believe is enough to stop the
+       whole quote: a cart total built on a weight outside its plausible
+       band is a wrong number, and a wrong number honoured is money.
+       Checkout refuses to quote and says which line needs a human. */
+    needsReview: resolved.some((r) => r.needsReview),
+    reviewItems: resolved
+      .filter((r) => r.needsReview)
+      .map((r) => ({ title: r.title, weightKg: r.weightKg, reason: r.reviewReason, bound: r.bound })),
   };
 }

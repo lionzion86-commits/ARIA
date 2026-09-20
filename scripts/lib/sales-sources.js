@@ -37,7 +37,7 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  titleWeight, MAX_FREIGHT_SHARE, weightSanity, footwearWeightKg, ballWeightKg,
+  titleWeight, FREIGHT_BADGE_SHARE, weightSanity, footwearWeightKg, ballWeightKg,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 
@@ -106,6 +106,16 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned" },
   { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned" },
   { match: /\bvitamins?\b|multivitamin|\bsupplement\b|suplementos?\b|\bsoftgels?\b|\btablets?\b.*\bcount\b/i, kg: 0.5, tier: "reasoned" },
+  /* PROJECTORS (2026-09-20). There was no row at all, which is how a "5G
+     WiFi Bluetooth Projector" ended up quoting freight on 0.065 kg — the
+     "5G" parsed as five grams and nothing downstream knew better. The
+     category is genuinely bimodal, so it gets two rows: a pocket/portable
+     unit is about a kilo boxed, a mainstream one two and a half. The
+     sanity band (0.5-12 kg) is the backstop for whatever these miss.
+     "Projector screen" is a different object and is matched earlier, in
+     the bulky table. */
+  { match: /\b(mini|portable|pocket|pico|port[áa]til)\b[^,]{0,28}\b(projectors?|proyector(?:es)?)\b|\b(projectors?|proyector(?:es)?)\b[^,]{0,28}\b(mini|portable|pocket|pico|port[áa]til)\b/i, kg: 1, tier: "reasoned" },
+  { match: /\b(projectors?|proyector(?:es)?)\b/i, kg: 2.2, tier: "reasoned" },
 ];
 const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // unclassified: a rough placeholder, so 'reasoned'
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
@@ -192,31 +202,45 @@ export function estimateWeightDetail(title, hints = {}) {
 
   const check = weightSanity(title, raw.kg);
   const kg = check.kg;
-  /* NEVER PUBLISH A GUESS SILENTLY (2026-09-19). Two different things
-     used to look identical on a card: a weight the retailer stated, and
-     the generic fallback. Every product we could not classify showed the
-     same 1.08 kg next to a freight figure, which reads as a measurement.
-     A fallback weight is now flagged on its way out — it is a review
-     queue for the refresh scripts, and the card labels it an estimate
-     instead of printing it as fact. */
-  const guessed = raw.source === "fallback";
+
+  /* THREE STATES, NOT TWO (2026-09-20).
+
+     out-of-band  the estimate is outside what this category can plausibly
+                  weigh, in either direction. FAIL CLOSED: `needsReview`
+                  is set, nothing may render a freight quote from it, and
+                  it is kept out of Ofertas until a human fixes it.
+     gap          no category row matched, so this is the generic guess.
+                  Quotable (we must quote something, and it is labelled an
+                  estimate) but never promoted as a deal, and printed by
+                  the refresh scripts so a real row gets written.
+     calibration  a beauty estimate: it HAS a row, and the row is a
+                  conservative figure waiting to be checked against a real
+                  parcel. Not a defect — it sells, it shows in Ofertas, and
+                  it appears under its own heading in the refresh output.
+
+     `flagged` means the first two: a human must look. Keeping
+     calibration out of it is deliberate — folding every beauty item into
+     the same list would bury the genuine gaps under a hundred lipsticks
+     and quietly delist the entire beauty catalogue from Ofertas. */
   if (!check.ok) {
-    return { kg, source: raw.source, estimated: true, flagged: true, bound: check.key, reason: check.reason };
+    return { kg, source: raw.source, estimated: true, flagged: true, needsReview: true,
+      reviewKind: "out-of-band", bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
+      reason: check.reason };
   }
-  if (guessed) {
-    return { kg, source: raw.source, estimated: true, flagged: true, bound: check.key,
+  if (raw.source === "fallback") {
+    return { kg, source: raw.source, estimated: true, flagged: true, needsReview: false,
+      reviewKind: "gap", bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
       reason: `sin categoría — estimado genérico de ${kg} kg, necesita una fila de categoría` };
   }
-  /* A beauty estimate is an estimate, and rule 1 of the beauty brief is
-     that every one of them reaches the review queue — so it is flagged
-     even though it is not a failure. The reason says which row answered,
-     so the queue reads as calibration work rather than as breakage. */
   if (raw.source === "beauty") {
-    return { kg, source: "beauty", estimated: true, flagged: true, bound: check.key,
+    return { kg, source: "beauty", estimated: true, flagged: false, needsReview: false,
+      reviewKind: "calibration", bound: check.key, minKg: check.minKg, maxKg: check.maxKg,
       reason: `peso estimado de belleza (${raw.beautyKey}) — ${kg} kg, calibrar con el primer pedido real` };
   }
   // A category estimate is still an estimate; only a stated weight is a fact.
-  return { kg, source: raw.source, estimated: raw.source !== "title", flagged: false, bound: check.key, reason: null };
+  return { kg, source: raw.source, estimated: raw.source !== "title", flagged: false,
+    needsReview: false, reviewKind: null, bound: check.key,
+    minKg: check.minKg, maxKg: check.maxKg, reason: null };
 }
 
 const round2 = (n) => Math.round(n * 100) / 100;
@@ -272,20 +296,25 @@ export function normalizeDeal(item, retailer) {
 
   if (!isDeal || !title || price == null) return null;
 
-  /* FREIGHT GATE. A 45%-off TV stand is not a deal if it weighs 40kg and
-     costs $520 to fly here. The scraper gives us no weight, so it is
-     estimated from the title (see estimateWeightKg / item-weight.js) and
-     joined here, at ranking time, rather than being discovered by the
-     customer at checkout.
+  /* WHAT KEEPS AN ITEM OUT OF OFERTAS (2026-09-20).
 
-     Weight and freight are stored on the item so the card can show the
-     real cost and, if anything slips through, badge it instead of
-     printing a discount the freight wipes out. */
+     Not freight any more. A heavy-freight item stays listed and wears a
+     "Flete alto" badge — the buyer decides with the real number in front
+     of them, which is the whole Precio Honesto argument. Suppressing it
+     hid the cost rather than disclosing it.
+
+     What DOES keep an item out is a weight we do not believe: an
+     estimate outside its category's plausible band, or a title with no
+     category row at all. Ofertas is the one surface that PROMOTES a
+     product, and promoting a price we cannot stand behind is the
+     expensive mistake. Those items stay fully available in search and in
+     their category — they are simply not featured as deals until the
+     weight is fixed. */
   const weight = estimateWeightDetail(title);
+  if (weight.flagged) return null;
   const weightKg = weight.kg;
   const freight = freightUsd(weightKg, CHARGE_PER_KG_USD);
   const share = freightShare(weightKg, price, CHARGE_PER_KG_USD);
-  if (share > MAX_FREIGHT_SHARE) return null; // suppressed: freight kills it
 
   return {
     retailer,
@@ -294,15 +323,17 @@ export function normalizeDeal(item, retailer) {
     originalPrice: round2(rawOriginal * SALES_TAX_RATE * LIVE_PRICE_MARKUP),
     rating,
     weightKg,
-    // Set only when the sanity bounds had to correct the estimate — the
-    // refresh script prints these so a real category row gets added.
-    // The card must be able to say "estimado" rather than print a guess
-    // as a measurement; the refresh script prints the flagged ones.
+    // The card must be able to say "estimado" rather than print a guess as
+    // a measurement. A flagged weight never reaches this point at all —
+    // it was returned null above — so anything here is quotable.
     weightEstimated: weight.estimated,
     weightSource: weight.source,
-    ...(weight.flagged ? { weightFlagged: true, weightFlagReason: weight.reason } : {}),
+    weightReviewKind: weight.reviewKind,
     freightUsd: freight,
     freightShare: Math.round(share * 1000) / 1000,
+    // Listed, not hidden — the card badges it so the discount is never
+    // printed as if the freight were not there.
+    freightHigh: share > FREIGHT_BADGE_SHARE,
     sizes,
     image: images[0] || null,
     images,

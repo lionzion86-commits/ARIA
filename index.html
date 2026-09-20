@@ -684,6 +684,9 @@
     <div id="cartItemsWrap"></div>
 
     <div id="cartSummaryWrap" hidden>
+      <!-- A line whose weight is outside its category band: we refuse to
+           quote rather than print a freight figure nobody believes. -->
+      <div id="cartWeightReviewWrap" class="mt-6"></div>
       <!-- The courier's four-fragrance-per-shipment clause, stated where
            the basket is built rather than at the payment step. -->
       <div id="cartFragranceWrap" class="mt-6"></div>
@@ -2946,7 +2949,7 @@ function catalogTileHTML(p, retailer){
      still show "-45%" here. It shows "Flete alto" instead. */
   const tileWeightKg = Number(p.weightKg);
   const tileFreightHeavy = Number.isFinite(tileWeightKg) && tileWeightKg > 0
-    && freightSharePct(tileWeightKg, p.price) > MAX_FREIGHT_SHARE;
+    && freightSharePct(tileWeightKg, p.price) > FREIGHT_BADGE_SHARE;
   return `
   <button onclick="showProduct('${retailer}', '${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, '${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, ${needsSizeSelection(retailer, p.title)}, '${sizeCategoryFor(retailer, p.title)}', '${jsAttr(p.rating != null ? String(p.rating) : '')}')" class="text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
     <div class="relative h-[130px] sm:h-[150px]" style="background:var(--sky)">
@@ -4054,6 +4057,13 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   // mystery: the generic floor was badging every supplement as
   // high-freight. Upper end of a large 200-250 count bottle.
   { match: /\bvitamins?\b|multivitamin|\bsupplement\b|suplementos?\b|\bsoftgels?\b|\btablets?\b.*\bcount\b/i, kg: 0.5, tier: 'reasoned' },
+  /* PROJECTORS (2026-09-20). There was no row at all, which is how a "5G
+     WiFi Bluetooth Projector" quoted freight on 0.065 kg. Bimodal
+     category, so two rows: a pocket/portable unit is about a kilo boxed,
+     a mainstream one two and a bit. "Projector screen" is a different
+     object and is matched earlier, in the bulky table. */
+  { match: /\b(mini|portable|pocket|pico|port[áa]til)\b[^,]{0,28}\b(projectors?|proyector(?:es)?)\b|\b(projectors?|proyector(?:es)?)\b[^,]{0,28}\b(mini|portable|pocket|pico|port[áa]til)\b/i, kg: 1, tier: 'reasoned' },
+  { match: /\b(projectors?|proyector(?:es)?)\b/i, kg: 2.2, tier: 'reasoned' },
 ];
 /* WEIGHT STATED IN THE TITLE. Retailers write the net weight right there
    — "Great Value Gummy Bears Chewy Candy, 4 oz" — and we were ignoring it
@@ -4071,6 +4081,18 @@ const MAX_PACK_COUNT = 24;
 const UNIT_SHORT = { 'fl oz': 'fl oz', 'fluid ounce': 'fl oz', 'fluid ounces': 'fl oz', ounce: 'oz', ounces: 'oz', oz: 'oz', lb: 'lb', lbs: 'lb', pound: 'lb', pounds: 'lb', kg: 'kg', kilogram: 'kg', kilograms: 'kg', gram: 'g', grams: 'g', g: 'g' };
 const CAPACITY_BEFORE_RE = /(capacity|capacidad|holds?|supports?|up to|hasta|max(?:imum)?|rated|load|weight limit)\s*(?:of\s*)?[^,;]{0,12}$/i;
 
+/* REPORTED LIVE 2026-09-20: a "5G WiFi Bluetooth Projector" had its "5G"
+   read as five grams, and the page quoted freight on 0.065 kg. A bare G
+   after a single digit is a radio generation in every catalogue on
+   earth; 2G-6G are refused outright, and two to six grams is below
+   anything this estimator needs to tell apart from its category row, so
+   nothing real is lost. "802.11g" is a protocol for the same reason.
+   Mirrors item-weight.js. */
+function isNetworkGenerationToken(value, unit){
+  return unit === 'g' && Number.isInteger(value) && value >= 2 && value <= 6;
+}
+const WIFI_STANDARD_RE = /\b802\.11\s*[abgnxac]{1,2}\b/i;
+
 function titlePackCount(text){
   const m = /\(?\b(\d{1,2})\s*[- ]?\s*(?:pack|pk|count|ct|unidades|piezas)\b/i.exec(text)
     || /\b(?:pack|paquete) of\s*(\d{1,2})\b/i.exec(text)
@@ -4082,13 +4104,19 @@ function titlePackCount(text){
 function titleWeight(title){
   const text = String(title || '');
   if (!text) return null;
-  const re = /(\d+(?:[.,]\d+)?)\s*(fl\s*oz|fluid\s*ounces?|ounces?|oz|lbs?|pounds?|kg|kilograms?|grams?|g)\b\.?/gi;
+  /* The leading group is a BOUNDARY, matched and thrown away: a unit only
+     counts when its number starts a token, so a version string or a model
+     code cannot donate its digits to a weight. Group 2 is the number,
+     group 3 the unit. */
+  const re = /(^|[^\w.\-/])(\d+(?:[.,]\d+)?)\s*(fl\s*oz|fluid\s*ounces?|ounces?|oz|lbs?|pounds?|kg|kilograms?|grams?|g)\b\.?/gi;
   let match;
   while ((match = re.exec(text)) !== null){
-    if (CAPACITY_BEFORE_RE.test(text.slice(0, match.index))) continue;  // "up to 70 lb" is a limit
-    const value = parseFloat(match[1].replace(',', '.'));
+    if (CAPACITY_BEFORE_RE.test(text.slice(0, match.index + match[1].length))) continue;  // "up to 70 lb" is a limit
+    const value = parseFloat(match[2].replace(',', '.'));
     if (!Number.isFinite(value) || value <= 0) continue;
-    const unit = match[2].toLowerCase().replace(/\s+/g, ' ');
+    const unit = match[3].toLowerCase().replace(/\s+/g, ' ');
+    if (isNetworkGenerationToken(value, unit)) continue;   // "5G WiFi", "4G LTE"
+    if (WIFI_STANDARD_RE.test(match[0])) continue;         // "802.11g" is a protocol
     const netKg =
       /^(fl oz|fluid ounce|fluid ounces|ounce|ounces|oz)$/.test(unit) ? value * OZ_TO_KG
       : /^(lb|lbs|pound|pounds)$/.test(unit) ? value * LB_TO_KG
@@ -4098,7 +4126,7 @@ function titleWeight(title){
     const packs = titlePackCount(text);
     const totalNetKg = netKg * packs;
     if (totalNetKg > MAX_TITLE_WEIGHT_KG) continue;
-    const token = `${match[1].replace(',', '.')} ${UNIT_SHORT[unit] || unit}`;
+    const token = `${match[2].replace(',', '.')} ${UNIT_SHORT[unit] || unit}`;
     return {
       netKg: Math.round(totalNetKg * 1000) / 1000,
       kg: Math.round((totalNetKg + PACKAGING_ALLOWANCE_KG) * 1000) / 1000,
@@ -4667,26 +4695,36 @@ function beautyRound2(n) {
    dimensions are gone and what a pair weighs is the whole answer. */
 const FOOTWEAR_TIERS = [
   // Size wins over style: a kids' boot ships in a kids' box.
-  { key: "bebé",        match: /\b(baby|infant|newborn|crib shoe)\b/i,                        kg: 0.15 },
-  { key: "toddler",     match: /\b(toddler|little kids?)\b/i,                                 kg: 0.3 },
-  { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55 },
-  { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2 },
-  { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6 },
+  { key: "bebé",        match: /\b(baby|infant|newborn|crib shoe)\b/i,                        kg: 0.15, bandKg: [0.1, 0.6] },
+  { key: "toddler",     match: /\b(toddler|little kids?)\b/i,                                 kg: 0.3,  bandKg: [0.2, 0.9] },
+  { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55, bandKg: [0.3, 1.3] },
+  { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2,  bandKg: [0.8, 2.6] },
+  { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6,  bandKg: [0.9, 3.2] },
   /* Sandals ship in a polybag, not a shoebox, so they never carried the
      shoebox figure in the first place — the shipped weight is stated
      outright. 0.40-0.50 kg is what they actually weigh packed; 0.60 is
      that with the conservative margin, and it replaced a 1.14 kg
      shoebox figure that was quoting S/ 52 of freight on S/ 60 sandals. */
-  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, shippedKg: 0.6 },
-  { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4 },
-  { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5 },
-  { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55 },
-  { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65 },
-  { key: "hombre",      match: /\b(men'?s?|mens|hombre)\b/i,                                  kg: 0.9 },
+  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, shippedKg: 0.6, bandKg: [0.2, 1.2] },
+  { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4,  bandKg: [0.2, 1.2] },
+  { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5,  bandKg: [0.3, 1.4] },
+  { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55, bandKg: [0.3, 1.4] },
+  { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65, bandKg: [0.4, 1.4] },
+  /* 0.8-1.6 kg is the reported plausible shipped band for a men's leather
+     sneaker. The estimator used to answer 1.94 kg — half a kilo of air,
+     about S/ 22 of phantom freight a pair — because it billed the
+     shoebox's volume. Fixed at source; this band is the tripwire. */
+  { key: "hombre",      match: /\b(men'?s?|mens|hombre)\b/i,                                  kg: 0.9,  bandKg: [0.8, 1.6] },
 ];
 // No size and no style stated — the middle of the range, not a guess at
 // the small end, because under-quoting is money off our own margin.
-const FOOTWEAR_DEFAULT = { key: "calzado", kg: 0.8 };
+const FOOTWEAR_DEFAULT = { key: "calzado", kg: 0.8, bandKg: [0.4, 2.0] };
+
+/** The plausible shipped band for a footwear title, or null. */
+function footwearBandKg(title){
+  const tier = footwearTierFor(title);
+  return tier ? (tier.bandKg || FOOTWEAR_DEFAULT.bandKg) : null;
+}
 
 /* A listing is footwear if it names a shoe, or names a shoe brand or a
    shoe model — Foot Locker's catalogue is model names and almost never
@@ -4735,44 +4773,53 @@ const LONG_BUT_LIGHT_RE = /\b(cable|cord|hose|rope|twine|tape|wire|chain|leash|s
    fluid is not a washing machine, a hair dryer is not a tumble dryer.
    Each of these floored a real catalog item to 8 kg. */
 
+const PROJECTOR_RE = /\b(projectors?|proyectores?|proyector)\b/i;
+const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bulb|l[áa]mpara|case|funda|stand|tr[ií]pode|tripod|cable)\b/i;
+
 const WEIGHT_SANITY_BOUNDS = [
   /* Beauty runs FIRST and low. A cosmetic is the one category on this
      site that legitimately weighs 20 grams, and several fragrance houses
      share a name with a shoe brand ("Puma Energy Eau de Toilette"), so
      without this row a perfume could be floored to the calzado minimum
      and quoted as a pair of trainers. */
-  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02 },
-  { key: "goal", match: GOAL_RE, minKg: 3 },
-  { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20 },
-  { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15 },
-  { key: "aro de básquet", match: /\b(basketball (hoop|system|goal)|backboard)\b/i, minKg: 10 },
-  { key: "equipo de gimnasio", match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym|punching bag|heavy bag|weight set|barbell|kettlebell|weight plates?)\b/i, minKg: 10 },
+  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02, maxKg: 0.6 },
+  { key: "goal", match: GOAL_RE, minKg: 3, maxKg: 45 },
+  { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20, maxKg: 130 },
+  { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15, maxKg: 130 },
+  { key: "aro de básquet", match: /\b(basketball (hoop|system|goal)|backboard)\b/i, minKg: 10, maxKg: 90 },
+  { key: "equipo de gimnasio", match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym|punching bag|heavy bag|weight set|barbell|kettlebell|weight plates?)\b/i, minKg: 10, maxKg: 220 },
   { key: "electrodoméstico grande",
     test: (t) => /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove|air conditioner|dehumidifier|lawn ?mower|snow blower)\b/i.test(t)
       && !APPLIANCE_IMPOSTOR_RE.test(t),
-    minKg: 8 },
-  { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8 },
-  { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6 },
-  { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6 },
-  /* Lowered from 0.4 to 0.2 when dimensional billing was removed
-     (2026-09-20): 0.4 came from a baby shoe box's ~0.47 kg dimensional
-     figure, and on actual scale weight the same box is 0.28 kg. Leaving
-     the old floor in place would have flagged and re-inflated every
-     infant shoe. "Boot Cut Jeans" is excluded by the regex itself. */
-  { key: "calzado", match: FOOTWEAR_NOUN_RE, minKg: 0.2 },
+    minKg: 8, maxKg: 220 },
+  { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8, maxKg: 160 },
+  { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6, maxKg: 90 },
+  { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6, maxKg: 45 },
+  /* Tier-aware: the band comes from the same tier that produced the
+     estimate, so a men's sneaker is judged against 0.8-1.6 and an infant
+     shoe against 0.1-0.6. One "calzado" band cannot serve both, and a
+     band wide enough for both waves through the half-kilo of phantom
+     freight this exists to catch. `test` rather than `match` because a
+     shoe is often listed by brand or model alone ("New Balance 204L"). */
+  { key: "calzado", test: (t) => footwearTierFor(t) != null, band: footwearBandKg },
+  /* A projector, and not a projector screen, lamp or mount. Without this
+     row a "5G WiFi Bluetooth Projector" published a 0.065 kg quote. */
+  { key: "proyector",
+    test: (t) => PROJECTOR_RE.test(t) && !PROJECTOR_ACCESSORY_RE.test(t),
+    minKg: 0.5, maxKg: 12 },
   { key: "televisor",
     test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(String(t).replace(/\bwith\b[^,;]*/gi, ' ')),
-    minKg: 4 },
+    minKg: 4, maxKg: 90 },
   /* Long AND light: these state their length in feet but are nylon and
      air. Named before the catch-all so it never floors them to 4 kg. */
-  { key: "accesorio plegable", match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b|\b(jump rope|yoga mat|resistance bands?|slip ?n ?slide)\b/i, minKg: 0.3 },
+  { key: "accesorio plegable", match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b|\b(jump rope|yoga mat|resistance bands?|slip ?n ?slide)\b/i, minKg: 0.3, maxKg: 6 },
   /* The catch-all, and the one that would have caught the soccer goal
      even with no sports category at all: a title that states a dimension
      of several FEET is not describing something that weighs a kilo. Runs
      last, so a named category's own floor always wins. */
   { key: "artículo de gran tamaño",
     test: (t) => (largestFeet(t) || 0) >= 4 && !LONG_BUT_LIGHT_RE.test(t),
-    minKg: 4 },
+    minKg: 4, maxKg: 250 },
 ];
 
 /**
@@ -4782,21 +4829,43 @@ const WEIGHT_SANITY_BOUNDS = [
  * USE: the input when it is fine, the category floor when it is not.
  */
 
-function weightSanity(title, kg) {
-  const t = String(title || "");
+/* BANDS, NOT JUST FLOORS (2026-09-20). A floor only catches an estimate
+   that is too LIGHT; the other half of the bleed is one that is too
+   HEAVY. An estimate outside its band FAILS CLOSED — `outOfBand` is set,
+   nothing renders a freight quote from it, and the item goes to manual
+   review. Below the floor the floor is used internally (never
+   under-quote ourselves); above the ceiling the original is kept, so a
+   path that forgets to check the flag over-quotes rather than losing
+   money. Mirrors weightSanity() in scripts/lib/item-weight.js. */
+function bandFor(title){
+  const t = String(title || '');
   const bound = WEIGHT_SANITY_BOUNDS.find((b) => (b.match ? b.match.test(t) : b.test(t)));
+  if (!bound) return null;
+  const pair = typeof bound.band === 'function' ? bound.band(t) : null;
+  return { key: bound.key, minKg: pair ? pair[0] : bound.minKg, maxKg: pair ? pair[1] : (bound.maxKg ?? null) };
+}
+
+function weightSanity(title, kg) {
+  const band = bandFor(title);
   const n = Number(kg);
+  const key = band ? band.key : "sin categoría";
+  const range = band && band.maxKg != null ? `${band.minKg}–${band.maxKg} kg` : `mínimo ${band?.minKg} kg`;
 
   if (!Number.isFinite(n) || n <= 0) {
-    const floor = bound ? bound.minKg : MIN_PUBLISHABLE_KG;
-    return { ok: false, kg: floor, key: bound ? bound.key : "sin categoría", minKg: floor,
+    const floor = band ? band.minKg : MIN_PUBLISHABLE_KG;
+    return { ok: false, outOfBand: true, kg: floor, key, minKg: floor, maxKg: band?.maxKg ?? null,
       reason: `peso ausente o cero (${kg}) — no se publica un peso de 0 kg` };
   }
-  if (bound && n < bound.minKg) {
-    return { ok: false, kg: bound.minKg, key: bound.key, minKg: bound.minKg,
-      reason: `${n} kg es implausible para "${bound.key}" (mínimo ${bound.minKg} kg)` };
+  if (band && n < band.minKg) {
+    return { ok: false, outOfBand: true, kg: band.minKg, key, minKg: band.minKg, maxKg: band.maxKg,
+      reason: `${n} kg está por debajo de la banda plausible de "${key}" (${range})` };
   }
-  return { ok: true, kg: n, key: bound ? bound.key : null, minKg: bound ? bound.minKg : null, reason: null };
+  if (band && band.maxKg != null && n > band.maxKg) {
+    return { ok: false, outOfBand: true, kg: n, key, minKg: band.minKg, maxKg: band.maxKg,
+      reason: `${n} kg está por encima de la banda plausible de "${key}" (${range})` };
+  }
+  return { ok: true, outOfBand: false, kg: n, key: band ? key : null,
+    minKg: band?.minKg ?? null, maxKg: band?.maxKg ?? null, reason: null };
 }
 
 /* ACTUAL SCALE WEIGHT ONLY (2026-09-20): these rows used to carry box
@@ -4829,9 +4898,15 @@ function bulkyWeightKg(text){
   return hit ? withBuffer(hit.kg, 'reasoned') : null;
 }
 
-// A markdown is not a deal if getting it here costs a third of the price
-// again. 0.30 is a judgement call, not a derived figure.
-const MAX_FREIGHT_SHARE = 0.30;
+/* FREIGHT IS DISCLOSED, NOT SUPPRESSED (2026-09-20, policy change). This
+   was a suppression threshold — a deal whose freight exceeded 30% of its
+   price never reached Ofertas. It is a BADGE threshold now, at 50%: the
+   item stays listed, the card says "Flete alto" and shows the real
+   figure, and the buyer decides with their eyes open. Nothing is dropped
+   for being heavy any more; what IS dropped is a weight we do not
+   believe. Mirrors FREIGHT_BADGE_SHARE in scripts/lib/item-weight.js. */
+const FREIGHT_BADGE_SHARE = 0.50;
+const MAX_FREIGHT_SHARE = FREIGHT_BADGE_SHARE;
 
 function freightUsd(weightKg){
   const kg = Number(weightKg);
@@ -4850,18 +4925,42 @@ function freightSharePct(weightKg, priceUsd){
    scripts/lib/sales-sources.js. */
 function estimateRetailWeightDetail(text, hints){
   const t = text || '';
-  // Beauty first, and always an estimate — rule 1 of the beauty brief is
-  // that every estimated weight says so on the card.
-  if (beautyWeightDetail(t, hints || {})) {
-    return { kg: estimateRetailWeightKg(t, hints), source: 'beauty', estimated: true };
-  }
-  if (titleWeight(t)) return { kg: estimateRetailWeightKg(t, hints), source: 'title', estimated: false };
-  const classified = bulkyWeightKg(t) != null
+  const beauty = beautyWeightDetail(t, hints || {});
+  const stated = beauty ? null : titleWeight(t);
+  const classified = !beauty && !stated && (bulkyWeightKg(t) != null
     || footwearWeightKg(t) != null
     || ballWeightKg(t) != null
     || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t))
-    || (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' ')));
-  return { kg: estimateRetailWeightKg(t, hints), source: classified ? 'category' : 'fallback', estimated: true };
+    || (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))));
+
+  // The raw estimate, before the band is applied, is what the band judges.
+  const raw = beauty ? beauty.kg
+    : stated ? stated.kg
+    : classified ? (bulkyWeightKg(t) ?? footwearWeightKg(t) ?? ballWeightKg(t)
+        ?? (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))
+              ? estimateTvWeightKg(t)
+              : withBuffer(RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).kg,
+                           RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).tier)))
+    : withBuffer(DEFAULT_RETAIL_WEIGHT_KG, 'reasoned');
+
+  const check = weightSanity(t, raw);
+  const source = beauty ? 'beauty' : stated ? 'title' : classified ? 'category' : 'fallback';
+  /* THREE STATES. out-of-band fails closed (no freight figure is
+     rendered anywhere and it is kept out of Ofertas); a gap is quotable
+     on the generic estimate but never promoted as a deal; a beauty
+     estimate is neither — it has a real row and only wants calibrating.
+     Mirrors estimateWeightDetail() in scripts/lib/sales-sources.js. */
+  const reviewKind = !check.ok ? 'out-of-band' : source === 'fallback' ? 'gap' : source === 'beauty' ? 'calibration' : null;
+  return {
+    kg: check.kg,
+    source,
+    estimated: source !== 'title',
+    reviewKind,
+    needsReview: reviewKind === 'out-of-band',
+    flagged: reviewKind === 'out-of-band' || reviewKind === 'gap',
+    reason: check.reason,
+    bound: check.key,
+  };
 }
 
 function estimateRetailWeightKg(text, hints){
@@ -5033,6 +5132,10 @@ function normalizeLiveItem(item, hints){
 
   return { title, price, image, images, rating, weightKg,
     weightEstimated: weightDetail.estimated, weightSource: weightDetail.source,
+    // Fail-closed signal: nothing may print a freight figure for this item.
+    weightNeedsReview: weightDetail.needsReview,
+    weightReviewKind: weightDetail.reviewKind,
+    weightReviewReason: weightDetail.reason,
     // The courier's four-per-shipment fragrance clause travels with the
     // item, so every card and the cart can state it without re-parsing.
     restrictedFragrance: isFragrance(title),
@@ -6364,6 +6467,23 @@ function addToCart(item){
   // rather than at each caller.
   const kg = Number(item.weightKg);
   if (!(Number.isFinite(kg) && kg > 0)) item = { ...item, weightKg: estimateRetailWeightKg(item.title || '') };
+  /* SAY WHERE THAT NUMBER CAME FROM (2026-09-20).
+
+     Cart lines carry a `weightKg`, and the server resolver reads that
+     field as a weight the RETAILER published — which it almost never is:
+     for every card on this site it is our own title-based estimate. The
+     effect was that checkout echoed the estimate straight back, labelled
+     it "Peso confirmado por la tienda", and skipped the category bands
+     entirely at the one place money actually changes hands.
+
+     Marking the line honestly is the whole fix: the resolver then
+     re-estimates from the title, applies the band, and fails closed when
+     the answer is one we do not believe. A real spec weight (an item
+     that arrived with weightEstimated === false) still wins, as it
+     should. */
+  if (item.weightEstimated === undefined) {
+    item = { ...item, weightEstimated: true };
+  }
   const key = cartItemKey(item);
   const existing = cart.find(it => cartItemKey(it) === key);
   if (existing) existing.qty += 1;
@@ -6427,6 +6547,40 @@ function fmtPEN_direct(pen){
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(round2(Number(pen) || 0));
 }
 
+/* FAIL CLOSED IN THE CART (2026-09-20).
+
+   A line whose estimated weight falls outside what its category can
+   plausibly weigh does not get a freight quote — in either direction. A
+   projector at 0.065 kg and a men's sneaker at 1.94 kg are both wrong,
+   and honouring either is money: one out of our margin, one out of the
+   customer's pocket for air. So the cart names the line being confirmed,
+   and checkout waits.
+
+   That is a dead end only if we leave it one, so it points at the thing
+   that actually resolves it — a real person, through the assistant. */
+function cartWeightReviewItems(){
+  return cart.filter(it => estimateRetailWeightDetail(it.title || '').needsReview);
+}
+
+function renderCartWeightReview(){
+  const wrap = document.getElementById('cartWeightReviewWrap');
+  if (!wrap) return;
+  const items = cartWeightReviewItems();
+  if (!items.length){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 flex items-start gap-3" style="background:#FFF6E0; border:1px solid #F0D28A">
+    <svg class="flex-shrink-0 mt-0.5" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#8A6B1F" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
+    <div>
+      <div class="text-[13.5px] font-extrabold" style="color:#5C4813">Estamos confirmando el peso de ${items.length === 1 ? 'un producto' : `${items.length} productos`}</div>
+      <div class="text-[12.5px] leading-snug mt-0.5" style="color:#8A6B1F">
+        ${items.map(it => escapeHtml(String(it.title || '').slice(0, 60))).join(' · ')}
+      </div>
+      <div class="text-[12.5px] leading-snug mt-1.5" style="color:#8A6B1F">
+        Preferimos no cotizarte un flete que no podemos sostener. Escríbenos por el chat y te confirmamos el costo real en minutos.
+      </div>
+    </div>
+  </div>`;
+}
+
 /* The fragrance clause in the cart: a plain count while there is room, a
    blocking message once the basket is over the limit. Checkout is
    disabled in the over-limit case — letting someone pay for a shipment
@@ -6435,10 +6589,20 @@ function renderCartFragranceLimit(){
   const wrap = document.getElementById('cartFragranceWrap');
   const btn = document.getElementById('cartCheckoutBtn');
   if (!wrap) return;
+  /* One gate, two reasons. The fragrance limit and an unconfirmed weight
+     both block checkout, so whichever renders last must not re-enable the
+     button the other just disabled. */
+  const blockedByWeight = cartWeightReviewItems().length > 0;
+  const setBlocked = (blocked) => {
+    if (!btn) return;
+    btn.disabled = blocked;
+    btn.style.opacity = blocked ? '0.45' : '';
+    btn.style.cursor = blocked ? 'not-allowed' : '';
+  };
   const state = fragranceLimitState(cart);
   if (!state.count){
     wrap.innerHTML = '';
-    if (btn){ btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; }
+    setBlocked(blockedByWeight);
     return;
   }
   if (state.overLimit){
@@ -6451,7 +6615,7 @@ function renderCartFragranceLimit(){
         </div>
       </div>
     </div>`;
-    if (btn){ btn.disabled = true; btn.style.opacity = '0.45'; btn.style.cursor = 'not-allowed'; }
+    setBlocked(true);
     return;
   }
   wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 flex items-start gap-3" style="background:#FFF4D6; border:1px solid #E8C877">
@@ -6460,7 +6624,7 @@ function renderCartFragranceLimit(){
       <b>${state.count} de ${state.limit} perfumes</b> en este envío. Nuestro courier permite hasta ${state.limit} por paquete.
     </div>
   </div>`;
-  if (btn){ btn.disabled = false; btn.style.opacity = ''; btn.style.cursor = ''; }
+  setBlocked(blockedByWeight);
 }
 
 function renderCartView(){
@@ -6510,6 +6674,7 @@ function renderCartView(){
     : fmtPEN_direct(subtotalPen);
   document.getElementById('cartCheckoutBtn').textContent = `Proceder al pago — ${cart.length} artículo${cart.length === 1 ? '' : 's'}`;
 
+  renderCartWeightReview();
   renderCartFragranceLimit();
 
   renderTaxZoneBar(totals.priceUsd);
@@ -6752,7 +6917,8 @@ function openCrossSellProduct(idx){
 function addCrossSellToCart(idx){
   const it = crossSellItems[idx];
   if (!it) return;
-  addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg, image: it.image || '', selectedSize: '' });
+  addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
+    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' });
   showToast('Agregado al carrito.');
   renderCartView();
 }
@@ -7285,17 +7451,6 @@ async function revalidateSalesInBackground(){
   finally { salesScanInFlight = false; }
 }
 
-async function runSalesScan(){
-  await loadFxRate();
-
-  // 1. Cache first — a visitor should never wait on a full live scrape
-  //    when a real, recent scan already exists.
-  let cached = null;
-  try {
-    const res = await fetch('/.netlify/functions/sales-cache');
-    if (res.ok) cached = await res.json();
-  } catch { /* fall through to a live scan */ }
-
 /* A published deal carries the weight the refresh script computed WHEN IT
    RAN, which can be older than the estimator now in the page. Reported
    2026-09-19 with a photo of the live feed: "Nike Air Max 95 - Women's"
@@ -7309,11 +7464,46 @@ async function runSalesScan(){
 function refreshCachedWeight(p){
   if (!p || p.weightEstimated === false) return p;
   const detail = estimateRetailWeightDetail(p.title || '');
-  return { ...p, weightKg: detail.kg, weightEstimated: detail.estimated };
+  return { ...p, weightKg: detail.kg, weightEstimated: detail.estimated,
+    weightSource: detail.source, weightReviewKind: detail.reviewKind,
+    weightNeedsReview: detail.needsReview, weightFlagged: detail.flagged };
 }
 
+/* THE OFERTAS QUALITY GATE (2026-09-20).
+
+   Ofertas is the one surface that PROMOTES a product. Featuring a price
+   built on a weight we do not believe is the expensive mistake, so a
+   flagged item is dropped here — an estimate outside its category's
+   plausible band, or a title with no category row at all.
+
+   Dropped from OFERTAS only. The product stays fully available in
+   search, in its category and in its store; it is just not presented as
+   a deal until the weight is fixed. The refresh scripts print exactly
+   what was dropped and why.
+
+   Freight is NOT a reason to drop any more: a heavy item is listed with
+   a "Flete alto" badge and the real figure. Hiding it was hiding the
+   cost; badging it is the Precio Honesto answer. */
+function passesOfertasWeightGate(p){
+  if (!p) return false;
+  if (p.weightEstimated === false) return true;   // a real retailer weight
+  const detail = estimateRetailWeightDetail(p.title || '');
+  return !detail.flagged;
+}
+
+async function runSalesScan(){
+  await loadFxRate();
+
+  // 1. Cache first — a visitor should never wait on a full live scrape
+  //    when a real, recent scan already exists.
+  let cached = null;
+  try {
+    const res = await fetch('/.netlify/functions/sales-cache');
+    if (res.ok) cached = await res.json();
+  } catch { /* fall through to a live scan */ }
+
   if (cached?.items?.length){
-    saleItemsCache = cached.items.map(refreshCachedWeight);
+    saleItemsCache = cached.items.map(refreshCachedWeight).filter(passesOfertasWeightGate);
     salesGeneratedAt = cached.generatedAt;
     renderSalesGrid();
     if (cached.stale) revalidateSalesInBackground();
@@ -7326,7 +7516,7 @@ function refreshCachedWeight(p){
   showSalesColdLoading();
   try {
     const items = await liveSalesScan();
-    saleItemsCache = items.map(refreshCachedWeight);
+    saleItemsCache = items.map(refreshCachedWeight).filter(passesOfertasWeightGate);
     salesGeneratedAt = items.length ? new Date().toISOString() : null;
     stopSalesColdLoading();
     renderSalesGrid();
@@ -7398,12 +7588,24 @@ function productCardHTML(p, opts){
      should be heavy. If one ever slips through — an old cache entry, a
      changed threshold — the card must NOT print a discount percentage
      that freight wipes out. It shows "Flete alto" instead, with the real
-     freight, so the number the customer sees is never a lie. */
+     freight, so the number the customer sees is never a lie.
+
+     2026-09-20: this is no longer a last line of defence, it is the
+     rule. Heavy items are not suppressed any more — they are listed and
+     badged, so the buyer decides with the real figure in front of them
+     rather than never seeing the product. */
   const weightKg = Number(p.weightKg);
   const price = Number(p.price);
   const hasPrice = Number.isFinite(price) && price > 0;
   const freight = Number.isFinite(weightKg) && weightKg > 0 ? freightUsd(weightKg) : null;
-  const freightHeavy = freight != null && hasPrice && freightSharePct(weightKg, price) > MAX_FREIGHT_SHARE;
+  const freightHeavy = freight != null && hasPrice && freightSharePct(weightKg, price) > FREIGHT_BADGE_SHARE;
+  /* FAIL CLOSED. A weight outside its category's plausible band is not a
+     number to build a price on, in either direction — a projector at
+     0.065 kg and a men's sneaker at 1.94 kg are both wrong, and both used
+     to be printed as freight. The card says the freight is being
+     confirmed instead of showing a figure nobody believes. */
+  const weightUnderReview = p.weightNeedsReview === true
+    || (p.weightNeedsReview === undefined && estimateRetailWeightDetail(p.title || '').needsReview);
   // A struck-through original only when there is a real one above the
   // current price — auto parts carry no originalPrice at all.
   const original = Number(p.originalPrice);
@@ -7435,7 +7637,9 @@ function productCardHTML(p, opts){
       ${hasPrice ? taxIncludedNoteHTML(price, 'text-[11px] -mt-1 mb-1') : ''}
       ${weightLabelHTML(p.title, 'text-[11.5px] mb-1 font-semibold')}
       ${opts.extraHTML || ''}
-      ${freight != null ? `<div class="text-[11.5px] mb-1" style="color:${freightHeavy ? '#8A6B1F' : '#7A8296'}">
+      ${weightUnderReview
+        ? `<div class="text-[11.5px] mb-1 font-semibold" style="color:#8A6B1F">Flete por confirmar — lo cotizamos antes de que pagues</div>`
+        : freight != null ? `<div class="text-[11.5px] mb-1" style="color:${freightHeavy ? '#8A6B1F' : '#7A8296'}">
         + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}

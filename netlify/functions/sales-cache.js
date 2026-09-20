@@ -52,12 +52,15 @@ const TTL_MS = 6 * 60 * 60 * 1000; // 6h — deals move, but not minute to minut
 // one: Foot Locker really did return a $200 -> $199.99 "deal", which
 // rendered as a -0% badge.
 const MIN_DISCOUNT_PCT = 5;
-// A markdown is not a deal if freight eats a third of the price again.
-// Mirrors MAX_FREIGHT_SHARE in scripts/lib/item-weight.js. Enforced here
-// too so a heavy item can never re-enter through the cache. Only the
-// PUBLIC charged rate appears here — internal cost/margin never do.
+/* FREIGHT IS DISCLOSED, NOT SUPPRESSED (2026-09-20, policy change).
+   This used to drop any item whose freight exceeded 30% of its price, so
+   a heavy item could not re-enter through the cache. It is now badged
+   instead: the card says "Flete alto" and shows the real figure, and the
+   buyer decides. Mirrors FREIGHT_BADGE_SHARE in
+   scripts/lib/item-weight.js. Only the PUBLIC charged rate appears here —
+   internal cost/margin never do. */
 const CHARGE_PER_KG_USD = 13;
-const MAX_FREIGHT_SHARE = 0.30;
+const FREIGHT_BADGE_SHARE = 0.50;
 const MAX_ITEMS = 120;
 const MAX_TITLE = 300;
 const MAX_URL = 1000;
@@ -114,13 +117,16 @@ export function sanitizeItem(raw) {
     ? Math.round(weightNum * 1000) / 1000
     : null;
 
-  // Freight gate, recomputed rather than trusted: a posted freightUsd
-  // could be anything. An item with no usable weight is NOT assumed light
-  // — it is rejected, because an unknown weight is exactly how a 40kg TV
-  // stand got promoted as a bargain in the first place.
+  /* Recomputed rather than trusted: a posted freightUsd could be
+     anything. An item with no usable weight is still REJECTED — an
+     unknown weight is exactly how a 40kg TV stand got promoted as a
+     bargain — and so is one the publisher itself marked for review. What
+     is no longer rejected is a heavy item with a weight we believe: that
+     gets the badge below and the buyer sees the real number. */
   if (weightKg == null) return null;
+  if (raw.weightFlagged === true || raw.weightReviewKind === "out-of-band" || raw.weightReviewKind === "gap") return null;
   const freight = Math.round(weightKg * CHARGE_PER_KG_USD * 100) / 100;
-  if (freight / price > MAX_FREIGHT_SHARE) return null;
+  const share = freight / price;
 
   const sizes = Array.isArray(raw.sizes)
     ? raw.sizes.map((s) => cleanString(s, 40)).filter(Boolean).slice(0, 40)
@@ -138,7 +144,10 @@ export function sanitizeItem(raw) {
     rating,
     weightKg,
     freightUsd: freight,
-    freightShare: Math.round((freight / price) * 1000) / 1000,
+    freightShare: Math.round(share * 1000) / 1000,
+    freightHigh: share > FREIGHT_BADGE_SHARE,
+    weightSource: cleanString(raw.weightSource, 20),
+    weightReviewKind: cleanString(raw.weightReviewKind, 20),
     sizes,
     image: cleanHttpsUrl(raw.image),
     images,

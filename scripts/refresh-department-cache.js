@@ -324,6 +324,7 @@ async function main() {
      parcel on a real scale. Printing them under "add a category row"
      would bury the genuine gaps under a list of things that are working
      as designed, so they get their own heading and their own count. */
+  const outOfBand = [];
   const gaps = [];
   const beautyEstimates = [];
   for (const bucket of Object.values(out.retailers || {})) {
@@ -332,18 +333,26 @@ async function main() {
         for (const item of dept.items || []) {
           const title = item.name || item.title || "";
           const w = estimateWeightDetail(title);
-          if (!w.flagged) continue;
           const line = `${w.kg}kg  ${title.slice(0, 66)} — ${w.reason}`;
-          (w.source === "beauty" ? beautyEstimates : gaps).push(line);
+          if (w.reviewKind === "out-of-band") outOfBand.push(line);
+          else if (w.reviewKind === "gap") gaps.push(line);
+          else if (w.reviewKind === "calibration") beautyEstimates.push(line);
         }
       }
     }
   }
+  /* Loudest first: an out-of-band weight is not quotable at all — the
+     storefront refuses to price those items until a human fixes them. */
+  if (outOfBand.length) {
+    console.log(`\n  ${outOfBand.length} item(s) OUT OF BAND — not quotable until fixed:`);
+    for (const line of [...new Set(outOfBand)]) console.log(`    ${line}`);
+  }
   if (gaps.length) {
-    console.log(`\n  ${gaps.length} item(s) needed a weight sanity floor — add a category row for these:`);
+    console.log(`\n  ${gaps.length} item(s) with no category row — add one (they quote on the generic estimate and stay out of Ofertas):`);
     for (const line of [...new Set(gaps)]) console.log(`    ${line}`);
-  } else {
-    console.log("\n  weights: every item is within its category bounds");
+  }
+  if (!outOfBand.length && !gaps.length) {
+    console.log("\n  weights: every item is inside its category band");
   }
   const beautyUnique = [...new Set(beautyEstimates)];
   if (beautyUnique.length) {
