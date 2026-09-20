@@ -118,6 +118,19 @@ async function main() {
 
   console.log(`\n${deals.length} deals after variant collapse (${perSource.flat().length} before)`);
 
+  /* WEIGHT SANITY (2026-09-19). A weight that slips through the category
+     tables becomes freight we have quoted and must honour, so nothing
+     implausible is allowed to publish quietly. estimateWeightDetail()
+     already applied the category floor; this prints what it had to
+     correct, so the fix is a real table row rather than a floor. */
+  const flagged = deals.filter((d) => d.weightFlagged);
+  if (flagged.length) {
+    console.log(`\n  ${flagged.length} deal(s) needed a weight sanity floor — add a category row for these:`);
+    for (const d of flagged) console.log(`    ${d.weightKg}kg  ${d.title.slice(0, 66)}\n      ${d.weightFlagReason}`);
+  } else {
+    console.log("  weights: all within their category bounds");
+  }
+
   // Never replace a good cache with nothing. An empty result is
   // indistinguishable from "every source failed", and publishing it would
   // blank the page for six hours.

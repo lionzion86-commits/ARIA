@@ -39,6 +39,14 @@ export function withBuffer(kg, tier) {
   return Math.round(kg * CONFIDENCE_BUFFER[tier] * 100) / 100;
 }
 
+/* Words that look like a big appliance but are not: windshield washer
+   fluid is not a washing machine, a hair dryer is not a tumble dryer.
+   Caught by test-weight-bounds: a hair dryer matched the appliance row
+   and came out at 121.5 kg — $1,580 of freight quoted on a $40 item.
+   Guards both the estimate row below and the sanity bound further down. */
+const APPLIANCE_IMPOSTOR_RE =
+  /\b(washer\s*fluid|windshield\s*washer|windscreen\s*washer|washer\s*(?:nozzle|pump|hose)|rubber\s*washers?|hair\s*dryer|blow\s*dryer|dryer\s*(?:sheets?|balls?|vent))\b/i;
+
 // Checked BEFORE the general table and before the TV branch, because
 // "TV Stand" is furniture, not a television.
 export const BULKY_WEIGHT_ESTIMATES_KG = [
@@ -48,7 +56,7 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 60 },
   { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 55 },
   { match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym)\b/i, kg: 90 },
-  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, kg: 90 },
+  { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, not: APPLIANCE_IMPOSTOR_RE, kg: 90 },
   { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 40 },
   { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 35 },
   { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 30 },
@@ -60,16 +68,280 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(rug|carpet|area rug)\b/i, kg: 16 },
   { match: /\b(vacuum|stroller|car seat)\b/i, kg: 12 },
   { match: /\b(suitcase|luggage)\b/i, kg: 6 },
+
+  /* SPORTING AND OUTDOOR GOODS (2026-09-19).
+     Reported: a 12x6ft soccer goal was quoting 1.08 kg of freight — the
+     generic fallback (0.8 x the reasoned buffer), because nothing in any
+     table matched "Soccer Goal". It was not a bad parse from the
+     title-weight change: the same title resolved to the same 1.08 kg
+     before that change landed, it simply had no category to land in.
+     These are the bulky sports categories a general retailer actually
+     sells, with the same conservative bias as everything above. */
+  { match: /\b(trampoline)\b/i, kg: 45 },
+  { match: /\b(swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, kg: 55 },
+  { match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, kg: 45 },
+  { match: /\b(basketball (hoop|system|goal)|backboard)\b/i, kg: 40 },
+  { match: /\b(punching bag|heavy bag|boxing bag)\b/i, kg: 35 },
+  { match: /\b(lawn ?mower|snow blower)\b/i, kg: 35 },
+  { match: /\b(kayak|canoe|paddle ?board)\b/i, kg: 25 },
+  { match: /\b(canopy|gazebo|pergola|car ?port)\b/i, kg: 25 },
+  { match: /\b(wheelbarrow)\b/i, kg: 20 },
+  { match: /\b(weight set|barbell|kettlebell|dumbbell|weight plates?)\b/i, kg: 20 },
+  { match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle)\b/i, kg: 16 },
+  { match: /\b(above ?ground pool|swimming pool|inflatable pool|pool set)\b/i, kg: 15 },
+  { match: /\b(step ladder|extension ladder)\b/i, kg: 12 },
+  { match: /\b(hitting mat|golf mat|putting green|golf net|batting cage)\b/i, kg: 12 },
+  { match: /\b(garden cart|utility wagon|folding wagon)\b/i, kg: 12 },
+  { match: /\b(kick ?scooter|electric scooter)\b/i, kg: 10 },
+  { match: /\b(rebounder)\b/i, kg: 10 },
+  { match: /\b(cornhole|picnic table|park bench|garden bench|sandbox|see ?saw)\b/i, kg: 13 },
+  // Both flagged by the bounds on the first audit run, so they got real
+  // rows rather than sitting on the floor the bound gave them.
+  { match: /\b(projector screen|movie screen)\b/i, kg: 12 },
+  { match: /\b(car cover|vehicle cover)\b/i, kg: 5 },
+  { match: /\b(tent)\b/i, kg: 8 },
+  // Long but genuinely light — they state feet and weigh almost nothing,
+  // which is why they also need a bound of their own below.
+  { match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b/i, kg: 2 },
 ];
+
+/* A goal is the one sports category where the title reliably states the
+   size, and size is most of the weight: a 4ft training goal is a bag of
+   plastic tube, a 12ft one is a steel-framed pallet. Read like
+   tvWeightKg() does, and checked before the table above. */
+export const GOAL_RE = /\b(?:soccer|football|f[uú]tbol|hockey|lacrosse)\s+goals?\b|\bgoals?\s+(?:net|post)s?\b|\bportable\s+goals?\b/i;
+
+/** The largest dimension a title states in feet, or null. */
+export function largestFeet(title) {
+  const t = String(title || "");
+  let max = 0;
+  /* "8' x 5' x 2.7'", "6 ft", "12 feet" — but NOT inches. A single
+     apostrophe is feet; a doubled one is inches, and reading 28.5'' as
+     28 feet is how a basketball came out needing a pallet. */
+  /* The leading character is matched and rejected rather than using a
+     lookbehind, which Safari only learned in 16.4 — a regex literal the
+     browser cannot parse takes the whole page script down with it.
+     It exists to stop "BEST 24/7 Foot Care" reading as 7 feet. */
+  const unit = /(^|[^\d/.,-])(\d+(?:\.\d+)?)\s*(?:'(?!')|ft\b|feet\b|foot\b)/gi;
+  let m;
+  while ((m = unit.exec(t))) max = Math.max(max, parseFloat(m[2]));
+  // "12 x 6FT" — only the last number carries the unit, but both are feet.
+  const pair = /(\d+(?:\.\d+)?)\s*[x\u00d7*]\s*(\d+(?:\.\d+)?)\s*(?:'(?!')|ft\b|feet\b|foot\b)/i.exec(t);
+  if (pair) max = Math.max(max, parseFloat(pair[1]), parseFloat(pair[2]));
+  return max > 0 ? max : null;
+}
+
+export function goalWeightKg(title) {
+  const t = String(title || "");
+  if (!GOAL_RE.test(t)) return null;
+  const ft = largestFeet(t);
+  const kg = ft == null ? 14 : ft <= 4 ? 5 : ft <= 6 ? 8 : ft <= 8 ? 13 : ft <= 12 ? 20 : 28;
+  return withBuffer(kg, "reasoned");
+}
 
 /**
  * Bulky-category weight for a title, or null when nothing matches.
  * Callers fall through to their own general table.
  */
+/* FOOTWEAR, BY WHAT IS ACTUALLY IN THE BOX (2026-09-19).
+
+   Reported twice. First: "New Balance 204L" and "Jordan AJ 1 Retro High"
+   both quoting 1.08 kg — the generic fallback, because the table only
+   knew the words sneaker/shoe/boot and a listing rarely uses them. Then:
+   every shoe quoting the SAME weight, which is the same complaint one
+   level up. A toddler sneaker and a men's work boot are not one number.
+
+   HONESTY ABOUT WHERE THESE COME FROM: they are reasoned figures —
+   typical pair masses and the retail shoebox each size actually ships
+   in — not sourced measurements, and they carry the 'reasoned' buffer
+   accordingly. A per-SKU weight from a retailer feed should replace all
+   of it, and specWeightKg() already prefers one when a scrape has it.
+
+   What actually decides the quote is the second number, not the first: a
+   shoebox is mostly air, so its volumetric weight (L*W*H / 5000, the
+   standard air divisor) exceeds the pair's mass in every row below, and
+   the volumetric figure is what the courier bills us. That is why a
+   toddler shoe lands at 0.72 kg and a men's boot at 2.76 kg. */
+export const FOOTWEAR_TIERS = [
+  // Size wins over style: a kids' boot ships in a kids' box.
+  { key: "bebé",        match: /\b(baby|infant|newborn|crib shoe)\b/i,                        kg: 0.15, boxCm: [20, 13, 9] },
+  { key: "toddler",     match: /\b(toddler|little kids?)\b/i,                                 kg: 0.3,  boxCm: [24, 15, 10] },
+  { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55, boxCm: [28, 18, 11] },
+  { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2,  boxCm: [33, 22, 14] },
+  { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6,  boxCm: [36, 24, 16] },
+  /* Sandals ship in a polybag, not a shoebox, so the shoebox volumetric
+     does not apply — the shipped weight is stated outright instead of
+     derived. 0.40-0.50 kg is what they actually weigh packed; 0.60 is
+     that with the conservative margin, and it replaced a 1.14 kg
+     shoebox figure that was quoting S/ 52 of freight on S/ 60 sandals. */
+  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, boxCm: [30, 19, 10], shippedKg: 0.6 },
+  { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4,  boxCm: [30, 19, 11] },
+  { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5,  boxCm: [30, 19, 12] },
+  { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55, boxCm: [32, 20, 12] },
+  { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65, boxCm: [31, 20, 12] },
+  { key: "hombre",      match: /\b(men'?s?|mens|hombre)\b/i,                                  kg: 0.9,  boxCm: [34, 22, 13] },
+];
+// No size and no style stated — the middle of the range, not a guess at
+// the small end, because under-quoting is money off our own margin.
+export const FOOTWEAR_DEFAULT = { key: "calzado", kg: 0.8, boxCm: [33, 21, 12] };
+
+/* A listing is footwear if it names a shoe, or names a shoe brand or a
+   shoe model — Foot Locker's catalogue is model names and almost never
+   the word "shoe". */
+export const FOOTWEAR_NOUN_RE =
+  /\b(sneakers?|trainers?|shoes?|boots?(?!\s*cut)|loafers?|moc toe|slip[- ]ons?|sandals?|flip[- ]?flops?|clogs?|slippers?|cleats?|zapatillas|zapatos)\b/i;
+export const FOOTWEAR_BRAND_RE =
+  /\b(nike|jordan|adidas|new balance|puma|reebok|converse|vans|asics|crocs|ugg|timberland|brooks|hoka|saucony|fila|skechers|birkenstock|florsheim|dr\.? martens)\b/i;
+export const FOOTWEAR_MODEL_RE =
+  /\b(air force|air max|air jordan|dunk low|dunk high|\bdunk\b|samba|gazelle|superstar|stan smith|forum low|blazer|pegasus|ultraboost|nmd|chuck taylor|all star|old skool|sk8-hi|classic clog|tasman|retro (?:high|low|mid)|\b(?:530|550|574|990|993|9060|2002r|204l|327)\b)/i;
+/* Same brand, different product: clothing, accessories, and the things
+   sold NEXT to shoes (racks, cleaners, insoles) are not shoes. */
+export const FOOTWEAR_NOT_RE =
+  /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|laces?|insoles?|cleaner|polish|shoe ?care|shoe ?rack|shoe ?box|organizer|deodorizer|water bottle)\b/i;
+
+export function footwearTierFor(title) {
+  const t = String(title || "");
+  if (FOOTWEAR_NOT_RE.test(t)) return null;
+  if (!FOOTWEAR_NOUN_RE.test(t) && !FOOTWEAR_BRAND_RE.test(t) && !FOOTWEAR_MODEL_RE.test(t)) return null;
+  return FOOTWEAR_TIERS.find((x) => x.match.test(t)) || FOOTWEAR_DEFAULT;
+}
+
+export function footwearWeightKg(title) {
+  const tier = footwearTierFor(title);
+  if (!tier) return null;
+  // A tier that states its shipped weight (soft packs, where the shoebox
+  // volumetric is simply wrong) is taken at its word.
+  if (tier.shippedKg != null) return tier.shippedKg;
+  const mass = withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
+  const volumetric = dimensionalWeightKg(...tier.boxCm);
+  return Math.round(Math.max(mass, volumetric) * 100) / 100;
+}
+
+/* BALLS (2026-09-19, reported).
+
+   A Rawlings Official League baseball was quoting 1.08 kg — seven times
+   what a baseball weighs (145 g). The first fix put every ball in one
+   0.25 kg row, which is better but still guesses: a golf ball and a
+   basketball are not the same parcel, and a 12-count is not a 1-count.
+
+   So: the ball's REAL mass, times the count the title states, against the
+   box that actually gets billed. These masses are regulation figures, not
+   estimates, so they take the 'cited' buffer. The box matters because a
+   ball is light for its volume — a single boxed baseball bills at ~0.27 kg
+   volumetric even though it weighs 0.145 kg, and that, not the mass, is
+   what the courier charges for. Never the 1.08 kg fallback either way. */
+export const BALL_SPECS = [
+  { match: /\bbaseballs?\b/i, kg: 0.145, boxCm: [11, 11, 11] },
+  { match: /\bsoftballs?\b/i, kg: 0.19, boxCm: [13, 13, 13] },
+  { match: /\btennis balls?\b/i, kg: 0.058, boxCm: [8, 8, 8] },
+  { match: /\bgolf balls?\b/i, kg: 0.046, boxCm: [5, 5, 5] },
+  { match: /\bpickleballs?\b/i, kg: 0.024, boxCm: [8, 8, 8] },
+  { match: /\bbasketballs?\b/i, kg: 0.62, boxCm: [25, 25, 25] },
+  { match: /\b(?:soccer|f[uú]tbol)\s*balls?\b/i, kg: 0.43, boxCm: [23, 23, 23] },
+  { match: /\bvolleyballs?\b/i, kg: 0.27, boxCm: [22, 22, 22] },
+];
+
+export function ballWeightKg(title) {
+  const t = String(title || "");
+  const hit = BALL_SPECS.find((b) => b.match.test(t));
+  if (!hit) return null;
+  const packs = titlePackCount(t);
+  const net = withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
+  // The box scales with the count; the courier bills whichever is larger.
+  const volumetric = dimensionalWeightKg(...hit.boxCm) * packs;
+  return Math.round(Math.max(net, volumetric) * 100) / 100;
+}
+
 export function bulkyWeightKg(text) {
   const t = String(text || "");
-  const hit = BULKY_WEIGHT_ESTIMATES_KG.find((p) => p.match.test(t));
+  const goal = goalWeightKg(t);
+  if (goal != null) return goal;
+  const hit = BULKY_WEIGHT_ESTIMATES_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t)));
   return hit ? withBuffer(hit.kg, "reasoned") : null;
+}
+
+/* ============================================================
+   SANITY BOUNDS (2026-09-19) — the tripwire under every estimate.
+
+   The tables above only help for a title they recognise. The soccer goal
+   showed what happens when one slips past: it published at 1.08 kg, the
+   generic fallback, and we would have honoured $14 of freight on a
+   pallet. These bounds are deliberately BROADER than the estimate table —
+   they match the kind of thing being sold, not a specific product — so an
+   unrecognised title still cannot publish an implausible weight.
+
+   A weight under its floor is NOT silently corrected and forgotten: the
+   floor is applied (we must quote something, and under-quoting is money
+   off our own margin) AND the item is flagged, so the refresh scripts can
+   print it and a human can add a real category row.
+   ============================================================ */
+export const MIN_PUBLISHABLE_KG = 0.01;
+
+/* A cable "for TV" is not a TV. Shared with sales-sources.js, which uses
+   it for the same reason in its own TV branch. */
+export const TV_ACCESSORY_RE =
+  /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
+
+/* Long, and light. These state a length in feet because that is what the
+   customer buys them by, and it says nothing about bulk — a 4ft HDMI
+   cable is not a 4-foot object in the freight sense. Without this the
+   catch-all bound below floored a cable to 4 kg, which is $52 of freight
+   on a $20 item: over-quoting loses the sale just as surely as
+   under-quoting loses the margin. */
+const LONG_BUT_LIGHT_RE =
+  /\b(cable|cord|hose|rope|twine|tape|wire|chain|leash|strap|lanyard|ribbon|garland|banner|streamer|string lights?|extension|charger|socks?|sleeve|bandage|wrap)\b/i;
+
+
+export const WEIGHT_SANITY_BOUNDS = [
+  { key: "goal", match: GOAL_RE, minKg: 3 },
+  { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20 },
+  { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15 },
+  { key: "aro de básquet", match: /\b(basketball (hoop|system|goal)|backboard)\b/i, minKg: 10 },
+  { key: "equipo de gimnasio", match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym|punching bag|heavy bag|weight set|barbell|kettlebell|weight plates?)\b/i, minKg: 10 },
+  { key: "electrodoméstico grande",
+    test: (t) => /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove|air conditioner|dehumidifier|lawn ?mower|snow blower)\b/i.test(t)
+      && !APPLIANCE_IMPOSTOR_RE.test(t),
+    minKg: 8 },
+  { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8 },
+  { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6 },
+  { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6 },
+  { key: "calzado", match: FOOTWEAR_NOUN_RE, minKg: 0.4 },  // a baby shoe box is ~0.47 kg volumetric; "Boot Cut Jeans" is excluded by the regex itself
+  { key: "televisor",
+    test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t)),
+    minKg: 4 },
+  /* Long AND light: these state their length in feet but are nylon and
+     air. Named before the catch-all so it never floors them to 4 kg. */
+  { key: "accesorio plegable", match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b|\b(jump rope|yoga mat|resistance bands?|slip ?n ?slide)\b/i, minKg: 0.3 },
+  /* The catch-all, and the one that would have caught the soccer goal
+     even with no sports category at all: a title that states a dimension
+     of several FEET is not describing something that weighs a kilo. Runs
+     last, so a named category's own floor always wins. */
+  { key: "artículo de gran tamaño",
+    test: (t) => (largestFeet(t) || 0) >= 4 && !LONG_BUT_LIGHT_RE.test(t),
+    minKg: 4 },
+];
+
+/**
+ * Is this weight plausible for what the title is selling?
+ *
+ * Returns { ok, kg, key, minKg, reason }. `kg` is always the weight to
+ * USE: the input when it is fine, the category floor when it is not.
+ */
+export function weightSanity(title, kg) {
+  const t = String(title || "");
+  const bound = WEIGHT_SANITY_BOUNDS.find((b) => (b.match ? b.match.test(t) : b.test(t)));
+  const n = Number(kg);
+
+  if (!Number.isFinite(n) || n <= 0) {
+    const floor = bound ? bound.minKg : MIN_PUBLISHABLE_KG;
+    return { ok: false, kg: floor, key: bound ? bound.key : "sin categoría", minKg: floor,
+      reason: `peso ausente o cero (${kg}) — no se publica un peso de 0 kg` };
+  }
+  if (bound && n < bound.minKg) {
+    return { ok: false, kg: bound.minKg, key: bound.key, minKg: bound.minKg,
+      reason: `${n} kg es implausible para "${bound.key}" (mínimo ${bound.minKg} kg)` };
+  }
+  return { ok: true, kg: n, key: bound ? bound.key : null, minKg: bound ? bound.minKg : null, reason: null };
 }
 
 /**
@@ -188,8 +460,8 @@ export const MAX_TITLE_WEIGHT_KG = 25;
 // "(4 pack)", "4-pack", "pack of 4", "paquete de 4" — a real multiplier of
 // what is in the box. Capped, because "100 pack" of anything heavy is a
 // number to distrust rather than to bill.
-const MAX_PACK_COUNT = 24;
-function titlePackCount(text) {
+export const MAX_PACK_COUNT = 24;
+export function titlePackCount(text) {
   const m = /\(?\b(\d{1,2})\s*[- ]?\s*(?:pack|pk|count|ct|unidades|piezas)\b/i.exec(text)
     || /\b(?:pack|paquete) of\s*(\d{1,2})\b/i.exec(text)
     || /\bpaquete de\s*(\d{1,2})\b/i.exec(text);
