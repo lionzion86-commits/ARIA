@@ -4898,15 +4898,22 @@ function bulkyWeightKg(text){
   return hit ? withBuffer(hit.kg, 'reasoned') : null;
 }
 
-/* FREIGHT IS DISCLOSED, NOT SUPPRESSED (2026-09-20, policy change). This
-   was a suppression threshold — a deal whose freight exceeded 30% of its
-   price never reached Ofertas. It is a BADGE threshold now, at 50%: the
-   item stays listed, the card says "Flete alto" and shows the real
-   figure, and the buyer decides with their eyes open. Nothing is dropped
-   for being heavy any more; what IS dropped is a weight we do not
-   believe. Mirrors FREIGHT_BADGE_SHARE in scripts/lib/item-weight.js. */
+/* FREIGHT SHARE — TWO LINES, NOT ONE (2026-09-20). There used to be a
+   single 30% suppression threshold and a deal over it simply vanished,
+   which hid the cost rather than disclosing it.
+
+     under 50%   an ordinary deal.
+     50%-100%    featured, with a "Flete alto" badge and the real figure.
+     over 100%   freight costs more than the product: still listed,
+                 searchable and badged, but not featurable as a deal.
+
+   The ceiling only decides what Ofertas may FEATURE — it never hides a
+   product and never blocks a purchase. The ambiguous MAX_FREIGHT_SHARE
+   alias is gone: with two thresholds in play, a name that does not say
+   which one it means is how they drift. Mirrors FREIGHT_BADGE_SHARE and
+   FREIGHT_FEATURE_CEILING in scripts/lib/item-weight.js. */
 const FREIGHT_BADGE_SHARE = 0.50;
-const MAX_FREIGHT_SHARE = FREIGHT_BADGE_SHARE;
+const FREIGHT_FEATURE_CEILING = 1.00;
 
 function freightUsd(weightKg){
   const kg = Number(weightKg);
@@ -7469,26 +7476,42 @@ function refreshCachedWeight(p){
     weightNeedsReview: detail.needsReview, weightFlagged: detail.flagged };
 }
 
-/* THE OFERTAS QUALITY GATE (2026-09-20).
+/* THE OFERTAS GATE (2026-09-20).
 
-   Ofertas is the one surface that PROMOTES a product. Featuring a price
-   built on a weight we do not believe is the expensive mistake, so a
-   flagged item is dropped here — an estimate outside its category's
-   plausible band, or a title with no category row at all.
+   Ofertas is the one surface that PROMOTES a product, so two things stop
+   an item being FEATURED here. Neither hides it: everything rejected
+   below stays fully available in search, in its category and in its
+   store, freight and all, and the card badges it honestly. The refresh
+   scripts print exactly what was dropped and why.
 
-   Dropped from OFERTAS only. The product stays fully available in
-   search, in its category and in its store; it is just not presented as
-   a deal until the weight is fixed. The refresh scripts print exactly
-   what was dropped and why.
+   The two rules are kept as separate named functions on purpose — they
+   fail for different reasons and a reviewer should be able to tell which
+   one fired. */
 
-   Freight is NOT a reason to drop any more: a heavy item is listed with
-   a "Flete alto" badge and the real figure. Hiding it was hiding the
-   cost; badging it is the Precio Honesto answer. */
+/* 1. A WEIGHT WE DO NOT BELIEVE: an estimate outside its category's
+      plausible band, or a title with no category row at all. Promoting a
+      price built on one is the expensive mistake. */
 function passesOfertasWeightGate(p){
   if (!p) return false;
   if (p.weightEstimated === false) return true;   // a real retailer weight
   const detail = estimateRetailWeightDetail(p.title || '');
   return !detail.flagged;
+}
+
+/* 2. FREIGHT ABOVE THE PRODUCT'S OWN PRICE. Between 50% and 100% the item
+      is featured and badged — the shopper can weigh that against the real
+      figure themselves. Past 100% there is no reading under which "deal"
+      is honest: getting it here costs more than the thing itself. */
+function passesOfertasFreightCeiling(p){
+  if (!p) return false;
+  const kg = Number(p.weightKg);
+  const price = Number(p.price);
+  if (!(Number.isFinite(kg) && kg > 0) || !(Number.isFinite(price) && price > 0)) return true;
+  return freightSharePct(kg, price) <= FREIGHT_FEATURE_CEILING;
+}
+
+function passesOfertasGate(p){
+  return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p);
 }
 
 async function runSalesScan(){
@@ -7503,7 +7526,7 @@ async function runSalesScan(){
   } catch { /* fall through to a live scan */ }
 
   if (cached?.items?.length){
-    saleItemsCache = cached.items.map(refreshCachedWeight).filter(passesOfertasWeightGate);
+    saleItemsCache = cached.items.map(refreshCachedWeight).filter(passesOfertasGate);
     salesGeneratedAt = cached.generatedAt;
     renderSalesGrid();
     if (cached.stale) revalidateSalesInBackground();
@@ -7516,7 +7539,7 @@ async function runSalesScan(){
   showSalesColdLoading();
   try {
     const items = await liveSalesScan();
-    saleItemsCache = items.map(refreshCachedWeight).filter(passesOfertasWeightGate);
+    saleItemsCache = items.map(refreshCachedWeight).filter(passesOfertasGate);
     salesGeneratedAt = items.length ? new Date().toISOString() : null;
     stopSalesColdLoading();
     renderSalesGrid();
@@ -7584,8 +7607,8 @@ function productCardHTML(p, opts){
   const hasRating = Number.isFinite(rating) && rating > 0;
 
   /* LAST LINE OF DEFENCE. The refresh script and the cache sanitizer both
-     drop deals whose freight exceeds MAX_FREIGHT_SHARE, so nothing here
-     should be heavy. If one ever slips through — an old cache entry, a
+     drop deals whose freight exceeds the product's own price, so nothing
+     here should be that heavy. If one ever slips through — an old cache entry, a
      changed threshold — the card must NOT print a discount percentage
      that freight wipes out. It shows "Flete alto" instead, with the real
      freight, so the number the customer sees is never a lie.

@@ -37,7 +37,7 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  titleWeight, FREIGHT_BADGE_SHARE, weightSanity, footwearWeightKg, ballWeightKg,
+  titleWeight, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 
@@ -298,23 +298,31 @@ export function normalizeDeal(item, retailer) {
 
   /* WHAT KEEPS AN ITEM OUT OF OFERTAS (2026-09-20).
 
-     Not freight any more. A heavy-freight item stays listed and wears a
-     "Flete alto" badge — the buyer decides with the real number in front
-     of them, which is the whole Precio Honesto argument. Suppressing it
-     hid the cost rather than disclosing it.
+     Two things, and neither of them hides the product — both only decide
+     what Ofertas may FEATURE. Everything rejected here stays fully
+     available in search, in its category and in its store, freight and
+     all; it is simply not presented as a deal.
 
-     What DOES keep an item out is a weight we do not believe: an
-     estimate outside its category's plausible band, or a title with no
-     category row at all. Ofertas is the one surface that PROMOTES a
-     product, and promoting a price we cannot stand behind is the
-     expensive mistake. Those items stay fully available in search and in
-     their category — they are simply not featured as deals until the
-     weight is fixed. */
+     1. A WEIGHT WE DO NOT BELIEVE — an estimate outside its category's
+        plausible band, or a title with no category row at all. Ofertas
+        promotes a product, and promoting a price we cannot stand behind
+        is the expensive mistake.
+
+     2. FREIGHT ABOVE THE PRODUCT'S OWN PRICE. Between 50% and 100% the
+        item is featured and badged, because the shopper can weigh that
+        for themselves against the real figure. Past 100% there is no
+        reading under which "deal" is honest: getting it here costs more
+        than the thing. Badged everywhere else, never featured here.
+
+     Freight below the ceiling is never a reason to drop anything. The old
+     30% rule did, and hiding the cost is the opposite of the argument
+     this shop is built on. */
   const weight = estimateWeightDetail(title);
   if (weight.flagged) return null;
   const weightKg = weight.kg;
   const freight = freightUsd(weightKg, CHARGE_PER_KG_USD);
   const share = freightShare(weightKg, price, CHARGE_PER_KG_USD);
+  if (share > FREIGHT_FEATURE_CEILING) return null;
 
   return {
     retailer,
@@ -331,8 +339,9 @@ export function normalizeDeal(item, retailer) {
     weightReviewKind: weight.reviewKind,
     freightUsd: freight,
     freightShare: Math.round(share * 1000) / 1000,
-    // Listed, not hidden — the card badges it so the discount is never
-    // printed as if the freight were not there.
+    // Featured, not hidden — the card badges it so the discount is never
+    // printed as if the freight were not there. Anything past the
+    // ceiling never reaches this object at all.
     freightHigh: share > FREIGHT_BADGE_SHARE,
     sizes,
     image: images[0] || null,

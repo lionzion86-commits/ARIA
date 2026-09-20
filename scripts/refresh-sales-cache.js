@@ -34,7 +34,7 @@ import {
   normalizeDeal,
   collapseVariants,
 } from "./lib/sales-sources.js";
-import { FREIGHT_BADGE_SHARE } from "./lib/item-weight.js";
+import { FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING } from "./lib/item-weight.js";
 
 const SITE = (process.env.SITE || "https://ariashop.pe").replace(/\/$/, "");
 const TOKEN = (process.env.SALES_REFRESH_TOKEN || "").trim();
@@ -132,8 +132,9 @@ async function main() {
   const beautyEstimated = deals.filter((d) => d.weightSource === "beauty");
   const heavy = deals.filter((d) => d.freightHigh);
   console.log(`  weights: every published deal is inside its category band`);
+  console.log(`  freight: nothing over ${Math.round(FREIGHT_FEATURE_CEILING * 100)}% of price is featured (still listed and badged everywhere else)`);
   if (heavy.length) {
-    console.log(`  ${heavy.length} deal(s) carry a "Flete alto" badge (freight over ${Math.round(FREIGHT_BADGE_SHARE * 100)}% of price) — listed, not hidden`);
+    console.log(`  ${heavy.length} deal(s) carry a "Flete alto" badge (freight over ${Math.round(FREIGHT_BADGE_SHARE * 100)}% of price) — featured, not hidden`);
   }
   if (beautyEstimated.length) {
     console.log(`\n  ${beautyEstimated.length} beauty deal(s) on estimated weights — calibrate against the first real order:`);

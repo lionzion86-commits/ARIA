@@ -466,23 +466,31 @@ export function freightUsd(weightKg, chargePerKg) {
   return Math.round(kg * rate * 100) / 100;
 }
 
-/* FREIGHT SHARE — WHAT IT NOW MEANS (2026-09-20, policy change).
+/* FREIGHT SHARE — TWO LINES, NOT ONE (2026-09-20).
 
-   This used to be a SUPPRESSION threshold: any deal whose freight
-   exceeded 30% of its price was dropped from Ofertas outright, on the
-   reasoning that a markdown is not a deal if getting it here costs a
-   third of the price again.
+   There used to be a single 30% SUPPRESSION threshold: a deal whose
+   freight exceeded a third of its price simply vanished from Ofertas.
+   That hid the cost rather than disclosing it, which is the opposite of
+   the argument this shop is built on. It is replaced by two named lines,
+   and the deliberately ambiguous MAX_FREIGHT_SHARE alias is gone with
+   it — with two thresholds in play, a name that does not say which one
+   it means is how they drift apart.
 
-   The instruction now is to let the buyer decide with their eyes open:
-   a heavy-freight item stays listed and wears a "Flete alto" badge
-   instead of disappearing. So the gate is gone and this is a BADGE
-   threshold, raised to 50% because that is the line the brief drew.
-   MAX_FREIGHT_SHARE is kept as an alias so nothing that still imports it
-   silently changes meaning — but nothing suppresses a deal on freight
-   share any more. What DOES still keep an item out of Ofertas is a
-   weight we do not believe (see needsReview / flagged). */
+     under 50%   an ordinary deal. Freight is itemised, as always.
+     50%-100%    FEATURED, with a "Flete alto" badge and the real figure
+                 beside it. The buyer decides with their eyes open.
+     over 100%   freight costs more than the product. Still listed in
+                 search, in its category and in its store, still badged —
+                 but NOT FEATURABLE as a deal. Ofertas is the one surface
+                 that promotes a product, and calling something a bargain
+                 when getting it here costs more than the thing itself is
+                 not a claim we can stand behind.
+
+   The ceiling only decides what Ofertas may FEATURE. It never hides a
+   product and it never blocks a purchase: a shopper who wants the item
+   can find it, see exactly what the freight is, and buy it. */
 export const FREIGHT_BADGE_SHARE = 0.50;
-export const MAX_FREIGHT_SHARE = FREIGHT_BADGE_SHARE;
+export const FREIGHT_FEATURE_CEILING = 1.00;
 
 /** Share of the sale price that freight represents. */
 export function freightShare(weightKg, priceUsd, chargePerKg) {
@@ -496,8 +504,15 @@ export function freightIsHigh(weightKg, priceUsd, chargePerKg) {
   return freightShare(weightKg, priceUsd, chargePerKg) > FREIGHT_BADGE_SHARE;
 }
 
-/** Deprecated name for freightIsHigh — it no longer kills anything. */
-export const freightKillsDeal = freightIsHigh;
+/**
+ * True when freight costs more than the product does.
+ *
+ * The item stays listed and badged everywhere else — this only decides
+ * that Ofertas may not FEATURE it as a deal.
+ */
+export function freightAboveFeatureCeiling(weightKg, priceUsd, chargePerKg) {
+  return freightShare(weightKg, priceUsd, chargePerKg) > FREIGHT_FEATURE_CEILING;
+}
 
 /* ============================================================
    ACTUAL SCALE WEIGHT ONLY (2026-09-20)

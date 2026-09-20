@@ -398,35 +398,80 @@ check("a beauty estimate is still featured", () => {
   eq(d.weightKg, 0.05);
 });
 
-check('heavy freight is badged at 50%, not hidden', () => {
+check("the two freight lines are 50% and 100%, module and page", () => {
   eq(itemWeight.FREIGHT_BADGE_SHARE, 0.5);
-  eq(page.FREIGHT_BADGE_SHARE, 0.5, "page mirror");
-  // A 40kg dresser at $180: freight is ~$700, far over the line.
-  const heavy = deal("6 Drawer Dresser", 180, 320);
-  if (!heavy) throw new Error("a heavy item was suppressed instead of badged");
+  eq(itemWeight.FREIGHT_FEATURE_CEILING, 1.0);
+  eq(page.FREIGHT_BADGE_SHARE, 0.5, "page mirror, badge");
+  eq(page.FREIGHT_FEATURE_CEILING, 1.0, "page mirror, ceiling");
+  // The ambiguous alias is gone: with two thresholds, a name that does
+  // not say which one it means is how they drift apart.
+  const src = stripComments(readFileSync(root("scripts/lib/item-weight.js"), "utf8"));
+  if (/MAX_FREIGHT_SHARE/.test(src)) throw new Error("the ambiguous MAX_FREIGHT_SHARE alias is back");
+});
+
+check("the badge fires strictly above 50%, and nowhere below", () => {
+  // freightShare = kg * $13 / price.
+  const share = (kg, price) => itemWeight.freightIsHigh(kg, price, 13);
+  eq(share(1, 26), false, "exactly 50% — no badge");
+  eq(share(1.01, 26), true, "just over 50%");
+  eq(share(0.5, 26), false, "25%");
+});
+
+check("the feature ceiling fires strictly above 100%, and nowhere below", () => {
+  const over = (kg, price) => itemWeight.freightAboveFeatureCeiling(kg, price, 13);
+  eq(over(1.5, 26), false, "58% — featurable");
+  eq(over(2, 26), false, "exactly 100% — still featurable");
+  eq(over(2.01, 26), true, "just over 100% — not featurable");
+});
+
+check("50-100% is featured AND badged", () => {
+  // A 74 kg dresser at $1,200: ~$965 of freight, 60% of the price.
+  const heavy = deal("6 Drawer Dresser", 1200, 2000);
+  if (!heavy) throw new Error("a heavy item inside the ceiling was suppressed instead of badged");
   eq(heavy.freightHigh, true, "carries the Flete alto badge");
-  // And an ordinary item does not.
+  if (!(heavy.freightShare > 0.5 && heavy.freightShare <= 1)) {
+    throw new Error(`fixture drifted out of the 50-100% band: ${heavy.freightShare}`);
+  }
   const light = deal("Levi's 501 Original Fit Jeans", 60, 100);
   if (!light) throw new Error("an ordinary deal was dropped");
   eq(light.freightHigh, false);
 });
 
-check("the badge threshold is the only freight rule left", () => {
-  const src = stripComments(readFileSync(root("scripts/lib/sales-sources.js"), "utf8"));
-  if (/share > FREIGHT_BADGE_SHARE\) return null/.test(src)) {
-    throw new Error("freight still suppresses a deal");
-  }
+check("over 100% is not featurable as a deal", () => {
+  // The same dresser at $180: ~$965 of freight, five times the price.
+  eq(deal("6 Drawer Dresser", 180, 320), null, "freight over the product's own price");
+  // …and it is the CEILING doing it, not the weight gate: the weight is
+  // believed, and the item is fine at a price that can carry the freight.
+  const d = estimateWeightDetail("6 Drawer Dresser");
+  eq(d.flagged, false, "the weight itself is believed");
+  if (!deal("6 Drawer Dresser", 1200, 2000)) throw new Error("the same product is featurable at a price that carries the freight");
+});
+
+check("an item over the ceiling is still listed everywhere else", () => {
+  // Not featurable is not delisted: it still resolves to a real weight
+  // for search, the category feed and checkout.
+  const r = resolveItemWeight({ title: "6 Drawer Dresser" });
+  if (!(r.weightKg > 0)) throw new Error("the item lost its weight entirely");
+  eq(r.needsReview, false, "and it is perfectly quotable");
+});
+
+check("the cache sanitizer enforces the same ceiling", () => {
   const cache = stripComments(readFileSync(root("netlify/functions/sales-cache.js"), "utf8"));
-  if (/freight \/ price > .*\) return null/.test(cache)) {
-    throw new Error("the cache sanitizer still suppresses on freight share");
+  if (!/share > FREIGHT_FEATURE_CEILING\) return null/.test(cache)) {
+    throw new Error("a heavy item could re-enter Ofertas through the cache");
+  }
+  if (/FREIGHT_BADGE_SHARE\) return null/.test(cache)) {
+    throw new Error("the badge threshold is suppressing items again");
   }
 });
 
-check("the page drops flagged items from the Ofertas feed", () => {
+check("the page applies both Ofertas rules on both load paths", () => {
   const html = readFileSync(root("index.html"), "utf8");
-  if (!/function passesOfertasWeightGate/.test(html)) throw new Error("no client-side Ofertas gate");
-  const uses = (html.match(/\.filter\(passesOfertasWeightGate\)/g) || []).length;
-  if (uses < 2) throw new Error(`the gate is applied ${uses} time(s); both cache and live paths need it`);
+  for (const fn of ["passesOfertasWeightGate", "passesOfertasFreightCeiling", "passesOfertasGate"]) {
+    if (!new RegExp(`function ${fn}`).test(html)) throw new Error(`${fn} is missing`);
+  }
+  const uses = (html.match(/\.filter\(passesOfertasGate\)/g) || []).length;
+  if (uses < 2) throw new Error(`the gate is applied ${uses} time(s); both the cache and the live path need it`);
 });
 
 check("a card with an unconfirmed weight shows no freight figure", () => {

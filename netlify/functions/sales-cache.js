@@ -54,13 +54,17 @@ const TTL_MS = 6 * 60 * 60 * 1000; // 6h — deals move, but not minute to minut
 const MIN_DISCOUNT_PCT = 5;
 /* FREIGHT IS DISCLOSED, NOT SUPPRESSED (2026-09-20, policy change).
    This used to drop any item whose freight exceeded 30% of its price, so
-   a heavy item could not re-enter through the cache. It is now badged
-   instead: the card says "Flete alto" and shows the real figure, and the
-   buyer decides. Mirrors FREIGHT_BADGE_SHARE in
-   scripts/lib/item-weight.js. Only the PUBLIC charged rate appears here —
-   internal cost/margin never do. */
+   a heavy item could not re-enter through the cache. Two named lines now,
+   mirroring scripts/lib/item-weight.js: over 50% the card says "Flete
+   alto" and shows the real figure and the buyer decides; over 100%, where
+   freight costs more than the product, the item is still listed and
+   badged everywhere else but may not be FEATURED as a deal — so the
+   ceiling is enforced here too, and a heavy item cannot re-enter through
+   the cache. Only the PUBLIC charged rate appears here — internal
+   cost/margin never do. */
 const CHARGE_PER_KG_USD = 13;
 const FREIGHT_BADGE_SHARE = 0.50;
+const FREIGHT_FEATURE_CEILING = 1.00;
 const MAX_ITEMS = 120;
 const MAX_TITLE = 300;
 const MAX_URL = 1000;
@@ -121,12 +125,14 @@ export function sanitizeItem(raw) {
      anything. An item with no usable weight is still REJECTED — an
      unknown weight is exactly how a 40kg TV stand got promoted as a
      bargain — and so is one the publisher itself marked for review. What
-     is no longer rejected is a heavy item with a weight we believe: that
-     gets the badge below and the buyer sees the real number. */
+     is no longer rejected is a heavy item with a weight we believe and a
+     freight bill under the product's own price: that gets the badge below
+     and the buyer sees the real number. */
   if (weightKg == null) return null;
   if (raw.weightFlagged === true || raw.weightReviewKind === "out-of-band" || raw.weightReviewKind === "gap") return null;
   const freight = Math.round(weightKg * CHARGE_PER_KG_USD * 100) / 100;
   const share = freight / price;
+  if (share > FREIGHT_FEATURE_CEILING) return null;
 
   const sizes = Array.isArray(raw.sizes)
     ? raw.sizes.map((s) => cleanString(s, 40)).filter(Boolean).slice(0, 40)
