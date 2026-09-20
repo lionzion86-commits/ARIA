@@ -35,6 +35,7 @@ import {
   collapseVariants,
 } from "./lib/sales-sources.js";
 import { FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING } from "./lib/item-weight.js";
+import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
 
 const SITE = (process.env.SITE || "https://ariashop.pe").replace(/\/$/, "");
 const TOKEN = (process.env.SALES_REFRESH_TOKEN || "").trim();
@@ -95,7 +96,42 @@ async function mapWithConcurrency(list, limit, fn) {
   return results;
 }
 
+
+/* ============================================================
+   THE SPEND GUARD (2026-09-20).
+
+   Before this cycle starts a single actor run it projects what the run
+   is about to cost and compares it with the per-cycle budget. Over
+   budget, a non-essential tier SKIPS and says so at the top of the log
+   in a line nobody can miss. Silence is how $88 happens: the incident
+   that put this here was 1,000+ runs that nothing ever announced.
+
+   Tier definitions, run counts and the budget live in
+   scripts/lib/refresh-tiers.js.
+   ============================================================ */
+function guardSpend(tierKey) {
+  const { costPerRun, budgetUsd } = budgetFromEnv();
+  const decision = spendDecision(tierKey, { costPerRun, budgetUsd });
+  const tier = tierFor(tierKey);
+  console.log(
+    `\n  presupuesto: ~${tier?.runs ?? "?"} runs x $${costPerRun} = $${decision.projectedUsd} ` +
+      `(tope por ciclo $${decision.budgetUsd})`,
+  );
+  if (decision.reason) {
+    console.log("\n  ====================================================");
+    console.log(`  ${decision.reason}`);
+    console.log("  ====================================================\n");
+  }
+  if (!decision.allowed) {
+    console.log("  No se ejecutó ningún run de Apify en este ciclo.\n");
+    return false;
+  }
+  return true;
+}
+
 async function main() {
+  if (!guardSpend("sale")) return;
+
   console.log(`Refreshing Ofertas cache from ${SITE}`);
   console.log(`${SALES_SOURCES.length} sources, concurrency ${CONCURRENCY}${DRY_RUN ? " (dry run)" : ""}\n`);
 

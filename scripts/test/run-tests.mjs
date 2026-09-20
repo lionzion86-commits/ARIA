@@ -24,6 +24,7 @@ import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_
 import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as ondemand from "../lib/ondemand-policy.js";
+import * as refreshTiers from "../lib/refresh-tiers.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -466,13 +467,20 @@ check("the cache sanitizer enforces the same ceiling", () => {
   }
 });
 
-check("the page applies both Ofertas rules on both load paths", () => {
+check("the page applies both Ofertas rules on the one load path left", () => {
   const html = readFileSync(root("index.html"), "utf8");
   for (const fn of ["passesOfertasWeightGate", "passesOfertasFreightCeiling", "passesOfertasGate"]) {
     if (!new RegExp(`function ${fn}`).test(html)) throw new Error(`${fn} is missing`);
   }
+  // There used to be two: the cache read and a browser-side live scan.
+  // The live scan is gone (the $88 fix), so the cache read is the only
+  // way a deal reaches the feed, and it must be gated.
   const uses = (html.match(/\.filter\(passesOfertasGate\)/g) || []).length;
-  if (uses < 2) throw new Error(`the gate is applied ${uses} time(s); both the cache and the live path need it`);
+  if (uses !== 1) throw new Error(`the gate is applied ${uses} time(s); expected exactly the cache read`);
+  const loader = html.slice(html.indexOf("async function runSalesScan"));
+  if (!/\.filter\(passesOfertasGate\)/.test(loader.slice(0, 2000))) {
+    throw new Error("the cache read is not gated");
+  }
 });
 
 check("a card with an unconfirmed weight shows no freight figure", () => {
@@ -625,6 +633,89 @@ check("the category search bar that called nothing now exists", () => {
 });
 
 /* ------------------------------------------------------------------
+   P1.6 — the Apify burn.
+   ------------------------------------------------------------------ */
+group("P1.6 Apify spend controls");
+
+check("browsing never starts an Apify run", () => {
+  /* THE $88 BUG. Ofertas ran a twelve-actor live scan from the VISITOR'S
+     browser whenever the cache was stale — which, with a daily refresh
+     against a 6h TTL, was most of the day. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const code = stripComments(html);
+  if (/revalidateSalesInBackground/.test(code)) throw new Error("the background rescan is back");
+  if (/showSalesColdLoading/.test(code)) throw new Error("the cold-scan loading state is back");
+  // liveSalesScan survives for exactly one caller: the admin's explicit
+  // "Actualizar ofertas" button. Anything else is a visitor paying.
+  const callers = (code.match(/liveSalesScan\(\)/g) || []).length;
+  if (callers > 2) throw new Error(`liveSalesScan has ${callers} references; only the admin button may call it`);
+  const loader = code.slice(code.indexOf("async function runSalesScan"), code.indexOf("function discountPct"));
+  if (/liveSalesScan/.test(loader)) throw new Error("the Ofertas loader still scrapes");
+});
+
+check("three tiers, three clocks, and the workflow agrees with them", () => {
+  const yml = readFileSync(root(".github/workflows/refresh-sales-cache.yml"), "utf8");
+  const crons = [...yml.matchAll(/- cron: "([^"]+)"/g)].map((m) => m[1]);
+  eq(crons.length, 3, "one cron per tier");
+  for (const tier of Object.values(refreshTiers.REFRESH_TIERS)) {
+    if (!crons.includes(tier.cron)) throw new Error(`${tier.key} cron "${tier.cron}" is not in the workflow`);
+    eq(refreshTiers.tierForCron(tier.cron), tier.key, `cron maps back to ${tier.key}`);
+  }
+  eq(refreshTiers.REFRESH_TIERS.sale.cadence, "daily");
+  eq(refreshTiers.REFRESH_TIERS.catalog.cadence, "every 3 days");
+  eq(refreshTiers.REFRESH_TIERS.auto.cadence, "weekly (Monday)");
+});
+
+check("no Apify-side schedules are created", () => {
+  // The GitHub workflow is the only scheduler, on purpose: one place to
+  // look when spend moves, one place to change it.
+  for (const f of ["netlify/functions/apify-scrape-start.js", "scripts/refresh-sales-cache.js"]) {
+    const src = stripComments(readFileSync(root(f), "utf8"));
+    if (/actor-schedules|\/v2\/schedules/.test(src)) throw new Error(`${f} creates an Apify-side schedule`);
+  }
+});
+
+check("a cycle over budget skips the non-essential tiers, loudly", () => {
+  const tight = { costPerRun: 0.06, budgetUsd: 0.5 };
+  const sale = refreshTiers.spendDecision("sale", tight);
+  eq(sale.allowed, true, "Ofertas is essential and still runs");
+  eq(sale.overBudget, true, "but it says so");
+  if (!/SOBRE PRESUPUESTO/.test(sale.reason)) throw new Error("the overage is not announced");
+  for (const key of ["catalog", "auto"]) {
+    const d = refreshTiers.spendDecision(key, tight);
+    eq(d.allowed, false, `${key} yields`);
+    if (!/SOBRE PRESUPUESTO/.test(d.reason)) throw new Error(`${key} skipped silently — the exact $88 failure mode`);
+  }
+});
+
+check("a cycle inside budget runs everything, quietly", () => {
+  const roomy = { costPerRun: 0.06, budgetUsd: 10 };
+  for (const key of ["sale", "catalog", "auto"]) {
+    const d = refreshTiers.spendDecision(key, roomy);
+    eq(d.allowed, true, key);
+    eq(d.reason, null, `${key} says nothing when nothing is wrong`);
+  }
+});
+
+check("the projection uses the TOP of the observed cost range", () => {
+  // A spend guard that under-projects is not a guard.
+  eq(refreshTiers.DEFAULT_COST_PER_RUN_USD, 0.06);
+  eq(refreshTiers.projectedCostUsd("sale", 0.06), 0.72);
+  eq(refreshTiers.projectedCostUsd("catalog", 0.06), 1.56);
+});
+
+check("every refresh script is guarded before it spends", () => {
+  for (const [file, tier] of [
+    ["scripts/refresh-sales-cache.js", "sale"],
+    ["scripts/refresh-department-cache.js", "catalog"],
+    ["scripts/refresh-auto-cache.js", "auto"],
+  ]) {
+    const src = stripComments(readFileSync(root(file), "utf8"));
+    if (!new RegExp(`guardSpend\\("${tier}"\\)`).test(src)) throw new Error(`${file} does not guard its spend`);
+  }
+});
+
+/* ------------------------------------------------------------------
    PAGE / MODULE PARITY — the whole reason this harness exists.
    ------------------------------------------------------------------ */
 group("index.html mirrors agree with the modules");
@@ -769,11 +860,17 @@ group("P2.2 / P2.3 category tiles");
 
 const tiles = loadPageTileSlice();
 
-check("a tile shows at most 3 logos and counts the rest", () => {
+check("category tiles carry no retailer logos at all", () => {
+  /* Reversed 2026-09-20: the cap (3 logos + "+N") is gone because the
+     logos are gone. A category tile answers "what is this", not "who
+     sells it" — the store is named on every product card, in the store
+     chips and on Tiendas. */
   const html = readFileSync(root("index.html"), "utf8");
-  if (!/const TILE_MAX_LOGOS = 3;/.test(html)) throw new Error("TILE_MAX_LOGOS is not 3");
-  if (!/slice\(0, TILE_MAX_LOGOS\)/.test(html)) throw new Error("the logo row does not cap the list");
-  if (!/\+\$\{hidden\}/.test(html)) throw new Error('the "+N" badge is missing');
+  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
+  if (/retailerBadgeHTML|tileRetailerRowHTML|TILE_MAX_LOGOS/.test(tile)) {
+    throw new Error("the category tile still renders store marks");
+  }
+  if (!/producto\$\{count === 1/.test(tile)) throw new Error("the product count was dropped with the logos");
 });
 
 check("tiles fit the image rather than cropping it", () => {

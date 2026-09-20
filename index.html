@@ -99,6 +99,22 @@
   .ariaStepSub{ font-size:11.5px; color:#6B7487; margin-top:2px }
   /* The on-demand search spinner. A 30-90 second wait needs something
      that is visibly alive, next to copy that says how long it will be. */
+  /* THE ORB MUST NOT SIT ON THE PAGE (2026-09-20).
+
+     The swim loop already keeps the orb in a side gutter when the layout
+     has one, and slides it out to a thin tab when it would cover the
+     content column. What was left was the bottom-right corner on narrow
+     screens: the orb docks there, and the last line of a page ran
+     underneath it.
+
+     Every view reserves that corner now. It costs a screenful of nothing
+     at the end of a scroll and it means no card, no button and no line of
+     copy is ever behind the orb. The variable is the single place to
+     change if the orb's docked size changes. */
+  :root{ --orb-dock-safe: 104px }
+  .view{ padding-bottom: var(--orb-dock-safe) }
+  @media (min-width:1024px){ .view{ padding-bottom: 32px } }
+
   .ariaSpinner{ width:15px; height:15px; border-radius:50%; display:inline-block;
     border:2px solid rgba(47,95,238,0.25); border-top-color:var(--blue); animation:ariaSpin .7s linear infinite }
   .ariaSpinner--lg{ width:26px; height:26px; border-width:3px }
@@ -535,8 +551,8 @@
         <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <div id="resultCount" class="text-[13px] text-zinc-500"></div>
           <select id="resultsSort" onchange="renderSearchResults()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
-            <option value="priceAsc">Mejor precio primero</option>
-            <option value="priceDesc">Precio: mayor a menor</option>
+            <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
+            <option value="priceDesc">Total a tu puerta: mayor a menor</option>
           </select>
         </div>
 
@@ -870,8 +886,8 @@
         <div class="flex items-center justify-between mb-4 gap-3">
           <select id="salesSort" onchange="renderSalesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
             <option value="discount">Mayor descuento</option>
-            <option value="priceAsc">Precio: menor a mayor</option>
-            <option value="priceDesc">Precio: mayor a menor</option>
+            <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
+            <option value="priceDesc">Total a tu puerta: mayor a menor</option>
           </select>
         </div>
         <!-- Spec §6: "2 columns desktop / 1 column mobile" — deliberately
@@ -1664,7 +1680,12 @@
     </div>
     <div class="pt-5 border-t text-[11.5px] text-zinc-400 leading-relaxed flex items-center justify-between gap-3" style="border-color:var(--line)">
       <span>Entidad legal en trámite de registro — RUC y datos legales completos próximamente.</span>
-      <a href="#" onclick="openAdmin();return false;" class="text-zinc-300 hover:text-zinc-400 transition flex-shrink-0">Admin</a>
+      <!-- The public "Admin" link lived here until 2026-09-20. An admin
+           entry point in a shopper's footer is an invitation to rattle
+           the door, and it bought us nothing: the page is still reachable
+           at #admin (and openAdmin() still gates on a real admin session),
+           so an operator loses no access and a shopper is not shown one.
+           Do not re-add a visible link. -->
     </div>
   </div>
 </footer>
@@ -2532,30 +2553,22 @@ function collectTiles(kind){
    and, on the page that exists to say which stores we buy from, a bad
    look. It is real store badges now, wrapped rather than cut off, and the
    card is big enough to carry them. */
-/* AT MOST THREE LOGOS, THEN "+N" (2026-09-20).
+/* NO RETAILER LOGOS ON CATEGORY TILES (2026-09-20, reversed).
 
-   The row used to render every carrying store's logo. With four stores it
-   already wrapped to two lines; with eight it would either wrap to three
-   or force the logos down to an illegible size, and neither is acceptable
-   — the whole point of showing a real logo is that it can be read. Three
-   at full size plus an honest count of the rest fits one line at every
-   width, and the count is a real number, not a "…".
+   These tiles carried a row of store logos — first every carrying store,
+   then at most three plus a "+N". Both are rejected: a category is
+   identified by WHAT IT IS, and a row of borrowed marks under "Moda
+   Mujer" says nothing a shopper needs, competes with the tile's own
+   image, and turns a browse grid into logo soup.
 
-   The tile is never enlarged and the logos are never shrunk to fit. */
-const TILE_MAX_LOGOS = 3;
+   The store is still named everywhere it matters — on every product
+   card, in the category page's store chips, on Tiendas — which is where
+   a shopper asks "who am I buying from". A tile answers "what is this".
 
-function tileRetailerRowHTML(retailers){
-  const list = Array.isArray(retailers) ? retailers : [];
-  const shown = list.slice(0, TILE_MAX_LOGOS);
-  const hidden = list.length - shown.length;
-  const more = hidden > 0
-    ? `<span class="inline-flex items-center h-[18px] px-2 rounded-full text-[11px] font-extrabold flex-shrink-0"
-         style="background:var(--sky); color:var(--navy)"
-         title="${escapeHtml(list.slice(TILE_MAX_LOGOS).map(r => LIVE_RETAILER_LABEL[r] || r).join(', '))}">+${hidden}</span>`
-    : '';
-  return `<div class="flex items-center gap-x-3 gap-y-2 mt-3 min-h-[18px]">${
-    shown.map(r => retailerBadgeHTML(r, 13)).join('')}${more}</div>`;
-}
+   The count stays: "82 productos" is a real thing to know before
+   tapping. tileRetailerRowHTML() and TILE_MAX_LOGOS are gone with the
+   logos; `t.retailers` is still collected because the store chips on the
+   category page itself are built from it. */
 
 /* OFERTAS IS DESIGNED, NOT SCRAPED.
 
@@ -2599,7 +2612,6 @@ function deptTileHTML(t, kind){
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2.5" class="flex-shrink-0"><path d="m9 18 6-6-6-6"/></svg>
       </div>
       ${count ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">${count} producto${count === 1 ? '' : 's'}</div>` : ''}
-      ${tileRetailerRowHTML(t.retailers)}
     </div>
   </button>`;
 }
@@ -2795,11 +2807,7 @@ function renderCatalogFeed(){
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
   // can never be the cheapest, so it sorts last either way.
-  items.sort((a, b) => {
-    if (a.price == null) return 1;
-    if (b.price == null) return -1;
-    return sortBy === 'priceDesc' ? b.price - a.price : a.price - b.price;
-  });
+  items.sort(byDoorToDoor(sortBy));
 
   const storeCount = byRetailer.size;
   const n = items.length;
@@ -2816,8 +2824,8 @@ function renderCatalogFeed(){
     ${catalogStoreChipsHTML()}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
-        <option value="priceAsc">Mejor precio primero</option>
-        <option value="priceDesc">Precio: mayor a menor</option>
+        <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
+        <option value="priceDesc">Total a tu puerta: mayor a menor</option>
       </select>
     </div>
     <div id="catalogGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
@@ -3421,7 +3429,7 @@ function renderSearchResults(){
 
   let items = groupCrossStoreMatches(searchResults.filter(it => active.includes(it.retailer)));
   // Best price first by default — the whole point of comparing.
-  items.sort((a, b) => sortBy === 'priceDesc' ? b.price - a.price : a.price - b.price);
+  items.sort(byDoorToDoor(sortBy));
   searchRendered = items;
 
   wrap.innerHTML = items.length
@@ -5235,6 +5243,46 @@ function freightUsd(weightKg){
   return Math.round(kg * CHARGE_PER_KG_USD * 100) / 100;
 }
 
+/* ============================================================
+   "MEJOR PRECIO PRIMERO" MEANS THE PRICE AT YOUR DOOR (2026-09-20)
+
+   REPORTED LIVE. Sorting by product price alone put a wall of "Flete
+   alto" warnings at the top of Ofertas: a $6 item with $30 of freight
+   beat a $40 item with $5 of freight, so the cheapest-looking row was
+   reliably the worst deal on the page. That is the exact confusion this
+   shop exists to remove — the number a shopper is choosing on is the one
+   they actually pay.
+
+   So every "best price" sort on the site ranks by the door-to-door
+   total: the displayed product price (which already carries the 24% and,
+   over the $200 threshold, the import tax) plus the freight for its
+   weight. High-freight-ratio items demote on their own; nothing has to
+   be suppressed to keep them out of the way.
+
+   An item with no usable weight sorts on its product price alone rather
+   than being pushed to the bottom — it is not known to be bad, just not
+   fully known. One with no price at all can never be the cheapest and
+   sorts last, as before. */
+function doorToDoorUsd(p){
+  const price = Number(p?.price);
+  if (!Number.isFinite(price) || price <= 0) return Infinity;
+  const kg = Number(p?.weightKg);
+  const freight = Number.isFinite(kg) && kg > 0 ? freightUsd(kg) : 0;
+  return displayPriceUsd(price) + freight;
+}
+
+/** Comparator for every "Mejor precio primero" / "mayor a menor" select. */
+function byDoorToDoor(sortBy){
+  return (a, b) => {
+    const ta = doorToDoorUsd(a);
+    const tb = doorToDoorUsd(b);
+    if (!Number.isFinite(ta) && !Number.isFinite(tb)) return 0;
+    if (!Number.isFinite(ta)) return 1;   // no price: never the cheapest
+    if (!Number.isFinite(tb)) return -1;
+    return sortBy === 'priceDesc' ? tb - ta : ta - tb;
+  };
+}
+
 function freightSharePct(weightKg, priceUsd){
   const price = Number(priceUsd);
   if (!Number.isFinite(price) || price <= 0) return Infinity;
@@ -5412,7 +5460,26 @@ function normalizeLiveItem(item, hints){
      pipeline cannot screen in the browser. Those are left as-is. */
   if (item.imageReview && item.imageReview !== 'clean') images = [];
   const image = images[0] || null;
-  const rating = item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating ?? null;
+  /* REAL RETAILER DATA OR NOTHING (2026-09-20).
+
+     A star rating next to a confident review count on a generic US
+     product reads as synthesised, and on a brand whose whole argument is
+     honesty that is a trust time bomb. Nothing on this site has ever
+     rendered a review COUNT — there is no field to render one from, and
+     none may be invented. The rating itself is only ever a number the
+     retailer's own payload carried, and it is dropped unless it is a
+     plausible 0-5 figure.
+
+     If a retailer ever starts returning a real count, add it HERE, from
+     a real field, next to this comment — never as a derived or
+     plausible-looking number. */
+  const ratingRaw = Number(item.rating ?? item.stars ?? item.reviewScore ?? item.averageRating);
+  const rating = Number.isFinite(ratingRaw) && ratingRaw > 0 && ratingRaw <= 5
+    ? Math.round(ratingRaw * 10) / 10
+    : null;
+  const reviewCount = Number.isFinite(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
+    ? Math.round(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
+    : null;
   const weightDetail = estimateRetailWeightDetail(title, {
     retailer: hints?.retailer ?? item.retailer,
     department: hints?.department ?? item.department,
@@ -5460,6 +5527,8 @@ function normalizeLiveItem(item, hints){
     // The courier's four-per-shipment fragrance clause travels with the
     // item, so every card and the cart can state it without re-parsing.
     restrictedFragrance: isFragrance(title),
+    // null unless the retailer really sent one. Never rendered otherwise.
+    reviewCount,
     sizes, onSale: hasRealDiscount, originalPrice };
 }
 
@@ -6770,16 +6839,37 @@ async function initCart(){
   const fixed = repairCartWeights(cart);
   cart = fixed.cart;
   if (fixed.changed){ saveCartLocal(); syncCartToServer(); }
+  // Only now is `cart` the real cart — before this the badge was painting
+  // whatever happened to be in memory. See renderCartBadge().
+  cartLoaded = true;
   renderCartBadge();
   if (document.getElementById('cartView')?.classList.contains('active')) renderCartView();
 }
 
+/* REPORTED 2026-09-20: the badge read "1" on a first load with nothing
+   added. Two things were wrong and they masked each other.
+
+   The markup carries the HTML `hidden` ATTRIBUTE and this toggled a
+   Tailwind `hidden` CLASS. Those are different switches: removing the
+   class never cleared the attribute, so the badge's visibility did not
+   track the cart at all — it tracked whichever switch was touched last.
+
+   And it rendered before the cart was known. initCart() loads from
+   localStorage and then from the server, so the badge painted whatever
+   `cart` happened to hold at that instant — including a leftover line
+   from an older session that the shopper had never added in THIS one.
+
+   Now: one switch (the attribute, which the markup already sets), and it
+   only ever reflects a cart that has actually been loaded. */
+let cartLoaded = false;
+
 function renderCartBadge(){
   const el = document.getElementById('cartCountBadge');
   if (!el) return;
-  const count = cartCount();
+  const count = cartLoaded ? cartCount() : 0;
   el.textContent = count > 99 ? '99+' : String(count);
-  el.classList.toggle('hidden', count === 0);
+  el.hidden = count === 0;
+  el.classList.toggle('hidden', count === 0);   // both switches, always agreeing
 }
 
 function addToCart(item){
@@ -6864,6 +6954,19 @@ function cartLineItemHTML(it){
    converts; the small-order fee is a Peru-side handling cost quoted in
    soles from the start, so running it through the converter would be
    wrong by the exchange rate. */
+/* Cuts a title at a WORD boundary and ellipsises it. A plain slice()
+   produces "Camiseta de Algod" — a mid-word cutoff that reads as a
+   rendering bug rather than as shortening. CSS handles clamping wherever
+   the layout can do it; this is for the places that must shorten a
+   string in JS. */
+function clampWords(text, max){
+  const t = String(text || '').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max);
+  const lastSpace = cut.lastIndexOf(' ');
+  return (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).replace(/[\s,;:.\-]+$/, '') + '…';
+}
+
 function fmtPEN_direct(pen){
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(round2(Number(pen) || 0));
 }
@@ -6893,7 +6996,7 @@ function renderCartWeightReview(){
     <div>
       <div class="text-[13.5px] font-extrabold" style="color:#5C4813">Estamos confirmando el peso de ${items.length === 1 ? 'un producto' : `${items.length} productos`}</div>
       <div class="text-[12.5px] leading-snug mt-0.5" style="color:#8A6B1F">
-        ${items.map(it => escapeHtml(String(it.title || '').slice(0, 60))).join(' · ')}
+        ${items.map(it => escapeHtml(clampWords(it.title, 60))).join(' · ')}
       </div>
       <div class="text-[12.5px] leading-snug mt-1.5" style="color:#8A6B1F">
         Preferimos no cotizarte un flete que no podemos sostener. Escríbenos por el chat y te confirmamos el costo real en minutos.
@@ -7508,8 +7611,13 @@ const SALES_SOURCES = [
 
 let saleItemsCache = [];
 let salesGeneratedAt = null;   // ISO string from the server cache, or null when this page ran its own live scan
-let salesScanInFlight = false; // guards against goSales() being hit repeatedly
-let salesStatusTimer = null;
+/* salesScanInFlight and salesStatusTimer lived here until 2026-09-20.
+   Both existed only to manage a live sales scan run from the browser,
+   which is gone — see the $88 note on salesFreshnessNote(). */
+/* Set when the cache we are showing is older than its TTL. The page says
+   so rather than spending a visitor's browsing session on twelve Apify
+   runs to hide it — see the $88 note on salesFreshnessNote(). */
+let salesStaleNote = '';
 
 /* The one Ofertas entry point. Desktop nav, mobile menu and the "Ofertas"
    department tile all land here — see the guard in openCatalog().
@@ -7580,7 +7688,11 @@ function renderSalesFreshness(state){
     return;
   }
   const rel = relativeTimeEs(salesGeneratedAt);
-  el.textContent = rel ? `Actualizado ${rel}` : 'Resultados en vivo';
+  // "Resultados en vivo" was only ever true because the browser scraped.
+  // It does not any more, so the badge states the real thing: when this
+  // cache was built.
+  el.textContent = rel ? `Actualizado ${rel}` : 'Actualizando ofertas…';
+  el.title = salesStaleNote || '';
   el.style.background = 'var(--yellow)';
   el.style.color = 'var(--navy)';
 }
@@ -7588,59 +7700,13 @@ function renderSalesFreshness(state){
 // Rotating status lines, built from the real retailers actually being
 // scanned — never a hardcoded list that could name a store we no longer
 // carry.
-function salesStatusLines(){
-  const verbs = [
-    r => `Revisando ${r}…`,
-    r => `Comparando precios en ${r}…`,
-    r => `Verificando stock en ${r}…`,
-  ];
-  const lines = [];
-  GENERAL_RETAILERS.forEach((key, i) => {
-    const label = LIVE_RETAILER_LABEL[key] || key;
-    lines.push(verbs[i % verbs.length](label));
-  });
-  return lines.length ? lines : ['Buscando ofertas reales…'];
-}
-
-function salesSkeletonCardHTML(){
-  return `<div class="rounded-2xl border overflow-hidden" style="border-color:var(--line)">
-    <div class="ariaShimmer" style="aspect-ratio:4/5"></div>
-    <div class="p-4">
-      <div class="ariaShimmer h-4 w-24 rounded mb-3"></div>
-      <div class="ariaShimmer h-5 w-full rounded mb-2"></div>
-      <div class="ariaShimmer h-5 w-2/3 rounded mb-4"></div>
-      <div class="ariaShimmer h-8 w-32 rounded-full"></div>
-    </div>
-  </div>`;
-}
-
-// Spec §6: "True cold cache only: 6 shimmer skeleton cards + pulsing orb
-// + rotating status lines."
-function showSalesColdLoading(){
-  const lines = salesStatusLines();
-  document.getElementById('salesCount').textContent = '';
-  renderSalesFreshness('scanning');
-  document.getElementById('salesGrid').innerHTML = `
-    <div class="col-span-full flex flex-col items-center text-center py-8">
-      <img src="assets/orb-320.png" alt="" class="w-16 h-16 mb-4" style="animation:ariaOrbBreathe 2.6s ease-in-out infinite">
-      <div id="salesStatusLine" class="text-[13.5px] font-semibold" style="color:var(--navy)">${escapeHtml(lines[0])}</div>
-      <div class="text-[12px] text-zinc-400 mt-1">Buscamos ofertas reales en cada tienda — toma unos segundos la primera vez.</div>
-    </div>
-    ${Array.from({ length: 6 }, salesSkeletonCardHTML).join('')}`;
-
-  let i = 0;
-  clearInterval(salesStatusTimer);
-  salesStatusTimer = setInterval(() => {
-    i = (i + 1) % lines.length;
-    const el = document.getElementById('salesStatusLine');
-    if (el) el.textContent = lines[i];
-  }, 1800);
-}
-
-function stopSalesColdLoading(){
-  clearInterval(salesStatusTimer);
-  salesStatusTimer = null;
-}
+/* showSalesColdLoading()/stopSalesColdLoading() lived here until
+   2026-09-20. They were the skeleton and the rotating status lines shown
+   while the BROWSER ran a live twelve-actor sales scan — and that scan is
+   gone (see the $88 note on salesFreshnessNote). A cold cache renders an
+   honest message now, not a loading state for work nobody should be
+   paying for. salesStatusLines() and salesSkeletonCardHTML() went with
+   them; the Ofertas page no longer has a scanning state at all. */
 
 function initSalesFilters(){
   document.getElementById('salesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
@@ -7754,22 +7820,39 @@ async function adminRefreshSalesCache(){
   }
 }
 
-// Stale-while-revalidate: the visitor already has real deals on screen, so
-// this runs with no skeleton and no spinner. Only swaps the grid once real
-// results are in hand, and only if they're still looking at this page.
-async function revalidateSalesInBackground(){
-  if (salesScanInFlight) return;
-  salesScanInFlight = true;
-  try {
-    const items = await liveSalesScan();
-    if (!items.length) return; // an empty scan never replaces good cached deals
-    // Deliberately does NOT publish: this visitor's scan is for this
-    // visitor's screen. Writing the shared cache is the scheduled
-    // refresher's job.
-    saleItemsCache = items;
-    if (document.getElementById('salesView')?.classList.contains('active')) renderSalesGrid();
-  } catch { /* keep showing the cached deals */ }
-  finally { salesScanInFlight = false; }
+/* ============================================================
+   THE $88 BUG (2026-09-20) — BROWSING OFERTAS NO LONGER SCRAPES.
+
+   One cycle burned ~$88 across 1,000+ Apify runs and 14,295 dataset
+   reads. This function was most of it.
+
+   It was a stale-while-revalidate: whenever the cached deals were older
+   than the 6h TTL, the VISITOR'S BROWSER ran a full live scan — all
+   twelve SALES_SOURCES, twelve Apify runs, each then polled every three
+   seconds for up to two minutes. That is up to ~480 dataset reads per
+   visitor. And the scheduled refresher runs once a day against a six-hour
+   TTL, so the cache reads stale for roughly eighteen hours out of every
+   twenty-four: nearly every visitor in that window paid for twelve runs
+   to see a page that was already on their screen.
+
+   Worse, the results were thrown away. The comment below used to say so
+   proudly — "this visitor's scan is for this visitor's screen" — which
+   means we paid twelve runs per visitor for a result that benefited
+   exactly one person and was never cached for the next.
+
+   NOW: browsing NEVER scrapes. Ofertas reads the cache and only the
+   cache. When the cache is stale the page says when it was built rather
+   than quietly spending money to hide it, and the scheduled refresher
+   (the tiered GitHub workflow) is the only thing that runs an actor.
+   The one remaining on-demand path is the store search a shopper
+   explicitly asks for, which is capped and cached server-side.
+
+   Do not reintroduce a background scan here. If the cache is going stale
+   too often the answer is the cron cadence, not the visitor's wallet. */
+function salesFreshnessNote(generatedAt, stale){
+  if (!generatedAt) return '';
+  if (!stale) return '';
+  return 'Estas ofertas son de la última actualización — las revisamos varias veces al día.';
 }
 
 /* A published deal carries the weight the refresh script computed WHEN IT
@@ -7842,31 +7925,21 @@ async function runSalesScan(){
   if (cached?.items?.length){
     saleItemsCache = cached.items.map(refreshCachedWeight).filter(passesOfertasGate);
     salesGeneratedAt = cached.generatedAt;
+    salesStaleNote = salesFreshnessNote(cached.generatedAt, cached.stale);
     renderSalesGrid();
-    if (cached.stale) revalidateSalesInBackground();
     return;
   }
 
-  // 2. True cold cache — the only case that earns the full loading state.
-  if (salesScanInFlight) return;
-  salesScanInFlight = true;
-  showSalesColdLoading();
-  try {
-    const items = await liveSalesScan();
-    saleItemsCache = items.map(refreshCachedWeight).filter(passesOfertasGate);
-    salesGeneratedAt = items.length ? new Date().toISOString() : null;
-    stopSalesColdLoading();
-    renderSalesGrid();
-    // No publish here either — see the NO CLIENT WRITE PATH note above.
-    // A cold cache means the scheduled refresher has not run yet (or its
-    // last run failed); this visitor still gets correct live results.
-  } catch {
-    stopSalesColdLoading();
-    saleItemsCache = [];
-    renderSalesGrid();
-  } finally {
-    salesScanInFlight = false;
-  }
+  /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL.
+     This used to launch a twelve-actor live scan from the browser. It
+     now says plainly that the deals are being rebuilt — the scheduled
+     refresher is the only thing that runs an actor, and everything else
+     on the site (search, categories, the on-demand store search) still
+     works while this one section is waiting. */
+  saleItemsCache = [];
+  salesGeneratedAt = null;
+  salesStaleNote = '';
+  renderSalesGrid();
 }
 
 function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100); }
@@ -7964,7 +8037,10 @@ function productCardHTML(p, opts){
     <div class="p-4 flex flex-col flex-1">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div>${retailerBadgeHTML(p.retailer, 20)}</div>
-        ${hasRating ? `<div class="text-[12px] font-bold whitespace-nowrap" style="color:var(--navy)">★ ${rating.toFixed(1)}</div>` : ''}
+        ${hasRating ? `<div class="text-[12px] font-bold whitespace-nowrap" style="color:var(--navy)">★ ${rating.toFixed(1)}${
+          Number.isFinite(Number(p.reviewCount)) && Number(p.reviewCount) > 0
+            ? ` <span class="font-semibold" style="color:#8A93A8">(${Number(p.reviewCount).toLocaleString('es-PE')})</span>`
+            : ''}</div>` : ''}
       </div>
       <div class="text-[15px] font-bold leading-snug mb-2.5 cursor-pointer line-clamp-2" style="color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
       <div class="flex items-baseline gap-2.5 mb-1.5 mt-auto">
@@ -7992,14 +8068,22 @@ function renderSalesGrid(){
 
   let items = saleItemsCache.filter(p => activeStores.includes(p.retailer));
 
+  // Price sorts rank by what the shopper actually pays at the door, not
+  // by the product price — see doorToDoorUsd(). Discount stays a
+  // discount: it is a claim about the markdown, not about the total.
   if (sortBy === 'discount') items.sort((a, b) => discountPct(b) - discountPct(a));
-  else if (sortBy === 'priceAsc') items.sort((a, b) => a.price - b.price);
-  else if (sortBy === 'priceDesc') items.sort((a, b) => b.price - a.price);
+  else items.sort(byDoorToDoor(sortBy));
 
   salesRendered = items;
+  /* An empty grid is now always one of two honest things, never a live
+     scan: either the filters excluded everything, or the shared cache has
+     not been built yet. Neither is worth a shopper's money to resolve. */
+  const emptyMessage = saleItemsCache.length
+    ? 'Ninguna oferta de las tiendas seleccionadas. Activa más tiendas en los filtros.'
+    : 'Estamos actualizando las ofertas. Mientras tanto puedes buscar cualquier producto arriba — el buscador funciona con normalidad.';
   document.getElementById('salesGrid').innerHTML = items.length
     ? items.map((p, i) => saleCardHTML(p, i)).join('')
-    : `<div class="col-span-full text-center text-zinc-400 py-16">No encontramos ofertas reales en este momento — vuelve a intentarlo más tarde.</div>`;
+    : `<div class="col-span-full text-center py-16 text-[13.5px]" style="color:#6B7487">${emptyMessage}</div>`;
   // No longer claims "en vivo" — these may well be served from the cache,
   // and the freshness badge states exactly when that cache was built.
   document.getElementById('salesCount').textContent = items.length
@@ -8107,6 +8191,9 @@ const ORB_CONTENT_GAP = 10;     // never breathe on the text
    only this much of her is over the page — which is the page's own 20px
    gutter, where no glyph ever reaches — and comes back out the moment the
    corner is clear again. */
+/* How much of the orb stays on screen once it has slid out of the way.
+   Small enough to be a handle rather than a thing sitting on the page,
+   big enough to still be a tap target. */
 const ORB_PEEK_PX = 18;   // 2026-09-19: 24 still clipped the right-hand
                           // product card by 4px on a 390px phone, where the
                           // page gutter is only 20px. This clears it.
@@ -8562,7 +8649,7 @@ function chatAckEs(text){
     .replace(/\bmis\b/gi, 'tus')
     .replace(/\bmi\b/gi, 'tu')
     .trim();
-  const short = phrase.length > 70 ? phrase.slice(0, 67).trim() + '…' : phrase;
+  const short = clampWords(phrase, 70);
   return short ? `Buscando ${short}… dame un segundo.` : 'Dame un segundo, estoy buscando…';
 }
 
