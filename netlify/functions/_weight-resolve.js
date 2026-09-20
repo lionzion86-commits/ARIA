@@ -14,12 +14,22 @@
    Reproduced with "Apple AirPods Max 2 - Starlight".
 
    RESOLUTION ORDER (the caller sees which one answered)
-     1. spec       — a real weight or real dimensions from the retailer
-     2. title      — a net weight the retailer stated in the product title
+     1. spec       — a real weight the retailer published
+     2. beauty     — our beauty/fragrance shipped-weight table
+     3. title      — a net weight the retailer stated in the product title
                      ("4 oz"), plus a flat packaging allowance
-     3. category   — our category table, at BILLABLE weight (actual vs
-                     volumetric, whichever the courier would charge)
-     4. fallback   — a labeled generic, never zero
+     4. category   — our category table, at actual scale weight
+     5. fallback   — a labeled generic, never zero
+
+   WHY BEAUTY OUTRANKS THE TITLE: a cosmetic's title states the volume of
+   liquid in the bottle, not what ships. "Eau de Toilette 3.4 oz" read as
+   a weight is 0.16 kg for a parcel that really weighs 0.35 kg, because
+   the glass and the box are most of it. See scripts/lib/beauty-weight.js.
+
+   ACTUAL SCALE WEIGHT ONLY (2026-09-20): the courier contract has no
+   dimensional/volumetric component, so retailer-published DIMENSIONS are
+   no longer a weight source and the category table is no longer billed
+   against a box. Only a published WEIGHT counts as spec data now.
 
    Nothing here may return 0: a zero weight is not a cheap package, it is
    a missing measurement, and it silently breaks the whole quote.
@@ -30,7 +40,8 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { billableWeightKg, dimensionalWeightKg, titleWeight } from "../../scripts/lib/item-weight.js";
+import { titleWeight } from "../../scripts/lib/item-weight.js";
+import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
 
 // Deliberately the same generic the product cards and cart already show
 // (DEFAULT_RETAIL_WEIGHT_KG x the reasoned buffer, index.html), so an
@@ -40,7 +51,6 @@ export const GENERIC_FALLBACK_KG = 0.6;
 
 const KG_PER_LB = 0.45359237;
 const KG_PER_OZ = 0.028349523;
-const CM_PER_IN = 2.54;
 const MAX_ITEM_KG = 1000;  // anything past this is a bad unit, not a heavy box
 
 function toKg(value, unit) {
@@ -61,27 +71,14 @@ function parseWeightString(text) {
   return toKg(m[1].replace(",", "."), m[2]);
 }
 
-// "10 x 8 x 4 inches", "25 x 22 x 12 cm"
-function parseDimsCm(text) {
-  const s = String(text || "");
-  const m = /(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*[x×]\s*(\d+(?:[.,]\d+)?)\s*(cm|centimet\w*|in\b|inch\w*|"|')?/i.exec(s);
-  if (!m) return null;
-  const nums = [m[1], m[2], m[3]].map((v) => Number(String(v).replace(",", ".")));
-  if (nums.some((n) => !Number.isFinite(n) || n <= 0)) return null;
-  const unit = String(m[4] || "").toLowerCase();
-  const inInches = unit.startsWith("in") || unit === '"' || unit === "'";
-  return inInches ? nums.map((n) => Math.round(n * CM_PER_IN * 10) / 10) : nums;
-}
-
 const WEIGHT_FIELDS = [
   "weightKg", "weight_kg", "shippingWeightKg",
   "weight", "itemWeight", "item_weight", "shippingWeight", "shipping_weight",
   "weightLb", "weight_lb", "weightPounds",
 ];
-const DIM_FIELDS = ["dimensions", "itemDimensions", "item_dimensions", "packageDimensions", "size", "productDimensions"];
 
 /**
- * A real weight from the retailer, or null. Reads the plain fields, the
+ * A real WEIGHT from the retailer, or null. Reads the plain fields, the
  * unit-suffixed ones, and the key/value `specifications` array Walmart's
  * schema exposes (empty at listing level today, populated in detail
  * scrapes — so this is ready for the data rather than assuming it).
@@ -110,40 +107,38 @@ export function specWeightKg(item) {
     }
   }
 
-  // Real dimensions are a real measurement too: they give the volumetric
-  // weight the courier would bill even when no weight is published.
-  for (const field of [...DIM_FIELDS]) {
-    const dims = parseDimsCm(item[field]);
-    if (dims) {
-      const dim = dimensionalWeightKg(...dims);
-      if (dim) return { kg: dim, from: `${field} (volumétrico)`, volumetric: true };
-    }
-  }
-  for (const spec of specs) {
-    if (/dimension|size/i.test(String(spec?.name ?? spec?.key ?? ""))) {
-      const dims = parseDimsCm(spec?.value ?? spec?.text ?? "");
-      const dim = dims ? dimensionalWeightKg(...dims) : null;
-      if (dim) return { kg: dim, from: "specifications:dimensions (volumétrico)", volumetric: true };
-    }
-  }
+  /* Published DIMENSIONS used to answer here too, converted to a
+     dimensional weight. They no longer do: the courier bills the scale
+     reading, so a box's size tells us nothing we are charged for. A
+     listing with dimensions but no weight now falls through to the
+     estimator, same as a listing with neither. */
   return null;
 }
 
 /**
  * One item's shipping weight, always > 0.
  * Returns { weightKg, source, estimated, basis } where source is
- * "spec" | "category" | "fallback".
+ * "spec" | "beauty" | "title" | "category" | "fallback".
  */
 export function resolveItemWeight(item) {
   const title = String(item?.title ?? item?.name ?? "");
+  const hints = { retailer: item?.retailer, department: item?.department };
 
+  // A weight the retailer published is the one fact here, and it wins
+  // over everything below, beauty included.
   const spec = specWeightKg(item);
   if (spec) {
-    // Even a published weight is billed against the box when the retailer
-    // also tells us the box.
-    const dims = parseDimsCm(item?.dimensions) || parseDimsCm(item?.packageDimensions);
-    const kg = dims ? billableWeightKg(spec.kg, dims) : spec.kg;
-    return { weightKg: kg, source: "spec", estimated: false, basis: spec.from };
+    return { weightKg: spec.kg, source: "spec", estimated: false, basis: spec.from };
+  }
+
+  // Beauty before the title parse — a fragrance title states the liquid's
+  // volume, not the parcel's weight. See beauty-weight.js.
+  const beauty = beautyWeightDetail(title, hints);
+  if (beauty) {
+    return {
+      weightKg: beauty.kg, source: "beauty", estimated: true,
+      basis: `peso estimado de belleza (${beauty.key})`,
+    };
   }
 
   // A weight the retailer wrote in the title is a stated fact, not a
@@ -157,7 +152,7 @@ export function resolveItemWeight(item) {
     };
   }
 
-  const category = categoryWeightKg(title);
+  const category = categoryWeightKg(title, hints);
   if (category != null && category > 0) {
     return { weightKg: category, source: "category", estimated: true, basis: "categoría del producto" };
   }
@@ -180,5 +175,9 @@ export function resolveCartWeights(items) {
     // Exact only when every line came from real retailer data.
     estimated: resolved.some((r) => r.estimated),
     anyFallback: resolved.some((r) => r.source === "fallback"),
+    /* The courier's four-fragrance-per-shipment clause, answered by the
+       same call that answers the weight — so checkout never has to
+       re-derive it from titles on its own. */
+    fragrance: fragranceLimitState(list),
   };
 }

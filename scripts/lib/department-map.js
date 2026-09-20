@@ -38,6 +38,13 @@ export const DEPARTMENT_SPEC = {
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
   pharmacy:        { category: "health" },
+  /* BEAUTY (2026-09-20). No retailer supplies a beauty bucket yet —
+     Sephora and Victoria's Secret are real stores whose scrapers are
+     still being wired up (see scripts/lib/retailers.js). A department no
+     retailer carries gets no tile at all, so this costs nothing today and
+     means the tile appears by itself the moment the first beauty bucket
+     lands, with no second change. */
+  beauty:          { category: "beauty" },
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
@@ -56,6 +63,9 @@ export const BUCKET_SPEC = {
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
   pharmacy:        { category: "health" },
+  // Both spellings a beauty scrape is likely to use, one category.
+  beauty:          { category: "beauty" },
+  fragrance:       { category: "beauty" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:

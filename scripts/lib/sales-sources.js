@@ -37,8 +37,9 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  billableWeightKg, titleWeight, MAX_FREIGHT_SHARE, weightSanity, footwearWeightKg, ballWeightKg,
+  titleWeight, MAX_FREIGHT_SHARE, weightSanity, footwearWeightKg, ballWeightKg,
 } from "./item-weight.js";
+import { beautyWeightDetail } from "./beauty-weight.js";
 
 // The public charged rate, and only that. weight-data.js also exports our
 // internal courier cost and margin; neither may travel with anything that
@@ -54,6 +55,11 @@ export const CHARGE_PER_KG_USD = 13;
 // against 1.21kg there. The freight gate runs on these numbers, so a
 // mismatch means the page can show a deal the refresh suppressed.
 // test-freight asserts row-for-row agreement.
+//
+// 2026-09-20: the `dimCm` field is gone from every row. It existed to
+// bill rigid boxed goods at their dimensional weight; the courier
+// contract bills actual scale weight only, so the box no longer enters
+// the quote and these are plain masses.
 const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
@@ -85,21 +91,20 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\b(sheet set|bed sheets?|pillowcases?|bedding set|mattress pad|mattress protector)\b/i, kg: 1.6, tier: "reasoned" },
   { match: /\b(pillows?|cushions?|throw blanket|blankets?)\b/i, kg: 1.2, tier: "reasoned" },
   { match: /\b(curtains?|drapes?|shower curtain)\b/i, kg: 1, tier: "reasoned" },
-  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: "cited", dimCm: [20, 12, 8] },
-  { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited", dimCm: [45, 32, 10] },
+  { match: /smartphone|iphone|galaxy s\d|\bphone\b/i, kg: 0.3, tier: "cited" },
+  { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited" },
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: "cited" },
   { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
   { match: /\bwall mount\b|\btv mount\b/i, kg: 3.5, tier: "reasoned" },
-  // Rigid boxed goods, where the box bills for more than the contents
-  // weigh (dimCm = typical retail box, L x W x H in cm). All reasoned.
-  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned", dimCm: [25, 22, 12] },
-  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned", dimCm: [95, 20, 15] },
-  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned", dimCm: [70, 45, 15] },
-  { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned", dimCm: [55, 45, 35] },
-  { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned", dimCm: [60, 45, 35] },
-  { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned", dimCm: [12, 10, 6] },
-  { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned", dimCm: [30, 22, 5] },
-  { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned", dimCm: [15, 12, 8] },
+  // Rigid boxed goods. All reasoned.
+  { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
+  { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
+  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned" },
+  { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned" },
+  { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned" },
+  { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned" },
+  { match: /\bipad\b|\btablet\b/i, kg: 1.1, tier: "reasoned" },
+  { match: /smartwatch|apple watch/i, kg: 0.4, tier: "reasoned" },
   { match: /\bvitamins?\b|multivitamin|\bsupplement\b|suplementos?\b|\bsoftgels?\b|\btablets?\b.*\bcount\b/i, kg: 0.5, tier: "reasoned" },
 ];
 const DEFAULT_RETAIL_WEIGHT_KG = 0.8; // unclassified: a rough placeholder, so 'reasoned'
@@ -120,10 +125,16 @@ function tvWeightKg(title) {
  * resolver tell a category estimate apart from the generic fallback, and
  * label them differently to the customer.
  */
-export function categoryWeightKg(title) {
+export function categoryWeightKg(title, hints = {}) {
   const t = String(title || "");
   const bulky = bulkyWeightKg(t);
   if (bulky != null) return bulky;
+  /* Beauty is read BEFORE footwear, because the footwear detector matches
+     on brand names and several of those brands also sell fragrance —
+     "Puma Energy Eau de Toilette" is a 0.25 kg bottle, not a 1.30 kg pair
+     of trainers. */
+  const beauty = beautyWeightDetail(t, hints);
+  if (beauty) return beauty.kg;
   // A sneaker listed by model name ("New Balance 204L") is still a sneaker.
   const shoes = footwearWeightKg(t);
   if (shoes != null) return shoes;
@@ -133,7 +144,7 @@ export function categoryWeightKg(title) {
   if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
   if (!hit) return null;
-  return billableWeightKg(withBuffer(hit.kg, hit.tier), hit.dimCm);
+  return withBuffer(hit.kg, hit.tier);
 }
 
 /**
@@ -146,8 +157,8 @@ export function categoryWeightKg(title) {
  * (A scraped spec weight beats all three, and is applied before this is
  * ever called: see netlify/functions/_weight-resolve.js.)
  */
-export function estimateWeightKg(title) {
-  return estimateWeightDetail(title).kg;
+export function estimateWeightKg(title, hints = {}) {
+  return estimateWeightDetail(title, hints).kg;
 }
 
 /**
@@ -162,11 +173,18 @@ export function estimateWeightKg(title) {
  * wrong weight is money straight off the margin, because we honour the
  * freight we quoted.
  */
-export function estimateWeightDetail(title) {
-  const stated = titleWeight(title);
-  const raw = stated ? { kg: stated.kg, source: "title" }
+export function estimateWeightDetail(title, hints = {}) {
+  /* BEAUTY FIRST, ahead of the title parse (2026-09-20). A cosmetic's
+     title states the VOLUME in the bottle — "Eau de Toilette 3.4 oz" —
+     and reading that as a shipped weight ignores the glass, the cap and
+     the box, which are most of the parcel. Everywhere else a weight the
+     retailer wrote in the title is still a fact that beats any table. */
+  const beauty = beautyWeightDetail(title, hints);
+  const stated = beauty ? null : titleWeight(title);
+  const raw = beauty ? { kg: beauty.kg, source: "beauty", beautyKey: beauty.key }
+    : stated ? { kg: stated.kg, source: "title" }
     : (() => {
-        const category = categoryWeightKg(title);
+        const category = categoryWeightKg(title, hints);
         return category != null
           ? { kg: category, source: "category" }
           : { kg: withBuffer(DEFAULT_RETAIL_WEIGHT_KG, "reasoned"), source: "fallback" };
@@ -188,6 +206,14 @@ export function estimateWeightDetail(title) {
   if (guessed) {
     return { kg, source: raw.source, estimated: true, flagged: true, bound: check.key,
       reason: `sin categoría — estimado genérico de ${kg} kg, necesita una fila de categoría` };
+  }
+  /* A beauty estimate is an estimate, and rule 1 of the beauty brief is
+     that every one of them reaches the review queue — so it is flagged
+     even though it is not a failure. The reason says which row answered,
+     so the queue reads as calibration work rather than as breakage. */
+  if (raw.source === "beauty") {
+    return { kg, source: "beauty", estimated: true, flagged: true, bound: check.key,
+      reason: `peso estimado de belleza (${raw.beautyKey}) — ${kg} kg, calibrar con el primer pedido real` };
   }
   // A category estimate is still an estimate; only a stated weight is a fact.
   return { kg, source: raw.source, estimated: raw.source !== "title", flagged: false, bound: check.key, reason: null };

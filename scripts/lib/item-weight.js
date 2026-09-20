@@ -33,6 +33,8 @@
    end of the realistic range for the category, and these buffers add a
    further margin on top (raised 2026-09-18 from 1.10/1.20). Never lower
    an entry to make a price look better. */
+import { beautyRowFor, PERFUME_RE } from "./beauty-weight.js";
+
 export const CONFIDENCE_BUFFER = { cited: 1.15, reasoned: 1.35 };
 
 export function withBuffer(kg, tier) {
@@ -152,38 +154,39 @@ export function goalWeightKg(title) {
    level up. A toddler sneaker and a men's work boot are not one number.
 
    HONESTY ABOUT WHERE THESE COME FROM: they are reasoned figures —
-   typical pair masses and the retail shoebox each size actually ships
-   in — not sourced measurements, and they carry the 'reasoned' buffer
+   typical pair masses for the size, plus the retail shoebox — not
+   sourced measurements, and they carry the 'reasoned' buffer
    accordingly. A per-SKU weight from a retailer feed should replace all
    of it, and specWeightKg() already prefers one when a scrape has it.
 
-   What actually decides the quote is the second number, not the first: a
-   shoebox is mostly air, so its volumetric weight (L*W*H / 5000, the
-   standard air divisor) exceeds the pair's mass in every row below, and
-   the volumetric figure is what the courier bills us. That is why a
-   toddler shoe lands at 0.72 kg and a men's boot at 2.76 kg. */
+   ACTUAL SCALE WEIGHT ONLY (2026-09-20). These rows used to carry box
+   dimensions and quote max(mass, volumetric) — a shoebox is mostly air,
+   so the volumetric figure won every row and a men's boot billed at
+   2.76 kg instead of the 2.24 kg it weighs. The courier contract bills
+   on the scale reading with no dimensional component at all, so the box
+   dimensions are gone and what a pair weighs is the whole answer. */
 export const FOOTWEAR_TIERS = [
   // Size wins over style: a kids' boot ships in a kids' box.
-  { key: "bebé",        match: /\b(baby|infant|newborn|crib shoe)\b/i,                        kg: 0.15, boxCm: [20, 13, 9] },
-  { key: "toddler",     match: /\b(toddler|little kids?)\b/i,                                 kg: 0.3,  boxCm: [24, 15, 10] },
-  { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55, boxCm: [28, 18, 11] },
-  { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2,  boxCm: [33, 22, 14] },
-  { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6,  boxCm: [36, 24, 16] },
-  /* Sandals ship in a polybag, not a shoebox, so the shoebox volumetric
-     does not apply — the shipped weight is stated outright instead of
-     derived. 0.40-0.50 kg is what they actually weigh packed; 0.60 is
+  { key: "bebé",        match: /\b(baby|infant|newborn|crib shoe)\b/i,                        kg: 0.15 },
+  { key: "toddler",     match: /\b(toddler|little kids?)\b/i,                                 kg: 0.3 },
+  { key: "niños",       match: /\b(kids?|youth|big kids?|grade school|preschool|junior|boys'?|girls'?)\b/i, kg: 0.55 },
+  { key: "bota mujer",  match: /\bwomen'?s\b[^,]{0,40}\bboots?\b|\bboots?\b[^,]{0,40}\bwomen'?s\b/i,   kg: 1.2 },
+  { key: "bota",        match: /\bboots?\b(?!\s*cut)/i,                                       kg: 1.6 },
+  /* Sandals ship in a polybag, not a shoebox, so they never carried the
+     shoebox figure in the first place — the shipped weight is stated
+     outright. 0.40-0.50 kg is what they actually weigh packed; 0.60 is
      that with the conservative margin, and it replaced a 1.14 kg
      shoebox figure that was quoting S/ 52 of freight on S/ 60 sandals. */
-  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, boxCm: [30, 19, 10], shippedKg: 0.6 },
-  { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4,  boxCm: [30, 19, 11] },
-  { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5,  boxCm: [30, 19, 12] },
-  { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55, boxCm: [32, 20, 12] },
-  { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65, boxCm: [31, 20, 12] },
-  { key: "hombre",      match: /\b(men'?s?|mens|hombre)\b/i,                                  kg: 0.9,  boxCm: [34, 22, 13] },
+  { key: "sandalia",    match: /\b(sandals?|flip[- ]?flops?|slides?)\b/i,                      kg: 0.45, shippedKg: 0.6 },
+  { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4 },
+  { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5 },
+  { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55 },
+  { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65 },
+  { key: "hombre",      match: /\b(men'?s?|mens|hombre)\b/i,                                  kg: 0.9 },
 ];
 // No size and no style stated — the middle of the range, not a guess at
 // the small end, because under-quoting is money off our own margin.
-export const FOOTWEAR_DEFAULT = { key: "calzado", kg: 0.8, boxCm: [33, 21, 12] };
+export const FOOTWEAR_DEFAULT = { key: "calzado", kg: 0.8 };
 
 /* A listing is footwear if it names a shoe, or names a shoe brand or a
    shoe model — Foot Locker's catalogue is model names and almost never
@@ -209,12 +212,9 @@ export function footwearTierFor(title) {
 export function footwearWeightKg(title) {
   const tier = footwearTierFor(title);
   if (!tier) return null;
-  // A tier that states its shipped weight (soft packs, where the shoebox
-  // volumetric is simply wrong) is taken at its word.
+  // A tier that states its shipped weight (soft packs) is taken at its word.
   if (tier.shippedKg != null) return tier.shippedKg;
-  const mass = withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
-  const volumetric = dimensionalWeightKg(...tier.boxCm);
-  return Math.round(Math.max(mass, volumetric) * 100) / 100;
+  return withBuffer(tier.kg + PACKAGING_ALLOWANCE_KG, "reasoned");
 }
 
 /* BALLS (2026-09-19, reported).
@@ -224,21 +224,23 @@ export function footwearWeightKg(title) {
    0.25 kg row, which is better but still guesses: a golf ball and a
    basketball are not the same parcel, and a 12-count is not a 1-count.
 
-   So: the ball's REAL mass, times the count the title states, against the
-   box that actually gets billed. These masses are regulation figures, not
-   estimates, so they take the 'cited' buffer. The box matters because a
-   ball is light for its volume — a single boxed baseball bills at ~0.27 kg
-   volumetric even though it weighs 0.145 kg, and that, not the mass, is
-   what the courier charges for. Never the 1.08 kg fallback either way. */
+   So: the ball's REAL mass, times the count the title states. These
+   masses are regulation figures, not estimates, so they take the 'cited'
+   buffer. Never the 1.08 kg fallback.
+
+   ACTUAL SCALE WEIGHT ONLY (2026-09-20): these rows used to carry box
+   dimensions and bill max(mass, volumetric), because a ball is light for
+   its volume. The courier contract has no dimensional component, so the
+   box is gone and the mass is the answer. */
 export const BALL_SPECS = [
-  { match: /\bbaseballs?\b/i, kg: 0.145, boxCm: [11, 11, 11] },
-  { match: /\bsoftballs?\b/i, kg: 0.19, boxCm: [13, 13, 13] },
-  { match: /\btennis balls?\b/i, kg: 0.058, boxCm: [8, 8, 8] },
-  { match: /\bgolf balls?\b/i, kg: 0.046, boxCm: [5, 5, 5] },
-  { match: /\bpickleballs?\b/i, kg: 0.024, boxCm: [8, 8, 8] },
-  { match: /\bbasketballs?\b/i, kg: 0.62, boxCm: [25, 25, 25] },
-  { match: /\b(?:soccer|f[uú]tbol)\s*balls?\b/i, kg: 0.43, boxCm: [23, 23, 23] },
-  { match: /\bvolleyballs?\b/i, kg: 0.27, boxCm: [22, 22, 22] },
+  { match: /\bbaseballs?\b/i, kg: 0.145 },
+  { match: /\bsoftballs?\b/i, kg: 0.19 },
+  { match: /\btennis balls?\b/i, kg: 0.058 },
+  { match: /\bgolf balls?\b/i, kg: 0.046 },
+  { match: /\bpickleballs?\b/i, kg: 0.024 },
+  { match: /\bbasketballs?\b/i, kg: 0.62 },
+  { match: /\b(?:soccer|f[uú]tbol)\s*balls?\b/i, kg: 0.43 },
+  { match: /\bvolleyballs?\b/i, kg: 0.27 },
 ];
 
 export function ballWeightKg(title) {
@@ -246,10 +248,7 @@ export function ballWeightKg(title) {
   const hit = BALL_SPECS.find((b) => b.match.test(t));
   if (!hit) return null;
   const packs = titlePackCount(t);
-  const net = withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
-  // The box scales with the count; the courier bills whichever is larger.
-  const volumetric = dimensionalWeightKg(...hit.boxCm) * packs;
-  return Math.round(Math.max(net, volumetric) * 100) / 100;
+  return withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
 }
 
 export function bulkyWeightKg(text) {
@@ -293,6 +292,12 @@ const LONG_BUT_LIGHT_RE =
 
 
 export const WEIGHT_SANITY_BOUNDS = [
+  /* Beauty runs FIRST and low. A cosmetic is the one category on this
+     site that legitimately weighs 20 grams, and several fragrance houses
+     share a name with a shoe brand ("Puma Energy Eau de Toilette"), so
+     without this row a perfume could be floored to the calzado minimum
+     and quoted as a pair of trainers. */
+  { key: "belleza", test: (t) => beautyRowFor(t) != null || PERFUME_RE.test(t), minKg: 0.02 },
   { key: "goal", match: GOAL_RE, minKg: 3 },
   { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20 },
   { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15 },
@@ -305,7 +310,12 @@ export const WEIGHT_SANITY_BOUNDS = [
   { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8 },
   { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6 },
   { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6 },
-  { key: "calzado", match: FOOTWEAR_NOUN_RE, minKg: 0.4 },  // a baby shoe box is ~0.47 kg volumetric; "Boot Cut Jeans" is excluded by the regex itself
+  /* Lowered from 0.4 to 0.2 when dimensional billing was removed
+     (2026-09-20): 0.4 came from a baby shoe box's ~0.47 kg dimensional
+     figure, and on actual scale weight the same box is 0.28 kg. Leaving
+     the old floor in place would have flagged and re-inflated every
+     infant shoe. "Boot Cut Jeans" is excluded by the regex itself. */
+  { key: "calzado", match: FOOTWEAR_NOUN_RE, minKg: 0.2 },
   { key: "televisor",
     test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t)),
     minKg: 4 },
@@ -392,35 +402,18 @@ export function freightKillsDeal(weightKg, priceUsd, chargePerKg) {
 }
 
 /* ============================================================
-   BILLABLE (VOLUMETRIC) WEIGHT
+   ACTUAL SCALE WEIGHT ONLY (2026-09-20)
 
-   Air freight is charged on whichever is greater: what the box weighs, or
-   what it would weigh if it were as dense as the carrier's standard —
-   L x W x H in cm divided by 5000, the IATA volumetric divisor AVI
-   Courier's rate card uses. A pair of over-ear headphones is 0.7kg of
-   product in a 25x22x12 box: we are billed for 1.32kg, not 0.7.
+   This file used to hold a dimensional-weight helper, a billable-weight
+   helper and a 5000 cm3/kg IATA divisor, and every rigid boxed category
+   quoted whichever of mass and dimensional weight was larger.
 
-   Only rigid, genuinely boxed goods get dimensions here. Apparel and soft
-   goods ship compressed in poly bags, so applying a box volume to them
-   would inflate freight against the customer for no reason.
+   That is gone. The courier contract bills on the ACTUAL SCALE WEIGHT of
+   the parcel, with no dimensional component and no exceptions, so
+   quoting a customer for air was charging them for something we are
+   never billed for. If the contract ever changes, this is one function
+   and one multiplication — do not reintroduce it speculatively.
    ============================================================ */
-
-export const DIM_DIVISOR_CM3_PER_KG = 5000;
-
-/** Volumetric weight for a box in centimetres, or null if not measurable. */
-export function dimensionalWeightKg(lCm, wCm, hCm) {
-  const dims = [lCm, wCm, hCm].map(Number);
-  if (dims.some((d) => !Number.isFinite(d) || d <= 0)) return null;
-  return Math.round((dims[0] * dims[1] * dims[2] / DIM_DIVISOR_CM3_PER_KG) * 100) / 100;
-}
-
-/** What the courier actually bills: the heavier of actual and dimensional. */
-export function billableWeightKg(actualKg, dimCm) {
-  const actual = Number(actualKg);
-  if (!Number.isFinite(actual) || actual <= 0) return null;
-  const dim = Array.isArray(dimCm) ? dimensionalWeightKg(...dimCm) : null;
-  return dim != null && dim > actual ? dim : actual;
-}
 
 /* ============================================================
    WEIGHT PARSED FROM THE TITLE
