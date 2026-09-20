@@ -146,10 +146,10 @@ export function loadPageFitmentSlice() {
 }
 
 const AUTOSRC_START = "const AUTO_SOURCES = {";
-const AUTOSRC_END = "/* A source's own mark.";
+const AUTOSRC_END = "/* ONE SEARCH PATH FOR EVERY SOURCE.";
 
 /** The Aria Auto parts-source registry mirror, on its own. */
 export function loadPageAutoSourcesSlice() {
   return runSlice(AUTOSRC_START, AUTOSRC_END, "index.html#auto-sources",
-    "{ AUTO_SOURCES, searchableAutoSources, visibleAutoSources, autoSourceFor, autoSourceLabel }");
+    "{ AUTO_SOURCES, searchableAutoSources, visibleAutoSources, autoSourceFor, autoSourceLabel, partNumberOf, partNumberLabel }");
 }

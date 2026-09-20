@@ -815,7 +815,12 @@
           <div id="productThumbs" class="flex gap-2 mt-3 overflow-x-auto pb-1" hidden></div>
         </div>
         <div class="min-w-0">
-          <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-3"></h1>
+          <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-2"></h1>
+          <!-- Auto parts only: the manufacturer part number, kept visible
+               after the click-through so a buyer can cross-check fit from
+               the page they are actually buying on. Empty and hidden for
+               everything else. -->
+          <div id="productViewPartNumber" class="text-[12.5px] font-semibold mb-3" style="color:var(--navy)" hidden></div>
           <div id="productViewPrice" class="text-[26px] font-extrabold mb-3" style="color:var(--navy)"></div>
           <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-4"></div>
           <!-- BUG FIX (cart rework): size now has to be picked before the
@@ -4724,6 +4729,13 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('imageLightbox')?.classList.contains('hidden')) closeImageLightbox();
 });
 
+/* Handed from an auto card to showProduct(), one product at a time, and
+   consumed there so it cannot leak onto the next product opened. Declared
+   above its reader rather than beside its writer: a `let` read from
+   thousands of lines further up is the temporal-dead-zone shape that has
+   already taken this page down once. */
+let pendingAutoPartNumber = null;
+
 function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
@@ -4731,6 +4743,16 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
+  /* Set by openAutoPart() immediately before this call, and consumed
+     here so it cannot leak onto the next product a shopper opens. */
+  const partNumberEl = document.getElementById('productViewPartNumber');
+  if (partNumberEl){
+    partNumberEl.innerHTML = pendingAutoPartNumber
+      ? `N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(pendingAutoPartNumber)}</span>`
+      : '';
+    partNumberEl.hidden = !pendingAutoPartNumber;
+  }
+  pendingAutoPartNumber = null;
   const statedWeight = contentLabelFor(name);
   document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0
     ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
@@ -7438,6 +7460,51 @@ function autoSourceLabel(key) {
   return autoSourceFor(key)?.label || key || "Tienda";
 }
 
+/* ============================================================
+   THE PART NUMBER IS THE BUYER'S OWN CHECK
+
+   Danny's standing point, and it is how he verified the Sonata pads
+   himself: in auto parts, reading the manufacturer's part or series
+   number and cross-checking it is normal buyer diligence, not a burden
+   we invented. A "D2076" pasted into a search engine answers "does this
+   fit my car" in seconds.
+
+   So every auto listing shows it. When we can confirm fitment from the
+   source's own data we say so outright with the green badge; when we
+   genuinely cannot, the number is what lets the shopper close the gap
+   instead of guessing. It is the one piece of information that makes an
+   unconfirmed listing useful rather than a shrug.
+
+   Sources name it differently, so this reads the shapes they use and
+   returns the most specific one. `oem` is kept separate because an OEM
+   number and an aftermarket number are different lookups.
+   ============================================================ */
+function partNumberOf(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const first = (...keys) => {
+    for (const k of keys) {
+      const v = raw[k];
+      if (v == null) continue;
+      const s = String(v).trim();
+      if (s && s.toLowerCase() !== "null") return s;
+    }
+    return null;
+  };
+  const partNumber = first("part_number", "partNumber", "sku", "mpn", "manufacturerPartNumber", "item_id");
+  const oem = first("oem_part_number", "oemPartNumber", "oem");
+  const lineCode = first("line_code", "lineCode", "brand", "sub_brand");
+  if (!partNumber && !oem) return null;
+  return { partNumber, oem, lineCode };
+}
+
+/** "Duralast D2076" — what the shopper pastes into a search engine. */
+function partNumberLabel(raw) {
+  const p = partNumberOf(raw);
+  if (!p) return null;
+  const core = p.partNumber || p.oem;
+  return p.lineCode && p.partNumber ? `${p.lineCode} ${core}` : core;
+}
+
 /* A source's own mark. Aria Auto's sources are deliberately NOT in the
    Tiendas registry, so retailerBadgeHTML() cannot resolve them — this
    reads the auto registry instead and falls back to a wordmark pill on
@@ -7833,6 +7900,11 @@ function openAutoPart(idx){
   // "Duralast Ceramic Brake Pads" alone is the same string for both axles,
   // which is exactly how someone ends up with the wrong set.
   const title = p.axle ? `${p.title} (${AXLE_LABEL_ES[p.axle]})` : p.title;
+  /* The part number rides along so the detail page can show it too. A
+     shopper who clicks a part to look closer is exactly the shopper
+     about to cross-check the number, and losing it on the click is
+     losing it at the moment it is wanted. */
+  pendingAutoPartNumber = p.partNumber || null;
   showProduct(p.retailer, title, p.price, p.weightKg, p.image || '', [], false, '',
     p.rating != null ? String(p.rating) : '');
 }
@@ -7915,6 +7987,17 @@ function logFitmentGap(vehicle, query){
   } catch { /* never let a tally break a search */ }
 }
 
+/* THE SECOND LINE USED TO STATE A CAUSE AS FACT (2026-09-20). It read
+   "Ese modelo no se vendió en Estados Unidos" — one possible reason, and
+   not the usual one. The 2020 Sonata is a US-market car and this state
+   fires for it whenever the store simply returned nothing. Asserting a
+   cause we have not established is the same class of error as the badge
+   this section was fixed for, pointed the other way: it is now offered
+   as one possibility among two, which is what we actually know.
+
+   (Kept as a JS comment, not an HTML one: this function's markup is a
+   template literal, so an HTML comment here would ship into the DOM of
+   every empty state — and would carry the false sentence with it.) */
 function fitmentGapHTML(label, vehicle, query, sourceKey){
   const v = escapeHtml(vehicleLabel(vehicle));
   return `<div class="mb-8">
@@ -7922,8 +8005,9 @@ function fitmentGapHTML(label, vehicle, query, sourceKey){
     <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
       <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">No tenemos datos de calce para tu ${v} en tiendas de EE. UU.</div>
       <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
-        Ese modelo no se vendió en Estados Unidos, así que las tiendas de allá no tienen el calce registrado.
-        No vamos a mostrarte repuestos que quizá no encajen: preferimos decirte la verdad.
+        La tienda no devolvió repuestos para este vehículo. Puede ser que no lo tenga en catálogo,
+        o que ese modelo no se haya vendido en Estados Unidos. No vamos a mostrarte repuestos que
+        quizá no encajen: preferimos decirte la verdad y buscarlo a mano.
       </p>
       <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">
         Escríbenos qué pieza necesitas y la buscamos manualmente
@@ -8019,6 +8103,33 @@ function axleSelectorHTML(blockId){
    a store that does have data. If AutoZone confirms four pads and
    RockAuto has nothing for the car, the shopper sees both facts. That
    is the comparison this section exists to give. */
+/* ============================================================
+   THE THREE OUTCOMES, AND WHICH ONE IS THE DEFAULT (2026-09-20)
+
+   CORRECTION on the first cut of this fix. It collapsed everything we
+   could not positively confirm into the honest empty state, and Danny
+   was right that this overshoots: he searched Sonata brake pads, and the
+   pads the page had been showing were genuinely Sonata-fitting — he
+   checked the series number himself. Hiding them did not make the
+   section honest, it made it dead. Confirmed fit is the goal; the empty
+   state is the fail-closed fallback, never the normal view.
+
+   1. CONFIRMED — the source's compatibility list names this vehicle.
+      Only those parts, each with the green "Compatible con tu [vehículo]"
+      badge. This is what the section is for.
+   2. UNCONFIRMED — the source returned parts for a search scoped to this
+      exact vehicle, but publishes no compatibility list we can read. The
+      parts are SHOWN, with the manufacturer part number prominent so the
+      buyer can close the gap the way Danny did, and one honest line
+      saying we could not confirm it ourselves. This is not the banned
+      badge: that was banned as a substitute for confirmation we COULD
+      have given, and here we genuinely cannot.
+   3. NOTHING — the source returned no parts at all. The honest empty
+      state and the concierge path.
+
+   A part whose list names a DIFFERENT car is still excluded in branch 1.
+   That is the source answering the shopper's question with a no.
+   ============================================================ */
 function renderAutoPartBlock(label, result, query, sourceKey){
   const header = `<div class="mb-3">${autoSourceBadgeHTML(sourceKey || label, 22)}</div>`;
   if (!result.ok){
@@ -8027,34 +8138,30 @@ function renderAutoPartBlock(label, result, query, sourceKey){
     </div>`;
   }
   const vehicle = selectedVehicle;
-  const rawItems = Array.isArray(result.items) ? result.items : [];
+  const rawItems = filterAutomotiveParts(Array.isArray(result.items) ? result.items : [], query);
 
-  /* OUTCOME 2: no compatibility data anywhere in this store's results.
-     Say so, show nothing, log the gap. Never fall back to the unfiltered
-     keyword results — that was the bug. */
-  if (!rawItems.length || !hasFitmentData(rawItems, vehicle)){
+  // OUTCOME 3: nothing came back at all.
+  if (!rawItems.length){
     logFitmentGap(vehicle, query);
     return fitmentGapHTML(label, vehicle, query, sourceKey);
   }
 
-  /* OUTCOME 1: filter to the parts whose list names this car. A part
-     with a list that does NOT name it is excluded — a shopper asked
-     whether it fits and the source answered no. Lawn and wheelbarrow
-     tires are dropped separately (filterAutomotiveParts). */
-  const fitted = vehicleFittedItems(rawItems, vehicle);
-  const items = filterAutomotiveParts(fitted, query);
-  const excluded = rawItems.length - fitted.length;
+  const hasData = hasFitmentData(rawItems, vehicle);
+  const fitted = hasData ? vehicleFittedItems(rawItems, vehicle) : rawItems;
+  const excluded = hasData ? rawItems.length - fitted.length : 0;
 
-  if (!items.length){
+  /* Branch 1 with a list that ruled everything out: the source DOES know
+     this vehicle and says none of these parts fit it. That is a real
+     answer and it is not the empty state — say which. */
+  if (hasData && !fitted.length){
     return `<div class="mb-8">${header}
       <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
         <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">
           Nada que calce con tu ${escapeHtml(vehicleLabel(vehicle))} en ${escapeHtml(label)}
         </div>
         <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
-          ${excluded > 0
-            ? `Revisamos ${excluded} repuesto${excluded === 1 ? '' : 's'} y ninguno lista tu vehículo. Preferimos no venderte algo que quizá no encaje.`
-            : 'No encontramos repuestos con calce confirmado para tu vehículo aquí.'}
+          Revisamos ${excluded} repuesto${excluded === 1 ? '' : 's'} y la tienda no lista tu vehículo en ninguno.
+          Preferimos no venderte algo que quizá no encaje.
         </p>
         <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">
           Escríbenos qué pieza necesitas y la buscamos manualmente
@@ -8069,11 +8176,11 @@ function renderAutoPartBlock(label, result, query, sourceKey){
   // site. Do not add an <a href> to a scraped item.url here or anywhere
   // else a product card is rendered.
   const blockId = `autoBlockGrid-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, '')}`;
-  const axles = new Set(items.map(axleFromItem).filter(Boolean));
-  const cards = items.map((it) => {
+  const axles = new Set(fitted.map(axleFromItem).filter(Boolean));
+  const cards = fitted.map((it) => {
     const axle = axleFromItem(it);
     const card = {
-      retailer: label,
+      retailer: sourceKey || label,
       title: it.title,
       price: it.price,
       // Each listing's own axle weight — a front set is heavier than a
@@ -8082,31 +8189,50 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       image: it.image || '',
       rating: it.rating != null ? it.rating : null,
       axle,
+      partNumber: partNumberLabel(it.raw),
     };
     const idx = autoPartsRendered.push(card) - 1;
     return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {
       open: `openAutoPart(${idx})`,
-      // Every card in this list is confirmed — that is what got it here.
-      badgeHTML: fitmentBadgeHTML(vehicle, true) + axleBadgeHTML(axle),
+      // Green ONLY where the list named this car. In the unconfirmed
+      // branch there is no badge at all — the absence is the signal, and
+      // the block line above says it in words.
+      badgeHTML: (hasData ? fitmentBadgeHTML(vehicle, true) : '') + axleBadgeHTML(axle),
+      extraHTML: autoPartNumberHTML(card.partNumber),
     })}</div>`;
   }).join('');
 
-  const droppedTires = fitted.length - items.length;
   // Only when the vehicle really has both — a selector with one option is
   // a dead control.
   const selector = axles.has('front') && axles.has('rear') ? axleSelectorHTML(blockId) : '';
-  /* The line is now a statement of fact rather than a disclaimer. Every
-     card below carries a compatibility list naming this vehicle; the old
-     "verifícalo antes de pedir" has nothing left to apply to. */
-  const scopeLine = `${items.length} repuesto${items.length === 1 ? '' : 's'} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
-    + (excluded > 0 ? ` Ocultamos ${excluded} que no lista${excluded === 1 ? '' : 'n'} tu vehículo.` : '')
-    + (droppedTires > 0 && isTireQuery(query)
-        ? ` Y ${droppedTires} que no ${droppedTires === 1 ? 'era' : 'eran'} de auto (jardín, carretilla o remolque).`
-        : '');
+
+  const scopeLine = hasData
+    ? `${fitted.length} repuesto${fitted.length === 1 ? '' : 's'} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
+      + (excluded > 0 ? ` Ocultamos ${excluded} que no lista${excluded === 1 ? '' : 'n'} tu vehículo.` : '')
+    : `Buscamos en ${escapeHtml(label)} específicamente para tu ${escapeHtml(vehicleLabel(vehicle))}. `
+      + `La tienda no publica la lista de compatibilidad de estas piezas, así que no podemos confirmarlo nosotros: `
+      + `revisa el número de parte antes de pedir.`;
+
   return `<div class="mb-8">${header}
-    <p class="text-[11.5px] mb-3" style="color:#8A93A8">${scopeLine}</p>
+    <p class="text-[11.5px] mb-3" style="color:${hasData ? '#8A93A8' : '#8A6B1F'}">${scopeLine}</p>
     ${selector}
     <div id="${blockId}" class="${LISTING_GRID_CLASS}">${cards}</div>
+    ${hasData ? '' : `<div class="mt-4">
+      <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full border text-[13px] font-bold focus-ring transition" style="border-color:var(--line); color:var(--navy)">
+        ¿Prefieres que lo confirmemos nosotros? Escríbenos
+      </button>
+    </div>`}
+  </div>`;
+}
+
+/* The part number, on the card, where a shopper can read it without
+   opening anything. Danny verified the Sonata pads by pasting "D2076"
+   into a search engine — this is that, made possible without leaving the
+   page. Monospace because it is a code, not prose. */
+function autoPartNumberHTML(partNumber){
+  if (!partNumber) return '';
+  return `<div class="text-[11.5px] mb-1 font-semibold" style="color:var(--navy)">
+    N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(partNumber)}</span>
   </div>`;
 }
 

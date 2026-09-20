@@ -1967,12 +1967,126 @@ check("the badge has one branch, and it is green", () => {
 check("the results path filters on fitment, not on VEHICLE_SPECIFIC", () => {
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   if (/vehicle_fitment/.test(src)) throw new Error("the old VEHICLE_SPECIFIC gate is still live code");
-  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("async function searchAutoParts("));
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
   if (!/vehicleFittedItems\(rawItems, vehicle\)/.test(block)) {
     throw new Error("the block does not filter to confirmed-fit items");
   }
-  if (!/hasFitmentData\(rawItems, vehicle\)/.test(block) || !/fitmentGapHTML\(/.test(block)) {
-    throw new Error("the honest empty state is not the no-data outcome");
+  if (!/hasFitmentData\(rawItems, vehicle\)/.test(block)) {
+    throw new Error("the block does not ask whether fitment data exists");
+  }
+});
+
+check("the empty state is the fallback, not the default view", () => {
+  /* CORRECTION (2026-09-20): the first cut showed the empty state
+     whenever fitment could not be confirmed, which hid genuinely
+     Sonata-fitting pads and killed the section. The empty state is now
+     reached ONLY when the source returned nothing at all. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
+  const gapCall = block.indexOf("fitmentGapHTML(");
+  if (gapCall < 0) throw new Error("the empty state is unreachable");
+  // The only guard above the empty state is "nothing came back".
+  const guard = block.slice(0, gapCall);
+  if (!/if \(!rawItems\.length\)/.test(guard)) {
+    throw new Error("the empty state is not gated on an empty result set");
+  }
+  if (/hasFitmentData[^;]*\{\s*logFitmentGap/.test(block)) {
+    throw new Error("missing fitment data still routes to the empty state");
+  }
+});
+
+check("unconfirmed parts are shown, with the part number and no green badge", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
+  // The green badge is conditional on having data; the part number is not.
+  if (!/hasData \? fitmentBadgeHTML\(vehicle, true\) : ''/.test(block)) {
+    throw new Error("the green badge is not gated on confirmed fitment");
+  }
+  if (!/extraHTML: autoPartNumberHTML\(/.test(block)) {
+    throw new Error("the part number is not on the card");
+  }
+  // And the honest line has to say we could not confirm it.
+  if (!/no podemos confirmarlo nosotros/.test(block)) {
+    throw new Error("the unconfirmed branch does not say so");
+  }
+});
+
+check("the empty state claims no cause it has not established", () => {
+  /* It used to assert "Ese modelo no se vendió en Estados Unidos" — false
+     for the 2020 Sonata, which is a US-market car. Claiming a cause we
+     have not established is the same error as the badge, reversed. */
+  const html = readFileSync(root("index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const gap = html.slice(html.indexOf("function fitmentGapHTML("), html.indexOf("function askAriaForPart("));
+  if (/Ese modelo no se vendió en Estados Unidos/.test(gap)) {
+    throw new Error("the empty state still states a cause as fact");
+  }
+  if (!/No tenemos datos de calce para tu/.test(gap)) {
+    throw new Error("the standard honest line is gone");
+  }
+  // A hedged possibility is fine; an assertion is not.
+  if (/no se haya vendido/.test(gap) && !/Puede ser que/.test(gap)) {
+    throw new Error("the US-market line is not hedged");
+  }
+});
+
+check("the part number a buyer cross-checks is read from the payload", () => {
+  // The exact shape the cache holds.
+  const raw = { part_number: "D2076", line_code: "EPA", brand: "Duralast", oem_part_number: null };
+  eq(autoSources.partNumberOf(raw).partNumber, "D2076");
+  eq(autoSources.partNumberLabel(raw), "EPA D2076");
+  eq(autoSources.partNumberLabel({ brand: "Bosch", part_number: "BC1234" }), "Bosch BC1234");
+  eq(autoSources.partNumberLabel({ oem_part_number: "58101-C1A00" }), "58101-C1A00", "OEM alone still answers");
+  eq(autoSources.partNumberLabel({ title: "no numbers here" }), null);
+  eq(pageAuto.partNumberLabel(raw), autoSources.partNumberLabel(raw), "index.html mirror");
+});
+
+check("every cached auto part can show a number to cross-check", () => {
+  /* The diligence path only works if the number is actually there. It is
+     the one fitment-adjacent field the overview scrape DOES return. */
+  const cache = JSON.parse(readFileSync(root("auto-cache.json"), "utf8"));
+  let items = 0;
+  let numbered = 0;
+  for (const entry of Object.values(cache.partSearches)) {
+    for (const raw of entry.autozone || []) {
+      items++;
+      if (autoSources.partNumberLabel(raw)) numbered++;
+    }
+  }
+  if (!items) throw new Error("the auto cache is empty");
+  const pct = Math.round((numbered / items) * 100);
+  if (pct < 95) throw new Error(`only ${pct}% of cached parts carry a part number`);
+});
+
+check("the named test vehicle is in the refresh list", () => {
+  /* "2020 Hyundai Sonata + pastillas de freno" is the brief's own test
+     case, and the Sonata was never in AUTOZONE_VEHICLES — so it missed
+     the cache and went out as a live scrape on every search. */
+  const src = readFileSync(root("scripts/refresh-auto-cache.js"), "utf8");
+  if (!/\{ make: "Hyundai", model: "Sonata" \}/.test(src)) {
+    throw new Error("the Sonata is still not cached by the refresh script");
+  }
+  // And the run reports whether fitment actually arrived.
+  if (!/function reportFitmentCoverage\(\)/.test(src)) {
+    throw new Error("the refresh does not report fitment coverage");
+  }
+  if (!/AUTO_SCRAPE_MODE/.test(src)) {
+    throw new Error("the coverage report does not point at the scrape mode");
+  }
+});
+
+check("no layer of the auto pipeline drops fields", () => {
+  /* The weight bug was an allowlist in refresh-department-cache.js. The
+     same hypothesis for auto does NOT hold, and that is worth pinning:
+     refresh-auto-cache.js stores what it got, and apify-scrape-status.js
+     passes the dataset through. If a slimming step ever appears here, it
+     must not be the thing that eats fitment. */
+  const refresh = stripComments(readFileSync(root("scripts/refresh-auto-cache.js"), "utf8"));
+  if (!/\.autozone = items\.slice\(0, 5\)/.test(refresh)) {
+    throw new Error("the auto refresh no longer stores items verbatim — check it keeps fitment fields");
+  }
+  const status = stripComments(readFileSync(root("netlify/functions/apify-scrape-status.js"), "utf8"));
+  if (!/JSON\.stringify\(\{ status, items \}\)/.test(status)) {
+    throw new Error("the scrape status endpoint no longer passes items through verbatim");
   }
 });
 

@@ -310,7 +310,7 @@ await check("no courier name is rendered anywhere a shopper browses", async () =
   await ctx.close();
 });
 
-await check("Aria Auto filters on fitment, and never shows a maybe", async () => {
+await check("Aria Auto confirms what it can and shows the rest with a part number", async () => {
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -318,21 +318,8 @@ await check("Aria Auto filters on fitment, and never shows a maybe", async () =>
 
   const r = await page.evaluate(() => {
     const vehicle = { year: "2020", make: "Hyundai", model: "Sonata" };
-    // Exactly the payload shape the cache holds today: VEHICLE_SPECIFIC
-    // and nothing else. This is the live bug.
-    const noFitment = [{ title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
-      raw: { vehicle_fitment: "VEHICLE_SPECIFIC", specs: { "Pad Type": "Ceramic" } } }];
-    // …and the shape the detail scrape returns.
-    const withFitment = [
-      { title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
-        raw: { specs: { Fits: "Hyundai Sonata, Hyundai Tucson, Kia K5 2020-2024" }, location: "Front" } },
-      { title: "Wrong Pads For Another Car", price: 21.5,
-        raw: { specs: { Fits: "Honda Civic 2016-2021" } } },
-    ];
     /* selectedVehicle is a top-level `let`, not a window property, so
-       assigning window.selectedVehicle would silently do nothing. Drive
-       the page's own selectors instead — which also exercises the real
-       path a shopper takes. */
+       drive the page's own selectors — the real path a shopper takes. */
     const setSel = (id, value) => {
       const el = document.getElementById(id);
       el.innerHTML = `<option value="${value}">${value}</option>`;
@@ -344,21 +331,58 @@ await check("Aria Auto filters on fitment, and never shows a maybe", async () =>
     setSel("autoModelSelect", vehicle.model);
     maybeRevealPartSearch();
 
-    const gap = renderAutoPartBlock("AutoZone", { ok: true, items: noFitment }, "pastillas de freno", "autozone");
-    const good = renderAutoPartBlock("AutoZone", { ok: true, items: withFitment }, "pastillas de freno", "autozone");
+    // Exactly the payload shape the cache holds today: no compatibility
+    // list anywhere, but a real part number.
+    const noFitment = [{ title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
+      raw: { vehicle_fitment: "VEHICLE_SPECIFIC", part_number: "D2076", line_code: "EPA",
+             specs: { "Pad Type": "Ceramic" } } }];
+    // …and the shape the detail scrape returns.
+    const withFitment = [
+      { title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
+        raw: { specs: { Fits: "Hyundai Sonata, Hyundai Tucson, Kia K5 2020-2024" },
+               part_number: "D2076", location: "Front" } },
+      { title: "Wrong Pads For Another Car", price: 21.5,
+        raw: { specs: { Fits: "Honda Civic 2016-2021" }, part_number: "X9" } },
+    ];
+
+    const unconfirmed = renderAutoPartBlock("AutoZone", { ok: true, items: noFitment }, "pastillas de freno", "autozone");
+    const confirmed = renderAutoPartBlock("AutoZone", { ok: true, items: withFitment }, "pastillas de freno", "autozone");
+    const empty = renderAutoPartBlock("AutoZone", { ok: true, items: [] }, "pastillas de freno", "autozone");
+
     return {
-      gapIsEmptyState: /No tenemos datos de calce/.test(gap),
-      gapShowsProducts: /Duralast/.test(gap),
-      goodShowsConfirmed: /Compatible con tu/.test(good),
-      goodShowsWrongCar: /Wrong Pads/.test(good),
-      anyMaybe: /Verifica el calce|verifícalo antes de pedir/.test(gap + good),
+      // Branch 2: shown, not hidden.
+      unconfirmedShowsProduct: /Duralast/.test(unconfirmed),
+      unconfirmedShowsPartNumber: /D2076/.test(unconfirmed) && /N\.° de parte/.test(unconfirmed),
+      unconfirmedHasGreenBadge: /Compatible con tu/.test(unconfirmed),
+      unconfirmedIsHonest: /no podemos confirmarlo nosotros/.test(unconfirmed),
+      unconfirmedIsEmptyState: /No tenemos datos de calce/.test(unconfirmed),
+      // Branch 1: confirmed only.
+      confirmedHasBadge: /Compatible con tu/.test(confirmed),
+      confirmedShowsWrongCar: /Wrong Pads/.test(confirmed),
+      confirmedShowsPartNumber: /D2076/.test(confirmed),
+      // Branch 3: nothing at all.
+      emptyIsEmptyState: /No tenemos datos de calce/.test(empty),
+      emptyClaimsUsMarket: /Ese modelo no se vendió en Estados Unidos/.test(empty),
+      // The banned badge, nowhere.
+      anyBannedBadge: /Verifica el calce|verifícalo antes de pedir/.test(unconfirmed + confirmed + empty),
     };
   });
-  eq(r.gapIsEmptyState, true, "no fitment data must give the honest empty state");
-  eq(r.gapShowsProducts, false, "unfiltered keyword results must never be shown");
-  eq(r.goodShowsConfirmed, true, "a confirmed part gets the green badge");
-  eq(r.goodShowsWrongCar, false, "a part whose list names another car is excluded");
-  eq(r.anyMaybe, false, "the banned middle ground is rendered nowhere");
+
+  // Branch 2 — the correction: these are the Sonata-fitting pads Danny
+  // verified, and hiding them killed the section.
+  eq(r.unconfirmedShowsProduct, true, "unconfirmed parts must still be shown");
+  eq(r.unconfirmedShowsPartNumber, true, "the part number is the buyer's own check");
+  eq(r.unconfirmedHasGreenBadge, false, "an unconfirmed part must not claim confirmation");
+  eq(r.unconfirmedIsHonest, true, "it must say we could not confirm it");
+  eq(r.unconfirmedIsEmptyState, false, "no-fitment-data is not the empty state");
+  // Branch 1
+  eq(r.confirmedHasBadge, true, "a confirmed part gets the green badge");
+  eq(r.confirmedShowsWrongCar, false, "a part listing another car is excluded");
+  eq(r.confirmedShowsPartNumber, true, "confirmed parts show their number too");
+  // Branch 3
+  eq(r.emptyIsEmptyState, true, "nothing back means the honest empty state");
+  eq(r.emptyClaimsUsMarket, false, "the empty state must not assert a cause");
+  eq(r.anyBannedBadge, false, "the banned disclaimer appears nowhere");
   await ctx.close();
 });
 
