@@ -9136,17 +9136,21 @@ function renderCartView(){
 // Stubs — real implementations land in later phases of this same build
 // (tax-zone bar, cross-sell rail, order-cap/kill-switch status). Kept as
 // safe no-ops here so the cart page works standalone before those ship.
-// Peru's real $200 de minimis threshold and ~23% duty/IGV rate — mirrors
-// weight-data.js's DUTY_THRESHOLD_USD/DUTY_RATE exactly (checkout.html
-// imports that module directly; this plain <script> can't, so the two
-// numbers are duplicated here rather than restructuring module loading —
-// same pattern checkout.html already uses for its own small self-
-// contained copies of shared constants/helpers). If that policy ever
-// changes, update both places.
-// Same threshold and rate the cards price with — aliased, not repeated,
-// so the two can never drift apart.
+/* THIS BAR DESCRIBES THE CHARGE, SO IT READS THE CHARGED RATE
+   (2026-09-21).
+
+   It used to alias IMPORT_TAX_RATE — the rate the CARDS price with —
+   which was right while checkout also charged 23% on declared value.
+   Checkout now charges TAX_ESTIMATE_RATE on CIF (see weight-data.js), so
+   aliasing the card rate would have this bar promise "~23% adicional"
+   on the same order the payment page then bills at 25%. A bar that
+   states a government charge has to state the one we actually bill.
+
+   Mirrored rather than imported: this is a plain <script>, not a module,
+   the same reason index.html mirrors every other shared constant. A
+   parity test pins it to weight-data.js so the two cannot drift. */
 const TAX_ZONE_THRESHOLD_USD = IMPORT_TAX_THRESHOLD_USD;
-const TAX_ZONE_RATE = IMPORT_TAX_RATE;
+const TAX_ZONE_RATE = 0.25;   // mirrors TAX_ESTIMATE_RATE in weight-data.js
 const TAX_ZONE_AMBER_START_USD = 150;
 
 /* WHY THIS BAR DOES NOT COUNT FREIGHT, unlike the small-order fee

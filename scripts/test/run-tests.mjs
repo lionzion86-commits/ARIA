@@ -21,7 +21,9 @@ import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
 import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
-import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE } from "../../weight-data.js";
+import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE,
+         importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
+         TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
@@ -2470,6 +2472,223 @@ check("the retailer's own weight is no longer dropped at ingestion", () => {
   if (!src.includes('"specifications"')) throw new Error("the specifications array is still dropped");
   // And every run reports whether layer 1 actually produced anything.
   if (!/specWeightKg\(/.test(src)) throw new Error("no spec-weight coverage is reported");
+});
+
+
+/* ------------------------------------------------------------------
+   IMPORT TAX AT CHECKOUT (2026-09-21) — threshold on FOB, math on CIF.
+   ------------------------------------------------------------------ */
+group("checkout: the import-tax estimate");
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+check("the threshold is FOB and the base is CIF — they are different numbers", () => {
+  /* THE TRAP THIS EXISTS FOR. Getting these the same way round is the
+     classic way to be wrong in both directions at once:
+       - thresholding on CIF taxes a $180 order whose freight pushed the
+         total over $200, which the customer would be right to dispute;
+       - computing on FOB under-collects on every heavy parcel, and Aria
+         eats the difference on the orders where it is largest. */
+  eq(importTaxEstimateUsd(180, 60), 0, "FOB under the line, CIF over it — no tax");
+  eq(importTaxEstimateUsd(250, 0), round2(250 * TAX_ESTIMATE_RATE), "no freight: CIF is just the goods");
+  eq(importTaxEstimateUsd(250, 40), round2(290 * TAX_ESTIMATE_RATE), "freight is in the base");
+  // And the base really is bigger than the goods alone whenever there is freight.
+  if (!(importTaxEstimateUsd(250, 40) > importTaxEstimateUsd(250, 0))) {
+    throw new Error("freight stopped counting toward the tax base");
+  }
+});
+
+check("the line is drawn strictly above $200, and nowhere below", () => {
+  eq(importTaxEstimateUsd(199.99, 50), 0, "just under");
+  eq(importTaxEstimateUsd(200, 50), 0, "exactly $200 is not over $200");
+  if (!(importTaxEstimateUsd(200.01, 50) > 0)) throw new Error("a cent over the line owes nothing");
+  eq(TAX_ESTIMATE_THRESHOLD_USD, 200, "the de minimis figure");
+});
+
+check("nothing is owed on an order with no goods, or a nonsense one", () => {
+  for (const bad of [0, -5, null, undefined, NaN, "abc"]) {
+    eq(importTaxEstimateUsd(bad, 40), 0, `FOB ${String(bad)}`);
+  }
+  // A broken freight figure must not poison a real tax: fall back to
+  // goods-only rather than returning NaN into a customer's total.
+  eq(importTaxEstimateUsd(250, NaN), round2(250 * TAX_ESTIMATE_RATE), "unusable freight");
+  eq(importTaxEstimateUsd(250, -10), round2(250 * TAX_ESTIMATE_RATE), "negative freight");
+});
+
+check("the rate is configuration, not arithmetic scattered through the UI", () => {
+  /* Danny asked for a configurable constant precisely so the first real
+     SUNAT document can calibrate it. If a literal rate reappears in a
+     surface, changing the constant stops changing the charge. */
+  for (const rel of ["checkout.html", "netlify/functions/orders-create.js"]) {
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/0\.25\b/.test(src)) throw new Error(`${rel} hardcodes the 25% rate instead of reading TAX_ESTIMATE_RATE`);
+    if (/\bDUTY_RATE\b/.test(src)) throw new Error(`${rel} still uses the old courier DUTY_RATE`);
+  }
+  const wd = readFileSync(root("weight-data.js"), "utf8");
+  if (/export const DUTY_RATE/.test(wd)) throw new Error("two competing tax rates are exported again");
+});
+
+check("the estimate is labelled an estimate, with the refund promise on it", () => {
+  /* The promise is the whole reason Aria may own this number instead of
+     passing the courier's through: over-estimate refunds as saldo,
+     under-estimate is absorbed. Copy that drops it turns a promise into
+     a surcharge. */
+  if (!/estimado/i.test(TAX_ESTIMATE_LABEL)) throw new Error("the tax line no longer says estimado");
+  if (!/saldo Aria/.test(TAX_ESTIMATE_NOTE)) throw new Error("the refund promise is gone from the note");
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  if (!/TAX_ESTIMATE_NOTE/.test(checkout)) throw new Error("checkout stopped rendering the promise");
+  if (!/TAX_ESTIMATE_LABEL/.test(checkout)) throw new Error("checkout hardcodes the label instead of reading it");
+});
+
+check("checkout stops deriving the tax out of the courier's total", () => {
+  /* It used to read `total_usd - valor - flete_usd`, which made the
+     figure a residual of AVI's arithmetic: unpredictable in advance, and
+     different again whenever the local fallback ran instead. */
+  const checkout = stripComments(readFileSync(root("checkout.html"), "utf8"));
+  if (/total_usd\s*-\s*valor\s*-\s*\w*flete/.test(checkout)) {
+    throw new Error("the tax is being derived from the courier total again");
+  }
+  if (!/importTaxEstimateUsd\(/.test(checkout)) throw new Error("checkout no longer computes its own estimate");
+  // The fallback quote must not add a second tax of its own.
+  const fb = checkout.slice(checkout.indexOf("function fallbackQuote("));
+  const body = fb.slice(0, fb.indexOf("\n  }") + 4);
+  if (/duty/i.test(body)) throw new Error("the fallback quote is adding its own duty again");
+});
+
+check("the policy note is generated from the constants that decide the charge", () => {
+  /* It read "~23% ... sobre el valor declarado" while the code charged a
+     different rate on a different base. Copy and rule come from the same
+     two constants now, or they drift apart again. */
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  // Comments are stripped: the code carries a note explaining what the
+  // old copy said and why it went, and that is not the page saying it.
+  const code = stripComments(checkout);
+  if (/~23%|23% de aranceles/.test(code)) throw new Error("the stale 23% policy copy is back");
+  if (!/TAX_ESTIMATE_RATE \* 100/.test(code)) throw new Error("the policy note no longer reads the rate");
+});
+
+/* ------------------------------------------------------------------
+   THE PERSON WHO ACTUALLY RECEIVES THE BOX
+   ------------------------------------------------------------------ */
+check("every surface that describes the charge quotes the charged rate", () => {
+  /* The cart's tax-zone bar used to alias IMPORT_TAX_RATE — the rate the
+     CARDS price with — which was correct while checkout also charged 23%
+     on declared value. It would now promise "~23% adicional" on an order
+     the payment page bills at 25%. A bar that states a government charge
+     has to state the one we actually bill, so it mirrors
+     TAX_ESTIMATE_RATE and this pins the mirror. */
+  const page = readFileSync(root("index.html"), "utf8");
+  const mirrored = page.match(/const TAX_ZONE_RATE = ([\d.]+)/)?.[1];
+  if (!mirrored) throw new Error("TAX_ZONE_RATE is gone from index.html");
+  eq(Number(mirrored), TAX_ESTIMATE_RATE, "cart tax-zone bar vs weight-data.js");
+  // The threshold is the goods, on both surfaces — the bar's own comment
+  // is emphatic that freight must not enter this base, and so is
+  // importTaxEstimateUsd().
+  const zoneThreshold = page.match(/const TAX_ZONE_THRESHOLD_USD = (\w+)/)?.[1];
+  eq(zoneThreshold, "IMPORT_TAX_THRESHOLD_USD", "the bar still measures the de minimis on goods");
+
+  /* And the assistant, which speaks to customers in its own words: it
+     was telling them ~23% on declared value, and that the checkout line
+     was already inside the card price. */
+  const prompt = readFileSync(root("netlify/functions/_aria-prompt.js"), "utf8");
+  const rules = prompt.slice(prompt.indexOf("SHIPPING_RULES_ES"));
+  if (/aproximadamente 23%/.test(rules)) throw new Error("the assistant still quotes 23% for the checkout charge");
+  if (!/aproximadamente 25%/.test(rules)) throw new Error("the assistant does not quote the charged rate");
+  if (!/ESTIMADO/.test(rules)) throw new Error("the assistant no longer calls the figure an estimate");
+  if (!/saldo Aria/.test(rules)) throw new Error("the assistant no longer knows the refund promise");
+  // It must not tell a shopper the freight can push them over the line.
+  if (!/el umbral se mide sobre los productos/.test(rules)) {
+    throw new Error("the assistant no longer states that the threshold is on the goods");
+  }
+});
+
+group("checkout: someone else receives the parcel");
+
+check("the recipient fields are required only while they are visible", () => {
+  /* A `required` field inside a hidden block makes the form
+     permanently unsubmittable AND unfocusable — the browser refuses to
+     submit and then cannot scroll to what it is complaining about. So
+     required-ness is toggled with the checkbox, never authored in the
+     markup. */
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  const block = checkout.slice(checkout.indexOf('id="altRecipientFields"'), checkout.indexOf("</section>", checkout.indexOf('id="altRecipientFields"')));
+  if (/\brequired\b/.test(block)) throw new Error("a recipient field is hard-coded required inside the hidden block");
+  const code = stripComments(checkout);
+  if (!/el\.required = on/.test(code)) throw new Error("required-ness is no longer toggled with the checkbox");
+  for (const id of ["recName", "recDoc", "recRelation"]) {
+    if (!new RegExp(`'${id}'`).test(code)) throw new Error(`${id} is not in the required set`);
+  }
+});
+
+check("all four fields the brief asked for are on the form", () => {
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  for (const [id, label] of [
+    ["recName", /Nombre del receptor/],
+    ["recDoc", /Documento \(DNI \/ CE\)/],
+    ["recRelation", /Relaci[óo]n con el comprador/],
+    ["recInstructions", /Instrucciones de entrega/],
+  ]) {
+    if (!new RegExp(`id="${id}"`).test(checkout)) throw new Error(`${id} is missing from checkout`);
+    if (!label.test(checkout)) throw new Error(`${id} has lost its label`);
+  }
+  if (!/No ser[ée] yo quien reciba el paquete/.test(checkout)) throw new Error("the toggle copy is gone");
+});
+
+check("a nominated recipient without a document is refused server-side", () => {
+  /* The form marks it required, but a form can be bypassed, and a box
+     that reaches Lima addressed to a name with no document is a failed
+     delivery we have already paid freight on. Aduanas and the courier
+     both check ID at handoff. */
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  if (!/function normalizeRecipient/.test(src)) throw new Error("the server does not normalize the recipient");
+  if (!/!recipient\.name \|\| !recipient\.idNumber/.test(src)) {
+    throw new Error("the server accepts a recipient with no name or no document");
+  }
+  if (!/statusCode: 400/.test(src.slice(src.indexOf("recipientAsked")))) {
+    throw new Error("an invalid recipient no longer rejects the order");
+  }
+});
+
+check("the recipient reaches the courier on the manifest", () => {
+  const cols = shippingService.MANIFEST_COLUMNS;
+  for (const col of ["Destinatario", "Documento", "Relación", "Instrucciones de entrega"]) {
+    if (!cols.includes(col)) throw new Error(`the manifest lost its "${col}" column`);
+  }
+  const row = shippingService.manifestRow({
+    shipmentId: "ENV-1", recipient: {
+      name: "María Q.", idNumber: "12345678", relationship: "Mi mamá",
+      phone: "+51 900", address: "Av. 1", city: "Lima",
+      deliveryInstructions: "Dejar con el portero",
+    },
+  });
+  eq(row.length, cols.length, "row and header disagree on width");
+  eq(row[cols.indexOf("Relación")], "Mi mamá", "relación column");
+  eq(row[cols.indexOf("Instrucciones de entrega")], "Dejar con el portero", "instructions column");
+  // Still no cost column on the sheet handed to the courier.
+  if (cols.some((c) => /costo|cost|margen/i.test(c))) throw new Error("a cost column reached the courier manifest");
+});
+
+check("the order record has somewhere to put the real tax from day one", () => {
+  /* taxActual and sunatDocRef exist before the reconciliation UI does,
+     so an order placed today is still resolvable later. A field added
+     afterwards leaves every earlier order permanently unreconcilable. */
+  const src = readFileSync(root("netlify/functions/orders-create.js"), "utf8");
+  for (const field of ["taxEstimatedUsd", "taxEstimatedPen", "taxActualUsd", "sunatDocRef", "taxReconciledAt", "recipient"]) {
+    if (!new RegExp(`\\b${field}\\b`).test(src)) throw new Error(`the order record has no ${field}`);
+  }
+  const code = stripComments(src);
+  // Recomputed, never accepted: the same rule the small-order fee follows.
+  if (!/importTaxEstimateUsd\(priceUsdTotal, freightUsdQuoted\)/.test(code)) {
+    throw new Error("the server takes the browser's tax figure instead of recomputing it");
+  }
+  if (/taxEstimatedUsd\s*[:=]\s*(Number\()?body\./.test(code)) {
+    throw new Error("the charged tax comes from the request body");
+  }
+  // The customer's total is goods + freight + Aria's tax, not AVI's total.
+  if (!/priceUsdTotal \+ freightUsdQuoted \+ taxEstimatedUsd/.test(code)) {
+    throw new Error("the customer total is no longer built from Aria's own numbers");
+  }
+  if (!/courierTotalUsd/.test(code)) throw new Error("the courier's own total is no longer recorded for margin");
 });
 
 /* ------------------------------------------------------------------ */

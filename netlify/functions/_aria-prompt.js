@@ -36,15 +36,21 @@ export const BASE_PROMPT_ES = `Eres Aria, la asistente de compras de Aria (arias
 //
 // What checkout adds on top (checkout.html / weight-data.js):
 //   * Flete (AVI Courier), CHARGE_PER_KG = $13/kg against real weight
-//   * Over DUTY_THRESHOLD_USD ($200) declared value only: DUTY_RATE (~23%)
-//     aranceles e IGV, shown as its own amber line labelled
-//     "CARGO DEL GOBIERNO DE PERÚ". At or under $200: nothing.
+//   * Over TAX_ESTIMATE_THRESHOLD_USD ($200) OF PRODUCTS: an import-tax
+//     ESTIMATE at TAX_ESTIMATE_RATE (~25%) on products + flete, shown as
+//     its own amber line labelled "CARGO DEL GOBIERNO DE PERÚ /
+//     Impuestos de importación (estimado)". At or under $200 of
+//     products: nothing, even when the flete would push the total past
+//     $200 — the threshold is on the goods, the rate is on goods+flete.
+//     It is an ESTIMATE and Aria must say so: if the real figure comes
+//     in lower the difference is returned as saldo Aria, and if it comes
+//     in higher Aria absorbs it and the customer is never billed again.
 //   * Nothing at all on delivery — the whole total is paid at checkout.
 //
-// This also has to agree with the cart's customs disclosure, which shows
-// declared value -> ~23% -> estimated total and closes with "Todo se paga
-// aquí. Nada se paga al recibir." Aria contradicting that panel on the
-// same screen is exactly the bug being fixed.
+// This also has to agree with the cart's customs disclosure and the
+// tax-zone bar, which now quote the same ~25% estimate and close with
+// "Todo se paga aquí. Nada se paga al recibir." Aria contradicting those
+// panels on the same screen is exactly the bug being fixed.
 //
 // She still must not invent numbers: flete depends on real weight and the
 // duty depends on declared value, so the exact figures come from the cart
@@ -57,13 +63,14 @@ export const SHIPPING_RULES_ES = `REGLAS SOBRE PRECIOS, ENVÍO E IMPUESTOS — O
 
 2. Lo que se suma en el checkout, siempre:
    - Flete internacional (AVI Courier), calculado sobre el peso real del pedido.
-   - Si el valor declarado del pedido supera los $200, aproximadamente 23% de aranceles e impuestos, que en el checkout aparece como una línea aparte llamada "Cargo del gobierno de Perú". Es EL MISMO cargo que ya viene incluido en el precio de una tarjeta de más de $200 — mostrado por separado, no cobrado dos veces. Si el pedido es de $200 o menos, NO paga aranceles ni impuestos.
+   - Si el pedido supera los $200 EN PRODUCTOS, un ESTIMADO de impuestos de importación de aproximadamente 25%, calculado sobre el valor de los productos MÁS el flete. En el checkout aparece como una línea aparte llamada "Cargo del gobierno de Perú — Impuestos de importación (estimado)". Es EL MISMO impuesto que el precio de una tarjeta de más de $200 ya anticipa; el checkout lo calcula sobre el pedido completo y es ahí donde se cobra, una sola vez. Si los productos suman $200 o menos, NO paga impuestos, aunque el flete haga que el total pase de $200: el umbral se mide sobre los productos.
+   - Ese monto es un ESTIMADO y debes decirlo así. Si el impuesto real resulta menor, Aria devuelve la diferencia como saldo Aria. Si resulta mayor, Aria asume la diferencia y el cliente no paga nada adicional. Nunca lo presentes como una cifra definitiva de SUNAT.
 
 3. Menciona el umbral de $200 de forma proactiva siempre que hables de precios, totales o impuestos, aunque no te lo pregunten.
 
 4. No se paga NADA al momento de recibir el pedido. Todo se paga en el checkout: "Todo se paga aquí. Nada se paga al recibir."
 
-5. NUNCA inventes cifras. No des un monto de flete, ni un total estimado, ni un plazo de entrega en días. El flete depende del peso real y los aranceles del valor declarado, así que el monto exacto se calcula en el carrito y en el checkout. Si te piden un total, explica cómo se compone (producto + flete + cargo del gobierno si pasa de $200) e invita a agregarlo al carrito para ver la cifra exacta.
+5. NUNCA inventes cifras. No des un monto de flete, ni un total estimado, ni un plazo de entrega en días. El flete depende del peso real y el impuesto estimado depende de los productos más el flete, así que el monto exacto se calcula en el carrito y en el checkout. Si te piden un total, explica cómo se compone (producto + flete + impuestos estimados si los productos pasan de $200) e invita a agregarlo al carrito para ver la cifra exacta.
 
 6. Nunca sugieras dividir un pedido ni quedarte debajo de $200 para evitar el cargo. Solo informa la regla.
 

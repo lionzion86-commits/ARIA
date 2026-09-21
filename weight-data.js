@@ -11,18 +11,71 @@
 export const CHARGE_PER_KG = 13; // the rate actually charged to and shown to the customer
 export const BASE_FEE = 0;
 
-// Peru import duty/IGV policy, as already publicly disclosed on the site
-// (resultsView's "Los envíos de hasta 200 dólares..." info box): shipments
-// with a declared value over this threshold get an additional duty charge
-// of roughly this rate on the declared value. AVI Courier's real live
-// quote already applies this (and checkout.html shows it as a real,
-// itemized line rather than letting it appear as an unexplained gap in
-// the total) — these two constants exist so the LOCAL fallback quote
-// (used only when AVI's API can't be reached) estimates the same charge
-// instead of silently under-quoting a customer whose order is actually
-// over the threshold.
-export const DUTY_THRESHOLD_USD = 200;
-export const DUTY_RATE = 0.23;
+/* ============================================================
+   THE IMPORT-TAX ESTIMATE (2026-09-21) — ARIA'S NUMBER, NOT THE
+   COURIER'S
+
+   WHAT THIS REPLACES. Checkout used to show the courier's own duty: the
+   live quote returns a total that already has AVI's taxes folded into
+   it, and the page derived the charge back out by subtracting value and
+   freight. Two problems with that. It made the figure whatever AVI
+   happened to charge that day, so nothing could be promised about it in
+   advance; and the local fallback applied its own separate DUTY_RATE,
+   so the number a customer saw depended on whether an API call had
+   succeeded.
+
+   Aria estimates it now, from one rule, and stands behind the estimate:
+
+     OVER-ESTIMATE  -> the difference is credited back as saldo Aria.
+     UNDER-ESTIMATE -> Aria absorbs it. The customer pays nothing extra.
+
+   That promise is only possible because the number is ours. It is also
+   why the row says "estimado" in the UI and never pretends to be a
+   settled SUNAT assessment.
+
+   THRESHOLD IS FOB, THE MATH IS CIF, and the two are deliberately
+   different quantities:
+
+     FOB  the goods alone — what the products cost. This decides WHETHER
+          any tax applies, because Peru's $200 de minimis is a threshold
+          on the value of the goods.
+     CIF  goods + international freight — the base customs actually
+          assesses against. This decides HOW MUCH.
+
+   Mixing them up is the classic way to get this wrong in either
+   direction: thresholding on CIF taxes a $180 order because its freight
+   pushed it over $200, and computing on FOB under-collects on every
+   heavy parcel. Both are handled by importTaxEstimateUsd() and nothing
+   else is allowed to do this arithmetic.
+
+   THE RATE IS CONFIG. 25% is a starting point, not a researched
+   constant — Peru's real burden is roughly 6% ad valorem plus 18% IGV
+   with a handful of per-category exceptions, and the first real SUNAT
+   document is what should calibrate it. Change the number here; nothing
+   downstream hardcodes it.
+   ============================================================ */
+export const TAX_ESTIMATE_THRESHOLD_USD = 200;   // measured on FOB
+export const TAX_ESTIMATE_RATE = 0.25;           // applied to CIF
+
+/**
+ * Aria's estimated import tax for an order, in USD.
+ *
+ * @param {number} fobUsd      products only — decides whether tax applies
+ * @param {number} freightUsd  international freight — part of the base
+ * @returns {number} 0 when the order is at or under the FOB threshold.
+ */
+export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
+  const fob = Number(fobUsd);
+  if (!Number.isFinite(fob) || fob <= TAX_ESTIMATE_THRESHOLD_USD) return 0;
+  const freight = Number(freightUsd);
+  const cif = fob + (Number.isFinite(freight) && freight > 0 ? freight : 0);
+  return Math.round(cif * TAX_ESTIMATE_RATE * 100) / 100;
+}
+
+/** The row's own label and the promise printed under it. */
+export const TAX_ESTIMATE_LABEL = "Impuestos de importación (estimado)";
+export const TAX_ESTIMATE_NOTE =
+  "Impuestos estimados — si el monto real es menor, te devolvemos la diferencia como saldo Aria.";
 
 /* ============================================================
    SMALL-ORDER FEE (2026-09-20) — site-wide, not beauty-only.
