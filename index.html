@@ -250,9 +250,10 @@
       </div>
       <button onclick="openCategories()" class="text-[13px] font-bold focus-ring rounded flex-shrink-0 pb-1" style="color:var(--blue)">Ver todas las categorías →</button>
     </div>
-    <!-- Same treatment as Ofertas and Categorías: no little squares
-         anywhere, here included. -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="catGrid"></div>
+    <!-- ONE COLUMN, AT EVERY WIDTH (2026-09-21). Not a grid any more: a
+         scrolled run of full-width shopfronts. Two-up halved the image
+         and put the page back on the spreadsheet side of the line. -->
+    <div class="grid grid-cols-1 gap-5" id="catGrid"></div>
   </div>
 
   <!-- WHY SHOP WITH US -->
@@ -968,9 +969,9 @@
             <option value="count">Más productos primero</option>
           </select>
         </div>
-        <!-- The Ofertas grid, not a square grid: two across, big cards,
-             scrolled. See the note on CARD_SHELL_CLASS. -->
-        <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+        <!-- One full-width shopfront per row, scrolled. Same card as the
+             homepage run — see deptTileHTML. -->
+        <div id="categoriesGrid" class="grid grid-cols-1 gap-5"></div>
       </div>
     </div>
   </div>
@@ -2460,8 +2461,22 @@ function metaFor(map, key){
 // existing behavior unchanged.
 const DEPARTMENT_THUMB_EXCLUDE = {
   electronics: /\bmount\b|\bcase\b|\bcable\b|\bcharger\b|\bscreen protector\b/i,
-  pharmacy: /\bsoda\b|\benergy drink\b|\bsparkling\b|\bcandy\b|\bchocolate\b/i,
+  /* PHARMACY IS A TRUST CATEGORY (2026-09-21). Reported from the live
+     site: Salud y Farmacia was fronted by a parasite-cleanse supplement.
+     A shopper deciding whether to give an import shop their card reads
+     that as "this place sells quack medicine", and no amount of honest
+     freight copy recovers from that first impression.
+
+     So the cleanse/detox/diet shelf cannot be the FACE of the category.
+     It is not delisted: those products stay searchable, stay in the
+     category feed and stay buyable. We just do not make one the poster. */
+  pharmacy: /\bsoda\b|\benergy drink\b|\bsparkling\b|\bcandy\b|\bchocolate\b|\bparasite\b|\bcleanse\b|\bdetox\w*\b|\bcolon\b|\bflush\b|\bpurge\b|\bdewormer\b|\bweight[ -]?loss\b|\bfat[ -]?burn\w*\b|\bslimming\b|\bdiet pills?\b|\bappetite suppress\w*\b/i,
   sporting_goods: /\bfirst aid\b|\bbandage\b|\bband-?aid\b/i,
+  /* Reported the same day: Dulces y Chocolates led with a Juicy Drop —
+     a liquid-sour novelty that reads as a corner-shop impulse buy rather
+     than the premium confectionery the category is meant to sell. Same
+     rule as pharmacy: kept off the tile, kept on the shelf. */
+  candy_chocolate: /\bjuicy drop\b|\bsour (?:spray|gel|tube|straw)\b|\bliquid candy\b|\bspray candy\b|\bpowder(?:ed)? candy\b|\bnovelty\b|\bslime\b|\bwhistle pop\b|\bring pop\b/i,
 };
 
 /* ============================================================
@@ -2538,9 +2553,20 @@ const TILE_IMAGE_HERO = {
     /\b(tv|television|televisor|laptop|macbook|headphones?|aud[ií]fonos)\b/i,
     /\b(speaker|parlante|tablet|ipad|smartwatch|console|playstation|xbox|nintendo|camera|c[áa]mara|monitor)\b/i,
   ],
+  /* ROPA IS THE PARENT OF MODA HOMBRE, SO IT MUST NOT LEAD WITH THE SAME
+     THING (2026-09-21). Both categories used to put `jeans` in tier 0,
+     and Ropa's candidate pool CONTAINS all of Moda Hombre's — so the two
+     tiles reliably landed on the same pair of jeans, and after
+     deduplication on two different photos of the same pair of jeans.
+     That still reads as one category printed twice.
+
+     Jeans are what Moda Hombre is for. Ropa is the whole apparel aisle,
+     and an outerwear or dress silhouette says "clothing in general" at
+     tile size in a way a fifth pair of men's jeans does not. Jeans stay
+     in tier 1, so a catalogue with nothing else in it still gets a tile. */
   clothing: [
-    /\b(jeans?|jacket|coat|dress|casaca|vestido)\b/i,
-    /\b(hoodie|sweater|shirt|polo|chompa|camisa|pantal[óo]n)\b/i,
+    /\b(dress|coat|jacket|vestido|abrigo|casaca)\b/i,
+    /\b(jeans?|hoodie|sweater|shirt|polo|chompa|camisa|pantal[óo]n)\b/i,
   ],
   men: [
     /\b(jeans?|jacket|sneakers?|casaca|zapatillas)\b/i,
@@ -2597,6 +2623,98 @@ function scoreTileCandidate(title, key){
   score -= Math.min(3, Math.max(0, (t.length - TILE_TITLE_IDEAL_LEN) / 40));
   if (t.length <= TILE_TITLE_IDEAL_LEN) score += 1;
   return score;
+}
+
+/* ============================================================
+   NO TWO TILES WEAR THE SAME PHOTO (2026-09-21)
+
+   REPORTED LIVE: Ropa and Moda Hombre showed the identical Wrangler
+   jeans shot. Confirmed against the committed cache — both categories
+   scored the same item at 8.0 and each picked it independently, because
+   pickTileImage() was called once per tile with no idea what the tile
+   beside it had already taken.
+
+   Two identical cards in one grid do not read as two categories. They
+   read as a bug, or as a shop with nothing in it.
+
+   SO ASSIGNMENT IS ONE PASS OVER ALL TILES, not a choice each tile makes
+   alone. Three rules, in order:
+
+     1. A PIN IS ABSOLUTE. A human put it there; it is never skipped for
+        being a duplicate, and it claims its image before anyone else.
+     2. MOST CONSTRAINED FIRST. Tiles are served in order of how few
+        candidates they have. A category with 26 photos to choose from
+        picks before one with 155, so the narrow category is not left
+        with nothing while a broad one takes the shot they both wanted.
+     3. NEAR-DUPLICATES COUNT TOO. Skipping only the exact same URL
+        would have handed Ropa "Rustler Men's Relaxed Fit Jeans" right
+        next to Moda Hombre's "Wrangler Men's Relaxed Fit Jeans" — a
+        different file of visibly the same thing. A candidate whose
+        title overlaps an already-taken one too heavily is passed over.
+
+   A tile still takes its best remaining candidate rather than nothing:
+   running out of distinct photos is a reason to repeat, never a reason
+   to show an empty category. Scoring itself is untouched — this only
+   decides who gets first refusal. */
+
+/* Overlap between two titles, 0..1, on significant words. Deliberately
+   crude: it exists to catch "Wrangler Men's Relaxed Fit Jeans" against
+   "Rustler Men's Relaxed Fit Jeans", not to understand language. */
+const TILE_TITLE_STOPWORDS = new Set([
+  'the','and','for','with','a','an','of','in','to','de','con','para','y','el','la','los','las',
+  'mens','womens','men','women','kids','boys','girls','big','size','sizes','new','set','pack',
+]);
+function tileTitleTokens(title){
+  return new Set(String(title || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9áéíóúñü ]+/g, ' ')
+    .split(/\s+/)
+    .filter(w => w.length > 2 && !TILE_TITLE_STOPWORDS.has(w)));
+}
+const TILE_TITLE_OVERLAP_MAX = 0.6;
+function tileTitlesTooSimilar(a, b){
+  const A = tileTitleTokens(a), B = tileTitleTokens(b);
+  if (!A.size || !B.size) return false;
+  let shared = 0;
+  for (const w of A) if (B.has(w)) shared++;
+  return shared / Math.min(A.size, B.size) > TILE_TITLE_OVERLAP_MAX;
+}
+
+/** Give every tile a distinct cover photo. Mutates `tiles` in place. */
+function assignTileImages(tiles){
+  const usedImages = new Set();
+  const usedTitles = [];
+
+  // Rule 1: pins claim their image first, and are never skipped.
+  const pinned = tiles.filter(t => CATEGORY_IMAGE_PIN[t.key]);
+  for (const t of pinned){
+    t.thumb = CATEGORY_IMAGE_PIN[t.key];
+    usedImages.add(t.thumb);
+  }
+
+  // Rule 2: everyone else, most constrained first.
+  const rest = tiles.filter(t => !CATEGORY_IMAGE_PIN[t.key])
+    .sort((a, b) => (a.candidates.length - b.candidates.length) || a.key.localeCompare(b.key));
+
+  for (const t of rest){
+    const ranked = t.candidates
+      .filter(c => c.image)
+      .map(c => ({ ...c, score: scoreTileCandidate(c.title, t.key) }))
+      .sort((a, b) => b.score - a.score);
+
+    // Rule 3: best candidate that is neither an image nor a look-alike
+    // of one already taken.
+    let pick = ranked.find(c => !usedImages.has(c.image) && !usedTitles.some(u => tileTitlesTooSimilar(u, c.title)));
+    // Nothing distinct left: relax the look-alike rule, then repeat a
+    // photo rather than render a category with no picture at all.
+    if (!pick) pick = ranked.find(c => !usedImages.has(c.image));
+    if (!pick) pick = ranked[0];
+
+    t.thumb = pick ? pick.image : null;
+    if (pick){ usedImages.add(pick.image); usedTitles.push(pick.title); }
+  }
+
+  for (const t of tiles) delete t.candidates;
 }
 
 /** The best image for a category tile, or null when there is none. */
@@ -2789,10 +2907,7 @@ function collectTiles(kind){
   }
   // A department no retailer carries gets no tile at all.
   for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
-  for (const t of Object.values(byKey)){
-    t.thumb = pickTileImage(t.key, t.candidates);
-    delete t.candidates;
-  }
+  assignTileImages(Object.values(byKey));
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
 }
 
@@ -2851,11 +2966,21 @@ function collectTiles(kind){
 const CARD_SHELL_CLASS = 'group bg-white border rounded-2xl overflow-hidden transition hover:shadow-[0_14px_34px_rgba(10,31,68,0.10)] h-full flex flex-col';
 
 /* The 4:5 photo field. `inner` fills it; `overlay` is anything absolutely
-   positioned on top (Ofertas puts its discount and "Flete alto" badges
-   there). White, because retail photography is shot on white and a tint
-   draws a seam around the product. */
-function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff' }){
-  return `<div class="relative${open ? ' cursor-pointer' : ''}" style="aspect-ratio:4/5; background:${background}"${open ? ` onclick="${open}"` : ''}>
+   positioned on top (Ofertas puts its discount badge there). White,
+   because retail photography is shot on white and a tint draws a seam
+   around the product. */
+/* A frame is sized by ASPECT or by HEIGHT, and the choice is not
+   cosmetic. A product card wants an aspect: whatever the column width,
+   the photo keeps the same shape beside its neighbours. A full-width
+   shopfront must NOT, because an aspect on a full-bleed element is a
+   function of the viewport — 16:10 is 238px tall on a phone and 775px
+   tall on a desktop, i.e. too small exactly where the punchlist wanted
+   it big, and a monster where it wanted a banner. `heightClass` pins the
+   window instead, so it is generous on a phone and a letterbox on a
+   desktop. */
+function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null }){
+  const sizing = heightClass ? '' : `aspect-ratio:${aspect}; `;
+  return `<div class="relative${heightClass ? ' ' + heightClass : ''}${open ? ' cursor-pointer' : ''}" style="${sizing}background:${background}"${open ? ` onclick="${open}"` : ''}>
       ${inner}
       ${overlay}
     </div>`;
@@ -2871,20 +2996,31 @@ function cardPhotoHTML(src, { alt = '', onerror = '' } = {}){
     : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`;
 }
 
-/* OFERTAS IS DESIGNED, NOT SCRAPED.
+/* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
 
-   It was showing whatever product the deals cache happened to surface —
-   a collage of unrelated markdowns, which says nothing about what the
-   tile is for. Ofertas is not a category of products, it is a promise
-   about price, so it gets the promise: the Precio Honesto navy field, a
-   gold accent, and the one line that explains it. */
+   It first showed whatever product the deals cache happened to surface: a
+   collage of unrelated markdowns that said nothing about what the tile is
+   for. That was replaced with the Precio Honesto navy field, which was
+   honest but had the opposite problem — on a wall of navy category signs
+   the one card that means SALE looked like all the others.
+
+   So Ofertas wears the gold. Every other category is a navy shopfront
+   sign; this one is the yellow sale board in the window, which is what
+   the treatment means in any shop in the world. It is the same two brand
+   colours, swapped: gold field, navy type. Nothing here is scraped, and
+   the claim it makes is one we enforce — a deal is verified against the
+   source store's own price before it is published. */
 function ofertasTileArtHTML(){
-  return `<div class="relative h-full w-full overflow-hidden ariaNavyBand grid place-items-center">
-    <div class="ariaGoldHair"></div>
-    <div class="text-center px-3">
-      <div class="text-[10px] font-extrabold tracking-[0.18em] uppercase mb-1" style="color:#F4C463">Precio Honesto</div>
-      <div class="text-[19px] sm:text-[22px] font-extrabold tracking-[-0.02em] leading-tight" style="color:#fff">Ofertas reales</div>
-      <div class="text-[11px] mt-1 leading-snug" style="color:#AFBBD6">Rebajas verificadas en la tienda de origen</div>
+  return `<div class="relative h-full w-full overflow-hidden grid place-items-center"
+       style="background:linear-gradient(150deg, #F7CE72 0%, #F4C463 52%, #E9B44A 100%)">
+    <div class="absolute inset-0" style="background:radial-gradient(circle at 78% 18%, rgba(255,255,255,0.45), transparent 58%)"></div>
+    <!-- The card's own sign says "Ofertas" underneath, so the board must
+         not say it again. It carries the PROMISE instead — which is the
+         part a shopper cannot get from the category name. -->
+    <div class="relative text-center px-5">
+      <div class="text-[10px] font-extrabold tracking-[0.18em] uppercase mb-2" style="color:rgba(10,31,68,0.68)">Precio Honesto</div>
+      <div class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.03em] leading-[1.02]" style="color:var(--navy)">Rebajas<br>verificadas</div>
+      <div class="text-[12.5px] mt-2 font-semibold leading-snug" style="color:rgba(10,31,68,0.74)">Comprobadas en la tienda de origen, no inventadas</div>
     </div>
   </div>`;
 }
@@ -2904,6 +3040,32 @@ function ofertasTileArtHTML(){
    price, no rating and no store, and inventing them to reuse
    productCardHTML wholesale would be worse than a second style. The
    chassis is shared; what sits in it is not. */
+/* ============================================================
+   A CATEGORY IS A SHOPFRONT, NOT A ROW IN A TABLE (2026-09-21)
+
+   THE VERDICT THIS ANSWERS: "white-on-white reads as database, not a
+   place", and the ask that came with it — full width, one big bold image
+   per category, scrolled vertically, so browsing "feels like walking
+   past storefronts instead of scanning a spreadsheet".
+
+   WHAT CHANGED. The tile was a portrait 4:5 photo with the category name
+   in navy text on a white body, two across on desktop. Three problems at
+   once: two-up halves the image, 4:5 is the shape of a PRODUCT rather
+   than of a shop window, and a white card on a white page has no edges,
+   so twelve of them read as a list.
+
+   So: ONE COLUMN AT EVERY WIDTH, a wide 16:10 window, and the name on a
+   NAVY SIGN under it. The sign is the whole point — it is the brand's
+   own colour, it gives every card a hard edge against the page, and it
+   is the thing you actually read walking past. Ofertas gets the gold
+   version of the same sign, because a sale board is yellow everywhere.
+
+   WHAT DELIBERATELY DID NOT CHANGE: the photo is still object-fit
+   CONTAIN on a soft field, never cropped. A wide window with cover-fit
+   would slice the top and bottom off every portrait apparel shot, which
+   is the exact "half-object" failure the scoring rebuild was written to
+   end. A bigger window makes a contained product bigger; it does not
+   licence cropping it. See the CATEGORY TILE IMAGES note above. */
 function deptTileHTML(t, kind){
   const count = Number(t.count) || 0;
   const isOfertas = kind === 'department' && t.key === 'sale';
@@ -2913,17 +3075,35 @@ function deptTileHTML(t, kind){
     ? ofertasTileArtHTML()
     : (t.thumb
         ? cardPhotoHTML(t.thumb, { alt: t.label, onerror: 'handleDeptThumbError(this)' }).replace('<img ', `<img data-icon="${escapeHtml(t.icon || '')}" `)
-        : `<div class="w-full h-full grid place-items-center text-[56px]">${t.icon || ''}</div>`);
+        : `<div class="w-full h-full grid place-items-center text-[88px]">${t.icon || ''}</div>`);
+
+  /* The sign. Navy for a department, gold for Ofertas — and the type
+     inverts with it so both stay readable rather than one being the
+     other with a filter over it. */
+  const signBg = isOfertas
+    ? 'linear-gradient(150deg, #F7CE72 0%, #F4C463 52%, #E9B44A 100%)'
+    : 'linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)';
+  const nameColor = isOfertas ? 'var(--navy)' : '#fff';
+  const subColor = isOfertas ? 'rgba(10,31,68,0.74)' : '#AFBBD6';
+  const cueColor = isOfertas ? 'var(--navy)' : '#F4C463';
 
   return `<button onclick="${open}" class="${CARD_SHELL_CLASS} text-left focus-ring w-full">
-    ${cardImageFrameHTML({ inner: art, background: isOfertas ? 'var(--navy)' : '#fff' })}
-    <div class="p-4 flex flex-col flex-1">
-      <div class="text-[17px] font-extrabold tracking-[-0.01em] leading-snug mb-1" style="color:var(--navy)">${escapeHtml(t.label)}</div>
-      <div class="text-[12.5px] mb-3.5 flex-1" style="color:#6B7487">${
-        count ? `${count} producto${count === 1 ? '' : 's'} · precio puerta a puerta` : 'Ver lo que hay disponible'
-      }</div>
-      <div class="w-full h-11 rounded-xl text-white text-[14px] font-bold grid place-items-center" style="background:var(--blue)">
-        Ver categoría
+    ${cardImageFrameHTML({
+      inner: art,
+      heightClass: 'h-[300px] sm:h-[340px]',
+      background: isOfertas ? 'var(--amber)' : '#F7F8FA',
+    })}
+    <div class="relative px-5 py-4 sm:px-6 sm:py-5 flex items-center gap-4" style="background:${signBg}">
+      ${isOfertas ? '' : '<div class="ariaGoldHair"></div>'}
+      <div class="min-w-0 flex-1">
+        <div class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-tight" style="color:${nameColor}">${escapeHtml(t.label)}</div>
+        <div class="text-[12.5px] mt-1 leading-snug" style="color:${subColor}">${
+          count ? `${count} producto${count === 1 ? '' : 's'} · precio puerta a puerta` : 'Ver lo que hay disponible'
+        }</div>
+      </div>
+      <div class="flex items-center gap-1.5 text-[13px] font-bold flex-shrink-0" style="color:${cueColor}">
+        <span class="hidden sm:inline">Ver categoría</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
       </div>
     </div>
   </button>`;
@@ -2934,7 +3114,7 @@ function deptTileHTML(t, kind){
    The tile falls back to its own category icon. */
 function handleDeptThumbError(img){
   const fallback = document.createElement('div');
-  fallback.className = 'w-full h-full grid place-items-center text-[56px]';
+  fallback.className = 'w-full h-full grid place-items-center text-[88px]';
   fallback.textContent = img.dataset.icon || '\uD83D\uDECD\uFE0F';
   img.replaceWith(fallback);
 }
@@ -6415,21 +6595,38 @@ function bulkyWeightKg(text){
   return hit ? withBuffer(hit.kg, 'reasoned') : null;
 }
 
-/* FREIGHT SHARE — TWO LINES, NOT ONE (2026-09-20). There used to be a
-   single 30% suppression threshold and a deal over it simply vanished,
-   which hid the cost rather than disclosing it.
+/* ONE FREIGHT LINE, AND IT IS NOT A WARNING (2026-09-21).
 
-     under 50%   an ordinary deal.
-     50%-100%    featured, with a "Flete alto" badge and the real figure.
-     over 100%   freight costs more than the product: still listed,
-                 searchable and badged, but not featurable as a deal.
+   THE "FLETE ALTO" BADGE IS GONE. A 0.23 kg t-shirt at S/ 25.29 with
+   S/ 10.07 of freight wore it, and the diagnosis is that the rule
+   measured freight as a SHARE OF PRICE — so it fired on CHEAP items
+   rather than HEAVY ones. S/ 10.07 is not a high freight bill by any
+   measure a shopper would recognise; the t-shirt is simply inexpensive.
+   Recalibrating the threshold would not have fixed that. The
+   denominator was the bug, and the badge went with it.
 
-   The ceiling only decides what Ofertas may FEATURE — it never hides a
-   product and never blocks a purchase. The ambiguous MAX_FREIGHT_SHARE
-   alias is gone: with two thresholds in play, a name that does not say
-   which one it means is how they drift. Mirrors FREIGHT_BADGE_SHARE and
-   FREIGHT_FEATURE_CEILING in scripts/lib/item-weight.js. */
-const FREIGHT_BADGE_SHARE = 0.50;
+   It also fought the brand. "Flete honesto" is a promise to disclose,
+   not to alarm, and the card already discloses completely:
+
+     + S/ 10.07 de flete (0.23 kg x $13/kg)
+
+   The cost, the weight and the rate, in the open, before anyone pays —
+   that line IS the argument this shop is built on. A warning label on
+   top of it tells a shopper the number they can already see is
+   something to be frightened of, and the cheap first order it scares
+   off is exactly the one a launch depends on.
+
+   IF A HEAVY-ITEM INDICATOR EVER COMES BACK it triggers on ABSOLUTE
+   freight (the figure discussed was around S/ 40) and reads as neutral
+   information, never a warning. A share-of-price rule is the thing that
+   was wrong here; do not reintroduce one.
+
+   THE CEILING STAYS, and it is a different tool. It decides exactly one
+   thing — whether Ofertas may FEATURE something as a deal — and it never
+   labels a product, hides one, or blocks a purchase. Calling an item a
+   bargain when the freight costs more than the item is a claim we cannot
+   stand behind; saying nothing at all about a merely heavy item is not.
+   Mirrors FREIGHT_FEATURE_CEILING in scripts/lib/item-weight.js. */
 const FREIGHT_FEATURE_CEILING = 1.00;
 
 function freightUsd(weightKg){
@@ -6478,25 +6675,19 @@ function byDoorToDoor(sortBy){
   };
 }
 
-/* THE BADGE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
+/* A SHARE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
 
-   REPORTED LIVE: a card showing S/ 25.29 and S/ 10.07 of freight — 40%,
-   comfortably under the 50% line — was wearing the "Flete alto" badge.
-   Two separate things were wrong, and this is the second of them.
+   Written for the "Flete alto" badge, which no longer exists. The rule
+   outlives it, because the feature ceiling still divides by a price and
+   the bug recorded here is about the DENOMINATOR rather than the
+   threshold: the share used to be taken against the RAW scraped price
+   while the card printed displayPriceUsd(price). Over the $200
+   import-tax threshold those differ by 23%, so the ratio was decided on
+   a number the shopper never sees.
 
-     1. The live build was still running the old single 30% threshold,
-        which 40% clears. FREIGHT_BADGE_SHARE above is the fix for that:
-        one line, at 0.50, and the card reads it rather than a number of
-        its own.
-
-     2. The share was divided by the RAW scraped price while the card
-        printed displayPriceUsd(price). Over the $200 import-tax
-        threshold those differ by 23%, so the badge was decided on a
-        denominator the shopper never sees. A warning nobody can check by
-        dividing the two numbers in front of them is worse than none.
-
-   Mirrors freightShare() in scripts/lib/item-weight.js, which divides by
-   the same displayed price; test-badge asserts they agree. */
+   Anything computed from a price divides by the price ON THE CARD, so a
+   shopper can reproduce it from the figures in front of them. Mirrors
+   freightShare() in scripts/lib/item-weight.js. */
 /* ONE RULE FOR "WE WILL NOT QUOTE THIS FREIGHT" (2026-09-20).
 
    REPORTED LIVE: a conditioner's product page said "Flete por confirmar
@@ -10161,28 +10352,25 @@ function productCardHTML(p, opts){
   const rating = Number(p.rating);
   const hasRating = Number.isFinite(rating) && rating > 0;
 
-  /* LAST LINE OF DEFENCE. The refresh script and the cache sanitizer both
-     drop deals whose freight exceeds the product's own price, so nothing
-     here should be that heavy. If one ever slips through — an old cache entry, a
-     changed threshold — the card must NOT print a discount percentage
-     that freight wipes out. It shows "Flete alto" instead, with the real
-     freight, so the number the customer sees is never a lie.
+  /* A DISCOUNT BADGE IS A FACT ABOUT THE PRODUCT, NOT ABOUT THE FREIGHT
+     (2026-09-21). This slot used to be contested: a heavy item showed
+     "Flete alto" INSTEAD of its discount, on the reasoning that a card
+     must not advertise a saving that freight wipes out.
 
-     2026-09-20: this is no longer a last line of defence, it is the
-     rule. Heavy items are not suppressed any more — they are listed and
-     badged, so the buyer decides with the real figure in front of them
-     rather than never seeing the product. */
+     With the badge gone the discount stands on its own, and that is
+     right. "-30%" describes what the US store did to its own price, and
+     it stays true whatever the parcel weighs. The freight is disclosed
+     two lines below in its own words, and the shopper adds the two up
+     with the same arithmetic we would. Nothing on the card is a lie —
+     one number has simply stopped editorialising about the other.
+
+     The one claim we still decline to make is FEATURING a heavy item as
+     a deal; see FREIGHT_FEATURE_CEILING. That is a merchandising choice
+     about what Ofertas promotes, settled long before a card is built. */
   const weightKg = Number(p.weightKg);
   const price = Number(p.price);
   const hasPrice = Number.isFinite(price) && price > 0;
   const freight = Number.isFinite(weightKg) && weightKg > 0 ? freightUsd(weightKg) : null;
-  /* ONE SHARE, COMPUTED ONCE, ON THE NUMBERS THIS CARD PRINTS. The badge
-     and the "we cannot quote this" rule below both read it, so they can
-     never disagree with each other or with the two figures on screen —
-     see freightSharePct() for the reported bug that came from exactly
-     that kind of drift. */
-  const freightShare = freight != null && hasPrice ? freightSharePct(weightKg, price) : null;
-  const freightHeavy = freightShare != null && freightShare > FREIGHT_BADGE_SHARE;
 
   /* FAIL CLOSED. A weight outside its category's plausible band is not a
      number to build a price on, in either direction — a projector at
@@ -10202,8 +10390,8 @@ function productCardHTML(p, opts){
      guess produces a freight bill larger than the product's own price,
      the guess is doing all the work and none of it is knowledge. The
      card says the freight is being confirmed instead. A weight we
-     actually have a row for still quotes, however heavy it is — that is
-     what the "Flete alto" badge is for. */
+     actually have a row for still quotes, however heavy it is, and the
+     freight line below says plainly what it comes to. */
   const weightUnderReview = !freightQuotable({
     kg: weightKg,
     needsReview: p.weightNeedsReview === true || localDetail?.needsReview === true,
@@ -10215,11 +10403,9 @@ function productCardHTML(p, opts){
   const original = Number(p.originalPrice);
   const hasOriginal = Number.isFinite(original) && hasPrice && original > price;
   const badgeHTML = opts.badgeHTML != null ? opts.badgeHTML
-    : freightHeavy
-      ? `<span class="absolute top-3 left-3 text-[12.5px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#8A6B1F; color:#fff">Flete alto</span>`
-      : hasOriginal
-        ? `<span class="absolute top-3 left-3 text-[15px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#C0392B; color:#fff">-${discountPct(p)}%</span>`
-        : '';
+    : hasOriginal
+      ? `<span class="absolute top-3 left-3 text-[15px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#C0392B; color:#fff">-${discountPct(p)}%</span>`
+      : '';
   return `
   <div class="${CARD_SHELL_CLASS}" style="border-color:var(--line)">
     ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image), open, overlay: badgeHTML })}
@@ -10241,7 +10427,7 @@ function productCardHTML(p, opts){
       ${opts.extraHTML || ''}
       ${weightUnderReview
         ? `<div class="text-[11.5px] mb-1 font-semibold" style="color:#8A6B1F">Flete por confirmar — lo cotizamos antes de que pagues</div>`
-        : freight != null ? `<div class="text-[11.5px] mb-1" style="color:${freightHeavy ? '#8A6B1F' : '#7A8296'}">
+        : freight != null ? `<div class="text-[11.5px] mb-1" style="color:#7A8296">
         + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}
@@ -10439,21 +10625,51 @@ function orbBounds(){
   return { minX: lane.minX, maxX: lane.maxX, minY: lane.minY, maxY: lane.maxY, mode: lane.mode, size: lane.size };
 }
 
+/* What counts as content the orb must not sit on. Card SURFACES are in
+   the list as well as text and media: a product panel is a thing a
+   shopper is looking at, and an orb parked on its corner is on the page
+   whether or not a letter of text happens to be under that pixel. */
+const ORB_CONTENT_SELECTOR = [
+  'p','h1','h2','h3','h4','h5','h6','blockquote','li','figcaption','label',
+  'button','a','input','select','textarea','article','img','svg','video','table',
+  '[class*="rounded-2xl"]','[class*="rounded-3xl"]','[class*="aspect-"]',
+].join(',');
+
 /* Is there page content under the orb right now? Asked of the page
    itself rather than guessed from geometry, with the orb made
-   click-through for the duration so it cannot find itself. */
+   click-through for the duration so it cannot find itself.
+
+   THE BUG THIS FIXES (2026-09-21), reported live as "the chat orb
+   launcher is overlapping the product image". The probe used
+   elementFromPoint, which returns only the TOPMOST element at a point.
+   The product image carries a "Toca para ampliar" pill in its own
+   bottom-right corner — exactly where a docked orb parks — and a <span>
+   is not on the content list, nor is any of its plain-<div> ancestry. So
+   closest() walked up, found nothing it recognised, and reported clear
+   while the orb was sitting squarely on the photo.
+
+   Anything painted ON something can mask it that way: a badge, a chip, a
+   gradient scrim. So the probe reads the WHOLE STACK at each point
+   (elementsFromPoint, plural) rather than whichever element happens to
+   be on top, and stops at the view shell, which is layout rather than
+   content. Five points, not four: the four corners the old centre-biased
+   sample could straddle, plus the middle. */
 function orbCoversContent(x, y, size){
   const btn = document.getElementById('assistantBtn');
   if (!btn) return false;
   const prev = btn.style.pointerEvents;
   btn.style.pointerEvents = 'none';
   let covers = false;
-  for (const [fx, fy] of [[0.18, 0.5], [0.5, 0.5], [0.5, 0.85], [0.5, 0.15]]){
-    const el = document.elementFromPoint(x + size * fx, y + size * fy);
-    if (el && el.closest('p,h1,h2,h3,h4,h5,h6,blockquote,li,figcaption,label,button,a,input,select,textarea,article,img')){
-      covers = true;
-      break;
+  const points = [[0.5, 0.5], [0.15, 0.15], [0.85, 0.15], [0.15, 0.85], [0.85, 0.85]];
+  for (const [fx, fy] of points){
+    const px = x + size * fx, py = y + size * fy;
+    if (px < 0 || py < 0 || px > window.innerWidth || py > window.innerHeight) continue;
+    for (const el of document.elementsFromPoint(px, py)){
+      if (el === btn || btn.contains(el) || el.closest('#ariaOrbTrail')) continue;
+      if (el.classList && el.classList.contains('view')) break;   // the shell, not content
+      if (el.matches && el.matches(ORB_CONTENT_SELECTOR)){ covers = true; break; }
     }
+    if (covers) break;
   }
   btn.style.pointerEvents = prev;
   return covers;

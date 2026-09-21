@@ -34,7 +34,7 @@ import {
   normalizeDeal,
   collapseVariants,
 } from "./lib/sales-sources.js";
-import { FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING } from "./lib/item-weight.js";
+import { FREIGHT_FEATURE_CEILING } from "./lib/item-weight.js";
 import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
 
 const SITE = (process.env.SITE || "https://ariashop.pe").replace(/\/$/, "");
@@ -166,11 +166,15 @@ async function main() {
      report is what IS here — the beauty rows still waiting to be checked
      against a real parcel — and how many were dropped on the way. */
   const beautyEstimated = deals.filter((d) => d.weightSource === "beauty");
-  const heavy = deals.filter((d) => d.freightHigh);
   console.log(`  weights: every published deal is inside its category band`);
-  console.log(`  freight: nothing over ${Math.round(FREIGHT_FEATURE_CEILING * 100)}% of price is featured (still listed and badged everywhere else)`);
-  if (heavy.length) {
-    console.log(`  ${heavy.length} deal(s) carry a "Flete alto" badge (freight over ${Math.round(FREIGHT_BADGE_SHARE * 100)}% of price) — featured, not hidden`);
+  console.log(`  freight: nothing over ${Math.round(FREIGHT_FEATURE_CEILING * 100)}% of price is featured (still listed everywhere else)`);
+  /* The freight-share DISTRIBUTION, not a pass/fail. There is no badge
+     to count any more; this is here so a future absolute-freight
+     indicator can be calibrated against real deals rather than guessed. */
+  const shares = deals.map((d) => d.freightShare).filter((s) => Number.isFinite(s)).sort((a, b) => a - b);
+  if (shares.length) {
+    const at = (q) => shares[Math.min(shares.length - 1, Math.floor(q * shares.length))];
+    console.log(`  freight share of price — median ${Math.round(at(0.5) * 100)}%, p90 ${Math.round(at(0.9) * 100)}%, max ${Math.round(shares[shares.length - 1] * 100)}%`);
   }
   if (beautyEstimated.length) {
     console.log(`\n  ${beautyEstimated.length} beauty deal(s) on estimated weights — calibrate against the first real order:`);

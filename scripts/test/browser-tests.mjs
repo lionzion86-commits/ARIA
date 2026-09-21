@@ -105,25 +105,46 @@ await check("an English query is passed through untouched", async () => {
   await ctx.close();
 });
 
-await check("the badge fires on the numbers the card prints", async () => {
+await check("a card discloses its freight and never labels it", async () => {
+  /* The reported t-shirt: S/ 25.29 with S/ 10.07 of freight. It wore a
+     "Flete alto" badge because the rule thresholded freight as a share
+     of PRICE, so it fired on a cheap item rather than a heavy one. The
+     badge is gone; the itemised line that made it redundant is not.
+
+     The 80% case is the one that matters for the regression: an item
+     genuinely deep in the old badge band must ALSO come back clean, or
+     the badge has only been re-tuned rather than removed. */
   const { ctx, page, errors } = await openPage();
   if (errors.length) throw new Error(errors.join(" | "));
   const r = await page.evaluate(() => {
-    const kg = estimateRetailWeightDetail("Hello Kitty and Friends Girls T-Shirt").kg;
+    const title = "Hello Kitty and Friends Girls T-Shirt";
+    const kg = estimateRetailWeightDetail(title).kg;
     const freight = freightUsd(kg);
-    const price = freight * (25.29 / 10.07);       // the reported 40%
-    const card = productCardHTML({ title: "Hello Kitty and Friends Girls T-Shirt", price, weightKg: kg, retailer: "walmart" }, { open: "" });
+    const card = (price) => productCardHTML({ title, price, weightKg: kg, retailer: "walmart" }, { open: "" });
+    const reported = card(freight * (25.29 / 10.07));   // the reported 40%
     return {
-      share: freightSharePct(kg, price),
-      badge: /Flete alto/.test(card),
-      heavyBadge: /Flete alto/.test(productCardHTML({ title: "Hello Kitty and Friends Girls T-Shirt", price: freight / 0.8, weightKg: kg, retailer: "walmart" }, { open: "" })),
-      rate: /\$13\/kg/.test(card),
+      kg,
+      share: freightSharePct(kg, freight * (25.29 / 10.07)),
+      badgeAt40: /Flete alto/.test(reported),
+      badgeAt80: /Flete alto/.test(card(freight / 0.8)),
+      badgeAt300: /Flete alto/.test(card(freight / 3)),
+      rate: /\$13\/kg/.test(reported),
+      freightLine: /de flete/.test(reported),
+      weightShown: reported.includes(`${kg} kg`),
+      // The discount badge is a fact about the US price and still shows,
+      // even on an item the old rule would have overwritten it on.
+      discount: /-\d+%/.test(productCardHTML(
+        { title, price: freight / 0.8, originalPrice: freight / 0.4, weightKg: kg, retailer: "walmart" }, { open: "" })),
     };
   });
   if (Math.abs(r.share - 10.07 / 25.29) > 0.002) throw new Error(`share drifted: ${r.share}`);
-  eq(r.badge, false, "no 'Flete alto' at 40%");
-  eq(r.heavyBadge, true, "the badge still fires at 80%");
-  eq(r.rate, true, "the card still shows the $13/kg rate");
+  eq(r.badgeAt40, false, "the reported 40% card still carries a label");
+  eq(r.badgeAt80, false, "80% still carries a label — the badge was re-tuned, not removed");
+  eq(r.badgeAt300, false, "freight at 3x the price still carries a label");
+  eq(r.rate, true, "the card stopped showing the $13/kg rate");
+  eq(r.freightLine, true, "the card stopped itemising freight");
+  eq(r.weightShown, true, "the card stopped printing the weight");
+  eq(r.discount, true, "a heavy item lost its discount badge");
   await ctx.close();
 });
 
@@ -173,7 +194,7 @@ await check("every view still renders, with nothing thrown on the way", async ()
   await ctx.close();
 });
 
-await check("Categorías renders big cards, two across, nothing cropped", async () => {
+await check("Categorías renders one full-width shopfront per row, nothing cropped", async () => {
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -190,20 +211,28 @@ await check("Categorías renders big cards, two across, nothing cropped", async 
   const r = await page.evaluate(() => {
     const grid = document.getElementById("categoriesGrid");
     const card = grid.firstElementChild;
-    const frame = card?.querySelector('[style*="aspect-ratio"]');
+    const window_ = card?.querySelector('[class*="h-["]');
+    const photo = card?.querySelector("img, [class*='place-items-center']");
     return {
       count: grid.children.length,
       gridClass: grid.className,
       cardClass: card ? card.className : "",
-      frameStyle: frame ? frame.getAttribute("style") : null,
+      windowClass: window_ ? window_.className : null,
+      cropped: card ? /object-fit:\s*cover/.test(card.innerHTML) : false,
+      // The sign: the category name on the brand navy, not navy-on-white.
+      signed: card ? /0A1F44/.test(card.innerHTML) : false,
       squares: grid.querySelectorAll('[class*="h-[124px]"], [class*="h-[146px]"]').length,
     };
   });
   if (!r.count) throw new Error("Categorías rendered no tiles");
-  if (!/grid-cols-1 md:grid-cols-2/.test(r.gridClass)) throw new Error(`grid is ${r.gridClass}`);
-  if (/grid-cols-[34]/.test(r.gridClass)) throw new Error("the four-across square grid is back");
+  if (!/grid-cols-1/.test(r.gridClass)) throw new Error(`grid has no single-column base: ${r.gridClass}`);
+  if (/(?:sm|md|lg|xl):grid-cols-\d/.test(r.gridClass)) {
+    throw new Error(`Categorías splits into columns again: ${r.gridClass}`);
+  }
   if (!/rounded-2xl/.test(r.cardClass)) throw new Error(`a tile is not a card: ${r.cardClass}`);
-  if (!/aspect-ratio:4\/5/.test(r.frameStyle || "")) throw new Error(`photo field is ${r.frameStyle}`);
+  if (!/h-\[\d+px\]/.test(r.windowClass || "")) throw new Error(`the window is not pinned: ${r.windowClass}`);
+  eq(r.cropped, false, "a category photo is being cropped");
+  eq(r.signed, true, "the category name is not on a navy sign");
   eq(r.squares, 0, "fixed-height square tiles left in the grid");
   await ctx.close();
 });
@@ -217,11 +246,17 @@ await check("the category card and the Ofertas card are the same object", async 
     const tile = deptTileHTML({ key: "women", label: "Moda Mujer", count: 82, thumb: "x.jpg", icon: "\u{1F455}" }, "department");
     const card = productCardHTML({ title: "T", price: 20, weightKg: 0.2, retailer: "walmart", image: "x.jpg" }, { open: "" });
     const shell = (h) => (h.match(/class="([^"]*rounded-2xl[^"]*)"/) || [])[1] || "";
-    const frame = (h) => (h.match(/style="aspect-ratio:[^"]*"/) || [])[0] || "";
     return {
       tileShell: shell(tile), cardShell: shell(card),
-      tileFrame: frame(tile), cardFrame: frame(card),
+      // 2026-09-21: the two no longer share a photo FIELD. A category is
+      // a shopfront on a pinned-height window; a product is a product on
+      // the 4:5 field. They still share the shell and the contain-fit.
+      tileWindow: /h-\[\d+px\]/.test(tile),
+      cardField: /aspect-ratio:4\/5/.test(card),
+      tileCrops: /object-fit:\s*cover/.test(tile),
+      cardCrops: /object-fit:\s*cover/.test(card),
       tileHasSquare: /h-\[124px\]|h-\[146px\]/.test(tile),
+      tileHasSign: /Moda Mujer/.test(tile) && /0A1F44/.test(tile),
     };
   });
   if (!same.tileShell.includes("rounded-2xl")) throw new Error("the tile lost the card shell");
@@ -230,8 +265,12 @@ await check("the category card and the Ofertas card are the same object", async 
   if (!same.tileShell.startsWith(same.cardShell)) {
     throw new Error(`the tile shell diverged:\n  tile: ${same.tileShell}\n  card: ${same.cardShell}`);
   }
-  eq(same.tileFrame, same.cardFrame, "photo field");
+  eq(same.tileWindow, true, "the category window is not pinned to a height");
+  eq(same.cardField, true, "the product card lost its 4:5 field");
+  eq(same.tileCrops, false, "the category window crops its photo");
+  eq(same.cardCrops, false, "the product card crops its photo");
   eq(same.tileHasSquare, false, "the old fixed-height square is gone");
+  eq(same.tileHasSign, true, "the category name is not on a navy sign");
   await ctx.close();
 });
 
@@ -418,13 +457,13 @@ await check("the reported vitamin bottles price sanely on a real card", async ()
     ]) {
       const kg = estimateRetailWeightDetail(title).kg;
       const card = productCardHTML({ title, price: priceUsd, weightKg: kg, retailer: "walmart" }, { open: "" });
-      out[key] = { kg, badge: /Flete alto/.test(card), shown: /0\.68 kg|1\.08 kg/.test(card) };
+      out[key] = { kg, badge: /Flete alto/.test(card), shown: /0\.68 kg|1\.08 kg/.test(card) };  // badge: must stay false — it is gone site-wide
     }
     return out;
   });
   for (const [key, v] of Object.entries(r)) {
     if (v.kg >= 0.4) throw new Error(`${key} still estimates ${v.kg} kg`);
-    eq(v.badge, false, `${key} still wears a manufactured Flete alto`);
+    eq(v.badge, false, `${key} wears a Flete alto badge — it was removed site-wide`);
     eq(v.shown, false, `${key} still prints a banned constant`);
   }
   await ctx.close();
@@ -594,6 +633,60 @@ await check("no store logo is dwarfed by the wordmarks beside it", async () => {
     }
   }
 
+  await ctx.close();
+});
+
+await check("the orb never reads a covered product image as empty space", async () => {
+  /* REPORTED LIVE: "the chat orb launcher is overlapping the product
+     image". The rule is that the orb does not drift over content, and
+     the machinery for it existed — it just could not see the image.
+
+     orbCoversContent() used elementFromPoint, which returns only the
+     TOPMOST element at a point. The product image carries a "Toca para
+     ampliar" pill in its own bottom-right corner, which is exactly where
+     a docked orb parks, and a <span> is on no content list — nor is any
+     of its plain-<div> ancestry, so closest() walked all the way up and
+     reported clear while the orb sat on the photo.
+
+     This parks an orb-sized box on that corner and asserts the probe
+     sees it. Anything painted on top of content can mask it the same
+     way, so the fix reads the whole stack rather than the top of it. */
+  const { ctx, page, errors } = await openPage();
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() =>
+    showProduct("walmart", "Wrangler Men's Relaxed Fit Jeans with Flex", 39.9, 0.6, "", [], false, "", 4.4, []));
+  await page.waitForTimeout(600);
+
+  const r = await page.evaluate(() => {
+    const wrap = document.getElementById("productViewImgWrap");
+    /* Tailwind's CDN is blocked here, so the image wrap comes out far
+       taller than it renders in production and its corner can sit below
+       the fold. The probe correctly ignores off-screen points, so aim at
+       a part of the image that is genuinely visible. */
+    wrap.scrollIntoView({ block: "center" });
+    const w = wrap.getBoundingClientRect();
+    const cx = Math.round(Math.min(Math.max(w.left + w.width / 2, 40), window.innerWidth - 40));
+    const cy = Math.round(Math.min(Math.max(w.top + w.height / 2, 40), window.innerHeight - 40));
+    const box = { x: cx - 32, y: cy - 32, size: 64 };
+    if (document.elementsFromPoint(cx, cy).length === 0) throw new Error("probe point is off screen");
+    // What the OLD topmost-only probe saw at the same point, for contrast.
+    const btn = document.getElementById("assistantBtn");
+    const prev = btn.style.pointerEvents;
+    btn.style.pointerEvents = "none";
+    const top = document.elementFromPoint(box.x + 32, box.y + 32);
+    const oldWouldSee = Boolean(top && top.closest(
+      "p,h1,h2,h3,h4,h5,h6,blockquote,li,figcaption,label,button,a,input,select,textarea,article,img"));
+    btn.style.pointerEvents = prev;
+    return {
+      onImage: orbCoversContent(box.x, box.y, box.size),
+      oldWouldSee,
+      // Well clear of every view: far off to the side, nothing under it.
+      offPage: orbCoversContent(-500, -500, 64),
+    };
+  });
+  eq(r.onImage, true, "the orb still reads the product image as empty space");
+  eq(r.oldWouldSee, false, "the masking case no longer reproduces — this test has stopped testing anything");
+  eq(r.offPage, false, "the orb now thinks empty space is content and will never settle");
   await ctx.close();
 });
 

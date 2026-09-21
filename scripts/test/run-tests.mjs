@@ -428,23 +428,15 @@ check("a beauty estimate is still featured", () => {
   eq(d.weightKg, 0.05);
 });
 
-check("the two freight lines are 50% and 100%, module and page", () => {
-  eq(itemWeight.FREIGHT_BADGE_SHARE, 0.5);
+check("one freight line is left, and it is the feature ceiling", () => {
   eq(itemWeight.FREIGHT_FEATURE_CEILING, 1.0);
-  eq(page.FREIGHT_BADGE_SHARE, 0.5, "page mirror, badge");
   eq(page.FREIGHT_FEATURE_CEILING, 1.0, "page mirror, ceiling");
-  // The ambiguous alias is gone: with two thresholds, a name that does
-  // not say which one it means is how they drift apart.
   const src = stripComments(readFileSync(root("scripts/lib/item-weight.js"), "utf8"));
   if (/MAX_FREIGHT_SHARE/.test(src)) throw new Error("the ambiguous MAX_FREIGHT_SHARE alias is back");
-});
-
-check("the badge fires strictly above 50%, and nowhere below", () => {
-  // freightShare = kg * $13 / price.
-  const share = (kg, price) => itemWeight.freightIsHigh(kg, price, 13);
-  eq(share(1, 26), false, "exactly 50% — no badge");
-  eq(share(1.01, 26), true, "just over 50%");
-  eq(share(0.5, 26), false, "25%");
+  // The badge threshold is gone, not renamed.
+  if (/FREIGHT_BADGE_SHARE/.test(src)) throw new Error("the badge threshold is back in the module");
+  if (itemWeight.FREIGHT_BADGE_SHARE !== undefined) throw new Error("FREIGHT_BADGE_SHARE is exported again");
+  if (typeof itemWeight.freightIsHigh === "function") throw new Error("freightIsHigh() is back");
 });
 
 check("the feature ceiling fires strictly above 100%, and nowhere below", () => {
@@ -454,20 +446,20 @@ check("the feature ceiling fires strictly above 100%, and nowhere below", () => 
   eq(over(2.01, 26), true, "just over 100% — not featurable");
 });
 
-check("50-100% is featured AND badged", () => {
+check("a heavy item inside the ceiling is featured, and carries no verdict", () => {
   /* A 74 kg dresser: ~$965 of freight against a card price of ~$1,469 —
-     66%. The share is measured against the price the CARD PRINTS, which
-     over the $200 threshold carries the import tax, so the fixture is
-     priced from that number and not from the raw scrape. */
+     66%, which used to earn a "Flete alto" badge. It is featured now
+     with its freight itemised and nothing labelling it. */
   const heavy = deal("6 Drawer Dresser", 900, 1600);
-  if (!heavy) throw new Error("a heavy item inside the ceiling was suppressed instead of badged");
-  eq(heavy.freightHigh, true, "carries the Flete alto badge");
+  if (!heavy) throw new Error("a heavy item inside the ceiling was suppressed");
   if (!(heavy.freightShare > 0.5 && heavy.freightShare <= 1)) {
     throw new Error(`fixture drifted out of the 50-100% band: ${heavy.freightShare}`);
   }
+  // The share survives as data for calibration; the verdict does not.
+  if ("freightHigh" in heavy) throw new Error("deals still publish a freightHigh verdict");
   const light = deal("Levi's 501 Original Fit Jeans", 60, 100);
   if (!light) throw new Error("an ordinary deal was dropped");
-  eq(light.freightHigh, false);
+  if ("freightHigh" in light) throw new Error("deals still publish a freightHigh verdict");
 });
 
 check("over 100% is not featurable as a deal", () => {
@@ -493,8 +485,8 @@ check("the cache sanitizer enforces the same ceiling", () => {
   if (!/share > FREIGHT_FEATURE_CEILING\) return null/.test(cache)) {
     throw new Error("a heavy item could re-enter Ofertas through the cache");
   }
-  if (/FREIGHT_BADGE_SHARE\) return null/.test(cache)) {
-    throw new Error("the badge threshold is suppressing items again");
+  if (/FREIGHT_BADGE_SHARE/.test(cache)) {
+    throw new Error("the badge threshold is back in the cache sanitizer");
   }
 });
 
@@ -999,7 +991,14 @@ check("Ofertas is a designed tile, not a scraped product image", () => {
   const html = readFileSync(root("index.html"), "utf8");
   if (!/function ofertasTileArtHTML/.test(html)) throw new Error("the Ofertas tile art is missing");
   const art = html.slice(html.indexOf("function ofertasTileArtHTML"), html.indexOf("function deptTileHTML"));
-  if (!/ariaNavyBand/.test(art)) throw new Error("the Ofertas tile is not on the Precio Honesto navy field");
+  /* 2026-09-21: Ofertas moved from the navy field to the GOLD one. On a
+     run of navy category signs, the one card that means SALE was reading
+     exactly like the other eleven. Gold board, navy type — what a sale
+     sign looks like in any shop. It still carries the Precio Honesto
+     language, because the claim has not changed, only the colour. */
+  if (/ariaNavyBand/.test(art)) throw new Error("the Ofertas tile is back on the navy field — it is the sale card");
+  if (!/F4C463|var\(--amber\)/.test(art)) throw new Error("the Ofertas tile is not on the gold sale field");
+  if (!/var\(--navy\)/.test(art)) throw new Error("the Ofertas type is not navy on the gold");
   if (!/Precio Honesto/.test(art)) throw new Error("the Ofertas tile does not carry the Precio Honesto language");
   const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
   if (!/ofertasTileArtHTML\(\)/.test(tile)) throw new Error("deptTileHTML does not use it");
@@ -1043,34 +1042,50 @@ check("the sign-off the brief put out of scope is untouched", () => {
 /* ------------------------------------------------------------------
    FOLLOW-UPS TO THE BIG BATCH (2026-09-20), all five reported live.
    ------------------------------------------------------------------ */
-group("follow-up 1: the Flete alto badge fires only at 0.50");
+group("the Flete alto badge is gone, and cannot come back");
 
-check("the badge is measured against the price the card prints", () => {
-  // Over the $200 import-tax threshold the card prints 23% more than the
-  // scrape did. Dividing by the raw figure was giving the badge a
-  // smaller denominator than the shopper's own arithmetic.
-  eq(itemWeight.shownPriceUsd(199), 199, "under the threshold, unchanged");
-  eq(itemWeight.shownPriceUsd(200), 200, "at the threshold, unchanged");
-  eq(itemWeight.shownPriceUsd(250), 307.5, "over the threshold, tax included");
-  for (const usd of [5, 60, 199.99, 200, 200.01, 250, 1000]) {
-    eq(page.displayPriceUsd(usd), itemWeight.shownPriceUsd(usd), `page mirror at $${usd}`);
+/* WHY IT WENT. Two rounds were spent calibrating this badge — first the
+   threshold (30% -> 50%), then the denominator (raw price -> the price
+   the card prints). Both were real bugs and both were fixed, and the
+   badge was still wrong, because the quantity it thresholded was wrong:
+   freight as a SHARE OF PRICE fires on CHEAP items, not HEAVY ones. The
+   0.23 kg t-shirt below is the proof — S/ 10.07 of freight is not a high
+   freight bill, the shirt is just inexpensive.
+
+   These checks are written so that a future calibration pass cannot
+   quietly reintroduce it. A heavy-item indicator may return, but on
+   ABSOLUTE freight and as neutral information. */
+
+check("no surface renders a freight verdict on a product card", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  /* Comments are stripped first: the card carries a note explaining what
+     the badge was and why it went, and that note naming it is not the
+     card rendering it. */
+  const code = stripComments(card);
+  if (/Flete alto/.test(code)) throw new Error("the card renders a Flete alto badge again");
+  if (/FREIGHT_BADGE_SHARE|freightHeavy|freightIsHigh/.test(code)) {
+    throw new Error("the card is thresholding freight as a share of price again");
   }
-  // 10 kg is $130 of freight: 52% of $250, but only 42% of the $307.50
-  // the card shows. The shopper's number is the one that decides.
-  eq(itemWeight.freightIsHigh(10, 250, 13), false, "not high against the printed price");
-  eq(page.freightSharePct(10, 250) > page.FREIGHT_BADGE_SHARE, false, "page agrees");
-  eq(
-    Math.round(page.freightSharePct(10, 250) * 1000),
-    Math.round(itemWeight.freightShare(10, 250, 13) * 1000),
-    "page and module compute the same share",
-  );
+  if (/0\.3\b|\b30\s*%/.test(code)) throw new Error("a stray 30% threshold is back in the card");
 });
 
-check("the reported Hello Kitty T-shirt carries no badge", () => {
-  /* LIVE REPORT: S/ 25.29 product, S/ 10.07 freight — 39.8%, comfortably
-     under the 0.50 line, and it was wearing "Flete alto" anyway. The
-     ratio is currency-free, so the sole figures are reproduced exactly
-     by picking the dollar price that yields the same share. */
+check("the disclosure line the badge sat on top of is still there", () => {
+  /* Killing the badge is only defensible because this line says
+     everything the badge was gesturing at, in the shopper's own
+     arithmetic: the cost, the weight and the rate. If it ever goes, the
+     freight stops being disclosed at all. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  if (!/de flete/.test(card)) throw new Error("the card stopped itemising freight");
+  if (!/CHARGE_PER_KG_USD\}\/kg/.test(card)) throw new Error("the card stopped printing the per-kg rate");
+  if (!/String\(weightKg\)\)\} kg/.test(card)) throw new Error("the card stopped printing the weight");
+});
+
+check("the reported t-shirt keeps its freight line and gains no label", () => {
+  /* LIVE REPORT: S/ 25.29 product, S/ 10.07 freight — 39.8%. The ratio is
+     currency-free, so the sole figures are reproduced exactly by picking
+     the dollar price that yields the same share. */
   const kg = estimateWeightDetail("Hello Kitty and Friends Girls T-Shirt").kg;
   const freight = itemWeight.freightUsd(kg, 13);
   const priceUsd = freight * (25.29 / 10.07);        // the reported ratio
@@ -1078,19 +1093,25 @@ check("the reported Hello Kitty T-shirt carries no badge", () => {
   if (Math.abs(share - 10.07 / 25.29) > 0.002) {
     throw new Error(`share drifted from the reported 39.8%: ${share}`);
   }
-  eq(share > page.FREIGHT_BADGE_SHARE, false, "no badge at 40%");
-  eq(itemWeight.freightIsHigh(kg, priceUsd, 13), false, "module agrees");
-  // And the line it must fire on, either side of exactly 50%.
-  eq(itemWeight.freightIsHigh(kg, freight / 0.5, 13), false, "exactly 50% — no badge");
-  eq(itemWeight.freightIsHigh(kg, freight / 0.4999, 13), false, "just under 50%");
-  eq(itemWeight.freightIsHigh(kg, freight / 0.5001, 13), true, "just over 50%");
+  // The share is still computable — the ceiling needs it — it just no
+  // longer decides anything a shopper can see.
+  eq(
+    Math.round(page.freightSharePct(kg, priceUsd) * 1000),
+    Math.round(itemWeight.freightShare(kg, priceUsd, 13) * 1000),
+    "page and module still agree on the share",
+  );
+  // And a cheap light item is nowhere near the one line that remains.
+  eq(itemWeight.freightAboveFeatureCeiling(kg, priceUsd, 13), false, "well inside the feature ceiling");
 });
 
-check("no threshold other than the two named ones is left in the badge path", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
-  if (/0\.3\b|\b30\s*%/.test(card)) throw new Error("a stray 30% threshold is back in the card");
-  if (!/FREIGHT_BADGE_SHARE/.test(card)) throw new Error("the card stopped reading the named constant");
+check("the displayed price is still what any share divides by", () => {
+  // The denominator fix outlives the badge: the feature ceiling uses it.
+  eq(itemWeight.shownPriceUsd(199), 199, "under the threshold, unchanged");
+  eq(itemWeight.shownPriceUsd(200), 200, "at the threshold, unchanged");
+  eq(itemWeight.shownPriceUsd(250), 307.5, "over the threshold, tax included");
+  for (const usd of [5, 60, 199.99, 200, 200.01, 250, 1000]) {
+    eq(page.displayPriceUsd(usd), itemWeight.shownPriceUsd(usd), `page mirror at $${usd}`);
+  }
 });
 
 group("follow-up 2: $13/kg is the customer-facing rate, and stays");
@@ -1379,6 +1400,71 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
         `square marks like Sephora and Target render a fraction of Walmart's area`,
       );
     }
+  }
+});
+
+check("no two category tiles can be handed the same photo", () => {
+  /* REPORTED LIVE: Ropa and Moda Hombre showed the identical Wrangler
+     jeans shot. Confirmed against the committed cache — both scored that
+     item highest and each picked it independently, because the old code
+     chose one tile at a time with no knowledge of its neighbours.
+
+     This asserts the mechanism rather than today's winners, so it keeps
+     holding when the cache is refreshed. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function assignTileImages\(/.test(src)) throw new Error("tiles are assigned one at a time again");
+  if (/t\.thumb = pickTileImage\(/.test(src)) throw new Error("collectTiles picks per-tile again, with no dedupe");
+  const fn = src.slice(src.indexOf("function assignTileImages("));
+  const body = fn.slice(0, fn.indexOf("\nfunction "));
+  if (!/usedImages/.test(body)) throw new Error("assignTileImages does not track which photos are taken");
+  if (!/CATEGORY_IMAGE_PIN/.test(body)) throw new Error("a pinned image is no longer absolute");
+  // Most-constrained-first: a narrow category must pick before a broad one.
+  if (!/candidates\.length - b\.candidates\.length/.test(body)) {
+    throw new Error("tiles are no longer served most-constrained-first");
+  }
+});
+
+check("the two trust categories keep their worst candidates off the tile", () => {
+  /* Salud y Farmacia led with a parasite cleanse and Dulces led with a
+     Juicy Drop. Both are excluded from the TILE only — still listed,
+     still searchable, still buyable. */
+  const banned = {
+    pharmacy: ["Parasite Cleanse Herbal Supplement", "10 Day Detox Colon Flush", "Weight Loss Diet Pills"],
+    candy_chocolate: ["Juicy Drop Pop Sour Gel Candy", "Ring Pop Assorted"],
+  };
+  const good = {
+    pharmacy: ["OLLY Women's Multivitamin Gummies - Berry - 90ct", "Nature Made Vitamin D3 2000 IU"],
+    candy_chocolate: ["M&M'S Milk Chocolate Candy, Party Size", "Hershey's Milk Chocolate Candy Bar"],
+  };
+  for (const [key, titles] of Object.entries(banned)) {
+    for (const t of titles) {
+      const bad = tiles.scoreTileCandidate(t, key);
+      for (const g of good[key]) {
+        if (!(tiles.scoreTileCandidate(g, key) > bad)) {
+          throw new Error(`${key}: "${t}" still outranks or ties "${g}"`);
+        }
+      }
+    }
+  }
+});
+
+check("Ropa does not lead with the same archetype as Moda Hombre", () => {
+  /* Ropa is the parent aisle and its candidate pool CONTAINS all of Moda
+     Hombre's, so sharing a tier-0 hero guaranteed the two tiles fought
+     over the same product. Jeans belong to Moda Hombre; Ropa leads with
+     an outerwear or dress silhouette and keeps jeans as a fallback. */
+  if (!(tiles.scoreTileCandidate("Levi's Denim Trucker Jacket", "clothing")
+        > tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "clothing"))) {
+    throw new Error("Ropa still ranks jeans at the top of its own tier");
+  }
+  if (!(tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "men")
+        > tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "clothing"))) {
+    throw new Error("jeans are no longer Moda Hombre's own archetype");
+  }
+  // Jeans must still be able to carry Ropa when nothing else is cached —
+  // which is the live situation: the bucket holds no dress, coat or jacket.
+  if (!(tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "clothing") > 0)) {
+    throw new Error("Ropa can no longer fall back to jeans and would lose its tile");
   }
 });
 
@@ -1821,31 +1907,65 @@ check("the category tile is built from the Ofertas card's own parts", () => {
   }
 });
 
-check("both category grids are the Ofertas grid, two across", () => {
+check("both category runs are one full-width column at every width", () => {
+  /* 2026-09-21: categories went from two-across to ONE column at every
+     width — "full-width, one big bold image per category, vertical
+     scroll", so the page reads as a row of shopfronts rather than a
+     spreadsheet. Two-up halved the image, which was the whole problem.
+
+     PRODUCT grids are untouched and stay two-across: a product card is a
+     product, not a storefront, and twelve full-width products would be a
+     mile of scrolling. */
   const src = readFileSync(root("index.html"), "utf8");
   for (const id of ["categoriesGrid", "catGrid"]) {
     const at = src.indexOf(`id="${id}"`);
     if (at < 0) throw new Error(`#${id} is gone`);
-    // The <div> that carries the id, class attribute and all.
     const tag = src.slice(src.lastIndexOf("<div", at), src.indexOf(">", at) + 1);
-    if (!/grid-cols-1 md:grid-cols-2/.test(tag)) {
-      throw new Error(`#${id} is not on the two-across Ofertas grid: ${tag}`);
-    }
-    if (/grid-cols-[34]|sm:grid-cols-3|md:grid-cols-4|lg:grid-cols-4/.test(tag)) {
-      throw new Error(`#${id} still has a small-square column count: ${tag}`);
+    if (!/grid-cols-1/.test(tag)) throw new Error(`#${id} has no single-column base: ${tag}`);
+    if (/(?:sm|md|lg|xl):grid-cols-\d/.test(tag)) {
+      throw new Error(`#${id} splits into columns at a breakpoint again: ${tag}`);
     }
   }
-  // Ofertas' own grid, for comparison: the same class, from one constant.
+  // The product listing grid keeps its own two-across shape.
   const listing = src.match(/const LISTING_GRID_CLASS = '([^']+)'/)?.[1];
-  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the shared grid class");
+  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the product listing grid");
 });
 
-check("no product image on any grid is cropped", () => {
+check("a category card is a shopfront: big window, signed, with an edge", () => {
+  /* The verdict this answers: "white-on-white reads as database, not a
+     place". A card needs a hard edge against the page and something you
+     can read walking past — so the name sits on a navy sign (gold for
+     Ofertas) under a wide window, not as navy text on white. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function handleDeptThumbError"));
+  const code = stripComments(tile);
+  /* Pinned HEIGHT, not an aspect: an aspect on a full-bleed card is a
+     function of the viewport, so 16:10 came out 238px tall on a phone
+     (smaller than the 4:5 it replaced) and 775px tall on a desktop. */
+  if (!/heightClass:\s*'h-\[\d+px\]/.test(code)) throw new Error("the category window is not pinned to a height");
+  if (/aspect:\s*'16\/10'/.test(code)) throw new Error("the category window is back on a viewport-dependent aspect");
+  if (!/signBg/.test(code)) throw new Error("the category name is no longer on a sign");
+  if (!/linear-gradient\(160deg, #0A1F44/.test(code)) throw new Error("the department sign is not the brand navy");
+  if (!/F4C463|--amber/.test(code)) throw new Error("Ofertas no longer gets the gold version of the sign");
+  // The name has to be ON the sign, i.e. light type, not navy-on-white.
+  if (!/nameColor/.test(code)) throw new Error("the category name does not invert with its sign");
+});
+
+check("no image on any grid is cropped, whatever shape its frame is", () => {
+  /* The frame's aspect became a parameter when categories went to a wide
+     16:10 window (products stay 4:5). That makes the no-cropping rule
+     MORE important, not less: a wide window with cover-fit would slice
+     the top and bottom off every portrait apparel shot, which is the
+     exact "half-object" failure the tile-scoring rebuild was written to
+     end. A bigger window may make a contained product bigger; it never
+     licences cropping it. */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const frame = src.slice(src.indexOf("function cardImageFrameHTML("), src.indexOf("function deptTileHTML("));
   if (!/object-fit:\s*contain/.test(frame)) throw new Error("the shared photo is not contain-fit");
   if (/object-fit:\s*cover/.test(frame)) throw new Error("a cover fit is back — it crops people in half");
-  if (!/aspect-ratio:4\/5/.test(frame)) throw new Error("the shared 4:5 field is gone");
+  if (!/aspect-ratio:\$\{aspect\}/.test(frame)) throw new Error("the frame no longer takes an aspect");
+  if (!/aspect = '4\/5'/.test(frame)) throw new Error("the default frame is no longer the 4:5 product field");
+  if (!/heightClass/.test(frame)) throw new Error("the frame can no longer be pinned to a height");
 });
 
 /* ------------------------------------------------------------------
@@ -2221,16 +2341,20 @@ check("no single number serves two unrelated products", () => {
   }
 });
 
-check("the freight these bottles earn no longer manufactures a badge", () => {
-  // S/ 46.88 at the FX in the screenshot is about $12.
+check("the freight these bottles earn is a small slice of the price", () => {
+  /* The badge that reported this is gone, but the WEIGHT bug it exposed
+     is the thing this check exists for: 0.68 kg on a $12 bottle was a
+     63% freight ratio manufactured out of one coarse category row. The
+     old 0.50 line is used here as a fixed yardstick, not as a threshold
+     the code still consults. */
+  const OLD_BADGE_LINE = 0.5;
   const d3 = estimateWeightDetail("Nature Made Vitamin D3 2000 IU, 180 Softgels");
-  const share = itemWeight.freightShare(d3.kg, 12, 13);
-  if (share > itemWeight.FREIGHT_BADGE_SHARE) {
+  const share = itemWeight.freightShare(d3.kg, 12, 13);      // S/ 46.88 is about $12
+  if (share > OLD_BADGE_LINE) {
     throw new Error(`a vitamin bottle still reads as high-freight: ${Math.round(share * 100)}%`);
   }
-  // The old number did, which is the bug the badge was faithfully reporting.
-  if (!(itemWeight.freightShare(0.68, 12, 13) > itemWeight.FREIGHT_BADGE_SHARE)) {
-    throw new Error("the fixture no longer reproduces the reported badge");
+  if (!(itemWeight.freightShare(0.68, 12, 13) > OLD_BADGE_LINE)) {
+    throw new Error("the fixture no longer reproduces the reported weight bug");
   }
 });
 
