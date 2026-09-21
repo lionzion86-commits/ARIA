@@ -3411,35 +3411,49 @@ function storeCardHTML(r){
      pill and neither is an abbreviation.
 
      A LOGO ZONE, NOT A HEIGHT CAP (2026-09-20). Every mark is contain-fit
-     inside the same 130x56 box, so each one grows until it maxes out
+     inside the same zone, so each one grows until it maxes out
      whichever dimension its own proportions reach first, and nothing is
      ever stretched. `width:100%` is the part that makes it a zone rather
      than a ceiling: max-* alone only clamps, it never grows a file that
      is already small, so a mark could sit well inside the plate and there
      was nothing to push it out.
 
-     WHY 130x56 AND NOT 130x34, which is what this shipped as first. That
-     older box has an aspect of 3.8 — the shape of a wordmark. Walmart
-     (5.3:1) and Foot Locker (9.5:1) reached the width and drew 130px
-     across; anything square reached the 34px height and drew 34x34, a
-     quarter of the ink. Worst hit was Sephora, whose artwork is portrait
-     (283x400 of ink on its canvas), so it came out 24px wide — a sliver
-     beside Walmart.
+     THE WIDTH CAP IS A PERCENTAGE, AND THAT IS THE WHOLE FIX (2026-09-21).
+
+     It was 130px — a fixed number — and a fixed cap cannot hold a
+     proportion, because the card is fluid. Measured: a 130px mark filled
+     71% of a 182px card on a phone and only 50% of a 258px card at the
+     4-across desktop width. Same CSS, and the desktop grid is where they
+     were reported as microscopic. Raising the number would only have
+     moved the problem to a different breakpoint and overflowed the phone.
+
+     75% of the plate's content box holds the proportion at every width:
+     70% of the card at 4-across, 68% on a phone. The plate's padding came
+     down from px-4 to px-2 at the same time, because 32px of white was a
+     tenth of the card being spent on nothing.
+
+     HEIGHT STAYS IN PIXELS, and the two are not inconsistent: the width
+     is a share of a fluid card, the height is a share of a fixed plate.
 
      The zone aspect that makes a square mark and a w:1 wordmark cover the
      SAME AREA is sqrt(w): a square gets HxH, a wordmark gets WxW/w, and
      those are equal when W/H = sqrt(w). Walmart is our widest real
-     wordmark at 5.26:1, so sqrt(5.26) = 2.29, and 130/56 = 2.32. A square
-     mark lands 56x56 and Walmart lands 130x25 — within 3% of each other.
+     wordmark at 5.26:1, so sqrt(5.26) = 2.29. At the 4-across width the
+     cap resolves to 180px against a 78px height — 2.31 — and Walmart
+     lands 180x34 (6120 sq px) against Target's 78x78 (6084). Within 1%.
      That is what "the same visual size" has to mean for logos of
      different shapes; equal HEIGHTS would mean the opposite, which is the
-     mistake the old cap encoded.
+     mistake the first cap encoded.
+
+     A PERCENTAGE CAP CANNOT BE CHECKED STATICALLY, so the equal-area
+     guarantee is asserted in browser-tests.mjs against real measured
+     pixels rather than by reading these two numbers out of the style.
 
      The plate is the card's own background, so a transparent PNG sits
      directly on it with no box or backdrop behind it. */
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
-         style="width:100%; max-height:56px; max-width:130px; object-fit:contain"
+         style="width:100%; max-height:78px; max-width:75%; object-fit:contain"
          onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="inline-flex items-center h-[30px] px-3 rounded-lg text-[13px] font-extrabold text-white text-center leading-tight"
          style="background:${r.color}">${escapeHtml(r.label)}</span>`;
@@ -3464,7 +3478,7 @@ function storeCardHTML(r){
          A store's logo is their art, not ours to restyle, so the muting
          now applies to the plate and to the wordmark treatment, never to
          a real logo. -->
-    <div class="h-[92px] grid place-items-center px-4" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
+    <div class="h-[112px] grid place-items-center px-2" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
       ${mark}
     </div>
     <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">

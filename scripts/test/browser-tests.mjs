@@ -591,6 +591,10 @@ await check("no store logo is dwarfed by the wordmarks beside it", async () => {
         drawnH: nh * scale,
         zoneW: box.width,
         zoneH: box.height,
+        // The plate is pinned to 240px above, so this is the share of the
+        // card a mark actually covers — the figure the brief is written in.
+        plateW: img.parentElement.getBoundingClientRect().width,
+        aspect: nw / nh,
       };
     });
   });
@@ -630,6 +634,34 @@ await check("no store logo is dwarfed by the wordmarks beside it", async () => {
         `${key} draws ${m.drawnW.toFixed(0)}x${m.drawnH.toFixed(0)} — ${(ratio * 100).toFixed(0)}% of ` +
         `Walmart's area (${walmart.drawnW.toFixed(0)}x${walmart.drawnH.toFixed(0)}). It reads as a thumbnail.`,
       );
+    }
+  }
+
+  /* HOW MUCH OF THE CARD A MARK COVERS (2026-09-21). Reported on the
+     4-across desktop grid: "they currently render microscopic". The zone
+     was right in shape but wrong in size, and specifically the width cap
+     was a FIXED 130px — a fixed number cannot hold a proportion of a
+     fluid card. Measured at the time: 71% of a 182px phone card and 50%
+     of a 258px desktop card, from the same CSS. The cap is a percentage
+     now, so the proportion holds at every width.
+
+     Asserted on the WIDE marks only: under contain-fit a square mark
+     reaches the zone's height long before its width, so it can never
+     cover 70% of the card, and demanding that it did would mean cropping
+     it. What a square mark owes is equal AREA, which the check above
+     enforces. */
+  const wide = marks.filter((m) => m.aspect >= 3);
+  if (wide.length < 3) throw new Error(`expected several wide wordmarks, found ${wide.length}`);
+  for (const m of wide) {
+    const fill = m.drawnW / m.plateW;
+    if (fill < 0.65) {
+      throw new Error(
+        `${m.key} covers only ${(fill * 100).toFixed(0)}% of its card width ` +
+        `(${m.drawnW.toFixed(0)}px of ${m.plateW.toFixed(0)}px) — the brief asks for about 70%`,
+      );
+    }
+    if (fill > 0.92) {
+      throw new Error(`${m.key} covers ${(fill * 100).toFixed(0)}% of its card — it is touching the edges`);
     }
   }
 

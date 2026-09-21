@@ -1370,7 +1370,12 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
-    if (!/max-width:\s*\d+px/.test(img)) throw new Error("a store mark has no width cap");
+    /* px OR %. The Tiendas card's width cap became a percentage on
+       2026-09-21: a fixed 130px filled 71% of a phone card and 50% of a
+       desktop one, which is why the 4-across grid read as microscopic
+       while the phone looked fine. A fluid card cannot hold a proportion
+       with a fixed number. */
+    if (!/max-width:\s*\d+(px|%)/.test(img)) throw new Error("a store mark has no width cap");
     if (/\bfilter:/.test(img)) throw new Error("a store mark carries a CSS filter");
     // Never a bare width/height, which would ignore the file's own ratio.
     if (/style="[^"]*[;\s]height:\s*\d/.test(img)) throw new Error("a store mark sets a fixed height");
@@ -1393,14 +1398,23 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
        width/height = sqrt(w). Walmart, our widest real wordmark, is
        5.26:1, so the target is 2.29 and anything past 2.5 is starving
        square marks again. */
+    /* A PERCENTAGE CAP CANNOT BE CHECKED HERE, because the zone's real
+       aspect depends on the card's rendered width. Where both caps are
+       still pixels the shape is checked statically; where the width is a
+       share of a fluid card, the equal-area guarantee is asserted in
+       browser-tests.mjs against measured pixels instead — which is the
+       stronger check, not a weaker one. */
     const maxH = Number(/max-height:\s*(\d+)px/.exec(img)[1]);
-    const maxW = Number(/max-width:\s*(\d+)px/.exec(img)[1]);
-    const aspect = maxW / maxH;
-    if (aspect > 2.5) {
-      throw new Error(
-        `store-mark zone is ${maxW}x${maxH} (aspect ${aspect.toFixed(2)}): too wordmark-shaped, ` +
-        `square marks like Sephora and Target render a fraction of Walmart's area`,
-      );
+    const pxWidth = /max-width:\s*(\d+)px/.exec(img);
+    if (pxWidth) {
+      const maxW = Number(pxWidth[1]);
+      const aspect = maxW / maxH;
+      if (aspect > 2.5) {
+        throw new Error(
+          `store-mark zone is ${maxW}x${maxH} (aspect ${aspect.toFixed(2)}): too wordmark-shaped, ` +
+          `square marks like Sephora and Target render a fraction of Walmart's area`,
+        );
+      }
     }
   }
 });
