@@ -1949,6 +1949,18 @@ check("a category card is a shopfront: big window, signed, with an edge", () => 
   if (!/signBg/.test(code)) throw new Error("the category name is no longer on a sign");
   if (!/linear-gradient\(160deg, #0A1F44/.test(code)) throw new Error("the department sign is not the brand navy");
   if (!/F4C463|--amber/.test(code)) throw new Error("Ofertas no longer gets the gold version of the sign");
+
+  /* THE WINDOW IS A LIGHT BLUE IN THE NAVY FAMILY, and specifically not
+     yellow: gold is this site's discount treatment and nothing else may
+     borrow it. The one gold window is Ofertas, which is the discount
+     card. A grey window was the bug — #F7F8FA sat a hair from the page's
+     own #FAFAF8, so the card had no edge against the page. */
+  const frameCall = code.slice(code.indexOf("cardImageFrameHTML({"), code.indexOf("</button>"));
+  if (!/background:\s*isOfertas \? 'var\(--amber\)' : 'var\(--sky\)'/.test(frameCall)) {
+    throw new Error(`the category window is not on --sky: ${frameCall.slice(0, 160)}`);
+  }
+  if (/#F7F8FA|#FAFAF8/.test(frameCall)) throw new Error("the category window is back on a page-coloured grey");
+  if (/--yellow/.test(frameCall)) throw new Error("the category window borrowed the discount yellow");
   // The name has to be ON the sign, i.e. light type, not navy-on-white.
   if (!/nameColor/.test(code)) throw new Error("the category name does not invert with its sign");
 });

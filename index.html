@@ -3087,11 +3087,29 @@ function deptTileHTML(t, kind){
   const subColor = isOfertas ? 'rgba(10,31,68,0.74)' : '#AFBBD6';
   const cueColor = isOfertas ? 'var(--navy)' : '#F4C463';
 
+  /* THE WINDOW IS SKY, NOT GREY (2026-09-21). It was #F7F8FA, a cool grey
+     a hair away from the page's own #FAFAF8 — so the window had no edge
+     against the page and the card read as one pale slab with a navy bar
+     stuck to the bottom. --sky is the navy family's light tint, and
+     already the product page's image field, so the window now belongs to
+     the same colour as the sign under it.
+
+     NOT YELLOW, DELIBERATELY. Gold is the discount treatment on this site
+     and nothing else may borrow it. The one gold window here is Ofertas,
+     which IS the discount card.
+
+     THE TRADE, stated because cardImageFrameHTML's own default argues the
+     other way: retail photography is shot on white, so a white-background
+     product photo shows a faint seam against a tint. Category art is
+     mostly transparent PNGs and the emoji fallback, and a card with no
+     edges was the worse problem — but PRODUCT cards keep the white
+     default for exactly that reason, which is why this is passed here
+     rather than changed in the frame. */
   return `<button onclick="${open}" class="${CARD_SHELL_CLASS} text-left focus-ring w-full">
     ${cardImageFrameHTML({
       inner: art,
       heightClass: 'h-[300px] sm:h-[340px]',
-      background: isOfertas ? 'var(--amber)' : '#F7F8FA',
+      background: isOfertas ? 'var(--amber)' : 'var(--sky)',
     })}
     <div class="relative px-5 py-4 sm:px-6 sm:py-5 flex items-center gap-4" style="background:${signBg}">
       ${isOfertas ? '' : '<div class="ariaGoldHair"></div>'}
