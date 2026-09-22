@@ -1,0 +1,3501 @@
+{
+ "retailers": {
+  "sephora": {
+   "label": "Sephora",
+   "departments": {
+    "beauty": [
+     {
+      "name": "Radiant Creamy Concealer with Hydrating Medium Coverage",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 17.0,
+      "image": "https://www.sephora.com/productimages/sku/s2172310-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2172310-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/radiant-creamy-concealer-P377873?skuId=2172310",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Insatiable Longwearing Liquid Blush",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 36.0,
+      "image": "https://www.sephora.com/productimages/sku/s2968162-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2968162-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-insatiable-liquid-blush-P522502?skuId=2968162",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Light Reflecting Skin Improving Medium Coverage Foundation with Cacao Peptides",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 55.0,
+      "image": "https://www.sephora.com/productimages/sku/s2514644-main-zoom.jpg?imwidth=600&pb=allure-2022-bestofbeauty-badge",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2514644-main-zoom.jpg?imwidth=600&pb=allure-2022-bestofbeauty-badge"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-light-reflecting-advance-skincare-foundation-P479338?skuId=2514644",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Talc-Free Powder Blush",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 18.0,
+      "image": "https://www.sephora.com/productimages/sku/s2756351-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2756351-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/blush-P2855?skuId=2756351",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Matte Complete Full Coverage Longwear Concealer with Hyaluronic Acid",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 36.0,
+      "image": "https://www.sephora.com/productimages/sku/s2371425-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2371425-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/soft-matte-complete-concealer-P416200?skuId=2371425",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "The Multiple Soft Blur Blush Stick for Cheeks, Eyes and Lips",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 40.0,
+      "image": "https://www.sephora.com/productimages/sku/s2891901-main-zoom.jpg?imwidth=600&pb=allure-2025-best-of-beauty-award-winner",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2891901-main-zoom.jpg?imwidth=600&pb=allure-2025-best-of-beauty-award-winner"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-the-mulitple-P517845?skuId=2891901",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Natural Radiant Longwear Full Coverage Foundation",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 55.0,
+      "image": "https://www.sephora.com/productimages/sku/s2031011-main-zoom-1.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2031011-main-zoom-1.jpg?imwidth=600"
+      ],
+      "rating": 3.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/natural-radiant-longwear-foundation-P427301?skuId=2031011",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Radiant Creamy Concealer with Medium Coverage",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 17.0,
+      "image": "https://www.sephora.com/productimages/sku/s2245363-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2245363-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/radiant-creamy-concealer-mini-P422077?skuId=2245363",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Alpine Rush Blush and Highlighter Cheek Palette",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 62.0,
+      "image": "https://www.sephora.com/productimages/sku/s3027687-main-zoom-1.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3027687-main-zoom-1.jpg?imwidth=600"
+      ],
+      "rating": 4.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/alpine-rush-blush-highlighter-cheek-palette-P526173?skuId=3027687",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Afterglow Lip Shine Gloss",
+      "type": "Belleza",
+      "brand": "NARS",
+      "price": 32.0,
+      "image": "https://www.sephora.com/productimages/sku/s2975043-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2975043-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-afterglow-lip-shine-gloss-P479337?skuId=2975043",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Natural Matte Longwear Pore Blurring Medium-to-Full Coverage Foundation",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 55.0,
+      "image": "https://www.sephora.com/productimages/sku/s2942621-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2942621-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/natural-matte-longwear-foundation-P520608?skuId=2942621",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Laguna Talc-Free Bronzer Powder",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 21.0,
+      "image": "https://www.sephora.com/productimages/sku/s2670552-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2670552-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/bronzing-powder-P12790?skuId=2670552",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Pure Radiant Tinted Moisturizer Broad Spectrum SPF 30",
+      "type": "Cuidado de la piel",
+      "brand": "NARS",
+      "price": 50.0,
+      "image": "https://www.sephora.com/productimages/sku/s1396399-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s1396399-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/pure-radiant-tinted-moisturizer-spf-30-pa-P302923?skuId=1396399",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Powermatte High-Intensity Long-Lasting Lip Pencil",
+      "type": "Belleza",
+      "brand": "NARS",
+      "price": 32.0,
+      "image": "https://www.sephora.com/productimages/sku/s2756104-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2756104-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty",
+       "https://www.sephora.com/productimages/product/p507545-av-1-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.0,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/powermatte-high-intensity-long-lasting-lip-pencil-P507545?skuId=2756104",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Total Seduction Smudge-Proof Eyeshadow Stick",
+      "type": "Ojos",
+      "brand": "NARS",
+      "price": 34.0,
+      "image": "https://www.sephora.com/productimages/sku/s2772333-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2772333-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-total-seduction-eyeshadow-stick-P511954?skuId=2772333",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Afterglow Sensual Shine Hydrating Lipstick",
+      "type": "Labios",
+      "brand": "NARS",
+      "price": 36.0,
+      "image": "https://www.sephora.com/productimages/sku/s2942597-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2942597-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 3.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-afterglow-sensual-shine-lipstick-P505364?skuId=2942597",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Notorious Mascara",
+      "type": "Ojos",
+      "brand": "NARS",
+      "price": 29.0,
+      "image": "https://www.sephora.com/productimages/sku/s2987097-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2987097-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/notorious-mascara-P527020?skuId=2987097",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Talc-Free Powder Blush",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 18.0,
+      "image": "https://www.sephora.com/productimages/sku/s2756062-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2756062-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty"
+      ],
+      "rating": 3.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-mini-talc-free-powder-blush-P511166?skuId=2756062",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Afterglow Moisturizing Lip Balm with Hyaluronic Acid",
+      "type": "Labios",
+      "brand": "NARS",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2927325-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2927325-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/afterglow-lip-balm-P519765?skuId=2927325",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Explicit Refillable Satin Lipstick",
+      "type": "Labios",
+      "brand": "NARS",
+      "price": 42.0,
+      "image": "https://www.sephora.com/productimages/sku/s2797181-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2797181-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-explicit-refillable-satin-lipstick-P512469?skuId=2797181",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "The Multiple Sculpting Contour & Bronzing Stick",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 40.0,
+      "image": "https://www.sephora.com/productimages/sku/s2975001-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2975001-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/the-multiple-sculpting-sticks-P522185?skuId=2975001",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Light Reflecting Pressed Setting Powder",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 45.0,
+      "image": "https://www.sephora.com/productimages/sku/s2268654-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2268654-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/light-reflecting-pressed-setting-powder-P377757?skuId=2268654",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Multiple Soft Blur Blush Stick Duo",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 32.0,
+      "image": "https://www.sephora.com/productimages/sku/s2927366-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2927366-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 3.0,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/mini-multiple-soft-blur-blush-stick-duo-P520071?skuId=2927366",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Light Reflecting™ Undereye Brightener",
+      "type": "Belleza",
+      "brand": "NARS",
+      "price": 38.0,
+      "image": "https://www.sephora.com/productimages/sku/s2722841-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2722841-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-light-reflecting-eye-brightener-P506288?skuId=2722841",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Pro-Prime™ Smudge Proof Eyeshadow Base",
+      "type": "Ojos",
+      "brand": "NARS",
+      "price": 28.0,
+      "image": "https://www.sephora.com/productimages/sku/s1236843-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s1236843-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/pro-prime-smudge-proof-eyeshadow-base-P261211?skuId=1236843",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Multiple Blush & Sculpt Stick Duo",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 32.0,
+      "image": "https://www.sephora.com/productimages/sku/s2974988-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2974988-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 2.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/mini-multiple-sculpt-stick-set-P522224?skuId=2974988",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Powermatte Long-Lasting Lipstick",
+      "type": "Labios",
+      "brand": "NARS",
+      "price": 36.0,
+      "image": "https://www.sephora.com/productimages/sku/s2599124-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2599124-main-zoom.jpg?imwidth=600",
+       "https://www.sephora.com/productimages/product/p501583-av-1-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-powermatte-lipstick-P501583?skuId=2599124",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Laguna Bronzing Cream",
+      "type": "Cuidado de la piel",
+      "brand": "NARS",
+      "price": 44.0,
+      "image": "https://www.sephora.com/productimages/sku/s2568749-main-zoom.jpg?imwidth=600&pb=allure-2023-bestofbeauty-badge",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2568749-main-zoom.jpg?imwidth=600&pb=allure-2023-bestofbeauty-badge"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-laguna-bronzing-cream-P471270?skuId=2568749",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Afterglow Sheer Hydrating Lip Oil",
+      "type": "Labios",
+      "brand": "NARS",
+      "price": 28.0,
+      "image": "https://www.sephora.com/productimages/sku/s2842391-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2842391-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/afterglow-lip-oil-P514562?skuId=2842391",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Pencil Sharpener",
+      "type": "Belleza",
+      "brand": "NARS",
+      "price": 7.0,
+      "image": "https://www.sephora.com/productimages/sku/s804070-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s804070-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/pencil-sharpener-P84818?skuId=804070",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Light Reflecting™ Hydrating Primer with Hyaluronic Acid",
+      "type": "Belleza",
+      "brand": "NARS",
+      "price": 44.0,
+      "image": "https://www.sephora.com/productimages/sku/s2772358-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2772358-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-light-reflecting-hydrating-primer-P511955?skuId=2772358",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Precision Lip Liner",
+      "type": "Labios",
+      "brand": "NARS",
+      "price": 26.0,
+      "image": "https://www.sephora.com/productimages/sku/s1975358-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s1975358-main-zoom.jpg?imwidth=600",
+       "https://www.sephora.com/productimages/product/p422073-av-03-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/precision-lip-liner-P422073?skuId=1975358",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Light Reflecting Loose Setting Powder",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 45.0,
+      "image": "https://www.sephora.com/productimages/sku/s2514826-main-zoom.jpg?imwidth=600&pb=allure-2022-clean-badge",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2514826-main-zoom.jpg?imwidth=600&pb=allure-2022-clean-badge"
+      ],
+      "rating": 4.0,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/light-reflecting-loose-setting-powder-P377756?skuId=2514826",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Light Reflecting™ Hydrating Makeup Setting Mist",
+      "type": "Belleza",
+      "brand": "NARS",
+      "price": 38.0,
+      "image": "https://www.sephora.com/productimages/sku/s2772374-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2772374-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-light-reflecting-makeup-setting-mist-P511956?skuId=2772374",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "#15 Precision Powder Brush",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 34.0,
+      "image": "https://www.sephora.com/productimages/sku/s2653509-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2653509-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 5.0,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-15-precision-powder-brush-P504068?skuId=2653509",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "#17 Cream Cheek Brush",
+      "type": "Cuidado de la piel",
+      "brand": "NARS",
+      "price": 38.0,
+      "image": "https://www.sephora.com/productimages/sku/s2974996-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2974996-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 5.0,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/cream-bronzing-brush-P522199?skuId=2974996",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Afterglow Liquid Blush & Lip Shine Duo",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 32.0,
+      "image": "https://www.sephora.com/productimages/sku/s2773380-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2773380-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-mini-afterglow-blush-lip-shine-duo-P512183?skuId=2773380",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "High-Pigment Longwear Eyeliner",
+      "type": "Ojos",
+      "brand": "NARS",
+      "price": 25.0,
+      "image": "https://www.sephora.com/productimages/sku/s2245975-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2245975-main-zoom.jpg?imwidth=600",
+       "https://www.sephora.com/productimages/product/p448503-av-07-zoom.jpg?imwidth=600"
+      ],
+      "rating": 2.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/high-pigment-longwear-eyeliner-P448503?skuId=2245975",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Climax Volumizing Mascara",
+      "type": "Ojos",
+      "brand": "NARS",
+      "price": 16.0,
+      "image": "https://www.sephora.com/productimages/sku/s2090090-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2090090-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 3.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/climax-mascara-P434385?skuId=2090090",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Laguna Bronzer Powder Talc-Free",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 21.0,
+      "image": "https://www.sephora.com/productimages/sku/s2670669-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2670669-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/nars-the-laguna-getaway-bronzing-powder-mini-P457632?skuId=2670669",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Liquid Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 16.0,
+      "image": "https://www.sephora.com/productimages/sku/s2911741-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2911741-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-soft-pinch-liquid-blush-P97989778?skuId=2911741",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Brow Harmony Flexible Lifting and Laminating Eyebrow Gel",
+      "type": "Ojos",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 21.0,
+      "image": "https://www.sephora.com/productimages/sku/s2981330-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2981330-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/brow-harmony-flexible-lifting-gel-P507797?skuId=2981330",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Violet Faves Mini Cheek and Lip Trio Makeup Gift Set",
+      "type": "Belleza",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 34.0,
+      "image": "https://www.sephora.com/productimages/sku/s3014594-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3014594-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/violet-faves-mini-cheek-lip-trio-makeup-gift-set-P525984?skuId=3014594",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Lip Oil Stick​",
+      "type": "Labios",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 25.0,
+      "image": "https://www.sephora.com/productimages/sku/s3000213-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3000213-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/soft-pinch-lip-oil-stick-P525118?skuId=3000213",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mauve Faves Lip Duo Makeup Gift Set",
+      "type": "Belleza",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 29.0,
+      "image": "https://www.sephora.com/productimages/sku/s3014602-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3014602-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 3.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/mauve-faves-lip-duo-makeup-gift-set-P525940?skuId=3014602",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Luminous Powder Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 27.0,
+      "image": "https://www.sephora.com/productimages/sku/s2748333-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2748333-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-soft-pinch-luminous-powder-blush-P509960?skuId=2748333",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Soft Pinch Liquid Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 16.0,
+      "image": "https://www.sephora.com/productimages/sku/s3000171-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3000171-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/mini-soft-pinch-liquid-blush-P508264?skuId=3000171",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Hope Faves 4-Piece Makeup Gift Set",
+      "type": "Belleza",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 54.0,
+      "image": "https://www.sephora.com/productimages/sku/s3014628-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3014628-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 5.0,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/hope-faves-4-piece-makeup-gift-set-P525918?skuId=3014628",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Positive Light Silky Touch Highlighter",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 28.0,
+      "image": "https://www.sephora.com/productimages/sku/s2629483-main-zoom.jpg?imwidth=600&pb=allure-2025-best-of-beauty-award-winner",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2629483-main-zoom.jpg?imwidth=600&pb=allure-2025-best-of-beauty-award-winner"
+      ],
+      "rating": 3.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-positive-light-silky-touch-highlighter-P503711?skuId=2629483",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Tinted Lip Oil Stain",
+      "type": "Labios",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 24.0,
+      "image": "https://www.sephora.com/productimages/sku/s2640159-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2640159-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-soft-pinch-tinted-lip-oil-P505568?skuId=2640159",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Liquid Contour",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2828705-main-zoom.jpg?imwidth=600&pb=best-of-beauty-2026",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2828705-main-zoom.jpg?imwidth=600&pb=best-of-beauty-2026"
+      ],
+      "rating": 4.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/soft-pinch-liquid-contour-P514741?skuId=2828705",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Warm Wishes Effortless Cream Bronzer Stick",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2518934-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2518934-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-warm-wishes-effortless-bronzer-sticks-P479343?skuId=2518934",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Matte Bouncy Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 27.0,
+      "image": "https://www.sephora.com/productimages/sku/s2936425-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2936425-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.9,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/soft-pinch-matte-bouncy-blush-P515519?skuId=2936425",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Positive Light Liquid Luminizer Highlight",
+      "type": "Belleza",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 18.0,
+      "image": "https://www.sephora.com/productimages/sku/s2848356-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2848356-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-positive-light-liquid-luminizer-highlight-P38855877?skuId=2848356",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Beginnings Eau de Parfum with Pear and Gardenia",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s3004272-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3004272-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beginnings-eau-de-parfum-P525765?skuId=3004272",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Kind Words Lip Liner",
+      "type": "Labios",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 18.0,
+      "image": "https://www.sephora.com/productimages/sku/s3000221-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3000221-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/kind-words-lip-liner-P500636?skuId=3000221",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Eau de Parfum with Vanilla and Caramel",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2888188-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2888188-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-eau-de-parfum-P517178?skuId=2888188",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "True to Myself Natural Matte Longwear Foundation ​",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 38.0,
+      "image": "https://www.sephora.com/productimages/sku/s2894020-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2894020-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/true-to-myself-natural-matte-longwear-foundation-P521996?skuId=2894020",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Sweet Marshmallow Fragrance Layering Balm",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 20.0,
+      "image": "https://www.sephora.com/productimages/sku/s2996262-main-zoom-1.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2996262-main-zoom-1.jpg?imwidth=600"
+      ],
+      "rating": 4.7,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/sweet-marshmallow-fragrance-layering-balm-p525787-P525787?skuId=2996262",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Beginnings Mini Eau de Parfum Travel & Replica Set",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 38.0,
+      "image": "https://www.sephora.com/productimages/sku/s2996288-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2996288-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beginnings-mini-eau-de-parfum-travel-replica-set-P525749?skuId=2996288",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Moments Eau De Parfum Rollerball Mini Duo",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 35.0,
+      "image": "https://www.sephora.com/productimages/sku/s2996254-main-zoom-1.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2996254-main-zoom-1.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-moments-eau-de-parfum-rollerball-mini-duo-P525745?skuId=2996254",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Perfect Strokes Universal Volumizing Mascara",
+      "type": "Ojos",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 14.0,
+      "image": "https://www.sephora.com/productimages/sku/s2474138-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2474138-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-perfect-strokes-universal-volumizing-mascara-P475599?skuId=2474138",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Find Comfort Lip Butter Balm + Overnight Mask with Hyaluronic Acid Butter",
+      "type": "Cuidado de la piel",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 18.0,
+      "image": "https://www.sephora.com/productimages/sku/s2920627-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2920627-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/find-comfort-lip-butter-balm-overnight-mask-with-hyaluronic-acid-butter-P519734?skuId=2920627",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "All of the Above Weightless Eyeshadow Stick",
+      "type": "Ojos",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 22.0,
+      "image": "https://www.sephora.com/productimages/sku/s2689198-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2689198-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/all-the-above-weightless-eyeshadow-stick-P506704?skuId=2689198",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Warm Wishes Soft Matte Powder Bronzer",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2936284-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2936284-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/warm-wishes-soft-matte-powder-bronzer-P519902?skuId=2936284",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Amber Vanilla Rare Fragrance Layering Balm",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 20.0,
+      "image": "https://www.sephora.com/productimages/sku/s2893600-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2893600-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-amber-vanilla-rare-fragrance-layering-balm-P517250?skuId=2893600",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Brow Harmony Precision Eyebrow Pencil",
+      "type": "Ojos",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 19.0,
+      "image": "https://www.sephora.com/productimages/sku/s2689271-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2689271-main-zoom.jpg?imwidth=600&pb=allure-2024-bestofbeauty"
+      ],
+      "rating": 4.6,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/brow-harmony-precision-pencil-P506703?skuId=2689271",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Positive Light Luminizing Lip Gloss",
+      "type": "Labios",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 20.0,
+      "image": "https://www.sephora.com/productimages/sku/s2876357-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2876357-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/positive-light-luminizing-lip-gloss-P516855?skuId=2876357",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Liquid Touch Brightening Concealer",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 24.0,
+      "image": "https://www.sephora.com/productimages/sku/s2362028-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2362028-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-liquid-touch-brightening-concealer-P64546856?skuId=2362028",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Beginnings Eau De Parfum Travel Spray with Pear and Gardenia",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2996270-main-zoom-us.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2996270-main-zoom-us.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beginnings-eau-de-parfum-travel-spray-P525797?skuId=2996270",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Fruity Pear Fragrance Layering Balm",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 20.0,
+      "image": "https://www.sephora.com/productimages/sku/s2996247-main-zoom-1.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2996247-main-zoom-1.jpg?imwidth=600"
+      ],
+      "rating": 4.8,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/product-fruity-pear-fragrance-layering-balm-p525753-P525753?skuId=2996247",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Positive Light Under Eye Brightener",
+      "type": "Belleza",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 25.0,
+      "image": "https://www.sephora.com/productimages/sku/s2629418-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2629418-main-zoom.jpg?imwidth=600",
+       "https://www.sephora.com/productimages/product/p503714-av-1-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-under-eye-brightener-P503714?skuId=2629418",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Stay Vulnerable Melting Cream Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 24.0,
+      "image": "https://www.sephora.com/productimages/sku/s2418663-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2418663-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-stay-vulnerable-melting-blush-P467451?skuId=2418663",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Mini Rare Eau de Parfum Set with Vanilla and Caramel",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 38.0,
+      "image": "https://www.sephora.com/productimages/sku/s2888519-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2888519-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.1,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/mini-rare-eau-de-parfum-set-P517167?skuId=2888519",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Find Comfort Hydrating Under Eye Patches",
+      "type": "Belleza",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 25.0,
+      "image": "https://www.sephora.com/productimages/sku/s2748267-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2748267-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-find-comfort-eye-patches-P511673?skuId=2748267",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Perfect Strokes Longwear & Waterproof Gel Eyeliner",
+      "type": "Ojos",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 21.0,
+      "image": "https://www.sephora.com/productimages/sku/s2689313-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2689313-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.3,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/perfect-strokes-longwear-gel-eyeliner-P506844?skuId=2689313",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Eau De Parfum Fragrance Gift Set With Vanilla And Caramel",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 81.0,
+      "image": "https://www.sephora.com/productimages/sku/s3008075-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s3008075-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.9,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-eau-de-parfum-mother-s-day-gift-set-P520676?skuId=3008075",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     },
+     {
+      "name": "Essential Neutrals Eyeshadow Palette​",
+      "type": "Ojos",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2981314-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2981314-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.2,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/essential-neutrals-eyeshadow-palette-P522844?skuId=2981314",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Soft Pinch Blush Brush",
+      "type": "Rostro",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 26.0,
+      "image": "https://www.sephora.com/productimages/sku/s2518942-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2518942-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.5,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-beauty-by-selena-gomez-soft-pinch-blush-brush-P479342?skuId=2518942",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "sephora"
+     },
+     {
+      "name": "Rare Eau de Parfum Vanilla and Caramel Travel Spray",
+      "type": "Fragancia",
+      "brand": "Rare Beauty by Selena Gomez",
+      "price": 30.0,
+      "image": "https://www.sephora.com/productimages/sku/s2888196-main-zoom.jpg?imwidth=600",
+      "images": [
+       "https://www.sephora.com/productimages/sku/s2888196-main-zoom.jpg?imwidth=600"
+      ],
+      "rating": 4.4,
+      "reviewCount": 0,
+      "onSale": false,
+      "url": "https://www.sephora.com/product/rare-eau-de-parfum-travel-spray-P517257?skuId=2888196",
+      "specWeightKg": 0.35,
+      "weightEstimated": true,
+      "restricted": "fragancia-max-4",
+      "retailer": "sephora"
+     }
+    ]
+   },
+   "brands": [
+    "NARS",
+    "Rare Beauty by Selena Gomez"
+   ]
+  },
+  "ulta": {
+   "label": "Ulta Beauty",
+   "departments": {
+    "beauty": [
+     {
+      "name": "Double Wear Stay-in-Place Longwear Matte Foundation",
+      "type": "Rostro",
+      "brand": "Estée Lauder",
+      "price": 52.0,
+      "image": "https://media.ultainc.com/i/ulta/2651970?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2651970?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 10122,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/double-wear-stay-in-place-longwear-matte-foundation-pimprod2057355?sku=2651970",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Almost Lipstick",
+      "type": "Labios",
+      "brand": "Clinique",
+      "price": 25.0,
+      "image": "https://media.ultainc.com/i/ulta/2640692?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2640692?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 3395,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/almost-lipstick-xlsImpprod10792007?sku=2640692",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "M·A·Cximal Silky Matte Lipstick",
+      "type": "Labios",
+      "brand": "MAC",
+      "price": 25.0,
+      "image": "https://media.ultainc.com/i/ulta/2635484?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2635484?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 1838,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/macximal-silky-matte-lipstick-pimprod2043558?sku=2635484",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Precisely, My Brow Pencil Waterproof Micro-Precision Eyebrow Definer",
+      "type": "Ojos",
+      "brand": "Benefit Cosmetics",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2304336?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2304336?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 9531,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/precisely-my-brow-pencil-waterproof-micro-precision-eyebrow-definer-xlsImpprod14191019?sku=2304336",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Shape Tape Concealer",
+      "type": "Rostro",
+      "brand": "Tarte",
+      "price": 32.0,
+      "image": "https://media.ultainc.com/i/ulta/2501218?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2501218?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 37878,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/shape-tape-concealer-xlsImpprod14251035?sku=2501218",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Teint Idole Ultra Wear Natural Matte Foundation",
+      "type": "Rostro",
+      "brand": "Lancôme",
+      "price": 53.0,
+      "image": "https://media.ultainc.com/i/ulta/2608119?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2608119?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 10895,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/teint-idole-ultra-wear-natural-matte-foundation-pimprod2039028?sku=2608119",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Born This Way Super Coverage Multi-Use Concealer",
+      "type": "Rostro",
+      "brand": "Too Faced",
+      "price": 36.0,
+      "image": "https://media.ultainc.com/i/ulta/2529024?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2529024?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 2924,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/born-this-way-super-coverage-multi-use-concealer-xlsImpprod18631033?sku=2529024",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Butter Gloss Non-Sticky Lip Gloss",
+      "type": "Labios",
+      "brand": "NYX Professional Makeup",
+      "price": 6.0,
+      "image": "https://media.ultainc.com/i/ulta/2254804?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2254804?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 7457,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/butter-gloss-non-sticky-lip-gloss-xlsImpprod5050009?sku=2254804",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "M·A·Cximal Sleek Satin Lipstick",
+      "type": "Labios",
+      "brand": "MAC",
+      "price": 25.0,
+      "image": "https://media.ultainc.com/i/ulta/2635480?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2635480?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 1424,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/macximal-sleek-satin-lipstick-pimprod2047503?sku=2635480",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Infallible 3-Second Setting Mist Spray",
+      "type": "Belleza",
+      "brand": "L'Oréal Paris",
+      "price": 13.99,
+      "image": "https://media.ultainc.com/i/ulta/2630338?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2630338?wid=600&fmt=jpg"
+      ],
+      "rating": 3.8,
+      "reviewCount": 522,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/infallible-3-second-setting-mist-spray-pimprod2046297?sku=2630338",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Hollywood Flawless Filter",
+      "type": "Belleza",
+      "brand": "Charlotte Tilbury",
+      "price": 50.0,
+      "image": "https://media.ultainc.com/i/ulta/2632469?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2632469?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 260,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/hollywood-flawless-filter-pimprod2049906?sku=2632469",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Radiant Creamy Concealer",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 36.0,
+      "image": "https://media.ultainc.com/i/ulta/2504450?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2504450?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 7268,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/radiant-creamy-concealer-xlsImpprod15251325?sku=2504450",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Suede Matte Lip Liner Velvet Soft Vegan Lip Pencil",
+      "type": "Labios",
+      "brand": "NYX Professional Makeup",
+      "price": 6.0,
+      "image": "https://media.ultainc.com/i/ulta/2530266?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2530266?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 1862,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/suede-matte-lip-liner-velvet-soft-vegan-lip-pencil-xlsImpprod14521035?sku=2530266",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "CC+ Cream with SPF 50+",
+      "type": "Cuidado de la piel",
+      "brand": "IT Cosmetics",
+      "price": 39.0,
+      "image": "https://media.ultainc.com/i/ulta/2264064?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2264064?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 22036,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/cc-cream-with-spf-50-xlsImpprod5770257?sku=2264064",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "CC Color-Correcting Tinted Serum",
+      "type": "Cuidado de la piel",
+      "brand": "Tarte",
+      "price": 42.0,
+      "image": "https://media.ultainc.com/i/ulta/2658014?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2658014?wid=600&fmt=jpg"
+      ],
+      "rating": 3.8,
+      "reviewCount": 114,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/cc-color-correcting-tinted-serum-pimprod2059579?sku=2658014",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Fat Oil Lip Drip Lip Oil",
+      "type": "Labios",
+      "brand": "NYX Professional Makeup",
+      "price": 10.0,
+      "image": "https://media.ultainc.com/i/ulta/2605338?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2605338?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 3424,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/fat-oil-lip-drip-lip-oil-pimprod2037823?sku=2605338",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Studio Fix Powder Plus Foundation",
+      "type": "Rostro",
+      "brand": "MAC",
+      "price": 39.0,
+      "image": "https://media.ultainc.com/i/ulta/2635749?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2635749?wid=600&fmt=jpg"
+      ],
+      "rating": 3.8,
+      "reviewCount": 3486,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/studio-fix-powder-plus-foundation-pimprod2051406?sku=2635749",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "GrandeLASH-MD Lash Enhancing Serum",
+      "type": "Cuidado de la piel",
+      "brand": "Grande Cosmetics",
+      "price": 36.0,
+      "image": "https://media.ultainc.com/i/ulta/2544503?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2544503?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 6215,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/grandelash-md-lash-enhancing-serum-pimprod2003445?sku=2544503",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Airbrush Flawless Hydrating & Waterproof Setting Spray",
+      "type": "Belleza",
+      "brand": "Charlotte Tilbury",
+      "price": 25.0,
+      "image": "https://media.ultainc.com/i/ulta/2619571?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2619571?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 1065,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/airbrush-flawless-hydrating-waterproof-setting-spray-pimprod2043342?sku=2619571",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Lip Liner Pencil",
+      "type": "Labios",
+      "brand": "MAC",
+      "price": 25.0,
+      "image": "https://media.ultainc.com/i/ulta/2635489?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2635489?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 2129,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/lip-liner-pencil-xlsImpprod15921160?sku=2635489",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Matte Revolution Hydrating Lipstick",
+      "type": "Labios",
+      "brand": "Charlotte Tilbury",
+      "price": 37.0,
+      "image": "https://media.ultainc.com/i/ulta/2619356?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2619356?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 509,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/matte-revolution-hydrating-lipstick-pimprod2043355?sku=2619356",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "The Face Glue Gripping Primer",
+      "type": "Belleza",
+      "brand": "NYX Professional Makeup",
+      "price": 9.0,
+      "image": "https://media.ultainc.com/i/ulta/2627969?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2627969?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 2637,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/face-glue-gripping-primer-pimprod2047574?sku=2627969",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Even Better Makeup Broad Spectrum SPF 15 Foundation with Vitamin C",
+      "type": "Rostro",
+      "brand": "Clinique",
+      "price": 39.0,
+      "image": "https://media.ultainc.com/i/ulta/2206255?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2206255?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 4148,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/even-better-makeup-broad-spectrum-spf-15-foundation-with-vitamin-c-xlsImpprod10791919?sku=2206255",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Wonder Snatch Concealer",
+      "type": "Rostro",
+      "brand": "NYX Professional Makeup",
+      "price": 9.0,
+      "image": "https://media.ultainc.com/i/ulta/2640878?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2640878?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 2140,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/wonder-snatch-concealer-pimprod2057654?sku=2640878",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Gimme Brow+ Tinted Volumizing Eyebrow Gel",
+      "type": "Ojos",
+      "brand": "Benefit Cosmetics",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2529256?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2529256?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 16847,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/gimme-brow-tinted-volumizing-eyebrow-gel-xlsImpprod14191015?sku=2529256",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Tartelette XL Tubing Mascara",
+      "type": "Ojos",
+      "brand": "Tarte",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2621780?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2621780?wid=600&fmt=jpg"
+      ],
+      "rating": 4.2,
+      "reviewCount": 504,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/tartelette-xl-tubing-mascara-pimprod2044189?sku=2621780",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "BADgal BANG! Volumizing Mascara",
+      "type": "Ojos",
+      "brand": "Benefit Cosmetics",
+      "price": 29.0,
+      "image": "https://media.ultainc.com/i/ulta/2522828?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2522828?wid=600&fmt=jpg"
+      ],
+      "rating": 4.0,
+      "reviewCount": 4932,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/badgal-bang-volumizing-mascara-xlsImpprod17501079?sku=2522828",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Do It All Hydrating Sheer Tinted Moisturizer Balm",
+      "type": "Cuidado de la piel",
+      "brand": "IT Cosmetics",
+      "price": 34.0,
+      "image": "https://media.ultainc.com/i/ulta/2650275?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2650275?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 3775,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/do-it-all-hydrating-sheer-tinted-moisturizer-balm-pimprod2056858?sku=2650275",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Peel Off Lip Liner STAY-N",
+      "type": "Labios",
+      "brand": "SACHEU",
+      "price": 10.5,
+      "image": "https://media.ultainc.com/i/ulta/2609005?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2609005?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 5105,
+      "onSale": true,
+      "url": "https://www.ulta.com/p/peel-off-lip-liner-stay-n-pimprod2037645?sku=2609005",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 14.0,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Airbrush Flawless Finish Blurring & Setting Powder",
+      "type": "Rostro",
+      "brand": "Charlotte Tilbury",
+      "price": 50.0,
+      "image": "https://media.ultainc.com/i/ulta/2619306?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2619306?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 1252,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/airbrush-flawless-finish-blurring-setting-powder-pimprod2043374?sku=2619306",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Better Than Sex Volumizing & Lengthening Mascara",
+      "type": "Ojos",
+      "brand": "Too Faced",
+      "price": 29.0,
+      "image": "https://media.ultainc.com/i/ulta/2263444?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2263444?wid=600&fmt=jpg"
+      ],
+      "rating": 4.2,
+      "reviewCount": 24519,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/better-than-sex-volumizing-lengthening-mascara-xlsImpprod5530007?sku=2263444",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Firming Peptide Eye Cream",
+      "type": "Cuidado de la piel",
+      "brand": "Good Molecules",
+      "price": 4.8,
+      "image": "https://media.ultainc.com/i/ulta/2656923?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2656923?wid=600&fmt=jpg"
+      ],
+      "rating": 3.8,
+      "reviewCount": 18,
+      "onSale": true,
+      "url": "https://www.ulta.com/p/firming-peptide-eye-cream-pimprod2059336?sku=2656923",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "originalPrice": 6.0,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Long-Wear Waterproof Cream Eyeshadow Stick",
+      "type": "Ojos",
+      "brand": "BOBBI BROWN",
+      "price": 34.0,
+      "image": "https://media.ultainc.com/i/ulta/2583637?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2583637?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 1288,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/long-wear-waterproof-cream-eyeshadow-stick-pimprod2024888?sku=2583637",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Mini Double Wear Stay-in-Place Longwear Matte Foundation",
+      "type": "Rostro",
+      "brand": "Estée Lauder",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2657548?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2657548?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 10122,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/mini-double-wear-stay-in-place-longwear-matte-foundation-pimprod2059173?sku=2657548",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Studio Radiance Serum Powered Foundation",
+      "type": "Rostro",
+      "brand": "MAC",
+      "price": 46.0,
+      "image": "https://media.ultainc.com/i/ulta/2613961?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2613961?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 1190,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/studio-radiance-serum-powered-foundation-pimprod2040797?sku=2613961",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Studio Fix Fluid SPF15 24HR Matte Foundation + Oil Control",
+      "type": "Rostro",
+      "brand": "MAC",
+      "price": 39.0,
+      "image": "https://media.ultainc.com/i/ulta/2622206?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2622206?wid=600&fmt=jpg"
+      ],
+      "rating": 4.2,
+      "reviewCount": 2344,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/studio-fix-fluid-spf15-24hr-matte-foundation-oil-control-pimprod2044825?sku=2622206",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Vanish Airbrush Concealer",
+      "type": "Rostro",
+      "brand": "HOURGLASS",
+      "price": 39.0,
+      "image": "https://media.ultainc.com/i/ulta/2575916?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2575916?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 785,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/vanish-airbrush-concealer-pimprod2020477?sku=2575916",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Pout Preserve Hydrating Peptide Lip Treatment",
+      "type": "Belleza",
+      "brand": "OLEHENRIKSEN",
+      "price": 24.0,
+      "image": "https://media.ultainc.com/i/ulta/2660968?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2660968?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 912,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/pout-preserve-hydrating-peptide-lip-treatment-pimprod2042281?sku=2660968",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Brow Wiz Precision Eyebrow Pencil",
+      "type": "Ojos",
+      "brand": "Anastasia Beverly Hills",
+      "price": 26.0,
+      "image": "https://media.ultainc.com/i/ulta/2162560?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2162560?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 22722,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/brow-wiz-precision-eyebrow-pencil-xlsImpprod840088?sku=2162560",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Double Wear Foundation Pump",
+      "type": "Rostro",
+      "brand": "Estée Lauder",
+      "price": 10.0,
+      "image": "https://media.ultainc.com/i/ulta/2653123?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2653123?wid=600&fmt=jpg"
+      ],
+      "rating": 4.9,
+      "reviewCount": 61,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/double-wear-foundation-pump-pimprod2057545?sku=2653123",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Telescopic Original Washable Mascara",
+      "type": "Ojos",
+      "brand": "L'Oréal Paris",
+      "price": 14.99,
+      "image": "https://media.ultainc.com/i/ulta/2138215?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2138215?wid=600&fmt=jpg"
+      ],
+      "rating": 4.1,
+      "reviewCount": 3138,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/telescopic-original-washable-mascara-VP12153?sku=2138215",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Skin Tint Blurring Elixir Foundation",
+      "type": "Rostro",
+      "brand": "Kylie Cosmetics",
+      "price": 35.0,
+      "image": "https://media.ultainc.com/i/ulta/2627223?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2627223?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 1560,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/skin-tint-blurring-elixir-foundation-pimprod2046452?sku=2627223",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Benetint Liquid Lip & Cheek Stain",
+      "type": "Belleza",
+      "brand": "Benefit Cosmetics",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2547730?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2547730?wid=600&fmt=jpg"
+      ],
+      "rating": 4.2,
+      "reviewCount": 3025,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/benetint-liquid-lip-cheek-stain-pimprod2008308?sku=2547730",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Light Reflecting Advanced Skincare Foundation",
+      "type": "Rostro",
+      "brand": "NARS",
+      "price": 55.0,
+      "image": "https://media.ultainc.com/i/ulta/2591117?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2591117?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 3686,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/light-reflecting-advanced-skincare-foundation-pimprod2030141?sku=2591117",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Soft Pinch Liquid Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty",
+      "price": 25.0,
+      "image": "https://media.ultainc.com/i/ulta/2647881?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2647881?wid=600&fmt=jpg"
+      ],
+      "rating": 4.9,
+      "reviewCount": 3604,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/soft-pinch-liquid-blush-pimprod2055883?sku=2647881",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Shape Tape Creamy Concealer",
+      "type": "Rostro",
+      "brand": "Tarte",
+      "price": 32.0,
+      "image": "https://media.ultainc.com/i/ulta/2575044?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2575044?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 2057,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/shape-tape-creamy-concealer-pimprod2020889?sku=2575044",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Stay All Day Smudge & Set Waterproof Gel Eye Liner",
+      "type": "Belleza",
+      "brand": "Stila",
+      "price": 24.0,
+      "image": "https://media.ultainc.com/i/ulta/2626230?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2626230?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 2311,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/stay-all-day-smudge-set-waterproof-gel-eye-liner-pimprod2046301?sku=2626230",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Smushy Matte Lip Balm",
+      "type": "Labios",
+      "brand": "NYX Professional Makeup",
+      "price": 9.0,
+      "image": "https://media.ultainc.com/i/ulta/2640709?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2640709?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 1451,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/smushy-matte-lip-balm-pimprod2052066?sku=2640709",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Soft Pinch Luminous Powder Blush",
+      "type": "Rostro",
+      "brand": "Rare Beauty",
+      "price": 27.0,
+      "image": "https://media.ultainc.com/i/ulta/2647903?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2647903?wid=600&fmt=jpg"
+      ],
+      "rating": 4.8,
+      "reviewCount": 694,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/soft-pinch-luminous-powder-blush-pimprod2055865?sku=2647903",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "All Nighter Waterproof Makeup Setting Spray",
+      "type": "Belleza",
+      "brand": "Urban Decay Cosmetics",
+      "price": 18.0,
+      "image": "https://media.ultainc.com/i/ulta/2642048?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2642048?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 3471,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/all-nighter-waterproof-makeup-setting-spray-pimprod2053044?sku=2642048",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Lifeproof 16-Hour Continuous Setting Mist",
+      "type": "Belleza",
+      "brand": "Morphe",
+      "price": 10.5,
+      "image": "https://media.ultainc.com/i/ulta/2652511?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2652511?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 788,
+      "onSale": true,
+      "url": "https://www.ulta.com/p/lifeproof-16-hour-continuous-setting-mist-pimprod2057185?sku=2652511",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 15.0,
+      "retailer": "ulta"
+     },
+     {
+      "name": "ChromaPlus 6-Pan Eyeshadow Palette",
+      "type": "Ojos",
+      "brand": "Morphe",
+      "price": 16.0,
+      "image": "https://media.ultainc.com/i/ulta/2641284?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2641284?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 1583,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/chromaplus-6-pan-eyeshadow-palette-pimprod2052266?sku=2641284",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "COMPLEXION RESCUE Tinted Moisturizer with Hyaluronic Acid and Mineral SPF 30",
+      "type": "Cuidado de la piel",
+      "brand": "bareMinerals",
+      "price": 39.5,
+      "image": "https://media.ultainc.com/i/ulta/2633110?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2633110?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 8595,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/complexion-rescue-tinted-moisturizer-with-hyaluronic-acid-mineral-spf-30-pimprod2049741?sku=2633110",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "24/7 Glide-On Waterproof Eyeliner Pencil",
+      "type": "Ojos",
+      "brand": "Urban Decay Cosmetics",
+      "price": 23.0,
+      "image": "https://media.ultainc.com/i/ulta/2240454?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2240454?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 20195,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/247-glide-on-waterproof-eyeliner-pencil-VP11242?sku=2240454",
+      "specWeightKg": 0.02,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Pro Filt'r Fluid Flex Natural Matte Longwear Foundation",
+      "type": "Rostro",
+      "brand": "FENTY BEAUTY by Rihanna",
+      "price": 48.0,
+      "image": "https://media.ultainc.com/i/ulta/2660681?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2660681?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 1589,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/pro-filtr-fluid-flex-natural-matte-longwear-foundation-pimprod2060701?sku=2660681",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Plump Right Back Electrolytes Plumping Primer Serum",
+      "type": "Cuidado de la piel",
+      "brand": "NYX Professional Makeup",
+      "price": 8.0,
+      "image": "https://media.ultainc.com/i/ulta/2590545?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2590545?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 1076,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/plump-right-back-electrolytes-plumping-primer-serum-pimprod2029851?sku=2590545",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Velvety-Matte Precision Shaping Lip Liner",
+      "type": "Labios",
+      "brand": "Anastasia Beverly Hills",
+      "price": 22.0,
+      "image": "https://media.ultainc.com/i/ulta/2590191?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2590191?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 1687,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/velvety-matte-precision-shaping-lip-liner-pimprod2030294?sku=2590191",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Power Grip Primer",
+      "type": "Belleza",
+      "brand": "e.l.f. Cosmetics",
+      "price": 11.0,
+      "image": "https://media.ultainc.com/i/ulta/2591795?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2591795?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 24651,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/power-grip-primer-pimprod2030073?sku=2591795",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Tartelette Tubing Mascara",
+      "type": "Ojos",
+      "brand": "Tarte",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2596644?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2596644?wid=600&fmt=jpg"
+      ],
+      "rating": 4.1,
+      "reviewCount": 1865,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/tartelette-tubing-mascara-pimprod2033171?sku=2596644",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Line Loud Longwear Lip Liner",
+      "type": "Labios",
+      "brand": "NYX Professional Makeup",
+      "price": 8.0,
+      "image": "https://media.ultainc.com/i/ulta/2595206?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2595206?wid=600&fmt=jpg"
+      ],
+      "rating": 4.3,
+      "reviewCount": 826,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/line-loud-longwear-lip-liner-pimprod2031750?sku=2595206",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Super Serum Skin Tint SPF 40 - Hydrating Foundation",
+      "type": "Rostro",
+      "brand": "ILIA",
+      "price": 48.0,
+      "image": "https://media.ultainc.com/i/ulta/2629320?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2629320?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 6611,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/super-serum-skin-tint-spf-40-hydrating-foundation-pimprod2047221?sku=2629320",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "ORIGINAL Loose Talc-Free Mineral Powder Foundation SPF 15",
+      "type": "Rostro",
+      "brand": "bareMinerals",
+      "price": 39.5,
+      "image": "https://media.ultainc.com/i/ulta/2093947?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2093947?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 14908,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/original-loose-talc-free-mineral-powder-foundation-spf-15-VP11362?sku=2093947",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Even Better All-Over Concealer + Eraser",
+      "type": "Rostro",
+      "brand": "Clinique",
+      "price": 32.0,
+      "image": "https://media.ultainc.com/i/ulta/2567323?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2567323?wid=600&fmt=jpg"
+      ],
+      "rating": 3.7,
+      "reviewCount": 807,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/even-better-all-over-concealer-eraser-pimprod2017443?sku=2567323",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Voluminous Lash Paradise Primer Base",
+      "type": "Belleza",
+      "brand": "L'Oréal Paris",
+      "price": 13.99,
+      "image": "https://media.ultainc.com/i/ulta/2529324?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2529324?wid=600&fmt=jpg"
+      ],
+      "rating": 4.0,
+      "reviewCount": 167,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/voluminous-lash-paradise-primer-base-xlsImpprod18451189?sku=2529324",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Timeless Hydrating Foundation",
+      "type": "Rostro",
+      "brand": "Tarte",
+      "price": 42.0,
+      "image": "https://media.ultainc.com/i/ulta/2661459?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2661459?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 26,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/timeless-hydrating-foundation-pimprod2060955?sku=2661459",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "BAREPRO 24HR Skin Perfecting Talc-Free Matte Powder Foundation",
+      "type": "Rostro",
+      "brand": "bareMinerals",
+      "price": 42.0,
+      "image": "https://media.ultainc.com/i/ulta/2632980?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2632980?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 1200,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/barepro-24hr-skin-perfecting-talc-free-matte-powder-foundation-pimprod2049595?sku=2632980",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Make It Last Original - Natural Finish Setting Spray",
+      "type": "Belleza",
+      "brand": "Milani",
+      "price": 13.99,
+      "image": "https://media.ultainc.com/i/ulta/2519996?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2519996?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 1551,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/make-it-last-original-natural-finish-setting-spray-xlsImpprod17081093?sku=2519996",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Micro Brow Pencil Eyebrow Pencil",
+      "type": "Ojos",
+      "brand": "NYX Professional Makeup",
+      "price": 12.0,
+      "image": "https://media.ultainc.com/i/ulta/2284049?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2284049?wid=600&fmt=jpg"
+      ],
+      "rating": 4.4,
+      "reviewCount": 7099,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/micro-brow-pencil-eyebrow-pencil-xlsImpprod12011193?sku=2284049",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Cheek Thrills Multi-Finish Face Trio",
+      "type": "Belleza",
+      "brand": "Morphe",
+      "price": 19.0,
+      "image": "https://media.ultainc.com/i/ulta/2638343?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2638343?wid=600&fmt=jpg"
+      ],
+      "rating": 4.9,
+      "reviewCount": 2036,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/cheek-thrills-multi-finish-face-trio-pimprod2051122?sku=2638343",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Teint Idole Ultra Wear All Over Full Coverage Concealer",
+      "type": "Rostro",
+      "brand": "Lancôme",
+      "price": 32.0,
+      "image": "https://media.ultainc.com/i/ulta/2583109?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2583109?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 6283,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/teint-idole-ultra-wear-all-over-full-coverage-concealer-pimprod2025302?sku=2583109",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Full-Pigment Matte & Satin Velvet Lipstick",
+      "type": "Labios",
+      "brand": "Anastasia Beverly Hills",
+      "price": 26.0,
+      "image": "https://media.ultainc.com/i/ulta/2604144?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2604144?wid=600&fmt=jpg"
+      ],
+      "rating": 4.6,
+      "reviewCount": 1854,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/full-pigment-matte-satin-velvet-lipstick-pimprod2030578?sku=2604144",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Signature Lip Pencil",
+      "type": "Belleza",
+      "brand": "Morphe",
+      "price": 7.0,
+      "image": "https://media.ultainc.com/i/ulta/2646214?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2646214?wid=600&fmt=jpg"
+      ],
+      "rating": 4.8,
+      "reviewCount": 723,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/signature-lip-pencil-pimprod2054243?sku=2646214",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Continuous Setting Mist",
+      "type": "Belleza",
+      "brand": "Morphe",
+      "price": 12.6,
+      "image": "https://media.ultainc.com/i/ulta/2528888?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2528888?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 3862,
+      "onSale": true,
+      "url": "https://www.ulta.com/p/continuous-setting-mist-xlsImpprod18351117?sku=2528888",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 13.0,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Glow Reviver Melting Lip Balm",
+      "type": "Labios",
+      "brand": "e.l.f. Cosmetics",
+      "price": 9.0,
+      "image": "https://media.ultainc.com/i/ulta/2637280?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2637280?wid=600&fmt=jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 2882,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/glow-reviver-melting-lip-balm-pimprod2051370?sku=2637280",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Lash Sensational Sky High Mascara",
+      "type": "Ojos",
+      "brand": "Maybelline",
+      "price": 12.99,
+      "image": "https://media.ultainc.com/i/ulta/2574523?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2574523?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 11883,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/lash-sensational-sky-high-mascara-pimprod2020260?sku=2574523",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "Charlotte's Beautiful Skin Foundation",
+      "type": "Rostro",
+      "brand": "Charlotte Tilbury",
+      "price": 52.0,
+      "image": "https://media.ultainc.com/i/ulta/2619495?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2619495?wid=600&fmt=jpg"
+      ],
+      "rating": 3.4,
+      "reviewCount": 109,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/charlottes-beautiful-skin-foundation-pimprod2043365?sku=2619495",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     },
+     {
+      "name": "High Impact Volumizing Mascara",
+      "type": "Ojos",
+      "brand": "Clinique",
+      "price": 28.0,
+      "image": "https://media.ultainc.com/i/ulta/2153781?wid=600&fmt=jpg",
+      "images": [
+       "https://media.ultainc.com/i/ulta/2153781?wid=600&fmt=jpg"
+      ],
+      "rating": 4.5,
+      "reviewCount": 4450,
+      "onSale": false,
+      "url": "https://www.ulta.com/p/high-impact-volumizing-mascara-xlsImpprod10791959?sku=2153781",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "retailer": "ulta"
+     }
+    ]
+   },
+   "brands": [
+    "Anastasia Beverly Hills",
+    "BOBBI BROWN",
+    "Benefit Cosmetics",
+    "Charlotte Tilbury",
+    "Clinique",
+    "Estée Lauder",
+    "FENTY BEAUTY by Rihanna",
+    "Good Molecules",
+    "Grande Cosmetics",
+    "HOURGLASS",
+    "ILIA",
+    "IT Cosmetics",
+    "Kylie Cosmetics",
+    "L'Oréal Paris",
+    "Lancôme",
+    "MAC",
+    "Maybelline",
+    "Milani",
+    "Morphe",
+    "NARS",
+    "NYX Professional Makeup",
+    "OLEHENRIKSEN",
+    "Rare Beauty",
+    "SACHEU",
+    "Stila",
+    "Tarte",
+    "Too Faced",
+    "Urban Decay Cosmetics",
+    "bareMinerals",
+    "e.l.f. Cosmetics"
+   ]
+  },
+  "yesstyle": {
+   "label": "YesStyle",
+   "departments": {
+    "beauty": [
+     {
+      "name": "Madagascar Centella Light Cleansing Oil (200ml)",
+      "type": "Cuidado de la piel",
+      "brand": "SKIN1004",
+      "price": 13.0,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/49/215/M_p0114021549.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/49/215/M_p0114021549.jpg"
+      ],
+      "rating": 4.71,
+      "reviewCount": 24101,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/skin1004-madagascar-centella-light-cleansing-oil-200ml/info.html/pid.1077182361",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 20.2,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Cover Perfection Tip Concealer - 14 Colors (#03 Tan)",
+      "type": "Rostro",
+      "brand": "The Saem",
+      "price": 5.59,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/90/205/M_p0159920590.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/90/205/M_p0159920590.jpg"
+      ],
+      "rating": 4.53,
+      "reviewCount": 21288,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/the-saem-cover-perfection-tip-concealer-14-colors-03-tan/info.html/pid.1057117741",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 6.99,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Creamy Touch Liner (15 Cappuccino Pink)",
+      "type": "Cuidado de la piel",
+      "brand": "Canmake",
+      "price": 6.88,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/35/856/M_p0105385635.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/35/856/M_p0105385635.jpg"
+      ],
+      "rating": 4.76,
+      "reviewCount": 1561,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/canmake-creamy-touch-liner-15-cappuccino-pink/info.html/pid.1077985196",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "originalPrice": 8.6,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Black Rice Moisture 5.5 Soft Cleansing Gel (100ml)",
+      "type": "Cuidado de la piel",
+      "brand": "haruharu wonder",
+      "price": 11.9,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/01/990/M_p0141099001.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/01/990/M_p0141099001.jpg"
+      ],
+      "rating": 4.77,
+      "reviewCount": 109,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/haruharu-wonder-black-rice-moisture-5-5-soft-cleansing-gel-100ml/info.html/pid.1137997768",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 17.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Slim Liquid Eyeliner - 4 Classic Ultra-Fine Colours (#04 Gray Brown - 0.5ml)",
+      "type": "Ojos",
+      "brand": "Judydoll",
+      "price": 8.39,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/63/372/M_p0198237263.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/63/372/M_p0198237263.jpg"
+      ],
+      "rating": 4.71,
+      "reviewCount": 4648,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/judydoll-slim-liquid-eyeliner-4-classic-ultra-fine-colours-04-gray/info.html/pid.1123999568",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "originalPrice": 11.99,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Heartleaf Pore Control Cleansing Oil (200ml)",
+      "type": "Cuidado de la piel",
+      "brand": "Anua",
+      "price": 20.0,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/28/372/M_p0185237228.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/28/372/M_p0185237228.jpg"
+      ],
+      "rating": 4.52,
+      "reviewCount": 14300,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/anua-heartleaf-pore-control-cleansing-oil-200ml/info.html/pid.1134490327",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 22.7,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Toktok-Hara No Glue Eyelash - 10 Types (#01 Cherry Coke)",
+      "type": "Belleza",
+      "brand": "CORINGCO",
+      "price": 11.21,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/30/677/M_p0215167730.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/30/677/M_p0215167730.jpg"
+      ],
+      "rating": 4.64,
+      "reviewCount": 410,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/coringco-toktok-hara-no-glue-eyelash-10-types-01-cherry-coke/info.html/pid.1132569647",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 11.8,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Kill Lash Superproof Mascara - 4 Types (#BR01 Choco Brown)",
+      "type": "Ojos",
+      "brand": "CLIO",
+      "price": 15.0,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/04/225/M_p0114322504.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/04/225/M_p0114322504.jpg"
+      ],
+      "rating": 4.67,
+      "reviewCount": 4670,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/clio-kill-lash-superproof-mascara-4-types-br01-choco-brown/info.html/pid.1096176653",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 18.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Speedy Skinny Brow Mascara - 11 Colors (#04 Ash Brown)",
+      "type": "Ojos",
+      "brand": "peripera",
+      "price": 9.9,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/08/159/M_p0178115908.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/08/159/M_p0178115908.jpg"
+      ],
+      "rating": 4.58,
+      "reviewCount": 3741,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/peripera-speedy-skinny-brow-mascara-11-colors-04-ash-brown/info.html/pid.1115102667",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 12.9,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "M Perfect Cover BB Cream SPF42 PA+++ - 7 Colors",
+      "type": "Cuidado de la piel",
+      "brand": "MISSHA",
+      "price": 14.9,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/23/794/M_p0049579423.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/23/794/M_p0049579423.jpg"
+      ],
+      "rating": 4.64,
+      "reviewCount": 10261,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/missha-m-perfect-cover-bb-cream-spf42-pa-7-colors/info.html/pid.1048964957",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "originalPrice": 19.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "2 IN 1 Highlighter Contour Palette - 4 Colors (#02 Wood - 9g)",
+      "type": "Rostro",
+      "brand": "Judydoll",
+      "price": 10.19,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/84/782/M_p0198878284.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/84/782/M_p0198878284.jpg"
+      ],
+      "rating": 4.75,
+      "reviewCount": 4394,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/judydoll-2-in-1-highlighter-contour-palette-4-colors-02-wood-9g/info.html/pid.1124328310",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "originalPrice": 16.99,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Dear Darling Water Tint - 9 Colors (#05 Grape Ade)",
+      "type": "Belleza",
+      "brand": "ETUDE",
+      "price": 4.0,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/20/152/M_p0046315220.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/20/152/M_p0046315220.jpg"
+      ],
+      "rating": 4.53,
+      "reviewCount": 9220,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/etude-dear-darling-water-tint-9-colors-05-grape-ade/info.html/pid.1045777260",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 6.9,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Salmon Darkcircle Concealer Cream - 3 Colors (2024 Version -  02 Beige)",
+      "type": "Rostro",
+      "brand": "SKINFOOD",
+      "price": 3.75,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/82/849/M_p0053684982.png",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/82/849/M_p0053684982.png"
+      ],
+      "rating": 4.58,
+      "reviewCount": 3132,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/skinfood-salmon-darkcircle-concealer-cream-3-colors-2024-version-02/info.html/pid.1050548880",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 7.5,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Shaper Pomade Eyebrow Fixer (8.5g)",
+      "type": "Ojos",
+      "brand": "UNLEASHIA",
+      "price": 13.0,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/45/898/M_p0179889845.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/45/898/M_p0179889845.jpg"
+      ],
+      "rating": 4.57,
+      "reviewCount": 2947,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/unleashia-shaper-pomade-eyebrow-fixer-8-5g/info.html/pid.1115860720",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 14.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Mask Fit Red Cushion - 40 Colors (#55N ESPRESSO)",
+      "type": "Cuidado de la piel",
+      "brand": "TIRTIR",
+      "price": 18.75,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/03/920/M_p0182392003.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/03/920/M_p0182392003.jpg"
+      ],
+      "rating": 4.59,
+      "reviewCount": 6832,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/tirtir-mask-fit-red-cushion-40-colors-55n-espresso/info.html/pid.1117014693",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 25.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "No-Sebum Mineral Powder",
+      "type": "Rostro",
+      "brand": "innisfree",
+      "price": 5.0,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/25/264/M_p0037226425.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/25/264/M_p0037226425.jpg"
+      ],
+      "rating": 4.69,
+      "reviewCount": 7049,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/innisfree-no-sebum-mineral-powder/info.html/pid.1038745536",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "originalPrice": 9.1,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Kiss Me Heroine Make Long & Curl Mascara Advanced Film (56 Hydrangea Limited Edition)",
+      "type": "Ojos",
+      "brand": "ISEHAN",
+      "price": 8.88,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/27/178/M_p0109317827.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/27/178/M_p0109317827.jpg"
+      ],
+      "rating": 4.68,
+      "reviewCount": 5949,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/isehan-kiss-me-heroine-make-long-curl-mascara-advanced-film-56-hydrangea/info.html/pid.1075162835",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 11.1,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Wonder Releaf Centella BB Cream - 6 Colors (#13 Neutral Ivory)",
+      "type": "Cuidado de la piel",
+      "brand": "Purito SEOUL",
+      "price": 9.8,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/32/768/M_p0213176832.png",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/32/768/M_p0213176832.png"
+      ],
+      "rating": 4.45,
+      "reviewCount": 5783,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/purito-seoul-wonder-releaf-centella-bb-cream-6-colors-13-neutral-ivory/info.html/pid.1131583092",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "originalPrice": 14.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "MQNY Waterproof Pen Eyeliner - 3 Colors (0.6g)",
+      "type": "Ojos",
+      "brand": "MQNY",
+      "price": 5.12,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/57/832/M_p0049383257.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/57/832/M_p0049383257.jpg"
+      ],
+      "rating": 4.57,
+      "reviewCount": 16602,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/mqny-mqny-waterproof-pen-eyeliner-3-colors-0-6g/info.html/pid.1048634893",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "originalPrice": 6.4,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Jello Color Liquid Blush - 7 Colors (JC07# Orange Ice Cream - 5ml)",
+      "type": "Rostro",
+      "brand": "AZTK",
+      "price": 9.63,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/88/224/M_p0213522488.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/88/224/M_p0213522488.jpg"
+      ],
+      "rating": 4.65,
+      "reviewCount": 2518,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/aztk-jello-color-liquid-blush-7-colors-jc07-orange-ice-cream-5ml/info.html/pid.1131703598",
+      "specWeightKg": 0.08,
+      "weightEstimated": true,
+      "originalPrice": 10.7,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "YesStyle Exclusive Double Cleansing Duo Set (2 pcs)",
+      "type": "Cuidado de la piel",
+      "brand": "Anua",
+      "price": 24.96,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/10/426/M_p0221142610.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/10/426/M_p0221142610.jpg"
+      ],
+      "rating": 4.79,
+      "reviewCount": 1461,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/anua-yesstyle-exclusive-double-cleansing-duo-set-2-pcs/info.html/pid.1135918989",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 31.2,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Black Rice Moisture Cleansing Oil (150ml)",
+      "type": "Cuidado de la piel",
+      "brand": "haruharu wonder",
+      "price": 17.5,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/17/990/M_p0141099017.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/17/990/M_p0141099017.jpg"
+      ],
+      "rating": 4.71,
+      "reviewCount": 1950,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/haruharu-wonder-black-rice-moisture-cleansing-oil-150ml/info.html/pid.1134315119",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 25.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Speedy Skinny Brow - 9 Colors (#05 Light Brown)",
+      "type": "Ojos",
+      "brand": "peripera",
+      "price": 4.68,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/68/726/M_p0087972668.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/68/726/M_p0087972668.jpg"
+      ],
+      "rating": 4.66,
+      "reviewCount": 2305,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/peripera-speedy-skinny-brow-9-colors-05-light-brown/info.html/pid.1066639260",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 5.2,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "3D Curling Eyelash Iron Mascara (0° Classic and 6° Curling Basic) - 4 Types (Classic #02 Brown - 2g)",
+      "type": "Ojos",
+      "brand": "Judydoll",
+      "price": 11.19,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/18/777/M_p0198877718.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/18/777/M_p0198877718.jpg"
+      ],
+      "rating": 4.55,
+      "reviewCount": 2062,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/judydoll-3d-curling-eyelash-iron-mascara-0-classic-and-6-curling-basic/info.html/pid.1124327727",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 13.99,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Sharp So Simple Waterproof Pencil Liner - 13 Colors (#07 Creamy Ivory)",
+      "type": "Cuidado de la piel",
+      "brand": "CLIO",
+      "price": 6.59,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/65/739/M_p0204673965.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/65/739/M_p0204673965.jpg"
+      ],
+      "rating": 4.62,
+      "reviewCount": 1843,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/clio-sharp-so-simple-waterproof-pencil-liner-13-colors-07-creamy-ivory/info.html/pid.1127076486",
+      "specWeightKg": 0.2,
+      "weightEstimated": true,
+      "originalPrice": 7.9,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Rose Obsession Stay-Fit Lip Tint - 18 Colors (#GW01 Honey Rose)",
+      "type": "Belleza",
+      "brand": "fwee",
+      "price": 10.2,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/27/984/M_p0222598427.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/27/984/M_p0222598427.jpg"
+      ],
+      "rating": 4.73,
+      "reviewCount": 1050,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/fwee-rose-obsession-stay-fit-lip-tint-18-colors-gw01-honey-rose/info.html/pid.1136684590",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 17.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Lip Glowy Balm - 6 Types (Sweet Candy)",
+      "type": "Belleza",
+      "brand": "LANEIGE",
+      "price": 11.52,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/95/043/M_p0213304395.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/95/043/M_p0213304395.jpg"
+      ],
+      "rating": 4.81,
+      "reviewCount": 1050,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/laneige-lip-glowy-balm-6-types-sweet-candy/info.html/pid.1130299070",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 18.6,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Glitter Mud Eyeshadow - 6 Colors (#3 - 2.7g)",
+      "type": "Ojos",
+      "brand": "xixi",
+      "price": 2.88,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/74/934/M_p0209693474.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/74/934/M_p0209693474.jpg"
+      ],
+      "rating": 4.74,
+      "reviewCount": 1550,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/xixi-glitter-mud-eyeshadow-6-colors-3-2-7g/info.html/pid.1129543149",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "originalPrice": 3.6,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "The Juicy Lasting Tint - 23 Colors (#01 Pomelo Skin)",
+      "type": "Belleza",
+      "brand": "romand",
+      "price": 13.5,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/16/194/M_p0217819416.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/16/194/M_p0217819416.jpg"
+      ],
+      "rating": 4.67,
+      "reviewCount": 1704,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/romand-the-juicy-lasting-tint-23-colors-01-pomelo-skin/info.html/pid.1134228333",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 15.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Mermaid Skin Gel UV Sunscreen SPF 50+ PA++++",
+      "type": "Cuidado de la piel",
+      "brand": "Canmake",
+      "price": 9.6,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/93/881/M_p0107488193.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/93/881/M_p0107488193.jpg"
+      ],
+      "rating": 4.63,
+      "reviewCount": 5202,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/canmake-mermaid-skin-gel-uv-sunscreen-spf-50-pa/info.html/pid.1074396105",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 12.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Fixing Tint - 19 Colors (#12 Salmon Brick)",
+      "type": "Belleza",
+      "brand": "ETUDE",
+      "price": 8.4,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/06/544/M_p0157554406.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/06/544/M_p0157554406.jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 7102,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/etude-fixing-tint-19-colors-12-salmon-brick/info.html/pid.1104982337",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 12.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Waterproof Easy Eyeliner - 2 Colors",
+      "type": "Ojos",
+      "brand": "PINKFLASH",
+      "price": 2.56,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/31/884/M_p0188288431.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/31/884/M_p0188288431.jpg"
+      ],
+      "rating": 4.62,
+      "reviewCount": 2448,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/pinkflash-waterproof-easy-eyeliner-2-colors/info.html/pid.1119539751",
+      "specWeightKg": 0.03,
+      "weightEstimated": true,
+      "originalPrice": 3.2,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Mask Fit Waterproof Setting Spray (80ml)",
+      "type": "Cuidado de la piel",
+      "brand": "TIRTIR",
+      "price": 11.33,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/50/691/M_p0216869150.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/50/691/M_p0216869150.jpg"
+      ],
+      "rating": 4.71,
+      "reviewCount": 1346,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/tirtir-mask-fit-waterproof-setting-spray-80ml/info.html/pid.1133567895",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 15.1,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Ready To Wear Downy Cheek - 12 Colors (#06 Downy Fig)",
+      "type": "Belleza",
+      "brand": "BBIA",
+      "price": 5.04,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/44/839/M_p0057483944.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/44/839/M_p0057483944.jpg"
+      ],
+      "rating": 4.63,
+      "reviewCount": 687,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/bbia-ready-to-wear-downy-cheek-12-colors-06-downy-fig/info.html/pid.1052987428",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 8.4,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Dote on Mood Lip Pencil - 23 Colors (#01 Peach Beige)",
+      "type": "Belleza",
+      "brand": "Heart Percent",
+      "price": 12.59,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/78/603/M_p0220960378.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/78/603/M_p0220960378.jpg"
+      ],
+      "rating": 4.7,
+      "reviewCount": 1024,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/heart-percent-dote-on-mood-lip-pencil-23-colors-01-peach-beige/info.html/pid.1135841092",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 13.99,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Ink Velvet - 31 Colors (#19 Love Sniper Red)",
+      "type": "Belleza",
+      "brand": "peripera",
+      "price": 6.09,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/43/818/M_p0065581843.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/43/818/M_p0065581843.jpg"
+      ],
+      "rating": 4.65,
+      "reviewCount": 10629,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/peripera-ink-velvet-31-colors-19-love-sniper-red/info.html/pid.1057853640",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 9.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Bean Cleansing Oil Jumbo (195ml)",
+      "type": "Cuidado de la piel",
+      "brand": "mixsoon",
+      "price": 18.75,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/95/426/M_p0186642695.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/95/426/M_p0186642695.jpg"
+      ],
+      "rating": 4.78,
+      "reviewCount": 5444,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/mixsoon-bean-cleansing-oil-jumbo-195ml/info.html/pid.1118864369",
+      "specWeightKg": 0.15,
+      "weightEstimated": true,
+      "originalPrice": 25.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Juicy Berry Plumping Lip Oil - 14 Colors (#01 Chill Red)",
+      "type": "Labios",
+      "brand": "TOCOBO",
+      "price": 11.2,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/59/122/M_p0212712259.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/59/122/M_p0212712259.jpg"
+      ],
+      "rating": 4.67,
+      "reviewCount": 3632,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/tocobo-juicy-berry-plumping-lip-oil-14-colors-01-chill-red/info.html/pid.1131156350",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 14.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Advanced PDRN Rejuvenating Lip Serum (10ml)",
+      "type": "Cuidado de la piel",
+      "brand": "Dr.Reju-All",
+      "price": 13.9,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/40/338/M_p0223933840.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/40/338/M_p0223933840.jpg"
+      ],
+      "rating": 4.82,
+      "reviewCount": 151,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/dr-reju-all-advanced-pdrn-rejuvenating-lip-serum-10ml/info.html/pid.1137301693",
+      "specWeightKg": 0.1,
+      "weightEstimated": true,
+      "originalPrice": 20.0,
+      "retailer": "yesstyle"
+     },
+     {
+      "name": "Mood Glowy Tint - 27 Colors (#01 Tiny Strawberry)",
+      "type": "Belleza",
+      "brand": "peripera",
+      "price": 11.7,
+      "image": "https://d1flfk77wl2xk4.cloudfront.net/Assets/21/949/M_p0223794921.jpg",
+      "images": [
+       "https://d1flfk77wl2xk4.cloudfront.net/Assets/21/949/M_p0223794921.jpg"
+      ],
+      "rating": 4.74,
+      "reviewCount": 534,
+      "onSale": true,
+      "url": "https://www.yesstyle.com/en/peripera-mood-glowy-tint-27-colors-01-tiny-strawberry/info.html/pid.1137219638",
+      "specWeightKg": 0.05,
+      "weightEstimated": true,
+      "originalPrice": 13.0,
+      "retailer": "yesstyle"
+     }
+    ]
+   },
+   "brands": [
+    "AZTK",
+    "Anua",
+    "BBIA",
+    "CLIO",
+    "CORINGCO",
+    "Canmake",
+    "Dr.Reju-All",
+    "ETUDE",
+    "Heart Percent",
+    "ISEHAN",
+    "Judydoll",
+    "LANEIGE",
+    "MISSHA",
+    "MQNY",
+    "PINKFLASH",
+    "Purito SEOUL",
+    "SKIN1004",
+    "SKINFOOD",
+    "TIRTIR",
+    "TOCOBO",
+    "The Saem",
+    "UNLEASHIA",
+    "fwee",
+    "haruharu wonder",
+    "innisfree",
+    "mixsoon",
+    "peripera",
+    "romand",
+    "xixi"
+   ]
+  }
+ }
+}
