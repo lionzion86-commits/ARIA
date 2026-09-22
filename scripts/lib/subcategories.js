@@ -51,21 +51,28 @@ export function normalizeType(raw) {
    gender-neutral — a DRESS is a dress in Moda Mujer and in Moda Niños. */
 export const SUBCATEGORY_SPEC = [
   { key: "dresses",      label: "Vestidos y faldas",     types: ["DRESS", "SKIRT", "GOWN"] },
-  { key: "tops",         label: "Tops y blusas",         types: ["TOP", "BLOUSE", "SHIRT", "TSHIRT", "T_SHIRT", "POLO"] },
-  { key: "knitwear",     label: "Chompas y sudaderas",   types: ["SWEATER", "SWEATSHIRT", "HOODIE", "CARDIGAN"] },
+  { key: "tops",         label: "Tops y blusas",         types: ["TOP", "BLOUSE", "SHIRT", "TSHIRT", "T_SHIRT", "POLO", "HENLEY", "TANK_TOP"] },
+  { key: "knitwear",     label: "Chompas y sudaderas",   types: ["SWEATER", "SWEATSHIRT", "HOODIE", "CARDIGAN",
+                 "CREWNECK", "V_NECK", "TURTLENECK", "SHAWLNECK", "HOODIES_ZIPUPS", "KNIT"] },
   { key: "jeans",        label: "Jeans",                 types: ["JEANS", "DENIM"] },
-  { key: "pants",        label: "Pantalones y shorts",   types: ["PANTS", "SHORTS", "TROUSERS", "LEGGINGS"] },
-  { key: "outerwear",    label: "Casacas y abrigos",     types: ["JACKET", "COAT", "BLAZER", "VEST"] },
+  { key: "pants",        label: "Pantalones y shorts",   types: ["PANTS", "SHORTS", "TROUSERS", "LEGGINGS",
+                 "CARGO_PANTS", "SWEATPANTS", "LEATHER_PANTS", "CHINOS"] },
+  { key: "outerwear",    label: "Casacas y abrigos",     types: ["JACKET", "COAT", "BLAZER", "VEST",
+                 "LEATHER_JACKETS", "BOMBER", "WAISTCOAT", "PARKA", "PUFFER"] },
   { key: "sets",         label: "Conjuntos y trajes",    types: ["SUIT", "OUTFIT", "JUMPSUIT", "ROMPER"] },
   { key: "swim",         label: "Ropa de baño",          types: ["SWIMSUIT", "SWIMWEAR", "BIKINI"] },
-  { key: "shoes",        label: "Zapatos",               types: ["SHOE", "SHOES", "BOOT", "SANDAL", "SNEAKER"] },
+  { key: "shoes",        label: "Zapatos",               types: ["SHOE", "SHOES", "BOOT", "SANDAL", "SNEAKER",
+                 "SLIPPERS_LOAFERS", "LACE_UPS_OXFORDS", "BOAT_SHOES_MOCCASINS",
+                 "MONKSTRAP", "ESPADRILLE", "LOAFER", "OXFORD"] },
   { key: "bags",         label: "Bolsos y mochilas",     types: ["BACKPACK_MESSENGER", "BACKPACK", "HANDBAG", "BAG", "TOTE"] },
-  { key: "accessories",  label: "Accesorios",            types: ["BELT", "SCARF", "HAT", "JEWELRY", "WATCH", "SUNGLASSES", "WALLET"] },
+  { key: "accessories",  label: "Accesorios",            types: ["BELT", "SCARF", "SCARVES", "HAT", "JEWELRY", "WATCH", "SUNGLASSES", "WALLET",
+                 "NECK_TIE", "TIE", "GLOVE", "CAP"] },
   /* LAST, DELIBERATELY. Grouped exactly as the brief grouped it, and
      placed where it stops being the thing you scroll past to reach a
      dress. */
   { key: "lingerie",     label: "Ropa interior y pijamas",
-    types: ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR", "ROBE", "SOCKS", "HOSIERY"] },
+    types: ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR", "ROBE", "SOCKS", "HOSIERY",
+            "PYJAMAS_LOUNGEWEAR", "PYJAMA", "LOUNGEWEAR", "BOXER"] },
 ];
 
 /** type token -> aisle key. Built once, from the rows above. */
@@ -74,9 +81,31 @@ for (const row of SUBCATEGORY_SPEC) {
   for (const t of row.types) TYPE_TO_KEY.set(normalizeType(t), row.key);
 }
 
+/**
+ * The aisle a type token belongs to, or null.
+ *
+ * PLURALS ARE NOT A NEW VOCABULARY. Macy's says "JACKET"; SSENSE says
+ * "JACKETS". Listing both spellings of every noun would double the table
+ * and still miss the third retailer, so an exact miss falls back to the
+ * singular. That alone placed JACKETS, SHIRTS, BLAZERS, SUITS,
+ * SWEATSHIRTS, CARDIGANS, POLOS and T-SHIRTS when SSENSE landed.
+ *
+ * Compound and irregular tokens ("SLIPPERS & LOAFERS", "SCARVES") are
+ * still written out, because guessing at those is how a shirt ends up
+ * in the shoe aisle.
+ */
 export function subcategoryForType(rawType) {
   const t = normalizeType(rawType);
-  return t ? (TYPE_TO_KEY.get(t) || null) : null;
+  if (!t) return null;
+  const exact = TYPE_TO_KEY.get(t);
+  if (exact) return exact;
+  // "JACKETS" -> "JACKET". Only ever tried after an exact miss, so a
+  // token that really ends in S ("PANTS", "JEANS") is never mangled.
+  if (t.endsWith("S")) {
+    const singular = TYPE_TO_KEY.get(t.slice(0, -1));
+    if (singular) return singular;
+  }
+  return null;
 }
 
 export function subcategoryLabel(key) {
@@ -156,7 +185,12 @@ export function unmappedTypes(items) {
   for (const item of items || []) {
     const raw = item?.type ?? item?.typeName ?? item?.productType ?? null;
     const t = normalizeType(raw);
-    if (!t || TYPE_TO_KEY.has(t)) continue;
+    /* Through the RESOLVER, not the raw table. Checking TYPE_TO_KEY
+       directly reported every plural as an orphan while the grouping
+       was placing it perfectly well — a maintenance report that sends
+       someone chasing a problem that does not exist is worse than no
+       report. */
+    if (!t || subcategoryForType(t)) continue;
     out.set(t, (out.get(t) || 0) + 1);
   }
   return [...out.entries()].sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count }));

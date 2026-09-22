@@ -3531,26 +3531,110 @@ check("SSENSE replaces Nordstrom, and says what it actually is", () => {
   if (!ssense) throw new Error("SSENSE is not in the registry");
   eq(ssense.tier, "luxury");
   eq(Boolean(ssense.retired), false);
-  /* THE BRANDS, NOT THE NAME. A shopper in Lima does not know SSENSE and
-     does know Gucci, so the card has to lead with what it carries. */
-  if (!/Gucci|Prada|Balenciaga/.test(ssense.tagline || "")) {
-    throw new Error("the SSENSE row does not name a single brand a shopper would recognise");
+  /* THE BRANDS, NOT THE NAME — BUT FROM THE DATA, NOT FROM A STRING.
+
+     This row was written from the brief as "Gucci, Prada, Balenciaga"
+     and the export that arrived carries NEITHER Gucci NOR Prada. The
+     tagline had been promising two labels the store does not stock, and
+     nothing would ever have caught it, because a hand-written brand
+     list is a claim no test can check against reality.
+
+     So the rule inverted and got stronger: the tagline names NO brand,
+     and the card derives its brand line from the catalogue. A card can
+     now only ever name a label the store is actually carrying. */
+  const NAMED_BRANDS = /Gucci|Prada|Balenciaga|Rick Owens|Moncler|Stone Island|Adidas/i;
+  if (NAMED_BRANDS.test(ssense.tagline || "")) {
+    throw new Error("the SSENSE tagline hardcodes a brand — brands come from the catalogue, or they are a promise nobody checks");
   }
-  /* HONEST STATUS. A 2,431-product pull exists in Apify but no catalogue
-     file is committed here, so it must NOT claim to be browsable — that
-     is the Macy's rule, and shipping a store that opens onto nothing is
-     the failure it prevents. */
-  eq(ssense.browse, false, "SSENSE cannot be browsable with no catalogue file");
-  eq(ssense.search, false, "and it has no actor either");
-  if (!ssense.pendingNote) throw new Error("a store with no catalogue must say so");
-  if (retailers.browsableRetailers().includes("ssense")) {
-    throw new Error("SSENSE is in the browsable list with no catalogue behind it");
+  const page = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function topBrandsFor\(/.test(page)) throw new Error("the store card no longer derives its brands");
+  if (!/data-brandline/.test(page)) throw new Error("the store card has no brand slot");
+
+  /* BROWSABLE NOW, because the catalogue file landed (2026-09-22). The
+     Macy's rule still holds in the other direction: a store may only
+     claim to be browsable when a file actually backs it, and the test
+     below proves this one does. */
+  eq(ssense.browse, true, "SSENSE is browsable — its catalogue is committed");
+  eq(ssense.search, false, "and still has no actor, so it stays out of the live fan-out");
+  if (!existsSync(root("ssense-catalog.json"))) {
+    throw new Error("SSENSE claims to be browsable with no catalogue file behind it");
+  }
+  if (!retailers.browsableRetailers().includes("ssense")) {
+    throw new Error("SSENSE has a catalogue but is not in the browsable list");
   }
   // Nordstrom stays retired, with the reason recorded.
   eq(retailers.RETAILERS.nordstrom.retired, true);
   if (!/bot protection/i.test(retailers.RETAILERS.nordstrom.retiredNote || "")) {
     throw new Error("Nordstrom's retirement no longer records why");
   }
+});
+
+check("SSENSE's catalogue is real, and every type finds an aisle", () => {
+  /* THE SECOND STORE IS THE TEST OF THE FIRST STORE'S DESIGN. Macy's
+     said "JACKET"; SSENSE says "JACKETS", "SLIPPERS & LOAFERS",
+     "HOODIES & ZIPUPS". If the aisle map had only ever been written
+     against Macy's, SSENSE Men would have arrived as one flat bucket of
+     2,426 — the exact bug the aisles were built to fix, on the store
+     where it would hurt most. */
+  const cat = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8"));
+  const items = cat.retailers.ssense.departments.men.items;
+  if (!(items.length > 2000)) throw new Error(`only ${items.length} SSENSE items`);
+  eq(cat.truncatedExport, false, "the export is complete");
+  eq(cat.recoveredProductCount, cat.declaredProductCount, "every declared product recovered");
+
+  const orphans = subcats.unmappedTypes(items);
+  if (orphans.length) {
+    throw new Error(`SSENSE types with no aisle: ${orphans.map((o) => `${o.type}(${o.count})`).join(", ")}`);
+  }
+  const g = subcats.groupBySubcategory(items);
+  eq(g.typed, g.total, "every SSENSE item is placed");
+  eq(subcats.shouldSplit(g), true, "SSENSE Men splits into aisles");
+
+  // Menswear, so no dresses aisle — and that is correct, not a gap.
+  if (g.rows.some((r) => r.key === "dresses")) throw new Error("a menswear department grew a dresses aisle");
+
+  // Prices stay raw USD, like every other catalogue file.
+  for (const it of items) {
+    if (!(typeof it.price === "number" && it.price > 0)) throw new Error(`bad price on "${it.name}"`);
+    if (it.originalPrice != null && !(it.originalPrice > it.price)) {
+      throw new Error(`"${it.name}" claims a discount that is not one`);
+    }
+  }
+  const src = readFileSync(root("ssense-catalog.json"), "utf8");
+  if (/"currency"\s*:\s*"(?!USD)/.test(src)) throw new Error("a non-USD price is in the catalogue");
+});
+
+check("the singular fallback places plurals without mangling real ones", () => {
+  /* The fallback is only tried after an exact miss, so a token that
+     genuinely ends in S is never chopped. This is what keeps "PANTS"
+     out of the "PANT" that does not exist, and "JEANS" out of "JEAN". */
+  eq(subcats.subcategoryForType("JACKETS"), "outerwear", "plural falls back");
+  eq(subcats.subcategoryForType("JACKET"), "outerwear", "singular still exact");
+  eq(subcats.subcategoryForType("PANTS"), "pants", "a real trailing S is matched exactly first");
+  eq(subcats.subcategoryForType("JEANS"), "jeans");
+  eq(subcats.subcategoryForType("SHORTS"), "pants");
+  // Compound tokens are written out, not guessed.
+  eq(subcats.subcategoryForType("SLIPPERS & LOAFERS"), "shoes");
+  eq(subcats.subcategoryForType("LACE UPS & OXFORDS"), "shoes");
+  eq(subcats.subcategoryForType("HOODIES & ZIPUPS"), "knitwear");
+  eq(subcats.subcategoryForType("PYJAMAS & LOUNGEWEAR"), "lingerie");
+  // And the fallback must not invent a match out of nothing.
+  eq(subcats.subcategoryForType("KAYAKS"), null, "an unknown plural is still unknown");
+});
+
+check("both catalogue files load, and neither can take the other down", () => {
+  /* A browse-only store is one line in CATALOGUE_FILES. Each fetch
+     catches its own failure, so a missing or broken file leaves that
+     store empty and every other store working — the alternative is one
+     bad JSON taking the whole site's categories with it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function loadDepartmentCache("), src.indexOf("const DEPARTMENT_META"));
+  for (const file of ["macys-catalog.json", "ssense-catalog.json"]) {
+    if (!fn.includes(file)) throw new Error(`${file} is not loaded`);
+    if (!existsSync(root(file))) throw new Error(`${file} is referenced but not committed`);
+  }
+  const catches = (fn.match(/\.catch\(/g) || []).length;
+  if (catches < 2) throw new Error("a catalogue file can take the scraped cache down with it");
 });
 
 check("the page's tier table is the module's", () => {

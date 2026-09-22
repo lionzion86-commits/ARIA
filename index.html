@@ -2447,15 +2447,23 @@ function loadDepartmentCache(){
     const scraped = fetch('/department-cache.json')
       .then(r => r.json())
       .catch(() => ({ retailers: {} }));
-    /* A missing or broken Macy's file must not take the scraped cache
-       down with it: the rest of the site keeps working and Macy's simply
-       has nothing to show, which openStore already handles honestly. */
-    const macys = fetch('/macys-catalog.json')
+    /* CATALOGUE FILES, one per browse-only store. A missing or broken one
+       must not take the scraped cache down with it: the rest of the site
+       keeps working and that store simply has nothing to show, which
+       openStore already handles honestly. Each catches its own failure
+       for exactly that reason.
+
+       Adding a store here is one line. Nothing else in the merge cares
+       which file a retailer came from, so a file-backed store behaves
+       like a scraped one everywhere downstream — search, categories,
+       aisles, budget and Ofertas all read the merged object. */
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json'];
+    const files = CATALOGUE_FILES.map(url => fetch(url)
       .then(r => r.json())
-      .catch(() => ({ retailers: {} }));
-    departmentCachePromise = Promise.all([scraped, macys]).then(([a, b]) => ({
-      ...a,
-      retailers: { ...(a.retailers || {}), ...(b.retailers || {}) },
+      .catch(() => ({ retailers: {} })));
+    departmentCachePromise = Promise.all([scraped, ...files]).then(parts => ({
+      ...parts[0],
+      retailers: Object.assign({}, ...parts.map(p => p?.retailers || {})),
     }));
   }
   return departmentCachePromise;
@@ -3127,6 +3135,7 @@ function deptTileHTML(t, kind){
 function initDepartmentTiles(){
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
+    paintStoreBrandLines(data);
     /* "Comprar por marca" was its own section with a single Nike card in
        it. One card is not a section, so brands ride in the same grid as
        the departments — they browse identically (openCatalog with a
@@ -3190,27 +3199,50 @@ function normalizeType(raw){
 }
 
 const SUBCATEGORY_SPEC = [
-  { key: 'dresses',     label: 'Vestidos y faldas',   types: ['DRESS', 'SKIRT', 'GOWN'] },
-  { key: 'tops',        label: 'Tops y blusas',       types: ['TOP', 'BLOUSE', 'SHIRT', 'TSHIRT', 'T_SHIRT', 'POLO'] },
-  { key: 'knitwear',    label: 'Chompas y sudaderas', types: ['SWEATER', 'SWEATSHIRT', 'HOODIE', 'CARDIGAN'] },
-  { key: 'jeans',       label: 'Jeans',               types: ['JEANS', 'DENIM'] },
-  { key: 'pants',       label: 'Pantalones y shorts', types: ['PANTS', 'SHORTS', 'TROUSERS', 'LEGGINGS'] },
-  { key: 'outerwear',   label: 'Casacas y abrigos',   types: ['JACKET', 'COAT', 'BLAZER', 'VEST'] },
-  { key: 'sets',        label: 'Conjuntos y trajes',  types: ['SUIT', 'OUTFIT', 'JUMPSUIT', 'ROMPER'] },
-  { key: 'swim',        label: 'Ropa de baño',        types: ['SWIMSUIT', 'SWIMWEAR', 'BIKINI'] },
-  { key: 'shoes',       label: 'Zapatos',             types: ['SHOE', 'SHOES', 'BOOT', 'SANDAL', 'SNEAKER'] },
-  { key: 'bags',        label: 'Bolsos y mochilas',   types: ['BACKPACK_MESSENGER', 'BACKPACK', 'HANDBAG', 'BAG', 'TOTE'] },
-  { key: 'accessories', label: 'Accesorios',          types: ['BELT', 'SCARF', 'HAT', 'JEWELRY', 'WATCH', 'SUNGLASSES', 'WALLET'] },
-  { key: 'lingerie',    label: 'Ropa interior y pijamas',
-    types: ['BRA', 'PANTY', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY'] },
+  { key: 'dresses',      label: 'Vestidos y faldas',     types: ['DRESS', 'SKIRT', 'GOWN'] },
+  { key: 'tops',         label: 'Tops y blusas',         types: ['TOP', 'BLOUSE', 'SHIRT', 'TSHIRT', 'T_SHIRT', 'POLO', 'HENLEY', 'TANK_TOP'] },
+  { key: 'knitwear',     label: 'Chompas y sudaderas',   types: ['SWEATER', 'SWEATSHIRT', 'HOODIE', 'CARDIGAN',
+                 'CREWNECK', 'V_NECK', 'TURTLENECK', 'SHAWLNECK', 'HOODIES_ZIPUPS', 'KNIT'] },
+  { key: 'jeans',        label: 'Jeans',                 types: ['JEANS', 'DENIM'] },
+  { key: 'pants',        label: 'Pantalones y shorts',   types: ['PANTS', 'SHORTS', 'TROUSERS', 'LEGGINGS',
+                 'CARGO_PANTS', 'SWEATPANTS', 'LEATHER_PANTS', 'CHINOS'] },
+  { key: 'outerwear',    label: 'Casacas y abrigos',     types: ['JACKET', 'COAT', 'BLAZER', 'VEST',
+                 'LEATHER_JACKETS', 'BOMBER', 'WAISTCOAT', 'PARKA', 'PUFFER'] },
+  { key: 'sets',         label: 'Conjuntos y trajes',    types: ['SUIT', 'OUTFIT', 'JUMPSUIT', 'ROMPER'] },
+  { key: 'swim',         label: 'Ropa de baño',          types: ['SWIMSUIT', 'SWIMWEAR', 'BIKINI'] },
+  { key: 'shoes',        label: 'Zapatos',               types: ['SHOE', 'SHOES', 'BOOT', 'SANDAL', 'SNEAKER',
+                 'SLIPPERS_LOAFERS', 'LACE_UPS_OXFORDS', 'BOAT_SHOES_MOCCASINS',
+                 'MONKSTRAP', 'ESPADRILLE', 'LOAFER', 'OXFORD'] },
+  { key: 'bags',         label: 'Bolsos y mochilas',     types: ['BACKPACK_MESSENGER', 'BACKPACK', 'HANDBAG', 'BAG', 'TOTE'] },
+  { key: 'accessories',  label: 'Accesorios',            types: ['BELT', 'SCARF', 'SCARVES', 'HAT', 'JEWELRY', 'WATCH', 'SUNGLASSES', 'WALLET',
+                 'NECK_TIE', 'TIE', 'GLOVE', 'CAP'] },
+  /* LAST, DELIBERATELY. Grouped exactly as the brief grouped it, and
+     placed where it stops being the thing you scroll past to reach a
+     dress. */
+  { key: 'lingerie',     label: 'Ropa interior y pijamas',
+    types: ['BRA', 'PANTY', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY',
+            'PYJAMAS_LOUNGEWEAR', 'PYJAMA', 'LOUNGEWEAR', 'BOXER'] },
 ];
 
 const SUBCATEGORY_BY_TYPE = new Map();
 for (const row of SUBCATEGORY_SPEC) for (const t of row.types) SUBCATEGORY_BY_TYPE.set(normalizeType(t), row.key);
 
+/* PLURALS ARE NOT A NEW VOCABULARY. Macy's says "JACKET"; SSENSE says
+   "JACKETS". An exact miss falls back to the singular, which alone
+   placed JACKETS, SHIRTS, BLAZERS, SUITS, SWEATSHIRTS, CARDIGANS,
+   POLOS and T-SHIRTS when SSENSE landed. Compound and irregular tokens
+   are still written out — guessing at those is how a shirt ends up in
+   the shoe aisle. */
 function subcategoryForType(raw){
   const t = normalizeType(raw);
-  return t ? (SUBCATEGORY_BY_TYPE.get(t) || null) : null;
+  if (!t) return null;
+  const exact = SUBCATEGORY_BY_TYPE.get(t);
+  if (exact) return exact;
+  if (t.endsWith('S')){
+    const singular = SUBCATEGORY_BY_TYPE.get(t.slice(0, -1));
+    if (singular) return singular;
+  }
+  return null;
 }
 function subcategoryLabel(key){
   return (SUBCATEGORY_SPEC.find(r => r.key === key) || {}).label || null;
@@ -3737,7 +3769,12 @@ function storeCardHTML(r){
     </div>
     <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">
       <div class="text-[13.5px] font-extrabold leading-tight" style="color:var(--navy)">${escapeHtml(r.label)}</div>
-      <div class="text-[12px] leading-snug mt-0.5 flex-1" style="color:#6B7487">${escapeHtml(r.tagline || '')}</div>
+      <div class="text-[12px] leading-snug mt-0.5" style="color:#6B7487">${escapeHtml(r.tagline || '')}</div>
+      <!-- Filled from the catalogue once it loads (paintStoreBrandLines).
+           Hidden until then: a store with no brands we can name says
+           nothing rather than guessing. -->
+      <div data-brandline="${escapeHtml(r.key)}" hidden
+           class="text-[11.5px] leading-snug mt-1 flex-1 font-semibold" style="color:var(--navy); opacity:.78"></div>
       ${pending
         ? `<div class="mt-2.5 inline-flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-full self-start" style="background:var(--sky); color:var(--navy)">
              <span class="w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>${escapeHtml(r.pendingNote || 'Próximamente')}
@@ -3748,6 +3785,56 @@ function storeCardHTML(r){
            </div>`}
     </div>
   </button>`;
+}
+
+
+/* ============================================================
+   THE BRAND LINE — a store introduced by what it CARRIES.
+
+   Danny's constraint, and it is the reason the luxury tier exists at
+   all: a shopper in Lima does not know "SSENSE" and knows Rick Owens,
+   Moncler and Stone Island perfectly well. So a high-end card names
+   brands.
+
+   IT READS THEM FROM THE CATALOGUE, NEVER FROM A LIST. The SSENSE row
+   was first written from the brief as "Gucci, Prada, Balenciaga" — and
+   the export that arrived carries 192 brands, neither of the first two
+   among them. A hand-written brand list is a promise nobody checks. A
+   derived one cannot name a label the store is not actually stocking.
+
+   PROGRESSIVE, AND SILENT UNTIL KNOWN. The grid renders before the
+   catalogue loads, so this fills in afterwards. No brands known means
+   no line — never a placeholder, never a guess.
+
+   BY COUNT, not alphabetical: the brands a store has most of are the
+   ones it is actually known for. */
+const STORE_BRAND_COUNT = 4;
+
+function topBrandsFor(retailerKey, cache){
+  const bucket = cache?.retailers?.[retailerKey];
+  if (!bucket) return [];
+  const counts = new Map();
+  for (const entry of Object.values(bucket.departments || {})){
+    for (const it of entry?.items || []){
+      const b = String(it?.brand || '').trim();
+      if (b) counts.set(b, (counts.get(b) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, STORE_BRAND_COUNT)
+    .map(([b]) => b);
+}
+
+/* Fill the brand line on every card that has a slot for one. Called
+   once the department cache resolves; safe to call again. */
+function paintStoreBrandLines(cache){
+  for (const el of document.querySelectorAll('[data-brandline]')){
+    const brands = topBrandsFor(el.getAttribute('data-brandline'), cache);
+    if (!brands.length) continue;
+    el.textContent = brands.join(' · ');
+    el.hidden = false;
+  }
 }
 
 /* The compact mark used in the homepage row: the same real logo or
@@ -5436,7 +5523,17 @@ const RETAILERS = {
      browse stays false and the card says it is being connected. The
      tagline leads with the BRANDS because "SSENSE" means nothing to a
      shopper in Lima and "Gucci" means everything. */
-  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: null,                   tagline: 'Diseñador y lujo — Gucci, Prada, Balenciaga',  kind: 'general', tier: 'luxury', search: false, browse: false, pendingNote: 'Conectando el catálogo' },
+  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
+     bot protection returned zero products across three integrations.
+     Browsable from a file (ssense-catalog.json, 2,426 men's products,
+     192 brands); no actor, so it stays out of the live search fan-out.
+
+     THE TAGLINE NAMES NO BRAND, on purpose. It said "Gucci, Prada,
+     Balenciaga" when the row was written from the brief, and the
+     catalogue that arrived carries NEITHER Gucci NOR Prada. The real
+     names are read from the data by storeBrandLine(), so the card can
+     only ever promise a label the store is actually carrying. */
+  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.

@@ -209,13 +209,19 @@ export const RETAILERS = {
     key: "ssense",
     label: "SSENSE",
     color: "#000000",
-    logo: null,
-    tagline: "Diseñador y lujo — Gucci, Prada, Balenciaga",
+    logo: "logos/ssense.png",
+    /* NO BRAND NAMED HERE, and that is the correction. This row was
+       written from the brief as "Gucci, Prada, Balenciaga" before the
+       catalogue existed. The export that arrived carries 192 brands and
+       NEITHER Gucci NOR Prada — its biggest names are Rick Owens, Dries
+       Van Noten, Stone Island, Moncler and Thom Browne. A hand-written
+       brand list is a promise nobody checks, so the card reads its
+       brands from the catalogue instead. */
+    tagline: "Diseñador y lujo, importado igual que todo lo demás",
     kind: "general",
     tier: "luxury",
     search: false,
-    browse: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   /* Listed but not sold: these were integrated once and turned off for
      real reasons (cost, and Nordstrom's bot protection returning zero
