@@ -1248,14 +1248,19 @@
     <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
       <div class="ariaKicker ariaKicker--onLight mb-3">Dónde compramos</div>
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">
-        Ocho tiendas, todas reales.
+        <span data-store-count>Ocho</span> tiendas, todas reales.
       </h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-9" style="color:#4A5568">
         Las que ya tienen catálogo cargado se abren aquí mismo. Las que estamos conectando lo dicen —
         preferimos un "próximamente" honesto a un logo que no lleva a ningún lado.
       </p>
-      <!-- 4x2. Eight stores fit; seven left a hole. Rendered from the
-           RETAILERS registry, never hand-written. -->
+      <!-- 4-across. Rendered from the RETAILERS registry, never
+           hand-written -- and so is the COUNT in the heading above. It
+           said "Ocho" from the day eight stores fit a 4x2 grid, and was
+           still saying it at twelve: Macy's, SSENSE and then the three
+           beauty stores all arrived without it. A number in prose that
+           nothing recomputes is a number that goes wrong quietly, which
+           is the opposite of what this section is claiming. -->
       <div id="storesGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
       <div class="mt-8 text-[13px]" style="color:#6B7487">¿Buscas algo de una tienda que no está en la lista? Escríbenos por el chat y la conseguimos.</div>
     </div>
@@ -2442,6 +2447,42 @@ let departmentCachePromise = null;
    departments. A Macy's row in the scraped cache would lose to this one,
    which is the right way round — the export is the authority for Macy's.
    ============================================================ */
+/* ============================================================
+   ONE SHAPE AT THE DOOR (2026-09-22)
+
+   Every reader downstream -- departmentItems(), topBrandsFor(),
+   fileBackedDeals(), the aisle split -- walks
+   retailers.<key>.departments.<dept>.items. Macy's and SSENSE were
+   built to that shape by our own scripts, so it held.
+
+   beauty-catalog.json arrived built by someone else, and its
+   departments.beauty is a BARE ARRAY rather than { items: [...] }. The
+   brief said it matched ssense-catalog.json's envelope; it does not.
+   Nothing would have thrown: `bucket?.items || []` on an array is
+   undefined, so all 197 products would simply have been invisible --
+   three stores on Tiendas with empty catalogues and no error anywhere.
+
+   Normalising HERE, and not by rewriting the committed file, is the
+   deliberate choice. The file is tracked against a data branch; editing
+   it would fork it from its source and the fix would have to be redone
+   by hand on every re-pull. One adapter at the load boundary costs
+   nothing and covers the next export that arrives shaped its own way.
+
+   It is a pure reshape: no field is added, renamed or dropped. */
+function normalizeCatalogueEnvelope(file){
+  const retailers = file?.retailers;
+  if (!retailers || typeof retailers !== 'object') return { retailers: {} };
+  const out = {};
+  for (const [key, bucket] of Object.entries(retailers)){
+    const departments = {};
+    for (const [dept, entry] of Object.entries(bucket?.departments || {})){
+      departments[dept] = Array.isArray(entry) ? { label: dept, items: entry } : entry;
+    }
+    out[key] = { ...bucket, departments };
+  }
+  return { ...file, retailers: out };
+}
+
 function loadDepartmentCache(){
   if (!departmentCachePromise){
     const scraped = fetch('/department-cache.json')
@@ -2457,9 +2498,10 @@ function loadDepartmentCache(){
        which file a retailer came from, so a file-backed store behaves
        like a scraped one everywhere downstream — search, categories,
        aisles, budget and Ofertas all read the merged object. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json'];
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json'];
     const files = CATALOGUE_FILES.map(url => fetch(url)
       .then(r => r.json())
+      .then(normalizeCatalogueEnvelope)
       .catch(() => ({ retailers: {} })));
     departmentCachePromise = Promise.all([scraped, ...files]).then(parts => ({
       ...parts[0],
@@ -3195,7 +3237,15 @@ loadFxRate(); // kick off the fetch as early as possible; render paths below awa
    nothing, because "Ver todo" always holds the whole department.
    ============================================================ */
 function normalizeType(raw){
-  return String(raw ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+  /* ACCENTS ARE FOLDED, NOT DELETED (2026-09-22). The beauty catalogue
+     is the first whose types are Spanish, and "Unas" with a tilde hit
+     the [^A-Z0-9] rule as U + (dropped) + AS -> "U_AS", a token nobody
+     would think to write. NFD splits the letter from its tilde and only
+     the tilde is stripped. Nothing existing moves: Macy's and SSENSE
+     send pure ASCII. Mirrors scripts/lib/subcategories.js. */
+  return String(raw ?? '').trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
 const SUBCATEGORY_SPEC = [
@@ -3222,6 +3272,28 @@ const SUBCATEGORY_SPEC = [
   { key: 'lingerie',     label: 'Ropa interior y pijamas',
     types: ['BRA', 'PANTY', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY',
             'PYJAMAS_LOUNGEWEAR', 'PYJAMA', 'LOUNGEWEAR', 'BOXER'] },
+
+  /* ---- BELLEZA (2026-09-22) ---------------------------------------
+     Same mechanism, different floor. One table serves both verticals
+     because the vocabularies do not overlap: no apparel export sends
+     ROSTRO and no beauty export sends DRESS. A third vertical needs no
+     code either.
+
+     Editorial order again, and FRAGANCIA IS LAST for the same reason
+     lingerie is: it is the restricted aisle (four per envio) and the
+     smallest, so it must not be what meets a shopper first.
+
+     'BELLEZA' IS DELIBERATELY UNMAPPED. 37 of 197 items carry it and it
+     is the export's own catch-all -- a lip gloss, an undereye patch, a
+     pencil sharpener and a gift set all wear it. Inventing an aisle for
+     them would be guessing; they stay in 'Ver todo', which holds the
+     whole department, and the card says how many are there. */
+  { key: 'face',        label: 'Rostro',              types: ['ROSTRO', 'FACE', 'FOUNDATION', 'CONCEALER', 'BLUSH', 'BRONZER', 'HIGHLIGHTER', 'PRIMER'] },
+  { key: 'lips',        label: 'Labios',              types: ['LABIOS', 'LIP', 'LIPSTICK', 'LIP_GLOSS', 'LIP_BALM'] },
+  { key: 'eyes',        label: 'Ojos',                types: ['OJOS', 'EYE', 'MASCARA', 'EYELINER', 'EYESHADOW', 'BROW'] },
+  { key: 'skincare',    label: 'Cuidado de la piel',  types: ['CUIDADO_DE_LA_PIEL', 'SKINCARE', 'SKIN_CARE', 'MOISTURIZER', 'SERUM', 'CLEANSER', 'SUNSCREEN', 'MASK'] },
+  { key: 'nails',       label: 'U\u00f1as',              types: ['UNAS', 'NAIL', 'NAIL_POLISH', 'MANICURE'] },
+  { key: 'fragrance',   label: 'Fragancia',           types: ['FRAGANCIA', 'FRAGRANCE', 'PERFUME', 'EAU_DE_PARFUM', 'COLOGNE', 'BODY_MIST'] },
 ];
 
 const SUBCATEGORY_BY_TYPE = new Map();
@@ -3252,15 +3324,30 @@ function subcategoryOfItem(item){
 }
 function groupBySubcategory(items){
   const bucket = new Map();
+  /* A FACE FOR EACH AISLE (2026-09-22). An aisle card that is a word and
+     a bar is a table of contents, and the standing rule on this site is
+     that a shopper picks with their eyes. Each row carries the image of
+     the FIRST item it holds -- a real product photo from the store's own
+     CDN, never an illustration and never an emoji.
+
+     First, not "best": any deterministic pick is stable across renders,
+     and the feed is already in the order the store sent it. A row whose
+     items carry no image has none, and the card falls back to the
+     text-only treatment rather than to a placeholder. */
+  const face = new Map();
   let typed = 0;
   for (const item of items || []){
     const key = subcategoryOfItem(item);
     if (!key) continue;
     typed += 1;
     bucket.set(key, (bucket.get(key) || 0) + 1);
+    if (!face.has(key)){
+      const img = item?.image || (Array.isArray(item?.images) ? item.images[0] : null);
+      if (typeof img === 'string' && img) face.set(key, img);
+    }
   }
   const rows = SUBCATEGORY_SPEC.filter(r => bucket.get(r.key))
-    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key) }));
+    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key), image: face.get(r.key) || null }));
   const total = (items || []).length;
   return { rows, typed, total, untyped: total - typed };
 }
@@ -3477,11 +3564,37 @@ function catalogSearchBarHTML(){
    splits this way (see shouldSplit), and one whose items do not simply
    renders as it always has.
    ============================================================ */
+/* AN AISLE WEARS THE FACE OF WHAT IS IN IT (2026-09-22).
+
+   This card was a label, a count and a bar -- a table of contents. The
+   standing rule on this site is that a shopper picks with their eyes,
+   and it is the rule the category covers were sent back twice for.
+
+   THE PHOTO IS A REAL PRODUCT, from the store's own CDN: the first item
+   the aisle holds (groupBySubcategory picks it). Not an illustration,
+   not an emoji, not a stock photo of a concept -- so "Labios" shows a
+   lipstick that is actually one tap away, and cannot promise a look the
+   aisle does not carry.
+
+   THE IMAGE AREA IS OPTIONAL, AND THAT MATTERS. A store whose export
+   carries no images (or a CDN that fails) renders the card exactly as
+   it rendered before, rather than a grey box where a photo should be.
+   onerror removes the frame instead of leaving a broken-image glyph.
+
+   cover, not contain: a packshot is centred, so cropping takes white
+   space off the edges; contain would letterbox every tile and make the
+   grid look like a spreadsheet. */
 function catalogAisleCardHTML(row, total){
   const pct = total ? Math.round((row.count / total) * 100) : 0;
+  const photo = row.image ? `<div class="mb-2.5 -mx-4 -mt-4 aspect-[4/3] overflow-hidden" style="background:var(--sky)">
+      <img src="${escapeHtml(row.image)}" alt="" loading="lazy" decoding="async"
+        style="width:100%; height:100%; object-fit:cover; object-position:center"
+        onerror="this.parentNode.remove()">
+    </div>` : '';
   return `<button onclick="setCatalogSub('${jsAttr(row.key)}')"
-    class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-sm w-full"
+    class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-sm w-full overflow-hidden"
     style="border-color:var(--line); background:#fff">
+    ${photo}
     <div class="flex items-baseline justify-between gap-3">
       <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:var(--navy)">${escapeHtml(row.label)}</span>
       <span class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#6B7487">${row.count}</span>
@@ -3507,7 +3620,16 @@ function catalogAisleListHTML(grouped, storeLabel){
         <span class="font-extrabold text-[15px]" style="color:var(--navy)">Ver todo</span>
         <span class="tabular text-[12.5px] font-bold" style="color:var(--navy)">${total}</span>
       </div>
-      <div class="text-[12px] mt-1" style="color:#4A5670">Todo ${escapeHtml(storeLabel)} en esta categoría, en un solo feed.</div>
+      <div class="text-[12px] mt-1" style="color:#4A5670">Todo ${escapeHtml(storeLabel)} en esta categoría, en un solo feed.${
+        /* SAY WHERE THE REMAINDER IS (2026-09-22). The aisles never hold
+           the whole department -- an item whose store reports no type,
+           or a type no aisle claims, is reachable only here. Beauty made
+           that visible: 37 of 197 products carry the export's catch-all
+           "Belleza" and belong to no aisle. A shopper who adds up the
+           aisle counts and comes up short has to be told where the rest
+           went, or "Ver todo" looks like it is hiding them. */
+        grouped.untyped > 0 ? ` Incluye ${grouped.untyped} que no entra${grouped.untyped === 1 ? '' : 'n'} en ninguna categoría de arriba.` : ''
+      }</div>
     </button>`;
 }
 
@@ -3902,6 +4024,15 @@ window.addEventListener('DOMContentLoaded', renderHowItWorksStores);
    A tier with no stores renders no heading at all (retailersByTier
    drops it), so this does not leave an empty "Diseñador y lujo" band
    behind if that row is ever removed. */
+/* A small count, spelled the way the page writes it. Past twenty it
+   falls back to the digit rather than growing a Spanish number library:
+   "23 tiendas, todas reales" reads fine, and a wrong word would not. */
+const SPANISH_NUMBERS = ['Cero', 'Una', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho', 'Nueve', 'Diez',
+  'Once', 'Doce', 'Trece', 'Catorce', 'Quince', 'Dieciséis', 'Diecisiete', 'Dieciocho', 'Diecinueve', 'Veinte'];
+function spanishCount(n){
+  return SPANISH_NUMBERS[n] || String(n);
+}
+
 function renderStoresGrid(){
   const grid = document.getElementById('storesGrid');
   if (grid){
@@ -3921,6 +4052,11 @@ function renderStoresGrid(){
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">${t.stores.map(storeCardHTML).join('')}</div>
           </section>`).join('');
   }
+  /* THE HEADING COUNTS, IT DOES NOT REMEMBER. See the comment beside
+     #storesGrid in the markup for why this is not a literal. */
+  const listed = activeRetailers().length;
+  for (const el of document.querySelectorAll('[data-store-count]')) el.textContent = spanishCount(listed);
+
   /* The home rail stays ONE row, ungrouped: it is a glance, not a
      directory, and a heading in a horizontal chip strip reads as a
      broken card. */
@@ -4039,10 +4175,16 @@ async function openStoreResults(retailer, query){
    the right click target for free. */
 function productCardOpenExpr(p, retailer){
   const r = retailer || p.retailer;
+  /* `null` for the gallery is what this builder has always passed (the
+     argument was simply absent), kept explicit now that a further one
+     follows it. The last is the catalogue's own weight, which has to
+     reach addToCart or checkout re-estimates and disagrees with the
+     card -- see catalogWeightDetail(). */
   return `showProduct('${jsAttr(r)}', '${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, `
     + `'${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, `
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
-    + `'${jsAttr(p.rating != null ? String(p.rating) : '')}')`;
+    + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
+    + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'})`;
 }
 
 /** The standard card for any listed product, on any surface. */
@@ -4219,7 +4361,7 @@ async function applyRoute(route){
           || (autoPartsRendered || []).find(it => it.title === route.name);
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
-          known.rating != null ? String(known.rating) : '', known.images || []);
+          known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null);
         else if (route.name) showResults(route.name, { fromHistory: true });
         else showPage('homeView');
         break;
@@ -4753,7 +4895,7 @@ function openSearchProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || []);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
 }
 
 /* Same product, different store. Retailers word titles differently, so
@@ -5356,10 +5498,10 @@ document.addEventListener('keydown', (e) => {
    already taken this page down once. */
 let pendingAutoPartNumber = null;
 
-function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images){
+function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
-  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView };
+  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
@@ -5471,6 +5613,21 @@ function addToCartFromProduct(){
     // Falls back to the same title-based estimate every card uses;
     // checkout re-resolves it server side regardless.
     weightKg: Number.isFinite(p.weightKg) && p.weightKg > 0 ? p.weightKg : estimateRetailWeightKg(p.name),
+    /* THE CATALOGUE'S NUMBER TRAVELS WITH THE LINE (2026-09-22).
+
+       The cart's `weightKg` is marked estimated (addToCart does that),
+       and the server resolver deliberately re-estimates an estimate
+       rather than echoing it back as a store measurement. That is the
+       right rule and it would have thrown this away: a BB cream would
+       show 0.20 kg on the card and be billed at 0.05 kg, because the
+       server would fall back to its own beauty table.
+
+       So the catalogue figure rides along under the name the resolver
+       reads. It is still an estimate there -- catalogWeightKg() keeps
+       `estimated: true` and bands it -- it is just a better-sourced one
+       than a guess from the title. Absent for every store that
+       publishes no weight, which is every store but this catalogue. */
+    ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
     image: p.imageUrl || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   });
@@ -5508,7 +5665,33 @@ const RETAILERS = {
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.svg', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
-  sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  /* SEPHORA IS BROWSABLE (2026-09-22). beauty-catalog.json landed with
+     80 Sephora products, so this row flips `browse: true` and drops the
+     pending note -- the same two-flag distinction Macy's introduced.
+     Victoria's Secret and Bath & Body Works are NOT in that file and
+     stay pending: a store is browsable when a catalogue names it, not
+     when it sells the same kind of thing.
+
+     THE TAGLINE NAMES NO BRAND, same rule as SSENSE. The brief's line
+     was "Maquillaje y skincare -- NARS, Rare Beauty" and both really are
+     in the export, so it would be true today. It is still the wrong
+     place for it: the card already paints a brand line read from the
+     catalogue (paintStoreBrandLines), so naming them by hand prints the
+     same two names twice on one card and goes stale the first time the
+     export changes. */
+  sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
+     file. Browse-without-scrape, like Macy's and SSENSE.
+
+     NEITHER HAS A LOGO FILE YET, and `color` is OUR navy, not a guess at
+     theirs. storeCardHTML renders a logo-less store as its wordmark on
+     `color`, so that colour is a design decision, not decoration —
+     shipping a brand's name on a colour we invented for them is worse
+     than shipping it on ours. Drop logos/ulta.* and logos/yesstyle.* in,
+     set `logo`, and both cards become the store's own mark with no other
+     change anywhere. Mirrors scripts/lib/retailers.js. */
+  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#0A1F44', logo: null,                   tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#0A1F44', logo: null,                   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
   victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
@@ -7309,6 +7492,47 @@ function freightSharePct(weightKg, priceUsd){
    weight the retailer stated in the title is a fact; anything else is an
    estimate and the card has to say so. Mirrors estimateWeightDetail() in
    scripts/lib/sales-sources.js. */
+/* ============================================================
+   A WEIGHT THE CATALOGUE SUPPLIED (2026-09-22)
+
+   beauty-catalog.json ships a `specWeightKg` on all 197 products, and
+   `weightEstimated: true` beside it -- the export saying, honestly,
+   that these are the supplier's estimates and not scale readings. So it
+   is NOT a spec weight: a spec weight is a published measurement,
+   renders as "Peso confirmado por la tienda", and skips the sanity
+   bands. This is an estimate with a better source than ours, and it is
+   banded like every other estimate.
+
+   IT IS WORTH PREFERRING. Measured across those 197 items, our own
+   title-based beauty table agrees within 3x on 189 and comes in LIGHTER
+   on the other eight -- 0.05 kg against the catalogue's 0.20 for BB and
+   eye creams. Under-reading a weight is the direction that costs us
+   money at the courier, so the store's per-product number beats our
+   per-category one.
+
+   Mirrors catalogWeightKg() in netlify/functions/_weight-resolve.js.
+   The two MUST agree: the card shows this number and checkout
+   re-resolves it server side, and a card and a bill that disagree about
+   what a parcel weighs is the bug that rule exists for. */
+function catalogWeightDetail(item, title){
+  // An explicit weightEstimated:false is a different, stronger claim,
+  // and the spec path owns it. Not ours to answer.
+  if (!item || item.weightEstimated === false) return null;
+  const kg = Number(item.specWeightKg);
+  if (!(Number.isFinite(kg) && kg > 0)) return null;
+  const check = weightSanity(title || '', kg);
+  return {
+    kg: check.kg,
+    source: 'catalog',
+    estimated: true,
+    reviewKind: check.ok ? null : 'out-of-band',
+    needsReview: !check.ok,
+    flagged: !check.ok,
+    reason: check.reason,
+    bound: check.key,
+  };
+}
+
 function estimateRetailWeightDetail(text, hints){
   const t = text || '';
   const beauty = beautyWeightDetail(t, hints || {});
@@ -7478,11 +7702,16 @@ function normalizeLiveItem(item, hints){
   const reviewCount = Number.isFinite(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
     ? Math.round(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
     : null;
-  const weightDetail = estimateRetailWeightDetail(title, {
+  const weightDetail = catalogWeightDetail(item, title) || estimateRetailWeightDetail(title, {
     retailer: hints?.retailer ?? item.retailer,
     department: hints?.department ?? item.department,
   });
   const weightKg = weightDetail.kg;
+  /* Carried through to the cart line so checkout re-resolves the SAME
+     number rather than falling back to its own estimate. Null for every
+     store that does not publish one, which is every store but the
+     beauty catalogue today. */
+  const catalogWeightKg = weightDetail.source === 'catalog' ? weightKg : null;
 
   // Real available-sizes list, only when the retailer's own scrape data
   // reports one (confirmed present on live Old Navy listing data as
@@ -7524,7 +7753,15 @@ function normalizeLiveItem(item, hints){
     weightReviewReason: weightDetail.reason,
     // The courier's four-per-shipment fragrance clause travels with the
     // item, so every card and the cart can state it without re-parsing.
-    restrictedFragrance: isFragrance(title),
+    /* THE STORE'S OWN DECLARATION WINS. beauty-catalog.json marks 11
+       items `restricted: "fragancia-max-4"`, which is the courier
+       clause stated as data instead of inferred from a title. Measured
+       against all 197: the flag and isFragrance() agree on every single
+       one, so this changes nothing today -- which is the point. It
+       means the day an export flags something whose title does not say
+       "parfum", the limit is still on the card. The title test stays as
+       the fallback for every store that declares nothing. */
+    restrictedFragrance: item.restricted === 'fragancia-max-4' || isFragrance(title),
     // null unless the retailer really sent one. Never rendered otherwise.
     reviewCount,
     /* WHAT THE THING IS, when the store says so. This is what lets a
@@ -7533,6 +7770,7 @@ function normalizeLiveItem(item, hints){
        list. Empty string for a store that reports nothing, which simply
        does not split. */
     type: normalizeType(item.type ?? item.typeName ?? item.productType),
+    catalogWeightKg,
     sizes, onSale: hasRealDiscount, originalPrice };
 }
 
@@ -9975,7 +10213,7 @@ function openCrossSellProduct(idx){
   if (!it) return;
   showProduct(it.retailer, it.title, it.price, it.weightKg, it.image || '', it.sizes || [],
     needsSizeSelection(it.retailer, it.title), sizeCategoryFor(it.retailer, it.title),
-    it.rating != null ? String(it.rating) : '', it.images || []);
+    it.rating != null ? String(it.rating) : '', it.images || [], it.catalogWeightKg ?? null);
 }
 
 function addCrossSellToCart(idx){
@@ -10986,7 +11224,7 @@ function openSaleProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || []);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set

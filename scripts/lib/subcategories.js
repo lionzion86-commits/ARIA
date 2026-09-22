@@ -42,6 +42,14 @@ export function normalizeType(raw) {
   return String(raw ?? "")
     .trim()
     .toUpperCase()
+    /* ACCENTS ARE FOLDED, NOT DELETED (2026-09-22). The beauty catalogue
+       is the first whose types are written in Spanish, and "Uñas" hit the
+       [^A-Z0-9] rule as U + (dropped) + AS -> "U_AS", which matches no
+       token anyone would think to write. Decomposing first turns Ñ into
+       N + a combining tilde, and only the tilde is stripped. No existing
+       token changes: Macy's and SSENSE send pure ASCII. */
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/[^A-Z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "");
 }
@@ -73,6 +81,32 @@ export const SUBCATEGORY_SPEC = [
   { key: "lingerie",     label: "Ropa interior y pijamas",
     types: ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR", "ROBE", "SOCKS", "HOSIERY",
             "PYJAMAS_LOUNGEWEAR", "PYJAMA", "LOUNGEWEAR", "BOXER"] },
+
+  /* ---- BEAUTY (2026-09-22) -------------------------------------
+     The same mechanism, a different floor. These rows only ever fire
+     for a beauty department, because no apparel export sends ROSTRO and
+     no beauty export sends DRESS — which is why one table serves both
+     and a third vertical needs no new code either.
+
+     ORDER, again editorially: a beauty floor is walked base -> lips ->
+     eyes -> skincare -> nails, and FRAGRANCE IS LAST for the same
+     reason lingerie is. It is the restricted category (four per
+     shipment), it is the smallest aisle in the catalogue, and putting
+     it first would have it meet a shopper with a limit before a
+     product.
+
+     "BELLEZA" IS DELIBERATELY NOT HERE. 37 of the 197 items carry it,
+     and it is the export's own catch-all — a lip gloss, an undereye
+     patch, a pencil sharpener and a gift set all wear it. Filing them
+     under a made-up aisle would be guessing; they stay in "Ver todo",
+     which holds the whole department, and unmappedTypes() reports the
+     token so it stays visible rather than becoming folklore. */
+  { key: "face",        label: "Rostro",              types: ["ROSTRO", "FACE", "FOUNDATION", "CONCEALER", "BLUSH", "BRONZER", "HIGHLIGHTER", "PRIMER"] },
+  { key: "lips",        label: "Labios",              types: ["LABIOS", "LIP", "LIPSTICK", "LIP_GLOSS", "LIP_BALM"] },
+  { key: "eyes",        label: "Ojos",                types: ["OJOS", "EYE", "MASCARA", "EYELINER", "EYESHADOW", "BROW"] },
+  { key: "skincare",    label: "Cuidado de la piel",  types: ["CUIDADO_DE_LA_PIEL", "SKINCARE", "SKIN_CARE", "MOISTURIZER", "SERUM", "CLEANSER", "SUNSCREEN", "MASK"] },
+  { key: "nails",       label: "U\u00f1as",              types: ["UNAS", "NAIL", "NAIL_POLISH", "MANICURE"] },
+  { key: "fragrance",   label: "Fragancia",           types: ["FRAGANCIA", "FRAGRANCE", "PERFUME", "EAU_DE_PARFUM", "COLOGNE", "BODY_MIST"] },
 ];
 
 /** type token -> aisle key. Built once, from the rows above. */
@@ -131,16 +165,31 @@ export function subcategoryOfItem(item) {
  */
 export function groupBySubcategory(items) {
   const bucket = new Map();
+  /* A FACE FOR EACH AISLE (2026-09-22). An aisle card that is a word and
+     a bar is a table of contents; Danny's standing rule for this site is
+     that a shopper picks with their eyes. So each row carries the image
+     of the FIRST item it holds — a real product photo from the store's
+     own CDN, never an illustration and never an emoji.
+
+     First, not "best": any deterministic pick is stable across renders,
+     and the feed is already ordered the way the store sent it. A row
+     whose items carry no image simply has none, and the card falls back
+     to the text-only treatment rather than to a placeholder. */
+  const face = new Map();
   let typed = 0;
   for (const item of items || []) {
     const key = subcategoryOfItem(item);
     if (!key) continue;
     typed += 1;
     bucket.set(key, (bucket.get(key) || 0) + 1);
+    if (!face.has(key)) {
+      const img = item?.image || (Array.isArray(item?.images) ? item.images[0] : null);
+      if (typeof img === "string" && img) face.set(key, img);
+    }
   }
   const rows = SUBCATEGORY_SPEC
     .filter((r) => bucket.get(r.key))
-    .map((r) => ({ key: r.key, label: r.label, count: bucket.get(r.key) }));
+    .map((r) => ({ key: r.key, label: r.label, count: bucket.get(r.key), image: face.get(r.key) || null }));
   const total = (items || []).length;
   return { rows, typed, total, untyped: total - typed };
 }

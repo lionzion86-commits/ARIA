@@ -99,17 +99,32 @@ export const RETAILERS = {
      2026-09-20: their real logo files landed, so steps 1 and 2 are done —
      all three render their own mark on Tiendas now instead of a wordmark
      pill. That is independent of the scraper: a store can look like
-     itself long before its catalogue is connected. */
+     itself long before its catalogue is connected.
+
+     2026-09-22: SEPHORA IS BROWSABLE. beauty-catalog.json landed with
+     80 Sephora products, so its row flips `browse: true` and drops the
+     pending note, exactly as Macy's did — same distinction, same two
+     flags. Victoria's Secret and Bath & Body Works are NOT in that file
+     and stay pending; a store is only browsable when a catalogue
+     actually names it. */
   sephora: {
     key: "sephora",
     label: "Sephora",
     color: "#000000",
     logo: "logos/sephora.png",
+    /* NO BRAND NAMED HERE — the SSENSE rule, applied before it can bite.
+       The brief's line was "Maquillaje y skincare — NARS, Rare Beauty",
+       and both ARE in the export, so it would have been true today. It
+       is still the wrong place to say it: the card already paints a
+       brand line read from the catalogue (topBrandsFor), so naming the
+       same two by hand would print them twice on one card and would go
+       stale the first time the export changes. The data says the
+       brands; the tagline says the department. */
     tagline: "Maquillaje, skincare y perfumes",
     kind: "general",
     catalog: "beauty",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   victoriassecret: {
     key: "victoriassecret",
@@ -169,6 +184,47 @@ export const RETAILERS = {
     logo: "logos/macys.png",
     tagline: "Moda mujer, marcas y vestidos",
     kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* ============================================================
+     ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
+
+     77 Ulta products and 40 YesStyle products arrived in the same file
+     as Sephora's 80. Both are browse-without-scrape, same as Macy's and
+     SSENSE: a real catalogue, no actor, kept out of the live fan-out.
+
+     NEITHER HAS A LOGO FILE YET, and `color` is OUR navy rather than a
+     guess at theirs. storeCardHTML renders a store with no logo as its
+     wordmark on `color`, so the colour is a real design decision here,
+     not decoration — and shipping a brand's name on a colour we invented
+     for them is worse than shipping it on ours. Drop logos/ulta.* and
+     logos/yesstyle.* in, set `logo`, and both cards become the store's
+     own mark with no other change.
+
+     YesStyle is Asian beauty specifically (Korean and Japanese houses —
+     Anua, BBIA, CLIO, Canmake). The tagline says so, because "YesStyle"
+     tells a shopper in Lima nothing and "coreana" tells them everything.
+     ============================================================ */
+  ulta: {
+    key: "ulta",
+    label: "Ulta Beauty",
+    color: "#0A1F44",
+    logo: null,
+    tagline: "Maquillaje, skincare y cuidado del cabello",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
+  yesstyle: {
+    key: "yesstyle",
+    label: "YesStyle",
+    color: "#0A1F44",
+    logo: null,
+    tagline: "Belleza coreana y japonesa",
+    kind: "general",
+    catalog: "beauty",
     search: false,
     browse: true,
   },

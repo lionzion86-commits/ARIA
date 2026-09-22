@@ -14,13 +14,14 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
 import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
+import * as weightResolve from "../../netlify/functions/_weight-resolve.js";
 import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE,
          importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
          TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
@@ -1548,12 +1549,60 @@ check("the three beauty stores show their own logo", () => {
   }
 });
 
-check("the three beauty stores are still listed and still honest", () => {
-  for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+check("the beauty stores say exactly which of them has a catalogue", () => {
+  /* 2026-09-22: beauty-catalog.json landed and Sephora is in it. The
+     other two are not, and the point of this test is that the three
+     stopped being interchangeable: "sells beauty" and "we can show you
+     its products" are different claims and the registry has to make
+     them separately. */
+  for (const key of ["victoriassecret", "bathandbodyworks"]) {
     const r = RETAILERS[key];
     if (!r) throw new Error(`${key} left the registry`);
     eq(r.search, false, `${key} is still pending`);
+    eq(r.browse, undefined, `${key} has no catalogue file`);
     eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
+  }
+  const sephora = RETAILERS.sephora;
+  if (!sephora) throw new Error("sephora left the registry");
+  eq(sephora.search, false, "Sephora still has no actor");
+  eq(sephora.browse, true, "Sephora has a catalogue now");
+  eq(sephora.pendingNote, undefined, "a store with a catalogue is not 'conectando'");
+});
+
+check("the store count in the Tiendas heading is computed, not remembered", () => {
+  /* It said "Ocho tiendas, todas reales" from the day eight stores fit
+     a 4x2 grid, and was still saying it at twelve — Macy's, SSENSE and
+     the three beauty stores all landed without touching it. A number in
+     prose that nothing recomputes goes wrong quietly, which is exactly
+     what this section claims not to do. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (/Ocho tiendas, todas reales/.test(src)) throw new Error("the heading still hardcodes eight stores");
+  if (!/data-store-count/.test(src)) throw new Error("there is no slot for the real count");
+  if (!/function spanishCount\(/.test(src)) throw new Error("the count has no words to render in");
+});
+
+check("the three beauty catalogue stores are registered and browsable", () => {
+  // 197 products across these three, from beauty-catalog.json. All are
+  // browse-without-scrape, and all must be flagged beauty so the
+  // four-per-shipment banner heads their pages.
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`${key} is not in the registry`);
+    eq(r.browse, true, `${key} is browsable`);
+    eq(r.search, false, `${key} stays out of the live fan-out`);
+    eq(r.catalog, "beauty", `${key} is a beauty store`);
+    eq(retailers.isBrowseOnlyRetailer(key), true, `${key} is browse-only`);
+    if (!retailers.browsableRetailers().includes(key)) throw new Error(`${key} is not browsable`);
+  }
+  /* A TAGLINE MAY NOT NAME A BRAND — the SSENSE rule. The card paints a
+     brand line read from the catalogue, so a hand-written name is both
+     a duplicate and a promise nobody re-checks when the export moves. */
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    for (const brand of ["NARS", "Rare Beauty", "Estée Lauder", "Clinique", "Anua"]) {
+      if (RETAILERS[key].tagline.includes(brand)) {
+        throw new Error(`${key}'s tagline names ${brand} — let topBrandsFor read it from the data`);
+      }
+    }
   }
 });
 
@@ -2390,8 +2439,10 @@ check("a browsable store is not treated as one still being connected", () => {
   eq(retailers.isBrowseOnlyRetailer("macys"), true, "Macy's is browse-only");
   eq(retailers.searchableRetailers().includes("macys"), false, "Macy's must stay out of the live fan-out");
   if (!retailers.browsableRetailers().includes("macys")) throw new Error("Macy's is not browsable");
-  // A store with no catalogue at all is still pending.
-  eq(retailers.isBrowseOnlyRetailer("sephora"), false, "Sephora has no catalogue yet");
+  // A store with no catalogue at all is still pending. (Sephora used to
+  // be this example and stopped being one when beauty-catalog.json
+  // landed — which is the distinction working, not a regression.)
+  eq(retailers.isBrowseOnlyRetailer("victoriassecret"), false, "Victoria's Secret has no catalogue yet");
 
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   // Both the card and the chip must read BOTH flags, or Macy's is muted.
@@ -3345,9 +3396,23 @@ check("the order is editorial, and lingerie is last", () => {
      aisles by size would put lingerie second and rebuild the problem, so
      the order is declared, and this is what stops anyone "improving" it
      into a count sort. */
+  /* ONE TABLE, TWO FLOORS (2026-09-22). The beauty aisles were appended
+     when beauty-catalog.json landed, so "last in the array" is no
+     longer the same question as "last on the womenswear floor". The
+     rule was always per-department: lingerie last among the apparel
+     aisles, fragancia last among the beauty ones. Both are asserted,
+     because both are the same fix. */
   const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
-  eq(keys[0], "dresses", "dresses lead");
-  eq(keys[keys.length - 1], "lingerie", "lingerie is last");
+  const BEAUTY_AISLES = ["face", "lips", "eyes", "skincare", "nails", "fragrance"];
+  const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k));
+  const beauty = keys.filter((k) => BEAUTY_AISLES.includes(k));
+  eq(apparel[0], "dresses", "dresses lead");
+  eq(apparel[apparel.length - 1], "lingerie", "lingerie is last on the apparel floor");
+  eq(beauty[beauty.length - 1], "fragrance", "fragancia is last on the beauty floor");
+  // The two blocks do not interleave: an apparel aisle after a beauty
+  // one would put "Rostro" in the middle of a womenswear department the
+  // day some store reports both.
+  eq(keys.slice(0, apparel.length).join(), apparel.join(), "the apparel block is contiguous and first");
   // The grouping the brief asked for, exactly.
   const lingerie = subcats.SUBCATEGORY_SPEC.find((r) => r.key === "lingerie").types;
   for (const t of ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR"]) {
@@ -3629,12 +3694,19 @@ check("both catalogue files load, and neither can take the other down", () => {
      bad JSON taking the whole site's categories with it. */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const fn = src.slice(src.indexOf("function loadDepartmentCache("), src.indexOf("const DEPARTMENT_META"));
-  for (const file of ["macys-catalog.json", "ssense-catalog.json"]) {
+  for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
     if (!fn.includes(file)) throw new Error(`${file} is not loaded`);
     if (!existsSync(root(file))) throw new Error(`${file} is referenced but not committed`);
   }
   const catches = (fn.match(/\.catch\(/g) || []).length;
   if (catches < 2) throw new Error("a catalogue file can take the scraped cache down with it");
+  /* EVERY file goes through the envelope adapter, not just the one that
+     needed it. beauty-catalog.json shipped its departments as bare
+     arrays; the next export will be shaped its own way too, and an
+     adapter applied to one file is an adapter somebody forgets. */
+  if (!/\.then\(normalizeCatalogueEnvelope\)/.test(fn)) {
+    throw new Error("catalogue files are not normalized at the load boundary");
+  }
 });
 
 check("the page's tier table is the module's", () => {
@@ -3726,6 +3798,224 @@ check("the bands are fixed and round, and only live ones render", () => {
   /* And an unknown key must not become "no filter" — inBudget returns
      true only for a REAL absence of a band, which is what `null` means. */
   eq(page.budgetBandFor(null), null);
+});
+
+
+/* ------------------------------------------------------------------
+   BELLEZA — 197 products, three stores, one file
+   ------------------------------------------------------------------ */
+group("belleza: the beauty catalogue is reachable, not just committed");
+
+const beautyCatalog = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+const beautyItems = Object.values(beautyCatalog.retailers)
+  .flatMap((r) => Object.values(r.departments || {}))
+  .flatMap((d) => (Array.isArray(d) ? d : d?.items || []));
+
+check("the bare-array envelope is reshaped, so the products are visible at all", () => {
+  /* THE BUG THIS PINS, and it would have shipped silently. Every reader
+     on the page walks retailers.<key>.departments.<dept>.items. This
+     file's departments.beauty is a BARE ARRAY. `bucket?.items || []` on
+     an array is undefined, so nothing throws and nothing renders: three
+     stores on Tiendas with empty catalogues and no error anywhere. */
+  const raw = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+  eq(Array.isArray(raw.retailers.sephora.departments.beauty), true,
+    "the committed file is still the shape the adapter exists for");
+  eq(deptMap.departmentItems(raw.retailers.sephora, "beauty").length, 0,
+    "…and reading it unadapted really does yield nothing");
+
+  const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
+  const fixed = normalizeCatalogueEnvelope(raw);
+  eq(deptMap.departmentItems(fixed.retailers.sephora, "beauty").length, 80, "Sephora after the adapter");
+  eq(deptMap.departmentItems(fixed.retailers.ulta, "beauty").length, 77, "Ulta after the adapter");
+  eq(deptMap.departmentItems(fixed.retailers.yesstyle, "beauty").length, 40, "YesStyle after the adapter");
+
+  // A PURE RESHAPE: no field invented, none dropped.
+  const before = raw.retailers.sephora.departments.beauty[0];
+  const after = fixed.retailers.sephora.departments.beauty.items[0];
+  eq(JSON.stringify(after), JSON.stringify(before), "an item passes through untouched");
+  eq(JSON.stringify(fixed.retailers.sephora.brands), JSON.stringify(raw.retailers.sephora.brands), "brands untouched");
+
+  // And a file ALREADY in the right shape must pass through unharmed,
+  // or adapting every file would break the two that were already fine.
+  const ssense = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8"));
+  const passed = normalizeCatalogueEnvelope(ssense);
+  for (const key of Object.keys(ssense.retailers)) {
+    for (const dept of Object.keys(ssense.retailers[key].departments)) {
+      eq(passed.retailers[key].departments[dept].items.length,
+         ssense.retailers[key].departments[dept].items.length, `${key}/${dept} unchanged`);
+    }
+  }
+  // Rubbish in, empty out — never a throw that takes the cache down.
+  eq(JSON.stringify(normalizeCatalogueEnvelope(null)), '{"retailers":{}}');
+  eq(JSON.stringify(normalizeCatalogueEnvelope({})), '{"retailers":{}}');
+});
+
+check("the catalogue itself is whole: 197 products, no missing photo, no missing weight", () => {
+  eq(beautyItems.length, 197, "product count");
+  const noImage = beautyItems.filter((i) => !i.image);
+  eq(noImage.length, 0, "every product has a photo (the aisle tiles need one)");
+  const noWeight = beautyItems.filter((i) => !(Number(i.specWeightKg) > 0));
+  eq(noWeight.length, 0, "every product carries a weight");
+  /* A DEAL MUST BE A REAL MARKDOWN. onSale with no higher originalPrice
+     is the "trivial deal" bug Ofertas already has a gate for; this
+     checks the data never asks it to. */
+  const onSale = beautyItems.filter((i) => i.onSale);
+  eq(onSale.length, 44, "discounted products");
+  for (const i of onSale) {
+    if (!(Number(i.originalPrice) > Number(i.price))) {
+      throw new Error(`${i.name} is flagged onSale with no markdown`);
+    }
+  }
+});
+
+check("beauty splits into aisles, and the leftovers are declared rather than buried", () => {
+  const grouped = subcats.groupBySubcategory(beautyItems);
+  eq(subcats.shouldSplit(grouped), true, "197 products must not render as one wall");
+  const byKey = Object.fromEntries(grouped.rows.map((r) => [r.key, r.count]));
+  eq(byKey.face, 64, "Rostro");
+  eq(byKey.eyes, 35, "Ojos");
+  eq(byKey.lips, 25, "Labios");
+  eq(byKey.skincare, 25, "Cuidado de la piel");
+  eq(byKey.fragrance, 11, "Fragancia");
+  /* THE 37 THE EXPORT CALLS "Belleza" — a lip gloss, an undereye patch,
+     a pencil sharpener and a gift set all wear it, so no aisle claims
+     them. They are in "Ver todo" and the card says how many, which is
+     the difference between a remainder and a disappearance. */
+  eq(grouped.untyped, 37, "unplaced products");
+  eq(grouped.typed + grouped.untyped, 197, "nothing is lost either way");
+  eq(subcats.unmappedTypes(beautyItems).map((u) => u.type).join(), "BELLEZA",
+    "only the export's own catch-all is unplaced");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/grouped\.untyped > 0/.test(src)) throw new Error("the Ver todo card no longer says where the remainder is");
+});
+
+check("an aisle tile wears a real product photo", () => {
+  /* Danny sent the category covers back twice for being emoji and
+     cartoon art. An aisle card that is a word and a bar is the same
+     failure one level down, so each row carries the image of the first
+     product it holds — a real photo from the store's own CDN, of
+     something that is actually one tap away. */
+  const grouped = subcats.groupBySubcategory(beautyItems);
+  for (const row of grouped.rows) {
+    if (!row.image) throw new Error(`the ${row.key} aisle has no photo`);
+    if (!/^https?:\/\//.test(row.image)) throw new Error(`${row.key}'s photo is not a real URL`);
+  }
+  /* THE PHOTO IS THE FIRST ITEM'S, and it must be an item that aisle
+     really holds — a tile promising a lipstick that is not in "Labios"
+     is worse than no tile. */
+  for (const row of grouped.rows) {
+    const first = subcats.itemsInSubcategory(beautyItems, row.key)[0];
+    eq(row.image, first.image, `${row.key}'s photo comes from its own first item`);
+  }
+  // Both mirrors carry it, or the page renders the text-only card.
+  const pageGrouped = pageSubs.groupBySubcategory(beautyItems);
+  eq(pageGrouped.rows.map((r) => r.image).join("\n"),
+     grouped.rows.map((r) => r.image).join("\n"), "the page mirror picks the same faces");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const card = src.slice(src.indexOf("function catalogAisleCardHTML("), src.indexOf("function catalogAisleListHTML("));
+  if (!/row\.image/.test(card)) throw new Error("the aisle card ignores the photo");
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(card)) throw new Error("an emoji is back on an aisle card");
+  // A store with no images must still get a working card, not a grey box.
+  const noPhotos = beautyItems.map(({ image, images, ...rest }) => rest);
+  for (const row of subcats.groupBySubcategory(noPhotos).rows) {
+    eq(row.image, null, `${row.key} has no invented photo`);
+  }
+});
+
+check("accents survive normalisation, so Spanish types map at all", () => {
+  /* "Uñas" hit the [^A-Z0-9] rule as U + (dropped Ñ) + AS -> "U_AS",
+     a token nobody would write. Folding, not deleting. */
+  eq(subcats.normalizeType("Uñas"), "UNAS");
+  eq(subcats.normalizeType("Cuidado de la piel"), "CUIDADO_DE_LA_PIEL");
+  eq(subcats.subcategoryForType("Uñas"), "nails");
+  eq(subcats.subcategoryForType("Cuidado de la piel"), "skincare");
+  eq(pageSubs.normalizeType("Uñas"), "UNAS", "the page mirror folds too");
+  // No ASCII token moved: Macy's and SSENSE must map exactly as before.
+  for (const t of ["DRESS", "JACKETS", "BACKPACK_MESSENGER", "PYJAMAS & LOUNGEWEAR", "PANTS"]) {
+    eq(pageSubs.subcategoryForType(t), subcats.subcategoryForType(t), t);
+  }
+});
+
+check("the catalogue's own weight beats our guess, and still reads as an estimate", () => {
+  /* beauty-catalog.json ships specWeightKg on all 197 AND
+     weightEstimated:true beside it. That is not a spec weight — a spec
+     weight renders as "Peso confirmado por la tienda" and skips the
+     sanity bands. It is a better-sourced estimate, so it wins over our
+     title table and is banded like any other estimate. */
+  const item = { title: "CC+ Cream with SPF 50+", retailer: "ulta", department: "beauty",
+    specWeightKg: 0.2, weightEstimated: true };
+  const got = weightResolve.resolveItemWeight(item);
+  eq(got.weightKg, 0.2, "the catalogue's number is used");
+  eq(got.source, "catalog");
+  eq(got.estimated, true, "it must never read as confirmed by the store");
+  // Without it we fall back to our own table, which reads LIGHTER here —
+  // under-reading a weight is the direction that costs money.
+  const without = weightResolve.resolveItemWeight({ title: item.title, retailer: "ulta", department: "beauty" });
+  eq(without.source, "beauty");
+  if (!(without.weightKg < got.weightKg)) throw new Error("the eight disputed creams are no longer disputed");
+  // A REAL published measurement still outranks it.
+  const spec = weightResolve.resolveItemWeight({ title: "x", specWeightKg: 0.2, weightKg: 0.9, weightEstimated: false });
+  eq(spec.source, "spec");
+  eq(spec.weightKg, 0.9, "an explicit spec is not overridden by a catalogue estimate");
+  // Junk is declined rather than believed.
+  for (const bad of [0, -1, null, "", "heavy", undefined]) {
+    eq(weightResolve.catalogWeightKg({ specWeightKg: bad }), null, `specWeightKg=${JSON.stringify(bad)}`);
+  }
+});
+
+check("the card's weight reaches checkout instead of being re-guessed", () => {
+  /* The cart's weightKg is deliberately marked estimated, and the server
+     resolver re-estimates an estimate rather than echoing it back as a
+     store measurement. That rule is right and it would have thrown the
+     catalogue's number away: a BB cream showing 0.20 kg on the card and
+     billed at 0.05 kg. So the figure rides on the line under the name
+     the resolver reads. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function catalogWeightDetail\(/.test(src)) throw new Error("the page no longer prefers the catalogue weight");
+  if (!/catalogWeightDetail\(item, title\) \|\| estimateRetailWeightDetail\(/.test(src)) {
+    throw new Error("normalizeLiveItem no longer consults the catalogue weight first");
+  }
+  const add = src.slice(src.indexOf("function addToCartFromProduct("), src.indexOf("function addToCartFromProduct(") + 2000);
+  if (!/specWeightKg: p\.catalogWeightKg/.test(add)) throw new Error("the catalogue weight does not reach the cart line");
+});
+
+check("a fragrance the store flags is limited even if its title is silent", () => {
+  /* 11 items carry restricted:"fragancia-max-4" — the courier clause as
+     data rather than inferred from a title. Measured: the flag and
+     isFragrance() agree on all 197 today, which is the point. The flag
+     is what keeps the limit on the card the day an export marks
+     something whose name does not say "parfum". */
+  const flagged = beautyItems.filter((i) => i.restricted === "fragancia-max-4");
+  eq(flagged.length, 11, "restricted products");
+  for (const i of flagged) eq(i.type, "Fragancia", `${i.name} is in the fragrance aisle`);
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/item\.restricted === 'fragancia-max-4' \|\| isFragrance\(title\)/.test(src)) {
+    throw new Error("the store's own restriction flag is ignored");
+  }
+});
+
+check("every beauty markdown reaches Ofertas, tier and file notwithstanding", () => {
+  /* The universal-sales rule: Ofertas aggregates every store regardless
+     of tier or of whether it is scraped or filed. These three are
+     browse-only, so fileBackedDeals() is their only route in. */
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    eq(retailers.isBrowseOnlyRetailer(key), true, `${key} must be read by fileBackedDeals`);
+    if (!retailers.browsableRetailers().includes(key)) throw new Error(`${key} is not in CATALOG_RETAILERS`);
+  }
+  /* And the department map has to agree these are sale items, which is
+     what fileBackedDeals filters on downstream. 43 of the 44, not all
+     44: a 3% markdown on one Ulta setting mist ($13.00 -> $12.60) is
+     below the 5% floor every surface of this site uses. That is the
+     trivial-deal gate doing its job, not a product going missing — it
+     is still in the Belleza category and in the store, it is just not
+     something to call an oferta. */
+  const onSale = beautyItems.filter((i) => deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
+  eq(onSale.length, 43, "beauty markdowns worth featuring");
+  const thin = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
+  eq(thin.length, 1, "exactly one markdown is below the floor");
+  if (Math.round((1 - thin[0].price / thin[0].originalPrice) * 100) >= 5) {
+    throw new Error("a real markdown is being gated out of Ofertas");
+  }
 });
 
 /* ------------------------------------------------------------------ */

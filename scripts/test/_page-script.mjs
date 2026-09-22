@@ -231,3 +231,33 @@ export function loadPageAutoSourcesSlice() {
   return runSlice(AUTOSRC_START, AUTOSRC_END, "index.html#auto-sources",
     "{ AUTO_SOURCES, searchableAutoSources, visibleAutoSources, autoSourceFor, autoSourceLabel, partNumberOf, partNumberLabel }");
 }
+
+/* ============================================================
+   THE CATALOGUE ENVELOPE ADAPTER.
+
+   beauty-catalog.json arrived with departments.<key> as a BARE ARRAY
+   rather than { items: [...] }, which every reader on the page walks.
+   Nothing would have thrown — `bucket?.items || []` on an array is
+   undefined — so all 197 products would simply have been invisible.
+   normalizeCatalogueEnvelope() reshapes at the load boundary, and this
+   slice is what lets a test feed it the real file. Anchored on the
+   declaration and on the function that follows it. */
+const ENVELOPE_START = "function normalizeCatalogueEnvelope(file){";
+const ENVELOPE_END = "function loadDepartmentCache(){";
+
+export function loadPageEnvelopeSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(ENVELOPE_START);
+  const to = html.indexOf(ENVELOPE_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html envelope slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope };",
+    sandbox,
+    { filename: "index.html#envelope" },
+  );
+  return sandbox.__exports;
+}

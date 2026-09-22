@@ -548,7 +548,15 @@ await check("the three beauty stores render their real logo, unfiltered", async 
     }
     if (v.objectFit && v.objectFit !== "contain") throw new Error(`${key} is ${v.objectFit}, not contain`);
     if (!(v.naturalWidth > 0)) throw new Error(`${key} has the right src but the image did not decode`);
-    eq(v.stillPending, true, `${key} stopped saying its catalogue is being connected`);
+    /* THE PENDING BADGE IS PER STORE, NOT PER CATEGORY (2026-09-22).
+       Sephora's 80 products landed in beauty-catalog.json, so its card
+       must NOT say "conectando" any more; Victoria's Secret and Bath &
+       Body Works are not in that file and still must. The three stopped
+       being interchangeable, and that is the badge telling the truth
+       rather than a regression. */
+    eq(v.stillPending, key !== "sephora",
+      key === "sephora" ? "Sephora has a catalogue and must not read as pending"
+                        : `${key} stopped saying its catalogue is being connected`);
     eq(v.hasWordmarkPill, false, `${key} still renders the wordmark fallback`);
   }
   /* And the grid is the registry, not a hand-written list. It was "the
