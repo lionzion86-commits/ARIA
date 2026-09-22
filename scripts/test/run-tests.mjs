@@ -991,16 +991,20 @@ check("every department has a curated photograph, and every one is on disk", () 
     if (!deptMap.DEPARTMENT_SPEC[key]) throw new Error(`${key} has a cover but is not a department`);
   }
 
-  /* BELLEZA IS THE ONE WITHOUT A PHOTO, and this test names it rather
-     than passing quietly. Ten covers were delivered; beauty became a
-     real department later the same day, when Sephora, Ulta and YesStyle
-     landed with 197 products, so it renders the drawn field while its
-     ten neighbours render photographs. That is not broken — it is the
-     fallback doing its job — but it IS visible on the homepage, so the
-     moment an eleventh photo arrives this list is what says where to
-     put it. */
+  /* EVERY DEPARTMENT HAS A PHOTOGRAPH NOW. This assertion read "beauty"
+     for a few hours: ten covers were delivered, and beauty had become a
+     real department that same morning when Sephora, Ulta and YesStyle
+     landed with 197 products between them, so it rendered the drawn
+     field beside ten photographs. Naming the gap by key rather than
+     tolerating it is what got the eleventh shot.
+
+     The empty string is the load-bearing part. A new department added
+     without a cover is NOT a failure — it gets the drawn brand field,
+     which is a deliberate treatment — but this line will change, and
+     whoever changes it has to decide on purpose whether that department
+     ships with a photograph or without one. */
   const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
-  eq(uncovered.join(), "beauty", "the set of departments still on the drawn cover has changed");
+  eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
 });
 
 check("Ofertas takes a photograph but keeps its gold sign", () => {

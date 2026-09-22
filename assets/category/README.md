@@ -19,15 +19,20 @@ state — add covers one at a time and the grid stays coherent throughout.
 
 ## What is here (2026-09-22)
 
-Ten curated photographs landed, one per department:
-`candy_chocolate`, `clothing`, `electronics`, `home_goods`, `kids`,
-`men`, `pharmacy`, `sale`, `sporting_goods`, `women`.
+A curated photograph for every department: `beauty`, `candy_chocolate`,
+`clothing`, `electronics`, `home_goods`, `kids`, `men`, `pharmacy`,
+`sale`, `sporting_goods`, `women`.
 
-**`beauty` is the one still on the designed cover.** It became a real
-department the same day, when Sephora, Ulta and YesStyle arrived with
-197 products between them, and no photograph was shot for it. Drop
-`beauty.jpg` here and add the line to `CATEGORY_COVERS` and the grid is
-complete; a test names this gap so it cannot be forgotten quietly.
+Ten arrived first. `beauty` followed a few hours later — the department
+itself only became real that morning, when Sephora, Ulta and YesStyle
+landed with 197 products between them, so it briefly rendered the
+designed cover beside ten photographs. A test named that gap by key
+rather than tolerating it, which is what got the eleventh shot.
+
+That test now asserts the uncovered set is **empty**. Adding a twelfth
+department without a cover is not a failure — it gets the designed
+cover — but the assertion will change, and whoever changes it has to
+decide on purpose.
 
 **Ofertas takes a photograph too.** Its drawn gold board
 (`ofertasTileArtHTML`) is still the fallback, and its gold sign is

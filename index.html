@@ -2590,17 +2590,23 @@ function metaFor(map, key){
    photographic style across the set matters more than any single image:
    the tiles are seen as a column, and a mixed set reads as the junk
    drawer this replaced even when each photo is good on its own. */
-/* THE TEN CURATED COVERS (2026-09-22). Every department key that exists
-   in DEPARTMENT_SPEC now has a photograph, so designedCoverHTML below is
-   a genuine fallback again rather than what the homepage actually shows.
+/* THE CURATED COVERS (2026-09-22). Every department key in
+   DEPARTMENT_SPEC has a photograph, so designedCoverHTML below is a
+   genuine fallback again rather than what the homepage actually shows.
    A key with no entry here still gets the drawn brand field, which is a
-   deliberate treatment and not a gap -- that is what makes adding an
-   eleventh department safe.
+   deliberate treatment and not a gap -- that is what makes adding a
+   twelfth department safe.
+
+   Ten landed first; `beauty` followed a few hours later, because the
+   department itself only became real that morning when Sephora, Ulta
+   and YesStyle arrived with 197 products between them. The grid is
+   complete now, and the test that named the gap by key is what said so.
 
    Local paths only, and assertCuratedCover refuses anything else. The
    filenames are the department keys verbatim, so a typo here is a
    missing file rather than a silently wrong picture. */
 const CATEGORY_COVERS = {
+  beauty:          'assets/category/beauty.jpg',
   candy_chocolate: 'assets/category/candy_chocolate.jpg',
   clothing:        'assets/category/clothing.jpg',
   electronics:     'assets/category/electronics.jpg',
