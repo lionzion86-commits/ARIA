@@ -10564,17 +10564,222 @@ function addAssistantMessage(role, text, audioBase64){
   }
   wrap.appendChild(bubble);
   wrap.scrollTop = wrap.scrollHeight;
-  if (role === 'bot') {
-    if (audioBase64) {
-      speakWithAria(audioBase64, text);
-    } else if (typeof speakText === 'function') {
-      speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
-      if (continuousMode) setTimeout(() => { if (continuousMode) startListening(); }, 400);
-    } else if (continuousMode) {
-      // no audio available at all this turn — still resume listening so the flow isn't stuck
-      setTimeout(() => { if (continuousMode) startListening(); }, 400);
-    }
+  if (role === 'bot') speakAssistantReply(text, audioBase64);
+}
+
+/* ONE SPEAK PATH, whether the reply landed in one piece or was streamed
+   in. Lifted out of addAssistantMessage unchanged: a streamed reply
+   reaches this after the words are on screen rather than with them, and
+   everything else about it -- Ara's voice first, the browser's as the
+   fallback, and resuming the mic in continuous mode either way -- is
+   the behaviour the site already had. */
+function speakAssistantReply(text, audioBase64){
+  if (audioBase64) {
+    speakWithAria(audioBase64, text);
+  } else if (typeof speakText === 'function') {
+    speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
+    if (continuousMode) setTimeout(() => { if (continuousMode) startListening(); }, 400);
+  } else if (continuousMode) {
+    // no audio available at all this turn — still resume listening so the flow isn't stuck
+    setTimeout(() => { if (continuousMode) startListening(); }, 400);
   }
+}
+
+/* The model's memory of this conversation, kept in one place so the
+   streamed path and the buffered one cannot record a turn differently.
+   Bounded at ten exchanges: the whole history is re-sent every turn. */
+function rememberAssistantTurn(userText, reply){
+  ariaChatHistory.push({ role: 'user', content: userText });
+  ariaChatHistory.push({ role: 'assistant', content: reply });
+  if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
+}
+
+/* ============================================================
+   A REPLY THAT ARRIVES AS IT IS WRITTEN (2026-09-22)
+
+   THE PROBLEM. The chat waited for the model's whole answer, then put a
+   paragraph on screen at once. The shopper watched a spinner for the
+   full model latency with nothing to read. Nothing was broken and it
+   read as broken.
+
+   THE BUBBLE IS THE SAME BUBBLE. addAssistantMessage builds it, this
+   fills it. Same classes, same colours, same place in the column — the
+   brief's "change only how the response appears" is enforced by sharing
+   the markup rather than by remembering to keep two copies in step.
+
+   NO LAYOUT SHIFT, TWO WAYS:
+
+   1. THE BUBBLE GROWS DOWNWARD AND NOTHING ELSE MOVES. It is appended
+      once, empty, the moment the first token lands, so no element above
+      it ever reflows. The typing indicator is removed in the same frame
+      the bubble appears, so the column never carries both.
+
+   2. THE SCROLL IS ONLY PINNED IF THE SHOPPER IS ALREADY AT THE BOTTOM.
+      Scrolling on every token would rip the view out from under someone
+      who had scrolled up to re-read a product card. Measured before the
+      text goes in, applied after.
+
+   NO JANK ON A PHONE. Tokens arrive faster than a screen refreshes, and
+   writing to the DOM on each one makes mobile Safari lay out the whole
+   column dozens of times a second. Deltas are buffered and flushed once
+   per animation frame instead, so the work per frame is one textContent
+   write whatever the token rate.
+   ============================================================ */
+const ASSISTANT_SCROLL_STICK_PX = 48;
+
+function assistantAtBottom(wrap){
+  return wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight <= ASSISTANT_SCROLL_STICK_PX;
+}
+
+function beginAssistantReply(){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return null;
+  const bubble = document.createElement('div');
+  bubble.className = 'max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed';
+  bubble.style.background = 'var(--sky)';
+  bubble.style.color = 'var(--navy)';
+  /* Announced once, when it settles. aria-live="polite" on a node that
+     changes on every frame would have a screen reader narrating
+     fragments over itself for the whole reply. */
+  bubble.setAttribute('aria-busy', 'true');
+
+  let pending = '';
+  let shown = '';
+  let frame = 0;
+  let appended = false;
+
+  const flush = () => {
+    frame = 0;
+    if (!pending) return;
+    const stick = appended ? assistantAtBottom(wrap) : true;
+    if (!appended){
+      // The indicator and the bubble never coexist: the first token is
+      // what turns one into the other.
+      hideAssistantTyping();
+      wrap.appendChild(bubble);
+      appended = true;
+    }
+    shown += pending;
+    pending = '';
+    bubble.textContent = shown;
+    if (stick) wrap.scrollTop = wrap.scrollHeight;
+  };
+
+  return {
+    push(delta){
+      if (!delta) return;
+      pending += delta;
+      if (!frame) frame = requestAnimationFrame(flush);
+    },
+    /* Everything buffered lands NOW, not on the next frame — the reply
+       must be whole and on screen before the turn is reported done. */
+    finish(finalText){
+      if (frame){ cancelAnimationFrame(frame); frame = 0; }
+      flush();
+      if (typeof finalText === 'string' && finalText && finalText !== shown){
+        /* THE SERVER'S COPY WINS. The deltas are what the shopper
+           watched appear; this is the authoritative string, and a
+           mismatch means an event went missing between the function and
+           a phone on mobile data. Correcting it here is what keeps the
+           chat history we send back next turn honest. */
+        if (!appended){ hideAssistantTyping(); wrap.appendChild(bubble); appended = true; }
+        shown = finalText;
+        bubble.textContent = shown;
+        wrap.scrollTop = wrap.scrollHeight;
+      }
+      bubble.removeAttribute('aria-busy');
+      return shown;
+    },
+    get text(){ return shown + pending; },
+    get started(){ return appended || Boolean(pending); },
+    /* Nothing ever arrived — take the empty bubble back out rather than
+       leaving a blank sky-blue box above the fallback's real answer. */
+    discard(){
+      if (frame){ cancelAnimationFrame(frame); frame = 0; }
+      if (appended) bubble.remove();
+      appended = false;
+      pending = '';
+      shown = '';
+    },
+  };
+}
+
+/* ============================================================
+   THE STREAM ITSELF.
+
+   Returns { reply, audio } when the endpoint answered, or null when it
+   did not — and null is the whole fallback contract: the caller then
+   posts to aria-chat-groq.js exactly as it always has. Every reason a
+   deploy might not stream ends up as null:
+
+     * the function is not deployed (404) or errored (5xx)
+     * the browser has no ReadableStream on fetch bodies
+     * the response is not an event stream at all
+
+   A CDN THAT BUFFERS THE STREAM IS NOT A FAILURE. It arrives complete
+   and late, every delta lands in one frame, and the shopper sees what
+   they see today. Falling back there would double the wait to prove a
+   point.
+
+   ONCE A TOKEN IS ON SCREEN, THERE IS NO FALLBACK. Re-asking the model
+   would render a second answer under the first. A stream that dies
+   mid-reply returns what it had, marked truncated.
+   ============================================================ */
+async function streamAssistantReply(payload, sink){
+  if (typeof ReadableStream === 'undefined' || typeof TextDecoder === 'undefined') return null;
+  let res;
+  try {
+    res = await fetch('/.netlify/functions/aria-chat-stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch { return null; }
+  if (!res.ok || !res.body || typeof res.body.getReader !== 'function') return null;
+  if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) return null;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = '';
+  let done = null;
+  let failed = null;
+  try {
+    for (;;){
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      // `stream: true` so a multi-byte character split across two reads
+      // is not decoded into a replacement character — Spanish is full
+      // of them ("envío").
+      buffered += decoder.decode(chunk.value, { stream: true });
+      const lines = buffered.split('\n');
+      buffered = lines.pop() || '';
+      for (const line of lines){
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        let evt;
+        try { evt = JSON.parse(trimmed.slice(5)); } catch { continue; }
+        if (evt.error){ failed = evt.error; continue; }
+        if (evt.done){ done = evt; continue; }
+        if (typeof evt.t === 'string') sink.push(evt.t);
+      }
+    }
+  } catch (err) {
+    failed = err && err.message;
+  } finally {
+    /* AWAITED, and that is not pedantry: cancelling a reader whose
+       socket has already gone rejects, and an un-awaited rejection
+       surfaces as an uncaught TypeError in the console. Measured
+       against a connection dropped mid-reply -- the reply itself was
+       fine and the page still logged "TypeError: network error", which
+       is exactly the signal this whole change exists to remove. */
+    try { await reader.cancel(); } catch { /* already closed */ }
+  }
+
+  if (done) return { reply: done.reply || sink.text, audio: done.audio || null };
+  // Died after it had started: keep what the shopper is already reading.
+  if (sink.started) return { reply: sink.text, audio: null, truncated: true };
+  // Nothing rendered, so the buffered endpoint can still answer cleanly.
+  return null;
 }
 
 function addAssistantProductCard(item, retailer){
@@ -10952,42 +11157,72 @@ async function runAssistantBrain(text){
       }
     }
 
-    const res = await fetch('/.netlify/functions/aria-chat-groq', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: text,
-        history: ariaChatHistory,
-        // Retailer travels per item, from the same object the card used.
-        products: foundItems.map(it => ({
-          title: it.title,
-          retailer: LIVE_RETAILER_LABEL[it.retailer] || it.retailer,
-          priceLabel: fmtDisplayPrice(it.price) + (priceIncludesImportTax(it.price) ? ' (incl. impuestos)' : ''),
-        })),
-        // So the reply describes the same person the filter used, and can
-        // say honestly when nothing matched rather than offering the
-        // wrong-gender items that were just discarded.
-        recipient: (recipient.gender || recipient.ageBand)
-          ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
-          : null,
-      })
-    });
+    /* ONE PAYLOAD, TWO ENDPOINTS. The streaming function and the
+       buffered one take the identical body and build the identical Groq
+       request (see _aria-chat-model.js), so which one answers cannot
+       change what Aria says — only when the shopper starts reading it. */
+    const payload = {
+      message: text,
+      history: ariaChatHistory,
+      // Retailer travels per item, from the same object the card used.
+      products: foundItems.map(it => ({
+        title: it.title,
+        retailer: LIVE_RETAILER_LABEL[it.retailer] || it.retailer,
+        priceLabel: fmtDisplayPrice(it.price) + (priceIncludesImportTax(it.price) ? ' (incl. impuestos)' : ''),
+      })),
+      // So the reply describes the same person the filter used, and can
+      // say honestly when nothing matched rather than offering the
+      // wrong-gender items that were just discarded.
+      recipient: (recipient.gender || recipient.ageBand)
+        ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
+        : null,
+    };
 
-    if (!res.ok) {
+    /* THE TYPING INDICATOR STAYS UP UNTIL THE FIRST TOKEN and not a
+       moment longer -- the sink removes it in the same frame it appends
+       the bubble, so the two never overlap and nothing jumps. */
+    const sink = beginAssistantReply();
+    let streamed = sink ? await streamAssistantReply(payload, sink) : null;
+
+    if (!streamed) {
+      /* NOTHING WAS RENDERED (the endpoint is not deployed, the browser
+         cannot read a stream, the response was not an event stream), so
+         the buffered endpoint answers and the page behaves exactly as it
+         did before any of this. */
+      if (sink) sink.discard();
+      const res = await fetch('/.netlify/functions/aria-chat-groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        hideAssistantTyping();
+        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+        return;
+      }
+      const data = await res.json();
       hideAssistantTyping();
-      addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+      const reply = data.reply || 'Lo siento, no pude responder eso.';
+      rememberAssistantTurn(text, reply);
+      addAssistantMessage('bot', reply, data.audio);
       return;
     }
 
-    const data = await res.json();
-    const reply = data.reply || 'Lo siento, no pude responder eso.';
-
-    ariaChatHistory.push({ role: 'user', content: text });
-    ariaChatHistory.push({ role: 'assistant', content: reply });
-    if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
-
+    /* Streamed. The bubble is already on screen and full; all that is
+       left is to settle the text, record the turn, and let Ara speak --
+       the same speak path addAssistantMessage uses, just reached after
+       the words rather than with them. */
+    const reply = sink.finish(streamed.reply) || 'Lo siento, no pude responder eso.';
     hideAssistantTyping();
-    addAssistantMessage('bot', reply, data.audio);
+    rememberAssistantTurn(text, reply);
+    /* A REPLY THAT STOPPED MID-SENTENCE SAYS SO. The words already on
+       screen are kept -- deleting a paragraph someone is reading to
+       replace it with an error is worse -- but half an answer with no
+       explanation reads as Aria losing her train of thought. The note
+       is the existing narration channel: quieter than a reply, never
+       spoken, never sent back to the model. */
+    if (streamed.truncated) addAssistantNote('Se me cortó ahí, ¿te lo repito?');
+    speakAssistantReply(reply, streamed.audio);
 
   } catch (err) {
     hideAssistantTyping();

@@ -37,6 +37,7 @@ import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courie
 import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
+import * as chatModel from "../../netlify/functions/_aria-chat-model.js";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -2179,6 +2180,157 @@ check("the retailer's own weight is no longer dropped at ingestion", () => {
   if (!src.includes('"specifications"')) throw new Error("the specifications array is still dropped");
   // And every run reports whether layer 1 actually produced anything.
   if (!/specWeightKg\(/.test(src)) throw new Error("no spec-weight coverage is reported");
+});
+
+/* ------------------------------------------------------------------
+   STREAMING THE CHAT — the reply arrives as it is written
+   ------------------------------------------------------------------ */
+group("aria chat: the reply streams, and it is the same reply");
+
+check("both endpoints build the identical model request", () => {
+  /* THE RISK THIS PINS is not a crash, it is a personality. Two
+     endpoints answering the same question could drift on model,
+     temperature or reply-length cap, and a shopper would meet a
+     different Aria depending on whether streaming happened to work that
+     day. The brief forbids exactly that, so the request is built once
+     and both endpoints send it verbatim. */
+  const body = {
+    message: "¿tienen zapatillas?",
+    history: [{ role: "user", content: "hola" }, { role: "assistant", content: "¡Hola!" }],
+    products: [{ title: "Nike Air", retailer: "Foot Locker", priceLabel: "S/ 400" }],
+    recipient: { gender: "women", ageBand: "adult", label: "una mujer" },
+  };
+  const req = chatModel.chatRequestBody(body);
+  eq(req.model, chatModel.GROQ_MODEL);
+  eq(req.temperature, chatModel.TEMPERATURE);
+  eq(req.max_tokens, chatModel.MAX_TOKENS);
+  eq(req.messages[0].role, "system");
+  eq(req.messages[req.messages.length - 1].content, body.message, "the question is last");
+  // History really travels — it was silently dropped once, and every
+  // turn was answered with no memory of the one before.
+  eq(req.messages.length, 4, "system + two history turns + the question");
+  // The grounding the prose must not contradict.
+  if (!req.messages[0].content.includes("Nike Air")) throw new Error("products are not in the system prompt");
+
+  const groq = stripComments(readFileSync(root("netlify/functions/aria-chat-groq.js"), "utf8"));
+  const stream = stripComments(readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8"));
+  for (const [name, src] of [["aria-chat-groq", groq], ["aria-chat-stream", stream]]) {
+    if (!/chatRequestBody\(body\)/.test(src)) throw new Error(`${name} builds its own request again`);
+    // Nothing about the answer may be set locally in either file.
+    for (const knob of ["temperature", "max_tokens", "model:"]) {
+      if (src.includes(knob)) throw new Error(`${name} sets ${knob} itself — it belongs in _aria-chat-model.js`);
+    }
+    if (/buildSystemPrompt/.test(src)) throw new Error(`${name} builds its own system prompt`);
+  }
+  // …and the ONLY difference is the flag that makes it a stream.
+  if (!/stream: true/.test(stream)) throw new Error("the streaming endpoint does not ask Groq to stream");
+  if (/stream: true/.test(groq)) throw new Error("the buffered endpoint is asking for a stream");
+});
+
+check("Groq's event lines are parsed, and a bad one never ends the reply", () => {
+  const line = (obj) => "data: " + JSON.stringify(obj);
+  eq(chatModel.deltaFromLine(line({ choices: [{ delta: { content: "Hola" } }] })), "Hola");
+  eq(chatModel.deltaFromLine(line({ choices: [{ delta: { content: " envío" } }] })), " envío");
+  // The end marker is not a delta, and it is recognised for what it is.
+  eq(chatModel.isDoneLine("data: [DONE]"), true);
+  eq(chatModel.deltaFromLine("data: [DONE]"), null);
+  /* EVERYTHING ELSE YIELDS null AND IS SKIPPED. A keep-alive, a comment,
+     a half-written line, a chunk with no content — none of them may end
+     a reply halfway through a sentence, which is what throwing here
+     would do. */
+  for (const bad of ["", ":ping", "data:", "data: {", "data: null", "event: message",
+                     line({}), line({ choices: [] }), line({ choices: [{ delta: {} }] }),
+                     line({ choices: [{ delta: { content: "" } }] }), null, undefined]) {
+    eq(chatModel.deltaFromLine(bad), null, `skipped: ${JSON.stringify(bad)}`);
+  }
+  /* THE MARKER IS TRIMMED BEFORE COMPARING, and that is deliberate: an
+     SSE stream is CRLF-delimited on plenty of intermediaries, so
+     "data: [DONE]\r" is the same marker and refusing it would leave the
+     reader waiting for an end that already came. Only the text has to
+     match exactly. */
+  eq(chatModel.isDoneLine("data: [DONE]\r"), true, "a CRLF stream still ends");
+  eq(chatModel.isDoneLine("  data: [DONE]  "), true);
+  eq(chatModel.isDoneLine("data: [DONEX]"), false, "a near-miss is not the end");
+  eq(chatModel.isDoneLine("data: done"), false);
+});
+
+check("the streaming endpoint is a v2 function and cannot be buffered quietly", () => {
+  const src = readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8");
+  /* V1's `export async function handler(event)` returns a COMPLETE
+     response object — there is nowhere to put a body that is still
+     arriving, which is why this is a new file rather than a flag on the
+     old one. */
+  if (!/export default async function handler\(req\)/.test(src)) {
+    throw new Error("not a Netlify v2 handler, so it cannot stream at all");
+  }
+  if (!/new ReadableStream\(/.test(src)) throw new Error("the response body is not a stream");
+  const nostrip = stripComments(src);
+  for (const header of ["text/event-stream", "no-cache, no-transform", "X-Accel-Buffering"]) {
+    if (!nostrip.includes(header)) throw new Error(`the response is missing ${header}`);
+  }
+  /* FAIL BEFORE THE FIRST BYTE, NOT DURING. A model error returned as a
+     status code lets the client fall back cleanly; the same error sent
+     as the first event would leave an apology in the bubble with no way
+     back to the endpoint that still works. */
+  if (!/if \(!upstream\.ok \|\| !upstream\.body\)/.test(nostrip)) {
+    throw new Error("an upstream failure is not caught before the stream opens");
+  }
+  // A dropped connection keeps what the shopper is already reading.
+  if (!/truncated: true/.test(nostrip)) throw new Error("a mid-stream failure discards the partial reply");
+  // The decoder must be told chunks continue, or a split "í" becomes a
+  // replacement character — Spanish is full of them.
+  if (!/decoder\.decode\(value, \{ stream: true \}\)/.test(nostrip)) {
+    throw new Error("multi-byte characters split across reads will be mangled");
+  }
+});
+
+check("the page streams into the same bubble, and falls back without double-rendering", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  for (const fn of ["function beginAssistantReply(", "async function streamAssistantReply(",
+                    "function speakAssistantReply(", "function rememberAssistantTurn("]) {
+    if (!src.includes(fn)) throw new Error(`${fn} is missing`);
+  }
+
+  const sink = src.slice(src.indexOf("function beginAssistantReply("), src.indexOf("async function streamAssistantReply("));
+  /* SAME BUBBLE, SAME CLASSES. "Change only how the response appears"
+     is enforced by the markup being identical to addAssistantMessage's,
+     not by remembering to keep two copies in step. */
+  const bubbleClass = "max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed";
+  eq(sink.includes(bubbleClass), true, "the streaming bubble is the standard bot bubble");
+  eq(src.split(bubbleClass).length - 1 >= 2, true, "addAssistantMessage still uses it too");
+  // NO JANK: one DOM write per frame, whatever the token rate.
+  if (!/requestAnimationFrame\(flush\)/.test(sink)) throw new Error("tokens are written to the DOM unbatched");
+  if (!/cancelAnimationFrame/.test(sink)) throw new Error("a pending frame is not cancelled on finish");
+  // NO LAYOUT SHIFT: the indicator is removed in the same frame the
+  // bubble appears, and the scroll is only pinned if already at bottom.
+  if (!/hideAssistantTyping\(\);\s*\n\s*wrap\.appendChild\(bubble\)/.test(sink)) {
+    throw new Error("the typing indicator and the bubble can coexist");
+  }
+  if (!/assistantAtBottom\(wrap\)/.test(sink)) throw new Error("streaming scrolls even when the shopper scrolled up");
+
+  const reader = src.slice(src.indexOf("async function streamAssistantReply("), src.indexOf("function addAssistantProductCard("));
+  /* Every reason a deploy might not stream has to end as a clean null:
+     the function is not deployed, the browser cannot read a stream, or
+     what came back is not an event stream at all. */
+  for (const guard of ["typeof ReadableStream === 'undefined'", "!res.ok", "getReader !== 'function'", "event-stream"]) {
+    if (!reader.includes(guard)) throw new Error(`the stream does not fall back on: ${guard}`);
+  }
+  if (!/if \(sink\.started\) return \{ reply: sink\.text/.test(reader)) {
+    throw new Error("a stream that dies after rendering would be re-asked and answered twice");
+  }
+  if (!/await reader\.cancel\(\)/.test(reader)) throw new Error("cancel is not awaited — a dead socket logs an uncaught TypeError");
+
+  const brain = src.slice(src.indexOf("async function runAssistantBrain("), src.indexOf("/* --- Voice input"));
+  /* ONE PAYLOAD FOR BOTH ENDPOINTS, or which one answered could change
+     what Aria was told. */
+  eq((brain.match(/JSON\.stringify\(payload\)/g) || []).length, 1, "the fallback posts the same payload object");
+  if (!/streamAssistantReply\(payload, sink\)/.test(brain)) throw new Error("the page never tries the stream");
+  if (!/sink\.discard\(\)/.test(brain)) throw new Error("a failed stream leaves an empty bubble above the real answer");
+  if (!/aria-chat-groq/.test(brain)) throw new Error("the buffered fallback is gone");
+  // The turn is recorded exactly once on each path.
+  eq((brain.match(/rememberAssistantTurn\(text, reply\)/g) || []).length, 2, "both paths record the turn");
+  // And nothing about WHICH retailers are searched moved into this change.
+  if (!/CHAT_RETAILERS/.test(src)) throw new Error("the chat's retailer routing was removed");
 });
 
 /* ------------------------------------------------------------------ */
