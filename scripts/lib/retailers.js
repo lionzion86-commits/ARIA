@@ -209,13 +209,12 @@ export const RETAILERS = {
     key: "ssense",
     label: "SSENSE",
     color: "#000000",
-    logo: null,
+    logo: "logos/ssense.png",
     tagline: "Diseñador y lujo — Gucci, Prada, Balenciaga",
     kind: "general",
     tier: "luxury",
     search: false,
-    browse: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   /* Listed but not sold: these were integrated once and turned off for
      real reasons (cost, and Nordstrom's bot protection returning zero
