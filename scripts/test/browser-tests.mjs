@@ -194,7 +194,7 @@ await check("every view still renders, with nothing thrown on the way", async ()
   await ctx.close();
 });
 
-await check("Categorías renders one full-width shopfront per row, nothing cropped", async () => {
+await check("Categorías renders one full-width shopfront per row, departments only", async () => {
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -219,9 +219,13 @@ await check("Categorías renders one full-width shopfront per row, nothing cropp
       cardClass: card ? card.className : "",
       windowClass: window_ ? window_.className : null,
       cropped: card ? /object-fit:\s*cover/.test(card.innerHTML) : false,
+      letterboxed: card ? /object-fit:\s*contain/.test(card.innerHTML) : false,
+      first: (card?.textContent || "").trim().split("\n")[0].trim(),
       // The sign: the category name on the brand navy, not navy-on-white.
       signed: card ? /0A1F44/.test(card.innerHTML) : false,
       squares: grid.querySelectorAll('[class*="h-[124px]"], [class*="h-[146px]"]').length,
+      names: [...grid.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
+      counter: document.getElementById("categoriesCount").textContent,
     };
   });
   if (!r.count) throw new Error("Categorías rendered no tiles");
@@ -231,9 +235,32 @@ await check("Categorías renders one full-width shopfront per row, nothing cropp
   }
   if (!/rounded-2xl/.test(r.cardClass)) throw new Error(`a tile is not a card: ${r.cardClass}`);
   if (!/h-\[\d+px\]/.test(r.windowClass || "")) throw new Error(`the window is not pinned: ${r.windowClass}`);
-  eq(r.cropped, false, "a category photo is being cropped");
+  /* THIS ASSERTION READ `false` UNTIL TODAY, AND IT WAS NEVER MEASURING
+     A CATEGORY PHOTO (2026-09-22). It samples the FIRST tile, and this
+     grid is sorted by name, so the first tile used to be SSENSE's
+     "032c" — a brand tile, which draws an SVG field and therefore never
+     crops. The brand tiles are gone from this grid, so the sample is
+     now a real department with a real curated cover, and the rule that
+     applies is the one already asserted on the shared card above: a
+     cover was COMPOSED for this window and fills it edge to edge; only
+     a product photo, shot on white by a retailer who has never seen our
+     card, is shown whole. */
+  if (!r.first) throw new Error("the first Categorías tile has no name");
+  eq(r.cropped, true, `the cover on "${r.first}" no longer fills its window`);
+  eq(r.letterboxed, false, `the cover on "${r.first}" is letterboxed instead of filling`);
   eq(r.signed, true, "the category name is not on a navy sign");
   eq(r.squares, 0, "fixed-height square tiles left in the grid");
+
+  /* DEPARTMENTS ONLY, SAME RULE AS THE HOME PAGE (2026-09-22). Pulling
+     the 192 brand cards off the home page only moved the wall here:
+     this grid carried 11 departments and 193 brands, 204 tiles, on the
+     one page whose whole job is to show what we sell. Brands live in
+     "Busca por marca" inside each multi-brand store now. */
+  eq(r.count, 11, "Categorías tiles");
+  eq(r.counter, "11 categorías", "the counter above the grid");
+  for (const brand of ["032c", "424", "Rick Owens", "Dries Van Noten", "Acne Studios", "Nike"]) {
+    if (r.names.includes(brand)) throw new Error(`the brand wall is back on Categorías: ${brand}`);
+  }
   await ctx.close();
 });
 

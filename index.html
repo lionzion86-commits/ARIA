@@ -942,7 +942,8 @@
         <div class="ariaKicker mb-4">Explora</div>
         <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">Categorías</h1>
         <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
-          Todos los departamentos y marcas disponibles, con inventario real de nuestras tiendas.
+          Todos los departamentos disponibles, con inventario real de nuestras tiendas.
+          ¿Buscas una marca? Está dentro de cada tienda, en “Busca por marca”.
         </p>
       </div>
     </div>
@@ -3079,9 +3080,10 @@ function retailerItemsFor(retailerData){
    derived list would drop Nike and break a link that exists today.
 
    Everything else is counted off the shelf (brandBucketsFromItems). The
-   result is cached per catalogue object: collectTiles('brand') asks for
-   it once per brand per retailer, and rebuilding a 2,426-item index two
-   hundred times is the difference between a page and a pause. */
+   result is cached per catalogue object, because the callers ask for it
+   in loops: openCatalog walks every retailer to build a brand's page,
+   and openStore builds the panel on each visit. Rebuilding a 2,426-item
+   index each time is the difference between a page and a pause. */
 const brandBucketCache = new WeakMap();
 function retailerBrandBuckets(retailerData){
   if (!retailerData || typeof retailerData !== 'object') return {};
@@ -3119,20 +3121,28 @@ function departmentItemsFor(retailerData, kind, key){
   return out;
 }
 
-function collectTiles(kind){
-  const metaMap = kind === 'brand' ? BRAND_META : DEPARTMENT_META;
-  // Departments come from the taxonomy, brands from whatever was scraped.
+/* DEPARTMENTS ONLY. A BRAND IS NEVER A TILE (2026-09-22).
+
+   This took a `kind` and would build a tile per brand as readily as a
+   tile per department. That is how the home page ended up 204 cards
+   long and Categorias the same, and the parameter is gone with them:
+   there is now no code path anywhere that can turn 192 brands into a
+   grid. Brand browsing is "Busca por marca" inside the store that
+   stocks them (storeBrandPanelHTML), which is a list you read rather
+   than a wall you scroll past.
+
+   Brands are still first-class everywhere else — the panel, the
+   openCatalog('brand', key) route, departmentItemsFor's brand branch
+   and brandLabelFor are all untouched. What went is the tiling. */
+function collectTiles(){
   // Driving departments off DEPARTMENT_SPEC rather than off bucket names
   // is the whole point: a department gets a tile when some retailer
   // carries its category, even with no bucket of that name anywhere.
-  const keys = kind === 'brand'
-    ? [...new Set(Object.values(departmentCacheData.retailers || {}).flatMap(d => Object.keys(d.brands || {})))]
-    : Object.keys(DEPARTMENT_SPEC);
   const byKey = {};
-  for (const key of keys){
+  for (const key of Object.keys(DEPARTMENT_SPEC)){
     byKey[key] = { key, retailers: [], count: 0 };
     for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
-      const entryItems = departmentItemsFor(data, kind, key);
+      const entryItems = departmentItemsFor(data, 'department', key);
       if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
@@ -3145,13 +3155,7 @@ function collectTiles(kind){
      work. */
   // A department no retailer carries gets no tile at all.
   for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
-  /* A brand is NAMED BY ITS CATALOGUE, never by title-casing its slug:
-     metaFor would turn `driesvannoten` into "Driesvannoten". metaFor
-     still supplies the icon and the hand-written BRAND_META labels. */
-  return Object.values(byKey).map(t => {
-    const meta = metaFor(metaMap, t.key);
-    return { ...t, ...meta, ...(kind === 'brand' ? { label: brandLabelFor(t.key, meta.label) } : {}) };
-  });
+  return Object.values(byKey).map(t => ({ ...t, ...metaFor(DEPARTMENT_META, t.key) }));
 }
 
 /* The department/brand tile, on Categorías and the home page both.
@@ -3521,7 +3525,7 @@ function initDepartmentTiles(){
        So this grid is the eleven departments, and they carry the section
        on their own. If brands ever come back here they need a section
        and a cap, not a spread. */
-    const tiles = collectTiles('department').map(t => ({ t, kind: 'department' }));
+    const tiles = collectTiles().map(t => ({ t, kind: 'department' }));
     const catGrid = document.getElementById('catGrid');
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')
@@ -11523,8 +11527,14 @@ function initSalesFilters(){
 // small teaser grid — this is a real page with its own sort (name/product
 // count) and store filter, same UI pattern as the Ofertas page. Built from
 // the exact same real department-cache.json data as the homepage tiles
-// (collectTiles()/deptTileHTML() above) — departments and brands together,
-// never a second/fake catalog.
+// (collectTiles()/deptTileHTML() above) — never a second/fake catalog.
+//
+// DEPARTMENTS ONLY, SAME RULE AS THE HOME PAGE (2026-09-22). This grid
+// carried the brand tiles too, so pulling the wall off the home page
+// moved it here instead: 11 departments and 193 brands, 204 cards, on
+// the one page whose whole job is to let you see what we sell. Brands
+// live in "Busca por marca" inside each multi-brand store now, and
+// nothing on this page can build a tile for one — see collectTiles.
 function initCategoriesFilters(){
   document.getElementById('categoriesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
     `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
@@ -11542,10 +11552,9 @@ function renderCategoriesGrid(){
   const activeStores = Array.from(document.querySelectorAll('.categoriesStoreFilter:checked')).map(cb => cb.value);
   const sortBy = document.getElementById('categoriesSort').value;
 
-  let tiles = [
-    ...collectTiles('department').map(t => ({ ...t, kind: 'department' })),
-    ...collectTiles('brand').map(t => ({ ...t, kind: 'brand' })),
-  ].filter(t => t.retailers.some(r => activeStores.includes(r)));
+  let tiles = collectTiles()
+    .map(t => ({ ...t, kind: 'department' }))
+    .filter(t => t.retailers.some(r => activeStores.includes(r)));
 
   if (sortBy === 'count') tiles.sort((a, b) => b.count - a.count);
   else tiles.sort((a, b) => a.label.localeCompare(b.label, 'es'));

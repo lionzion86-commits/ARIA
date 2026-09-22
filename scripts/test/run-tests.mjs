@@ -4324,8 +4324,9 @@ check("a brand is named by its catalogue, never by title-casing its slug", () =>
 
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   if (!/function brandLabelFor\(/.test(src)) throw new Error("brandLabelFor is gone");
-  const tiles = src.slice(src.indexOf("function collectTiles("), src.indexOf("function deptTileHTML("));
-  if (!/brandLabelFor\(/.test(tiles)) throw new Error("the brand tiles are back to title-casing their slug");
+  /* The tiles used to need this too. They do not any more — a brand is
+     never a tile — so the one surface left that names a brand from a
+     key is its own catalogue page, and that is where it is asserted. */
   const catalog = src.slice(src.indexOf("async function openCatalog("), src.indexOf("function setCatalogStore("));
   if (!/brandLabelFor\(/.test(catalog)) throw new Error("a brand's catalogue page is titled from its slug again");
 });
@@ -4442,22 +4443,39 @@ check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
   eq(Object.keys(derived).length, 0, "Foot Locker's items now name their brand — the fallback may be enough");
 });
 
-check("the home page is departments only — the brand wall is gone", () => {
+check("no grid anywhere can build a wall of brands", () => {
   /* THE WALL: eleven department covers followed by 193 brand cards,
      each ~340px tall, as the first thing anyone met on the home page.
-     Danny's word for it was "a wall".
+     Danny's word for it was "a wall" — and pulling it off the home page
+     only moved it to Categorías, which carried the same 204 tiles on
+     the one page whose job is to show what we sell.
 
-     The guard is on initDepartmentTiles specifically, not on the file:
-     Categorías still renders brand tiles with its own sort and store
-     filter, and that is deliberate — it is an index you arrive at, not
-     the front door. */
+     SO THE GUARD IS ON THE BUILDER, NOT THE TWO CALLERS. collectTiles
+     took a `kind` and would make a tile per brand as readily as a tile
+     per department; the parameter is gone, so there is no longer a code
+     path that turns 192 brands into a grid, whoever calls it next.
+
+     Brands are not gone from the site — the panel, the route,
+     departmentItemsFor's brand branch and brandLabelFor are all live.
+     What went is the tiling. */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  const home = src.slice(src.indexOf("function initDepartmentTiles("), src.indexOf("window.addEventListener('DOMContentLoaded', initDepartmentTiles)"));
-  if (/collectTiles\('brand'\)/.test(home)) throw new Error("the brand wall is back on the home page grid");
-  if (!/collectTiles\('department'\)/.test(home)) throw new Error("the home page lost its department tiles too");
-  // The other grid is untouched, so nothing became unreachable.
-  const cats = src.slice(src.indexOf("function renderCategoriesGrid("), src.indexOf("async function liveSalesScan("));
-  if (!/collectTiles\('brand'\)/.test(cats)) throw new Error("Categorías lost its brand tiles as well");
+  const tiles = src.slice(src.indexOf("function collectTiles("), src.indexOf("function deptTileHTML("));
+  if (/brand/i.test(tiles)) throw new Error("collectTiles can make a brand tile again");
+  if (!/DEPARTMENT_SPEC/.test(tiles)) throw new Error("collectTiles lost the department taxonomy");
+
+  for (const [label, from, to] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)"],
+    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan("],
+  ]) {
+    const grid = src.slice(src.indexOf(from), src.indexOf(to));
+    if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
+    if (!/collectTiles\(\)/.test(grid)) throw new Error(`${label} lost its department tiles`);
+  }
+
+  // And the route a brand still travels is untouched.
+  if (!/openCatalog\('brand'/.test(src)) throw new Error("the brand route is gone with the tiles");
+  const items = src.slice(src.indexOf("function departmentItemsFor("), src.indexOf("function collectTiles("));
+  if (!/kind === 'brand'/.test(items)) throw new Error("a brand's products are no longer reachable");
 });
 
 check("the store's brand panel is navigable, and keeps today's route", () => {
