@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -28,6 +28,7 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as retailers from "../lib/retailers.js";
 import * as deptMap from "../lib/department-map.js";
+import { inkCoverage } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
@@ -4016,6 +4017,189 @@ check("every beauty markdown reaches Ofertas, tier and file notwithstanding", ()
   if (Math.round((1 - thin[0].price / thin[0].originalPrice) * 100) >= 5) {
     throw new Error("a real markdown is being gated out of Ofertas");
   }
+});
+
+
+/* ------------------------------------------------------------------
+   SHININESS — a virtual mall, not a database
+   ------------------------------------------------------------------ */
+group("images: the shop looks like a shop");
+
+check("no logo file is mostly empty canvas", () => {
+  /* THE BUG THIS PINS, and nothing else in the pipeline could see it.
+     logos/ssense.png was a valid 29,954-byte PNG, correctly wired and
+     correctly referenced, and it rendered as what Danny called "plain
+     styled text". The file was 2501x250 with the wordmark in the middle
+     685x146 of it: 84% empty white. object-fit: contain fits the
+     CANVAS, so the letters drew a sixth the size every other mark got,
+     and no CSS could have fixed it. It decoded, it had a sane aspect
+     ratio on paper, and it was broken. Only the pixels say so. */
+  const FLOOR = 0.35;
+  const files = readdirSync(root("logos")).filter((f) => f.endsWith(".png"));
+  if (files.length < 4) throw new Error(`only ${files.length} PNG logos found`);
+  for (const f of files) {
+    const info = inkCoverage(root(`logos/${f}`));
+    if (!info) throw new Error(`${f} is not a PNG`);
+    if (info.unsupported) throw new Error(`${f}: ${info.unsupported} — the coverage check cannot read it`);
+    if (info.coverage < FLOOR) {
+      throw new Error(
+        `${f} is ${(info.coverage * 100).toFixed(0)}% mark and ${(100 - info.coverage * 100).toFixed(0)}% empty canvas ` +
+        `(${info.w}x${info.h}, ink ${info.inkW}x${info.inkH}). Contain-fit sizes the canvas, so it will render tiny. Crop it.`,
+      );
+    }
+  }
+  // And the one that was broken is specifically fixed, with its real
+  // proportions — a 4.7:1 wordmark, in Macy's and Walmart's company.
+  const ssense = inkCoverage(root("logos/ssense.png"));
+  if (ssense.coverage < 0.7) throw new Error(`SSENSE is back to ${(ssense.coverage * 100).toFixed(0)}% coverage`);
+  if (!(ssense.aspect > 3 && ssense.aspect < 7)) throw new Error(`SSENSE is ${ssense.aspect.toFixed(1)}:1 — the padding is back`);
+});
+
+check("every registered logo file exists and is wired from the registry", () => {
+  for (const r of retailers.activeRetailers()) {
+    if (!r.logo) continue;
+    if (!existsSync(root(r.logo))) throw new Error(`${r.key} points at ${r.logo}, which is not committed`);
+  }
+  /* One badge function, reading the registry — a store whose logo is
+     wired in one place and missing in another is the drift this
+     registry exists to stop. SSENSE renders through the same path as
+     the other nine, on Tiendas and on its own store header. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/const RETAILER_LOGO_FILE = Object\.fromEntries\(Object\.values\(RETAILERS\)/.test(src)) {
+    throw new Error("logo files are no longer derived from the registry");
+  }
+  if (!/storeViewHero'\)\.innerHTML = retailerBadgeHTML\(retailer, 44\)/.test(src)) {
+    throw new Error("the store page header no longer renders the registry's logo");
+  }
+});
+
+check("retailer photos are requested at the largest size the CDN offers", () => {
+  const { upgradeImageUrl, imageRetryUrl, MACYS_IMAGE_WIDTH } = loadPageImageUrlSlice();
+  eq(MACYS_IMAGE_WIDTH, 1200);
+
+  /* Pinned against URLs taken from the committed catalogues, not from
+     examples typed into a test — a rule that works on an invented URL
+     and not on the real one is the failure mode here. */
+  const macys = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8"));
+  const macysItems = Object.values(macys.retailers).flatMap((r) =>
+    Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
+  eq(macysItems.length > 700, true, "Macy's catalogue is loaded");
+  for (const it of macysItems.slice(0, 200)) {
+    const up = upgradeImageUrl(it.image);
+    if (/[?&]wid=/.test(it.image) && !/[?&]wid=1200\b/.test(up)) throw new Error(`not upgraded: ${up}`);
+    // Only the size changes — a mangled path is a dead photo on 754 cards.
+    eq(up.replace(/wid=\d+/, "wid=X"), it.image.replace(/wid=\d+/, "wid=X"), "only wid changed");
+  }
+
+  const beauty = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+  const ys = beauty.retailers.yesstyle.departments.beauty;
+  eq(ys.length, 40, "YesStyle items");
+  for (const it of ys) {
+    const up = upgradeImageUrl(it.image);
+    if (!/\/L_[^/]+$/.test(up)) throw new Error(`YesStyle not upgraded to the large variant: ${up}`);
+    /* THE UPGRADE IS A GUESS AND CARRIES ITS OWN UNDO. The L_ variant
+       could not be probed from the build environment — every retailer
+       CDN answers 403 through the egress proxy — so the medium travels
+       with it and one 404 swaps back with no broken frame. */
+    eq(imageRetryUrl(up), it.image, "the medium is recoverable from the large");
+  }
+
+  // A store whose URLs already carry a full-size asset is left alone.
+  const ssense = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8"));
+  const one = Object.values(ssense.retailers)[0].departments;
+  const sample = Object.values(one)[0].items[0].image;
+  eq(upgradeImageUrl(sample), sample, "SSENSE URLs are untouched");
+  eq(imageRetryUrl(sample), "", "a non-speculative URL has no retry");
+  // Junk in, junk out — never a throw on the render path.
+  for (const bad of ["", null, undefined, 42]) eq(upgradeImageUrl(bad), typeof bad === "string" ? bad : "");
+});
+
+check("a deal with no photo is not featured, and a missing photo is branded", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function passesOfertasPhotoGate\(/.test(src)) throw new Error("Ofertas still features photoless tiles");
+  const gate = src.slice(src.indexOf("function passesOfertasGate("), src.indexOf("function passesOfertasGate(") + 300);
+  if (!/passesOfertasPhotoGate/.test(gate)) throw new Error("the photo gate is defined but not applied");
+
+  /* MEASURED BEFORE GATING, because a gate that empties a feed is worse
+     than the tiles it removes. Every committed product carries an
+     image, so this can only ever act on the live deals cache. */
+  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 197]]) {
+    const cat = JSON.parse(readFileSync(root(file), "utf8"));
+    const items = Object.values(cat.retailers).flatMap((r) =>
+      Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
+    eq(items.length, expected, `${file} item count`);
+    eq(items.filter((i) => !i.image).length, 0, `${file} products with no photo`);
+  }
+  const scraped = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const scrapedItems = Object.values(scraped.retailers).flatMap((r) =>
+    Object.values(r.departments || {}).flatMap((d) => d.items || []));
+  eq(scrapedItems.filter((i) => !(i.image || i.imageUrl || i.thumbnail)).length, 0, "scraped products with no photo");
+
+  // The placeholder is the brand's own frame, and it is DRAWN — a
+  // placeholder that is itself a file can fail the way the photo did.
+  if (!/function photoPlaceholderHTML\(/.test(src)) throw new Error("there is no branded placeholder");
+  const ph = src.slice(src.indexOf("function photoPlaceholderHTML("), src.indexOf("function cardPhotoHTML("));
+  if (/<img/.test(ph)) throw new Error("the placeholder is an image, so it can fail too");
+  if (!/var\(--sky\)/.test(ph) || !/ARIA/.test(ph)) throw new Error("the placeholder is not branded");
+  if (/Sin imagen/.test(src)) throw new Error("the grey 'Sin imagen' box is back");
+  // Both render paths retry a speculative URL once before giving up.
+  for (const fn of ["function cardPhotoFallback(", "function handleProductImgError("]) {
+    const body = src.slice(src.indexOf(fn), src.indexOf(fn) + 700);
+    if (!/data-img-fallback/.test(body)) throw new Error(`${fn} does not honour the retry URL`);
+    if (!/removeAttribute\('data-img-fallback'\)/.test(body)) throw new Error(`${fn} can loop on a dead fallback`);
+  }
+});
+
+check("every browse grid is photographs, and no grid is emoji", () => {
+  /* The store page's department list — the first screen of Macy's,
+     SSENSE or Sephora — was a 26px emoji over a label and a count. It
+     is the same tile the aisle list uses now. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function browseTileHTML\(/.test(src)) throw new Error("there is no shared browse tile");
+  const tile = src.slice(src.indexOf("function browseTileHTML("), src.indexOf("function catalogAisleCardHTML("));
+  if (!/<img/.test(tile)) throw new Error("the browse tile shows no photograph");
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(tile)) throw new Error("an emoji is on the browse tile");
+
+  // Both grids go through it — that is what stops the next one being
+  // invented as text again.
+  const aisle = src.slice(src.indexOf("function catalogAisleCardHTML("), src.indexOf("function catalogAisleListHTML("));
+  if (!/browseTileHTML\(/.test(aisle)) throw new Error("the aisle card no longer uses the shared tile");
+  const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+  if (!/browseTileHTML\(/.test(store)) throw new Error("the store's department grid is not the shared tile");
+  if (/meta\.icon/.test(store)) throw new Error("the store's department grid still renders an emoji");
+  if (!/deptPhoto\(/.test(store)) throw new Error("the store's department tiles carry no product photo");
+
+  /* And a real store really produces one. Macy's departments have to
+     yield a photo per tile from the committed export, or the grid is a
+     row of text cards on the busiest storefront on the site. */
+  const macys = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8"));
+  for (const key of ["women", "clothing"]) {
+    const items = deptMap.departmentItems(macys.retailers.macys, key);
+    if (!items.length) continue;
+    if (!items.some((i) => i.image)) throw new Error(`Macy's ${key} tile would have no photo`);
+  }
+
+  /* NO TILE WEARS ANOTHER TILE'S PHOTO. Ofertas is not a shelf of its
+     own — it is whatever is marked down across the other shelves — so
+     on Macy's, whose only two departments are Moda Mujer and Ofertas,
+     one product can be the first item of both and the naive "first item
+     with an image" would print it twice.
+
+     IT DOES NOT TODAY, and this test says so rather than pretending it
+     caught a live bug: Macy's first women's item simply happens not to
+     be marked down. That is data, not structure — the overlap below is
+     what makes the collision possible, and a re-export is all it takes.
+     The guard is cheap and the failure is ugly, so it stays. */
+  if (!/usedPhotos/.test(store)) throw new Error("department tile photos are no longer deduped");
+  const women = deptMap.departmentItems(macys.retailers.macys, "women").map((i) => i.image).filter(Boolean);
+  const sale = deptMap.departmentItems(macys.retailers.macys, "sale").map((i) => i.image).filter(Boolean);
+  if (!sale.length) throw new Error("Macy's has no sale department to collide with");
+  // The overlap is real — every Ofertas item is also a Moda Mujer item —
+  // which is exactly why two tiles can land on one photo.
+  const inWomen = new Set(women);
+  if (!sale.every((u) => inWomen.has(u))) throw new Error("Ofertas is no longer a subset of Moda Mujer");
+  // And there is a second photo to move to when they do collide.
+  if (new Set(sale).size < 2) throw new Error("Ofertas has no second photo to fall back to");
 });
 
 /* ------------------------------------------------------------------ */

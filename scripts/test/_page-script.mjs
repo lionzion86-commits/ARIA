@@ -261,3 +261,27 @@ export function loadPageEnvelopeSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The image-URL upgrader. Retailer CDNs size by query parameter or by
+   filename prefix, and getting either wrong is a broken photo on every
+   card — so the rules are pinned against real URLs from the committed
+   catalogues rather than against examples someone typed. */
+const IMGURL_START = "const MACYS_IMAGE_WIDTH =";
+const IMGURL_END = "function photoPlaceholderHTML(";
+
+export function loadPageImageUrlSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(IMGURL_START);
+  const to = html.indexOf(IMGURL_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html image-url slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { upgradeImageUrl, imageRetryUrl, MACYS_IMAGE_WIDTH };",
+    sandbox,
+    { filename: "index.html#image-url" },
+  );
+  return sandbox.__exports;
+}

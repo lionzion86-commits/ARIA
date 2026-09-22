@@ -3028,20 +3028,113 @@ function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', as
    card on the storefront into a broken-image icon. The same placeholder
    the no-image case already uses is the honest answer, and it costs one
    attribute to cover the whole site. */
-function cardPhotoHTML(src, { alt = '', onerror = '' } = {}){
-  const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
-  return src
-    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"
-             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
-    : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`;
+/* ============================================================
+   ASK THE CDN FOR A BIGGER FILE (2026-09-22)
+
+   Every retailer image on this site is a URL WE BUILD THE QUERY ON, not
+   a fixed asset, and the size is a parameter. Macy's export ships
+   `wid=600`, which has no headroom left on a retina phone and none at
+   all under the detail page's pinch-zoom -- the 600px file is being
+   drawn at 600 CSS px on a 3x screen. One parameter buys the crispness.
+
+   WHY HERE AND NOT IN THE DATA FILES. macys-catalog.json and
+   beauty-catalog.json are tracked against a data branch. Rewriting 754
+   URLs in a committed export forks it from its source and the edit has
+   to be redone on every re-pull -- the same reasoning that put
+   normalizeCatalogueEnvelope() at the load boundary. This runs on the
+   way into normalizeLiveItem, so every surface gets it and no file
+   changes.
+
+   A SPECULATIVE UPGRADE CARRIES ITS OWN UNDO. YesStyle's CloudFront
+   assets are named by size prefix -- M_p0114021549.jpg is the medium --
+   and L_ at the same path is the large. That variant could NOT be
+   verified from this build environment: every retailer CDN answers 403
+   through the egress proxy here, so nothing was probed. So the L_ URL
+   ships with the M_ URL attached as a fallback, and the first image that
+   404s swaps back with no broken frame and no lost product. If L_ turns
+   out not to exist, the cost is one failed request per image on a cold
+   cache and the shopper sees the medium they would have seen anyway.
+   Macy's `wid` is NOT speculative -- it is the same asset at a different
+   size -- so it carries no fallback.
+   ============================================================ */
+const MACYS_IMAGE_WIDTH = 1200;
+
+function upgradeImageUrl(url){
+  const u = typeof url === 'string' ? url : '';
+  if (!u) return u;
+  // Macy's Scene7: wid= is the rendered width. Only ever raised.
+  if (/macysassets\.com/i.test(u)) {
+    return u.replace(/([?&]wid=)(\d+)/i, (m, p, n) =>
+      Number(n) < MACYS_IMAGE_WIDTH ? p + MACYS_IMAGE_WIDTH : m);
+  }
+  // YesStyle CloudFront: .../Assets/49/215/M_p0114021549.jpg -> L_...
+  if (/cloudfront\.net\/Assets\//i.test(u)) return u.replace(/\/M_([^/]+)$/, '/L_$1');
+  return u;
 }
 
-/** Replace an unloadable photo with the same placeholder a missing one gets. */
+/**
+ * The URL to retry with when a SPECULATIVE upgrade fails, or ''.
+ *
+ * Derived from the upgraded URL rather than remembered alongside it, so
+ * nothing has to carry a second field through the cart, the cache and
+ * the router for one retailer's sake. Only the guess is reversible:
+ * Macy's `wid` is the same asset at another size and has nothing to fall
+ * back to.
+ */
+function imageRetryUrl(url){
+  const u = typeof url === 'string' ? url : '';
+  return /cloudfront\.net\/Assets\//i.test(u) ? u.replace(/\/L_([^/]+)$/, '/M_$1') : '';
+}
+
+/* ============================================================
+   NO PRODUCT WEARS A GREY BOX (2026-09-22)
+
+   The missing-photo state was the words "Sin imagen" in light grey on
+   white -- which on a wall of real photographs reads as a broken tile,
+   not as a designed one. It is the shop's own frame now: the brand's
+   sky field, the Aria mark in navy, and a line that says what is
+   actually true. Nobody has to wonder whether the page is broken.
+
+   It is drawn, not an <img>. A placeholder that is itself a file can
+   fail the same way the photo did, and then there is nothing at all. */
+function photoPlaceholderHTML(note = 'Foto en camino'){
+  return `<div class="w-full h-full grid place-items-center" style="background:var(--sky)">
+    <div class="text-center px-4">
+      <div class="text-[15px] font-extrabold tracking-[0.16em]" style="color:var(--navy); opacity:.55">ARIA</div>
+      <div class="text-[11px] mt-1 font-semibold" style="color:var(--navy); opacity:.42">${escapeHtml(note)}</div>
+    </div>
+  </div>`;
+}
+
+function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '' } = {}){
+  const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
+  return src
+    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"${
+        fallbackSrc ? ` data-img-fallback="${escapeHtml(fallbackSrc)}"` : ''}
+             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
+    : photoPlaceholderHTML();
+}
+
+/**
+ * A photo that would not load.
+ *
+ * TWO STAGES, and the order matters: an image that carries a fallback
+ * URL (a speculative size upgrade -- see upgradeImageUrl) gets ONE retry
+ * at the URL we know works, and only a second failure reaches the
+ * placeholder. The attribute is cleared before the retry so a fallback
+ * that also fails cannot loop.
+ */
 function cardPhotoFallback(img){
+  const alt = img.getAttribute('data-img-fallback');
+  if (alt){
+    img.removeAttribute('data-img-fallback');
+    img.src = alt;
+    return;
+  }
   const holder = document.createElement('div');
-  holder.className = 'w-full h-full grid place-items-center text-zinc-300 text-[12px]';
-  holder.textContent = 'Sin imagen';
-  img.replaceWith(holder);
+  holder.className = 'w-full h-full';
+  holder.innerHTML = photoPlaceholderHTML();
+  img.replaceWith(holder.firstElementChild);
 }
 
 /* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
@@ -3584,25 +3677,78 @@ function catalogSearchBarHTML(){
    cover, not contain: a packshot is centred, so cropping takes white
    space off the edges; contain would letterbox every tile and make the
    grid look like a spreadsheet. */
-function catalogAisleCardHTML(row, total){
-  const pct = total ? Math.round((row.count / total) * 100) : 0;
-  const photo = row.image ? `<div class="mb-2.5 -mx-4 -mt-4 aspect-[4/3] overflow-hidden" style="background:var(--sky)">
-      <img src="${escapeHtml(row.image)}" alt="" loading="lazy" decoding="async"
+/* ============================================================
+   THE BROWSE TILE — one component for every "pick a shelf" grid.
+
+   There were two of these and they had drifted into opposite ends of
+   the site. The AISLE list (inside a department) had just been given a
+   real product photo; the STORE'S DEPARTMENT list -- the first screen
+   of Macy's, SSENSE, Sephora -- was still a 26px emoji over a label and
+   a count. Same object, same job, two looks, and the emoji one was the
+   first thing a shopper saw when they tapped a store.
+
+   So it is one function. A photo, a name, how many things are behind
+   it, and a bar for how big a share of what you are looking at it is.
+   A new grid gets the treatment for free, which is what stops the next
+   one from being invented as text again.
+
+   THE PHOTO IS A REAL PRODUCT from that shelf -- first item with an
+   image -- from the store's own CDN. Never an illustration, never an
+   emoji, and never a tile promising something that is not behind it.
+
+   NO PHOTO IS A REAL STATE, not a broken one: a store whose export
+   carries no images renders the text card this replaced, rather than a
+   grey box or an emoji standing in for a picture.
+   ============================================================ */
+/** A tile photo that failed: retry once at the known-good URL, then
+    drop the frame so the tile reads as the text card, never as a break. */
+function browseTilePhotoError(img){
+  const alt = img.getAttribute('data-img-fallback');
+  if (alt){
+    img.removeAttribute('data-img-fallback');
+    img.src = alt;
+    return;
+  }
+  img.parentNode.remove();
+}
+
+function browseTileHTML({ label, count, image, pct = 0, onclick }){
+  /* THE SAME TWO-STAGE RETRY THE PRODUCT CARDS GET, and it is not
+     optional here. A speculative size upgrade (upgradeImageUrl) that
+     turns out not to exist would otherwise strip the photo off every
+     tile in the grid on the first load -- which is exactly what
+     happened to YesStyle in test, where the L_ variant 404s. One retry
+     at the URL we know works, then the frame goes rather than leaving a
+     broken-image glyph. */
+  const retry = image ? imageRetryUrl(image) : '';
+  const photo = image ? `<div class="mb-2.5 -mx-4 -mt-4 aspect-[4/3] overflow-hidden" style="background:var(--sky)">
+      <img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async"${
+        retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''}
         style="width:100%; height:100%; object-fit:cover; object-position:center"
-        onerror="this.parentNode.remove()">
+        onerror="window.browseTilePhotoError && browseTilePhotoError(this)">
     </div>` : '';
-  return `<button onclick="setCatalogSub('${jsAttr(row.key)}')"
-    class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-sm w-full overflow-hidden"
+  return `<button onclick="${onclick}"
+    class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)] w-full overflow-hidden"
     style="border-color:var(--line); background:#fff">
     ${photo}
     <div class="flex items-baseline justify-between gap-3">
-      <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:var(--navy)">${escapeHtml(row.label)}</span>
-      <span class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#6B7487">${row.count}</span>
+      <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:var(--navy)">${escapeHtml(label)}</span>
+      <span class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#6B7487">${count}</span>
     </div>
     <div class="mt-2 h-1 rounded-full overflow-hidden" style="background:var(--sky)">
       <div class="h-full rounded-full" style="width:${Math.max(4, pct)}%; background:var(--navy); opacity:.55"></div>
     </div>
   </button>`;
+}
+
+function catalogAisleCardHTML(row, total){
+  return browseTileHTML({
+    label: row.label,
+    count: row.count,
+    image: row.image,
+    pct: total ? Math.round((row.count / total) * 100) : 0,
+    onclick: `setCatalogSub('${jsAttr(row.key)}')`,
+  });
 }
 
 function catalogAisleListHTML(grouped, storeLabel){
@@ -4102,28 +4248,65 @@ async function openStore(retailer){
   // it actually carries stock for, which is no longer the same thing as
   // "has a bucket of that name". Walmart now shows Moda Hombre and Ofertas
   // here without ever having had a bucket called either.
+  /* The ITEMS, not just the count: the tile shows a real product photo
+     from the department behind it, so the list has to look at what is
+     actually in there. This is the same read the count already did. */
   const carried = Object.keys(DEPARTMENT_SPEC)
-    .map(key => [key, departmentItemsFor(retailerData, 'department', key).length])
-    .filter(([, count]) => count > 0);
+    .map(key => [key, departmentItemsFor(retailerData, 'department', key)])
+    .filter(([, items]) => items.length > 0);
   // Ropa is redundant next to the gendered pages for a fashion retailer —
   // it is the same stock split three ways.
   const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
   const deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
+  const storeTotal = deptEntries.reduce((n, [, items]) => n + items.length, 0);
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = 'Sin departamentos disponibles por ahora.';
     return;
   }
   document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${deptEntries.length > 1 ? 's' : ''} disponibles`;
-  document.getElementById('storeViewSections').innerHTML += `<div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
-    deptEntries.map(([key, count]) => {
-      const meta = metaFor(DEPARTMENT_META, key);
-      return `<button onclick="openCatalog('department','${key}',{retailerFilter:'${retailer}'})" class="rounded-2xl border p-5 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="text-[26px] mb-2">${meta.icon}</div>
-        <div class="font-bold text-[14px]">${escapeHtml(meta.label)}</div>
-        <div class="text-[12px] text-zinc-500 mt-0.5">${count} producto${count === 1 ? '' : 's'}</div>
-      </button>`;
-    }).join('')
+  /* THE FIRST SCREEN OF A STORE IS PRODUCTS, NOT ICONS (2026-09-22).
+
+     This grid was a 26px emoji over a label and a count -- the tile a
+     shopper meets the instant they tap Macy's or SSENSE, and the most
+     database-looking thing on the site. It is the same browse tile the
+     aisle list uses now, with a real photograph from the department it
+     opens. See browseTileHTML.
+
+     DEPARTMENTS OVERLAP, SO THE FACES ARE DEDUPED. Ofertas is not a
+     shelf of its own -- it is whatever is marked down across the other
+     shelves -- so on Macy's, whose only two departments are Moda Mujer
+     and Ofertas, one product can be the first item of both. It is not
+     today (measured: 37875082 against 37525083, because Macy's first
+     women's item happens not to be marked down) and that is luck, not
+     structure: a re-export that puts a discounted dress first gives
+     both tiles the same photograph, and two identical images side by
+     side read as a rendering bug -- worse than the emoji this replaced.
+     So each tile takes the first photo the grid has not used yet, and
+     repeats one only when its department has nothing else, because a
+     duplicate still beats a hole. */
+  const usedPhotos = new Set();
+  const photoOf = (it) => upgradeImageUrl(safeUrl(it?.image || it?.imageUrl || it?.thumbnail) || '');
+  const deptPhoto = (items) => {
+    let firstSeen = null;
+    for (const it of items){
+      const url = photoOf(it);
+      if (!url) continue;
+      if (!firstSeen) firstSeen = url;
+      if (usedPhotos.has(url)) continue;
+      usedPhotos.add(url);
+      return url;
+    }
+    return firstSeen;
+  };
+  document.getElementById('storeViewSections').innerHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${
+    deptEntries.map(([key, items]) => browseTileHTML({
+      label: metaFor(DEPARTMENT_META, key).label,
+      count: items.length,
+      image: deptPhoto(items),
+      pct: storeTotal ? Math.round((items.length / storeTotal) * 100) : 0,
+      onclick: `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`,
+    })).join('')
   }</div>`;
 }
 
@@ -5380,9 +5563,31 @@ let pendingProduct = null;
 let productGallery = [];
 let productGalleryIndex = 0;
 
+/* One place that points the detail image at a URL, so the retry is
+   attached every time and not only on the path somebody remembered. */
+function setProductImageSrc(img, src){
+  if (!img) return;
+  const retry = imageRetryUrl(src);
+  if (retry) img.setAttribute('data-img-fallback', retry);
+  else img.removeAttribute('data-img-fallback');
+  img.src = src;
+}
+
 function handleProductImgError(){
+  const img = document.getElementById('productViewImg');
+  /* ONE RETRY FIRST. A speculative size upgrade (see upgradeImageUrl)
+     carries the URL it replaced, and the detail page has to honour it
+     for the same reason the card does -- otherwise the biggest image on
+     the site is the one most likely to be missing. Cleared before the
+     retry so a dead fallback cannot loop. */
+  const alt = img && img.getAttribute('data-img-fallback');
+  if (alt){
+    img.removeAttribute('data-img-fallback');
+    img.src = alt;
+    return;
+  }
   // A dead image URL must not leave a broken frame sitting there.
-  document.getElementById('productViewImg').classList.add('hidden');
+  img.classList.add('hidden');
   document.getElementById('productViewImgFallback').classList.remove('hidden');
   productMagnifierOff();
 }
@@ -5406,7 +5611,7 @@ function selectProductImage(i){
   if (!productGallery[i]) return;
   productGalleryIndex = i;
   const img = document.getElementById('productViewImg');
-  img.src = productGallery[i];
+  setProductImageSrc(img, productGallery[i]);
   img.classList.remove('hidden');
   document.getElementById('productViewImgFallback').classList.add('hidden');
   renderProductThumbs();
@@ -5531,7 +5736,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const img = document.getElementById('productViewImg');
   const fallback = document.getElementById('productViewImgFallback');
   if (productGallery.length){
-    img.src = productGallery[0];
+    setProductImageSrc(img, productGallery[0]);
     img.classList.remove('hidden');
     fallback.classList.add('hidden');
   } else {
@@ -7681,6 +7886,10 @@ function normalizeLiveItem(item, hints){
      An item with NO imageReview field is a live scrape result, which this
      pipeline cannot screen in the browser. Those are left as-is. */
   if (item.imageReview && item.imageReview !== 'clean') images = [];
+  /* THE BIGGEST FILE THE CDN WILL GIVE US, decided once, here, so the
+     card, the gallery, the lightbox and the deals feed all show the same
+     asset at the same size. See upgradeImageUrl. */
+  images = images.map(upgradeImageUrl);
   const image = images[0] || null;
   /* REAL RETAILER DATA OR NOTHING (2026-09-20).
 
@@ -11107,8 +11316,30 @@ function passesOfertasFreightCeiling(p){
   return freightSharePct(kg, price) <= FREIGHT_FEATURE_CEILING;
 }
 
+/* A DEAL IS A PICTURE OF A THING (2026-09-22).
+
+   Ofertas is the shiniest surface on the site and it was carrying
+   photoless tiles: a grey "Sin imagen" box between real product
+   photographs, which reads as a broken page rather than as a bargain.
+
+   Measured first, because a gate that empties a feed is worse than the
+   tiles it removes: all 754 Macy's, 2,426 SSENSE, 197 beauty and 613
+   scraped-cache products carry an image, so this can only ever act on
+   the LIVE deals cache, where sales-cache.js stores `image` as nullable
+   and a scrape occasionally returns none.
+
+   NOTHING IS HIDDEN FROM THE SHOP. The product keeps its place in its
+   store and in its category, where the placeholder now reads as the
+   brand's own frame. What it does not get is a promoted tile -- the same
+   line already drawn for a trivial markdown and for an unquotable
+   weight: Ofertas FEATURES things, and we do not feature what we cannot
+   show. */
+function passesOfertasPhotoGate(p){
+  return Boolean(p && typeof p.image === 'string' && p.image);
+}
+
 function passesOfertasGate(p){
-  return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p);
+  return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p) && passesOfertasPhotoGate(p);
 }
 
 
@@ -11319,7 +11550,7 @@ function productCardHTML(p, opts){
       : '';
   return `
   <div class="${CARD_SHELL_CLASS}" style="border-color:var(--line)">
-    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image), open, overlay: badgeHTML })}
+    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) }), open, overlay: badgeHTML })}
     <div class="p-4 flex flex-col flex-1">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div>${retailerBadgeHTML(p.retailer, 20)}</div>
