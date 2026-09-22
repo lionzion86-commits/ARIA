@@ -4522,6 +4522,60 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
 
 
 /* ------------------------------------------------------------------ */
+group("cómo funciona: the shopper is the one doing the buying");
+
+check("step 3 never makes us the buyer", () => {
+  /* DANNY'S READ (2026-09-22): "Al confirmar tu pedido, NOSOTROS LO
+     COMPRAMOS directamente en la tienda de origen" sounded like a person
+     taking the customer's money and going shopping on their behalf. That
+     is a glorified Miami locker, not a shop, and it is the opposite of
+     what the site is: the customer buys here, from the official store.
+
+     THE RULE, NOT THE WORDING. Copy gets rewritten and should; what must
+     not come back is the SUBJECT flipping to us in this step. So this
+     asserts the grammar of the promise rather than freezing a sentence
+     — the phrasings below can all be reworded freely as long as the
+     shopper stays the one doing the buying.
+
+     SCOPED TO STEP 3 ON PURPOSE. Step 4 is "Consolidamos en Miami", and
+     there the first person is correct and true: we really do consolidate
+     the parcel. The slice stops at the STEP 4 marker so this can never
+     start policing a sentence it was not written for. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const from = html.indexOf('<div class="ariaKicker mb-3">Compra directa</div>');
+  const to = html.indexOf("<!-- STEP 4 -->");
+  if (from < 0) throw new Error("the Compra directa section is gone — this check needs re-anchoring");
+  if (to < 0 || to <= from) throw new Error("the STEP 4 marker moved — re-anchor before trusting this check");
+  const step3 = html.slice(from, to);
+
+  // Us as the buyer, in the forms that actually appeared or nearly did.
+  for (const phrase of [
+    "nosotros lo compramos",
+    "nosotros compramos",
+    "lo compramos",
+    "compramos por ti",
+    "compramos en la tienda",
+    "compramos el producto",
+  ]) {
+    if (step3.toLowerCase().includes(phrase)) {
+      throw new Error(`step 3 says "${phrase}" — the shopper buys here, we are not their shopper`);
+    }
+  }
+
+  // And the shopper really is the subject, not merely absent.
+  if (!/\bcompras\b/i.test(step3)) throw new Error("step 3 no longer says the shopper buys at all");
+
+  /* The trust point survives the rewrite, moved to the shopper's side:
+     no resellers, and the store's own guarantee. */
+  if (!/revendedores|revendedor/i.test(step3)) throw new Error("the no-resellers promise fell out of step 3");
+  if (!/garant[ií]a/i.test(step3)) throw new Error("the store's own guarantee is no longer named");
+
+  // Step 4 is untouched and still ours to do, which is why it is excluded.
+  const step4 = html.slice(to, to + 1200);
+  if (!/Consolidamos/i.test(step4)) throw new Error("step 4 lost its first person — that one was correct");
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);
