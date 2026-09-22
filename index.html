@@ -111,6 +111,10 @@
      at the end of a scroll and it means no card, no button and no line of
      copy is ever behind the orb. The variable is the single place to
      change if the orb's docked size changes. */
+  /* The device's own safe area, exposed as numbers JS can read: the swim
+     loop needs them to anchor above a home indicator, and env() cannot
+     be read from script directly. 0px everywhere that has no notch. */
+  :root{ --orb-safe-b: env(safe-area-inset-bottom, 0px); --orb-safe-r: env(safe-area-inset-right, 0px) }
   :root{ --orb-dock-safe: 104px }
   .view{ padding-bottom: var(--orb-dock-safe) }
   @media (min-width:1024px){ .view{ padding-bottom: 32px } }
@@ -2447,287 +2451,124 @@ function metaFor(map, key){
   return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '🛍️' };
 }
 
-// BUG FIX (2026-09-17): the department tile cover image used to be
-// "whichever item, in cache order, happens to be first and merely has a
-// non-empty image field" — no relevance check at all. Since Walmart is
-// first in cache order, its first item for a department won by luck alone
-// regardless of fit: electronics showed a TV wall-mount, pharmacy showed a
-// sparkling energy drink, sporting_goods showed a car first-aid kit — all
-// real scraped items, just not representative of the department. This
-// only excludes those specific known-bad categories (a denylist, not an
-// exhaustive allowlist of "good" titles, since we can't anticipate every
-// real product a live scrape might return) and only for the three
-// departments actually reported wrong — every other department keeps its
-// existing behavior unchanged.
-const DEPARTMENT_THUMB_EXCLUDE = {
-  electronics: /\bmount\b|\bcase\b|\bcable\b|\bcharger\b|\bscreen protector\b/i,
-  /* PHARMACY IS A TRUST CATEGORY (2026-09-21). Reported from the live
-     site: Salud y Farmacia was fronted by a parasite-cleanse supplement.
-     A shopper deciding whether to give an import shop their card reads
-     that as "this place sells quack medicine", and no amount of honest
-     freight copy recovers from that first impression.
-
-     So the cleanse/detox/diet shelf cannot be the FACE of the category.
-     It is not delisted: those products stay searchable, stay in the
-     category feed and stay buyable. We just do not make one the poster. */
-  pharmacy: /\bsoda\b|\benergy drink\b|\bsparkling\b|\bcandy\b|\bchocolate\b|\bparasite\b|\bcleanse\b|\bdetox\w*\b|\bcolon\b|\bflush\b|\bpurge\b|\bdewormer\b|\bweight[ -]?loss\b|\bfat[ -]?burn\w*\b|\bslimming\b|\bdiet pills?\b|\bappetite suppress\w*\b/i,
-  sporting_goods: /\bfirst aid\b|\bbandage\b|\bband-?aid\b/i,
-  /* Reported the same day: Dulces y Chocolates led with a Juicy Drop —
-     a liquid-sour novelty that reads as a corner-shop impulse buy rather
-     than the premium confectionery the category is meant to sell. Same
-     rule as pharmacy: kept off the tile, kept on the shelf. */
-  candy_chocolate: /\bjuicy drop\b|\bsour (?:spray|gel|tube|straw)\b|\bliquid candy\b|\bspray candy\b|\bpowder(?:ed)? candy\b|\bnovelty\b|\bslime\b|\bwhistle pop\b|\bring pop\b/i,
-};
-
 /* ============================================================
-   CATEGORY TILE IMAGES (2026-09-20) — rebuilt in three layers.
+   CATEGORY COVERS ARE CURATED, NEVER SCRAPED (2026-09-22)
 
-   REJECTED, AND WHY. The old rule was "first cached item with a non-empty
-   image field, unless it matches a small denylist". That is not a choice,
-   it is an accident of cache order, and it showed: half-objects, obscure
-   SKUs nobody recognises, and apparel shots cropped to a fragment of a
-   person because the tile was object-cover on a portrait photo.
+   THE BUG, from a live phone: Electrónica fronted by a USB stick and a
+   cable, Salud y Farmacia by a bag of wormwood-and-black-walnut parasite
+   cleanse, Ropa by a headless torso in cargo pants. Danny's word for it
+   was "cajón de sastre" — a junk drawer — and that is exactly right.
 
-   LAYER 1 — A PIN BEATS EVERYTHING. CATEGORY_IMAGE_PIN below is the
-   manual override: put a key in it and that category's tile uses that
-   image permanently, whatever the scrape returns tomorrow. It takes a
-   local path (assets/category/<key>.jpg) or any URL. Nothing else needs
-   to change; this is the escape hatch for any tile the automatic choice
-   gets wrong.
+   WHAT WAS TRIED AND IS NOW RETIRED. Three rounds of this: first "the
+   first cached item with an image", then a scored selection over every
+   candidate, then per-category denylists and a cross-tile de-duplicator
+   on top of that. Each round removed a class of embarrassment and none
+   of them could work, for one reason that no amount of tuning fixes:
 
-   LAYER 2 — SCORED SELECTION, NOT FIRST-PAST-THE-POST. Every candidate
-   item in the category is scored and the best one wins (see
-   scoreTileCandidate). The signals are the ones a title can actually
-   carry: is this a HERO product for the category (a television for
-   electronics, a pair of trainers for Moda Hombre) or a peripheral one;
-   is it an accessory, a refill, a spare part, a multipack, a gift card —
-   the things that photograph as an unrecognisable fragment; and is the
-   title short and plain, because a 140-character title with four variant
-   codes in it is almost never the category's most recognisable product.
+     THE SCORER READS TITLES, NOT PIXELS.
 
-   LAYER 3 — NOTHING IS CROPPED. The tile fits the image inside itself
-   (object-fit: contain, centred) on a soft neutral field instead of
-   filling and cropping it. That is what actually kills the "cropped body
-   fragment" and "half-object" class of problem: a portrait apparel shot
-   now sits centred and whole with air either side, rather than having its
-   head and feet cut off to fill a landscape box. Retail product shots are
-   overwhelmingly on white, so they sit on the field cleanly.
+   "Cargo Pants With Stretch" is a perfectly good title. It is also a
+   photo of a decapitated mannequin. Nothing in the string says so. A
+   category's cover is the one image on the site that has to be chosen by
+   somebody who can SEE it, and a scraper feed cannot supply that.
 
-   HONEST LIMIT: none of this looks at the PIXELS. We score titles, not
-   photographs. A badly shot product with a perfect title can still win,
-   and that is exactly what layer 1 is for.
+   SO THE COVER IS ART, NOT INVENTORY. Two layers:
+
+     1. A CURATED FILE, if one exists for the category — dropped into
+        assets/category/<key>.<ext> and listed in CATEGORY_COVERS below.
+        This is the real answer and the only source of a photograph.
+     2. OTHERWISE A DESIGNED COVER: the brand's own navy-to-sky field
+        with the category's mark on it. Consistent across every tile by
+        construction, never a junk drawer, and it cannot carry a price
+        because there is no photograph in it.
+
+   There is deliberately no third layer back to the scraper. A category
+   with no curated file gets the designed cover, not a lucky dip.
+
+   THE PERMANENT RULE, from the brief: never a product photo with prices
+   or numbers printed on it. It is enforced structurally rather than by
+   pattern-matching — layer 2 has no photo at all, and layer 1 only
+   accepts a LOCAL asset path, so a retailer's image URL can never
+   become a cover. assertCuratedCover() below is what says no, and a test
+   pins it.
    ============================================================ */
 
-/* MANUAL OVERRIDE — pin a category's tile image permanently.
-   e.g.  electronics: 'assets/category/electronics.jpg',
-         women:       'https://…/some-image.jpg',
-   A pinned key skips scoring entirely. Empty by default: nothing is
-   pinned until a human looks at a tile and decides. */
-const CATEGORY_IMAGE_PIN = {};
+/* Curated covers, by category key. Empty until real art exists: a
+   missing entry is not a gap, it is the designed cover doing its job.
 
-/* Products that photograph as something unrecognisable, in any category:
-   accessories and spares (a photo of a bracket), refills and multipacks
-   (a photo of a pile of boxes), gift cards, and anything sold as a
-   fragment of a thing. Heavily penalised, never hard-excluded — a
-   category that sells nothing else still needs a tile.
+   To add one: save the file as assets/category/<key>.jpg (or .png /
+   .webp), add the line here, and nothing else changes.
+       electronics: 'assets/category/electronics.jpg',
 
-   A bare COUNT ("90ct", "120 Count") is deliberately NOT penalised: it is
-   ordinary retail labelling on a single bottle, and penalising it ranked
-   a weight-loss pill above a multivitamin on the Salud tile. Only a
-   genuine MULTIPACK counts against a candidate. */
-const TILE_IMAGE_PENALISE = /\b(refill|replacement|spare|repuesto|accessor\w*|adapter|adaptador|bracket|mount|soporte|strap|correa|filter|filtro|liner|insert|cartridge|cartucho|gift ?card|tarjeta de regalo|sticker|decal|label|etiqueta|sample|muestra|travel size|mini size|swatch|assorted|surtido|variety pack|bundle|\d{1,3}\s?[- ]?(?:pack|pk|pcs?|pieces?))\b/i;
+   Shoot or source them at roughly 1200x750 (the window is 16:10-ish and
+   up to 340px tall on a wide screen, so that is ~3x for retina). One
+   photographic style across the set matters more than any single image:
+   the tiles are seen as a column, and a mixed set reads as the junk
+   drawer this replaced even when each photo is good on its own. */
+const CATEGORY_COVERS = {};
 
-/* A raw model code in the title ("32S2V1", "WH1000XM5B") is a sign of a
-   listing written for a catalogue rather than for a person, and those
-   listings tend to carry the flattest, least recognisable photography.
-   A mild penalty, not a veto. */
-const TILE_SKU_NOISE_RE = /\b(?=[A-Z0-9-]{5,}\b)(?=[A-Z-]*\d)[A-Z0-9-]+\b/;
-
-/* The most recognisable thing each category sells — what a shopper would
-   draw if you asked them to draw the category. Two tiers, because "a
-   television" and "a webcam" are both electronics but only one of them
-   says ELECTRONICS at 146 pixels tall: [0] is the face of the category,
-   [1] is a solid second choice. */
-const TILE_IMAGE_HERO = {
-  electronics: [
-    /\b(tv|television|televisor|laptop|macbook|headphones?|aud[ií]fonos)\b/i,
-    /\b(speaker|parlante|tablet|ipad|smartwatch|console|playstation|xbox|nintendo|camera|c[áa]mara|monitor)\b/i,
-  ],
-  /* ROPA IS THE PARENT OF MODA HOMBRE, SO IT MUST NOT LEAD WITH THE SAME
-     THING (2026-09-21). Both categories used to put `jeans` in tier 0,
-     and Ropa's candidate pool CONTAINS all of Moda Hombre's — so the two
-     tiles reliably landed on the same pair of jeans, and after
-     deduplication on two different photos of the same pair of jeans.
-     That still reads as one category printed twice.
-
-     Jeans are what Moda Hombre is for. Ropa is the whole apparel aisle,
-     and an outerwear or dress silhouette says "clothing in general" at
-     tile size in a way a fifth pair of men's jeans does not. Jeans stay
-     in tier 1, so a catalogue with nothing else in it still gets a tile. */
-  clothing: [
-    /\b(dress|coat|jacket|vestido|abrigo|casaca)\b/i,
-    /\b(jeans?|hoodie|sweater|shirt|polo|chompa|camisa|pantal[óo]n)\b/i,
-  ],
-  men: [
-    /\b(jeans?|jacket|sneakers?|casaca|zapatillas)\b/i,
-    /\b(hoodie|sweater|shirt|polo|shoes?|boots?|camisa|chompa)\b/i,
-  ],
-  women: [
-    /\b(dress|jeans?|jacket|heels?|vestido|casaca)\b/i,
-    /\b(blouse|skirt|sweater|sneakers?|boots?|blusa|falda|chompa|zapatillas)\b/i,
-  ],
-  kids: [
-    /\b(jacket|sneakers?|dress|casaca|zapatillas)\b/i,
-    /\b(hoodie|shoes?|jeans?|t-?shirt|polo)\b/i,
-  ],
-  candy_chocolate: [
-    /\b(chocolate|chocolates|lollipop)\b/i,
-    /\b(candy|gummy|gummies|caramelo|chicle|bar)\b/i,
-  ],
-  sporting_goods: [
-    /\b(basketball|soccer ?ball|f[úu]tbol|bicycle|bike|bicicleta|pelota)\b/i,
-    /\b(football|baseball|dumbbell|yoga mat|tent|kayak|treadmill|racket|raqueta)\b/i,
-  ],
-  home_goods: [
-    /\b(comforter|duvet|quilt|pillow|blanket|rug|lamp|curtains?|edred[óo]n|almohada|cortinas?|alfombra)\b/i,
-    /\b(sheet set|towel|toalla|cushion|throw)\b/i,
-  ],
-  pharmacy: [
-    /\b(vitamin|multivitamin|vitamina|multivitam[íi]nico)\b/i,
-    /\b(supplement|suplemento|omega|probiotic|collagen|magnesium|magnesio)\b/i,
-  ],
-  beauty: [
-    /\b(lipstick|labial|perfume|eau de (?:parfum|toilette)|palette|paleta)\b/i,
-    /\b(mascara|r[ií]mel|foundation|base de maquillaje|serum|s[ée]rum|blush|rubor)\b/i,
-  ],
-};
-
-/* A title's own shape is a signal. Real hero products have short, plain
-   names ("Levi's 501 Original Fit Jeans"); the long ones are variant
-   soup ("... , Sizes XS-3XL, 12 Colors Available, Pack of 2, Style #4471B"). */
-const TILE_TITLE_IDEAL_LEN = 60;
-
-function scoreTileCandidate(title, key){
-  const t = String(title || '');
-  let score = 0;
-  const hero = TILE_IMAGE_HERO[key] || [];
-  if (hero[0] && hero[0].test(t)) score += 7;
-  else if (hero[1] && hero[1].test(t)) score += 5;
-  if (TILE_SKU_NOISE_RE.test(t)) score -= 1.5;
-  // The per-category denylist that already existed, kept and sharpened
-  // from a hard exclusion into the strongest single penalty.
-  const excluded = DEPARTMENT_THUMB_EXCLUDE[key];
-  if (excluded && excluded.test(t)) score -= 8;
-  if (TILE_IMAGE_PENALISE.test(t)) score -= 5;
-  // Length, as a gentle tiebreak only — never enough to beat a hero match.
-  score -= Math.min(3, Math.max(0, (t.length - TILE_TITLE_IDEAL_LEN) / 40));
-  if (t.length <= TILE_TITLE_IDEAL_LEN) score += 1;
-  return score;
-}
-
-/* ============================================================
-   NO TWO TILES WEAR THE SAME PHOTO (2026-09-21)
-
-   REPORTED LIVE: Ropa and Moda Hombre showed the identical Wrangler
-   jeans shot. Confirmed against the committed cache — both categories
-   scored the same item at 8.0 and each picked it independently, because
-   pickTileImage() was called once per tile with no idea what the tile
-   beside it had already taken.
-
-   Two identical cards in one grid do not read as two categories. They
-   read as a bug, or as a shop with nothing in it.
-
-   SO ASSIGNMENT IS ONE PASS OVER ALL TILES, not a choice each tile makes
-   alone. Three rules, in order:
-
-     1. A PIN IS ABSOLUTE. A human put it there; it is never skipped for
-        being a duplicate, and it claims its image before anyone else.
-     2. MOST CONSTRAINED FIRST. Tiles are served in order of how few
-        candidates they have. A category with 26 photos to choose from
-        picks before one with 155, so the narrow category is not left
-        with nothing while a broad one takes the shot they both wanted.
-     3. NEAR-DUPLICATES COUNT TOO. Skipping only the exact same URL
-        would have handed Ropa "Rustler Men's Relaxed Fit Jeans" right
-        next to Moda Hombre's "Wrangler Men's Relaxed Fit Jeans" — a
-        different file of visibly the same thing. A candidate whose
-        title overlaps an already-taken one too heavily is passed over.
-
-   A tile still takes its best remaining candidate rather than nothing:
-   running out of distinct photos is a reason to repeat, never a reason
-   to show an empty category. Scoring itself is untouched — this only
-   decides who gets first refusal. */
-
-/* Overlap between two titles, 0..1, on significant words. Deliberately
-   crude: it exists to catch "Wrangler Men's Relaxed Fit Jeans" against
-   "Rustler Men's Relaxed Fit Jeans", not to understand language. */
-const TILE_TITLE_STOPWORDS = new Set([
-  'the','and','for','with','a','an','of','in','to','de','con','para','y','el','la','los','las',
-  'mens','womens','men','women','kids','boys','girls','big','size','sizes','new','set','pack',
-]);
-function tileTitleTokens(title){
-  return new Set(String(title || '')
-    .toLowerCase()
-    .replace(/[^a-z0-9áéíóúñü ]+/g, ' ')
-    .split(/\s+/)
-    .filter(w => w.length > 2 && !TILE_TITLE_STOPWORDS.has(w)));
-}
-const TILE_TITLE_OVERLAP_MAX = 0.6;
-function tileTitlesTooSimilar(a, b){
-  const A = tileTitleTokens(a), B = tileTitleTokens(b);
-  if (!A.size || !B.size) return false;
-  let shared = 0;
-  for (const w of A) if (B.has(w)) shared++;
-  return shared / Math.min(A.size, B.size) > TILE_TITLE_OVERLAP_MAX;
-}
-
-/** Give every tile a distinct cover photo. Mutates `tiles` in place. */
-function assignTileImages(tiles){
-  const usedImages = new Set();
-  const usedTitles = [];
-
-  // Rule 1: pins claim their image first, and are never skipped.
-  const pinned = tiles.filter(t => CATEGORY_IMAGE_PIN[t.key]);
-  for (const t of pinned){
-    t.thumb = CATEGORY_IMAGE_PIN[t.key];
-    usedImages.add(t.thumb);
+/* A cover must be a LOCAL asset. This is the permanent rule in code: a
+   remote URL is a scraper feed by definition, and a scraper feed is what
+   put a parasite cleanse on Salud y Farmacia. Returns the path, or null
+   with a console warning loud enough to notice in review. */
+function assertCuratedCover(key, path){
+  if (!path) return null;
+  const p = String(path);
+  if (/^(https?:)?\/\//.test(p) || /^data:/.test(p)){
+    console.warn(`[covers] "${key}" points at a remote image and was ignored: category covers must be local curated assets (assets/category/...).`);
+    return null;
   }
-
-  // Rule 2: everyone else, most constrained first.
-  const rest = tiles.filter(t => !CATEGORY_IMAGE_PIN[t.key])
-    .sort((a, b) => (a.candidates.length - b.candidates.length) || a.key.localeCompare(b.key));
-
-  for (const t of rest){
-    const ranked = t.candidates
-      .filter(c => c.image)
-      .map(c => ({ ...c, score: scoreTileCandidate(c.title, t.key) }))
-      .sort((a, b) => b.score - a.score);
-
-    // Rule 3: best candidate that is neither an image nor a look-alike
-    // of one already taken.
-    let pick = ranked.find(c => !usedImages.has(c.image) && !usedTitles.some(u => tileTitlesTooSimilar(u, c.title)));
-    // Nothing distinct left: relax the look-alike rule, then repeat a
-    // photo rather than render a category with no picture at all.
-    if (!pick) pick = ranked.find(c => !usedImages.has(c.image));
-    if (!pick) pick = ranked[0];
-
-    t.thumb = pick ? pick.image : null;
-    if (pick){ usedImages.add(pick.image); usedTitles.push(pick.title); }
-  }
-
-  for (const t of tiles) delete t.candidates;
+  return p;
 }
 
-/** The best image for a category tile, or null when there is none. */
-function pickTileImage(key, candidates){
-  if (CATEGORY_IMAGE_PIN[key]) return CATEGORY_IMAGE_PIN[key];
-  let best = null;
-  let bestScore = -Infinity;
-  for (const c of candidates){
-    if (!c.image) continue;
-    const score = scoreTileCandidate(c.title, key);
-    if (score > bestScore){ bestScore = score; best = c.image; }
-  }
-  return best;
+function categoryCoverFor(key){
+  return assertCuratedCover(key, CATEGORY_COVERS[key]);
+}
+
+/* The designed cover, on the LIGHT tint (2026-09-22).
+
+   It was first drawn on a saturated navy-to-blue field, which looked
+   deliberate but put a dark window directly above a dark sign — the card
+   came out almost entirely blue, and it contradicted the same brief's
+   other line asking for "tinte de la familia azul-claro". So the field
+   is the light end of the family (--sky through a slightly deeper blue),
+   the mark sits in a navy ring on it, and the navy sign underneath now
+   has something to contrast against instead of blending into.
+
+   No photograph, which is the point: no price, no SKU, no half a person,
+   and every tile in the column reads as one set. */
+function designedCoverHTML(t){
+  return `<div class="relative h-full w-full overflow-hidden grid place-items-center"
+       style="background:linear-gradient(155deg, #F2F6FF 0%, #EAF0FF 46%, #D8E3FF 100%)">
+    <div class="absolute inset-0" style="background:radial-gradient(circle at 78% 16%, rgba(255,255,255,0.75), transparent 62%)"></div>
+    <div class="relative grid place-items-center">
+      <div class="grid place-items-center rounded-full"
+           style="width:132px; height:132px; background:rgba(10,31,68,0.045); border:1px solid rgba(10,31,68,0.12)">
+        <span class="text-[64px] leading-none" aria-hidden="true">${t.icon || '\uD83D\uDECD\uFE0F'}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* A curated file that 404s must not leave a broken image or raw alt text
+   across the window — same rule as the store logos. It falls back to the
+   designed cover, which is always available because it is drawn, not
+   fetched. */
+function categoryCoverFallback(img){
+  const holder = img.closest('[data-cover]');
+  if (!holder) { img.remove(); return; }
+  holder.innerHTML = designedCoverHTML({ icon: holder.getAttribute('data-icon') || '' });
+}
+
+/** The art for one category's window: curated photo if there is one, else the designed cover. */
+function categoryCoverArtHTML(t){
+  const curated = categoryCoverFor(t.key);
+  const inner = curated
+    ? `<img src="${escapeHtml(curated)}" alt="${escapeHtml(t.label || '')}" loading="lazy"
+             class="w-full h-full" style="object-fit:cover; object-position:center"
+             onerror="window.categoryCoverFallback && categoryCoverFallback(this)">`
+    : designedCoverHTML(t);
+  return `<div class="w-full h-full" data-cover data-icon="${escapeHtml(t.icon || '')}">${inner}</div>`;
 }
 
 // One tile per unique department/brand key found anywhere in the cache
@@ -2889,25 +2730,21 @@ function collectTiles(kind){
     : Object.keys(DEPARTMENT_SPEC);
   const byKey = {};
   for (const key of keys){
-    byKey[key] = { key, retailers: [], candidates: [], count: 0 };
+    byKey[key] = { key, retailers: [], count: 0 };
     for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
       const entryItems = departmentItemsFor(data, kind, key);
       if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
-      /* EVERY item with an image is a candidate, across every carrying
-         store — the old code took the first acceptable one it met and
-         stopped, which made the tile a function of cache order. Scoring
-         needs to see the whole field to pick the best of it. */
-      for (const raw of entryItems){
-        const it = normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined });
-        if (it.image) byKey[key].candidates.push({ title: it.title, image: it.image });
-      }
     }
   }
+  /* No cover is chosen here any more. The cache decides which categories
+     EXIST and how many products they hold; what a category LOOKS like is
+     art, and comes from CATEGORY_COVERS. See the note above it for the
+     three rounds of scoring this replaced and why none of them could
+     work. */
   // A department no retailer carries gets no tile at all.
   for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
-  assignTileImages(Object.values(byKey));
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
 }
 
@@ -3071,11 +2908,7 @@ function deptTileHTML(t, kind){
   const isOfertas = kind === 'department' && t.key === 'sale';
   const open = `openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')`;
 
-  const art = isOfertas
-    ? ofertasTileArtHTML()
-    : (t.thumb
-        ? cardPhotoHTML(t.thumb, { alt: t.label, onerror: 'handleDeptThumbError(this)' }).replace('<img ', `<img data-icon="${escapeHtml(t.icon || '')}" `)
-        : `<div class="w-full h-full grid place-items-center text-[88px]">${t.icon || ''}</div>`);
+  const art = isOfertas ? ofertasTileArtHTML() : categoryCoverArtHTML(t);
 
   /* The sign. Navy for a department, gold for Ofertas — and the type
      inverts with it so both stay readable rather than one being the
@@ -3125,16 +2958,6 @@ function deptTileHTML(t, kind){
       </div>
     </div>
   </button>`;
-}
-
-/* A retailer image that 404s must not leave the department name floating
-   as raw alt text across a 146px block — same rule as the store logos.
-   The tile falls back to its own category icon. */
-function handleDeptThumbError(img){
-  const fallback = document.createElement('div');
-  fallback.className = 'w-full h-full grid place-items-center text-[88px]';
-  fallback.textContent = img.dataset.icon || '\uD83D\uDECD\uFE0F';
-  img.replaceWith(fallback);
 }
 
 function initDepartmentTiles(){
@@ -10596,6 +10419,43 @@ const orbSwim = {
    bug fix.) */
 const ORB_SIZE_DOCKED = 64;     // phones: smaller, parked in the corner
 const ORB_LANE_MIN = 56;        // a lane narrower than this is not a lane
+
+/* NO ROAMING LANE ON A PHONE (2026-09-22).
+
+   REPORTED, with a screenshot: "el orbe vaga por media pantalla" and
+   parks on top of the category cards. Both halves of that were real. The
+   lane runs from ORB_TOP_SAFE to the bottom margin, which on a phone IS
+   most of the screen height — and whether a phone got a lane at all
+   depended on how wide the active view's content column measured, so the
+   same handset could dock on one page and roam on another.
+
+   Below this width the orb is always corner-anchored. A lane is a
+   desktop affordance: it only makes sense when there is a real gutter
+   beside the content, and on a phone there is none to find. */
+const ORB_ANCHOR_MAX_VW = 1024;
+
+/* The float, once anchored. Danny asked for "flotación suave dentro de
+   un radio pequeño (~su propio diámetro)", so the drift is half a
+   diameter in each axis — about 30px of travel on a 64px orb, which
+   reads as alive without being travel. Two slow sine waves on different
+   periods rather than a random walk: no jitter, no drift accumulation,
+   and it never needs clamping back. */
+const ORB_FLOAT_PX = 30;
+const ORB_FLOAT_PERIOD_X_MS = 9400;
+const ORB_FLOAT_PERIOD_Y_MS = 7100;
+
+/* Tucked away reads better than hidden. When content is under her she
+   retreats to the edge, and fades, so the sliver that remains reads as a
+   tab to pull rather than a ball sitting on a card.
+
+   THE TRADE, measured and worth knowing: on a card-dense page the corner
+   is over a card almost all of the time — on Categorías, 24 of 24
+   samples — so the orb spends that page tucked. "Never overlaps content"
+   and "always fully visible" cannot both hold for a fixed launcher above
+   full-width scrolling cards; the brief asks for the first, so the
+   second gives way. 0.6 rather than 0.5 keeps the tab findable at a
+   glance, which is the least this can cost and still obey the rule. */
+const ORB_PEEK_OPACITY = 0.6;
 const ORB_CONTENT_GAP = 10;     // never breathe on the text
 /* Docked, she still has to get out of the way. When the corner she is
    parked in has content under it, she retreats to the screen edge until
@@ -10634,6 +10494,25 @@ function orbContentColumn(){
 
 /* Where the orb is allowed to be: a vertical lane in the wider gutter,
    or — when there is no gutter — the docked corner. */
+/** The device's safe-area inset, in px, read from the CSS custom property. */
+function orbSafeInset(which){
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(which);
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/* The anchored corner: bottom-right, above the home indicator and inside
+   the margin. This is the ONLY place the anchor is computed, so the float
+   below and the cover retreat cannot disagree about where home is. */
+function orbAnchor(){
+  const s = ORB_SIZE_DOCKED;
+  const safeB = orbSafeInset('--orb-safe-b');
+  const safeR = orbSafeInset('--orb-safe-r');
+  const x = Math.max(ORB_MARGIN, window.innerWidth - s - 12 - safeR);
+  const y = Math.max(ORB_TOP_SAFE, window.innerHeight - s - 12 - safeB);
+  return { size: s, x, y };
+}
+
 function orbLane(){
   const topSafe = ORB_TOP_SAFE;
   const bottom = window.innerHeight - ORB_MARGIN;
@@ -10644,11 +10523,12 @@ function orbLane(){
   const gutter = Math.max(leftGutter, rightGutter);
   const size = Math.min(ORB_SIZE, Math.floor(gutter));
 
-  if (size < ORB_LANE_MIN || bottom - topSafe < size + 20){
-    const s = ORB_SIZE_DOCKED;
-    const x = Math.max(ORB_MARGIN, window.innerWidth - s - 12);
-    const y = Math.max(topSafe, window.innerHeight - s - 12);
-    return { mode: 'dock', size: s, minX: x, maxX: x, minY: y, maxY: y };
+  /* A phone never gets a lane, whatever the measured gutter says — see
+     ORB_ANCHOR_MAX_VW. This check comes FIRST precisely because the
+     gutter measurement is what used to let a handset roam. */
+  if (window.innerWidth < ORB_ANCHOR_MAX_VW || size < ORB_LANE_MIN || bottom - topSafe < size + 20){
+    const a = orbAnchor();
+    return { mode: 'dock', size: a.size, minX: a.x, maxX: a.x, minY: a.y, maxY: a.y };
   }
   const x = onRight
     ? Math.min(window.innerWidth - size - ORB_MARGIN, (col ? col.right + ORB_CONTENT_GAP : ORB_MARGIN) + Math.max(0, (gutter - size) / 2))
@@ -10806,13 +10686,29 @@ function orbStep(now){
   }
 
   if (docked){
-    // Docked, the only decision left is how far out of the way to be.
+    /* ANCHORED, WITH A LITTLE LIFE IN IT. The float is half a diameter up
+       and to the left of the anchor — never down or right, which would
+       push her off the screen edge or under the home indicator. Two slow
+       sines, so the path is smooth and bounded by construction.
+
+       She holds still while the panel is open: the close button must not
+       drift away from the finger reaching for it. */
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const amp = (panelOpen || reduceMotion) ? 0 : ORB_FLOAT_PX;
+    const fx = amp * 0.5 * (1 + Math.sin(now / ORB_FLOAT_PERIOD_X_MS));
+    const fy = amp * 0.5 * (1 + Math.sin(now / ORB_FLOAT_PERIOD_Y_MS));
+    const floatX = lane.minX - fx;
+    const floatY = lane.minY - fy;
+
+    /* The cover check is asked about where she is ABOUT TO BE, not where
+       home is. Testing the anchor let the float carry her onto a card
+       between checks, which is the second half of the reported bug. */
     if (now - (orbSwim.lastCoverCheck || 0) > ORB_COVER_CHECK_MS){
       orbSwim.lastCoverCheck = now;
-      orbSwim.covering = orbCoversContent(lane.minX, lane.minY, lane.size);
+      orbSwim.covering = orbCoversContent(floatX, floatY, lane.size);
     }
-    tx = orbSwim.covering ? window.innerWidth - ORB_PEEK_PX : lane.minX;
-    ty = lane.minY;
+    tx = orbSwim.covering ? window.innerWidth - ORB_PEEK_PX : floatX;
+    ty = orbSwim.covering ? lane.minY : floatY;
   }
 
   // The lane is the guarantee: whatever the drift or the cursor lean
@@ -10838,6 +10734,14 @@ function orbStep(now){
   if (btn){
     btn.style.transformOrigin = '0 0';
     btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${scale.toFixed(3)})`;
+    /* Faded while tucked at the edge. The retreat already keeps her off
+       the content; this is what makes the remaining sliver read as a tab
+       to pull rather than a ball parked on a card. Full strength the
+       moment she comes back, and never faded while the panel is open —
+       the close button has to look pressable. */
+    const tucked = docked && orbSwim.covering && !panelOpen;
+    btn.style.opacity = tucked ? String(ORB_PEEK_OPACITY) : '';
+    btn.style.transition = 'opacity .25s ease';
   }
 
   // The trail: each dot follows the one ahead of it, so the whole thing

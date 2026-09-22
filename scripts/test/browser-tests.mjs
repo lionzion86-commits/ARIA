@@ -722,6 +722,71 @@ await check("the orb never reads a covered product image as empty space", async 
   await ctx.close();
 });
 
+await check("on a phone the orb is anchored, barely travels, and never lands on a card", async () => {
+  /* REPORTED with a screenshot from a live phone: "el orbe vaga por media
+     pantalla" and parks on top of the category cards. Both halves were
+     real. The lane runs from ORB_TOP_SAFE to the bottom margin, which on
+     a phone is most of the screen height — and whether a handset got a
+     lane at all depended on how wide the active view's content column
+     happened to measure, so the same device could dock on one page and
+     roam on another.
+
+     A phone is corner-anchored now regardless of the measured gutter,
+     and the float is bounded to about half a diameter. This samples the
+     orb over several seconds of real animation on the category grid,
+     which is the exact surface it was reported parking on. */
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
+  await page.route("**/.netlify/functions/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(700);
+  await page.evaluate(() => openCategories());
+  await page.waitForTimeout(600);
+  if (errors.length) throw new Error(errors.join(" | "));
+
+  const r = await page.evaluate(async () => {
+    const btn = document.getElementById("assistantBtn");
+    const samples = [];
+    for (let i = 0; i < 16; i++) {
+      await new Promise((res) => setTimeout(res, 200));
+      const b = btn.getBoundingClientRect();
+      let onCard = false;
+      for (const card of document.querySelectorAll("#categoriesGrid > button")) {
+        const c = card.getBoundingClientRect();
+        const ix = Math.max(0, Math.min(b.right, c.right) - Math.max(b.left, c.left));
+        const iy = Math.max(0, Math.min(b.bottom, c.bottom) - Math.max(b.top, c.top));
+        if (ix > 2 && iy > 2) { onCard = true; break; }
+      }
+      samples.push({ x: b.x, y: b.y, onCard });
+    }
+    const xs = samples.map((s) => s.x), ys = samples.map((s) => s.y);
+    return {
+      mode: orbLane().mode,
+      travelX: Math.max(...xs) - Math.min(...xs),
+      travelY: Math.max(...ys) - Math.min(...ys),
+      onCard: samples.filter((s) => s.onCard).length,
+      lowest: Math.max(...ys),
+      vh: window.innerHeight,
+    };
+  });
+
+  eq(r.mode, "dock", "a phone got a roaming lane again");
+  eq(r.onCard, 0, "the orb is landing on category cards again");
+  // Bounded to about one diameter of travel, not half a screen.
+  const diameter = 64;
+  if (r.travelX > diameter || r.travelY > diameter) {
+    throw new Error(`the orb roams ${r.travelX.toFixed(0)}x${r.travelY.toFixed(0)}px — more than its own diameter`);
+  }
+  // Anchored to the BOTTOM, not drifting up the page.
+  if (r.lowest < r.vh * 0.6) {
+    throw new Error(`the orb settled at y=${r.lowest.toFixed(0)} in a ${r.vh}px viewport — that is not the bottom corner`);
+  }
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

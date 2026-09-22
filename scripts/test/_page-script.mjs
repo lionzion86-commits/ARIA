@@ -47,10 +47,17 @@ export function loadPageWeightSlice() {
   return sandbox.__exports;
 }
 
-const TILE_START = "const DEPARTMENT_THUMB_EXCLUDE = {";
-const TILE_END = "// One tile per unique department/brand key found anywhere in the cache";
+/* 2026-09-22: the scored-selection block this used to load is gone —
+   category covers are curated art now, not a lucky dip over scraped
+   photos (see the note above CATEGORY_COVERS in index.html). What is
+   left to load is the curated-cover resolver, which is pure. */
+const TILE_START = "const CATEGORY_COVERS = {";
+/* Anchored on the declaration, not on prose: the first version of this
+   marker matched a sentence in a comment, and rewording that comment
+   broke the loader. */
+const TILE_END = "function designedCoverHTML(";
 
-/** The category-tile image selection block, on its own. */
+/** The curated-cover resolver, on its own. */
 export function loadPageTileSlice() {
   const html = readFileSync(INDEX, "utf8");
   const from = html.indexOf(TILE_START);
@@ -61,7 +68,7 @@ export function loadPageTileSlice() {
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { scoreTileCandidate, pickTileImage, CATEGORY_IMAGE_PIN, TILE_IMAGE_HERO };",
+    html.slice(from, to) + "\n;globalThis.__exports = { CATEGORY_COVERS, assertCuratedCover, categoryCoverFor };",
     sandbox,
     { filename: "index.html#tiles" },
   );

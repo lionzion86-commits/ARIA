@@ -920,73 +920,101 @@ check("the note states the basis the code actually uses", () => {
 /* ------------------------------------------------------------------
    P2.2 / P2.3 — category tiles.
    ------------------------------------------------------------------ */
-group("P2.2 / P2.3 category tiles");
+group("category covers are curated art, not scraped inventory");
 
-const tiles = loadPageTileSlice();
+const covers = loadPageTileSlice();
 
-check("category tiles carry no retailer logos at all", () => {
+/* WHY THIS GROUP REPLACED THE SCORING ONE (2026-09-22). Three rounds of
+   choosing a cover from the scraper feed — first cached item, then a
+   scored selection, then denylists plus a cross-tile de-duplicator — and
+   a live phone still showed a USB stick for Electrónica, a bag of
+   parasite cleanse for Salud y Farmacia and a headless torso for Ropa.
+
+   The reason is structural and no tuning reaches it: the scorer reads
+   TITLES. "Cargo Pants With Stretch" is a good title and a photo of a
+   decapitated mannequin. So the cover is art now, and these checks pin
+   the two things that keeps true. */
+
+check("a cover is only ever a local curated asset", () => {
+  /* The permanent rule, enforced by construction rather than by
+     pattern-matching a price out of a photo: a remote URL is a scraper
+     feed by definition, and that feed is what put a parasite cleanse on
+     the pharmacy tile. */
+  eq(covers.assertCuratedCover("electronics", "assets/category/electronics.jpg"),
+     "assets/category/electronics.jpg", "a local path is fine");
+  for (const remote of [
+    "https://i5.walmartimages.com/seo/thing.jpeg",
+    "http://target.scene7.com/is/image/Target/GUEST_x",
+    "//content.gapinc.com/b/0056/cn56750941.png",
+    "data:image/png;base64,iVBORw0KGgo=",
+  ]) {
+    eq(covers.assertCuratedCover("electronics", remote), null, `rejected: ${remote.slice(0, 40)}`);
+  }
+  eq(covers.assertCuratedCover("electronics", ""), null, "nothing configured");
+  eq(covers.assertCuratedCover("electronics", undefined), null, "no entry at all");
+});
+
+check("no category is wired to a scraped cover today", () => {
+  // Empty is the correct state: a missing entry means the designed cover,
+  // which is a deliberate treatment and not a gap.
+  for (const [key, path] of Object.entries(covers.CATEGORY_COVERS)) {
+    if (covers.categoryCoverFor(key) !== path) {
+      throw new Error(`${key} is configured with something that is not a local asset: ${path}`);
+    }
+  }
+});
+
+check("the cover never comes from the cache again", () => {
+  /* collectTiles decides which categories EXIST and how many products
+     they hold. What a category LOOKS like is art. If cover selection
+     creeps back into the cache read, the junk drawer comes with it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function collectTiles("));
+  const body = fn.slice(0, fn.indexOf("\nfunction "));
+  if (/candidates|scoreTileCandidate|pickTileImage|assignTileImages|\.thumb/.test(body)) {
+    throw new Error("collectTiles is choosing cover images from the cache again");
+  }
+  if (/it\.image/.test(body)) throw new Error("collectTiles is reading scraped image URLs again");
+  // And the retired machinery is gone, not merely unused.
+  for (const dead of ["scoreTileCandidate", "pickTileImage", "assignTileImages", "TILE_IMAGE_HERO", "DEPARTMENT_THUMB_EXCLUDE"]) {
+    if (new RegExp(`\\b${dead}\\b`).test(src)) throw new Error(`${dead} is still in index.html — dead code that looks live`);
+  }
+});
+
+check("every category can draw a cover with no assets at all", () => {
+  /* The designed cover is drawn, not fetched, so it is always available
+     — which is what lets layer 1 be empty and lets a 404 fall back to
+     something rather than to a broken image. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/function designedCoverHTML/.test(src)) throw new Error("there is no designed cover");
+  const designed = src.slice(src.indexOf("function designedCoverHTML"), src.indexOf("function categoryCoverFallback"));
+  if (/<img/.test(designed)) throw new Error("the designed cover fetches an image — it must be drawn");
+  if (!/linear-gradient/.test(designed)) throw new Error("the designed cover is not on the brand field");
+  /* The LIGHT end of the navy family, per the brief's "tinte de la
+     familia azul-claro". Drawn dark first, which put a dark window above
+     a dark sign and made the whole card one blue slab. */
+  if (!/EAF0FF|F2F6FF|D8E3FF|--sky/.test(designed)) throw new Error("the designed cover is not on the light blue tint");
+  if (/#0A1F44 0%|#0D2A5C 0%/.test(designed)) throw new Error("the designed cover is back on a dark field");
+  if (/F4C463|--yellow|--amber/.test(designed)) throw new Error("the designed cover borrowed the discount gold");
+  // A curated file that 404s falls back to it rather than to alt text.
+  const fb = src.slice(src.indexOf("function categoryCoverFallback"), src.indexOf("/** The art for one category"));
+  if (!/designedCoverHTML/.test(fb)) throw new Error("a 404 on a curated cover no longer falls back to the designed one");
+  if (!/onerror=/.test(src.slice(src.indexOf("function categoryCoverArtHTML")))) {
+    throw new Error("a curated cover has no error path");
+  }
+});
+
+check("the tile carries no retailer logos and still states its count", () => {
   /* Reversed 2026-09-20: the cap (3 logos + "+N") is gone because the
      logos are gone. A category tile answers "what is this", not "who
-     sells it" — the store is named on every product card, in the store
-     chips and on Tiendas. */
+     sells it". */
   const html = readFileSync(root("index.html"), "utf8");
-  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
+  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function initDepartmentTiles"));
   if (/retailerBadgeHTML|tileRetailerRowHTML|TILE_MAX_LOGOS/.test(tile)) {
     throw new Error("the category tile still renders store marks");
   }
   if (!/producto\$\{count === 1/.test(tile)) throw new Error("the product count was dropped with the logos");
-});
-
-check("tiles fit the image rather than cropping it", () => {
-  /* 2026-09-20: the tile no longer carries its own image markup — it
-     renders through cardPhotoHTML, the same helper the Ofertas card
-     uses, which is the point of the rebuild. So the rule is asserted
-     where it now lives, plus the fact that the tile really does go
-     through it. */
-  const html = readFileSync(root("index.html"), "utf8");
-  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
-  if (!/cardPhotoHTML\(/.test(tile)) throw new Error("the tile stopped using the shared photo helper");
-  const photo = html.slice(html.indexOf("function cardPhotoHTML"), html.indexOf("function ofertasTileArtHTML"));
-  if (/object-cover|object-fit:\s*cover/.test(photo)) throw new Error("the shared photo crops with cover");
-  if (!/object-fit:\s*contain/.test(photo)) throw new Error("the shared photo does not contain-fit");
-  if (!/object-position:\s*center/.test(photo)) throw new Error("the shared photo is not centred");
-});
-
-check("selection prefers the face of a category over its peripherals", () => {
-  const better = (key, win, lose) => {
-    const a = tiles.scoreTileCandidate(win, key);
-    const b = tiles.scoreTileCandidate(lose, key);
-    if (!(a > b)) throw new Error(`${key}: "${win}" (${a}) should outrank "${lose}" (${b})`);
-  };
-  better("electronics", 'TCL 55" QLED 4K Smart TV', "Sanus Full-Motion TV Wall Mount");
-  better("electronics", 'TCL 55" QLED 4K Smart TV', "6ft HDMI Cable, Black");
-  better("pharmacy", "Nature Made Multivitamin Tablets - 120ct", "Celsius Sparkling Energy Drink 12 oz");
-  better("sporting_goods", "Spalding NBA Street Basketball", "Johnson & Johnson First Aid Kit, 140 pieces");
-  better("home_goods", "Queen Comforter Set, Microfiber", "LANE LINEN 24 Pack Bulk Dish Towels for Kitchen");
-  better("candy_chocolate", "M&M'S Milk Chocolate Candy, Party Size", "Assorted Variety Pack Candy Bundle");
-  better("women", "Floral Midi Dress", "Replacement Bra Strap Extender, 3 Pack");
-});
-
-check("a bare count is not treated as a multipack", () => {
-  // Penalising "90ct" ranked a weight-loss pill above a multivitamin.
-  const vit = tiles.scoreTileCandidate("OLLY Women's Multivitamin Gummies - Berry - 90ct", "pharmacy");
-  const pill = tiles.scoreTileCandidate("PharmaPure Sugar Blocker Weight Loss Supplement, 90 Capsules", "pharmacy");
-  if (!(vit > pill)) throw new Error(`multivitamin (${vit}) should outrank the weight-loss pill (${pill})`);
-});
-
-check("a pinned image overrides scoring entirely", () => {
-  const candidates = [{ title: 'TCL 55" QLED 4K Smart TV', image: "scraped.jpg" }];
-  eq(tiles.pickTileImage("electronics", candidates), "scraped.jpg", "unpinned");
-  tiles.CATEGORY_IMAGE_PIN.electronics = "assets/category/electronics.jpg";
-  eq(tiles.pickTileImage("electronics", candidates), "assets/category/electronics.jpg", "pinned");
-  // A pin works even when there is nothing scraped at all.
-  eq(tiles.pickTileImage("electronics", []), "assets/category/electronics.jpg", "pinned with no candidates");
-  delete tiles.CATEGORY_IMAGE_PIN.electronics;
-});
-
-check("a candidate with no image never wins", () => {
-  eq(tiles.pickTileImage("electronics", [{ title: 'TCL 55" TV', image: "" }, { title: "USB Cable", image: "c.jpg" }]), "c.jpg");
-  eq(tiles.pickTileImage("electronics", []), null);
+  if (!/categoryCoverArtHTML\(t\)/.test(tile)) throw new Error("the tile is not drawing the curated cover");
 });
 
 check("Ofertas is a designed tile, not a scraped product image", () => {
@@ -1416,71 +1444,6 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
         );
       }
     }
-  }
-});
-
-check("no two category tiles can be handed the same photo", () => {
-  /* REPORTED LIVE: Ropa and Moda Hombre showed the identical Wrangler
-     jeans shot. Confirmed against the committed cache — both scored that
-     item highest and each picked it independently, because the old code
-     chose one tile at a time with no knowledge of its neighbours.
-
-     This asserts the mechanism rather than today's winners, so it keeps
-     holding when the cache is refreshed. */
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  if (!/function assignTileImages\(/.test(src)) throw new Error("tiles are assigned one at a time again");
-  if (/t\.thumb = pickTileImage\(/.test(src)) throw new Error("collectTiles picks per-tile again, with no dedupe");
-  const fn = src.slice(src.indexOf("function assignTileImages("));
-  const body = fn.slice(0, fn.indexOf("\nfunction "));
-  if (!/usedImages/.test(body)) throw new Error("assignTileImages does not track which photos are taken");
-  if (!/CATEGORY_IMAGE_PIN/.test(body)) throw new Error("a pinned image is no longer absolute");
-  // Most-constrained-first: a narrow category must pick before a broad one.
-  if (!/candidates\.length - b\.candidates\.length/.test(body)) {
-    throw new Error("tiles are no longer served most-constrained-first");
-  }
-});
-
-check("the two trust categories keep their worst candidates off the tile", () => {
-  /* Salud y Farmacia led with a parasite cleanse and Dulces led with a
-     Juicy Drop. Both are excluded from the TILE only — still listed,
-     still searchable, still buyable. */
-  const banned = {
-    pharmacy: ["Parasite Cleanse Herbal Supplement", "10 Day Detox Colon Flush", "Weight Loss Diet Pills"],
-    candy_chocolate: ["Juicy Drop Pop Sour Gel Candy", "Ring Pop Assorted"],
-  };
-  const good = {
-    pharmacy: ["OLLY Women's Multivitamin Gummies - Berry - 90ct", "Nature Made Vitamin D3 2000 IU"],
-    candy_chocolate: ["M&M'S Milk Chocolate Candy, Party Size", "Hershey's Milk Chocolate Candy Bar"],
-  };
-  for (const [key, titles] of Object.entries(banned)) {
-    for (const t of titles) {
-      const bad = tiles.scoreTileCandidate(t, key);
-      for (const g of good[key]) {
-        if (!(tiles.scoreTileCandidate(g, key) > bad)) {
-          throw new Error(`${key}: "${t}" still outranks or ties "${g}"`);
-        }
-      }
-    }
-  }
-});
-
-check("Ropa does not lead with the same archetype as Moda Hombre", () => {
-  /* Ropa is the parent aisle and its candidate pool CONTAINS all of Moda
-     Hombre's, so sharing a tier-0 hero guaranteed the two tiles fought
-     over the same product. Jeans belong to Moda Hombre; Ropa leads with
-     an outerwear or dress silhouette and keeps jeans as a fallback. */
-  if (!(tiles.scoreTileCandidate("Levi's Denim Trucker Jacket", "clothing")
-        > tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "clothing"))) {
-    throw new Error("Ropa still ranks jeans at the top of its own tier");
-  }
-  if (!(tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "men")
-        > tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "clothing"))) {
-    throw new Error("jeans are no longer Moda Hombre's own archetype");
-  }
-  // Jeans must still be able to carry Ropa when nothing else is cached —
-  // which is the live situation: the bucket holds no dress, coat or jacket.
-  if (!(tiles.scoreTileCandidate("Wrangler Men's Relaxed Fit Jeans", "clothing") > 0)) {
-    throw new Error("Ropa can no longer fall back to jeans and would lose its tile");
   }
 });
 
