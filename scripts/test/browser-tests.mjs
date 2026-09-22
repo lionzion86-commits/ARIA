@@ -902,7 +902,15 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
      A phone is corner-anchored now regardless of the measured gutter,
      and the float is bounded to about half a diameter. This samples the
      orb over several seconds of real animation on the category grid,
-     which is the exact surface it was reported parking on. */
+     which is the exact surface it was reported parking on.
+
+     WHAT KEEPS HER OFF THE CARDS CHANGED ON 2026-09-22, and this test
+     did not: it asserts the OUTCOME, not the mechanism. The orb used to
+     retreat to a sliver at the edge when it detected content underneath;
+     QA on a real phone rejected that sliver, so the retreat is gone and
+     the reserved corner (orbReserveSpace) is what holds the space now.
+     Same guarantee, different machinery — which is why an outcome
+     assertion survived a mechanism being deleted underneath it. */
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
   const page = await ctx.newPage();
   const errors = [];
@@ -928,7 +936,24 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
         const iy = Math.max(0, Math.min(b.bottom, c.bottom) - Math.max(b.top, c.top));
         if (ix > 2 && iy > 2) { onCard = true; break; }
       }
-      samples.push({ x: b.x, y: b.y, onCard });
+      /* CLIPPING IS MEASURED FROM THE TRANSFORM, NOT THE RECT.
+         Tailwind's CDN is blocked in this harness, so `position: fixed`
+         never applies and the button sits at its document position in a
+         47,000px-tall unstyled page — getBoundingClientRect() reports it
+         45,000px below the fold and every viewport looks "clipped".
+         The translate3d values ARE the viewport coordinates once fixed
+         positioning applies, which is what production paints by, so the
+         check reads those plus the drawn size. */
+      const m = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/.exec(btn.style.transform || "");
+      const size = orbLane().size;
+      let clipped = null;
+      if (m) {
+        const tx = parseFloat(m[1]), ty = parseFloat(m[2]);
+        clipped = tx < 0 ? "left" : ty < 0 ? "top"
+          : tx + size > window.innerWidth ? "right"
+          : ty + size > window.innerHeight ? "bottom" : null;
+      }
+      samples.push({ x: b.x, y: b.y, onCard, clipped });
     }
     const xs = samples.map((s) => s.x), ys = samples.map((s) => s.y);
     return {
@@ -936,6 +961,7 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       travelX: Math.max(...xs) - Math.min(...xs),
       travelY: Math.max(...ys) - Math.min(...ys),
       onCard: samples.filter((s) => s.onCard).length,
+      offFrame: samples.find((s) => s.clipped)?.clipped || null,
       lowest: Math.max(...ys),
       vh: window.innerHeight,
     };
@@ -943,6 +969,14 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
 
   eq(r.mode, "dock", "a phone got a roaming lane again");
   eq(r.onCard, 0, "the orb is landing on category cards again");
+  /* FULLY IN FRAME, ALWAYS (2026-09-22). The tuck-to-a-sliver was
+     removed after QA on a real phone read it as a bug — "one eighth of
+     the orb coming out the side" — so the bar is now that she is never
+     clipped by any edge. Nothing asserted that before, and the retreat
+     that used to push her off-frame is exactly what would break it. */
+  if (r.offFrame) {
+    throw new Error(`the orb is clipped by a viewport edge (${r.offFrame}) — the tuck-to-a-sliver is back`);
+  }
   // Bounded to about one diameter of travel, not half a screen.
   const diameter = 64;
   if (r.travelX > diameter || r.travelY > diameter) {

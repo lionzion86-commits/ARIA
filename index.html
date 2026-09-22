@@ -5518,10 +5518,9 @@ const RETAILERS = {
   macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
   /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
      bot protection returned zero products across three integrations.
-     Listed and honestly pending: the 2,431-product men's pull exists in
-     Apify but no catalogue file has been committed here yet, so
-     browse stays false and the card says it is being connected. The
-     tagline leads with the BRANDS because "SSENSE" means nothing to a
+     Catalogue file ssense-catalog.json (2,426 men's products) is committed
+     at repo root and merged by loadDepartmentCache like Macy's.
+     The tagline leads with the BRANDS because "SSENSE" means nothing to a
      shopper in Lima and "Gucci" means everything. */
   /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
      bot protection returned zero products across three integrations.
@@ -5531,7 +5530,7 @@ const RETAILERS = {
      THE TAGLINE NAMES NO BRAND, on purpose. It said "Gucci, Prada,
      Balenciaga" when the row was written from the brief, and the
      catalogue that arrived carries NEITHER Gucci NOR Prada. The real
-     names are read from the data by storeBrandLine(), so the card can
+     names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
@@ -11385,6 +11384,23 @@ const ORB_CONTENT_SELECTOR = [
    be on top, and stops at the view shell, which is layout rather than
    content. Five points, not four: the four corners the old centre-biased
    sample could straddle, plus the middle. */
+/* ---- CURRENTLY UNUSED, AND SAID OUT LOUD (2026-09-22) ------------
+   Nothing calls this any more. The retreat it fed was removed after QA
+   on a real phone read the tuck-to-a-sliver as a bug, so orbStep now
+   sets `orbSwim.covering = false` unconditionally and never asks. What
+   keeps the orb off content today is the reserved corner
+   (orbReserveSpace), not a retreat.
+
+   KEPT, NOT DELETED, for one reason: it is the expensive half. The
+   elementsFromPoint stack-walk in here is what finally saw a product
+   image through the "Toca para ampliar" pill sitting on top of it, and
+   a browser test still pins that behaviour. If a future response to
+   "the orb is over something" is ever wanted — a nudge, a fade, a
+   shrink — this is the detection it would be built on, already correct.
+
+   ORB_PEEK_PX, ORB_PEEK_OPACITY and ORB_COVER_CHECK_MS are orphaned by
+   the same decision and kept for the same reason. Nothing reads them.
+   ------------------------------------------------------------------ */
 function orbCoversContent(x, y, size){
   const btn = document.getElementById('assistantBtn');
   if (!btn) return false;
@@ -11515,15 +11531,15 @@ function orbStep(now){
     const floatX = lane.minX - fx;
     const floatY = lane.minY - fy;
 
-    /* The cover check is asked about where she is ABOUT TO BE, not where
-       home is. Testing the anchor let the float carry her onto a card
-       between checks, which is the second half of the reported bug. */
-    if (now - (orbSwim.lastCoverCheck || 0) > ORB_COVER_CHECK_MS){
-      orbSwim.lastCoverCheck = now;
-      orbSwim.covering = orbCoversContent(floatX, floatY, lane.size);
-    }
-    tx = orbSwim.covering ? window.innerWidth - ORB_PEEK_PX : floatX;
-    ty = orbSwim.covering ? lane.minY : floatY;
+    /* 2026-09-22: the tuck-to-a-sliver is gone. On a real phone it read
+       as a bug — "one eighth of the orb coming out the side" — and the
+       QA bar is the orb fully inside the frame, always. A fixed chat
+       bubble floating over scrolling content is standard; the reserved
+       corner (orbReserveSpace) still keeps the last line of a page from
+       ending up underneath her. */
+    orbSwim.covering = false;
+    tx = floatX;
+    ty = floatY;
   }
 
   // The lane is the guarantee: whatever the drift or the cursor lean
@@ -11534,13 +11550,8 @@ function orbStep(now){
   // Eased follow: the orb never snaps, it glides — except out of the way.
   // Gliding off a line of text still crosses it, so the retreat is
   // instant and only the return is eased.
-  if (docked && orbSwim.covering){
-    orbSwim.x = orbSwim.targetX;
-    orbSwim.y = orbSwim.targetY;
-  } else {
-    orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
-    orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
-  }
+  orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
+  orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
 
   const btn = document.getElementById('assistantBtn');
   // Scaled from its top-left corner, so the drawn orb is exactly the box
@@ -11549,14 +11560,7 @@ function orbStep(now){
   if (btn){
     btn.style.transformOrigin = '0 0';
     btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${scale.toFixed(3)})`;
-    /* Faded while tucked at the edge. The retreat already keeps her off
-       the content; this is what makes the remaining sliver read as a tab
-       to pull rather than a ball parked on a card. Full strength the
-       moment she comes back, and never faded while the panel is open —
-       the close button has to look pressable. */
-    const tucked = docked && orbSwim.covering && !panelOpen;
-    btn.style.opacity = tucked ? String(ORB_PEEK_OPACITY) : '';
-    btn.style.transition = 'opacity .25s ease';
+
   }
 
   // The trail: each dot follows the one ahead of it, so the whole thing
