@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -44,6 +44,7 @@ import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
 import * as subcats from "../lib/subcategories.js";
+import * as brandIndex from "../lib/brand-index.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -4201,6 +4202,168 @@ check("every browse grid is photographs, and no grid is emoji", () => {
   // And there is a second photo to move to when they do collide.
   if (new Set(sale).size < 2) throw new Error("Ofertas has no second photo to fall back to");
 });
+
+/* ------------------------------------------------------------------ */
+group("The A-Z brand index (and the wall it replaced)");
+
+const brandPage = loadPageBrandSlice();
+const ssenseBrands = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8")).retailers.ssense.brands;
+
+check("the page's brand index and the module agree, brand for brand", () => {
+  /* THE MIRROR. index.html is a plain <script> and cannot import, so
+     these five functions exist twice. Compared over the real 192-brand
+     export rather than over examples someone typed: the list on the
+     page is built from this file, so this file is the fixture. */
+  const pageRows = brandPage.brandRows(ssenseBrands);
+  const modRows = brandIndex.brandRows(ssenseBrands);
+  eq(JSON.stringify(pageRows), JSON.stringify(modRows), "brandRows drifted between page and module");
+  eq(
+    JSON.stringify(brandPage.brandGroups(pageRows).map((g) => [g.letter, g.brands.length])),
+    JSON.stringify(brandIndex.brandGroups(modRows).map((g) => [g.letter, g.brands.length])),
+    "brandGroups drifted",
+  );
+  for (const raw of ["Séfr", "sacai", "424", "MM6 Maison Margiela", "  ", "Ünde"]) {
+    eq(brandPage.foldBrand(raw), brandIndex.foldBrand(raw), `foldBrand(${raw})`);
+    eq(brandPage.brandLetter(raw), brandIndex.brandLetter(raw), `brandLetter(${raw})`);
+  }
+  for (const q of ["margiela", "SEFR", "séfr", "", "zzz"]) {
+    eq(brandPage.brandMatches("Séfr", q), brandIndex.brandMatches("Séfr", q), `brandMatches(Séfr, ${q})`);
+  }
+});
+
+check("every one of SSENSE's 192 brands is in the list, exactly once", () => {
+  /* The whole point of pulling the wall down is that nothing behind it
+     is lost. 192 cards left the home page; 192 rows have to arrive in
+     the panel, with no key appearing twice and none of them invented. */
+  const rows = brandIndex.brandRows(ssenseBrands);
+  eq(rows.length, Object.keys(ssenseBrands).length, "brand count changed between the export and the panel");
+  eq(new Set(rows.map((r) => r.key)).size, rows.length, "a brand key is listed twice");
+  for (const r of rows) {
+    if (!ssenseBrands[r.key]) throw new Error(`the panel invented a brand: ${r.key}`);
+    eq(r.count, ssenseBrands[r.key].items.length, `${r.key} count`);
+  }
+  // And every row lands in exactly one section.
+  const groups = brandIndex.brandGroups(rows);
+  eq(groups.reduce((n, g) => n + g.brands.length, 0), rows.length, "a brand fell out of its section");
+  eq(new Set(groups.map((g) => g.letter)).size, groups.length, "a letter has two sections");
+});
+
+check("a brand is named by its catalogue, never by title-casing its slug", () => {
+  /* THE BUG THIS PINS: metaFor() turns an unknown key into a
+     title-cased slug, so `driesvannoten` came out "Driesvannoten" and
+     `mm6maisonmargiela` came out "Mm6Maisonmargiela". That was already
+     on the brand cards; a 192-row alphabetical list makes it
+     unmissable, and an A-Z of mangled names is not a directory. */
+  const byKey = Object.fromEntries(brandIndex.brandRows(ssenseBrands).map((r) => [r.key, r.label]));
+  eq(byKey.driesvannoten, "Dries Van Noten", "Dries Van Noten");
+  eq(byKey.mm6maisonmargiela, "MM6 Maison Margiela", "MM6 Maison Margiela");
+  eq(byKey.paulsmith, "Paul Smith", "Paul Smith");
+
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function brandLabelFor\(/.test(src)) throw new Error("brandLabelFor is gone");
+  const tiles = src.slice(src.indexOf("function collectTiles("), src.indexOf("function deptTileHTML("));
+  if (!/brandLabelFor\(/.test(tiles)) throw new Error("the brand tiles are back to title-casing their slug");
+  const catalog = src.slice(src.indexOf("async function openCatalog("), src.indexOf("function setCatalogStore("));
+  if (!/brandLabelFor\(/.test(catalog)) throw new Error("a brand's catalogue page is titled from its slug again");
+});
+
+check("the list reads like a directory: # first, then A-Z, case-blind", () => {
+  const rows = brandIndex.brandRows(ssenseBrands);
+  eq(rows[0].letter, "#", "the numbered brands come first");
+  eq(brandIndex.brandLetter("424"), "#", "424");
+  eq(brandIndex.brandLetter("1017 ALYX 9SM"), "#", "1017 ALYX 9SM");
+  eq(brandIndex.brandLetter("sacai"), "S", "a lower-case name still files under its letter");
+  eq(brandIndex.brandLetter("Séfr"), "S", "an accented name files under the unaccented letter");
+
+  // Letters only ever move forward through the list.
+  const letters = brandIndex.brandGroups(rows).map((g) => g.letter);
+  eq(JSON.stringify(letters.slice(1)), JSON.stringify([...letters.slice(1)].sort()), "the sections are out of order");
+  // And inside a section, case never decides the order.
+  for (const g of brandIndex.brandGroups(rows)) {
+    const names = g.brands.map((b) => brandIndex.foldBrand(b.label));
+    eq(JSON.stringify(names), JSON.stringify([...names].sort((a, b) => a.localeCompare(b, "es"))), `section ${g.letter}`);
+  }
+});
+
+check("search finds the part of the name you remember", () => {
+  /* A 192-row list is searched by the word that stuck, which is very
+     often not the first one — nobody types "MM6" to find Margiela. */
+  const rows = brandIndex.brandRows(ssenseBrands);
+  const hit = (q) => rows.filter((r) => brandIndex.brandMatches(r.label, q)).map((r) => r.key);
+  if (!hit("margiela").includes("mm6maisonmargiela")) throw new Error("a mid-name search finds nothing");
+  if (!hit("MARGIELA").includes("mm6maisonmargiela")) throw new Error("search is case-sensitive");
+  eq(hit("").length, rows.length, "an empty box hides brands");
+  eq(hit("zzzzz").length, 0, "a nonsense query still matches");
+  // Accents fold both ways: the phone keyboard and the catalogue can
+  // disagree about them and the shopper must not pay for it.
+  eq(brandIndex.brandMatches("Séfr", "sefr"), true, "unaccented query against an accented name");
+  eq(brandIndex.brandMatches("Sefr", "séfr"), true, "accented query against an unaccented name");
+});
+
+check("a brand with nothing behind it is not listed", () => {
+  // A row that opens an empty page is worse than no row.
+  const rows = brandIndex.brandRows({ real: { label: "Real", items: [{}] }, empty: { label: "Empty", items: [] }, broken: { label: "Broken" } });
+  eq(rows.map((r) => r.key).join(), "real", "an empty brand made it into the list");
+});
+
+check("the home page is departments only — the brand wall is gone", () => {
+  /* THE WALL: eleven department covers followed by 193 brand cards,
+     each ~340px tall, as the first thing anyone met on the home page.
+     Danny's word for it was "a wall".
+
+     The guard is on initDepartmentTiles specifically, not on the file:
+     Categorías still renders brand tiles with its own sort and store
+     filter, and that is deliberate — it is an index you arrive at, not
+     the front door. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const home = src.slice(src.indexOf("function initDepartmentTiles("), src.indexOf("window.addEventListener('DOMContentLoaded', initDepartmentTiles)"));
+  if (/collectTiles\('brand'\)/.test(home)) throw new Error("the brand wall is back on the home page grid");
+  if (!/collectTiles\('department'\)/.test(home)) throw new Error("the home page lost its department tiles too");
+  // The other grid is untouched, so nothing became unreachable.
+  const cats = src.slice(src.indexOf("function renderCategoriesGrid("), src.indexOf("async function liveSalesScan("));
+  if (!/collectTiles\('brand'\)/.test(cats)) throw new Error("Categorías lost its brand tiles as well");
+});
+
+check("the store's brand panel is navigable, and keeps today's route", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const panel = src.slice(src.indexOf("function storeBrandPanelHTML("), src.indexOf("function filterBrandPanel("));
+  if (!panel) throw new Error("there is no brand panel");
+
+  /* SAME ROUTE AS THE CARDS. This is the one line that decides whether
+     192 brand links kept working when their cards were deleted. */
+  if (!/openCatalog\('brand','\$\{jsAttr\(b\.key\)\}'\)/.test(panel)) {
+    throw new Error("a brand row no longer opens openCatalog('brand', key)");
+  }
+  // Search box, letter jumps, and a section anchor for each to land on.
+  if (!/id="brandPanelSearch"/.test(panel)) throw new Error("the panel has no search box");
+  if (!/oninput="filterBrandPanel\(\)"/.test(panel)) throw new Error("typing no longer filters");
+  if (!/jumpToBrandLetter\(/.test(panel)) throw new Error("the letter jump is gone");
+  if (!/data-brand-letter=/.test(panel)) throw new Error("the letters have nothing to jump to");
+
+  /* BOTH VIEWPORTS OUT OF ONE MARKUP: the index wraps into a bar on a
+     phone and stacks into a column at md. Two copies of a 192-row list
+     is how one of them goes stale. */
+  eq((panel.match(/<nav/g) || []).length, 1, "there is more than one letter index");
+  if (!/flex flex-wrap/.test(panel)) throw new Error("the letter index no longer wraps into a bar on a phone");
+  if (!/md:w-\[/.test(panel)) throw new Error("the letter index does not become a column on a laptop");
+  eq(panel.match(/data-brand-name=/g).length, 1, "the brand list is rendered more than once");
+
+  // Navy and gold, not a grey database table.
+  if (!/var\(--navy\)/.test(panel)) throw new Error("the panel left the navy palette");
+  if (!/244,196,99/.test(panel) && !/var\(--amber\)/.test(panel)) throw new Error("the panel has no gold in it");
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(panel)) throw new Error("an emoji is standing in for the panel's furniture");
+
+  /* A ONE-BRAND STORE IS A LIST, NOT A SEARCH ENGINE. Foot Locker has
+     exactly one scraped brand, and a search box with a one-letter index
+     over a single row reads as a half-built feature. */
+  if (!/const compact = rows\.length </.test(panel)) throw new Error("a one-brand store still gets the full search furniture");
+
+  // And the store page actually draws it, only when there are brands.
+  const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+  if (!/brandRows\(retailerData\?\.brands\)/.test(store)) throw new Error("the store page reads no brands");
+  if (!/brandPanel/.test(store)) throw new Error("the store page never draws the panel");
+});
+
 
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

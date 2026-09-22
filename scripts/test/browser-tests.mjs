@@ -1003,6 +1003,134 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
   await ctx.close();
 });
 
+/* ============================================================
+   THE BRAND WALL, AND THE PANEL THAT REPLACED IT.
+
+   192 SSENSE brand cards used to sit under the eleven department
+   covers on the home page. Two things have to hold at once now: the
+   wall is really gone from that grid, and not one of those 192 brands
+   became unreachable in the process. Both are browser facts — one is a
+   rendered grid, the other is a filter and a scroll — so neither can be
+   proved by reading the file.
+   ============================================================ */
+await check("the home page grid is departments only", async () => {
+  const { ctx, page, errors } = await openPage();
+  if (errors.length) throw new Error("page-load errors: " + errors.join(" | "));
+  const grid = await page.evaluate(() => {
+    const g = document.getElementById("catGrid");
+    return {
+      cards: g.children.length,
+      names: [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
+    };
+  });
+  /* Eleven departments. The number is asserted, not just "fewer than
+     before": a regression that puts brands back would sail past a
+     `< 50` and the wall would be back at the next export. */
+  eq(grid.cards, 11, "home page tiles");
+  // And none of them is a brand. SSENSE's are the ones that were here.
+  for (const brand of ["Rick Owens", "Driesvannoten", "Dries Van Noten", "Acne Studios", "Nike"]) {
+    if (grid.names.includes(brand)) throw new Error(`the brand wall is back: ${brand} is on the home page grid`);
+  }
+  await ctx.close();
+});
+
+await check("SSENSE's brand panel lists all 192, searches and jumps", async () => {
+  const { ctx, page, errors } = await openPage();
+  await page.evaluate(() => openStore("ssense"));
+  await page.waitForTimeout(1200);
+  if (errors.length) throw new Error("errors after opening the store: " + errors.join(" | "));
+
+  const shape = await page.evaluate(() => {
+    const list = document.getElementById("brandPanelList");
+    if (!list) return { missing: true };
+    const rows = [...list.querySelectorAll("[data-brand-name]")];
+    const chips = [...document.querySelectorAll("[data-brand-jump]")];
+    return {
+      rows: rows.length,
+      letters: chips.map((c) => c.textContent.trim()),
+      names: rows.map((r) => r.getAttribute("data-brand-name")),
+      scrolls: list.scrollHeight > list.clientHeight,
+    };
+  });
+  if (shape.missing) throw new Error("SSENSE has no brand panel");
+  eq(shape.rows, 192, "brands listed in the panel");
+  // The slugs never reach the shopper.
+  if (shape.names.includes("Driesvannoten")) throw new Error("a brand is named by its slug");
+  if (!shape.names.includes("Dries Van Noten")) throw new Error("Dries Van Noten is not in the list");
+  // A letter with no brands behind it would be a dead tap.
+  eq(shape.letters[0], "#", "the numbered brands come first");
+  if (shape.letters.includes("Q")) throw new Error("the index offers a letter with nothing behind it");
+
+  /* THE JUMP MOVES THE LIST, NOT THE PAGE. scrollIntoView would drag
+     the whole document to meet a panel already on screen. */
+  const jump = await page.evaluate(async () => {
+    const list = document.getElementById("brandPanelList");
+    list.scrollTop = 0;
+    const before = window.scrollY;
+    document.querySelector('[data-brand-jump="R"]').click();
+    /* The scroll is smooth, and with the CDN blocked the list is one
+       tall column, so R can be ten thousand pixels down. Wait for the
+       scroll to SETTLE rather than for a guessed number of ms. */
+    let last = -1;
+    for (let i = 0; i < 60 && last !== list.scrollTop; i++) { last = list.scrollTop; await new Promise((r) => setTimeout(r, 100)); }
+    const head = list.querySelector('[data-brand-letter="R"]').getBoundingClientRect();
+    const atEnd = list.scrollTop >= list.scrollHeight - list.clientHeight - 1;
+    return { scrollTop: list.scrollTop, offset: head.top - list.getBoundingClientRect().top, atEnd, pageMoved: window.scrollY - before };
+  });
+  if (jump.scrollTop <= 0) throw new Error("the letter jump did not move the list");
+  /* R sits at the top of the list, unless the list has simply run out
+     of scroll under it — a section near the end cannot reach the top
+     and it is not the jump's fault. */
+  if (!jump.atEnd && Math.abs(jump.offset) > 40) throw new Error(`R landed ${Math.round(jump.offset)}px from the top of the list`);
+  if (jump.atEnd && jump.offset < 0) throw new Error("the jump overshot past R");
+  eq(jump.pageMoved, 0, "the letter jump scrolled the whole page");
+
+  // Typing filters live, mid-name, and the index follows it.
+  const search = await page.evaluate(async () => {
+    const box = document.getElementById("brandPanelSearch");
+    const list = document.getElementById("brandPanelList");
+    const visible = () => [...list.querySelectorAll("[data-brand-name]")].filter((r) => r.offsetParent !== null);
+    const type = async (v) => { box.value = v; box.dispatchEvent(new Event("input")); await new Promise((r) => setTimeout(r, 80)); };
+    await type("margiela");
+    const hits = visible().map((r) => r.getAttribute("data-brand-name"));
+    const live = [...document.querySelectorAll("[data-brand-jump]")].filter((c) => !c.disabled).map((c) => c.textContent.trim());
+    await type("zzzz");
+    const none = visible().length;
+    const empty = document.getElementById("brandPanelEmpty");
+    const told = empty && empty.offsetParent !== null;
+    await type("");
+    return { hits, live, none, told, restored: visible().length };
+  });
+  if (!search.hits.includes("MM6 Maison Margiela")) throw new Error("a mid-name search finds nothing");
+  eq(search.live.join(), "M", "the letter index did not follow the search");
+  eq(search.none, 0, "a nonsense query still shows brands");
+  eq(search.told, true, "an empty result says nothing at all");
+  eq(search.restored, 192, "clearing the box did not bring the brands back");
+  await ctx.close();
+});
+
+await check("a brand row opens exactly what its card opened", async () => {
+  /* The cards are gone; their route is not. This is the assertion that
+     decides whether 192 links survived the deletion. */
+  const { ctx, page, errors } = await openPage();
+  await page.evaluate(() => openStore("ssense"));
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => document.querySelector('[data-brand-name="Dries Van Noten"]').click());
+  await page.waitForTimeout(1500);
+  const landed = await page.evaluate(() => ({
+    view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+    title: document.getElementById("catalogTitle").textContent,
+    url: location.search,
+    products: document.querySelectorAll("#catalogSections button, #catalogSections article").length,
+  }));
+  eq(landed.view, "catalogView", "a brand row did not open the catalogue");
+  eq(landed.title, "Dries Van Noten", "the brand page is titled by its slug");
+  eq(landed.url, "?categoria=driesvannoten&kind=brand", "the brand's URL changed");
+  if (!landed.products) throw new Error("the brand page opened with nothing in it");
+  if (errors.length) throw new Error("errors on the brand page: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

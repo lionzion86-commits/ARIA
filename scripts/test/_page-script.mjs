@@ -285,3 +285,27 @@ export function loadPageImageUrlSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The A-Z brand index. Pure list work — fold, letter, sort, group,
+   match — so it loads without the DOM the panel around it needs.
+   brandLabelFor() is deliberately OUTSIDE the slice: it reads
+   departmentCacheData, which is page state, not a rule. */
+const BRAND_START = "function foldBrand(raw){";
+const BRAND_END = "function brandLabelFor(";
+
+export function loadPageBrandSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(BRAND_START);
+  const to = html.indexOf(BRAND_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html brand slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { foldBrand, brandLetter, brandMatches, brandRows, brandGroups };",
+    sandbox,
+    { filename: "index.html#brands" },
+  );
+  return sandbox.__exports;
+}
