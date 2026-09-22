@@ -4048,6 +4048,21 @@ check("no logo file is mostly empty canvas", () => {
       );
     }
   }
+  /* A TRANSPARENT BACKGROUND IS NOT AN EMPTY ONE (2026-09-22). The
+     coverage reader took the top-left pixel as the background colour,
+     which is right on a flat-white file and badly wrong on an alpha
+     one: a transparent corner decodes as (0,0,0,0), so the reference
+     RGB is black, every black letterform matches it, and a perfectly
+     cropped logo reports 0% ink — failing the floor it exists to pass.
+     Found on the first alpha PNG to arrive, which would have blocked a
+     whole batch of clean files. Six of the logos below are alpha. */
+  const alpha = files.map((f) => inkCoverage(root(`logos/${f}`))).filter((i) => i.transparent);
+  if (alpha.length < 3) throw new Error("no transparent logos left to guard the alpha path");
+  for (const info of alpha) {
+    if (info.blank) throw new Error("a transparent logo reads as blank — the alpha background bug is back");
+    if (!(info.coverage > 0.5)) throw new Error(`a transparent logo reads ${(info.coverage * 100).toFixed(0)}% ink`);
+  }
+
   // And the one that was broken is specifically fixed, with its real
   // proportions — a 4.7:1 wordmark, in Macy's and Walmart's company.
   const ssense = inkCoverage(root("logos/ssense.png"));
