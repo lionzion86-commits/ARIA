@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -3481,6 +3481,167 @@ check("the page routes an aisle instead of swapping it silently", () => {
   }
   // And "Ver todo" survives as a real destination.
   if (!/SUB_ALL/.test(src)) throw new Error("Ver todo is gone");
+});
+
+/* ==================================================================
+   TIERS, THE UNIVERSAL DEALS FEED, AND BUDGET (2026-09-22)
+   ------------------------------------------------------------------ */
+group("tiers group the directory and gate nothing");
+
+check("a tier is presentation, never a filter", () => {
+  /* THE RULE THAT MATTERS. Danny's call is that the directory shows a
+     high-end section; his other three calls all say the opposite of a
+     gate — Ofertas aggregates every store "sin importar el tier", and
+     search compares SSENSE against Foot Locker. So a tier decides a
+     HEADING and nothing else, and this is what stops it quietly
+     becoming a filter. */
+  const grouped = retailers.retailersByTier();
+  const inTiers = grouped.flatMap((t) => t.stores.map((s) => s.key)).sort();
+  const active = retailers.activeRetailers().map((r) => r.key).sort();
+  eq(inTiers.join(","), active.join(","), "every active store appears in exactly one tier");
+  eq(new Set(inTiers).size, inTiers.length, "and no store appears twice");
+
+  // The capability lists must not read `tier` at all.
+  const src = stripComments(readFileSync(root("scripts/lib/retailers.js"), "utf8"));
+  const searchable = src.slice(src.indexOf("export function searchableRetailers"));
+  const browsable = src.slice(src.indexOf("export function browsableRetailers"));
+  for (const [name, body] of [["searchableRetailers", searchable.slice(0, 300)], ["browsableRetailers", browsable.slice(0, 300)]]) {
+    if (/tier/.test(body)) throw new Error(`${name} reads tier — a tier must never decide capability`);
+  }
+});
+
+check("the default tier is written down, not inferred by accident", () => {
+  /* A row with no tier lands in `everyday` deliberately. Leaving that
+     implicit is how a new store ends up under whichever heading the
+     code happened to check first. */
+  eq(retailers.tierOf({ key: "x" }), "everyday");
+  eq(retailers.tierOf({ key: "x", kind: "auto" }), "auto", "a parts source is its own section");
+  eq(retailers.tierOf({ key: "x", tier: "luxury" }), "luxury");
+  eq(retailers.tierOf(null), "everyday", "a missing row still resolves");
+  // An empty tier renders no heading rather than an empty band.
+  const keys = retailers.retailersByTier().map((t) => t.key);
+  for (const t of retailers.retailersByTier()) {
+    if (!t.stores.length) throw new Error(`tier ${t.key} came back empty`);
+  }
+  if (!keys.includes("luxury")) throw new Error("the high-end tier has no stores in it");
+});
+
+check("SSENSE replaces Nordstrom, and says what it actually is", () => {
+  const ssense = retailers.RETAILERS.ssense;
+  if (!ssense) throw new Error("SSENSE is not in the registry");
+  eq(ssense.tier, "luxury");
+  eq(Boolean(ssense.retired), false);
+  /* THE BRANDS, NOT THE NAME. A shopper in Lima does not know SSENSE and
+     does know Gucci, so the card has to lead with what it carries. */
+  if (!/Gucci|Prada|Balenciaga/.test(ssense.tagline || "")) {
+    throw new Error("the SSENSE row does not name a single brand a shopper would recognise");
+  }
+  /* HONEST STATUS. A 2,431-product pull exists in Apify but no catalogue
+     file is committed here, so it must NOT claim to be browsable — that
+     is the Macy's rule, and shipping a store that opens onto nothing is
+     the failure it prevents. */
+  eq(ssense.browse, false, "SSENSE cannot be browsable with no catalogue file");
+  eq(ssense.search, false, "and it has no actor either");
+  if (!ssense.pendingNote) throw new Error("a store with no catalogue must say so");
+  if (retailers.browsableRetailers().includes("ssense")) {
+    throw new Error("SSENSE is in the browsable list with no catalogue behind it");
+  }
+  // Nordstrom stays retired, with the reason recorded.
+  eq(retailers.RETAILERS.nordstrom.retired, true);
+  if (!/bot protection/i.test(retailers.RETAILERS.nordstrom.retiredNote || "")) {
+    throw new Error("Nordstrom's retirement no longer records why");
+  }
+});
+
+check("the page's tier table is the module's", () => {
+  const page = loadPageTierSlice();
+  const mine = retailers.TIERS.map((t) => `${t.key}|${t.label}|${t.blurb}`);
+  const theirs = page.TIERS.map((t) => `${t.key}|${t.label}|${t.blurb}`);
+  eq(theirs.join("\n"), mine.join("\n"), "TIERS");
+  eq(page.DEFAULT_TIER, retailers.DEFAULT_TIER, "DEFAULT_TIER");
+});
+
+/* ------------------------------------------------------------------ */
+group("Ofertas aggregates every store, scraped or filed");
+
+check("a store with a FILE and no actor still reaches the deals feed", () => {
+  /* THE GAP (2026-09-22). SALES_SOURCES is a hand-written list of
+     retailer+department pairs and every entry is a store with an actor.
+     Macy's has no actor — its catalogue is a committed file — so its 405
+     discounted items, a median 40% off, were invisible in Ofertas while
+     sitting in plain view inside the store. Nobody broke anything; the
+     feed had no way to see a store that is not scraped. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function fileBackedDeals\(/.test(src)) throw new Error("file-backed stores no longer feed Ofertas");
+  const fn = src.slice(src.indexOf("async function fileBackedDeals("), src.indexOf("async function runSalesScan("));
+  /* NO DOUBLE COUNTING, BY CONSTRUCTION: only browse-only stores are
+     read here, because a scraped store is already in the cache. */
+  if (!/isBrowseOnlyRetailer/.test(fn)) throw new Error("the deals feed would double-count a scraped store");
+  /* THE SAME NORMALIZER as every other surface, so a deal card and a
+     category card cannot disagree about the price of one item. */
+  if (!/normalizeLiveItem/.test(fn)) throw new Error("file-backed deals use a second pricing path");
+  // And the union must survive a cold scraper cache.
+  const scan = src.slice(src.indexOf("async function runSalesScan("), src.indexOf("function discountPct("));
+  if (!/cached\?\.items\?\.length \|\| fromFiles\.length/.test(scan)) {
+    throw new Error("a cold scraper cache empties Ofertas again, even with file deals available");
+  }
+  /* THE STORE FILTER has to list every store whose deals are in the
+     feed, or a shopper cannot switch one off. */
+  if (/salesStoreFilters'\)\.innerHTML = GENERAL_RETAILERS/.test(src)) {
+    throw new Error("the Ofertas store filter is back to the searchable-only list");
+  }
+});
+
+check("Macy's really has deals worth showing, and the gate still applies", () => {
+  const items = macysCatalog.retailers.macys.departments.women.items;
+  const onSale = items.filter((i) => i.onSale && i.originalPrice > i.price);
+  if (!(onSale.length > 300)) throw new Error(`only ${onSale.length} Macy's markdowns`);
+  for (const it of onSale) {
+    if (!(it.originalPrice > it.price)) throw new Error(`"${it.name}" claims a discount that is not one`);
+  }
+  /* Ofertas promotes, so its weight and freight gates still decide what
+     is FEATURED — a file-backed store gets no exemption from them. The
+     live count lands well under the raw 405 for exactly that reason. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const scan = src.slice(src.indexOf("async function runSalesScan("), src.indexOf("function discountPct("));
+  if (!/passesOfertasGate/.test(scan)) throw new Error("file-backed deals bypass the Ofertas gate");
+});
+
+/* ------------------------------------------------------------------ */
+group("budget: what you can spend, door to door");
+
+check("the budget is the DELIVERED total, never the sticker", () => {
+  /* A budget that filtered on the product price would be a lie the size
+     of the freight: a S/ 90 top with S/ 40 of shipping does not belong
+     in "menos de S/ 100". */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function doorToDoorPen("), src.indexOf("function budgetChipsHTML("));
+  if (!/doorToDoorUsd/.test(fn)) throw new Error("the budget no longer uses the door-to-door total");
+  if (/\bp\.price\b/.test(fn)) throw new Error("the budget is reading the sticker price");
+  /* An item whose total cannot be computed is EXCLUDED, not quietly
+     kept: a budget filter that leaks unpriced items is one a shopper
+     stops trusting the first time one appears. */
+  if (!/if \(pen == null\) return false/.test(src)) {
+    throw new Error("an item with no computable total leaks through the budget filter");
+  }
+  // No soles without a rate — same rule as fmtPEN.
+  if (!/if \(!fxRate\) return null/.test(fn)) throw new Error("the budget invents soles with no exchange rate");
+});
+
+check("the bands are fixed and round, and only live ones render", () => {
+  const page = loadPageBudgetSlice();
+  const bands = page.BUDGET_BANDS;
+  eq(bands.length, 5, "band count");
+  // Contiguous and non-overlapping, or an item falls in two bands or none.
+  for (let i = 0; i < bands.length - 1; i++) {
+    eq(bands[i].max, bands[i + 1].min, `band ${bands[i].key} must end where ${bands[i + 1].key} begins`);
+  }
+  eq(bands[0].min, 0, "the first band starts at zero");
+  eq(bands[bands.length - 1].max, Infinity, "the last band is open-ended");
+  eq(page.budgetBandFor("nope"), null, "an unknown band is null, not a silent match-all");
+  /* And an unknown key must not become "no filter" — inBudget returns
+     true only for a REAL absence of a band, which is what `null` means. */
+  eq(page.budgetBandFor(null), null);
 });
 
 /* ------------------------------------------------------------------ */

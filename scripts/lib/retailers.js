@@ -183,14 +183,102 @@ export const RETAILERS = {
     kind: "auto",
     search: true,
   },
-  /* Listed but not sold: these two were integrated once and turned off
-     for real reasons (cost, and Nordstrom's bot protection returning zero
-     items). They stay here so a label and a colour still resolve for any
-     historical order or cached item that names them, and so nobody
-     re-adds them without reading why they went. */
+  /* ============================================================
+     SSENSE (2026-09-22) — THE HIGH-END TIER, AND NORDSTROM'S REPLACEMENT
+
+     Nordstrom was the luxury slot and it never worked: three integration
+     attempts, zero products, because its bot protection beats the actor.
+     It stays retired below. SSENSE takes the slot.
+
+     THE SHOPPER DOES NOT KNOW "SSENSE", and that is the design
+     constraint Danny named: a shopper in Lima recognises Gucci, Prada
+     and Adidas, not the retailer carrying them. So a high-end store is
+     introduced by its BRANDS, not by its name — brandsFor() below reads
+     them from the catalogue rather than from a hand-written list, so the
+     card can never promise a label the store is not actually carrying.
+
+     STATUS: listed, not yet browsable. A 2,431-product men's pull exists
+     in Apify ($2.45, 2026-09-22) and the women's pull is waiting on the
+     monthly limit, but neither has been exported into this repo. Until
+     the file lands this is exactly the Macy's situation before its
+     export arrived: a real row, honestly labelled, kept out of the live
+     search so an unconfigured retailer cannot return a failed store
+     card. Flip `browse: true` the day the catalogue is committed.
+     ============================================================ */
+  ssense: {
+    key: "ssense",
+    label: "SSENSE",
+    color: "#000000",
+    logo: null,
+    tagline: "Diseñador y lujo — Gucci, Prada, Balenciaga",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    browse: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  /* Listed but not sold: these were integrated once and turned off for
+     real reasons (cost, and Nordstrom's bot protection returning zero
+     items across three attempts). They stay here so a label and a colour
+     still resolve for any historical order or cached item that names
+     them, and so nobody re-adds them without reading why they went. */
   bestbuy: { key: "bestbuy", label: "Best Buy", color: "#0046BE", logo: null, kind: "general", search: false, retired: true },
-  nordstrom: { key: "nordstrom", label: "Nordstrom", color: "#000000", logo: null, kind: "general", search: false, retired: true },
+  nordstrom: { key: "nordstrom", label: "Nordstrom", color: "#000000", logo: null, kind: "general", search: false, retired: true,
+    retiredNote: "Bot protection: tres integraciones, cero productos. Reemplazada por SSENSE." },
 };
+
+/* ============================================================
+   TIERS — how the DIRECTORY is grouped, and nothing else.
+
+   Danny's call (2026-09-22): Tiendas needs a visible high-end section
+   rather than one flat run of logos, because "SSENSE" means nothing to
+   a shopper in Lima while "Gucci" and "Prada" mean a great deal.
+
+   A TIER IS PRESENTATION, NEVER A GATE. It decides which heading a
+   store sits under on Tiendas. It does NOT decide who is in the
+   cross-store search, who is in Ofertas, or whose prices are compared —
+   those read `search`, `browse` and the deals feed, all of which ignore
+   tier completely. That separation is the point: searching "Adidas
+   sneakers" has to show SSENSE beside Foot Locker, and an SSENSE
+   markdown has to compete in Ofertas on the same row as a Macy's one.
+   Tests pin both.
+
+   `everyday` is the default and is written out rather than implied, so
+   a new row's tier is a decision somebody made instead of a field
+   somebody forgot.
+   ============================================================ */
+export const TIERS = [
+  { key: "luxury",   label: "Diseñador y lujo",
+    blurb: "Las marcas que ya conoces, importadas igual que todo lo demás." },
+  { key: "everyday", label: "Tiendas de siempre",
+    blurb: "Lo de todos los días, a precio puerta a puerta." },
+  { key: "auto",     label: "Repuestos", blurb: "Autopartes vía Aria Auto." },
+];
+
+export const DEFAULT_TIER = "everyday";
+
+/** A store's tier, with the default made explicit. */
+export function tierOf(retailer) {
+  if (!retailer) return DEFAULT_TIER;
+  if (retailer.tier) return retailer.tier;
+  // Aria Auto's source is its own section — it is not a storefront a
+  // shopper browses for clothes.
+  if (retailer.kind === "auto") return "auto";
+  return DEFAULT_TIER;
+}
+
+/**
+ * The directory, grouped for display: [{ key, label, blurb, stores }].
+ *
+ * Only non-empty tiers come back, in TIERS order, so a tier with no
+ * stores in it never renders as an empty heading.
+ */
+export function retailersByTier() {
+  const active = activeRetailers();
+  return TIERS
+    .map((t) => ({ ...t, stores: active.filter((r) => tierOf(r) === t.key) }))
+    .filter((t) => t.stores.length);
+}
 
 /** Every row, in display order, minus the retired ones. */
 export function activeRetailers() {

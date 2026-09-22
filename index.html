@@ -3269,7 +3269,7 @@ const LISTING_PAGE_SIZE = 24;
    a `const` referenced before its declaration is a temporal-dead-zone
    throw that kills the whole page script on load — the same way
    GENERAL_RETAILERS once did (see its comment). Keep declaration order. */
-let catalogState = { kind: 'department', key: null, retailerFilter: null, subKey: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+let catalogState = { kind: 'department', key: null, retailerFilter: null, subKey: null, budget: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
 
 function catalogGoBack(){
   // In-page "Volver" and the browser's back arrow have to agree.
@@ -3329,7 +3329,9 @@ async function openCatalog(kind, key, opts = {}){
   }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
-  catalogState = { kind, key, retailerFilter, subKey, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+  // A new category is a new question: the budget does not follow you into
+  // it, for the same reason the search term does not.
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
   renderCatalogFeed();
 }
 
@@ -3354,6 +3356,18 @@ function setCatalogSub(subKey){
     ...(catalogState.retailerFilter ? { retailerFilter: catalogState.retailerFilter } : {}),
     ...(subKey ? { subKey } : {}),
   });
+}
+
+/* Budget re-renders in place rather than pushing a route. It is a
+   refinement of the feed you are already looking at, not a new
+   destination — and putting it in the URL would make the back button
+   undo a chip tap instead of leaving the category, which is the
+   behaviour the store and aisle chips deliberately DO have because
+   those change what you are looking at. */
+function setCatalogBudget(key){
+  catalogState.budget = key || null;
+  catalogState.pageSize = LISTING_PAGE_SIZE;   // a new question, a first page
+  renderCatalogFeed();
 }
 
 /* "Ver todo" is a REAL destination, not the absence of a choice: it
@@ -3553,9 +3567,13 @@ function renderCatalogFeed(){
   const typed = String(catalogState.searchTerm || '').trim();
   const term = typed.toLowerCase();
   const tokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
-  const items = tokens.length
+  const searched = tokens.length
     ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
     : feed;
+  /* Budget last, so its chip counts are taken against everything the
+     other filters left standing — a band promising 12 has to deliver 12
+     from THIS feed, not from the category as a whole. */
+  const items = catalogState.budget ? searched.filter(it => inBudget(it, catalogState.budget)) : searched;
 
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
@@ -3566,8 +3584,11 @@ function renderCatalogFeed(){
   const storeCount = byRetailer.size;
   const n = items.length;
   const aisleName = aisleKey ? subcategoryLabel(aisleKey) : null;
+  const budgetName = catalogState.budget ? budgetLabelInline(budgetBandFor(catalogState.budget)) : null;
   subtitle.textContent = term
     ? `${n} resultado${n === 1 ? '' : 's'} para "${term}"${aisleName ? ` en ${aisleName}` : ' en esta categoría'}`
+    : budgetName
+    ? `${n} producto${n === 1 ? '' : 's'}${aisleName ? ` en ${aisleName}` : ''} por ${budgetName} · puesto en tu puerta`
     : aisleName
     ? `${n} producto${n === 1 ? '' : 's'} en ${aisleName}`
     : filterHasStock
@@ -3576,10 +3597,12 @@ function renderCatalogFeed(){
         ? `${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} no tiene productos de esta categoría — te mostramos las ${storeCount} tiendas que sí.`
         : `${n} producto${n === 1 ? '' : 's'} de ${storeCount} tienda${storeCount === 1 ? '' : 's'} en un solo feed · el flete y los aranceles se calculan en el checkout`;
 
+  const budgetBand = budgetBandFor(catalogState.budget);
   sections.innerHTML = `
     ${catalogSearchBarHTML()}
     ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
+    ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
         <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
@@ -3590,6 +3613,10 @@ function renderCatalogFeed(){
       shown.map(it => listingCardHTML(it, it.retailer)).join('')}</div>
     ${catalogLoadMoreHTML(items.length, shown.length)}
     ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
+    ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">
+      Nada aquí por ${escapeHtml(budgetLabelInline(budgetBand))} — el total incluye el flete a tu puerta.
+      <button onclick="setCatalogBudget(null)" class="underline font-bold" style="color:var(--blue)">Ver todos los precios</button>
+    </div>` : ''}
     <div id="catalogOnDemandWrap" class="mt-6"></div>`;
   // The <select> was just re-created, so put the chosen sort back on it.
   const sel = document.getElementById('catalogSort');
@@ -3770,12 +3797,48 @@ function renderHowItWorksStores(){
 }
 window.addEventListener('DOMContentLoaded', renderHowItWorksStores);
 
+/* ============================================================
+   TIENDAS, GROUPED BY TIER (2026-09-22).
+
+   It was one flat run of logos. Danny's call is that the directory
+   needs a visible high-end section, and the reason is worth keeping:
+   a shopper in Lima does not know "SSENSE", but knows Gucci and Prada
+   perfectly well. A tier heading with a line of plain Spanish under it
+   does the introducing that a logo cannot.
+
+   THE GROUPING IS PRESENTATION ONLY. Every store still appears exactly
+   once, and nothing here can keep a store out of search, out of Ofertas
+   or out of a price comparison -- a test asserts that the set of cards
+   rendered equals the set of active rows, so a tier can never quietly
+   become a filter.
+
+   A tier with no stores renders no heading at all (retailersByTier
+   drops it), so this does not leave an empty "Diseñador y lujo" band
+   behind if that row is ever removed. */
 function renderStoresGrid(){
-  const stores = activeRetailers();
   const grid = document.getElementById('storesGrid');
-  if (grid) grid.innerHTML = stores.map(storeCardHTML).join('');
+  if (grid){
+    const tiers = retailersByTier();
+    /* One tier does not need a heading to explain itself -- that is the
+       flat list we already had, and a single "Tiendas de siempre" band
+       over everything is noise. */
+    grid.innerHTML = tiers.length < 2
+      ? `<div class="col-span-full grid grid-cols-2 lg:grid-cols-4 gap-4">${
+          tiers.flatMap(t => t.stores).map(storeCardHTML).join('')}</div>`
+      : tiers.map(t => `
+          <section class="col-span-full">
+            <div class="flex items-baseline gap-3 flex-wrap mb-3 mt-2">
+              <h3 class="text-[17px] font-extrabold tracking-[-0.02em]" style="color:var(--navy)">${escapeHtml(t.label)}</h3>
+              <p class="text-[12.5px]" style="color:#6B7487">${escapeHtml(t.blurb)}</p>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">${t.stores.map(storeCardHTML).join('')}</div>
+          </section>`).join('');
+  }
+  /* The home rail stays ONE row, ungrouped: it is a glance, not a
+     directory, and a heading in a horizontal chip strip reads as a
+     broken card. */
   const row = document.getElementById('homeStoresRow');
-  if (row) row.innerHTML = stores.map(homeStoreChipHTML).join('');
+  if (row) row.innerHTML = activeRetailers().map(homeStoreChipHTML).join('');
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
 
@@ -5366,6 +5429,14 @@ const RETAILERS = {
      it out of the live fan-out, which has no actor for it. See the note
      on the Macy's row in scripts/lib/retailers.js. */
   macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
+     bot protection returned zero products across three integrations.
+     Listed and honestly pending: the 2,431-product men's pull exists in
+     Apify but no catalogue file has been committed here yet, so
+     browse stays false and the card says it is being connected. The
+     tagline leads with the BRANDS because "SSENSE" means nothing to a
+     shopper in Lima and "Gucci" means everything. */
+  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: null,                   tagline: 'Diseñador y lujo — Gucci, Prada, Balenciaga',  kind: 'general', tier: 'luxury', search: false, browse: false, pendingNote: 'Conectando el catálogo' },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
@@ -5375,6 +5446,37 @@ const RETAILERS = {
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
 function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
+/* TIERS — how the Tiendas directory is GROUPED, and nothing else.
+   MIRROR of scripts/lib/retailers.js; a parity test pins the two.
+
+   A tier decides which heading a store sits under. It does NOT decide
+   who is in the cross-store search, who is in Ofertas, or whose prices
+   are compared -- those read `search`, `browse` and the deals feed, none
+   of which look at tier. That separation is the point: "Adidas
+   sneakers" has to show SSENSE beside Foot Locker, and an SSENSE
+   markdown has to compete in Ofertas on the same row as a Macy's one. */
+const TIERS = [
+  { key: 'luxury',   label: 'Diseñador y lujo',
+    blurb: 'Las marcas que ya conoces, importadas igual que todo lo demás.' },
+  { key: 'everyday', label: 'Tiendas de siempre',
+    blurb: 'Lo de todos los días, a precio puerta a puerta.' },
+  { key: 'auto',     label: 'Repuestos', blurb: 'Autopartes vía Aria Auto.' },
+];
+const DEFAULT_TIER = 'everyday';
+
+function tierOf(r){
+  if (!r) return DEFAULT_TIER;
+  if (r.tier) return r.tier;
+  if (r.kind === 'auto') return 'auto';
+  return DEFAULT_TIER;
+}
+
+function retailersByTier(){
+  const active = activeRetailers();
+  return TIERS.map(t => ({ ...t, stores: active.filter(r => tierOf(r) === t.key) }))
+    .filter(t => t.stores.length);
+}
+
 function isBeautyRetailer(key){ return retailerFor(key)?.catalog === 'beauty'; }
 
 /* The stores the live cross-store search actually fans out to. AutoZone
@@ -5479,6 +5581,19 @@ const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => retailerFor(r)?.kind !== 'a
 const CATALOG_RETAILERS = activeRetailers()
   .filter(r => (r.search || r.browse) && r.kind !== 'auto')
   .map(r => r.key);
+
+/* A store with a catalogue FILE and no live scraper. Mirrors
+   isBrowseOnlyRetailer() in scripts/lib/retailers.js.
+
+   This is what tells the deals feed which stores the scraper cache does
+   NOT cover, so the two halves of Ofertas union without double
+   counting. It was missing from this mirror when fileBackedDeals() was
+   first written, and the result was a silent ReferenceError inside an
+   async function: Ofertas simply stayed empty, with no visible error. */
+function isBrowseOnlyRetailer(key){
+  const r = retailerFor(key);
+  return Boolean(r && r.browse && !r.search);
+}
 
 // Retailers whose entire catalog is apparel/footwear — used so a real
 // shoe like "Nike Kobe Air Force 1 Low" (Foot Locker) or "Rotation
@@ -6946,6 +7061,99 @@ function doorToDoorUsd(p){
   const kg = Number(p?.weightKg);
   const freight = Number.isFinite(kg) && kg > 0 ? freightUsd(kg) : 0;
   return displayPriceUsd(price) + freight;
+}
+
+
+/* ============================================================
+   BUDGET — "qué puedo comprar con S/ X".
+
+   Danny's call (2026-09-22): a shopper should be able to browse by what
+   they can SPEND, not only by what a store stocks. That is a different
+   question from sorting by price, and sorting does not answer it: a
+   sorted list still makes you scroll past everything you cannot afford
+   to find the edge of what you can.
+
+   THE NUMBER IS THE DOOR-TO-DOOR TOTAL, NOT THE STICKER. A budget that
+   filtered on the product price would be a lie the size of the freight:
+   a S/ 90 top with S/ 40 of freight does not belong in "menos de S/
+   100". doorToDoorUsd() is the same figure the card prints and the
+   "mejor precio" sort already uses, so the three cannot disagree.
+
+   THE BANDS ARE FIXED AND ROUND, not derived from the data. Adaptive
+   bands re-cut themselves every time you touch another filter, so the
+   band you just chose stops meaning what it meant. These are the
+   numbers a shopper already thinks in.
+
+   Only bands with something in them are rendered, so a luxury store
+   does not show an empty "menos de S/ 100" and Old Navy does not show
+   an empty "S/ 1,000+". And the filter hides itself entirely when the
+   exchange rate never loaded -- soles we cannot compute are soles we do
+   not print (same rule as fmtPEN). */
+const BUDGET_BANDS = [
+  { key: 'u100',   label: 'Menos de S/ 100', min: 0,    max: 100 },
+  { key: '100250', label: 'S/ 100 – 250',    min: 100,  max: 250 },
+  { key: '250500', label: 'S/ 250 – 500',    min: 250,  max: 500 },
+  { key: '5001k',  label: 'S/ 500 – 1,000',  min: 500,  max: 1000 },
+  { key: 'o1k',    label: 'Más de S/ 1,000', min: 1000, max: Infinity },
+];
+
+function budgetBandFor(key){
+  return BUDGET_BANDS.find(b => b.key === key) || null;
+}
+
+/* A band's label mid-sentence ("193 productos por ..."). Lowercasing the
+   whole label turned "S/ 100 - 250" into "s/ 100 - 250"; lowercasing
+   only the first letter did too, because "S" IS a letter. A currency
+   symbol is not a word, so a label that opens with one is left exactly
+   as written and only a real opening word drops its capital. */
+function budgetLabelInline(band){
+  const s = String(band?.label || '');
+  if (s.startsWith('S/')) return s;
+  return /^[A-Za-zÁÉÍÓÚÑ]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+}
+
+/** An item's door-to-door total in soles, or null when it cannot be known. */
+function doorToDoorPen(p){
+  if (!fxRate) return null;
+  const usd = doorToDoorUsd(p);
+  if (!Number.isFinite(usd)) return null;
+  return usd * fxRate;
+}
+
+function inBudget(p, bandKey){
+  const band = budgetBandFor(bandKey);
+  if (!band) return true;
+  const pen = doorToDoorPen(p);
+  /* An item whose total we cannot compute is NOT quietly kept. A budget
+     filter that leaks unpriced items is a budget filter a shopper stops
+     trusting the first time one appears. */
+  if (pen == null) return false;
+  return pen >= band.min && pen < band.max;
+}
+
+/** Bands with something in them, counted against the feed as it stands. */
+function budgetChipsHTML(items, activeKey, onclickFor){
+  if (!fxRate) return '';
+  const counts = new Map();
+  for (const it of items){
+    const pen = doorToDoorPen(it);
+    if (pen == null) continue;
+    const band = BUDGET_BANDS.find(b => pen >= b.min && pen < b.max);
+    if (band) counts.set(band.key, (counts.get(band.key) || 0) + 1);
+  }
+  const live = BUDGET_BANDS.filter(b => counts.get(b.key));
+  // One band holding everything is not a choice; it is a label.
+  if (live.length < 2) return '';
+  const chip = (isOn, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+    </button>`;
+  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+    <span class="text-[12px] font-bold self-center flex-shrink-0 pr-1" style="color:#6B7487">Presupuesto</span>
+    ${chip(!activeKey, 'Cualquiera', items.length, onclickFor(null))}
+    ${live.map(b => chip(activeKey === b.key, b.label, counts.get(b.key), onclickFor(b.key))).join('')}
+  </div>`;
 }
 
 /** Comparator for every "Mejor precio primero" / "mayor a menor" select. */
@@ -10362,8 +10570,12 @@ function renderSalesFreshness(state){
    paying for. salesStatusLines() and salesSkeletonCardHTML() went with
    them; the Ofertas page no longer has a scanning state at all. */
 
+/* CATALOG_RETAILERS, not GENERAL_RETAILERS: the deals feed now includes
+   file-backed stores (see fileBackedDeals), and a store whose deals are
+   in the feed with no checkbox to filter by is a store the shopper
+   cannot switch off. */
 function initSalesFilters(){
-  document.getElementById('salesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
+  document.getElementById('salesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
     `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="salesStoreFilter accent-[#2F5FEE]" onchange="renderSalesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
   ).join('');
 }
@@ -10565,8 +10777,75 @@ function passesOfertasGate(p){
   return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p);
 }
 
+
+/* ============================================================
+   DEALS FROM A FILE-BACKED STORE.
+
+   THE GAP (2026-09-22). Ofertas was built entirely on the scraper cache,
+   whose contents come from SALES_SOURCES -- a hand-written list of
+   retailer+department pairs, every one of them a store with an actor.
+   Macy's has no actor: its catalogue is a committed file. So its 405
+   discounted items, a median 40% off and some at 86%, were invisible in
+   Ofertas while sitting in plain view inside the store. Nobody had to
+   break anything; the deals feed simply had no way to see a store that
+   is not scraped.
+
+   Danny's call is that the deals section aggregates EVERY store
+   regardless of tier, so this is the other half of the feed: the cache
+   covers stores with an actor, this covers stores with a file, and the
+   two are unioned.
+
+   NO DOUBLE COUNTING, BY CONSTRUCTION. Only browse-only stores are read
+   here -- a store with a scraper is already represented in the cache, so
+   `isBrowseOnly` is exactly the right predicate and needs no second
+   list to be kept in sync.
+
+   THE SAME NORMALIZER AS EVERY OTHER SURFACE. These go through
+   normalizeLiveItem, which is what the category feed and the product
+   page use, so a deal card and a category card cannot disagree about
+   the price of the same item. Deriving a second pricing path here is
+   precisely the drift the Macy's builder refuses to introduce.
+
+   SSENSE NEEDS NOTHING FROM THIS FUNCTION. The day its catalogue file is
+   committed and its row flips to browse:true, its markdowns appear here
+   on their own -- which is the whole point of not hardcoding a list.
+   ============================================================ */
+async function fileBackedDeals(){
+  let data;
+  try { data = await loadDepartmentCache(); }
+  catch { return []; }
+
+  const out = [];
+  const seen = new Set();
+  for (const retailer of CATALOG_RETAILERS){
+    if (!isBrowseOnlyRetailer(retailer)) continue;   // scraped stores come from the cache
+    const bucket = data?.retailers?.[retailer];
+    for (const [department, entry] of Object.entries(bucket?.departments || {})){
+      for (const raw of entry?.items || []){
+        const it = normalizeLiveItem(raw, { retailer, department });
+        if (!it.title) continue;
+        // A real markdown only. normalizeLiveItem already applied the
+        // discount floor, so onSale here means "big enough to feature".
+        if (!(it.onSale && Number(it.originalPrice) > Number(it.price))) continue;
+        // One store can carry the same item in two departments.
+        const key = retailer + '::' + it.title + '::' + it.price;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ ...it, retailer });
+      }
+    }
+  }
+  return out;
+}
+
 async function runSalesScan(){
   await loadFxRate();
+
+  /* Deals from stores with a FILE rather than an actor. Fetched
+     alongside the cache, not after it, because a cold cache must not
+     mean an empty Ofertas when hundreds of real markdowns are sitting in
+     a committed catalogue. */
+  const fromFiles = await fileBackedDeals();
 
   // 1. Cache first — a visitor should never wait on a full live scrape
   //    when a real, recent scan already exists.
@@ -10576,10 +10855,13 @@ async function runSalesScan(){
     if (res.ok) cached = await res.json();
   } catch { /* fall through to a live scan */ }
 
-  if (cached?.items?.length){
-    saleItemsCache = cached.items.map(refreshCachedWeight).filter(passesOfertasGate);
-    salesGeneratedAt = cached.generatedAt;
-    salesStaleNote = salesFreshnessNote(cached.generatedAt, cached.stale);
+  if (cached?.items?.length || fromFiles.length){
+    const scraped = (cached?.items || []).map(refreshCachedWeight);
+    // One feed. The tier a store sits in on Tiendas has no say here:
+    // an SSENSE markdown competes on the same row as a Walmart one.
+    saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+    salesGeneratedAt = cached?.generatedAt || null;
+    salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
     renderSalesGrid();
     return;
   }

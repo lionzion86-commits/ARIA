@@ -189,7 +189,7 @@ await check("every view still renders, with nothing thrown on the way", async ()
   // The two pages rebuilt in this batch must still have their store grids.
   await page.evaluate(() => showPage("storesView"));
   await page.waitForTimeout(250);
-  const stores = await page.evaluate(() => document.querySelectorAll("#storesGrid > *").length);
+  const stores = await page.evaluate(() => document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length);
   if (stores < 8) throw new Error(`Tiendas shows ${stores} stores, expected 8`);
   await ctx.close();
 });
@@ -443,7 +443,7 @@ await check("Aria Auto lists its sources without touching the Tiendas grid", asy
       .map((s) => s.id)
       .filter((id) => id !== "autozone")
       .filter((id) => Object.keys(RETAILERS).includes(id) && !RETAILERS[id].retired),
-    tiendaTiles: document.querySelectorAll("#storesGrid > *").length,
+    tiendaTiles: document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length,
     listedStores: Object.values(RETAILERS).filter((x) => !x.retired).length,
   }));
   eq(r.sources.join(","), "autozone:live,rockauto:pending", "the source list comes from the registry");
@@ -515,7 +515,7 @@ await check("the three beauty stores render their real logo, unfiltered", async 
     await Promise.all(all.map((i) => (i.complete ? null : new Promise((res) => { i.onload = res; i.onerror = res; }))));
     const out = {};
     for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
-      const card = [...document.querySelectorAll("#storesGrid > *")]
+      const card = [...document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)")]
         .find((el) => (el.outerHTML || "").includes(`logos/${key}.`));
       if (!card) { out[key] = { found: false }; continue; }
       const img = card.querySelector("img");
@@ -555,7 +555,7 @@ await check("the three beauty stores render their real logo, unfiltered", async 
      symmetric eight" until Macy's became the ninth store on 2026-09-22;
      pinning a number would have blocked every store the shop signs. */
   const grid = await page.evaluate(() => ({
-    rendered: document.querySelectorAll("#storesGrid > *").length,
+    rendered: document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length,
     listed: Object.values(RETAILERS).filter((x) => !x.retired).length,
   }));
   eq(grid.rendered, grid.listed, "every listed store gets a tile");

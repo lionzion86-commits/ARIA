@@ -75,6 +75,51 @@ export function loadPageTileSlice() {
   return sandbox.__exports;
 }
 
+/* The tier mirror. Grouping only — a tier decides a heading on Tiendas
+   and never a capability, so this slice holds the table and nothing
+   that could filter a store out of search or Ofertas. */
+const TIER_START = "const TIERS = [";
+const TIER_END = "function retailersByTier(){";
+
+export function loadPageTierSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(TIER_START);
+  const to = html.indexOf(TIER_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html tier slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { TIERS, DEFAULT_TIER, tierOf };",
+    sandbox,
+    { filename: "index.html#tiers" },
+  );
+  return sandbox.__exports;
+}
+
+/* The budget bands. Pure arithmetic over a door-to-door total, so the
+   band table and its lookup load without the page's pricing chain. */
+const BUDGET_START = "const BUDGET_BANDS = [";
+const BUDGET_END = "/** An item's door-to-door total in soles";
+
+export function loadPageBudgetSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(BUDGET_START);
+  const to = html.indexOf(BUDGET_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html budget slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { BUDGET_BANDS, budgetBandFor };",
+    sandbox,
+    { filename: "index.html#budget" },
+  );
+  return sandbox.__exports;
+}
+
 /* The subcategory mirror. index.html is a plain <script> and cannot
    import scripts/lib/subcategories.js, so the table is duplicated there
    and this slice is what lets a test prove the two agree. Anchored on
