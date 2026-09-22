@@ -1,8 +1,12 @@
-// The one place "payment" actually finalizes (still simulated — no real
-// payment gateway exists or is in scope here). Enforces the daily order
-// cap / kill switch ("launch cash control") and, when the order goes
-// through, persists a real order record that both orders-remaining.js's
-// counter and the admin margin-test view (admin-orders-*.js) read from.
+// Where an order is CREATED. Not where it is paid — nothing here takes
+// money, and as of 2026-09-22 nothing in this repo does: there is no card
+// form and no gateway call. Payment arrives later and separately, through
+// stripe-webhook.js, which is the only writer of paymentStatus.
+//
+// This function enforces the daily order cap / kill switch ("launch cash
+// control") and persists an order record that orders-remaining.js's
+// counter, the admin margin view (admin-orders-*.js) and the ops
+// dashboard (admin-dashboard.js) all read from.
 //
 // NOT atomic: the counter is a plain read-modify-write against Blobs, not
 // a compare-and-swap. Acceptable for a low-volume launch-phase cap (a
@@ -188,7 +192,38 @@ export async function handler(event) {
     const order = {
       orderId,
       createdAt: new Date().toISOString(),
-      status: "confirmed",
+      /* ---- STATUS, AND WHY IT IS NO LONGER "confirmed" -------------
+         This field said "confirmed" on every order from the first one,
+         and nothing had confirmed anything: there is no card form, no
+         gateway call and — until stripe-webhook.js — no webhook. The
+         checkout button says "Pagar", shows a success screen, and no
+         money moves. An order record that claimed otherwise was the
+         single most misleading thing in this codebase, because it is the
+         field ops would reconcile the bank against.
+
+         So there are two fields now and they answer different questions:
+
+           status         where the order is in FULFILMENT.
+                          pending_payment -> confirmed -> (shipping
+                          statuses live on the shipment, not here).
+           paymentStatus  whether MONEY ARRIVED. Written ONLY by
+                          stripe-webhook.js, only after a signature
+                          verified against STRIPE_WEBHOOK_SECRET.
+
+         Both start at the honest value. Nothing in this function can
+         move either of them, which is the point: the server that creates
+         an order is not the server that can say it was paid. */
+      status: "pending_payment",
+      paymentStatus: "unpaid",
+      paymentProvider: null,
+      paymentId: null,
+      paidAt: null,
+      /* What the gateway actually captured, versus what we billed
+         (pricePenCharged below). Null until a payment event lands; a
+         zero here would read as "checked, nothing came in". */
+      amountCapturedPen: null,
+      amountRefundedPen: null,
+      amountMismatchPen: null,
       customer: body.customer || {},
       shipping: body.shipping || {},
       items,

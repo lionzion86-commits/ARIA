@@ -12,7 +12,7 @@
 
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
 
@@ -41,6 +41,10 @@ import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courie
 import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
+import * as payments from "../../netlify/functions/_payments-model.js";
+import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
+import * as ledger from "../../netlify/functions/_ledger.js";
+import { createHmac } from "node:crypto";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -2852,6 +2856,381 @@ check("Macy's is browsable but never queried, and its logo fills the zone", () =
   const aspect = w / h;
   if (aspect < 2) {
     throw new Error(`macys.png is ${w}x${h} (aspect ${aspect.toFixed(2)}): the empty canvas is back, so the mark will render tiny`);
+  }
+});
+
+/* ==================================================================
+   THE OPS DASHBOARD, AND THE PAYMENT TRUTH IT RESTS ON (2026-09-22)
+   ------------------------------------------------------------------ */
+group("payments: an order may not claim money that never arrived");
+
+check("orders-create never writes a paid-looking status", () => {
+  /* THE BUG THIS PINS. orders-create.js wrote status "confirmed" on
+     every order the checkout form posted, and nothing had charged
+     anybody: a search of the whole repo for "stripe" returned zero
+     hits, there was no card form and no webhook. "Confirmed" meant
+     "the browser posted a form" on the one field ops would reconcile a
+     bank statement against. */
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  if (/status:\s*["']confirmed["']/.test(src)) {
+    throw new Error('orders-create is writing status "confirmed" again — nothing there takes money');
+  }
+  if (!/status:\s*["']pending_payment["']/.test(src)) throw new Error("orders start somewhere other than pending_payment");
+  if (!/paymentStatus:\s*["']unpaid["']/.test(src)) throw new Error("orders-create no longer records paymentStatus: unpaid");
+});
+
+check("only the verified webhook can move an order to paid", () => {
+  /* The whole guarantee in one assertion: grep every file that writes
+     paymentStatus and prove the list is exactly the two files allowed
+     to — the model that decides, and the store-facing shell. Anything
+     else writing it (an admin endpoint, a browser-reachable function)
+     would be a path to "paid" that Stripe never confirmed. */
+  /* _ledger.js is on this list because it copies an order's
+     paymentStatus onto a REPORT ROW. It writes no order record, and a
+     ledger that could not name a payment state would be useless. The
+     rule being protected is "nothing else may DECIDE that an order is
+     paid", and a report cannot. */
+  const allowed = new Set(["_payments-model.js", "_payments.js", "_ledger.js"]);
+  const dir = root("netlify/functions");
+  const offenders = [];
+  const walk = (d, prefix = "") => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const rel = prefix + entry.name;
+      if (entry.isDirectory()) { walk(`${d}/${entry.name}`, rel + "/"); continue; }
+      if (!entry.name.endsWith(".js")) continue;
+      const src = stripComments(readFileSync(`${d}/${entry.name}`, "utf8"));
+      // An assignment or object key, not a read.
+      if (/paymentStatus\s*[:=]\s*(?!=)/.test(src) && !allowed.has(entry.name)) {
+        // orders-create sets the honest initial value; that is not a claim.
+        if (entry.name === "orders-create.js" && !/paymentStatus:\s*["'](?!unpaid)/.test(src)) continue;
+        offenders.push(rel);
+      }
+    }
+  };
+  walk(dir);
+  if (offenders.length) {
+    throw new Error(`these write paymentStatus but must not: ${offenders.join(", ")}`);
+  }
+  // And the webhook refuses outright with no secret, rather than 200.
+  const hook = stripComments(readFileSync(root("netlify/functions/stripe-webhook.js"), "utf8"));
+  if (!/503/.test(hook)) throw new Error("the webhook no longer fails closed when unconfigured");
+});
+
+check("a Stripe signature is verified, not trusted", () => {
+  const secret = "whsec_unit_test";
+  const raw = '{"id":"evt_1","type":"payment_intent.succeeded"}';
+  const t = Math.floor(Date.now() / 1000);
+  const good = createHmac("sha256", secret).update(`${t}.${raw}`, "utf8").digest("hex");
+
+  const v = (header, opts = {}) => stripeVerify.verifyStripeSignature({ rawBody: raw, header, secret, ...opts });
+  eq(v(`t=${t},v1=${good}`).ok, true, "a correct signature passes");
+  eq(v(`t=${t},v1=${"0".repeat(64)}`).ok, false, "a wrong signature fails");
+  eq(stripeVerify.verifyStripeSignature({ rawBody: raw + " ", header: `t=${t},v1=${good}`, secret }).ok, false,
+     "one extra byte in the body fails");
+  eq(v("").ok, false, "a missing header fails");
+  eq(v(`v1=${good}`).ok, false, "no timestamp fails");
+  eq(v(`t=${t}`).ok, false, "no v1 fails");
+  eq(v(`t=${t},v1=zzz`).ok, false, "non-hex fails rather than throwing");
+  eq(v(`t=${t},v1=${good.slice(0, 20)}`).ok, false, "a short signature fails rather than throwing");
+  // Replay: a captured request re-sent an hour later.
+  const old = t - 3600;
+  const oldSig = createHmac("sha256", secret).update(`${old}.${raw}`, "utf8").digest("hex");
+  eq(v(`t=${old},v1=${oldSig}`).ok, false, "a stale timestamp fails even with a valid signature");
+  // Rotation: two v1s, one of them ours.
+  eq(v(`t=${t},v1=${"1".repeat(64)},v1=${good}`).ok, true, "any matching v1 passes, so a secret can be rotated");
+  // No secret at all must never pass.
+  eq(stripeVerify.verifyStripeSignature({ rawBody: raw, header: `t=${t},v1=${good}`, secret: "" }).ok, false,
+     "an unset secret can never verify");
+});
+
+check("a refund is not a cancellation, and a partial one is not a refund", () => {
+  /* Ops reconciling a SUNAT over-estimate would read a S/ 20 goodwill
+     refund as the whole order coming back, and chase money that is
+     still ours. */
+  const base = payments.applyPaymentEvent(null, {
+    paymentId: "pi_1", type: "payment_intent.succeeded", currency: "pen",
+    amount: 500, orderId: "ARIA-1", occurredAt: "2026-09-22T10:00:00Z", eventId: "e1",
+  });
+  eq(base.status, "succeeded");
+  const partial = payments.applyPaymentEvent(base, {
+    paymentId: "pi_1", type: "charge.refunded", currency: "pen",
+    amount: 500, amountRefunded: 20, occurredAt: "2026-09-22T11:00:00Z", eventId: "e2",
+  });
+  eq(partial.status, "partially_refunded", "20 of 500 back is not a refund");
+  const full = payments.applyPaymentEvent(partial, {
+    paymentId: "pi_1", type: "charge.refunded", currency: "pen",
+    amount: 500, amountRefunded: 500, occurredAt: "2026-09-22T12:00:00Z", eventId: "e3",
+  });
+  eq(full.status, "refunded", "all of it back is a refund");
+  eq(full.orderId, "ARIA-1", "a later event without metadata must not orphan a matched payment");
+  eq(full.events.length, 3, "the history is append-only");
+});
+
+check("fulfilment follows payment and never walks backwards", () => {
+  const paid = { paymentId: "pi_1", provider: "stripe", status: "succeeded", currency: "pen", amount: 100, paidAt: "2026-09-22T10:00:00Z" };
+  const fresh = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment", pricePenCharged: 100 }, paid);
+  eq(fresh.paymentStatus, "paid");
+  eq(fresh.status, "confirmed", "a paid order moves out of pending_payment");
+  eq(fresh.amountMismatchPen, 0, "an exact amount is not a mismatch");
+
+  // An order ops already moved on is not dragged back to "confirmed".
+  const shipped = payments.orderPatchForPayment({ orderId: "A", status: "cancelled", pricePenCharged: 100 }, paid);
+  eq(shipped.status, undefined, "a status ops set by hand is left alone");
+
+  // Failure never reads as paid.
+  const failed = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment", pricePenCharged: 100 },
+    { paymentId: "pi_1", status: "failed", currency: "pen", amount: 0 });
+  eq(failed.paymentStatus, "failed");
+  eq(failed.status, undefined, "a failed payment does not confirm anything");
+
+  // The mismatch that ops must see.
+  const short = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment", pricePenCharged: 364.04 },
+    { paymentId: "pi_1", status: "succeeded", currency: "pen", amount: 200 });
+  if (!(short.amountMismatchPen < -100)) throw new Error("a short payment is not flagged");
+  // Unknowable is null, never 0 — a 0 reads as "checked, and they agree".
+  const noFx = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment" },
+    { paymentId: "pi_1", status: "succeeded", currency: "usd", amount: 50 });
+  eq(noFx.amountMismatchPen, null, "an uncheckable amount is null, not zero");
+});
+
+check("a payment nobody can explain is flagged, never dropped", () => {
+  const order = { orderId: "ARIA-1", pricePenCharged: 100 };
+  eq(payments.needsAttention({ paymentId: "p", orderId: "ARIA-1", amount: 100, currency: "pen" }, order), null,
+     "a clean payment needs nothing");
+  if (!payments.needsAttention({ paymentId: "p", orderId: null, amount: 100, currency: "pen" }, null)) {
+    throw new Error("a payment with no order id is not flagged");
+  }
+  if (!payments.needsAttention({ paymentId: "p", orderId: "ARIA-GHOST", amount: 100, currency: "pen" }, null)) {
+    throw new Error("a payment naming a missing order is not flagged");
+  }
+  if (!payments.needsAttention({ paymentId: "p", orderId: "ARIA-1", amount: 40, currency: "pen" }, order)) {
+    throw new Error("a wrong amount is not flagged");
+  }
+  if (!payments.needsAttention({ paymentId: "p", orderId: "ARIA-1", amount: 100, currency: "usd" }, order)) {
+    throw new Error("a foreign currency is not flagged");
+  }
+  // Both metadata spellings, because whoever creates the intent picks one.
+  eq(payments.orderIdFromMetadata({ orderId: "A" }), "A");
+  eq(payments.orderIdFromMetadata({ order_id: "B" }), "B");
+  eq(payments.orderIdFromMetadata({}), null);
+  eq(payments.orderIdFromMetadata(null), null);
+});
+
+check("Stripe's differently-shaped objects all flatten to one record", () => {
+  const at = Math.floor(Date.parse("2026-09-22T10:00:00Z") / 1000);
+  const pi = stripeVerify.normalizeStripeEvent({
+    id: "e1", type: "payment_intent.succeeded", created: at, livemode: true,
+    data: { object: { id: "pi_1", currency: "PEN", amount: 12000, amount_received: 11900, metadata: { orderId: "A" } } },
+  });
+  eq(pi.paymentId, "pi_1");
+  eq(pi.amount, 119, "amount_received wins — it is what actually cleared");
+  eq(pi.currency, "pen", "currency is lowercased once, here");
+
+  const charge = stripeVerify.normalizeStripeEvent({
+    id: "e2", type: "charge.refunded", created: at,
+    data: { object: { id: "ch_1", payment_intent: "pi_1", currency: "pen", amount: 12000, amount_refunded: 2000 } },
+  });
+  eq(charge.paymentId, "pi_1", "a charge event keys on its payment intent, not the charge");
+  eq(charge.amountRefunded, 20);
+
+  const session = stripeVerify.normalizeStripeEvent({
+    id: "e3", type: "checkout.session.completed", created: at,
+    data: { object: { id: "cs_1", payment_intent: "pi_9", currency: "pen", amount_total: 5000, metadata: { orderId: "B" } } },
+  });
+  eq(session.paymentId, "pi_9");
+  eq(session.orderId, "B");
+
+  // Nothing to key on: recorded as ignored rather than crashing.
+  eq(stripeVerify.normalizeStripeEvent({ id: "e4", type: "customer.created", data: { object: { id: "cus_1" } } }), null);
+});
+
+check("the raw body is what gets hashed, base64 or not", () => {
+  /* Netlify hands some bodies back base64-encoded. Hashing the encoded
+     string instead of the bytes Stripe signed rejects every genuine
+     event, which looks exactly like an attack and is not one. */
+  const body = '{"a":1}';
+  eq(stripeVerify.rawBodyOf({ body, isBase64Encoded: false }), body);
+  eq(stripeVerify.rawBodyOf({ body: Buffer.from(body).toString("base64"), isBase64Encoded: true }), body);
+  eq(stripeVerify.rawBodyOf({}), "");
+});
+
+/* ------------------------------------------------------------------ */
+group("ledger: a blank is not a zero");
+
+check("an explicit null stays blank all the way into the CSV", () => {
+  /* THE BUG THIS PINS, and it is subtle: Number(null) is 0 and finite,
+     so the obvious coercion turns every deliberately-null field into a
+     measured zero. orders-create.js writes explicit nulls, so every
+     unpaid order reported "cobrado real S/ 0.00" and every unreconciled
+     one "impuesto real SUNAT S/ 0.00" — a blank rendered as a fact, in
+     the file that goes to an accountant. It survived an earlier test
+     because that test used a record with the keys MISSING (undefined),
+     which coerces to NaN and behaved correctly. */
+  const order = {
+    orderId: "ARIA-20260922-NULL01", createdAt: "2026-09-22T00:00:00Z",
+    customer: { name: "Sin conciliar" }, items: [], fxRateUsed: 3.8,
+    pricePenCharged: 50, paymentStatus: "unpaid", status: "pending_payment",
+    taxActualPen: null, taxActualUsd: null, amountCapturedPen: null,
+    amountRefundedPen: null, freteChargedUsd: null, smallOrderFeePen: null,
+    gatewayFeeEstimatePen: null, orderTotalPen: null, walletAppliedPen: null,
+  };
+  const row = ledger.ledgerRow(order, null, null);
+  for (const field of ["taxActualPen", "amountCapturedPen", "capturedPen", "refundedPen",
+                       "freightPen", "smallOrderFeePen", "gatewayFeeEstimatePen", "marginPen"]) {
+    if (row[field] === 0) throw new Error(`${field} came back as 0 for a null input — a blank became a measurement`);
+  }
+  const csv = ledger.ledgerCsv([row]);
+  const [header, body] = csv.replace(/^﻿/, "").trim().split("\r\n");
+  const cols = header.split('","').map((c) => c.replace(/^"|"$/g, ""));
+  const cells = body.split('","').map((c) => c.replace(/^"|"$/g, ""));
+  for (const label of ["Impuesto real SUNAT (PEN)", "Cobrado real pasarela (PEN)", "Margen Aria (PEN)",
+                       "Flete cobrado (PEN)", "Reembolsado (PEN)"]) {
+    eq(cells[cols.indexOf(label)], "", `"${label}" must be blank, not a number`);
+  }
+});
+
+check("margin is blank until BOTH real costs exist, then it is arithmetic", () => {
+  const order = {
+    orderId: "ARIA-1", createdAt: "2026-09-22T00:00:00Z", customer: { name: "X" },
+    items: [{ name: "a", priceUsd: 240, qty: 1 }], fxRateUsed: 3.8,
+    pricePenCharged: 1251.15, amountCapturedPen: 1251.15, amountRefundedPen: 0,
+    walletAppliedPen: 0, gatewayFeeEstimatePen: 50.42,
+    taxEstimatedPen: 250.23, taxActualPen: 197.6,
+    freteChargedUsd: 23.4, buyerEmail: "m@x.pe",
+  };
+  eq(ledger.ledgerRow(order, null, null).marginPen, null, "no actuals, no margin");
+  eq(ledger.ledgerRow({ ...order, actuals: { precioRealPagadoUsd: 190 } }, null, null).marginPen, null,
+     "half the actuals is still no margin");
+
+  const full = { ...order, actuals: { precioRealPagadoUsd: 190, costoRealCourierUsd: 17.1 } };
+  const row = ledger.ledgerRow(full, null, null);
+  // 1251.15 - (190*3.8) - (17.1*3.8) - 50.42 - 197.6
+  eq(row.marginPen, 216.15, "margin is revenue minus the real costs");
+
+  /* Saldo issued is a COST. Leaving it out overstated margin by exactly
+     the amount of every tax refund: we collect 250.23, pay SUNAT 197.60
+     and hand 52.63 back, which should net to zero, not to profit. */
+  const wallet = { txns: [{ kind: "credit", amountPen: 52.63, orderId: "ARIA-1" }] };
+  eq(ledger.ledgerRow(full, null, wallet).marginPen, 163.52, "issued saldo comes off the margin");
+  eq(ledger.ledgerRow(full, null, wallet).creditIssuedPen, 52.63);
+  // A credit for a DIFFERENT order must not land on this row.
+  const other = { txns: [{ kind: "credit", amountPen: 99, orderId: "ARIA-OTHER" }] };
+  eq(ledger.ledgerRow(full, null, other).creditIssuedPen, null);
+});
+
+check("a guest order's saldo still reaches its ledger row", () => {
+  /* buyerEmail is only set for a signed-in checkout. A guest's tax
+     refund is still issued to the address they typed, so keying the
+     wallet on buyerEmail alone left those credits issued, owed, and
+     invisible in the ledger. */
+  eq(ledger.walletEmailFor({ buyerEmail: "a@x.pe", customer: { email: "b@x.pe" } }), "a@x.pe");
+  eq(ledger.walletEmailFor({ buyerEmail: null, customer: { email: "b@x.pe" } }), "b@x.pe");
+  eq(ledger.walletEmailFor({ customer: {} }), null);
+});
+
+check("the CSV cannot be made to shift a column or run a formula", () => {
+  /* Customer names and ops notes are free text. A cell beginning "=" is
+     executed by Excel, and an unescaped quote shifts every column after
+     it — in the one file that leaves the building. */
+  eq(ledger.csvCell('=cmd|"/c calc"!A0'), '"\t=cmd|""/c calc""!A0"', "a formula is neutered and its quotes doubled");
+  eq(ledger.csvCell("+1"), '"\t+1"');
+  eq(ledger.csvCell("-1"), '"\t-1"');
+  eq(ledger.csvCell("@SUM(1)"), '"\t@SUM(1)"');
+  eq(ledger.csvCell('O"Brien, Lima'), '"O""Brien, Lima"', "quotes and commas cannot shift a column");
+  eq(ledger.csvCell(null), '""', "null is an empty cell, never the text null");
+  eq(ledger.csvCell(0), '"0"', "a real zero still prints");
+
+  const csv = ledger.ledgerCsv([]);
+  eq(csv.charCodeAt(0), 0xFEFF, "a BOM, or Excel renders every accented heading as mojibake");
+  // Header and body are generated from ONE list, so they cannot drift.
+  const header = csv.replace(/^﻿/, "").trim();
+  eq(header.split('","').length, ledger.LEDGER_COLUMNS.length, "one column per declared column");
+});
+
+check("the ledger carries every column the brief asked for", () => {
+  const labels = ledger.LEDGER_COLUMNS.map(([l]) => l).join(" | ");
+  for (const want of [/Producto/, /Flete cobrado/, /Impuesto estimado/, /Impuesto real SUNAT/,
+                      /Margen Aria/, /Reembolsado/, /Saldo Aria emitido/]) {
+    if (!want.test(labels)) throw new Error(`the ledger lost a required column: ${want}`);
+  }
+  // Every declared field is one a row actually produces.
+  const row = ledger.ledgerRow({ orderId: "A", items: [], customer: {} }, null, null);
+  for (const [label, field] of ledger.LEDGER_COLUMNS) {
+    if (!(field in row)) throw new Error(`column "${label}" reads row.${field}, which no row has`);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+group("the ops dashboard is admin-only, and says what it cannot know");
+
+check("every admin endpoint gates on a session AND the allowlist", () => {
+  /* isAdmin(email) alone is not a check — a caller can claim any email.
+     It is only a check paired with getSessionEmail(event), which reads
+     the httpOnly cookie server-side. */
+  for (const f of ["admin-dashboard.js", "admin-orders-list.js", "admin-orders-update.js",
+                   "admin-settings.js", "admin-shipping.js", "admin-wallet-credit.js"]) {
+    const src = stripComments(readFileSync(root(`netlify/functions/${f}`), "utf8"));
+    if (!/getSessionEmail\(event\)/.test(src)) throw new Error(`${f} does not read the session`);
+    if (!/isAdmin\(/.test(src)) throw new Error(`${f} does not check the allowlist`);
+    if (!/403/.test(src)) throw new Error(`${f} has no refusal path`);
+  }
+});
+
+check("the dashboard never serves a secret, only whether one is set", () => {
+  const src = readFileSync(root("netlify/functions/admin-dashboard.js"), "utf8");
+  // Boolean(...) only — never the value, never a prefix, never a length.
+  if (/STRIPE_WEBHOOK_SECRET(?!\s*\))/.test(src.replace(/Boolean\(process\.env\.STRIPE_WEBHOOK_SECRET\)/g, ""))) {
+    // A mention in a comment or a message is fine; a read that is not
+    // wrapped in Boolean() is not.
+    const reads = src.match(/process\.env\.STRIPE_WEBHOOK_SECRET/g) || [];
+    const wrapped = src.match(/Boolean\(process\.env\.STRIPE_WEBHOOK_SECRET\)/g) || [];
+    if (reads.length !== wrapped.length) throw new Error("the dashboard reads the signing secret's value");
+  }
+  const page = readFileSync(root("admin.html"), "utf8");
+  if (/whsec_/.test(page)) throw new Error("a signing secret is hardcoded in the admin page");
+});
+
+check("the dashboard pages its reads instead of fetching every order", () => {
+  /* admin-orders-list.js does one Blobs GET per order, for every order,
+     on every load — 3,600 reads a quarter in a function with a
+     10-second budget, and the whole history including PII over a phone's
+     mobile data. The dashboard lists keys once and fetches a page. */
+  const src = stripComments(readFileSync(root("netlify/functions/admin-dashboard.js"), "utf8"));
+  if (!/slice\(offset,\s*offset \+ limit\)/.test(src)) throw new Error("the orders page is no longer a slice");
+  if (!/MAX_PAGE/.test(src)) throw new Error("there is no page ceiling");
+  if (!/SUMMARY_SCAN_MAX/.test(src)) throw new Error("the summary scan is unbounded again");
+  // And an unreadable record must not take the whole view down.
+  if (!/unreadable/.test(src)) throw new Error("a failed read is no longer counted");
+});
+
+check("the admin page is not customer-facing and pulls no CDN", () => {
+  const page = readFileSync(root("admin.html"), "utf8");
+  if (!/noindex/.test(page)) throw new Error("the ops dashboard is indexable");
+  // An ops tool must load on bad mobile data, not on a CDN's good day.
+  const external = page.match(/https?:\/\/[^"')\s]+/g) || [];
+  const offsite = external.filter((u) => !/ariashop\.pe/.test(u));
+  if (offsite.length) throw new Error(`admin.html loads from off-site: ${offsite.join(", ")}`);
+  // Every interpolation of server data has to go through esc().
+  if (!/function esc\(/.test(page)) throw new Error("there is no escaper");
+  const redirects = readFileSync(root("_redirects"), "utf8");
+  if (!/^\/admin\s+\/admin\.html\s+200/m.test(redirects)) throw new Error("/admin does not resolve");
+});
+
+check("a real zero is recordable, because a waived fee is a measurement", () => {
+  /* `Number(x) || null` was turning a genuine 0 into "unknown": a
+     courier that waived its fee costs 0, and a parcel that arrived the
+     same day is 0 days. Both were being stored as though nobody had
+     measured them, which is the one thing the actuals record is for. */
+  const src = stripComments(readFileSync(root("netlify/functions/admin-orders-update.js"), "utf8"));
+  if (/Number\(actuals\.\w+\)\s*\|\|\s*null/.test(src)) {
+    throw new Error("a real zero is being recorded as unknown again");
+  }
+  if (!/taxActual/.test(src)) throw new Error("there is no SUNAT reconciliation path");
+  if (!/creditDuePen/.test(src)) throw new Error("the over-collected difference is not reported back");
+  /* And recording the figure must not MOVE money on its own — issuing
+     saldo stays a named, deliberate act through admin-wallet-credit. */
+  if (/postTransaction|wallet/i.test(src)) {
+    throw new Error("the data-entry endpoint is moving money");
   }
 });
 
