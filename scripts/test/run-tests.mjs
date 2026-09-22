@@ -2301,7 +2301,7 @@ check("a browsable store is not treated as one still being connected", () => {
   /* Macy's arrived as a FILE, not an actor, which split an assumption
      this registry was built on: `search` meant both "browsable" and
      "queryable live". A store with a catalogue and no scraper was
-     showing the "Conectando el catálogo" holding message over 431 real
+     showing the "Conectando el catálogo" holding message over 754 real
      products, and wearing the muted plate on Tiendas. */
   eq(retailers.isBrowseOnlyRetailer("macys"), true, "Macy's is browse-only");
   eq(retailers.searchableRetailers().includes("macys"), false, "Macy's must stay out of the live fan-out");
@@ -2740,16 +2740,28 @@ const macysCatalog = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8")
 const macysItems = macysCatalog.retailers.macys.departments.women.items;
 
 check("the catalogue is real, and says how complete it is", () => {
-  /* The export arrived truncated at exactly 2 MiB — an upload cap, not
-     corrupt data — so the builder recovers complete products and records
-     what it could not reach. A catalogue that quietly claimed 960 while
-     serving 431 is the thing to avoid. */
+  /* THE FIRST EXPORT WAS SHORT and this is the guard that made that
+     visible rather than silent. It arrived at exactly 2 MiB — an upload
+     cap, not corrupt data — so the builder recovers complete products
+     and records what it could not reach. A catalogue quietly claiming
+     960 while serving 431 is the thing being prevented.
+
+     The complete file landed on 2026-09-22 (data/macys-catalog-
+     2026-09-21.json, 960 products, parses whole), so the recovery path
+     is no longer load-bearing. It is still asserted, because the next
+     export can be short again and the catalogue must keep saying so. */
   if (!(macysItems.length > 300)) throw new Error(`only ${macysItems.length} items published`);
   eq(macysCatalog.declaredProductCount, 960, "what the export claimed");
   if (!(macysCatalog.recoveredProductCount <= macysCatalog.declaredProductCount)) {
     throw new Error("recovered more products than the export declared");
   }
   eq(typeof macysCatalog.truncatedExport, "boolean", "truncation is recorded either way");
+  /* And what is SERVED today is the whole export. If a future build
+     regresses to a partial one this fails, which is the point: the
+     difference between 754 items and 431 is half the store. */
+  eq(macysCatalog.recoveredProductCount, macysCatalog.declaredProductCount,
+     "every declared product was recovered");
+  eq(macysCatalog.truncatedExport, false, "the served catalogue is built from a complete export");
   eq(macysCatalog.retailers.macys.label, "Macy's");
 });
 
@@ -2778,7 +2790,7 @@ check("every image URL is built from one base, so one fix reaches all", () => {
      constructed — and it could not be verified from the build container,
      whose egress proxy refuses every host outside a small allowlist. The
      value of one base is that a wrong guess is a one-line fix and a
-     re-run, not 431 edits. */
+     re-run, not 754 edits. */
   const bases = new Set(macysItems.filter((i) => i.image).map((i) => i.image.split("/products/")[0]));
   eq(bases.size, 1, `images come from ${bases.size} different bases`);
   for (const it of macysItems) {
