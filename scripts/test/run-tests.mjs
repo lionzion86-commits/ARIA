@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
+import { loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -41,6 +41,7 @@ import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courie
 import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
+import * as subcats from "../lib/subcategories.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -3311,6 +3312,175 @@ check("a real zero is recordable, because a waived fee is a measurement", () => 
   if (/postTransaction|wallet/i.test(src)) {
     throw new Error("the data-entry endpoint is moving money");
   }
+});
+
+/* ==================================================================
+   SUBCATEGORIES — the aisle inside a department (2026-09-22)
+   ------------------------------------------------------------------ */
+group("subcategories: a department is aisles, not a wall");
+
+const pageSubs = loadPageSubcategorySlice();
+
+check("the page's aisle table is the module's, to the letter", () => {
+  /* index.html is a plain <script> and cannot import, so the table is
+     duplicated there. Every mirror in this codebase is pinned the same
+     way — a table that drifts is a shopper seeing different aisles on
+     two surfaces of the same site. */
+  const mine = subcats.SUBCATEGORY_SPEC.map((r) => `${r.key}|${r.label}|${r.types.join(",")}`);
+  const theirs = pageSubs.SUBCATEGORY_SPEC.map((r) => `${r.key}|${r.label}|${r.types.join(",")}`);
+  eq(theirs.length, mine.length, "aisle count");
+  for (let i = 0; i < mine.length; i++) {
+    if (mine[i] !== theirs[i]) throw new Error(`aisle ${i} differs\n  module: ${mine[i]}\\n  page:   ${theirs[i]}`);
+  }
+  // And the split thresholds, which decide whether aisles appear at all.
+  eq(pageSubs.SPLIT_MIN_ITEMS, subcats.SPLIT_MIN_ITEMS, "SPLIT_MIN_ITEMS");
+  eq(pageSubs.SPLIT_MIN_TYPED_SHARE, subcats.SPLIT_MIN_TYPED_SHARE, "SPLIT_MIN_TYPED_SHARE");
+  eq(pageSubs.SPLIT_MIN_AISLES, subcats.SPLIT_MIN_AISLES, "SPLIT_MIN_AISLES");
+});
+
+check("the order is editorial, and lingerie is last", () => {
+  /* THE BUG, AND THE FIX, IN ONE ASSERTION. Macy's "Women" was 754
+     products in one price-sorted feed whose first several phone screens
+     were bras and panties; 228 dresses were sitting behind them. Sorting
+     aisles by size would put lingerie second and rebuild the problem, so
+     the order is declared, and this is what stops anyone "improving" it
+     into a count sort. */
+  const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
+  eq(keys[0], "dresses", "dresses lead");
+  eq(keys[keys.length - 1], "lingerie", "lingerie is last");
+  // The grouping the brief asked for, exactly.
+  const lingerie = subcats.SUBCATEGORY_SPEC.find((r) => r.key === "lingerie").types;
+  for (const t of ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR"]) {
+    if (!lingerie.includes(t)) throw new Error(`${t} is not in the lingerie aisle`);
+  }
+  // No type may sit in two aisles — an item would then be in two places
+  // and the counts would not add up to the department.
+  const seen = new Map();
+  for (const row of subcats.SUBCATEGORY_SPEC) {
+    for (const t of row.types) {
+      const norm = subcats.normalizeType(t);
+      if (seen.has(norm)) throw new Error(`type ${norm} is in both ${seen.get(norm)} and ${row.key}`);
+      seen.set(norm, row.key);
+    }
+  }
+});
+
+check("a type nobody mapped is not lost, and not guessed at", () => {
+  eq(subcats.subcategoryForType("DRESS"), "dresses");
+  eq(subcats.subcategoryForType("dress"), "dresses", "case does not matter");
+  eq(subcats.subcategoryForType("Backpack / Messenger"), "bags", "punctuation does not matter");
+  eq(subcats.subcategoryForType("BACKPACK_MESSENGER"), "bags");
+  // The honest null: unknown, not a guess and not a junk aisle.
+  eq(subcats.subcategoryForType("KAYAK"), null);
+  eq(subcats.subcategoryForType(""), null);
+  eq(subcats.subcategoryForType(null), null);
+  eq(subcats.subcategoryForType(undefined), null);
+
+  /* AN UNKNOWN AISLE KEY YIELDS NOTHING, NEVER EVERYTHING. A stale URL
+     pointing at a renamed aisle must not quietly serve the flat list the
+     aisle was built to replace. */
+  const items = [{ type: "DRESS" }, { type: "BRA" }];
+  eq(subcats.itemsInSubcategory(items, "dresses").length, 1);
+  eq(subcats.itemsInSubcategory(items, "nope").length, 0, "an unknown key is empty, not everything");
+  eq(subcats.itemsInSubcategory(items, null).length, 2, "no key means the whole department");
+
+  // And it is reported, so a new type is noticed rather than buried.
+  const orphans = subcats.unmappedTypes([{ type: "KAYAK" }, { type: "KAYAK" }, { type: "DRESS" }]);
+  eq(orphans.length, 1);
+  eq(orphans[0].type, "KAYAK");
+  eq(orphans[0].count, 2);
+});
+
+check("splitting is refused when it would not help", () => {
+  /* Three guards, all about not making navigation worse than the flat
+     list it replaces. */
+  const many = (type, n) => Array.from({ length: n }, () => ({ type }));
+
+  // Too few items: a flat list is not the problem yet.
+  const small = subcats.groupBySubcategory([...many("DRESS", 10), ...many("BRA", 10), ...many("JEANS", 10)]);
+  eq(subcats.shouldSplit(small), false, "30 items do not need aisles");
+
+  // Too few aisles: one aisle plus "Ver todo" is two routes to one page.
+  const narrow = subcats.groupBySubcategory(many("DRESS", 200));
+  eq(subcats.shouldSplit(narrow), false, "a single aisle is not a split");
+
+  // Mostly untyped: the aisles would be a veneer over a list that is
+  // still mostly unreachable except through "Ver todo".
+  const thin = subcats.groupBySubcategory([
+    ...many("DRESS", 20), ...many("BRA", 20), ...many("JEANS", 20), ...many("", 200),
+  ]);
+  eq(subcats.shouldSplit(thin), false, "a mostly untyped feed does not split");
+
+  // And the real shape does split.
+  const real = subcats.groupBySubcategory([
+    ...many("DRESS", 228), ...many("BRA", 141), ...many("PANTS", 87), ...many("JACKET", 76),
+  ]);
+  eq(subcats.shouldSplit(real), true, "a big, typed, multi-aisle department splits");
+  eq(real.rows[0].key, "dresses", "and the rows come back in editorial order");
+  eq(real.rows[real.rows.length - 1].key, "lingerie");
+  eq(real.typed, real.total, "everything typed is placed");
+});
+
+check("the counts an aisle promises are the counts it can deliver", () => {
+  /* A list promising 228 and delivering 12 is worse than no list. The
+     group counts and the filter have to agree, item for item. */
+  const items = [
+    ...Array.from({ length: 5 }, (_, i) => ({ type: "DRESS", id: `d${i}` })),
+    ...Array.from({ length: 3 }, (_, i) => ({ type: "BRA", id: `b${i}` })),
+    ...Array.from({ length: 2 }, (_, i) => ({ type: "KAYAK", id: `k${i}` })),
+  ];
+  const g = subcats.groupBySubcategory(items);
+  for (const row of g.rows) {
+    eq(subcats.itemsInSubcategory(items, row.key).length, row.count, `${row.key} delivers what it promised`);
+  }
+  eq(g.total, 10, "total counts the untyped too");
+  eq(g.typed, 8);
+  eq(g.untyped, 2, "the unmapped two are still in the department");
+  // "Ver todo" is the whole thing, orphans included.
+  eq(subcats.itemsInSubcategory(items, null).length, 10);
+});
+
+check("Macy's ships a type on every item, and all of them map", () => {
+  /* The export carries detail.typeName on 100% of products and the
+     builder was throwing it away, which is the whole reason Women could
+     only be one flat bucket. */
+  const items = macysCatalog.retailers.macys.departments.women.items;
+  const missing = items.filter((it) => !it.type);
+  if (missing.length) throw new Error(`${missing.length} Macy's items carry no type`);
+  const orphans = subcats.unmappedTypes(items);
+  if (orphans.length) {
+    throw new Error(`Macy's types with no aisle: ${orphans.map((o) => `${o.type}(${o.count})`).join(", ")}`);
+  }
+  const g = subcats.groupBySubcategory(items);
+  eq(subcats.shouldSplit(g), true, "Macy's Women splits");
+  if (!(g.rows.length >= 8)) throw new Error(`only ${g.rows.length} aisles`);
+  // Dresses really are the biggest, which is why leading with underwear
+  // was so costly.
+  const dresses = g.rows.find((r) => r.key === "dresses");
+  if (!(dresses && dresses.count > 200)) throw new Error("the dresses aisle lost its dresses");
+});
+
+check("the page routes an aisle instead of swapping it silently", () => {
+  /* An aisle has to get its own URL, or back goes out of the category
+     and a shopper cannot share what they are looking at. Same rule the
+     store chips already follow. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/params:\s*\['kind',\s*'catKey',\s*'retailerFilter',\s*'subKey'\]/.test(src)) {
+    throw new Error("subKey is not part of the catalogue route");
+  }
+  if (!/function setCatalogSub\(/.test(src)) throw new Error("there is no aisle navigation");
+  if (!/pushRoute\(\{ view: 'catalogView', kind, catKey: key, retailerFilter, subKey \}\)/.test(src)) {
+    throw new Error("openCatalog no longer pushes the aisle onto the route");
+  }
+  /* THE RULE THE BRIEF SET: no aisle may be the default. The landing
+     renders the LIST when nothing is chosen — if this branch ever starts
+     picking an aisle, the biggest one buries the rest exactly the way
+     underwear buried the dresses. */
+  if (!/splittable && !catalogState\.subKey/.test(src)) {
+    throw new Error("the aisle landing is no longer the default for a splittable department");
+  }
+  // And "Ver todo" survives as a real destination.
+  if (!/SUB_ALL/.test(src)) throw new Error("Ver todo is gone");
 });
 
 /* ------------------------------------------------------------------ */

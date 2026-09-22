@@ -36,6 +36,7 @@
 // apart. Putting a marked-up number in this file would be the drift.
 import fs from "node:fs";
 import path from "node:path";
+import { normalizeType, groupBySubcategory, unmappedTypes } from "./lib/subcategories.js";
 
 const OUT = new URL("../macys-catalog.json", import.meta.url);
 
@@ -171,6 +172,13 @@ function slim(product) {
     // go through the identical pricing, weight and freight path as every
     // other retailer's.
     name,
+    /* WHAT THE THING IS, which is what lets a department split into
+       aisles (see scripts/lib/subcategories.js). Macy's reports it on
+       100% of products and it was being thrown away here, which is why
+       "Women" shipped as one flat bucket of 754 items led by underwear.
+       Normalised on the way in so the aisle map is written once rather
+       than once per retailer's punctuation. */
+    type: normalizeType(detail.typeName),
     brand: String(detail.brand || "").trim() || null,
     price: p.price,
     image: images[0] || null,
@@ -232,6 +240,21 @@ function main() {
   console.log(`multi-price ("desde"):${String(ranges).padStart(4)}  — shown at their lowest list price`);
   console.log(`no image:             ${noImage}`);
   console.log(`brands:               ${new Set(items.map((i) => i.brand).filter(Boolean)).size}`);
+
+  /* THE AISLES, PRINTED. A department that cannot be split is a
+     department a shopper has to scroll, so this is worth seeing on every
+     run rather than discovering on a phone. */
+  const grouped = groupBySubcategory(items);
+  console.log(`\nsubcategories (${grouped.typed}/${grouped.total} items placed):`);
+  for (const r of grouped.rows) console.log(`  ${String(r.count).padStart(4)}  ${r.label}`);
+  const orphans = unmappedTypes(items);
+  if (orphans.length) {
+    /* Not a failure: an unmapped type is reachable in "Ver todo". It is
+       printed so a new type is noticed on the run that introduces it,
+       instead of the quarter somebody happens to look. */
+    console.log(`\nunmapped types (reachable only via "Ver todo") — add them to SUBCATEGORY_SPEC:`);
+    for (const o of orphans) console.log(`  ${String(o.count).padStart(4)}  ${o.type}`);
+  }
   if (!items.length) {
     console.error("refusing to write an empty catalogue");
     process.exit(1);

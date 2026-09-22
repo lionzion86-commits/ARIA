@@ -563,6 +563,99 @@ await check("the three beauty stores render their real logo, unfiltered", async 
   await ctx.close();
 });
 
+await check("a big department opens as aisles, and no aisle is the default", async () => {
+  /* THE BUG (2026-09-22, QA on an iPhone): Macy's "Women" was one bucket
+     of 754 products whose first several phone screens were bras and
+     panties, so the 228 dresses behind them were unreachable by
+     scrolling. Nothing was wrong with the data. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+
+  await page.evaluate(() => openCatalog("department", "women", { retailerFilter: "macys" }));
+  await page.waitForFunction(() => catalogState.byRetailer.size > 0, { timeout: 15000 });
+
+  const landing = await page.evaluate(() => ({
+    hasGrid: Boolean(document.getElementById("catalogGrid")),
+    aisles: [...document.querySelectorAll("#catalogSections button")]
+      .map((b) => (b.textContent || "").replace(/\s+/g, " ").trim())
+      .filter((t) => /^(Vestidos|Tops|Chompas|Jeans|Pantalones|Casacas|Conjuntos|Ropa de baño|Zapatos|Bolsos|Accesorios|Ropa interior|Ver todo)/.test(t)),
+  }));
+
+  /* NO AISLE IS THE DEFAULT. Landing in the biggest one would bury the
+     rest exactly the way underwear buried the dresses, so the landing is
+     the LIST and "Ver todo" is a deliberate tap. */
+  eq(landing.hasGrid, false, "the landing shows aisles, not a product wall");
+  if (landing.aisles.length < 6) throw new Error(`only ${landing.aisles.length} aisles rendered`);
+  if (!landing.aisles[0].startsWith("Vestidos")) throw new Error(`the list leads with "${landing.aisles[0]}", not dresses`);
+  const lingerie = landing.aisles.findIndex((a) => a.startsWith("Ropa interior"));
+  const verTodo = landing.aisles.findIndex((a) => a.startsWith("Ver todo"));
+  if (lingerie < 0) throw new Error("lingerie is not listed — it must be present, just not first");
+  if (verTodo < 0) throw new Error("Ver todo is gone");
+  if (lingerie !== verTodo - 1) throw new Error("lingerie is no longer last of the aisles");
+
+  // Into an aisle: the feed is that aisle, and it says so.
+  await page.evaluate(() => setCatalogSub("dresses"));
+  await page.waitForSelector("#catalogGrid", { timeout: 10000 });
+  const inAisle = await page.evaluate(() => {
+    const promised = Number((document.getElementById("catalogSubtitle").textContent.match(/^(\d+)/) || [])[1]);
+    const actual = [...catalogState.byRetailer.values()].flat()
+      .filter((it) => subcategoryOfItem(it) === "dresses").length;
+    return {
+      promised, actual,
+      subtitle: document.getElementById("catalogSubtitle").textContent.trim(),
+      url: location.search,
+      // Nothing from the lingerie aisle may appear here.
+      leaked: [...document.querySelectorAll("#catalogGrid > *")]
+        .filter((c) => /\b(bra|panty|thong)\b/i.test(c.textContent || "")).length,
+    };
+  });
+  eq(inAisle.actual, inAisle.promised, "an aisle delivers exactly what the list promised");
+  if (!/Vestidos y faldas/.test(inAisle.subtitle)) throw new Error(`the subtitle does not name the aisle: ${inAisle.subtitle}`);
+  eq(inAisle.leaked, 0, "lingerie did not contaminate the dresses");
+  if (!/subKey=dresses/.test(inAisle.url)) throw new Error(`the aisle has no URL of its own: ${inAisle.url}`);
+
+  /* The active chip must be ON SCREEN. A horizontally-scrolling row
+     whose selection sits past the right edge reads as "no filter
+     applied", which is how the store row looked on a 393px phone while
+     the subtitle said otherwise. */
+  const chips = await page.evaluate(() =>
+    [...document.querySelectorAll("#catalogSections .no-scrollbar")].map((row) => {
+      const a = row.querySelector('[aria-pressed="true"]');
+      if (!a) return null;
+      const r = a.getBoundingClientRect();
+      return { label: (a.textContent || "").trim().slice(0, 24), left: r.left, right: r.right, vw: window.innerWidth };
+    }).filter(Boolean));
+  for (const c of chips) {
+    if (c.right <= 0 || c.left >= c.vw) throw new Error(`the active chip "${c.label}" is off-screen (${Math.round(c.left)}..${Math.round(c.right)} of ${c.vw})`);
+  }
+
+  // And back to the list, not to the flat feed it replaced.
+  await page.evaluate(() => setCatalogSub(null));
+  await page.waitForFunction(() => !document.getElementById("catalogGrid"), { timeout: 10000 });
+  await ctx.close();
+});
+
+await check("a department whose items carry no type does not split", async () => {
+  /* The aisles are generic, not a Macy's feature — and the other half of
+     that promise is that a store reporting no type loses nothing and
+     renders exactly as it always did. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => openCatalog("department", "electronics"));
+  await page.waitForSelector("#catalogGrid", { timeout: 15000 });
+  const flat = await page.evaluate(() => ({
+    cards: document.querySelectorAll("#catalogGrid > *").length,
+    typed: [...catalogState.byRetailer.values()].flat().filter((it) => subcategoryOfItem(it)).length,
+  }));
+  if (!(flat.cards > 0)) throw new Error("the untyped department renders nothing");
+  eq(flat.typed, 0, "electronics has no apparel types to split on");
+  await ctx.close();
+});
+
 await check("every category cover renders as abstract art, in the DOM", async () => {
   /* THE NODE TEST READS SOURCE; QA READS A SCREEN. This bug shipped past
      a green source-level test (2026-09-22 round 2): designedCoverHTML

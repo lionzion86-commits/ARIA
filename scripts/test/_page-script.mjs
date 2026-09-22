@@ -75,6 +75,32 @@ export function loadPageTileSlice() {
   return sandbox.__exports;
 }
 
+/* The subcategory mirror. index.html is a plain <script> and cannot
+   import scripts/lib/subcategories.js, so the table is duplicated there
+   and this slice is what lets a test prove the two agree. Anchored on
+   declarations, never on prose. */
+const SUB_START = "function normalizeType(raw){";
+const SUB_END = "/* The grid every listing surface uses";
+
+/** The aisle table and its helpers, on their own. */
+export function loadPageSubcategorySlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(SUB_START);
+  const to = html.indexOf(SUB_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html subcategory slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { SUBCATEGORY_SPEC, normalizeType, subcategoryForType, subcategoryLabel, subcategoryOfItem, groupBySubcategory, shouldSplit, itemsInSubcategory, SPLIT_MIN_ITEMS, SPLIT_MIN_TYPED_SHARE, SPLIT_MIN_AISLES };",
+    sandbox,
+    { filename: "index.html#subcategories" },
+  );
+  return sandbox.__exports;
+}
+
 const QUERY_START = "/** Lowercase, strip accents, collapse whitespace. */";
 const QUERY_END = "function searchFor(q){";
 

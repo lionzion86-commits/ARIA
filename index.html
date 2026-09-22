@@ -3168,6 +3168,91 @@ loadFxRate(); // kick off the fetch as early as possible; render paths below awa
    DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the source
    of truth.
    ============================================================ */
+
+/* ============================================================
+   SUBCATEGORIES — the aisle inside a department.
+   MIRROR of scripts/lib/subcategories.js. This page is a plain <script>
+   and cannot import; a parity test pins the two together.
+
+   WHY: Macy's "Women" shipped as one bucket of 754 products whose first
+   several screens were bras and panties, so a shopper looking for a
+   dress never reached the 228 that were sitting there. The fix is
+   navigational, and the ORDER BELOW IS THE FIX -- editorial, not by
+   count, with lingerie last. Sorting by size is what produced the
+   original problem.
+
+   Generic on purpose: any store whose items carry a type splits the
+   same way, and a store whose items carry none does not split and loses
+   nothing, because "Ver todo" always holds the whole department.
+   ============================================================ */
+function normalizeType(raw){
+  return String(raw ?? '').trim().toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+const SUBCATEGORY_SPEC = [
+  { key: 'dresses',     label: 'Vestidos y faldas',   types: ['DRESS', 'SKIRT', 'GOWN'] },
+  { key: 'tops',        label: 'Tops y blusas',       types: ['TOP', 'BLOUSE', 'SHIRT', 'TSHIRT', 'T_SHIRT', 'POLO'] },
+  { key: 'knitwear',    label: 'Chompas y sudaderas', types: ['SWEATER', 'SWEATSHIRT', 'HOODIE', 'CARDIGAN'] },
+  { key: 'jeans',       label: 'Jeans',               types: ['JEANS', 'DENIM'] },
+  { key: 'pants',       label: 'Pantalones y shorts', types: ['PANTS', 'SHORTS', 'TROUSERS', 'LEGGINGS'] },
+  { key: 'outerwear',   label: 'Casacas y abrigos',   types: ['JACKET', 'COAT', 'BLAZER', 'VEST'] },
+  { key: 'sets',        label: 'Conjuntos y trajes',  types: ['SUIT', 'OUTFIT', 'JUMPSUIT', 'ROMPER'] },
+  { key: 'swim',        label: 'Ropa de baño',        types: ['SWIMSUIT', 'SWIMWEAR', 'BIKINI'] },
+  { key: 'shoes',       label: 'Zapatos',             types: ['SHOE', 'SHOES', 'BOOT', 'SANDAL', 'SNEAKER'] },
+  { key: 'bags',        label: 'Bolsos y mochilas',   types: ['BACKPACK_MESSENGER', 'BACKPACK', 'HANDBAG', 'BAG', 'TOTE'] },
+  { key: 'accessories', label: 'Accesorios',          types: ['BELT', 'SCARF', 'HAT', 'JEWELRY', 'WATCH', 'SUNGLASSES', 'WALLET'] },
+  { key: 'lingerie',    label: 'Ropa interior y pijamas',
+    types: ['BRA', 'PANTY', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY'] },
+];
+
+const SUBCATEGORY_BY_TYPE = new Map();
+for (const row of SUBCATEGORY_SPEC) for (const t of row.types) SUBCATEGORY_BY_TYPE.set(normalizeType(t), row.key);
+
+function subcategoryForType(raw){
+  const t = normalizeType(raw);
+  return t ? (SUBCATEGORY_BY_TYPE.get(t) || null) : null;
+}
+function subcategoryLabel(key){
+  return (SUBCATEGORY_SPEC.find(r => r.key === key) || {}).label || null;
+}
+function subcategoryOfItem(item){
+  return subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
+}
+function groupBySubcategory(items){
+  const bucket = new Map();
+  let typed = 0;
+  for (const item of items || []){
+    const key = subcategoryOfItem(item);
+    if (!key) continue;
+    typed += 1;
+    bucket.set(key, (bucket.get(key) || 0) + 1);
+  }
+  const rows = SUBCATEGORY_SPEC.filter(r => bucket.get(r.key))
+    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key) }));
+  const total = (items || []).length;
+  return { rows, typed, total, untyped: total - typed };
+}
+
+/* WHEN A SPLIT IS WORTH SHOWING. All three are about not making
+   navigation worse: the feed has to be big enough that a flat list is
+   the problem, enough of it has to be placeable so the aisles are not a
+   veneer over a mostly-untyped list, and there has to be more than one
+   aisle or it is two routes to the same page. */
+const SPLIT_MIN_ITEMS = 40;
+const SPLIT_MIN_TYPED_SHARE = 0.6;
+const SPLIT_MIN_AISLES = 3;
+
+function shouldSplit(g){
+  if (!g.total || g.total < SPLIT_MIN_ITEMS) return false;
+  if (g.rows.length < SPLIT_MIN_AISLES) return false;
+  return g.typed / g.total >= SPLIT_MIN_TYPED_SHARE;
+}
+
+function itemsInSubcategory(items, key){
+  if (!key) return items || [];
+  return (items || []).filter(it => subcategoryOfItem(it) === key);
+}
+
 /* The grid every listing surface uses: 2-across, large cards, the
    browsing density Ofertas was approved at. Named so a new surface
    cannot quietly invent a tighter one. */
@@ -3184,21 +3269,29 @@ const LISTING_PAGE_SIZE = 24;
    a `const` referenced before its declaration is a temporal-dead-zone
    throw that kills the whole page script on load — the same way
    GENERAL_RETAILERS once did (see its comment). Keep declaration order. */
-let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+let catalogState = { kind: 'department', key: null, retailerFilter: null, subKey: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
 
 function catalogGoBack(){
   // In-page "Volver" and the browser's back arrow have to agree.
   if (routeDepth > 0){ history.back(); return; }
-  // Deep link, with nothing of ours in the stack: undo one level of
-  // narrowing (store filter -> whole category) instead of throwing away
-  // the category, which is the context this page exists to keep.
-  if (catalogState.retailerFilter) openCatalog(catalogState.kind, catalogState.key);
+  /* Deep link, with nothing of ours in the stack: undo ONE level of
+     narrowing instead of throwing away the category, which is the
+     context this page exists to keep. The levels, narrowest first:
+     aisle -> store filter -> whole category. */
+  if (catalogState.subKey){
+    openCatalog(catalogState.kind, catalogState.key,
+      catalogState.retailerFilter ? { retailerFilter: catalogState.retailerFilter } : {});
+  }
+  else if (catalogState.retailerFilter) openCatalog(catalogState.kind, catalogState.key);
   else goHome();
 }
 
 async function openCatalog(kind, key, opts = {}){
   const retailerFilter = opts.retailerFilter || null;
-  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter });
+  // The aisle is part of the address: it gets its own URL, so one back
+  // press returns to the aisle list rather than out of the category.
+  const subKey = opts.subKey || null;
+  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter, subKey });
   /* BUG FIX: the "Ofertas" department tile came through here and landed on
      the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
      so a shopper tapping Ofertas from the homepage got a store list while
@@ -3236,7 +3329,7 @@ async function openCatalog(kind, key, opts = {}){
   }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
-  catalogState = { kind, key, retailerFilter, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+  catalogState = { kind, key, retailerFilter, subKey, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
   renderCatalogFeed();
 }
 
@@ -3244,8 +3337,30 @@ async function openCatalog(kind, key, opts = {}){
 // category with the filter applied, so it gets its own URL and one back
 // press returns to the whole category.
 function setCatalogStore(retailer){
-  openCatalog(catalogState.kind, catalogState.key, retailer ? { retailerFilter: retailer } : {});
+  /* The aisle survives a store change: a shopper in "Vestidos" who taps
+     another store wants that store's dresses, not its whole department.
+     Dropping subKey here would throw away the narrowing they just made. */
+  openCatalog(catalogState.kind, catalogState.key, {
+    ...(retailer ? { retailerFilter: retailer } : {}),
+    ...(catalogState.subKey ? { subKey: catalogState.subKey } : {}),
+  });
 }
+
+/* An aisle is navigation, not a silent swap — same rule as the store
+   chips. null means "back to the aisle list", never "show me everything
+   and hide the aisles". */
+function setCatalogSub(subKey){
+  openCatalog(catalogState.kind, catalogState.key, {
+    ...(catalogState.retailerFilter ? { retailerFilter: catalogState.retailerFilter } : {}),
+    ...(subKey ? { subKey } : {}),
+  });
+}
+
+/* "Ver todo" is a REAL destination, not the absence of a choice: it
+   shows the whole department, aisles included, and is reachable in one
+   tap from the aisle list. It is distinguished from the aisle list by
+   subKey === "__all__", which never matches a real aisle key. */
+const SUB_ALL = '__all__';
 
 // The store filter. "Todas las tiendas" is the default and is always one
 // tap away — this row can never become a gate in front of the products.
@@ -3297,6 +3412,91 @@ function catalogSearchBarHTML(){
     </div>`;
 }
 
+
+/* ============================================================
+   THE AISLE LIST — what a big department shows instead of a wall.
+
+   THE BUG (2026-09-22, QA on an iPhone): Macy's "Women" was 754
+   products in one feed, sorted by price, and the first several screens
+   were bras and panties. The 228 dresses and 50 pairs of jeans were
+   there the whole time and unreachable by scrolling.
+
+   THE RULE THE BRIEF SET, and it is the important one: no aisle may be
+   the default. Landing straight in "Dresses" would bury everything else
+   exactly the way underwear buried the dresses. So the landing is the
+   LIST, "Ver todo" is one deliberate tap, and every aisle is the same
+   distance away.
+
+   Not a Macy's feature: any department whose items say what they are
+   splits this way (see shouldSplit), and one whose items do not simply
+   renders as it always has.
+   ============================================================ */
+function catalogAisleCardHTML(row, total){
+  const pct = total ? Math.round((row.count / total) * 100) : 0;
+  return `<button onclick="setCatalogSub('${jsAttr(row.key)}')"
+    class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-sm w-full"
+    style="border-color:var(--line); background:#fff">
+    <div class="flex items-baseline justify-between gap-3">
+      <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:var(--navy)">${escapeHtml(row.label)}</span>
+      <span class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#6B7487">${row.count}</span>
+    </div>
+    <div class="mt-2 h-1 rounded-full overflow-hidden" style="background:var(--sky)">
+      <div class="h-full rounded-full" style="width:${Math.max(4, pct)}%; background:var(--navy); opacity:.55"></div>
+    </div>
+  </button>`;
+}
+
+function catalogAisleListHTML(grouped, storeLabel){
+  const total = grouped.total;
+  return `
+    ${catalogSearchBarHTML()}
+    ${catalogStoreChipsHTML()}
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      ${grouped.rows.map(r => catalogAisleCardHTML(r, total)).join('')}
+    </div>
+    <button onclick="setCatalogSub('${SUB_ALL}')"
+      class="w-full rounded-2xl border p-4 text-left focus-ring transition hover:shadow-sm"
+      style="border-color:var(--navy); background:var(--sky)">
+      <div class="flex items-baseline justify-between gap-3">
+        <span class="font-extrabold text-[15px]" style="color:var(--navy)">Ver todo</span>
+        <span class="tabular text-[12.5px] font-bold" style="color:var(--navy)">${total}</span>
+      </div>
+      <div class="text-[12px] mt-1" style="color:#4A5670">Todo ${escapeHtml(storeLabel)} en esta categoría, en un solo feed.</div>
+    </button>`;
+}
+
+/* The row of aisles shown ABOVE a filtered feed, so switching aisle is
+   one tap and going back to the list is never hidden. "Todo" here
+   returns to the aisle LIST, which is the landing — not to a flat feed
+   that would put us back where we started. */
+function catalogAisleChipsHTML(grouped){
+  const active = catalogState.subKey;
+  const chip = (isOn, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+    </button>`;
+  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+    ${chip(false, '&#8592; Categorías', null, 'setCatalogSub(null)')}
+    ${chip(active === SUB_ALL, 'Ver todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
+    ${grouped.rows.map(r => chip(active === r.key, escapeHtml(r.label), r.count, `setCatalogSub('${jsAttr(r.key)}')`)).join('')}
+  </div>`;
+}
+
+/* Bring each chip row's pressed chip into view, without moving the
+   PAGE — scrollIntoView() would drag the whole viewport, so each row is
+   scrolled on its own axis instead. Centred where there is room, so the
+   chips either side stay discoverable. */
+function revealActiveChips(root){
+  if (!root) return;
+  for (const row of root.querySelectorAll('.no-scrollbar')){
+    const active = row.querySelector('[aria-pressed="true"]');
+    if (!active) continue;
+    const target = active.offsetLeft - (row.clientWidth - active.offsetWidth) / 2;
+    row.scrollLeft = Math.max(0, target);
+  }
+}
+
 function renderCatalogFeed(){
   const { retailerFilter, byRetailer } = catalogState;
   const sections = document.getElementById('catalogSections');
@@ -3314,6 +3514,32 @@ function renderCatalogFeed(){
   const all = [];
   for (const retailer of active) for (const it of byRetailer.get(retailer)) all.push({ ...it, retailer });
 
+  /* ---- AISLES ------------------------------------------------------
+     Computed from the ACTIVE feed, so the counts match what a tap will
+     actually show — an aisle promising 228 and delivering 12 because a
+     store filter is on is worse than no aisle at all. */
+  const grouped = groupBySubcategory(all);
+  const splittable = shouldSplit(grouped);
+  const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
+
+  /* THE LANDING. A splittable department with no aisle chosen and no
+     search term shows the LIST, not a feed. This is the whole fix: no
+     aisle is the default, so none of them buries the others. A search
+     term overrides it — someone who typed "vestido" has already said
+     what they want and a list of aisles is in their way. */
+  if (splittable && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
+    subtitle.textContent = `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`;
+    sections.innerHTML = catalogAisleListHTML(grouped, storeLabel);
+    revealActiveChips(sections);
+    return;
+  }
+
+  /* An aisle key that is not SUB_ALL narrows the feed. An unknown key
+     yields nothing rather than everything — a stale URL must not
+     silently show the flat list it was meant to replace. */
+  const aisleKey = catalogState.subKey && catalogState.subKey !== SUB_ALL ? catalogState.subKey : null;
+  const feed = aisleKey ? itemsInSubcategory(all, aisleKey) : all;
+
   /* An in-category search narrows the cached feed first — instant and
      free. When that comes back thin, the on-demand card at the bottom
      offers to go and look in the real store. */
@@ -3328,8 +3554,8 @@ function renderCatalogFeed(){
   const term = typed.toLowerCase();
   const tokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
   const items = tokens.length
-    ? all.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
-    : all;
+    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
+    : feed;
 
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
@@ -3339,8 +3565,11 @@ function renderCatalogFeed(){
 
   const storeCount = byRetailer.size;
   const n = items.length;
+  const aisleName = aisleKey ? subcategoryLabel(aisleKey) : null;
   subtitle.textContent = term
-    ? `${n} resultado${n === 1 ? '' : 's'} para "${term}" en esta categoría`
+    ? `${n} resultado${n === 1 ? '' : 's'} para "${term}"${aisleName ? ` en ${aisleName}` : ' en esta categoría'}`
+    : aisleName
+    ? `${n} producto${n === 1 ? '' : 's'} en ${aisleName}`
     : filterHasStock
       ? `${n} producto${n === 1 ? '' : 's'} de ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} en esta categoría · toca "Todas las tiendas" para comparar con las demás`
       : retailerFilter
@@ -3349,6 +3578,7 @@ function renderCatalogFeed(){
 
   sections.innerHTML = `
     ${catalogSearchBarHTML()}
+    ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
@@ -3364,6 +3594,13 @@ function renderCatalogFeed(){
   // The <select> was just re-created, so put the chosen sort back on it.
   const sel = document.getElementById('catalogSort');
   if (sel) sel.value = sortBy;
+  /* A horizontally-scrolling chip row whose ACTIVE chip is off-screen
+     reads as "no filter applied". On a 393px phone the Macy's chip sits
+     past the right edge, so the row showed "Todas las tiendas 756" while
+     the subtitle said 730 Macy's products — two true numbers that look
+     like a contradiction. Both rows are scrolled to their own selection
+     after every render. */
+  revealActiveChips(sections);
   /* This feed is served from a cache rebuilt once a day, so "thin" here
      usually means "we have not looked recently", not "the store does not
      sell it". The offer only makes sense once the shopper has told us
@@ -3726,7 +3963,7 @@ const ROUTE_VIEWS = {
   homeView:         { key: null },
   resultsView:      { key: 'buscar',    params: ['q'] },
   productView:      { key: 'producto',  params: ['retailer', 'name'] },
-  catalogView:      { key: 'categoria', params: ['kind', 'catKey', 'retailerFilter'] },
+  catalogView:      { key: 'categoria', params: ['kind', 'catKey', 'retailerFilter', 'subKey'] },
   storeView:        { key: 'tienda',    params: ['retailer'] },
   storeResultsView: { key: 'tienda-buscar', params: ['retailer', 'q'] },
   salesView:        { key: 'ofertas',   params: ['retailer'] },
@@ -3789,7 +4026,7 @@ function parseRoute(search){
     if (view === 'resultsView') route.q = slug;
     else if (view === 'storeResultsView'){ const [r, ...rest] = String(slug).split(':'); route.retailer = r; route.q = rest.join(':'); }
     else if (view === 'productView') route.name = slug;
-    else if (view === 'catalogView'){ route.catKey = slug; route.kind = params.get('kind') || 'department'; route.retailerFilter = params.get('retailerFilter') || null; }
+    else if (view === 'catalogView'){ route.catKey = slug; route.kind = params.get('kind') || 'department'; route.retailerFilter = params.get('retailerFilter') || null; route.subKey = params.get('subKey') || null; }
     else if (view === 'storeView') route.retailer = slug;
     else if (view === 'salesView') route.retailer = slug === '1' ? null : slug;
     return route;
@@ -3837,7 +4074,10 @@ async function applyRoute(route){
         else showPage('homeView');
         break;
       }
-      case 'catalogView': await openCatalog(route.kind || 'department', route.catKey, route.retailerFilter ? { retailerFilter: route.retailerFilter } : {}); break;
+      case 'catalogView': await openCatalog(route.kind || 'department', route.catKey, {
+        ...(route.retailerFilter ? { retailerFilter: route.retailerFilter } : {}),
+        ...(route.subKey ? { subKey: route.subKey } : {}),
+      }); break;
       case 'storeView': await openStore(route.retailer); break;
       case 'storeResultsView': await openStoreResults(route.retailer, route.q); break;
       case 'salesView': goSales(route.retailer || undefined); break;
@@ -6983,6 +7223,12 @@ function normalizeLiveItem(item, hints){
     restrictedFragrance: isFragrance(title),
     // null unless the retailer really sent one. Never rendered otherwise.
     reviewCount,
+    /* WHAT THE THING IS, when the store says so. This is what lets a
+       department split into aisles (see SUBCATEGORY_SPEC); it was being
+       dropped here, which is why Macy's "Women" could only be one flat
+       list. Empty string for a store that reports nothing, which simply
+       does not split. */
+    type: normalizeType(item.type ?? item.typeName ?? item.productType),
     sizes, onSale: hasRealDiscount, originalPrice };
 }
 
