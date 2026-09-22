@@ -11423,15 +11423,15 @@ function orbStep(now){
     const floatX = lane.minX - fx;
     const floatY = lane.minY - fy;
 
-    /* The cover check is asked about where she is ABOUT TO BE, not where
-       home is. Testing the anchor let the float carry her onto a card
-       between checks, which is the second half of the reported bug. */
-    if (now - (orbSwim.lastCoverCheck || 0) > ORB_COVER_CHECK_MS){
-      orbSwim.lastCoverCheck = now;
-      orbSwim.covering = orbCoversContent(floatX, floatY, lane.size);
-    }
-    tx = orbSwim.covering ? window.innerWidth - ORB_PEEK_PX : floatX;
-    ty = orbSwim.covering ? lane.minY : floatY;
+    /* 2026-09-22: the tuck-to-a-sliver is gone. On a real phone it read
+       as a bug — "one eighth of the orb coming out the side" — and the
+       QA bar is the orb fully inside the frame, always. A fixed chat
+       bubble floating over scrolling content is standard; the reserved
+       corner (orbReserveSpace) still keeps the last line of a page from
+       ending up underneath her. */
+    orbSwim.covering = false;
+    tx = floatX;
+    ty = floatY;
   }
 
   // The lane is the guarantee: whatever the drift or the cursor lean
@@ -11442,13 +11442,8 @@ function orbStep(now){
   // Eased follow: the orb never snaps, it glides — except out of the way.
   // Gliding off a line of text still crosses it, so the retreat is
   // instant and only the return is eased.
-  if (docked && orbSwim.covering){
-    orbSwim.x = orbSwim.targetX;
-    orbSwim.y = orbSwim.targetY;
-  } else {
-    orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
-    orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
-  }
+  orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
+  orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
 
   const btn = document.getElementById('assistantBtn');
   // Scaled from its top-left corner, so the drawn orb is exactly the box
@@ -11457,14 +11452,7 @@ function orbStep(now){
   if (btn){
     btn.style.transformOrigin = '0 0';
     btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${scale.toFixed(3)})`;
-    /* Faded while tucked at the edge. The retreat already keeps her off
-       the content; this is what makes the remaining sliver read as a tab
-       to pull rather than a ball parked on a card. Full strength the
-       moment she comes back, and never faded while the panel is open —
-       the close button has to look pressable. */
-    const tucked = docked && orbSwim.covering && !panelOpen;
-    btn.style.opacity = tucked ? String(ORB_PEEK_OPACITY) : '';
-    btn.style.transition = 'opacity .25s ease';
+
   }
 
   // The trail: each dot follows the one ahead of it, so the whole thing
