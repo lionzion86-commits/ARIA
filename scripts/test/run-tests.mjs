@@ -964,13 +964,65 @@ check("a cover is only ever a local curated asset", () => {
   eq(covers.assertCuratedCover("electronics", undefined), null, "no entry at all");
 });
 
-check("no category is wired to a scraped cover today", () => {
-  // Empty is the correct state: a missing entry means the designed cover,
-  // which is a deliberate treatment and not a gap.
+check("every department has a curated photograph, and every one is on disk", () => {
+  /* THE COVERS LANDED (2026-09-22). Until they did, an empty map was the
+     correct state and the drawn brand field was what the homepage
+     showed. Ten photographs later the fallback is a fallback again --
+     and the thing to guard is that a configured cover is real. A key
+     pointing at a file that is not committed renders a broken image on
+     the first card a shopper sees, and nothing else in the pipeline
+     would notice: the path is a string, and a string is always valid. */
   for (const [key, path] of Object.entries(covers.CATEGORY_COVERS)) {
     if (covers.categoryCoverFor(key) !== path) {
       throw new Error(`${key} is configured with something that is not a local asset: ${path}`);
     }
+    if (!existsSync(root(path))) throw new Error(`${key} points at ${path}, which is not committed`);
+    if (!/^assets\/category\//.test(path)) throw new Error(`${key} lives outside assets/category: ${path}`);
+    // The filename IS the key, so a typo is a missing file rather than
+    // the wrong picture on the right card.
+    if (!new RegExp(`/${key}\\.(jpg|jpeg|png|webp)$`).test(path)) {
+      throw new Error(`${key} is wired to ${path} — the filename must match the key`);
+    }
+  }
+  /* EVERY COVER BELONGS TO A REAL DEPARTMENT. The reverse is not
+     required — a department with no entry gets the drawn brand field,
+     which is a deliberate treatment — but a cover for a key that does
+     not exist is a file nobody will ever see. */
+  for (const key of Object.keys(covers.CATEGORY_COVERS)) {
+    if (!deptMap.DEPARTMENT_SPEC[key]) throw new Error(`${key} has a cover but is not a department`);
+  }
+
+  /* EVERY DEPARTMENT HAS A PHOTOGRAPH NOW. This assertion read "beauty"
+     for a few hours: ten covers were delivered, and beauty had become a
+     real department that same morning when Sephora, Ulta and YesStyle
+     landed with 197 products between them, so it rendered the drawn
+     field beside ten photographs. Naming the gap by key rather than
+     tolerating it is what got the eleventh shot.
+
+     The empty string is the load-bearing part. A new department added
+     without a cover is NOT a failure — it gets the drawn brand field,
+     which is a deliberate treatment — but this line will change, and
+     whoever changes it has to decide on purpose whether that department
+     ships with a photograph or without one. */
+  const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
+  eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
+});
+
+check("Ofertas takes a photograph but keeps its gold sign", () => {
+  /* The drawn gold board exists because the two things before it were
+     worse: a scraped collage (meaningless) and the navy field (identical
+     to every other card). A CURATED photo is neither, so it wins — but
+     only the art in the window changes. The band, its gold gradient and
+     its navy type are what mark this as the sale card. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function initDepartmentTiles("));
+  if (!/isOfertas[\s\S]{0,120}categoryCoverFor\(t\.key\)/.test(tile)) {
+    throw new Error("Ofertas cannot take a curated cover");
+  }
+  if (!/ofertasTileArtHTML\(\)/.test(tile)) throw new Error("the drawn board is gone, not kept as the fallback");
+  // The sign is untouched: gold band, navy type, gold window backing.
+  for (const rule of ["#F7CE72", "var\\(--navy\\)", "var\\(--amber\\)"]) {
+    if (!new RegExp(rule).test(tile)) throw new Error(`the Ofertas sign lost ${rule}`);
   }
 });
 

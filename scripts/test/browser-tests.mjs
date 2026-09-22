@@ -255,6 +255,7 @@ await check("the category card and the Ofertas card are the same object", async 
       cardField: /aspect-ratio:4\/5/.test(card),
       tileCrops: /object-fit:\s*cover/.test(tile),
       cardCrops: /object-fit:\s*cover/.test(card),
+      tileContains: /object-fit:\s*contain/.test(tile),
       tileHasSquare: /h-\[124px\]|h-\[146px\]/.test(tile),
       tileHasSign: /Moda Mujer/.test(tile) && /0A1F44/.test(tile),
     };
@@ -267,7 +268,17 @@ await check("the category card and the Ofertas card are the same object", async 
   }
   eq(same.tileWindow, true, "the category window is not pinned to a height");
   eq(same.cardField, true, "the product card lost its 4:5 field");
-  eq(same.tileCrops, false, "the category window crops its photo");
+  /* THE TWO FIELDS CROP DIFFERENTLY, AND THAT IS THE POINT (2026-09-22).
+     This used to assert that NEITHER cropped, which was true only while
+     the cover map was empty and every category drew an SVG. Ten curated
+     photographs later the rule is the one assets/category/README.md
+     always stated: a cover was COMPOSED for this window, so it fills it
+     edge to edge and the crop is part of the composition; a product
+     photo was shot on white by a retailer who has never seen our card,
+     so it is shown whole and letterboxing is the honest answer.
+     Distortion is never the answer for either. */
+  eq(same.tileCrops, true, "the category cover no longer fills its window");
+  eq(same.tileContains, false, "the category cover is letterboxed instead of filling");
   eq(same.cardCrops, false, "the product card crops its photo");
   eq(same.tileHasSquare, false, "the old fixed-height square is gone");
   eq(same.tileHasSign, true, "the category name is not on a navy sign");
@@ -676,6 +687,20 @@ await check("every category cover renders as abstract art, in the DOM", async ()
   await page.evaluate(() => openCategories());
   await page.waitForSelector("#categoriesGrid [data-cover]", { timeout: 15000 });
 
+  /* THE PHOTOS ARE LAZY, AND THIS HARNESS HAS NO TAILWIND (2026-09-22).
+     cdn.tailwindcss.com is blocked here on purpose — the page must boot
+     without it — so `w-full h-full` and the window's pinned height do
+     not apply, and a <img> that has not decoded yet is a 0x0 box. Ten
+     curated covers therefore measured "collapsed" the moment they
+     landed, which is the harness and not the page. Decoding them first
+     makes the collapse check mean what it says again. */
+  await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll("#categoriesGrid [data-cover] img")];
+    for (const i of imgs) i.loading = "eager";
+    await Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = r; i.onerror = r; }))));
+  });
+  await page.waitForTimeout(400);
+
   const audit = await page.evaluate(() => {
     const GLYPH = /[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1F2FF}]/u;
     const covers = [...document.querySelectorAll("[data-cover]")];
@@ -694,7 +719,12 @@ await check("every category cover renders as abstract art, in the DOM", async ()
       collapsed: [...document.querySelectorAll("#categoriesGrid [data-cover]")].filter((c) => {
         const r = c.getBoundingClientRect();
         return r.width < 40 || r.height < 40;
-      }).length,
+      }).map((c) => c.getAttribute("data-cover-key")),
+      /* A curated cover that 404s falls back to the drawn one, so it
+         never shows a broken-image glyph — but it also means the photo
+         somebody committed is not being seen. Name it. */
+      deadPhotos: [...document.querySelectorAll("#categoriesGrid [data-cover] img")]
+        .filter((i) => !i.naturalWidth).map((i) => i.getAttribute("src")),
     };
   });
 
@@ -703,7 +733,8 @@ await check("every category cover renders as abstract art, in the DOM", async ()
   if (audit.texty.length) throw new Error(`type rendered inside the cover of: ${audit.texty.join(", ")}`);
   eq(audit.drawn, audit.total, "every cover paints either drawn art or a curated photo");
   if (!(audit.visible >= 6)) throw new Error(`only ${audit.visible} covers on the Categorias grid`);
-  eq(audit.collapsed, 0, "no visible cover collapsed to nothing");
+  eq(audit.collapsed.join(), "", `covers collapsed to nothing: ${audit.collapsed.join(", ")}`);
+  eq(audit.deadPhotos.join(), "", `curated photos that did not load: ${audit.deadPhotos.join(", ")}`);
 
   /* SVG ids are document-global. The same category renders in BOTH the
      home rail and Categorias, so a key-derived id repeated itself and
