@@ -194,13 +194,25 @@ export const RETAILERS = {
      as Sephora's 80. Both are browse-without-scrape, same as Macy's and
      SSENSE: a real catalogue, no actor, kept out of the live fan-out.
 
-     NEITHER HAS A LOGO FILE YET, and `color` is OUR navy rather than a
-     guess at theirs. storeCardHTML renders a store with no logo as its
-     wordmark on `color`, so the colour is a real design decision here,
-     not decoration — and shipping a brand's name on a colour we invented
-     for them is worse than shipping it on ours. Drop logos/ulta.* and
-     logos/yesstyle.* in, set `logo`, and both cards become the store's
-     own mark with no other change.
+     BOTH MARKS LANDED (2026-09-22). They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours. Now they render their
+     own logos, and `color` has stopped being a placeholder: each value
+     below was SAMPLED FROM THE SUPPLIED ARTWORK rather than recalled,
+     which is the lesson the SSENSE tagline taught. Ulta's orange is
+     #F88038 across 229,142 pixels of its file. YesStyle's most common
+     ink is actually its near-black (#201818, the "STYLE" half), but a
+     near-black badge is indistinguishable from Sephora's and SSENSE's,
+     so the row takes the green (#50A838) that says whose mark it is.
+     Either way the colour is now only a fallback: it backs the wordmark
+     pill and the small text badge, neither of which renders while the
+     logo file resolves.
+
+     YESSTYLE'S FILE NEEDED CROPPING. The wordmark filled 7.4% of a
+     1000x667 canvas and the rest was white. Contain-fit sizes the
+     CANVAS, so it would have drawn a sliver exactly the way SSENSE did
+     -- see the coverage test in scripts/test/run-tests.mjs, which now
+     fails any logo under 35%. Cropped to 642x86, it is 89.6% mark.
 
      YesStyle is Asian beauty specifically (Korean and Japanese houses —
      Anua, BBIA, CLIO, Canmake). The tagline says so, because "YesStyle"
@@ -209,8 +221,8 @@ export const RETAILERS = {
   ulta: {
     key: "ulta",
     label: "Ulta Beauty",
-    color: "#0A1F44",
-    logo: null,
+    color: "#F88038",
+    logo: "logos/ulta.png",
     tagline: "Maquillaje, skincare y cuidado del cabello",
     kind: "general",
     catalog: "beauty",
@@ -220,8 +232,8 @@ export const RETAILERS = {
   yesstyle: {
     key: "yesstyle",
     label: "YesStyle",
-    color: "#0A1F44",
-    logo: null,
+    color: "#50A838",
+    logo: "logos/yesstyle.png",
     tagline: "Belleza coreana y japonesa",
     kind: "general",
     catalog: "beauty",

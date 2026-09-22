@@ -5888,15 +5888,23 @@ const RETAILERS = {
   /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
      file. Browse-without-scrape, like Macy's and SSENSE.
 
-     NEITHER HAS A LOGO FILE YET, and `color` is OUR navy, not a guess at
-     theirs. storeCardHTML renders a logo-less store as its wordmark on
-     `color`, so that colour is a design decision, not decoration —
-     shipping a brand's name on a colour we invented for them is worse
-     than shipping it on ours. Drop logos/ulta.* and logos/yesstyle.* in,
-     set `logo`, and both cards become the store's own mark with no other
-     change anywhere. Mirrors scripts/lib/retailers.js. */
-  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#0A1F44', logo: null,                   tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#0A1F44', logo: null,                   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+     BOTH MARKS LANDED the same day. They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours — and `color` is no
+     longer a placeholder either: both values were SAMPLED FROM THE
+     SUPPLIED ARTWORK rather than recalled (Ulta's orange is #F88038
+     across 229,142 pixels of its file; YesStyle's most common ink is
+     its near-black, but a near-black badge is indistinguishable from
+     Sephora's and SSENSE's, so the row takes the green that says whose
+     mark it is). The colour only ever backs the wordmark pill and the
+     small text badge now, neither of which renders while the logo file
+     resolves.
+
+     YesStyle's file needed cropping — the wordmark filled 7.4% of its
+     canvas, which is the SSENSE sliver all over again. See the logo
+     coverage test. Mirrors scripts/lib/retailers.js. */
+  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
   victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says

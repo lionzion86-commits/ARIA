@@ -801,7 +801,13 @@ await check("no store logo is dwarfed by the wordmarks beside it", async () => {
      it is the hardest case for a square mark to match. Anything under
      60% of its area reads as "a thumbnail next to a logo". Before the
      fix Sephora sat at 25%. */
-  for (const key of ["sephora", "victoriassecret", "bathandbodyworks", "target"]) {
+  /* ulta and yesstyle joined the list when their marks landed
+     (2026-09-22). YesStyle is the one worth watching: its supplied file
+     was 7.4% wordmark on a white canvas, and uncropped it would draw a
+     sliver here while still decoding, still having a sane aspect ratio,
+     and still passing every other check. It measures 71% of Walmart
+     cropped — the same band as AutoZone and Foot Locker. */
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks", "target", "ulta", "yesstyle"]) {
     const m = by[key];
     if (!m) throw new Error(`${key} has no mark on the grid`);
     const ratio = area(m) / area(walmart);
