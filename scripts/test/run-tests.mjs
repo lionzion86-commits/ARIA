@@ -12,17 +12,23 @@
 
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
 import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
-import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE } from "../../weight-data.js";
+import * as weightResolve from "../../netlify/functions/_weight-resolve.js";
+import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE,
+         importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
+         TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
+import * as retailers from "../lib/retailers.js";
+import * as deptMap from "../lib/department-map.js";
+import { inkCoverage } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
@@ -37,6 +43,11 @@ import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courie
 import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
+import * as subcats from "../lib/subcategories.js";
+import * as payments from "../../netlify/functions/_payments-model.js";
+import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
+import * as ledger from "../../netlify/functions/_ledger.js";
+import { createHmac } from "node:crypto";
 
 const root = (p) => fileURLToPath(new URL("../../" + p, import.meta.url));
 
@@ -71,6 +82,16 @@ const pageSupport = loadPageSupportSlice();
 const pageFee = loadPageFeeSlice();
 const pageFitment = loadPageFitmentSlice();
 const pageAuto = loadPageAutoSourcesSlice();
+
+/* index.html's RETAILERS mirror, read for its logo paths only. A vm slice
+   would drag in the whole registry block and everything it references;
+   the mirror rows are single-line object literals, so a regex reads them
+   safely and cannot be broken by unrelated code moving around. */
+const pageRetailers = Object.fromEntries(
+  [...readFileSync(root("index.html"), "utf8")
+    .matchAll(/^\s*\w+:\s*\{\s*key: '(\w+)',[^\n]*?logo: (?:null|'([^']+)')/gm)]
+    .map((m) => [m[1], m[2] ?? null]),
+);
 
 /* ------------------------------------------------------------------
    P1.1 — the beauty table, row by row, against the brief's own figures.
@@ -418,23 +439,15 @@ check("a beauty estimate is still featured", () => {
   eq(d.weightKg, 0.05);
 });
 
-check("the two freight lines are 50% and 100%, module and page", () => {
-  eq(itemWeight.FREIGHT_BADGE_SHARE, 0.5);
+check("one freight line is left, and it is the feature ceiling", () => {
   eq(itemWeight.FREIGHT_FEATURE_CEILING, 1.0);
-  eq(page.FREIGHT_BADGE_SHARE, 0.5, "page mirror, badge");
   eq(page.FREIGHT_FEATURE_CEILING, 1.0, "page mirror, ceiling");
-  // The ambiguous alias is gone: with two thresholds, a name that does
-  // not say which one it means is how they drift apart.
   const src = stripComments(readFileSync(root("scripts/lib/item-weight.js"), "utf8"));
   if (/MAX_FREIGHT_SHARE/.test(src)) throw new Error("the ambiguous MAX_FREIGHT_SHARE alias is back");
-});
-
-check("the badge fires strictly above 50%, and nowhere below", () => {
-  // freightShare = kg * $13 / price.
-  const share = (kg, price) => itemWeight.freightIsHigh(kg, price, 13);
-  eq(share(1, 26), false, "exactly 50% — no badge");
-  eq(share(1.01, 26), true, "just over 50%");
-  eq(share(0.5, 26), false, "25%");
+  // The badge threshold is gone, not renamed.
+  if (/FREIGHT_BADGE_SHARE/.test(src)) throw new Error("the badge threshold is back in the module");
+  if (itemWeight.FREIGHT_BADGE_SHARE !== undefined) throw new Error("FREIGHT_BADGE_SHARE is exported again");
+  if (typeof itemWeight.freightIsHigh === "function") throw new Error("freightIsHigh() is back");
 });
 
 check("the feature ceiling fires strictly above 100%, and nowhere below", () => {
@@ -444,20 +457,20 @@ check("the feature ceiling fires strictly above 100%, and nowhere below", () => 
   eq(over(2.01, 26), true, "just over 100% — not featurable");
 });
 
-check("50-100% is featured AND badged", () => {
+check("a heavy item inside the ceiling is featured, and carries no verdict", () => {
   /* A 74 kg dresser: ~$965 of freight against a card price of ~$1,469 —
-     66%. The share is measured against the price the CARD PRINTS, which
-     over the $200 threshold carries the import tax, so the fixture is
-     priced from that number and not from the raw scrape. */
+     66%, which used to earn a "Flete alto" badge. It is featured now
+     with its freight itemised and nothing labelling it. */
   const heavy = deal("6 Drawer Dresser", 900, 1600);
-  if (!heavy) throw new Error("a heavy item inside the ceiling was suppressed instead of badged");
-  eq(heavy.freightHigh, true, "carries the Flete alto badge");
+  if (!heavy) throw new Error("a heavy item inside the ceiling was suppressed");
   if (!(heavy.freightShare > 0.5 && heavy.freightShare <= 1)) {
     throw new Error(`fixture drifted out of the 50-100% band: ${heavy.freightShare}`);
   }
+  // The share survives as data for calibration; the verdict does not.
+  if ("freightHigh" in heavy) throw new Error("deals still publish a freightHigh verdict");
   const light = deal("Levi's 501 Original Fit Jeans", 60, 100);
   if (!light) throw new Error("an ordinary deal was dropped");
-  eq(light.freightHigh, false);
+  if ("freightHigh" in light) throw new Error("deals still publish a freightHigh verdict");
 });
 
 check("over 100% is not featurable as a deal", () => {
@@ -483,8 +496,8 @@ check("the cache sanitizer enforces the same ceiling", () => {
   if (!/share > FREIGHT_FEATURE_CEILING\) return null/.test(cache)) {
     throw new Error("a heavy item could re-enter Ofertas through the cache");
   }
-  if (/FREIGHT_BADGE_SHARE\) return null/.test(cache)) {
-    throw new Error("the badge threshold is suppressing items again");
+  if (/FREIGHT_BADGE_SHARE/.test(cache)) {
+    throw new Error("the badge threshold is back in the cache sanitizer");
   }
 });
 
@@ -916,80 +929,194 @@ check("the note states the basis the code actually uses", () => {
 /* ------------------------------------------------------------------
    P2.2 / P2.3 — category tiles.
    ------------------------------------------------------------------ */
-group("P2.2 / P2.3 category tiles");
+group("category covers are curated art, not scraped inventory");
 
-const tiles = loadPageTileSlice();
+const covers = loadPageTileSlice();
 
-check("category tiles carry no retailer logos at all", () => {
+/* WHY THIS GROUP REPLACED THE SCORING ONE (2026-09-22). Three rounds of
+   choosing a cover from the scraper feed — first cached item, then a
+   scored selection, then denylists plus a cross-tile de-duplicator — and
+   a live phone still showed a USB stick for Electrónica, a bag of
+   parasite cleanse for Salud y Farmacia and a headless torso for Ropa.
+
+   The reason is structural and no tuning reaches it: the scorer reads
+   TITLES. "Cargo Pants With Stretch" is a good title and a photo of a
+   decapitated mannequin. So the cover is art now, and these checks pin
+   the two things that keeps true. */
+
+check("a cover is only ever a local curated asset", () => {
+  /* The permanent rule, enforced by construction rather than by
+     pattern-matching a price out of a photo: a remote URL is a scraper
+     feed by definition, and that feed is what put a parasite cleanse on
+     the pharmacy tile. */
+  eq(covers.assertCuratedCover("electronics", "assets/category/electronics.jpg"),
+     "assets/category/electronics.jpg", "a local path is fine");
+  for (const remote of [
+    "https://i5.walmartimages.com/seo/thing.jpeg",
+    "http://target.scene7.com/is/image/Target/GUEST_x",
+    "//content.gapinc.com/b/0056/cn56750941.png",
+    "data:image/png;base64,iVBORw0KGgo=",
+  ]) {
+    eq(covers.assertCuratedCover("electronics", remote), null, `rejected: ${remote.slice(0, 40)}`);
+  }
+  eq(covers.assertCuratedCover("electronics", ""), null, "nothing configured");
+  eq(covers.assertCuratedCover("electronics", undefined), null, "no entry at all");
+});
+
+check("no category is wired to a scraped cover today", () => {
+  // Empty is the correct state: a missing entry means the designed cover,
+  // which is a deliberate treatment and not a gap.
+  for (const [key, path] of Object.entries(covers.CATEGORY_COVERS)) {
+    if (covers.categoryCoverFor(key) !== path) {
+      throw new Error(`${key} is configured with something that is not a local asset: ${path}`);
+    }
+  }
+});
+
+check("the cover never comes from the cache again", () => {
+  /* collectTiles decides which categories EXIST and how many products
+     they hold. What a category LOOKS like is art. If cover selection
+     creeps back into the cache read, the junk drawer comes with it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function collectTiles("));
+  const body = fn.slice(0, fn.indexOf("\nfunction "));
+  if (/candidates|scoreTileCandidate|pickTileImage|assignTileImages|\.thumb/.test(body)) {
+    throw new Error("collectTiles is choosing cover images from the cache again");
+  }
+  if (/it\.image/.test(body)) throw new Error("collectTiles is reading scraped image URLs again");
+  // And the retired machinery is gone, not merely unused.
+  for (const dead of ["scoreTileCandidate", "pickTileImage", "assignTileImages", "TILE_IMAGE_HERO", "DEPARTMENT_THUMB_EXCLUDE"]) {
+    if (new RegExp(`\\b${dead}\\b`).test(src)) throw new Error(`${dead} is still in index.html — dead code that looks live`);
+  }
+});
+
+check("the fallback cover is abstract art — never a glyph, never clip-art", () => {
+  /* THE BUG THIS EXISTS FOR, and it shipped to QA (2026-09-22, round 2).
+     designedCoverHTML drew a 64px EMOJI in a navy ring. On an iPhone
+     those are full-colour Apple glyphs, so Electronica rendered a
+     cartoon laptop and Ropa a cartoon t-shirt, and Danny rejected the
+     round. The brief had already ruled it out in as many words --
+     "nunca un emoji como sustituto" -- and the old test here passed
+     anyway, because it only asked whether the cover was drawn rather
+     than fetched. It never asked WHAT was drawn.
+
+     So this asks. Any glyph in the cover fails: the emoji ranges, the
+     misc-symbols and dingbat blocks, and the variation selector that
+     turns a bare character into an emoji. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/function designedCoverHTML/.test(src)) throw new Error("there is no fallback cover");
+  const designed = src.slice(src.indexOf("function designedCoverHTML"), src.indexOf("function categoryCoverFallback"));
+  const code = stripComments(designed);
+
+  if (/<img/.test(code)) throw new Error("the fallback cover fetches an image — it must be drawn");
+
+  /* Emoji and pictographs, by codepoint rather than by listing the ones
+     we happen to have used: astral pictographs, misc symbols, dingbats,
+     and FE0F (the emoji presentation selector).
+
+     ESCAPE SEQUENCES COUNT. The source may spell an emoji as a literal
+     \\uD83D\\uDCBB, which is not a pictograph in the FILE but is one in
+     the DOM — and the version of this guard written first missed
+     exactly that, because it scanned the raw text. So the escapes are
+     decoded before the scan, the same way the JS engine would. */
+  const decoded = code.replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+                      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const GLYPH = /[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1F2FF}]/u;
+  if (GLYPH.test(decoded)) {
+    const hit = decoded.match(GLYPH)[0];
+    throw new Error(`the fallback cover contains a pictograph (U+${hit.codePointAt(0).toString(16).toUpperCase()}) — it must be abstract, not clip-art`);
+  }
+  /* And no <text> at all. A pictograph is the failure that happened;
+     ANY typography in the cover is the same category of mistake, since
+     the category's name is already on the navy sign underneath it. */
+  if (/<text[\s>]/.test(code)) throw new Error("the fallback cover is drawing type — the sign underneath carries the name");
+  // And it must not reach for the icon field, which is where the emoji came from.
+  if (/\.icon\b/.test(code)) throw new Error("the fallback cover is reading the category icon again — that field is emoji");
+
+  // It is real drawn geometry, not an empty rectangle.
+  if (!/<svg/.test(code)) throw new Error("the fallback cover is no longer drawn as SVG");
+  if (!/<circle|<path|<rect/.test(code)) throw new Error("the fallback cover has no geometry in it");
+
+  /* The LIGHT end of the navy family, per the brief's "tinte de la
+     familia azul-claro". Drawn dark first, which put a dark window above
+     a dark sign and made the whole card one blue slab. */
+  /* The light end of the navy family. Matched loosely on purpose: this
+     pinned four exact hex values once and broke the moment the
+     composition was retuned, which taught nothing. What matters is that
+     the FIELD is pale and cool, so the navy sign underneath has
+     something to contrast with. */
+  const fieldStops = (code.match(/stop-color="#([0-9A-Fa-f]{6})"/g) || [])
+    .map((m) => m.slice(-7, -1));   // the six hex digits, without the "#"
+  const pale = fieldStops.filter((hex) => {
+    const r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    return r > 0xB0 && g > 0xB0 && b > 0xE0 && b >= r;   // pale, and cooler than it is warm
+  });
+  if (pale.length < 2) throw new Error(`the fallback cover is not on a pale cool field (found ${pale.length} pale stops)`);
+  if (/F4C463|--yellow|--amber/.test(code)) throw new Error("the fallback cover borrowed the discount gold");
+  // Navy has to be present, or "azul/navy" is just a pale rectangle.
+  if (!/0A1F44/.test(code)) throw new Error("the fallback cover has no navy in it");
+
+  /* SVG ids are document-global and several tiles render at once, so a
+     shared id makes every tile paint with the FIRST tile's gradients.
+     The ids have to be per-tile. */
+  const ids = code.match(/id="\$\{id\}|id="[a-z]/g) || [];
+  if (!/id="\$\{id\}/.test(code)) throw new Error("SVG ids are not per-tile — every cover would paint with the first tile's gradients");
+
+  // A curated file that 404s falls back to it rather than to alt text.
+  const fb = src.slice(src.indexOf("function categoryCoverFallback"), src.indexOf("/** The art for one category"));
+  if (!/designedCoverHTML/.test(fb)) throw new Error("a 404 on a curated cover no longer falls back to the drawn one");
+  if (!/onerror=/.test(src.slice(src.indexOf("function categoryCoverArtHTML")))) {
+    throw new Error("a curated cover has no error path");
+  }
+});
+
+check("the same cover is drawn every time, and tiles do not collide", () => {
+  /* The seed makes a tile stable across re-renders — a cover that
+     reshuffled when the grid repainted would read as a glitch — and
+     different enough between categories that a column is not six
+     identical rectangles. */
+  const { coverSeed } = covers;
+  eq(typeof coverSeed, "function", "coverSeed is exported from the page");
+  eq(coverSeed("electronics"), coverSeed("electronics"), "the same key seeds the same cover");
+  const keys = ["electronics", "clothing", "men", "women", "kids", "home_goods", "pharmacy", "candy_chocolate", "sporting_goods", "beauty"];
+  const rotations = new Set(keys.map((k) => (coverSeed(k) % 25) - 12));
+  if (rotations.size < 4) {
+    throw new Error(`only ${rotations.size} distinct rotations across ${keys.length} categories — the set reads as identical tiles`);
+  }
+  // Bounded, so every tile keeps the same reading. The brief asked for
+  // "mismo tratamiento de luz y recorte en todas las categorias".
+  for (const k of keys) {
+    const rot = (coverSeed(k) % 25) - 12;
+    if (Math.abs(rot) > 12) throw new Error(`${k} rotates ${rot}deg — past the bound that keeps the set coherent`);
+  }
+  eq(coverSeed(""), coverSeed(""), "an empty key still seeds deterministically");
+});
+
+check("the tile carries no retailer logos and still states its count", () => {
   /* Reversed 2026-09-20: the cap (3 logos + "+N") is gone because the
      logos are gone. A category tile answers "what is this", not "who
-     sells it" — the store is named on every product card, in the store
-     chips and on Tiendas. */
+     sells it". */
   const html = readFileSync(root("index.html"), "utf8");
-  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
+  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function initDepartmentTiles"));
   if (/retailerBadgeHTML|tileRetailerRowHTML|TILE_MAX_LOGOS/.test(tile)) {
     throw new Error("the category tile still renders store marks");
   }
   if (!/producto\$\{count === 1/.test(tile)) throw new Error("the product count was dropped with the logos");
-});
-
-check("tiles fit the image rather than cropping it", () => {
-  /* 2026-09-20: the tile no longer carries its own image markup — it
-     renders through cardPhotoHTML, the same helper the Ofertas card
-     uses, which is the point of the rebuild. So the rule is asserted
-     where it now lives, plus the fact that the tile really does go
-     through it. */
-  const html = readFileSync(root("index.html"), "utf8");
-  const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
-  if (!/cardPhotoHTML\(/.test(tile)) throw new Error("the tile stopped using the shared photo helper");
-  const photo = html.slice(html.indexOf("function cardPhotoHTML"), html.indexOf("function ofertasTileArtHTML"));
-  if (/object-cover|object-fit:\s*cover/.test(photo)) throw new Error("the shared photo crops with cover");
-  if (!/object-fit:\s*contain/.test(photo)) throw new Error("the shared photo does not contain-fit");
-  if (!/object-position:\s*center/.test(photo)) throw new Error("the shared photo is not centred");
-});
-
-check("selection prefers the face of a category over its peripherals", () => {
-  const better = (key, win, lose) => {
-    const a = tiles.scoreTileCandidate(win, key);
-    const b = tiles.scoreTileCandidate(lose, key);
-    if (!(a > b)) throw new Error(`${key}: "${win}" (${a}) should outrank "${lose}" (${b})`);
-  };
-  better("electronics", 'TCL 55" QLED 4K Smart TV', "Sanus Full-Motion TV Wall Mount");
-  better("electronics", 'TCL 55" QLED 4K Smart TV', "6ft HDMI Cable, Black");
-  better("pharmacy", "Nature Made Multivitamin Tablets - 120ct", "Celsius Sparkling Energy Drink 12 oz");
-  better("sporting_goods", "Spalding NBA Street Basketball", "Johnson & Johnson First Aid Kit, 140 pieces");
-  better("home_goods", "Queen Comforter Set, Microfiber", "LANE LINEN 24 Pack Bulk Dish Towels for Kitchen");
-  better("candy_chocolate", "M&M'S Milk Chocolate Candy, Party Size", "Assorted Variety Pack Candy Bundle");
-  better("women", "Floral Midi Dress", "Replacement Bra Strap Extender, 3 Pack");
-});
-
-check("a bare count is not treated as a multipack", () => {
-  // Penalising "90ct" ranked a weight-loss pill above a multivitamin.
-  const vit = tiles.scoreTileCandidate("OLLY Women's Multivitamin Gummies - Berry - 90ct", "pharmacy");
-  const pill = tiles.scoreTileCandidate("PharmaPure Sugar Blocker Weight Loss Supplement, 90 Capsules", "pharmacy");
-  if (!(vit > pill)) throw new Error(`multivitamin (${vit}) should outrank the weight-loss pill (${pill})`);
-});
-
-check("a pinned image overrides scoring entirely", () => {
-  const candidates = [{ title: 'TCL 55" QLED 4K Smart TV', image: "scraped.jpg" }];
-  eq(tiles.pickTileImage("electronics", candidates), "scraped.jpg", "unpinned");
-  tiles.CATEGORY_IMAGE_PIN.electronics = "assets/category/electronics.jpg";
-  eq(tiles.pickTileImage("electronics", candidates), "assets/category/electronics.jpg", "pinned");
-  // A pin works even when there is nothing scraped at all.
-  eq(tiles.pickTileImage("electronics", []), "assets/category/electronics.jpg", "pinned with no candidates");
-  delete tiles.CATEGORY_IMAGE_PIN.electronics;
-});
-
-check("a candidate with no image never wins", () => {
-  eq(tiles.pickTileImage("electronics", [{ title: 'TCL 55" TV', image: "" }, { title: "USB Cable", image: "c.jpg" }]), "c.jpg");
-  eq(tiles.pickTileImage("electronics", []), null);
+  if (!/categoryCoverArtHTML\(t\)/.test(tile)) throw new Error("the tile is not drawing the curated cover");
 });
 
 check("Ofertas is a designed tile, not a scraped product image", () => {
   const html = readFileSync(root("index.html"), "utf8");
   if (!/function ofertasTileArtHTML/.test(html)) throw new Error("the Ofertas tile art is missing");
   const art = html.slice(html.indexOf("function ofertasTileArtHTML"), html.indexOf("function deptTileHTML"));
-  if (!/ariaNavyBand/.test(art)) throw new Error("the Ofertas tile is not on the Precio Honesto navy field");
+  /* 2026-09-21: Ofertas moved from the navy field to the GOLD one. On a
+     run of navy category signs, the one card that means SALE was reading
+     exactly like the other eleven. Gold board, navy type — what a sale
+     sign looks like in any shop. It still carries the Precio Honesto
+     language, because the claim has not changed, only the colour. */
+  if (/ariaNavyBand/.test(art)) throw new Error("the Ofertas tile is back on the navy field — it is the sale card");
+  if (!/F4C463|var\(--amber\)/.test(art)) throw new Error("the Ofertas tile is not on the gold sale field");
+  if (!/var\(--navy\)/.test(art)) throw new Error("the Ofertas type is not navy on the gold");
   if (!/Precio Honesto/.test(art)) throw new Error("the Ofertas tile does not carry the Precio Honesto language");
   const tile = html.slice(html.indexOf("function deptTileHTML"), html.indexOf("function handleDeptThumbError"));
   if (!/ofertasTileArtHTML\(\)/.test(tile)) throw new Error("deptTileHTML does not use it");
@@ -1033,34 +1160,50 @@ check("the sign-off the brief put out of scope is untouched", () => {
 /* ------------------------------------------------------------------
    FOLLOW-UPS TO THE BIG BATCH (2026-09-20), all five reported live.
    ------------------------------------------------------------------ */
-group("follow-up 1: the Flete alto badge fires only at 0.50");
+group("the Flete alto badge is gone, and cannot come back");
 
-check("the badge is measured against the price the card prints", () => {
-  // Over the $200 import-tax threshold the card prints 23% more than the
-  // scrape did. Dividing by the raw figure was giving the badge a
-  // smaller denominator than the shopper's own arithmetic.
-  eq(itemWeight.shownPriceUsd(199), 199, "under the threshold, unchanged");
-  eq(itemWeight.shownPriceUsd(200), 200, "at the threshold, unchanged");
-  eq(itemWeight.shownPriceUsd(250), 307.5, "over the threshold, tax included");
-  for (const usd of [5, 60, 199.99, 200, 200.01, 250, 1000]) {
-    eq(page.displayPriceUsd(usd), itemWeight.shownPriceUsd(usd), `page mirror at $${usd}`);
+/* WHY IT WENT. Two rounds were spent calibrating this badge — first the
+   threshold (30% -> 50%), then the denominator (raw price -> the price
+   the card prints). Both were real bugs and both were fixed, and the
+   badge was still wrong, because the quantity it thresholded was wrong:
+   freight as a SHARE OF PRICE fires on CHEAP items, not HEAVY ones. The
+   0.23 kg t-shirt below is the proof — S/ 10.07 of freight is not a high
+   freight bill, the shirt is just inexpensive.
+
+   These checks are written so that a future calibration pass cannot
+   quietly reintroduce it. A heavy-item indicator may return, but on
+   ABSOLUTE freight and as neutral information. */
+
+check("no surface renders a freight verdict on a product card", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  /* Comments are stripped first: the card carries a note explaining what
+     the badge was and why it went, and that note naming it is not the
+     card rendering it. */
+  const code = stripComments(card);
+  if (/Flete alto/.test(code)) throw new Error("the card renders a Flete alto badge again");
+  if (/FREIGHT_BADGE_SHARE|freightHeavy|freightIsHigh/.test(code)) {
+    throw new Error("the card is thresholding freight as a share of price again");
   }
-  // 10 kg is $130 of freight: 52% of $250, but only 42% of the $307.50
-  // the card shows. The shopper's number is the one that decides.
-  eq(itemWeight.freightIsHigh(10, 250, 13), false, "not high against the printed price");
-  eq(page.freightSharePct(10, 250) > page.FREIGHT_BADGE_SHARE, false, "page agrees");
-  eq(
-    Math.round(page.freightSharePct(10, 250) * 1000),
-    Math.round(itemWeight.freightShare(10, 250, 13) * 1000),
-    "page and module compute the same share",
-  );
+  if (/0\.3\b|\b30\s*%/.test(code)) throw new Error("a stray 30% threshold is back in the card");
 });
 
-check("the reported Hello Kitty T-shirt carries no badge", () => {
-  /* LIVE REPORT: S/ 25.29 product, S/ 10.07 freight — 39.8%, comfortably
-     under the 0.50 line, and it was wearing "Flete alto" anyway. The
-     ratio is currency-free, so the sole figures are reproduced exactly
-     by picking the dollar price that yields the same share. */
+check("the disclosure line the badge sat on top of is still there", () => {
+  /* Killing the badge is only defensible because this line says
+     everything the badge was gesturing at, in the shopper's own
+     arithmetic: the cost, the weight and the rate. If it ever goes, the
+     freight stops being disclosed at all. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
+  if (!/de flete/.test(card)) throw new Error("the card stopped itemising freight");
+  if (!/CHARGE_PER_KG_USD\}\/kg/.test(card)) throw new Error("the card stopped printing the per-kg rate");
+  if (!/String\(weightKg\)\)\} kg/.test(card)) throw new Error("the card stopped printing the weight");
+});
+
+check("the reported t-shirt keeps its freight line and gains no label", () => {
+  /* LIVE REPORT: S/ 25.29 product, S/ 10.07 freight — 39.8%. The ratio is
+     currency-free, so the sole figures are reproduced exactly by picking
+     the dollar price that yields the same share. */
   const kg = estimateWeightDetail("Hello Kitty and Friends Girls T-Shirt").kg;
   const freight = itemWeight.freightUsd(kg, 13);
   const priceUsd = freight * (25.29 / 10.07);        // the reported ratio
@@ -1068,19 +1211,25 @@ check("the reported Hello Kitty T-shirt carries no badge", () => {
   if (Math.abs(share - 10.07 / 25.29) > 0.002) {
     throw new Error(`share drifted from the reported 39.8%: ${share}`);
   }
-  eq(share > page.FREIGHT_BADGE_SHARE, false, "no badge at 40%");
-  eq(itemWeight.freightIsHigh(kg, priceUsd, 13), false, "module agrees");
-  // And the line it must fire on, either side of exactly 50%.
-  eq(itemWeight.freightIsHigh(kg, freight / 0.5, 13), false, "exactly 50% — no badge");
-  eq(itemWeight.freightIsHigh(kg, freight / 0.4999, 13), false, "just under 50%");
-  eq(itemWeight.freightIsHigh(kg, freight / 0.5001, 13), true, "just over 50%");
+  // The share is still computable — the ceiling needs it — it just no
+  // longer decides anything a shopper can see.
+  eq(
+    Math.round(page.freightSharePct(kg, priceUsd) * 1000),
+    Math.round(itemWeight.freightShare(kg, priceUsd, 13) * 1000),
+    "page and module still agree on the share",
+  );
+  // And a cheap light item is nowhere near the one line that remains.
+  eq(itemWeight.freightAboveFeatureCeiling(kg, priceUsd, 13), false, "well inside the feature ceiling");
 });
 
-check("no threshold other than the two named ones is left in the badge path", () => {
-  const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  const card = src.slice(src.indexOf("function productCardHTML("), src.indexOf("function renderSalesGrid("));
-  if (/0\.3\b|\b30\s*%/.test(card)) throw new Error("a stray 30% threshold is back in the card");
-  if (!/FREIGHT_BADGE_SHARE/.test(card)) throw new Error("the card stopped reading the named constant");
+check("the displayed price is still what any share divides by", () => {
+  // The denominator fix outlives the badge: the feature ceiling uses it.
+  eq(itemWeight.shownPriceUsd(199), 199, "under the threshold, unchanged");
+  eq(itemWeight.shownPriceUsd(200), 200, "at the threshold, unchanged");
+  eq(itemWeight.shownPriceUsd(250), 307.5, "over the threshold, tax included");
+  for (const usd of [5, 60, 199.99, 200, 200.01, 250, 1000]) {
+    eq(page.displayPriceUsd(usd), itemWeight.shownPriceUsd(usd), `page mirror at $${usd}`);
+  }
 });
 
 group("follow-up 2: $13/kg is the customer-facing rate, and stays");
@@ -1326,30 +1475,135 @@ check("a real logo is never greyed out, however pending the store", () => {
   }
 });
 
-check("every store mark is contain-fit and capped, never stretched", () => {
+check("every store mark fills its zone, contain-fit, never stretched", () => {
   const src = readFileSync(root("index.html"), "utf8");
-  // Each <img> that draws a store mark: a height cap, a width cap, and
-  // contain — which is what lets a 1200x631 banner and a square file
-  // share a tile without either being distorted.
-  const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,320}?>/g) || [];
+  /* Each <img> that draws a store mark gets a ZONE — a width, a height
+     cap and a width cap — and contains inside it. That is what lets a
+     1200x631 banner and a square file share a tile without either being
+     distorted, AND what makes them read at the same size. */
+  const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
   if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
-    if (!/max-width:\s*\d+px/.test(img)) throw new Error("a store mark has no width cap");
+    /* px OR %. The Tiendas card's width cap became a percentage on
+       2026-09-21: a fixed 130px filled 71% of a phone card and 50% of a
+       desktop one, which is why the 4-across grid read as microscopic
+       while the phone looked fine. A fluid card cannot hold a proportion
+       with a fixed number. */
+    if (!/max-width:\s*\d+(px|%)/.test(img)) throw new Error("a store mark has no width cap");
     if (/\bfilter:/.test(img)) throw new Error("a store mark carries a CSS filter");
     // Never a bare width/height, which would ignore the file's own ratio.
     if (/style="[^"]*[;\s]height:\s*\d/.test(img)) throw new Error("a store mark sets a fixed height");
     if (!/onerror=/.test(img)) throw new Error("a store mark has no fallback if the file is missing");
+
+    /* WITHOUT width:100% THE CAPS ARE A CEILING, NOT A ZONE. max-* only
+       clamps a file that is too big; it never grows one that is small,
+       so a mark can sit well inside its plate with nothing pushing it
+       out. This is the half of the fix that is easy to drop in a later
+       edit and impossible to see in a diff. */
+    if (!/[";\s]width:\s*100%/.test(img)) throw new Error("a store mark does not fill its zone (no width:100%)");
+
+    /* THE ZONE'S SHAPE DECIDES WHO GETS STARVED. Contain-fit means a
+       square mark uses the zone's height and a wordmark uses its width,
+       so a zone shaped like a wordmark hands the wordmark several times
+       the ink area. Sephora shipped 24px wide beside Walmart's 130px
+       under a 130x34 zone (aspect 3.8) for exactly this reason.
+
+       Equal area for a square mark and a w:1 wordmark needs
+       width/height = sqrt(w). Walmart, our widest real wordmark, is
+       5.26:1, so the target is 2.29 and anything past 2.5 is starving
+       square marks again. */
+    /* A PERCENTAGE CAP CANNOT BE CHECKED HERE, because the zone's real
+       aspect depends on the card's rendered width. Where both caps are
+       still pixels the shape is checked statically; where the width is a
+       share of a fluid card, the equal-area guarantee is asserted in
+       browser-tests.mjs against measured pixels instead — which is the
+       stronger check, not a weaker one. */
+    const maxH = Number(/max-height:\s*(\d+)px/.exec(img)[1]);
+    const pxWidth = /max-width:\s*(\d+)px/.exec(img);
+    if (pxWidth) {
+      const maxW = Number(pxWidth[1]);
+      const aspect = maxW / maxH;
+      if (aspect > 2.5) {
+        throw new Error(
+          `store-mark zone is ${maxW}x${maxH} (aspect ${aspect.toFixed(2)}): too wordmark-shaped, ` +
+          `square marks like Sephora and Target render a fraction of Walmart's area`,
+        );
+      }
+    }
   }
 });
 
-check("the three beauty stores are still listed and still honest", () => {
+check("the three beauty stores show their own logo", () => {
+  /* They shipped on the wordmark treatment until their files arrived
+     (2026-09-20). A regression to `logo: null` would silently put the
+     text pills back, which is what Danny rejected. */
   for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+    const row = RETAILERS[key];
+    if (!row.logo) throw new Error(`${key} is back on the wordmark pill`);
+    if (!/^logos\/.+\.(png|svg)$/.test(row.logo)) throw new Error(`${key} logo path looks wrong: ${row.logo}`);
+    if (!existsSync(root(row.logo))) throw new Error(`${key} points at a missing file: ${row.logo}`);
+    // The page mirror has to agree, or Tiendas and the rest of the site
+    // disagree about what the store looks like.
+    eq(pageRetailers[key], row.logo, `${key} index.html mirror`);
+  }
+});
+
+check("the beauty stores say exactly which of them has a catalogue", () => {
+  /* 2026-09-22: beauty-catalog.json landed and Sephora is in it. The
+     other two are not, and the point of this test is that the three
+     stopped being interchangeable: "sells beauty" and "we can show you
+     its products" are different claims and the registry has to make
+     them separately. */
+  for (const key of ["victoriassecret", "bathandbodyworks"]) {
     const r = RETAILERS[key];
     if (!r) throw new Error(`${key} left the registry`);
     eq(r.search, false, `${key} is still pending`);
+    eq(r.browse, undefined, `${key} has no catalogue file`);
     eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
+  }
+  const sephora = RETAILERS.sephora;
+  if (!sephora) throw new Error("sephora left the registry");
+  eq(sephora.search, false, "Sephora still has no actor");
+  eq(sephora.browse, true, "Sephora has a catalogue now");
+  eq(sephora.pendingNote, undefined, "a store with a catalogue is not 'conectando'");
+});
+
+check("the store count in the Tiendas heading is computed, not remembered", () => {
+  /* It said "Ocho tiendas, todas reales" from the day eight stores fit
+     a 4x2 grid, and was still saying it at twelve — Macy's, SSENSE and
+     the three beauty stores all landed without touching it. A number in
+     prose that nothing recomputes goes wrong quietly, which is exactly
+     what this section claims not to do. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (/Ocho tiendas, todas reales/.test(src)) throw new Error("the heading still hardcodes eight stores");
+  if (!/data-store-count/.test(src)) throw new Error("there is no slot for the real count");
+  if (!/function spanishCount\(/.test(src)) throw new Error("the count has no words to render in");
+});
+
+check("the three beauty catalogue stores are registered and browsable", () => {
+  // 197 products across these three, from beauty-catalog.json. All are
+  // browse-without-scrape, and all must be flagged beauty so the
+  // four-per-shipment banner heads their pages.
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`${key} is not in the registry`);
+    eq(r.browse, true, `${key} is browsable`);
+    eq(r.search, false, `${key} stays out of the live fan-out`);
+    eq(r.catalog, "beauty", `${key} is a beauty store`);
+    eq(retailers.isBrowseOnlyRetailer(key), true, `${key} is browse-only`);
+    if (!retailers.browsableRetailers().includes(key)) throw new Error(`${key} is not browsable`);
+  }
+  /* A TAGLINE MAY NOT NAME A BRAND — the SSENSE rule. The card paints a
+     brand line read from the catalogue, so a hand-written name is both
+     a duplicate and a promise nobody re-checks when the export moves. */
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    for (const brand of ["NARS", "Rare Beauty", "Estée Lauder", "Clinique", "Anua"]) {
+      if (RETAILERS[key].tagline.includes(brand)) {
+        throw new Error(`${key}'s tagline names ${brand} — let topBrandsFor read it from the data`);
+      }
+    }
   }
 });
 
@@ -1768,31 +2022,77 @@ check("the category tile is built from the Ofertas card's own parts", () => {
   }
 });
 
-check("both category grids are the Ofertas grid, two across", () => {
+check("both category runs are one full-width column at every width", () => {
+  /* 2026-09-21: categories went from two-across to ONE column at every
+     width — "full-width, one big bold image per category, vertical
+     scroll", so the page reads as a row of shopfronts rather than a
+     spreadsheet. Two-up halved the image, which was the whole problem.
+
+     PRODUCT grids are untouched and stay two-across: a product card is a
+     product, not a storefront, and twelve full-width products would be a
+     mile of scrolling. */
   const src = readFileSync(root("index.html"), "utf8");
   for (const id of ["categoriesGrid", "catGrid"]) {
     const at = src.indexOf(`id="${id}"`);
     if (at < 0) throw new Error(`#${id} is gone`);
-    // The <div> that carries the id, class attribute and all.
     const tag = src.slice(src.lastIndexOf("<div", at), src.indexOf(">", at) + 1);
-    if (!/grid-cols-1 md:grid-cols-2/.test(tag)) {
-      throw new Error(`#${id} is not on the two-across Ofertas grid: ${tag}`);
-    }
-    if (/grid-cols-[34]|sm:grid-cols-3|md:grid-cols-4|lg:grid-cols-4/.test(tag)) {
-      throw new Error(`#${id} still has a small-square column count: ${tag}`);
+    if (!/grid-cols-1/.test(tag)) throw new Error(`#${id} has no single-column base: ${tag}`);
+    if (/(?:sm|md|lg|xl):grid-cols-\d/.test(tag)) {
+      throw new Error(`#${id} splits into columns at a breakpoint again: ${tag}`);
     }
   }
-  // Ofertas' own grid, for comparison: the same class, from one constant.
+  // The product listing grid keeps its own two-across shape.
   const listing = src.match(/const LISTING_GRID_CLASS = '([^']+)'/)?.[1];
-  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the shared grid class");
+  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the product listing grid");
 });
 
-check("no product image on any grid is cropped", () => {
+check("a category card is a shopfront: big window, signed, with an edge", () => {
+  /* The verdict this answers: "white-on-white reads as database, not a
+     place". A card needs a hard edge against the page and something you
+     can read walking past — so the name sits on a navy sign (gold for
+     Ofertas) under a wide window, not as navy text on white. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function handleDeptThumbError"));
+  const code = stripComments(tile);
+  /* Pinned HEIGHT, not an aspect: an aspect on a full-bleed card is a
+     function of the viewport, so 16:10 came out 238px tall on a phone
+     (smaller than the 4:5 it replaced) and 775px tall on a desktop. */
+  if (!/heightClass:\s*'h-\[\d+px\]/.test(code)) throw new Error("the category window is not pinned to a height");
+  if (/aspect:\s*'16\/10'/.test(code)) throw new Error("the category window is back on a viewport-dependent aspect");
+  if (!/signBg/.test(code)) throw new Error("the category name is no longer on a sign");
+  if (!/linear-gradient\(160deg, #0A1F44/.test(code)) throw new Error("the department sign is not the brand navy");
+  if (!/F4C463|--amber/.test(code)) throw new Error("Ofertas no longer gets the gold version of the sign");
+
+  /* THE WINDOW IS A LIGHT BLUE IN THE NAVY FAMILY, and specifically not
+     yellow: gold is this site's discount treatment and nothing else may
+     borrow it. The one gold window is Ofertas, which is the discount
+     card. A grey window was the bug — #F7F8FA sat a hair from the page's
+     own #FAFAF8, so the card had no edge against the page. */
+  const frameCall = code.slice(code.indexOf("cardImageFrameHTML({"), code.indexOf("</button>"));
+  if (!/background:\s*isOfertas \? 'var\(--amber\)' : 'var\(--sky\)'/.test(frameCall)) {
+    throw new Error(`the category window is not on --sky: ${frameCall.slice(0, 160)}`);
+  }
+  if (/#F7F8FA|#FAFAF8/.test(frameCall)) throw new Error("the category window is back on a page-coloured grey");
+  if (/--yellow/.test(frameCall)) throw new Error("the category window borrowed the discount yellow");
+  // The name has to be ON the sign, i.e. light type, not navy-on-white.
+  if (!/nameColor/.test(code)) throw new Error("the category name does not invert with its sign");
+});
+
+check("no image on any grid is cropped, whatever shape its frame is", () => {
+  /* The frame's aspect became a parameter when categories went to a wide
+     16:10 window (products stay 4:5). That makes the no-cropping rule
+     MORE important, not less: a wide window with cover-fit would slice
+     the top and bottom off every portrait apparel shot, which is the
+     exact "half-object" failure the tile-scoring rebuild was written to
+     end. A bigger window may make a contained product bigger; it never
+     licences cropping it. */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const frame = src.slice(src.indexOf("function cardImageFrameHTML("), src.indexOf("function deptTileHTML("));
   if (!/object-fit:\s*contain/.test(frame)) throw new Error("the shared photo is not contain-fit");
   if (/object-fit:\s*cover/.test(frame)) throw new Error("a cover fit is back — it crops people in half");
-  if (!/aspect-ratio:4\/5/.test(frame)) throw new Error("the shared 4:5 field is gone");
+  if (!/aspect-ratio:\$\{aspect\}/.test(frame)) throw new Error("the frame no longer takes an aspect");
+  if (!/aspect = '4\/5'/.test(frame)) throw new Error("the default frame is no longer the 4:5 product field");
+  if (!/heightClass/.test(frame)) throw new Error("the frame can no longer be pinned to a height");
 });
 
 /* ------------------------------------------------------------------
@@ -1967,12 +2267,126 @@ check("the badge has one branch, and it is green", () => {
 check("the results path filters on fitment, not on VEHICLE_SPECIFIC", () => {
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   if (/vehicle_fitment/.test(src)) throw new Error("the old VEHICLE_SPECIFIC gate is still live code");
-  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("async function searchAutoParts("));
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
   if (!/vehicleFittedItems\(rawItems, vehicle\)/.test(block)) {
     throw new Error("the block does not filter to confirmed-fit items");
   }
-  if (!/hasFitmentData\(rawItems, vehicle\)/.test(block) || !/fitmentGapHTML\(/.test(block)) {
-    throw new Error("the honest empty state is not the no-data outcome");
+  if (!/hasFitmentData\(rawItems, vehicle\)/.test(block)) {
+    throw new Error("the block does not ask whether fitment data exists");
+  }
+});
+
+check("the empty state is the fallback, not the default view", () => {
+  /* CORRECTION (2026-09-20): the first cut showed the empty state
+     whenever fitment could not be confirmed, which hid genuinely
+     Sonata-fitting pads and killed the section. The empty state is now
+     reached ONLY when the source returned nothing at all. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
+  const gapCall = block.indexOf("fitmentGapHTML(");
+  if (gapCall < 0) throw new Error("the empty state is unreachable");
+  // The only guard above the empty state is "nothing came back".
+  const guard = block.slice(0, gapCall);
+  if (!/if \(!rawItems\.length\)/.test(guard)) {
+    throw new Error("the empty state is not gated on an empty result set");
+  }
+  if (/hasFitmentData[^;]*\{\s*logFitmentGap/.test(block)) {
+    throw new Error("missing fitment data still routes to the empty state");
+  }
+});
+
+check("unconfirmed parts are shown, with the part number and no green badge", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const block = src.slice(src.indexOf("function renderAutoPartBlock("), src.indexOf("function autoPartNumberHTML("));
+  // The green badge is conditional on having data; the part number is not.
+  if (!/hasData \? fitmentBadgeHTML\(vehicle, true\) : ''/.test(block)) {
+    throw new Error("the green badge is not gated on confirmed fitment");
+  }
+  if (!/extraHTML: autoPartNumberHTML\(/.test(block)) {
+    throw new Error("the part number is not on the card");
+  }
+  // And the honest line has to say we could not confirm it.
+  if (!/no podemos confirmarlo nosotros/.test(block)) {
+    throw new Error("the unconfirmed branch does not say so");
+  }
+});
+
+check("the empty state claims no cause it has not established", () => {
+  /* It used to assert "Ese modelo no se vendió en Estados Unidos" — false
+     for the 2020 Sonata, which is a US-market car. Claiming a cause we
+     have not established is the same error as the badge, reversed. */
+  const html = readFileSync(root("index.html"), "utf8").replace(/<!--[\s\S]*?-->/g, "");
+  const gap = html.slice(html.indexOf("function fitmentGapHTML("), html.indexOf("function askAriaForPart("));
+  if (/Ese modelo no se vendió en Estados Unidos/.test(gap)) {
+    throw new Error("the empty state still states a cause as fact");
+  }
+  if (!/No tenemos datos de calce para tu/.test(gap)) {
+    throw new Error("the standard honest line is gone");
+  }
+  // A hedged possibility is fine; an assertion is not.
+  if (/no se haya vendido/.test(gap) && !/Puede ser que/.test(gap)) {
+    throw new Error("the US-market line is not hedged");
+  }
+});
+
+check("the part number a buyer cross-checks is read from the payload", () => {
+  // The exact shape the cache holds.
+  const raw = { part_number: "D2076", line_code: "EPA", brand: "Duralast", oem_part_number: null };
+  eq(autoSources.partNumberOf(raw).partNumber, "D2076");
+  eq(autoSources.partNumberLabel(raw), "EPA D2076");
+  eq(autoSources.partNumberLabel({ brand: "Bosch", part_number: "BC1234" }), "Bosch BC1234");
+  eq(autoSources.partNumberLabel({ oem_part_number: "58101-C1A00" }), "58101-C1A00", "OEM alone still answers");
+  eq(autoSources.partNumberLabel({ title: "no numbers here" }), null);
+  eq(pageAuto.partNumberLabel(raw), autoSources.partNumberLabel(raw), "index.html mirror");
+});
+
+check("every cached auto part can show a number to cross-check", () => {
+  /* The diligence path only works if the number is actually there. It is
+     the one fitment-adjacent field the overview scrape DOES return. */
+  const cache = JSON.parse(readFileSync(root("auto-cache.json"), "utf8"));
+  let items = 0;
+  let numbered = 0;
+  for (const entry of Object.values(cache.partSearches)) {
+    for (const raw of entry.autozone || []) {
+      items++;
+      if (autoSources.partNumberLabel(raw)) numbered++;
+    }
+  }
+  if (!items) throw new Error("the auto cache is empty");
+  const pct = Math.round((numbered / items) * 100);
+  if (pct < 95) throw new Error(`only ${pct}% of cached parts carry a part number`);
+});
+
+check("the named test vehicle is in the refresh list", () => {
+  /* "2020 Hyundai Sonata + pastillas de freno" is the brief's own test
+     case, and the Sonata was never in AUTOZONE_VEHICLES — so it missed
+     the cache and went out as a live scrape on every search. */
+  const src = readFileSync(root("scripts/refresh-auto-cache.js"), "utf8");
+  if (!/\{ make: "Hyundai", model: "Sonata" \}/.test(src)) {
+    throw new Error("the Sonata is still not cached by the refresh script");
+  }
+  // And the run reports whether fitment actually arrived.
+  if (!/function reportFitmentCoverage\(\)/.test(src)) {
+    throw new Error("the refresh does not report fitment coverage");
+  }
+  if (!/AUTO_SCRAPE_MODE/.test(src)) {
+    throw new Error("the coverage report does not point at the scrape mode");
+  }
+});
+
+check("no layer of the auto pipeline drops fields", () => {
+  /* The weight bug was an allowlist in refresh-department-cache.js. The
+     same hypothesis for auto does NOT hold, and that is worth pinning:
+     refresh-auto-cache.js stores what it got, and apify-scrape-status.js
+     passes the dataset through. If a slimming step ever appears here, it
+     must not be the thing that eats fitment. */
+  const refresh = stripComments(readFileSync(root("scripts/refresh-auto-cache.js"), "utf8"));
+  if (!/\.autozone = items\.slice\(0, 5\)/.test(refresh)) {
+    throw new Error("the auto refresh no longer stores items verbatim — check it keeps fitment fields");
+  }
+  const status = stripComments(readFileSync(root("netlify/functions/apify-scrape-status.js"), "utf8"));
+  if (!/JSON\.stringify\(\{ status, items \}\)/.test(status)) {
+    throw new Error("the scrape status endpoint no longer passes items through verbatim");
   }
 });
 
@@ -1992,13 +2406,64 @@ check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
 });
 
 check("the parts sources never enter the Tiendas grid", () => {
-  // The grid stays at its symmetric eight.
+  /* WHAT THIS RULE IS ACTUALLY FOR. It was written as "the grid stays at
+     its symmetric eight", which is how it was phrased at the time, but
+     the rule being protected is narrower and it is about PARTS SOURCES:
+     RockAuto and Advance Auto live inside Aria Auto as places we buy
+     car parts, and must never appear as storefront tiles a shopper can
+     walk into. AutoZone predates the split and is Aria Auto's own
+     source, so it is the one row in both.
+
+     The count was a proxy for that, and it stopped being a good one the
+     moment a real ninth STORE arrived: Macy's (2026-09-22), added on
+     Danny's explicit instruction. Asserting 8 forever would have blocked
+     every future store the shop signs, which is the opposite of what
+     anyone wanted. So the rule is asserted directly. */
   const tiendas = Object.keys(RETAILERS).filter((k) => !RETAILERS[k].retired);
-  eq(tiendas.length, 8, `Tiendas shows ${tiendas.length} stores`);
   for (const key of Object.keys(autoSources.AUTO_SOURCES)) {
     if (key === "autozone") continue;   // predates the split, and Aria Auto's own source
     if (tiendas.includes(key)) throw new Error(`${key} leaked into the Tiendas grid`);
   }
+  // And the grid is the registry, never a hand-written list.
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/storefrontRetailers\(\)|activeRetailers\(\)/.test(src)) {
+    throw new Error("the Tiendas grid is no longer rendered from the registry");
+  }
+});
+
+check("a browsable store is not treated as one still being connected", () => {
+  /* Macy's arrived as a FILE, not an actor, which split an assumption
+     this registry was built on: `search` meant both "browsable" and
+     "queryable live". A store with a catalogue and no scraper was
+     showing the "Conectando el catálogo" holding message over 754 real
+     products, and wearing the muted plate on Tiendas. */
+  eq(retailers.isBrowseOnlyRetailer("macys"), true, "Macy's is browse-only");
+  eq(retailers.searchableRetailers().includes("macys"), false, "Macy's must stay out of the live fan-out");
+  if (!retailers.browsableRetailers().includes("macys")) throw new Error("Macy's is not browsable");
+  // A store with no catalogue at all is still pending. (Sephora used to
+  // be this example and stopped being one when beauty-catalog.json
+  // landed — which is the distinction working, not a regression.)
+  eq(retailers.isBrowseOnlyRetailer("victoriassecret"), false, "Victoria's Secret has no catalogue yet");
+
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  // Both the card and the chip must read BOTH flags, or Macy's is muted.
+  // Scoped to those two functions: "pending" is a common local name.
+  for (const fn of ["storeCardHTML", "homeStoreChipHTML"]) {
+    const at = src.indexOf(`function ${fn}(`);
+    if (at < 0) throw new Error(`${fn} is gone`);
+    const body = src.slice(at, at + 600);
+    const line = /const pending = [^;]+;/.exec(body)?.[0];
+    if (!line) throw new Error(`${fn} no longer computes a pending state`);
+    if (!/r\.search \|\| r\.browse/.test(line)) {
+      throw new Error(`${fn} still reads search alone: ${line}`);
+    }
+  }
+  // The storefront gate too.
+  if (!/!\(meta\.search \|\| meta\.browse\)/.test(src)) {
+    throw new Error("openStore still shows the holding message for a browse-only store");
+  }
+  // Catalogue paths read the browsable list; search paths must not.
+  if (!/const CATALOG_RETAILERS = /.test(src)) throw new Error("index.html has no browsable-retailer list");
 });
 
 check("a source with no verified actor is not queried", () => {
@@ -2054,16 +2519,20 @@ check("no single number serves two unrelated products", () => {
   }
 });
 
-check("the freight these bottles earn no longer manufactures a badge", () => {
-  // S/ 46.88 at the FX in the screenshot is about $12.
+check("the freight these bottles earn is a small slice of the price", () => {
+  /* The badge that reported this is gone, but the WEIGHT bug it exposed
+     is the thing this check exists for: 0.68 kg on a $12 bottle was a
+     63% freight ratio manufactured out of one coarse category row. The
+     old 0.50 line is used here as a fixed yardstick, not as a threshold
+     the code still consults. */
+  const OLD_BADGE_LINE = 0.5;
   const d3 = estimateWeightDetail("Nature Made Vitamin D3 2000 IU, 180 Softgels");
-  const share = itemWeight.freightShare(d3.kg, 12, 13);
-  if (share > itemWeight.FREIGHT_BADGE_SHARE) {
+  const share = itemWeight.freightShare(d3.kg, 12, 13);      // S/ 46.88 is about $12
+  if (share > OLD_BADGE_LINE) {
     throw new Error(`a vitamin bottle still reads as high-freight: ${Math.round(share * 100)}%`);
   }
-  // The old number did, which is the bug the badge was faithfully reporting.
-  if (!(itemWeight.freightShare(0.68, 12, 13) > itemWeight.FREIGHT_BADGE_SHARE)) {
-    throw new Error("the fixture no longer reproduces the reported badge");
+  if (!(itemWeight.freightShare(0.68, 12, 13) > OLD_BADGE_LINE)) {
+    throw new Error("the fixture no longer reproduces the reported weight bug");
   }
 });
 
@@ -2179,6 +2648,1558 @@ check("the retailer's own weight is no longer dropped at ingestion", () => {
   if (!src.includes('"specifications"')) throw new Error("the specifications array is still dropped");
   // And every run reports whether layer 1 actually produced anything.
   if (!/specWeightKg\(/.test(src)) throw new Error("no spec-weight coverage is reported");
+});
+
+
+/* ------------------------------------------------------------------
+   IMPORT TAX AT CHECKOUT (2026-09-21) — threshold on FOB, math on CIF.
+   ------------------------------------------------------------------ */
+group("checkout: the import-tax estimate");
+
+const round2 = (n) => Math.round(n * 100) / 100;
+
+check("the threshold is FOB and the base is CIF — they are different numbers", () => {
+  /* THE TRAP THIS EXISTS FOR. Getting these the same way round is the
+     classic way to be wrong in both directions at once:
+       - thresholding on CIF taxes a $180 order whose freight pushed the
+         total over $200, which the customer would be right to dispute;
+       - computing on FOB under-collects on every heavy parcel, and Aria
+         eats the difference on the orders where it is largest. */
+  eq(importTaxEstimateUsd(180, 60), 0, "FOB under the line, CIF over it — no tax");
+  eq(importTaxEstimateUsd(250, 0), round2(250 * TAX_ESTIMATE_RATE), "no freight: CIF is just the goods");
+  eq(importTaxEstimateUsd(250, 40), round2(290 * TAX_ESTIMATE_RATE), "freight is in the base");
+  // And the base really is bigger than the goods alone whenever there is freight.
+  if (!(importTaxEstimateUsd(250, 40) > importTaxEstimateUsd(250, 0))) {
+    throw new Error("freight stopped counting toward the tax base");
+  }
+});
+
+check("the line is drawn strictly above $200, and nowhere below", () => {
+  eq(importTaxEstimateUsd(199.99, 50), 0, "just under");
+  eq(importTaxEstimateUsd(200, 50), 0, "exactly $200 is not over $200");
+  if (!(importTaxEstimateUsd(200.01, 50) > 0)) throw new Error("a cent over the line owes nothing");
+  eq(TAX_ESTIMATE_THRESHOLD_USD, 200, "the de minimis figure");
+});
+
+check("nothing is owed on an order with no goods, or a nonsense one", () => {
+  for (const bad of [0, -5, null, undefined, NaN, "abc"]) {
+    eq(importTaxEstimateUsd(bad, 40), 0, `FOB ${String(bad)}`);
+  }
+  // A broken freight figure must not poison a real tax: fall back to
+  // goods-only rather than returning NaN into a customer's total.
+  eq(importTaxEstimateUsd(250, NaN), round2(250 * TAX_ESTIMATE_RATE), "unusable freight");
+  eq(importTaxEstimateUsd(250, -10), round2(250 * TAX_ESTIMATE_RATE), "negative freight");
+});
+
+check("the rate is configuration, not arithmetic scattered through the UI", () => {
+  /* Danny asked for a configurable constant precisely so the first real
+     SUNAT document can calibrate it. If a literal rate reappears in a
+     surface, changing the constant stops changing the charge. */
+  for (const rel of ["checkout.html", "netlify/functions/orders-create.js"]) {
+    const src = stripComments(readFileSync(root(rel), "utf8"));
+    if (/0\.25\b/.test(src)) throw new Error(`${rel} hardcodes the 25% rate instead of reading TAX_ESTIMATE_RATE`);
+    if (/\bDUTY_RATE\b/.test(src)) throw new Error(`${rel} still uses the old courier DUTY_RATE`);
+  }
+  const wd = readFileSync(root("weight-data.js"), "utf8");
+  if (/export const DUTY_RATE/.test(wd)) throw new Error("two competing tax rates are exported again");
+});
+
+check("the estimate is labelled an estimate, with the refund promise on it", () => {
+  /* The promise is the whole reason Aria may own this number instead of
+     passing the courier's through: over-estimate refunds as saldo,
+     under-estimate is absorbed. Copy that drops it turns a promise into
+     a surcharge. */
+  if (!/estimado/i.test(TAX_ESTIMATE_LABEL)) throw new Error("the tax line no longer says estimado");
+  if (!/saldo Aria/.test(TAX_ESTIMATE_NOTE)) throw new Error("the refund promise is gone from the note");
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  if (!/TAX_ESTIMATE_NOTE/.test(checkout)) throw new Error("checkout stopped rendering the promise");
+  if (!/TAX_ESTIMATE_LABEL/.test(checkout)) throw new Error("checkout hardcodes the label instead of reading it");
+});
+
+check("checkout stops deriving the tax out of the courier's total", () => {
+  /* It used to read `total_usd - valor - flete_usd`, which made the
+     figure a residual of AVI's arithmetic: unpredictable in advance, and
+     different again whenever the local fallback ran instead. */
+  const checkout = stripComments(readFileSync(root("checkout.html"), "utf8"));
+  if (/total_usd\s*-\s*valor\s*-\s*\w*flete/.test(checkout)) {
+    throw new Error("the tax is being derived from the courier total again");
+  }
+  if (!/importTaxEstimateUsd\(/.test(checkout)) throw new Error("checkout no longer computes its own estimate");
+  // The fallback quote must not add a second tax of its own.
+  const fb = checkout.slice(checkout.indexOf("function fallbackQuote("));
+  const body = fb.slice(0, fb.indexOf("\n  }") + 4);
+  if (/duty/i.test(body)) throw new Error("the fallback quote is adding its own duty again");
+});
+
+check("the policy note is generated from the constants that decide the charge", () => {
+  /* It read "~23% ... sobre el valor declarado" while the code charged a
+     different rate on a different base. Copy and rule come from the same
+     two constants now, or they drift apart again. */
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  // Comments are stripped: the code carries a note explaining what the
+  // old copy said and why it went, and that is not the page saying it.
+  const code = stripComments(checkout);
+  if (/~23%|23% de aranceles/.test(code)) throw new Error("the stale 23% policy copy is back");
+  if (!/TAX_ESTIMATE_RATE \* 100/.test(code)) throw new Error("the policy note no longer reads the rate");
+});
+
+/* ------------------------------------------------------------------
+   THE PERSON WHO ACTUALLY RECEIVES THE BOX
+   ------------------------------------------------------------------ */
+check("every surface that describes the charge quotes the charged rate", () => {
+  /* The cart's tax-zone bar used to alias IMPORT_TAX_RATE — the rate the
+     CARDS price with — which was correct while checkout also charged 23%
+     on declared value. It would now promise "~23% adicional" on an order
+     the payment page bills at 25%. A bar that states a government charge
+     has to state the one we actually bill, so it mirrors
+     TAX_ESTIMATE_RATE and this pins the mirror. */
+  const page = readFileSync(root("index.html"), "utf8");
+  const mirrored = page.match(/const TAX_ZONE_RATE = ([\d.]+)/)?.[1];
+  if (!mirrored) throw new Error("TAX_ZONE_RATE is gone from index.html");
+  eq(Number(mirrored), TAX_ESTIMATE_RATE, "cart tax-zone bar vs weight-data.js");
+  // The threshold is the goods, on both surfaces — the bar's own comment
+  // is emphatic that freight must not enter this base, and so is
+  // importTaxEstimateUsd().
+  const zoneThreshold = page.match(/const TAX_ZONE_THRESHOLD_USD = (\w+)/)?.[1];
+  eq(zoneThreshold, "IMPORT_TAX_THRESHOLD_USD", "the bar still measures the de minimis on goods");
+
+  /* And the assistant, which speaks to customers in its own words: it
+     was telling them ~23% on declared value, and that the checkout line
+     was already inside the card price. */
+  const prompt = readFileSync(root("netlify/functions/_aria-prompt.js"), "utf8");
+  const rules = prompt.slice(prompt.indexOf("SHIPPING_RULES_ES"));
+  if (/aproximadamente 23%/.test(rules)) throw new Error("the assistant still quotes 23% for the checkout charge");
+  if (!/aproximadamente 25%/.test(rules)) throw new Error("the assistant does not quote the charged rate");
+  if (!/ESTIMADO/.test(rules)) throw new Error("the assistant no longer calls the figure an estimate");
+  if (!/saldo Aria/.test(rules)) throw new Error("the assistant no longer knows the refund promise");
+  // It must not tell a shopper the freight can push them over the line.
+  if (!/el umbral se mide sobre los productos/.test(rules)) {
+    throw new Error("the assistant no longer states that the threshold is on the goods");
+  }
+});
+
+group("checkout: someone else receives the parcel");
+
+check("the recipient fields are required only while they are visible", () => {
+  /* A `required` field inside a hidden block makes the form
+     permanently unsubmittable AND unfocusable — the browser refuses to
+     submit and then cannot scroll to what it is complaining about. So
+     required-ness is toggled with the checkbox, never authored in the
+     markup. */
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  const block = checkout.slice(checkout.indexOf('id="altRecipientFields"'), checkout.indexOf("</section>", checkout.indexOf('id="altRecipientFields"')));
+  if (/\brequired\b/.test(block)) throw new Error("a recipient field is hard-coded required inside the hidden block");
+  const code = stripComments(checkout);
+  if (!/el\.required = on/.test(code)) throw new Error("required-ness is no longer toggled with the checkbox");
+  for (const id of ["recName", "recDoc", "recRelation"]) {
+    if (!new RegExp(`'${id}'`).test(code)) throw new Error(`${id} is not in the required set`);
+  }
+});
+
+check("all four fields the brief asked for are on the form", () => {
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  for (const [id, label] of [
+    ["recName", /Nombre del receptor/],
+    ["recDoc", /Documento \(DNI \/ CE\)/],
+    ["recRelation", /Relaci[óo]n con el comprador/],
+    ["recInstructions", /Instrucciones de entrega/],
+  ]) {
+    if (!new RegExp(`id="${id}"`).test(checkout)) throw new Error(`${id} is missing from checkout`);
+    if (!label.test(checkout)) throw new Error(`${id} has lost its label`);
+  }
+  if (!/No ser[ée] yo quien reciba el paquete/.test(checkout)) throw new Error("the toggle copy is gone");
+});
+
+check("a nominated recipient without a document is refused server-side", () => {
+  /* The form marks it required, but a form can be bypassed, and a box
+     that reaches Lima addressed to a name with no document is a failed
+     delivery we have already paid freight on. Aduanas and the courier
+     both check ID at handoff. */
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  if (!/function normalizeRecipient/.test(src)) throw new Error("the server does not normalize the recipient");
+  if (!/!recipient\.name \|\| !recipient\.idNumber/.test(src)) {
+    throw new Error("the server accepts a recipient with no name or no document");
+  }
+  if (!/statusCode: 400/.test(src.slice(src.indexOf("recipientAsked")))) {
+    throw new Error("an invalid recipient no longer rejects the order");
+  }
+});
+
+check("the recipient reaches the courier on the manifest", () => {
+  const cols = shippingService.MANIFEST_COLUMNS;
+  for (const col of ["Destinatario", "Documento", "Relación", "Instrucciones de entrega"]) {
+    if (!cols.includes(col)) throw new Error(`the manifest lost its "${col}" column`);
+  }
+  const row = shippingService.manifestRow({
+    shipmentId: "ENV-1", recipient: {
+      name: "María Q.", idNumber: "12345678", relationship: "Mi mamá",
+      phone: "+51 900", address: "Av. 1", city: "Lima",
+      deliveryInstructions: "Dejar con el portero",
+    },
+  });
+  eq(row.length, cols.length, "row and header disagree on width");
+  eq(row[cols.indexOf("Relación")], "Mi mamá", "relación column");
+  eq(row[cols.indexOf("Instrucciones de entrega")], "Dejar con el portero", "instructions column");
+  // Still no cost column on the sheet handed to the courier.
+  if (cols.some((c) => /costo|cost|margen/i.test(c))) throw new Error("a cost column reached the courier manifest");
+});
+
+check("the order record has somewhere to put the real tax from day one", () => {
+  /* taxActual and sunatDocRef exist before the reconciliation UI does,
+     so an order placed today is still resolvable later. A field added
+     afterwards leaves every earlier order permanently unreconcilable. */
+  const src = readFileSync(root("netlify/functions/orders-create.js"), "utf8");
+  for (const field of ["taxEstimatedUsd", "taxEstimatedPen", "taxActualUsd", "sunatDocRef", "taxReconciledAt", "recipient"]) {
+    if (!new RegExp(`\\b${field}\\b`).test(src)) throw new Error(`the order record has no ${field}`);
+  }
+  const code = stripComments(src);
+  // Recomputed, never accepted: the same rule the small-order fee follows.
+  if (!/importTaxEstimateUsd\(priceUsdTotal, freightUsdQuoted\)/.test(code)) {
+    throw new Error("the server takes the browser's tax figure instead of recomputing it");
+  }
+  if (/taxEstimatedUsd\s*[:=]\s*(Number\()?body\./.test(code)) {
+    throw new Error("the charged tax comes from the request body");
+  }
+  // The customer's total is goods + freight + Aria's tax, not AVI's total.
+  if (!/priceUsdTotal \+ freightUsdQuoted \+ taxEstimatedUsd/.test(code)) {
+    throw new Error("the customer total is no longer built from Aria's own numbers");
+  }
+  if (!/courierTotalUsd/.test(code)) throw new Error("the courier's own total is no longer recorded for margin");
+});
+
+/* ------------------------------------------------------------------
+   MACY'S (2026-09-22) — the first store browsable from a file.
+   ------------------------------------------------------------------ */
+group("Macy's: a catalogue without a scraper");
+
+const macysCatalog = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8"));
+const macysItems = macysCatalog.retailers.macys.departments.women.items;
+
+check("the catalogue is real, and says how complete it is", () => {
+  /* THE FIRST EXPORT WAS SHORT and this is the guard that made that
+     visible rather than silent. It arrived at exactly 2 MiB — an upload
+     cap, not corrupt data — so the builder recovers complete products
+     and records what it could not reach. A catalogue quietly claiming
+     960 while serving 431 is the thing being prevented.
+
+     The complete file landed on 2026-09-22 (data/macys-catalog-
+     2026-09-21.json, 960 products, parses whole), so the recovery path
+     is no longer load-bearing. It is still asserted, because the next
+     export can be short again and the catalogue must keep saying so. */
+  if (!(macysItems.length > 300)) throw new Error(`only ${macysItems.length} items published`);
+  eq(macysCatalog.declaredProductCount, 960, "what the export claimed");
+  if (!(macysCatalog.recoveredProductCount <= macysCatalog.declaredProductCount)) {
+    throw new Error("recovered more products than the export declared");
+  }
+  eq(typeof macysCatalog.truncatedExport, "boolean", "truncation is recorded either way");
+  /* And what is SERVED today is the whole export. If a future build
+     regresses to a partial one this fails, which is the point: the
+     difference between 754 items and 431 is half the store. */
+  eq(macysCatalog.recoveredProductCount, macysCatalog.declaredProductCount,
+     "every declared product was recovered");
+  eq(macysCatalog.truncatedExport, false, "the served catalogue is built from a complete export");
+  eq(macysCatalog.retailers.macys.label, "Macy's");
+});
+
+check("prices are RAW USD — the margin is applied by the page, once", () => {
+  /* Baking 1.07 x 1.24 into the file would be the drift: Macy's cards
+     would stop moving when the constants move, and nobody would see it
+     until the two retailers disagreed on screen. normalizeLiveItem()
+     owns the chain for every store. */
+  const src = readFileSync(root("scripts/build-macys-catalog.mjs"), "utf8");
+  if (/1\.24|1\.07|SALES_TAX_RATE|LIVE_PRICE_MARKUP/.test(src)) {
+    throw new Error("the builder is applying the markup — that belongs to normalizeLiveItem");
+  }
+  for (const it of macysItems) {
+    if (!(typeof it.price === "number" && it.price > 0)) throw new Error(`bad price on "${it.name}"`);
+    if (!it.name) throw new Error("an item has no name");
+    // A US clothing price over $2000 would mean a marked-up or bad figure.
+    if (it.price > 2000) throw new Error(`implausible raw price ${it.price} on "${it.name}"`);
+    if (it.originalPrice != null && !(it.originalPrice > it.price)) {
+      throw new Error(`"${it.name}" claims a discount that is not one`);
+    }
+  }
+});
+
+check("every image URL is built from one base, so one fix reaches all", () => {
+  /* The export ships Scene7 path fragments and no host, so the URL is
+     constructed — and it could not be verified from the build container,
+     whose egress proxy refuses every host outside a small allowlist. The
+     value of one base is that a wrong guess is a one-line fix and a
+     re-run, not 754 edits. */
+  const bases = new Set(macysItems.filter((i) => i.image).map((i) => i.image.split("/products/")[0]));
+  eq(bases.size, 1, `images come from ${bases.size} different bases`);
+  for (const it of macysItems) {
+    for (const url of it.images || []) {
+      if (!/^https:\/\//.test(url)) throw new Error(`non-https image on "${it.name}"`);
+    }
+  }
+  // And a URL that 404s must degrade to the placeholder, not a broken icon.
+  const page = stripComments(readFileSync(root("index.html"), "utf8"));
+  const photo = page.slice(page.indexOf("function cardPhotoHTML"), page.indexOf("function cardPhotoFallback"));
+  if (!/onerror=/.test(photo)) throw new Error("a product photo has no error path");
+  if (!/function cardPhotoFallback/.test(page)) throw new Error("there is no photo fallback");
+});
+
+check("the catalogue never claims its images were screened", () => {
+  /* scripts/image-price-scan.js is what clears an image of rendered
+     price text, and it fetches every image — impossible from the build
+     container. So no Macy's item carries imageReview: "clean", because
+     that would be a claim nobody made. Omitting the field is the
+     documented "live scrape, unscreened" state normalizeLiveItem
+     already handles, and is how every other retailer's items arrive. */
+  for (const it of macysItems) {
+    if (it.imageReview === "clean") throw new Error(`"${it.name}" claims a screening that never ran`);
+  }
+});
+
+check("Juniors is womenswear, not childrenswear", () => {
+  /* 19 Macy's items — sequined corset gowns, strapless ball gowns,
+     wide-leg jeans — landed in Moda Niños because KID_MARKER matched
+     "Juniors". In US retail that is a young women's size range. */
+  const women = "Juniors' Strapless Lace Corset Midi Dress";
+  eq(deptMap.genderFromTitle(women), null, "no positive gender marker in a Juniors title");
+  eq(deptMap.genderOfItem({ name: women }, "women"), "women", "so it inherits the women bucket");
+  // Real childrenswear markers still work.
+  for (const kid of ["Boys' Graphic Tee", "Girls' Denim Jacket", "Toddler Sneakers", "Kids' Hoodie"]) {
+    eq(deptMap.genderFromTitle(kid), "kids", kid);
+  }
+  // And the page mirror agrees, or the two disagree about the same item.
+  const page = readFileSync(root("index.html"), "utf8");
+  const pageKid = /const KID_MARKER = (.+)/.exec(page)?.[1];
+  const modKid = /const KID_MARKER = (.+)/.exec(readFileSync(root("scripts/lib/department-map.js"), "utf8"))?.[1];
+  eq(pageKid, modKid, "KID_MARKER mirror");
+  if (/junior/i.test(pageKid || "")) throw new Error("Juniors is back in the kids matcher");
+});
+
+check("Macy's is browsable but never queried, and its logo fills the zone", () => {
+  const row = RETAILERS.macys;
+  eq(row.browse, true, "browse");
+  eq(row.search, false, "search — there is no actor for Macy's");
+  eq(row.kind, "general");
+  if (!existsSync(root(row.logo))) throw new Error(`missing logo file: ${row.logo}`);
+  /* The supplied PNG was 800x600 with the mark occupying 24% of the
+     height — in the Tiendas zone that renders about 19px tall, the exact
+     "microscopic logo" bug. The empty canvas is cropped out (colours
+     untouched), which makes it a wordmark shape like Old Navy's and lets
+     the shared zone do its job. */
+  const png = readFileSync(root(row.logo));
+  const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+  const aspect = w / h;
+  if (aspect < 2) {
+    throw new Error(`macys.png is ${w}x${h} (aspect ${aspect.toFixed(2)}): the empty canvas is back, so the mark will render tiny`);
+  }
+});
+
+/* ==================================================================
+   THE OPS DASHBOARD, AND THE PAYMENT TRUTH IT RESTS ON (2026-09-22)
+   ------------------------------------------------------------------ */
+group("payments: an order may not claim money that never arrived");
+
+check("orders-create never writes a paid-looking status", () => {
+  /* THE BUG THIS PINS. orders-create.js wrote status "confirmed" on
+     every order the checkout form posted, and nothing had charged
+     anybody: a search of the whole repo for "stripe" returned zero
+     hits, there was no card form and no webhook. "Confirmed" meant
+     "the browser posted a form" on the one field ops would reconcile a
+     bank statement against. */
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  if (/status:\s*["']confirmed["']/.test(src)) {
+    throw new Error('orders-create is writing status "confirmed" again — nothing there takes money');
+  }
+  if (!/status:\s*["']pending_payment["']/.test(src)) throw new Error("orders start somewhere other than pending_payment");
+  if (!/paymentStatus:\s*["']unpaid["']/.test(src)) throw new Error("orders-create no longer records paymentStatus: unpaid");
+});
+
+check("only the verified webhook can move an order to paid", () => {
+  /* The whole guarantee in one assertion: grep every file that writes
+     paymentStatus and prove the list is exactly the two files allowed
+     to — the model that decides, and the store-facing shell. Anything
+     else writing it (an admin endpoint, a browser-reachable function)
+     would be a path to "paid" that Stripe never confirmed. */
+  /* _ledger.js is on this list because it copies an order's
+     paymentStatus onto a REPORT ROW. It writes no order record, and a
+     ledger that could not name a payment state would be useless. The
+     rule being protected is "nothing else may DECIDE that an order is
+     paid", and a report cannot. */
+  const allowed = new Set(["_payments-model.js", "_payments.js", "_ledger.js"]);
+  const dir = root("netlify/functions");
+  const offenders = [];
+  const walk = (d, prefix = "") => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const rel = prefix + entry.name;
+      if (entry.isDirectory()) { walk(`${d}/${entry.name}`, rel + "/"); continue; }
+      if (!entry.name.endsWith(".js")) continue;
+      const src = stripComments(readFileSync(`${d}/${entry.name}`, "utf8"));
+      // An assignment or object key, not a read.
+      if (/paymentStatus\s*[:=]\s*(?!=)/.test(src) && !allowed.has(entry.name)) {
+        // orders-create sets the honest initial value; that is not a claim.
+        if (entry.name === "orders-create.js" && !/paymentStatus:\s*["'](?!unpaid)/.test(src)) continue;
+        offenders.push(rel);
+      }
+    }
+  };
+  walk(dir);
+  if (offenders.length) {
+    throw new Error(`these write paymentStatus but must not: ${offenders.join(", ")}`);
+  }
+  // And the webhook refuses outright with no secret, rather than 200.
+  const hook = stripComments(readFileSync(root("netlify/functions/stripe-webhook.js"), "utf8"));
+  if (!/503/.test(hook)) throw new Error("the webhook no longer fails closed when unconfigured");
+});
+
+check("a Stripe signature is verified, not trusted", () => {
+  const secret = "whsec_unit_test";
+  const raw = '{"id":"evt_1","type":"payment_intent.succeeded"}';
+  const t = Math.floor(Date.now() / 1000);
+  const good = createHmac("sha256", secret).update(`${t}.${raw}`, "utf8").digest("hex");
+
+  const v = (header, opts = {}) => stripeVerify.verifyStripeSignature({ rawBody: raw, header, secret, ...opts });
+  eq(v(`t=${t},v1=${good}`).ok, true, "a correct signature passes");
+  eq(v(`t=${t},v1=${"0".repeat(64)}`).ok, false, "a wrong signature fails");
+  eq(stripeVerify.verifyStripeSignature({ rawBody: raw + " ", header: `t=${t},v1=${good}`, secret }).ok, false,
+     "one extra byte in the body fails");
+  eq(v("").ok, false, "a missing header fails");
+  eq(v(`v1=${good}`).ok, false, "no timestamp fails");
+  eq(v(`t=${t}`).ok, false, "no v1 fails");
+  eq(v(`t=${t},v1=zzz`).ok, false, "non-hex fails rather than throwing");
+  eq(v(`t=${t},v1=${good.slice(0, 20)}`).ok, false, "a short signature fails rather than throwing");
+  // Replay: a captured request re-sent an hour later.
+  const old = t - 3600;
+  const oldSig = createHmac("sha256", secret).update(`${old}.${raw}`, "utf8").digest("hex");
+  eq(v(`t=${old},v1=${oldSig}`).ok, false, "a stale timestamp fails even with a valid signature");
+  // Rotation: two v1s, one of them ours.
+  eq(v(`t=${t},v1=${"1".repeat(64)},v1=${good}`).ok, true, "any matching v1 passes, so a secret can be rotated");
+  // No secret at all must never pass.
+  eq(stripeVerify.verifyStripeSignature({ rawBody: raw, header: `t=${t},v1=${good}`, secret: "" }).ok, false,
+     "an unset secret can never verify");
+});
+
+check("a refund is not a cancellation, and a partial one is not a refund", () => {
+  /* Ops reconciling a SUNAT over-estimate would read a S/ 20 goodwill
+     refund as the whole order coming back, and chase money that is
+     still ours. */
+  const base = payments.applyPaymentEvent(null, {
+    paymentId: "pi_1", type: "payment_intent.succeeded", currency: "pen",
+    amount: 500, orderId: "ARIA-1", occurredAt: "2026-09-22T10:00:00Z", eventId: "e1",
+  });
+  eq(base.status, "succeeded");
+  const partial = payments.applyPaymentEvent(base, {
+    paymentId: "pi_1", type: "charge.refunded", currency: "pen",
+    amount: 500, amountRefunded: 20, occurredAt: "2026-09-22T11:00:00Z", eventId: "e2",
+  });
+  eq(partial.status, "partially_refunded", "20 of 500 back is not a refund");
+  const full = payments.applyPaymentEvent(partial, {
+    paymentId: "pi_1", type: "charge.refunded", currency: "pen",
+    amount: 500, amountRefunded: 500, occurredAt: "2026-09-22T12:00:00Z", eventId: "e3",
+  });
+  eq(full.status, "refunded", "all of it back is a refund");
+  eq(full.orderId, "ARIA-1", "a later event without metadata must not orphan a matched payment");
+  eq(full.events.length, 3, "the history is append-only");
+});
+
+check("fulfilment follows payment and never walks backwards", () => {
+  const paid = { paymentId: "pi_1", provider: "stripe", status: "succeeded", currency: "pen", amount: 100, paidAt: "2026-09-22T10:00:00Z" };
+  const fresh = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment", pricePenCharged: 100 }, paid);
+  eq(fresh.paymentStatus, "paid");
+  eq(fresh.status, "confirmed", "a paid order moves out of pending_payment");
+  eq(fresh.amountMismatchPen, 0, "an exact amount is not a mismatch");
+
+  // An order ops already moved on is not dragged back to "confirmed".
+  const shipped = payments.orderPatchForPayment({ orderId: "A", status: "cancelled", pricePenCharged: 100 }, paid);
+  eq(shipped.status, undefined, "a status ops set by hand is left alone");
+
+  // Failure never reads as paid.
+  const failed = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment", pricePenCharged: 100 },
+    { paymentId: "pi_1", status: "failed", currency: "pen", amount: 0 });
+  eq(failed.paymentStatus, "failed");
+  eq(failed.status, undefined, "a failed payment does not confirm anything");
+
+  // The mismatch that ops must see.
+  const short = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment", pricePenCharged: 364.04 },
+    { paymentId: "pi_1", status: "succeeded", currency: "pen", amount: 200 });
+  if (!(short.amountMismatchPen < -100)) throw new Error("a short payment is not flagged");
+  // Unknowable is null, never 0 — a 0 reads as "checked, and they agree".
+  const noFx = payments.orderPatchForPayment({ orderId: "A", status: "pending_payment" },
+    { paymentId: "pi_1", status: "succeeded", currency: "usd", amount: 50 });
+  eq(noFx.amountMismatchPen, null, "an uncheckable amount is null, not zero");
+});
+
+check("a payment nobody can explain is flagged, never dropped", () => {
+  const order = { orderId: "ARIA-1", pricePenCharged: 100 };
+  eq(payments.needsAttention({ paymentId: "p", orderId: "ARIA-1", amount: 100, currency: "pen" }, order), null,
+     "a clean payment needs nothing");
+  if (!payments.needsAttention({ paymentId: "p", orderId: null, amount: 100, currency: "pen" }, null)) {
+    throw new Error("a payment with no order id is not flagged");
+  }
+  if (!payments.needsAttention({ paymentId: "p", orderId: "ARIA-GHOST", amount: 100, currency: "pen" }, null)) {
+    throw new Error("a payment naming a missing order is not flagged");
+  }
+  if (!payments.needsAttention({ paymentId: "p", orderId: "ARIA-1", amount: 40, currency: "pen" }, order)) {
+    throw new Error("a wrong amount is not flagged");
+  }
+  if (!payments.needsAttention({ paymentId: "p", orderId: "ARIA-1", amount: 100, currency: "usd" }, order)) {
+    throw new Error("a foreign currency is not flagged");
+  }
+  // Both metadata spellings, because whoever creates the intent picks one.
+  eq(payments.orderIdFromMetadata({ orderId: "A" }), "A");
+  eq(payments.orderIdFromMetadata({ order_id: "B" }), "B");
+  eq(payments.orderIdFromMetadata({}), null);
+  eq(payments.orderIdFromMetadata(null), null);
+});
+
+check("Stripe's differently-shaped objects all flatten to one record", () => {
+  const at = Math.floor(Date.parse("2026-09-22T10:00:00Z") / 1000);
+  const pi = stripeVerify.normalizeStripeEvent({
+    id: "e1", type: "payment_intent.succeeded", created: at, livemode: true,
+    data: { object: { id: "pi_1", currency: "PEN", amount: 12000, amount_received: 11900, metadata: { orderId: "A" } } },
+  });
+  eq(pi.paymentId, "pi_1");
+  eq(pi.amount, 119, "amount_received wins — it is what actually cleared");
+  eq(pi.currency, "pen", "currency is lowercased once, here");
+
+  const charge = stripeVerify.normalizeStripeEvent({
+    id: "e2", type: "charge.refunded", created: at,
+    data: { object: { id: "ch_1", payment_intent: "pi_1", currency: "pen", amount: 12000, amount_refunded: 2000 } },
+  });
+  eq(charge.paymentId, "pi_1", "a charge event keys on its payment intent, not the charge");
+  eq(charge.amountRefunded, 20);
+
+  const session = stripeVerify.normalizeStripeEvent({
+    id: "e3", type: "checkout.session.completed", created: at,
+    data: { object: { id: "cs_1", payment_intent: "pi_9", currency: "pen", amount_total: 5000, metadata: { orderId: "B" } } },
+  });
+  eq(session.paymentId, "pi_9");
+  eq(session.orderId, "B");
+
+  // Nothing to key on: recorded as ignored rather than crashing.
+  eq(stripeVerify.normalizeStripeEvent({ id: "e4", type: "customer.created", data: { object: { id: "cus_1" } } }), null);
+});
+
+check("the raw body is what gets hashed, base64 or not", () => {
+  /* Netlify hands some bodies back base64-encoded. Hashing the encoded
+     string instead of the bytes Stripe signed rejects every genuine
+     event, which looks exactly like an attack and is not one. */
+  const body = '{"a":1}';
+  eq(stripeVerify.rawBodyOf({ body, isBase64Encoded: false }), body);
+  eq(stripeVerify.rawBodyOf({ body: Buffer.from(body).toString("base64"), isBase64Encoded: true }), body);
+  eq(stripeVerify.rawBodyOf({}), "");
+});
+
+/* ------------------------------------------------------------------ */
+group("ledger: a blank is not a zero");
+
+check("an explicit null stays blank all the way into the CSV", () => {
+  /* THE BUG THIS PINS, and it is subtle: Number(null) is 0 and finite,
+     so the obvious coercion turns every deliberately-null field into a
+     measured zero. orders-create.js writes explicit nulls, so every
+     unpaid order reported "cobrado real S/ 0.00" and every unreconciled
+     one "impuesto real SUNAT S/ 0.00" — a blank rendered as a fact, in
+     the file that goes to an accountant. It survived an earlier test
+     because that test used a record with the keys MISSING (undefined),
+     which coerces to NaN and behaved correctly. */
+  const order = {
+    orderId: "ARIA-20260922-NULL01", createdAt: "2026-09-22T00:00:00Z",
+    customer: { name: "Sin conciliar" }, items: [], fxRateUsed: 3.8,
+    pricePenCharged: 50, paymentStatus: "unpaid", status: "pending_payment",
+    taxActualPen: null, taxActualUsd: null, amountCapturedPen: null,
+    amountRefundedPen: null, freteChargedUsd: null, smallOrderFeePen: null,
+    gatewayFeeEstimatePen: null, orderTotalPen: null, walletAppliedPen: null,
+  };
+  const row = ledger.ledgerRow(order, null, null);
+  for (const field of ["taxActualPen", "amountCapturedPen", "capturedPen", "refundedPen",
+                       "freightPen", "smallOrderFeePen", "gatewayFeeEstimatePen", "marginPen"]) {
+    if (row[field] === 0) throw new Error(`${field} came back as 0 for a null input — a blank became a measurement`);
+  }
+  const csv = ledger.ledgerCsv([row]);
+  const [header, body] = csv.replace(/^﻿/, "").trim().split("\r\n");
+  const cols = header.split('","').map((c) => c.replace(/^"|"$/g, ""));
+  const cells = body.split('","').map((c) => c.replace(/^"|"$/g, ""));
+  for (const label of ["Impuesto real SUNAT (PEN)", "Cobrado real pasarela (PEN)", "Margen Aria (PEN)",
+                       "Flete cobrado (PEN)", "Reembolsado (PEN)"]) {
+    eq(cells[cols.indexOf(label)], "", `"${label}" must be blank, not a number`);
+  }
+});
+
+check("margin is blank until BOTH real costs exist, then it is arithmetic", () => {
+  const order = {
+    orderId: "ARIA-1", createdAt: "2026-09-22T00:00:00Z", customer: { name: "X" },
+    items: [{ name: "a", priceUsd: 240, qty: 1 }], fxRateUsed: 3.8,
+    pricePenCharged: 1251.15, amountCapturedPen: 1251.15, amountRefundedPen: 0,
+    walletAppliedPen: 0, gatewayFeeEstimatePen: 50.42,
+    taxEstimatedPen: 250.23, taxActualPen: 197.6,
+    freteChargedUsd: 23.4, buyerEmail: "m@x.pe",
+  };
+  eq(ledger.ledgerRow(order, null, null).marginPen, null, "no actuals, no margin");
+  eq(ledger.ledgerRow({ ...order, actuals: { precioRealPagadoUsd: 190 } }, null, null).marginPen, null,
+     "half the actuals is still no margin");
+
+  const full = { ...order, actuals: { precioRealPagadoUsd: 190, costoRealCourierUsd: 17.1 } };
+  const row = ledger.ledgerRow(full, null, null);
+  // 1251.15 - (190*3.8) - (17.1*3.8) - 50.42 - 197.6
+  eq(row.marginPen, 216.15, "margin is revenue minus the real costs");
+
+  /* Saldo issued is a COST. Leaving it out overstated margin by exactly
+     the amount of every tax refund: we collect 250.23, pay SUNAT 197.60
+     and hand 52.63 back, which should net to zero, not to profit. */
+  const wallet = { txns: [{ kind: "credit", amountPen: 52.63, orderId: "ARIA-1" }] };
+  eq(ledger.ledgerRow(full, null, wallet).marginPen, 163.52, "issued saldo comes off the margin");
+  eq(ledger.ledgerRow(full, null, wallet).creditIssuedPen, 52.63);
+  // A credit for a DIFFERENT order must not land on this row.
+  const other = { txns: [{ kind: "credit", amountPen: 99, orderId: "ARIA-OTHER" }] };
+  eq(ledger.ledgerRow(full, null, other).creditIssuedPen, null);
+});
+
+check("a guest order's saldo still reaches its ledger row", () => {
+  /* buyerEmail is only set for a signed-in checkout. A guest's tax
+     refund is still issued to the address they typed, so keying the
+     wallet on buyerEmail alone left those credits issued, owed, and
+     invisible in the ledger. */
+  eq(ledger.walletEmailFor({ buyerEmail: "a@x.pe", customer: { email: "b@x.pe" } }), "a@x.pe");
+  eq(ledger.walletEmailFor({ buyerEmail: null, customer: { email: "b@x.pe" } }), "b@x.pe");
+  eq(ledger.walletEmailFor({ customer: {} }), null);
+});
+
+check("the CSV cannot be made to shift a column or run a formula", () => {
+  /* Customer names and ops notes are free text. A cell beginning "=" is
+     executed by Excel, and an unescaped quote shifts every column after
+     it — in the one file that leaves the building. */
+  eq(ledger.csvCell('=cmd|"/c calc"!A0'), '"\t=cmd|""/c calc""!A0"', "a formula is neutered and its quotes doubled");
+  eq(ledger.csvCell("+1"), '"\t+1"');
+  eq(ledger.csvCell("-1"), '"\t-1"');
+  eq(ledger.csvCell("@SUM(1)"), '"\t@SUM(1)"');
+  eq(ledger.csvCell('O"Brien, Lima'), '"O""Brien, Lima"', "quotes and commas cannot shift a column");
+  eq(ledger.csvCell(null), '""', "null is an empty cell, never the text null");
+  eq(ledger.csvCell(0), '"0"', "a real zero still prints");
+
+  const csv = ledger.ledgerCsv([]);
+  eq(csv.charCodeAt(0), 0xFEFF, "a BOM, or Excel renders every accented heading as mojibake");
+  // Header and body are generated from ONE list, so they cannot drift.
+  const header = csv.replace(/^﻿/, "").trim();
+  eq(header.split('","').length, ledger.LEDGER_COLUMNS.length, "one column per declared column");
+});
+
+check("the ledger carries every column the brief asked for", () => {
+  const labels = ledger.LEDGER_COLUMNS.map(([l]) => l).join(" | ");
+  for (const want of [/Producto/, /Flete cobrado/, /Impuesto estimado/, /Impuesto real SUNAT/,
+                      /Margen Aria/, /Reembolsado/, /Saldo Aria emitido/]) {
+    if (!want.test(labels)) throw new Error(`the ledger lost a required column: ${want}`);
+  }
+  // Every declared field is one a row actually produces.
+  const row = ledger.ledgerRow({ orderId: "A", items: [], customer: {} }, null, null);
+  for (const [label, field] of ledger.LEDGER_COLUMNS) {
+    if (!(field in row)) throw new Error(`column "${label}" reads row.${field}, which no row has`);
+  }
+});
+
+/* ------------------------------------------------------------------ */
+group("the ops dashboard is admin-only, and says what it cannot know");
+
+check("every admin endpoint gates on a session AND the allowlist", () => {
+  /* isAdmin(email) alone is not a check — a caller can claim any email.
+     It is only a check paired with getSessionEmail(event), which reads
+     the httpOnly cookie server-side. */
+  for (const f of ["admin-dashboard.js", "admin-orders-list.js", "admin-orders-update.js",
+                   "admin-settings.js", "admin-shipping.js", "admin-wallet-credit.js"]) {
+    const src = stripComments(readFileSync(root(`netlify/functions/${f}`), "utf8"));
+    if (!/getSessionEmail\(event\)/.test(src)) throw new Error(`${f} does not read the session`);
+    if (!/isAdmin\(/.test(src)) throw new Error(`${f} does not check the allowlist`);
+    if (!/403/.test(src)) throw new Error(`${f} has no refusal path`);
+  }
+});
+
+check("the dashboard never serves a secret, only whether one is set", () => {
+  const src = readFileSync(root("netlify/functions/admin-dashboard.js"), "utf8");
+  // Boolean(...) only — never the value, never a prefix, never a length.
+  if (/STRIPE_WEBHOOK_SECRET(?!\s*\))/.test(src.replace(/Boolean\(process\.env\.STRIPE_WEBHOOK_SECRET\)/g, ""))) {
+    // A mention in a comment or a message is fine; a read that is not
+    // wrapped in Boolean() is not.
+    const reads = src.match(/process\.env\.STRIPE_WEBHOOK_SECRET/g) || [];
+    const wrapped = src.match(/Boolean\(process\.env\.STRIPE_WEBHOOK_SECRET\)/g) || [];
+    if (reads.length !== wrapped.length) throw new Error("the dashboard reads the signing secret's value");
+  }
+  const page = readFileSync(root("admin.html"), "utf8");
+  if (/whsec_/.test(page)) throw new Error("a signing secret is hardcoded in the admin page");
+});
+
+check("the dashboard pages its reads instead of fetching every order", () => {
+  /* admin-orders-list.js does one Blobs GET per order, for every order,
+     on every load — 3,600 reads a quarter in a function with a
+     10-second budget, and the whole history including PII over a phone's
+     mobile data. The dashboard lists keys once and fetches a page. */
+  const src = stripComments(readFileSync(root("netlify/functions/admin-dashboard.js"), "utf8"));
+  if (!/slice\(offset,\s*offset \+ limit\)/.test(src)) throw new Error("the orders page is no longer a slice");
+  if (!/MAX_PAGE/.test(src)) throw new Error("there is no page ceiling");
+  if (!/SUMMARY_SCAN_MAX/.test(src)) throw new Error("the summary scan is unbounded again");
+  // And an unreadable record must not take the whole view down.
+  if (!/unreadable/.test(src)) throw new Error("a failed read is no longer counted");
+});
+
+check("the admin page is not customer-facing and pulls no CDN", () => {
+  const page = readFileSync(root("admin.html"), "utf8");
+  if (!/noindex/.test(page)) throw new Error("the ops dashboard is indexable");
+  // An ops tool must load on bad mobile data, not on a CDN's good day.
+  const external = page.match(/https?:\/\/[^"')\s]+/g) || [];
+  const offsite = external.filter((u) => !/ariashop\.pe/.test(u));
+  if (offsite.length) throw new Error(`admin.html loads from off-site: ${offsite.join(", ")}`);
+  // Every interpolation of server data has to go through esc().
+  if (!/function esc\(/.test(page)) throw new Error("there is no escaper");
+  const redirects = readFileSync(root("_redirects"), "utf8");
+  if (!/^\/admin\s+\/admin\.html\s+200/m.test(redirects)) throw new Error("/admin does not resolve");
+});
+
+check("a real zero is recordable, because a waived fee is a measurement", () => {
+  /* `Number(x) || null` was turning a genuine 0 into "unknown": a
+     courier that waived its fee costs 0, and a parcel that arrived the
+     same day is 0 days. Both were being stored as though nobody had
+     measured them, which is the one thing the actuals record is for. */
+  const src = stripComments(readFileSync(root("netlify/functions/admin-orders-update.js"), "utf8"));
+  if (/Number\(actuals\.\w+\)\s*\|\|\s*null/.test(src)) {
+    throw new Error("a real zero is being recorded as unknown again");
+  }
+  if (!/taxActual/.test(src)) throw new Error("there is no SUNAT reconciliation path");
+  if (!/creditDuePen/.test(src)) throw new Error("the over-collected difference is not reported back");
+  /* And recording the figure must not MOVE money on its own — issuing
+     saldo stays a named, deliberate act through admin-wallet-credit. */
+  if (/postTransaction|wallet/i.test(src)) {
+    throw new Error("the data-entry endpoint is moving money");
+  }
+});
+
+/* ==================================================================
+   SUBCATEGORIES — the aisle inside a department (2026-09-22)
+   ------------------------------------------------------------------ */
+group("subcategories: a department is aisles, not a wall");
+
+const pageSubs = loadPageSubcategorySlice();
+
+check("the page's aisle table is the module's, to the letter", () => {
+  /* index.html is a plain <script> and cannot import, so the table is
+     duplicated there. Every mirror in this codebase is pinned the same
+     way — a table that drifts is a shopper seeing different aisles on
+     two surfaces of the same site. */
+  const mine = subcats.SUBCATEGORY_SPEC.map((r) => `${r.key}|${r.label}|${r.types.join(",")}`);
+  const theirs = pageSubs.SUBCATEGORY_SPEC.map((r) => `${r.key}|${r.label}|${r.types.join(",")}`);
+  eq(theirs.length, mine.length, "aisle count");
+  for (let i = 0; i < mine.length; i++) {
+    if (mine[i] !== theirs[i]) throw new Error(`aisle ${i} differs\n  module: ${mine[i]}\\n  page:   ${theirs[i]}`);
+  }
+  // And the split thresholds, which decide whether aisles appear at all.
+  eq(pageSubs.SPLIT_MIN_ITEMS, subcats.SPLIT_MIN_ITEMS, "SPLIT_MIN_ITEMS");
+  eq(pageSubs.SPLIT_MIN_TYPED_SHARE, subcats.SPLIT_MIN_TYPED_SHARE, "SPLIT_MIN_TYPED_SHARE");
+  eq(pageSubs.SPLIT_MIN_AISLES, subcats.SPLIT_MIN_AISLES, "SPLIT_MIN_AISLES");
+});
+
+check("the order is editorial, and lingerie is last", () => {
+  /* THE BUG, AND THE FIX, IN ONE ASSERTION. Macy's "Women" was 754
+     products in one price-sorted feed whose first several phone screens
+     were bras and panties; 228 dresses were sitting behind them. Sorting
+     aisles by size would put lingerie second and rebuild the problem, so
+     the order is declared, and this is what stops anyone "improving" it
+     into a count sort. */
+  /* ONE TABLE, TWO FLOORS (2026-09-22). The beauty aisles were appended
+     when beauty-catalog.json landed, so "last in the array" is no
+     longer the same question as "last on the womenswear floor". The
+     rule was always per-department: lingerie last among the apparel
+     aisles, fragancia last among the beauty ones. Both are asserted,
+     because both are the same fix. */
+  const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
+  const BEAUTY_AISLES = ["face", "lips", "eyes", "skincare", "nails", "fragrance"];
+  const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k));
+  const beauty = keys.filter((k) => BEAUTY_AISLES.includes(k));
+  eq(apparel[0], "dresses", "dresses lead");
+  eq(apparel[apparel.length - 1], "lingerie", "lingerie is last on the apparel floor");
+  eq(beauty[beauty.length - 1], "fragrance", "fragancia is last on the beauty floor");
+  // The two blocks do not interleave: an apparel aisle after a beauty
+  // one would put "Rostro" in the middle of a womenswear department the
+  // day some store reports both.
+  eq(keys.slice(0, apparel.length).join(), apparel.join(), "the apparel block is contiguous and first");
+  // The grouping the brief asked for, exactly.
+  const lingerie = subcats.SUBCATEGORY_SPEC.find((r) => r.key === "lingerie").types;
+  for (const t of ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR"]) {
+    if (!lingerie.includes(t)) throw new Error(`${t} is not in the lingerie aisle`);
+  }
+  // No type may sit in two aisles — an item would then be in two places
+  // and the counts would not add up to the department.
+  const seen = new Map();
+  for (const row of subcats.SUBCATEGORY_SPEC) {
+    for (const t of row.types) {
+      const norm = subcats.normalizeType(t);
+      if (seen.has(norm)) throw new Error(`type ${norm} is in both ${seen.get(norm)} and ${row.key}`);
+      seen.set(norm, row.key);
+    }
+  }
+});
+
+check("a type nobody mapped is not lost, and not guessed at", () => {
+  eq(subcats.subcategoryForType("DRESS"), "dresses");
+  eq(subcats.subcategoryForType("dress"), "dresses", "case does not matter");
+  eq(subcats.subcategoryForType("Backpack / Messenger"), "bags", "punctuation does not matter");
+  eq(subcats.subcategoryForType("BACKPACK_MESSENGER"), "bags");
+  // The honest null: unknown, not a guess and not a junk aisle.
+  eq(subcats.subcategoryForType("KAYAK"), null);
+  eq(subcats.subcategoryForType(""), null);
+  eq(subcats.subcategoryForType(null), null);
+  eq(subcats.subcategoryForType(undefined), null);
+
+  /* AN UNKNOWN AISLE KEY YIELDS NOTHING, NEVER EVERYTHING. A stale URL
+     pointing at a renamed aisle must not quietly serve the flat list the
+     aisle was built to replace. */
+  const items = [{ type: "DRESS" }, { type: "BRA" }];
+  eq(subcats.itemsInSubcategory(items, "dresses").length, 1);
+  eq(subcats.itemsInSubcategory(items, "nope").length, 0, "an unknown key is empty, not everything");
+  eq(subcats.itemsInSubcategory(items, null).length, 2, "no key means the whole department");
+
+  // And it is reported, so a new type is noticed rather than buried.
+  const orphans = subcats.unmappedTypes([{ type: "KAYAK" }, { type: "KAYAK" }, { type: "DRESS" }]);
+  eq(orphans.length, 1);
+  eq(orphans[0].type, "KAYAK");
+  eq(orphans[0].count, 2);
+});
+
+check("splitting is refused when it would not help", () => {
+  /* Three guards, all about not making navigation worse than the flat
+     list it replaces. */
+  const many = (type, n) => Array.from({ length: n }, () => ({ type }));
+
+  // Too few items: a flat list is not the problem yet.
+  const small = subcats.groupBySubcategory([...many("DRESS", 10), ...many("BRA", 10), ...many("JEANS", 10)]);
+  eq(subcats.shouldSplit(small), false, "30 items do not need aisles");
+
+  // Too few aisles: one aisle plus "Ver todo" is two routes to one page.
+  const narrow = subcats.groupBySubcategory(many("DRESS", 200));
+  eq(subcats.shouldSplit(narrow), false, "a single aisle is not a split");
+
+  // Mostly untyped: the aisles would be a veneer over a list that is
+  // still mostly unreachable except through "Ver todo".
+  const thin = subcats.groupBySubcategory([
+    ...many("DRESS", 20), ...many("BRA", 20), ...many("JEANS", 20), ...many("", 200),
+  ]);
+  eq(subcats.shouldSplit(thin), false, "a mostly untyped feed does not split");
+
+  // And the real shape does split.
+  const real = subcats.groupBySubcategory([
+    ...many("DRESS", 228), ...many("BRA", 141), ...many("PANTS", 87), ...many("JACKET", 76),
+  ]);
+  eq(subcats.shouldSplit(real), true, "a big, typed, multi-aisle department splits");
+  eq(real.rows[0].key, "dresses", "and the rows come back in editorial order");
+  eq(real.rows[real.rows.length - 1].key, "lingerie");
+  eq(real.typed, real.total, "everything typed is placed");
+});
+
+check("the counts an aisle promises are the counts it can deliver", () => {
+  /* A list promising 228 and delivering 12 is worse than no list. The
+     group counts and the filter have to agree, item for item. */
+  const items = [
+    ...Array.from({ length: 5 }, (_, i) => ({ type: "DRESS", id: `d${i}` })),
+    ...Array.from({ length: 3 }, (_, i) => ({ type: "BRA", id: `b${i}` })),
+    ...Array.from({ length: 2 }, (_, i) => ({ type: "KAYAK", id: `k${i}` })),
+  ];
+  const g = subcats.groupBySubcategory(items);
+  for (const row of g.rows) {
+    eq(subcats.itemsInSubcategory(items, row.key).length, row.count, `${row.key} delivers what it promised`);
+  }
+  eq(g.total, 10, "total counts the untyped too");
+  eq(g.typed, 8);
+  eq(g.untyped, 2, "the unmapped two are still in the department");
+  // "Ver todo" is the whole thing, orphans included.
+  eq(subcats.itemsInSubcategory(items, null).length, 10);
+});
+
+check("Macy's ships a type on every item, and all of them map", () => {
+  /* The export carries detail.typeName on 100% of products and the
+     builder was throwing it away, which is the whole reason Women could
+     only be one flat bucket. */
+  const items = macysCatalog.retailers.macys.departments.women.items;
+  const missing = items.filter((it) => !it.type);
+  if (missing.length) throw new Error(`${missing.length} Macy's items carry no type`);
+  const orphans = subcats.unmappedTypes(items);
+  if (orphans.length) {
+    throw new Error(`Macy's types with no aisle: ${orphans.map((o) => `${o.type}(${o.count})`).join(", ")}`);
+  }
+  const g = subcats.groupBySubcategory(items);
+  eq(subcats.shouldSplit(g), true, "Macy's Women splits");
+  if (!(g.rows.length >= 8)) throw new Error(`only ${g.rows.length} aisles`);
+  // Dresses really are the biggest, which is why leading with underwear
+  // was so costly.
+  const dresses = g.rows.find((r) => r.key === "dresses");
+  if (!(dresses && dresses.count > 200)) throw new Error("the dresses aisle lost its dresses");
+});
+
+check("the page routes an aisle instead of swapping it silently", () => {
+  /* An aisle has to get its own URL, or back goes out of the category
+     and a shopper cannot share what they are looking at. Same rule the
+     store chips already follow. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/params:\s*\['kind',\s*'catKey',\s*'retailerFilter',\s*'subKey'\]/.test(src)) {
+    throw new Error("subKey is not part of the catalogue route");
+  }
+  if (!/function setCatalogSub\(/.test(src)) throw new Error("there is no aisle navigation");
+  if (!/pushRoute\(\{ view: 'catalogView', kind, catKey: key, retailerFilter, subKey \}\)/.test(src)) {
+    throw new Error("openCatalog no longer pushes the aisle onto the route");
+  }
+  /* THE RULE THE BRIEF SET: no aisle may be the default. The landing
+     renders the LIST when nothing is chosen — if this branch ever starts
+     picking an aisle, the biggest one buries the rest exactly the way
+     underwear buried the dresses. */
+  if (!/splittable && !catalogState\.subKey/.test(src)) {
+    throw new Error("the aisle landing is no longer the default for a splittable department");
+  }
+  // And "Ver todo" survives as a real destination.
+  if (!/SUB_ALL/.test(src)) throw new Error("Ver todo is gone");
+});
+
+/* ==================================================================
+   TIERS, THE UNIVERSAL DEALS FEED, AND BUDGET (2026-09-22)
+   ------------------------------------------------------------------ */
+group("tiers group the directory and gate nothing");
+
+check("a tier is presentation, never a filter", () => {
+  /* THE RULE THAT MATTERS. Danny's call is that the directory shows a
+     high-end section; his other three calls all say the opposite of a
+     gate — Ofertas aggregates every store "sin importar el tier", and
+     search compares SSENSE against Foot Locker. So a tier decides a
+     HEADING and nothing else, and this is what stops it quietly
+     becoming a filter. */
+  const grouped = retailers.retailersByTier();
+  const inTiers = grouped.flatMap((t) => t.stores.map((s) => s.key)).sort();
+  const active = retailers.activeRetailers().map((r) => r.key).sort();
+  eq(inTiers.join(","), active.join(","), "every active store appears in exactly one tier");
+  eq(new Set(inTiers).size, inTiers.length, "and no store appears twice");
+
+  // The capability lists must not read `tier` at all.
+  const src = stripComments(readFileSync(root("scripts/lib/retailers.js"), "utf8"));
+  const searchable = src.slice(src.indexOf("export function searchableRetailers"));
+  const browsable = src.slice(src.indexOf("export function browsableRetailers"));
+  for (const [name, body] of [["searchableRetailers", searchable.slice(0, 300)], ["browsableRetailers", browsable.slice(0, 300)]]) {
+    if (/tier/.test(body)) throw new Error(`${name} reads tier — a tier must never decide capability`);
+  }
+});
+
+check("the default tier is written down, not inferred by accident", () => {
+  /* A row with no tier lands in `everyday` deliberately. Leaving that
+     implicit is how a new store ends up under whichever heading the
+     code happened to check first. */
+  eq(retailers.tierOf({ key: "x" }), "everyday");
+  eq(retailers.tierOf({ key: "x", kind: "auto" }), "auto", "a parts source is its own section");
+  eq(retailers.tierOf({ key: "x", tier: "luxury" }), "luxury");
+  eq(retailers.tierOf(null), "everyday", "a missing row still resolves");
+  // An empty tier renders no heading rather than an empty band.
+  const keys = retailers.retailersByTier().map((t) => t.key);
+  for (const t of retailers.retailersByTier()) {
+    if (!t.stores.length) throw new Error(`tier ${t.key} came back empty`);
+  }
+  if (!keys.includes("luxury")) throw new Error("the high-end tier has no stores in it");
+});
+
+check("SSENSE replaces Nordstrom, and says what it actually is", () => {
+  const ssense = retailers.RETAILERS.ssense;
+  if (!ssense) throw new Error("SSENSE is not in the registry");
+  eq(ssense.tier, "luxury");
+  eq(Boolean(ssense.retired), false);
+  /* THE BRANDS, NOT THE NAME — BUT FROM THE DATA, NOT FROM A STRING.
+
+     This row was written from the brief as "Gucci, Prada, Balenciaga"
+     and the export that arrived carries NEITHER Gucci NOR Prada. The
+     tagline had been promising two labels the store does not stock, and
+     nothing would ever have caught it, because a hand-written brand
+     list is a claim no test can check against reality.
+
+     So the rule inverted and got stronger: the tagline names NO brand,
+     and the card derives its brand line from the catalogue. A card can
+     now only ever name a label the store is actually carrying. */
+  const NAMED_BRANDS = /Gucci|Prada|Balenciaga|Rick Owens|Moncler|Stone Island|Adidas/i;
+  if (NAMED_BRANDS.test(ssense.tagline || "")) {
+    throw new Error("the SSENSE tagline hardcodes a brand — brands come from the catalogue, or they are a promise nobody checks");
+  }
+  const page = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function topBrandsFor\(/.test(page)) throw new Error("the store card no longer derives its brands");
+  if (!/data-brandline/.test(page)) throw new Error("the store card has no brand slot");
+
+  /* BROWSABLE NOW, because the catalogue file landed (2026-09-22). The
+     Macy's rule still holds in the other direction: a store may only
+     claim to be browsable when a file actually backs it, and the test
+     below proves this one does. */
+  eq(ssense.browse, true, "SSENSE is browsable — its catalogue is committed");
+  eq(ssense.search, false, "and still has no actor, so it stays out of the live fan-out");
+  if (!existsSync(root("ssense-catalog.json"))) {
+    throw new Error("SSENSE claims to be browsable with no catalogue file behind it");
+  }
+  if (!retailers.browsableRetailers().includes("ssense")) {
+    throw new Error("SSENSE has a catalogue but is not in the browsable list");
+  }
+  // Nordstrom stays retired, with the reason recorded.
+  eq(retailers.RETAILERS.nordstrom.retired, true);
+  if (!/bot protection/i.test(retailers.RETAILERS.nordstrom.retiredNote || "")) {
+    throw new Error("Nordstrom's retirement no longer records why");
+  }
+});
+
+check("SSENSE's catalogue is real, and every type finds an aisle", () => {
+  /* THE SECOND STORE IS THE TEST OF THE FIRST STORE'S DESIGN. Macy's
+     said "JACKET"; SSENSE says "JACKETS", "SLIPPERS & LOAFERS",
+     "HOODIES & ZIPUPS". If the aisle map had only ever been written
+     against Macy's, SSENSE Men would have arrived as one flat bucket of
+     2,426 — the exact bug the aisles were built to fix, on the store
+     where it would hurt most. */
+  const cat = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8"));
+  const items = cat.retailers.ssense.departments.men.items;
+  if (!(items.length > 2000)) throw new Error(`only ${items.length} SSENSE items`);
+  eq(cat.truncatedExport, false, "the export is complete");
+  eq(cat.recoveredProductCount, cat.declaredProductCount, "every declared product recovered");
+
+  const orphans = subcats.unmappedTypes(items);
+  if (orphans.length) {
+    throw new Error(`SSENSE types with no aisle: ${orphans.map((o) => `${o.type}(${o.count})`).join(", ")}`);
+  }
+  const g = subcats.groupBySubcategory(items);
+  eq(g.typed, g.total, "every SSENSE item is placed");
+  eq(subcats.shouldSplit(g), true, "SSENSE Men splits into aisles");
+
+  // Menswear, so no dresses aisle — and that is correct, not a gap.
+  if (g.rows.some((r) => r.key === "dresses")) throw new Error("a menswear department grew a dresses aisle");
+
+  // Prices stay raw USD, like every other catalogue file.
+  for (const it of items) {
+    if (!(typeof it.price === "number" && it.price > 0)) throw new Error(`bad price on "${it.name}"`);
+    if (it.originalPrice != null && !(it.originalPrice > it.price)) {
+      throw new Error(`"${it.name}" claims a discount that is not one`);
+    }
+  }
+  const src = readFileSync(root("ssense-catalog.json"), "utf8");
+  if (/"currency"\s*:\s*"(?!USD)/.test(src)) throw new Error("a non-USD price is in the catalogue");
+});
+
+check("the singular fallback places plurals without mangling real ones", () => {
+  /* The fallback is only tried after an exact miss, so a token that
+     genuinely ends in S is never chopped. This is what keeps "PANTS"
+     out of the "PANT" that does not exist, and "JEANS" out of "JEAN". */
+  eq(subcats.subcategoryForType("JACKETS"), "outerwear", "plural falls back");
+  eq(subcats.subcategoryForType("JACKET"), "outerwear", "singular still exact");
+  eq(subcats.subcategoryForType("PANTS"), "pants", "a real trailing S is matched exactly first");
+  eq(subcats.subcategoryForType("JEANS"), "jeans");
+  eq(subcats.subcategoryForType("SHORTS"), "pants");
+  // Compound tokens are written out, not guessed.
+  eq(subcats.subcategoryForType("SLIPPERS & LOAFERS"), "shoes");
+  eq(subcats.subcategoryForType("LACE UPS & OXFORDS"), "shoes");
+  eq(subcats.subcategoryForType("HOODIES & ZIPUPS"), "knitwear");
+  eq(subcats.subcategoryForType("PYJAMAS & LOUNGEWEAR"), "lingerie");
+  // And the fallback must not invent a match out of nothing.
+  eq(subcats.subcategoryForType("KAYAKS"), null, "an unknown plural is still unknown");
+});
+
+check("both catalogue files load, and neither can take the other down", () => {
+  /* A browse-only store is one line in CATALOGUE_FILES. Each fetch
+     catches its own failure, so a missing or broken file leaves that
+     store empty and every other store working — the alternative is one
+     bad JSON taking the whole site's categories with it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function loadDepartmentCache("), src.indexOf("const DEPARTMENT_META"));
+  for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
+    if (!fn.includes(file)) throw new Error(`${file} is not loaded`);
+    if (!existsSync(root(file))) throw new Error(`${file} is referenced but not committed`);
+  }
+  const catches = (fn.match(/\.catch\(/g) || []).length;
+  if (catches < 2) throw new Error("a catalogue file can take the scraped cache down with it");
+  /* EVERY file goes through the envelope adapter, not just the one that
+     needed it. beauty-catalog.json shipped its departments as bare
+     arrays; the next export will be shaped its own way too, and an
+     adapter applied to one file is an adapter somebody forgets. */
+  if (!/\.then\(normalizeCatalogueEnvelope\)/.test(fn)) {
+    throw new Error("catalogue files are not normalized at the load boundary");
+  }
+});
+
+check("the page's tier table is the module's", () => {
+  const page = loadPageTierSlice();
+  const mine = retailers.TIERS.map((t) => `${t.key}|${t.label}|${t.blurb}`);
+  const theirs = page.TIERS.map((t) => `${t.key}|${t.label}|${t.blurb}`);
+  eq(theirs.join("\n"), mine.join("\n"), "TIERS");
+  eq(page.DEFAULT_TIER, retailers.DEFAULT_TIER, "DEFAULT_TIER");
+});
+
+/* ------------------------------------------------------------------ */
+group("Ofertas aggregates every store, scraped or filed");
+
+check("a store with a FILE and no actor still reaches the deals feed", () => {
+  /* THE GAP (2026-09-22). SALES_SOURCES is a hand-written list of
+     retailer+department pairs and every entry is a store with an actor.
+     Macy's has no actor — its catalogue is a committed file — so its 405
+     discounted items, a median 40% off, were invisible in Ofertas while
+     sitting in plain view inside the store. Nobody broke anything; the
+     feed had no way to see a store that is not scraped. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function fileBackedDeals\(/.test(src)) throw new Error("file-backed stores no longer feed Ofertas");
+  const fn = src.slice(src.indexOf("async function fileBackedDeals("), src.indexOf("async function runSalesScan("));
+  /* NO DOUBLE COUNTING, BY CONSTRUCTION: only browse-only stores are
+     read here, because a scraped store is already in the cache. */
+  if (!/isBrowseOnlyRetailer/.test(fn)) throw new Error("the deals feed would double-count a scraped store");
+  /* THE SAME NORMALIZER as every other surface, so a deal card and a
+     category card cannot disagree about the price of one item. */
+  if (!/normalizeLiveItem/.test(fn)) throw new Error("file-backed deals use a second pricing path");
+  // And the union must survive a cold scraper cache.
+  const scan = src.slice(src.indexOf("async function runSalesScan("), src.indexOf("function discountPct("));
+  if (!/cached\?\.items\?\.length \|\| fromFiles\.length/.test(scan)) {
+    throw new Error("a cold scraper cache empties Ofertas again, even with file deals available");
+  }
+  /* THE STORE FILTER has to list every store whose deals are in the
+     feed, or a shopper cannot switch one off. */
+  if (/salesStoreFilters'\)\.innerHTML = GENERAL_RETAILERS/.test(src)) {
+    throw new Error("the Ofertas store filter is back to the searchable-only list");
+  }
+});
+
+check("Macy's really has deals worth showing, and the gate still applies", () => {
+  const items = macysCatalog.retailers.macys.departments.women.items;
+  const onSale = items.filter((i) => i.onSale && i.originalPrice > i.price);
+  if (!(onSale.length > 300)) throw new Error(`only ${onSale.length} Macy's markdowns`);
+  for (const it of onSale) {
+    if (!(it.originalPrice > it.price)) throw new Error(`"${it.name}" claims a discount that is not one`);
+  }
+  /* Ofertas promotes, so its weight and freight gates still decide what
+     is FEATURED — a file-backed store gets no exemption from them. The
+     live count lands well under the raw 405 for exactly that reason. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const scan = src.slice(src.indexOf("async function runSalesScan("), src.indexOf("function discountPct("));
+  if (!/passesOfertasGate/.test(scan)) throw new Error("file-backed deals bypass the Ofertas gate");
+});
+
+/* ------------------------------------------------------------------ */
+group("budget: what you can spend, door to door");
+
+check("the budget is the DELIVERED total, never the sticker", () => {
+  /* A budget that filtered on the product price would be a lie the size
+     of the freight: a S/ 90 top with S/ 40 of shipping does not belong
+     in "menos de S/ 100". */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function doorToDoorPen("), src.indexOf("function budgetChipsHTML("));
+  if (!/doorToDoorUsd/.test(fn)) throw new Error("the budget no longer uses the door-to-door total");
+  if (/\bp\.price\b/.test(fn)) throw new Error("the budget is reading the sticker price");
+  /* An item whose total cannot be computed is EXCLUDED, not quietly
+     kept: a budget filter that leaks unpriced items is one a shopper
+     stops trusting the first time one appears. */
+  if (!/if \(pen == null\) return false/.test(src)) {
+    throw new Error("an item with no computable total leaks through the budget filter");
+  }
+  // No soles without a rate — same rule as fmtPEN.
+  if (!/if \(!fxRate\) return null/.test(fn)) throw new Error("the budget invents soles with no exchange rate");
+});
+
+check("the bands are fixed and round, and only live ones render", () => {
+  const page = loadPageBudgetSlice();
+  const bands = page.BUDGET_BANDS;
+  eq(bands.length, 5, "band count");
+  // Contiguous and non-overlapping, or an item falls in two bands or none.
+  for (let i = 0; i < bands.length - 1; i++) {
+    eq(bands[i].max, bands[i + 1].min, `band ${bands[i].key} must end where ${bands[i + 1].key} begins`);
+  }
+  eq(bands[0].min, 0, "the first band starts at zero");
+  eq(bands[bands.length - 1].max, Infinity, "the last band is open-ended");
+  eq(page.budgetBandFor("nope"), null, "an unknown band is null, not a silent match-all");
+  /* And an unknown key must not become "no filter" — inBudget returns
+     true only for a REAL absence of a band, which is what `null` means. */
+  eq(page.budgetBandFor(null), null);
+});
+
+
+/* ------------------------------------------------------------------
+   BELLEZA — 197 products, three stores, one file
+   ------------------------------------------------------------------ */
+group("belleza: the beauty catalogue is reachable, not just committed");
+
+const beautyCatalog = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+const beautyItems = Object.values(beautyCatalog.retailers)
+  .flatMap((r) => Object.values(r.departments || {}))
+  .flatMap((d) => (Array.isArray(d) ? d : d?.items || []));
+
+check("the bare-array envelope is reshaped, so the products are visible at all", () => {
+  /* THE BUG THIS PINS, and it would have shipped silently. Every reader
+     on the page walks retailers.<key>.departments.<dept>.items. This
+     file's departments.beauty is a BARE ARRAY. `bucket?.items || []` on
+     an array is undefined, so nothing throws and nothing renders: three
+     stores on Tiendas with empty catalogues and no error anywhere. */
+  const raw = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+  eq(Array.isArray(raw.retailers.sephora.departments.beauty), true,
+    "the committed file is still the shape the adapter exists for");
+  eq(deptMap.departmentItems(raw.retailers.sephora, "beauty").length, 0,
+    "…and reading it unadapted really does yield nothing");
+
+  const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
+  const fixed = normalizeCatalogueEnvelope(raw);
+  eq(deptMap.departmentItems(fixed.retailers.sephora, "beauty").length, 80, "Sephora after the adapter");
+  eq(deptMap.departmentItems(fixed.retailers.ulta, "beauty").length, 77, "Ulta after the adapter");
+  eq(deptMap.departmentItems(fixed.retailers.yesstyle, "beauty").length, 40, "YesStyle after the adapter");
+
+  // A PURE RESHAPE: no field invented, none dropped.
+  const before = raw.retailers.sephora.departments.beauty[0];
+  const after = fixed.retailers.sephora.departments.beauty.items[0];
+  eq(JSON.stringify(after), JSON.stringify(before), "an item passes through untouched");
+  eq(JSON.stringify(fixed.retailers.sephora.brands), JSON.stringify(raw.retailers.sephora.brands), "brands untouched");
+
+  // And a file ALREADY in the right shape must pass through unharmed,
+  // or adapting every file would break the two that were already fine.
+  const ssense = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8"));
+  const passed = normalizeCatalogueEnvelope(ssense);
+  for (const key of Object.keys(ssense.retailers)) {
+    for (const dept of Object.keys(ssense.retailers[key].departments)) {
+      eq(passed.retailers[key].departments[dept].items.length,
+         ssense.retailers[key].departments[dept].items.length, `${key}/${dept} unchanged`);
+    }
+  }
+  // Rubbish in, empty out — never a throw that takes the cache down.
+  eq(JSON.stringify(normalizeCatalogueEnvelope(null)), '{"retailers":{}}');
+  eq(JSON.stringify(normalizeCatalogueEnvelope({})), '{"retailers":{}}');
+});
+
+check("the catalogue itself is whole: 197 products, no missing photo, no missing weight", () => {
+  eq(beautyItems.length, 197, "product count");
+  const noImage = beautyItems.filter((i) => !i.image);
+  eq(noImage.length, 0, "every product has a photo (the aisle tiles need one)");
+  const noWeight = beautyItems.filter((i) => !(Number(i.specWeightKg) > 0));
+  eq(noWeight.length, 0, "every product carries a weight");
+  /* A DEAL MUST BE A REAL MARKDOWN. onSale with no higher originalPrice
+     is the "trivial deal" bug Ofertas already has a gate for; this
+     checks the data never asks it to. */
+  const onSale = beautyItems.filter((i) => i.onSale);
+  eq(onSale.length, 44, "discounted products");
+  for (const i of onSale) {
+    if (!(Number(i.originalPrice) > Number(i.price))) {
+      throw new Error(`${i.name} is flagged onSale with no markdown`);
+    }
+  }
+});
+
+check("beauty splits into aisles, and the leftovers are declared rather than buried", () => {
+  const grouped = subcats.groupBySubcategory(beautyItems);
+  eq(subcats.shouldSplit(grouped), true, "197 products must not render as one wall");
+  const byKey = Object.fromEntries(grouped.rows.map((r) => [r.key, r.count]));
+  eq(byKey.face, 64, "Rostro");
+  eq(byKey.eyes, 35, "Ojos");
+  eq(byKey.lips, 25, "Labios");
+  eq(byKey.skincare, 25, "Cuidado de la piel");
+  eq(byKey.fragrance, 11, "Fragancia");
+  /* THE 37 THE EXPORT CALLS "Belleza" — a lip gloss, an undereye patch,
+     a pencil sharpener and a gift set all wear it, so no aisle claims
+     them. They are in "Ver todo" and the card says how many, which is
+     the difference between a remainder and a disappearance. */
+  eq(grouped.untyped, 37, "unplaced products");
+  eq(grouped.typed + grouped.untyped, 197, "nothing is lost either way");
+  eq(subcats.unmappedTypes(beautyItems).map((u) => u.type).join(), "BELLEZA",
+    "only the export's own catch-all is unplaced");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/grouped\.untyped > 0/.test(src)) throw new Error("the Ver todo card no longer says where the remainder is");
+});
+
+check("an aisle tile wears a real product photo", () => {
+  /* Danny sent the category covers back twice for being emoji and
+     cartoon art. An aisle card that is a word and a bar is the same
+     failure one level down, so each row carries the image of the first
+     product it holds — a real photo from the store's own CDN, of
+     something that is actually one tap away. */
+  const grouped = subcats.groupBySubcategory(beautyItems);
+  for (const row of grouped.rows) {
+    if (!row.image) throw new Error(`the ${row.key} aisle has no photo`);
+    if (!/^https?:\/\//.test(row.image)) throw new Error(`${row.key}'s photo is not a real URL`);
+  }
+  /* THE PHOTO IS THE FIRST ITEM'S, and it must be an item that aisle
+     really holds — a tile promising a lipstick that is not in "Labios"
+     is worse than no tile. */
+  for (const row of grouped.rows) {
+    const first = subcats.itemsInSubcategory(beautyItems, row.key)[0];
+    eq(row.image, first.image, `${row.key}'s photo comes from its own first item`);
+  }
+  // Both mirrors carry it, or the page renders the text-only card.
+  const pageGrouped = pageSubs.groupBySubcategory(beautyItems);
+  eq(pageGrouped.rows.map((r) => r.image).join("\n"),
+     grouped.rows.map((r) => r.image).join("\n"), "the page mirror picks the same faces");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const card = src.slice(src.indexOf("function catalogAisleCardHTML("), src.indexOf("function catalogAisleListHTML("));
+  if (!/row\.image/.test(card)) throw new Error("the aisle card ignores the photo");
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(card)) throw new Error("an emoji is back on an aisle card");
+  // A store with no images must still get a working card, not a grey box.
+  const noPhotos = beautyItems.map(({ image, images, ...rest }) => rest);
+  for (const row of subcats.groupBySubcategory(noPhotos).rows) {
+    eq(row.image, null, `${row.key} has no invented photo`);
+  }
+});
+
+check("accents survive normalisation, so Spanish types map at all", () => {
+  /* "Uñas" hit the [^A-Z0-9] rule as U + (dropped Ñ) + AS -> "U_AS",
+     a token nobody would write. Folding, not deleting. */
+  eq(subcats.normalizeType("Uñas"), "UNAS");
+  eq(subcats.normalizeType("Cuidado de la piel"), "CUIDADO_DE_LA_PIEL");
+  eq(subcats.subcategoryForType("Uñas"), "nails");
+  eq(subcats.subcategoryForType("Cuidado de la piel"), "skincare");
+  eq(pageSubs.normalizeType("Uñas"), "UNAS", "the page mirror folds too");
+  // No ASCII token moved: Macy's and SSENSE must map exactly as before.
+  for (const t of ["DRESS", "JACKETS", "BACKPACK_MESSENGER", "PYJAMAS & LOUNGEWEAR", "PANTS"]) {
+    eq(pageSubs.subcategoryForType(t), subcats.subcategoryForType(t), t);
+  }
+});
+
+check("the catalogue's own weight beats our guess, and still reads as an estimate", () => {
+  /* beauty-catalog.json ships specWeightKg on all 197 AND
+     weightEstimated:true beside it. That is not a spec weight — a spec
+     weight renders as "Peso confirmado por la tienda" and skips the
+     sanity bands. It is a better-sourced estimate, so it wins over our
+     title table and is banded like any other estimate. */
+  const item = { title: "CC+ Cream with SPF 50+", retailer: "ulta", department: "beauty",
+    specWeightKg: 0.2, weightEstimated: true };
+  const got = weightResolve.resolveItemWeight(item);
+  eq(got.weightKg, 0.2, "the catalogue's number is used");
+  eq(got.source, "catalog");
+  eq(got.estimated, true, "it must never read as confirmed by the store");
+  // Without it we fall back to our own table, which reads LIGHTER here —
+  // under-reading a weight is the direction that costs money.
+  const without = weightResolve.resolveItemWeight({ title: item.title, retailer: "ulta", department: "beauty" });
+  eq(without.source, "beauty");
+  if (!(without.weightKg < got.weightKg)) throw new Error("the eight disputed creams are no longer disputed");
+  // A REAL published measurement still outranks it.
+  const spec = weightResolve.resolveItemWeight({ title: "x", specWeightKg: 0.2, weightKg: 0.9, weightEstimated: false });
+  eq(spec.source, "spec");
+  eq(spec.weightKg, 0.9, "an explicit spec is not overridden by a catalogue estimate");
+  // Junk is declined rather than believed.
+  for (const bad of [0, -1, null, "", "heavy", undefined]) {
+    eq(weightResolve.catalogWeightKg({ specWeightKg: bad }), null, `specWeightKg=${JSON.stringify(bad)}`);
+  }
+});
+
+check("the card's weight reaches checkout instead of being re-guessed", () => {
+  /* The cart's weightKg is deliberately marked estimated, and the server
+     resolver re-estimates an estimate rather than echoing it back as a
+     store measurement. That rule is right and it would have thrown the
+     catalogue's number away: a BB cream showing 0.20 kg on the card and
+     billed at 0.05 kg. So the figure rides on the line under the name
+     the resolver reads. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function catalogWeightDetail\(/.test(src)) throw new Error("the page no longer prefers the catalogue weight");
+  if (!/catalogWeightDetail\(item, title\) \|\| estimateRetailWeightDetail\(/.test(src)) {
+    throw new Error("normalizeLiveItem no longer consults the catalogue weight first");
+  }
+  const add = src.slice(src.indexOf("function addToCartFromProduct("), src.indexOf("function addToCartFromProduct(") + 2000);
+  if (!/specWeightKg: p\.catalogWeightKg/.test(add)) throw new Error("the catalogue weight does not reach the cart line");
+});
+
+check("a fragrance the store flags is limited even if its title is silent", () => {
+  /* 11 items carry restricted:"fragancia-max-4" — the courier clause as
+     data rather than inferred from a title. Measured: the flag and
+     isFragrance() agree on all 197 today, which is the point. The flag
+     is what keeps the limit on the card the day an export marks
+     something whose name does not say "parfum". */
+  const flagged = beautyItems.filter((i) => i.restricted === "fragancia-max-4");
+  eq(flagged.length, 11, "restricted products");
+  for (const i of flagged) eq(i.type, "Fragancia", `${i.name} is in the fragrance aisle`);
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/item\.restricted === 'fragancia-max-4' \|\| isFragrance\(title\)/.test(src)) {
+    throw new Error("the store's own restriction flag is ignored");
+  }
+});
+
+check("every beauty markdown reaches Ofertas, tier and file notwithstanding", () => {
+  /* The universal-sales rule: Ofertas aggregates every store regardless
+     of tier or of whether it is scraped or filed. These three are
+     browse-only, so fileBackedDeals() is their only route in. */
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    eq(retailers.isBrowseOnlyRetailer(key), true, `${key} must be read by fileBackedDeals`);
+    if (!retailers.browsableRetailers().includes(key)) throw new Error(`${key} is not in CATALOG_RETAILERS`);
+  }
+  /* And the department map has to agree these are sale items, which is
+     what fileBackedDeals filters on downstream. 43 of the 44, not all
+     44: a 3% markdown on one Ulta setting mist ($13.00 -> $12.60) is
+     below the 5% floor every surface of this site uses. That is the
+     trivial-deal gate doing its job, not a product going missing — it
+     is still in the Belleza category and in the store, it is just not
+     something to call an oferta. */
+  const onSale = beautyItems.filter((i) => deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
+  eq(onSale.length, 43, "beauty markdowns worth featuring");
+  const thin = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
+  eq(thin.length, 1, "exactly one markdown is below the floor");
+  if (Math.round((1 - thin[0].price / thin[0].originalPrice) * 100) >= 5) {
+    throw new Error("a real markdown is being gated out of Ofertas");
+  }
+});
+
+
+/* ------------------------------------------------------------------
+   SHININESS — a virtual mall, not a database
+   ------------------------------------------------------------------ */
+group("images: the shop looks like a shop");
+
+check("no logo file is mostly empty canvas", () => {
+  /* THE BUG THIS PINS, and nothing else in the pipeline could see it.
+     logos/ssense.png was a valid 29,954-byte PNG, correctly wired and
+     correctly referenced, and it rendered as what Danny called "plain
+     styled text". The file was 2501x250 with the wordmark in the middle
+     685x146 of it: 84% empty white. object-fit: contain fits the
+     CANVAS, so the letters drew a sixth the size every other mark got,
+     and no CSS could have fixed it. It decoded, it had a sane aspect
+     ratio on paper, and it was broken. Only the pixels say so. */
+  const FLOOR = 0.35;
+  const files = readdirSync(root("logos")).filter((f) => f.endsWith(".png"));
+  if (files.length < 4) throw new Error(`only ${files.length} PNG logos found`);
+  for (const f of files) {
+    const info = inkCoverage(root(`logos/${f}`));
+    if (!info) throw new Error(`${f} is not a PNG`);
+    if (info.unsupported) throw new Error(`${f}: ${info.unsupported} — the coverage check cannot read it`);
+    if (info.coverage < FLOOR) {
+      throw new Error(
+        `${f} is ${(info.coverage * 100).toFixed(0)}% mark and ${(100 - info.coverage * 100).toFixed(0)}% empty canvas ` +
+        `(${info.w}x${info.h}, ink ${info.inkW}x${info.inkH}). Contain-fit sizes the canvas, so it will render tiny. Crop it.`,
+      );
+    }
+  }
+  // And the one that was broken is specifically fixed, with its real
+  // proportions — a 4.7:1 wordmark, in Macy's and Walmart's company.
+  const ssense = inkCoverage(root("logos/ssense.png"));
+  if (ssense.coverage < 0.7) throw new Error(`SSENSE is back to ${(ssense.coverage * 100).toFixed(0)}% coverage`);
+  if (!(ssense.aspect > 3 && ssense.aspect < 7)) throw new Error(`SSENSE is ${ssense.aspect.toFixed(1)}:1 — the padding is back`);
+});
+
+check("every registered logo file exists and is wired from the registry", () => {
+  for (const r of retailers.activeRetailers()) {
+    if (!r.logo) continue;
+    if (!existsSync(root(r.logo))) throw new Error(`${r.key} points at ${r.logo}, which is not committed`);
+  }
+  /* One badge function, reading the registry — a store whose logo is
+     wired in one place and missing in another is the drift this
+     registry exists to stop. SSENSE renders through the same path as
+     the other nine, on Tiendas and on its own store header. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/const RETAILER_LOGO_FILE = Object\.fromEntries\(Object\.values\(RETAILERS\)/.test(src)) {
+    throw new Error("logo files are no longer derived from the registry");
+  }
+  if (!/storeViewHero'\)\.innerHTML = retailerBadgeHTML\(retailer, 44\)/.test(src)) {
+    throw new Error("the store page header no longer renders the registry's logo");
+  }
+});
+
+check("retailer photos are requested at the largest size the CDN offers", () => {
+  const { upgradeImageUrl, imageRetryUrl, MACYS_IMAGE_WIDTH } = loadPageImageUrlSlice();
+  eq(MACYS_IMAGE_WIDTH, 1200);
+
+  /* Pinned against URLs taken from the committed catalogues, not from
+     examples typed into a test — a rule that works on an invented URL
+     and not on the real one is the failure mode here. */
+  const macys = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8"));
+  const macysItems = Object.values(macys.retailers).flatMap((r) =>
+    Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
+  eq(macysItems.length > 700, true, "Macy's catalogue is loaded");
+  for (const it of macysItems.slice(0, 200)) {
+    const up = upgradeImageUrl(it.image);
+    if (/[?&]wid=/.test(it.image) && !/[?&]wid=1200\b/.test(up)) throw new Error(`not upgraded: ${up}`);
+    // Only the size changes — a mangled path is a dead photo on 754 cards.
+    eq(up.replace(/wid=\d+/, "wid=X"), it.image.replace(/wid=\d+/, "wid=X"), "only wid changed");
+  }
+
+  const beauty = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+  const ys = beauty.retailers.yesstyle.departments.beauty;
+  eq(ys.length, 40, "YesStyle items");
+  for (const it of ys) {
+    const up = upgradeImageUrl(it.image);
+    if (!/\/L_[^/]+$/.test(up)) throw new Error(`YesStyle not upgraded to the large variant: ${up}`);
+    /* THE UPGRADE IS A GUESS AND CARRIES ITS OWN UNDO. The L_ variant
+       could not be probed from the build environment — every retailer
+       CDN answers 403 through the egress proxy — so the medium travels
+       with it and one 404 swaps back with no broken frame. */
+    eq(imageRetryUrl(up), it.image, "the medium is recoverable from the large");
+  }
+
+  // A store whose URLs already carry a full-size asset is left alone.
+  const ssense = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8"));
+  const one = Object.values(ssense.retailers)[0].departments;
+  const sample = Object.values(one)[0].items[0].image;
+  eq(upgradeImageUrl(sample), sample, "SSENSE URLs are untouched");
+  eq(imageRetryUrl(sample), "", "a non-speculative URL has no retry");
+  // Junk in, junk out — never a throw on the render path.
+  for (const bad of ["", null, undefined, 42]) eq(upgradeImageUrl(bad), typeof bad === "string" ? bad : "");
+});
+
+check("a deal with no photo is not featured, and a missing photo is branded", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function passesOfertasPhotoGate\(/.test(src)) throw new Error("Ofertas still features photoless tiles");
+  const gate = src.slice(src.indexOf("function passesOfertasGate("), src.indexOf("function passesOfertasGate(") + 300);
+  if (!/passesOfertasPhotoGate/.test(gate)) throw new Error("the photo gate is defined but not applied");
+
+  /* MEASURED BEFORE GATING, because a gate that empties a feed is worse
+     than the tiles it removes. Every committed product carries an
+     image, so this can only ever act on the live deals cache. */
+  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 197]]) {
+    const cat = JSON.parse(readFileSync(root(file), "utf8"));
+    const items = Object.values(cat.retailers).flatMap((r) =>
+      Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
+    eq(items.length, expected, `${file} item count`);
+    eq(items.filter((i) => !i.image).length, 0, `${file} products with no photo`);
+  }
+  const scraped = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const scrapedItems = Object.values(scraped.retailers).flatMap((r) =>
+    Object.values(r.departments || {}).flatMap((d) => d.items || []));
+  eq(scrapedItems.filter((i) => !(i.image || i.imageUrl || i.thumbnail)).length, 0, "scraped products with no photo");
+
+  // The placeholder is the brand's own frame, and it is DRAWN — a
+  // placeholder that is itself a file can fail the way the photo did.
+  if (!/function photoPlaceholderHTML\(/.test(src)) throw new Error("there is no branded placeholder");
+  const ph = src.slice(src.indexOf("function photoPlaceholderHTML("), src.indexOf("function cardPhotoHTML("));
+  if (/<img/.test(ph)) throw new Error("the placeholder is an image, so it can fail too");
+  if (!/var\(--sky\)/.test(ph) || !/ARIA/.test(ph)) throw new Error("the placeholder is not branded");
+  if (/Sin imagen/.test(src)) throw new Error("the grey 'Sin imagen' box is back");
+  // Both render paths retry a speculative URL once before giving up.
+  for (const fn of ["function cardPhotoFallback(", "function handleProductImgError("]) {
+    const body = src.slice(src.indexOf(fn), src.indexOf(fn) + 700);
+    if (!/data-img-fallback/.test(body)) throw new Error(`${fn} does not honour the retry URL`);
+    if (!/removeAttribute\('data-img-fallback'\)/.test(body)) throw new Error(`${fn} can loop on a dead fallback`);
+  }
+});
+
+check("every browse grid is photographs, and no grid is emoji", () => {
+  /* The store page's department list — the first screen of Macy's,
+     SSENSE or Sephora — was a 26px emoji over a label and a count. It
+     is the same tile the aisle list uses now. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function browseTileHTML\(/.test(src)) throw new Error("there is no shared browse tile");
+  const tile = src.slice(src.indexOf("function browseTileHTML("), src.indexOf("function catalogAisleCardHTML("));
+  if (!/<img/.test(tile)) throw new Error("the browse tile shows no photograph");
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(tile)) throw new Error("an emoji is on the browse tile");
+
+  // Both grids go through it — that is what stops the next one being
+  // invented as text again.
+  const aisle = src.slice(src.indexOf("function catalogAisleCardHTML("), src.indexOf("function catalogAisleListHTML("));
+  if (!/browseTileHTML\(/.test(aisle)) throw new Error("the aisle card no longer uses the shared tile");
+  const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+  if (!/browseTileHTML\(/.test(store)) throw new Error("the store's department grid is not the shared tile");
+  if (/meta\.icon/.test(store)) throw new Error("the store's department grid still renders an emoji");
+  if (!/deptPhoto\(/.test(store)) throw new Error("the store's department tiles carry no product photo");
+
+  /* And a real store really produces one. Macy's departments have to
+     yield a photo per tile from the committed export, or the grid is a
+     row of text cards on the busiest storefront on the site. */
+  const macys = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8"));
+  for (const key of ["women", "clothing"]) {
+    const items = deptMap.departmentItems(macys.retailers.macys, key);
+    if (!items.length) continue;
+    if (!items.some((i) => i.image)) throw new Error(`Macy's ${key} tile would have no photo`);
+  }
+
+  /* NO TILE WEARS ANOTHER TILE'S PHOTO. Ofertas is not a shelf of its
+     own — it is whatever is marked down across the other shelves — so
+     on Macy's, whose only two departments are Moda Mujer and Ofertas,
+     one product can be the first item of both and the naive "first item
+     with an image" would print it twice.
+
+     IT DOES NOT TODAY, and this test says so rather than pretending it
+     caught a live bug: Macy's first women's item simply happens not to
+     be marked down. That is data, not structure — the overlap below is
+     what makes the collision possible, and a re-export is all it takes.
+     The guard is cheap and the failure is ugly, so it stays. */
+  if (!/usedPhotos/.test(store)) throw new Error("department tile photos are no longer deduped");
+  const women = deptMap.departmentItems(macys.retailers.macys, "women").map((i) => i.image).filter(Boolean);
+  const sale = deptMap.departmentItems(macys.retailers.macys, "sale").map((i) => i.image).filter(Boolean);
+  if (!sale.length) throw new Error("Macy's has no sale department to collide with");
+  // The overlap is real — every Ofertas item is also a Moda Mujer item —
+  // which is exactly why two tiles can land on one photo.
+  const inWomen = new Set(women);
+  if (!sale.every((u) => inWomen.has(u))) throw new Error("Ofertas is no longer a subset of Moda Mujer");
+  // And there is a second photo to move to when they do collide.
+  if (new Set(sale).size < 2) throw new Error("Ofertas has no second photo to fall back to");
 });
 
 /* ------------------------------------------------------------------ */

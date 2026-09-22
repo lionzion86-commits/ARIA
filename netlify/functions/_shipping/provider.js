@@ -142,7 +142,20 @@ export function normalizeShipment(input = {}) {
     city: cleanText(r.city, 80),
     phone: cleanText(r.phone, 40),
     idNumber: cleanText(r.idNumber ?? r.dni, 40),
+    /* WHO IS ACTUALLY AT THE DOOR (2026-09-21). A buyer may nominate
+       someone else to receive the parcel — a parent, a porter, an
+       office. Both fields travel to the courier on the manifest, and
+       both are optional HERE because plenty of parcels are received by
+       the buyer; when a shopper does nominate someone, orders-create.js
+       refuses the order without a name and a document, because the
+       courier checks ID at handoff and cannot hand a box to a name it
+       cannot verify. */
+    relationship: cleanText(r.relationship, 80),
+    deliveryInstructions: cleanText(r.deliveryInstructions, 400),
   };
+  /* relationship and deliveryInstructions are deliberately NOT in this
+     list: a shipment to the buyer themselves has neither, and demanding
+     them would block every ordinary box. */
   for (const [field, label] of [
     ["name", "nombre"], ["address", "dirección"], ["city", "ciudad"],
     ["phone", "teléfono"], ["idNumber", "documento de identidad"],

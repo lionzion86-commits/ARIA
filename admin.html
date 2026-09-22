@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="es-PE">
+<head>
+<meta charset="utf-8">
+<!-- viewport-fit=cover is what lets the bottom tab bar sit under the
+     iPhone home indicator instead of above it; the safe-area insets
+     below do the actual spacing. -->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0A1F44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Aria · Ops</title>
+<link rel="icon" href="/aria-icon-512.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+<!-- ============================================================
+     THE OPS DASHBOARD. INTERNAL. NOT CUSTOMER-FACING.
+
+     WHY IT IS ITS OWN FILE AND NOT A VIEW IN index.html
+     index.html is 710 KB and every shopper downloads it. Putting an ops
+     tool inside it would make every customer pay for a page only two
+     people can open, and would put the ops markup one CSS mistake away
+     from the storefront. It also means this page can be phone-shaped
+     without arguing with the storefront's layout.
+
+     NO TAILWIND, NO CDN, NO BUILD. The storefront pulls Tailwind from a
+     CDN; this page does not, for three reasons: an ops tool must load on
+     bad mobile data in Lima, it must not break because a CDN is having a
+     day, and there is nothing here that plain CSS does not do. Every
+     byte of this file is this file.
+
+     WHERE THE DATA COMES FROM
+     One endpoint: /.netlify/functions/admin-dashboard, with ?view=.
+     It is gated on a real session cookie whose email is on ADMIN_EMAILS.
+     This page's gate is a COURTESY — it shows a sign-in prompt instead
+     of an error — and is never the security boundary. The server refuses
+     regardless of what this page believes.
+     ============================================================ -->
+<style>
+  :root {
+    --navy: #0A1F44;
+    --navy-2: #0D2A5C;
+    --blue: #2F5FEE;
+    --sky: #EAF0FF;
+    --gold: #F4C463;
+    --bg: #F7F8FA;
+    --card: #FFFFFF;
+    --line: #E4E7EC;
+    --ink: #10172A;
+    --ink-2: #5B6478;
+    --ink-3: #8A93A6;
+    --ok: #0E7A4D;
+    --ok-bg: #E6F4EC;
+    --warn: #8A6B1F;
+    --warn-bg: #FDF3E3;
+    --bad: #B3261E;
+    --bad-bg: #FCECEA;
+    --tabbar: 62px;
+  }
+  /* Dark mode because this gets read in bed and in a warehouse. Tokens
+     only — no component knows which mode it is in. */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0B1017; --card: #151B24; --line: #262E3A;
+      --ink: #EDF0F5; --ink-2: #A3ACBD; --ink-3: #78829A;
+      --sky: #17233D; --ok-bg: #11291E; --warn-bg: #2A2313; --bad-bg: #2C1614;
+      --ok: #5FD19A; --warn: #E0BE6A; --bad: #F2867C;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+    /* Room for the fixed tab bar plus the home indicator. */
+    padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 12px);
+  }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  /* 16px minimum on anything typeable: iOS Safari zooms the whole page
+     when a focused field is smaller, and a zoomed ops tool is unusable. */
+  input, select, textarea { font-size: 16px; }
+  button { cursor: pointer; touch-action: manipulation; }
+  a { color: var(--blue); }
+
+  /* ---- chrome ---- */
+  header {
+    position: sticky; top: 0; z-index: 30;
+    background: var(--navy);
+    color: #fff;
+    padding: calc(env(safe-area-inset-top, 0px) + 10px) 16px 10px;
+    display: flex; align-items: center; gap: 10px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.08);
+  }
+  .brand { font-weight: 800; letter-spacing: -.02em; font-size: 16px; }
+  .brand span { color: var(--gold); }
+  .who { margin-left: auto; font-size: 11.5px; color: #AFBBD6; text-align: right; line-height: 1.3; max-width: 46%; overflow-wrap: anywhere; }
+  .refresh {
+    background: rgba(255,255,255,.12); border: 0; color: #fff;
+    width: 44px; height: 44px; border-radius: 999px; font-size: 17px;
+    display: grid; place-items: center; flex: 0 0 auto;
+  }
+  .refresh[aria-busy="true"] { opacity: .5; }
+
+  main { padding: 14px 16px 0; max-width: 760px; margin: 0 auto; }
+
+  /* `display: grid` beats the UA stylesheet's `[hidden] { display: none }`,
+     so the `hidden` attribute on <nav> did nothing and the tab bar sat
+     under the sign-in gate and the loading state — offering tabs to
+     somebody the server had just refused. The attribute selector adds
+     specificity over the bare `nav.tabs` below, so this wins wherever it
+     sits in the file. */
+  nav.tabs[hidden] { display: none; }
+  nav.tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--card); border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  nav.tabs button {
+    background: none; border: 0; padding: 9px 2px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    font-size: 10.5px; font-weight: 700; color: var(--ink-3);
+    min-height: 44px; /* thumb target */
+  }
+  nav.tabs button .ico { font-size: 19px; line-height: 1; }
+  nav.tabs button[aria-selected="true"] { color: var(--blue); }
+  nav.tabs button .badge {
+    position: absolute; transform: translate(16px, -6px);
+    background: var(--bad); color: #fff; font-size: 9.5px; font-weight: 800;
+    min-width: 16px; height: 16px; border-radius: 999px; padding: 0 4px;
+    display: grid; place-items: center;
+  }
+
+  /* ---- primitives ---- */
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 14px; padding: 13px 14px; margin-bottom: 11px;
+  }
+  .card.tight { padding: 11px 12px; }
+  .row { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .row + .row { margin-top: 5px; }
+  .k { font-size: 12.5px; color: var(--ink-2); }
+  .v { font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+  .v.big { font-size: 19px; letter-spacing: -.02em; }
+  .muted { color: var(--ink-3); }
+  h2 {
+    font-size: 11px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .07em; color: var(--ink-3); margin: 18px 2px 8px;
+  }
+  h2:first-child { margin-top: 2px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 999px;
+    background: var(--sky); color: var(--blue); white-space: nowrap;
+  }
+  .pill.ok { background: var(--ok-bg); color: var(--ok); }
+  .pill.warn { background: var(--warn-bg); color: var(--warn); }
+  .pill.bad { background: var(--bad-bg); color: var(--bad); }
+  .pill.flat { background: transparent; color: var(--ink-3); border: 1px solid var(--line); }
+  .dot { width: 7px; height: 7px; border-radius: 999px; background: currentColor; flex: 0 0 auto; }
+  /* 44px, not 40: Apple's minimum touch target, and this is a tool
+     operated one-handed on a phone while doing something else. */
+  .btn {
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 999px; padding: 0 15px; height: 44px; font-size: 13.5px; font-weight: 700;
+  }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
+  .btn.wide { width: 100%; }
+  .btn:disabled { opacity: .45; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .note { font-size: 12px; line-height: 1.45; color: var(--ink-2); }
+  .banner {
+    border-radius: 12px; padding: 11px 13px; margin-bottom: 11px;
+    font-size: 12.5px; line-height: 1.45; font-weight: 600;
+  }
+  .banner.warn { background: var(--warn-bg); color: var(--warn); }
+  .banner.bad { background: var(--bad-bg); color: var(--bad); }
+  .banner.info { background: var(--sky); color: var(--navy); }
+  /* overflow-wrap, because the Stripe webhook URL and an order id are
+     both longer than a 393px phone and were running past the card edge. */
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; overflow-wrap: anywhere; }
+  .hr { height: 1px; background: var(--line); margin: 11px -14px; }
+  details > summary {
+    list-style: none; cursor: pointer; font-size: 12.5px; font-weight: 700;
+    color: var(--blue); padding: 7px 0; min-height: 32px;
+  }
+  details > summary::-webkit-details-marker { display: none; }
+  .items { margin: 0; padding: 0; list-style: none; }
+  .items li { display: flex; gap: 8px; justify-content: space-between; font-size: 12.5px; padding: 3px 0; }
+  .items li span:first-child { color: var(--ink-2); overflow-wrap: anywhere; }
+  .field { display: block; margin-bottom: 9px; }
+  .field > span { display: block; font-size: 11.5px; font-weight: 800; color: var(--ink-2); margin-bottom: 4px; }
+  .field input {
+    width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 0 11px; background: var(--card);
+  }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+  .head { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+  .title { font-weight: 800; font-size: 14px; letter-spacing: -.01em; }
+  .sub { font-size: 11.5px; color: var(--ink-3); }
+  .spin { text-align: center; padding: 30px 0; color: var(--ink-3); font-size: 13px; }
+
+  /* Wider screens get two columns; the layout is still phone-first and
+     this is the only thing that changes. */
+  @media (min-width: 720px) {
+    .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 0 11px; align-items: start; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">ARIA <span>OPS</span></div>
+  <div class="who" id="who"></div>
+  <button class="refresh" id="refreshBtn" onclick="refresh()" aria-label="Actualizar">&#x21bb;</button>
+</header>
+
+<main id="main">
+  <div class="spin" id="boot">Cargando…</div>
+</main>
+
+<nav class="tabs" id="tabs" hidden>
+  <button data-tab="orders"   aria-selected="true"  onclick="go('orders')"><span class="ico">&#128230;</span>Pedidos</button>
+  <button data-tab="payments" aria-selected="false" onclick="go('payments')"><span class="ico">&#128179;</span>Pagos</button>
+  <button data-tab="couriers" aria-selected="false" onclick="go('couriers')"><span class="ico">&#128666;</span>Couriers</button>
+  <button data-tab="ledger"   aria-selected="false" onclick="go('ledger')"><span class="ico">&#128220;</span>Libro</button>
+</nav>
+
+<script>
+/* ============================================================
+   No framework, no bundler. Render is `innerHTML` from data, which is
+   why esc() below is not optional: customer names, addresses and ops
+   notes are all attacker-or-typo-supplied text.
+   ============================================================ */
+const API = "/.netlify/functions/admin-dashboard";
+
+const state = { tab: "orders", summary: null, orders: null, payments: null, couriers: null, ledger: null, offset: 0 };
+
+/* ---- formatting ---------------------------------------------------- */
+function esc(v) {
+  return String(v == null ? "" : v)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+/* A blank is not a zero — the same rule the ledger is built on. An
+   unknown number renders as an em dash, never as S/ 0.00, because
+   "nobody has established this" and "it is zero" are different facts
+   and only one of them is safe to act on. */
+function pen(n) {
+  if (n == null || n === "" || !isFinite(Number(n))) return '<span class="muted">—</span>';
+  return "S/ " + Number(n).toLocaleString("es-PE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function usd(n) {
+  if (n == null || !isFinite(Number(n))) return '<span class="muted">—</span>';
+  return "$" + Number(n).toFixed(2);
+}
+function when(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  if (isNaN(d)) return esc(iso);
+  // Peru time, because every operator reading this is in Peru and a UTC
+  // timestamp on an ops screen gets mentally mis-converted at 7pm.
+  return d.toLocaleString("es-PE", {
+    timeZone: "America/Lima", day: "2-digit", month: "short",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  });
+}
+
+const SHIPPING_ES = {
+  created: "Pedido registrado", in_transit: "En camino", in_customs: "En aduana",
+  out_for_delivery: "En reparto", delivered: "Entregado",
+  exception: "Con novedad", cancelled: "Cancelado",
+};
+const PAYMENT_ES = {
+  unpaid: ["Sin pagar", "warn"], paid: ["Pagado", "ok"],
+  partially_refunded: ["Reembolso parcial", "warn"], refunded: ["Reembolsado", "bad"],
+  disputed: ["En disputa", "bad"], lost_dispute: ["Disputa perdida", "bad"],
+  failed: ["Pago fallido", "bad"], canceled: ["Pago cancelado", "flat"],
+  succeeded: ["Cobrado", "ok"], unknown: ["Desconocido", "flat"],
+};
+/* The registry's `role` is English and internal ("primary"/"secondary").
+   Printing it raw put "secondary · primario · modo manual" on the card,
+   which reads as a contradiction rather than as the real situation: AVI
+   is classed as overflow and is currently carrying everything. */
+const ROLE_ES = { primary: "rol primario", secondary: "rol de respaldo" };
+const ORDER_ES = {
+  pending_payment: ["Esperando pago", "warn"], confirmed: ["Confirmado", "ok"],
+  cancelled: ["Cancelado", "flat"],
+};
+function payPill(status) {
+  const [label, tone] = PAYMENT_ES[status] || [status || "—", "flat"];
+  return `<span class="pill ${tone}">${esc(label)}</span>`;
+}
+
+/* ---- transport ----------------------------------------------------- */
+async function api(params) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${API}?${qs}`, { credentials: "same-origin" });
+  if (res.status === 403) throw Object.assign(new Error("no-autorizado"), { code: 403 });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
+/* ---- the gate (a courtesy, never the boundary) --------------------- */
+function renderGate() {
+  document.getElementById("tabs").hidden = true;
+  document.getElementById("main").innerHTML = `
+    <div class="card">
+      <div class="title" style="margin-bottom:6px">Solo para ops</div>
+      <p class="note">
+        Este panel necesita una sesión cuyo correo esté en <span class="mono">ADMIN_EMAILS</span>.
+        Inicia sesión en la tienda con esa cuenta y vuelve aquí.
+      </p>
+      <div class="btns" style="margin-top:12px">
+        <a class="btn primary" href="/" style="text-decoration:none; display:grid; place-items:center">Ir a iniciar sesión</a>
+        <button class="btn" onclick="refresh()">Ya inicié sesión</button>
+      </div>
+    </div>`;
+}
+
+/* ---- summary strip, shown above every tab -------------------------- */
+function summaryStrip() {
+  const s = state.summary;
+  if (!s) return "";
+  /* COLLAPSED BY DEFAULT ON A PHONE. Three stacked banners plus the money
+     card filled the entire 393x852 screen, so an operator opening the app
+     saw only warnings and had to scroll to reach a single order. The count
+     stays visible — the point is not to hide that something is wrong, it
+     is to not spend the whole first screen saying so. */
+  const list = s.alerts || [];
+  const worst = list.some((a) => a.level === "warn") ? "warn" : "info";
+  const alerts = list.length
+    ? `<details class="banner ${worst}" ${list.length <= 1 ? "open" : ""}>
+         <summary style="color:inherit; padding:0">
+           ${list.length === 1 ? esc(list[0].message) : `${list.length} avisos — toca para ver`}
+         </summary>
+         ${list.length > 1 ? `<ul class="items" style="margin-top:7px">${
+           list.map((a) => `<li><span style="color:inherit">${esc(a.message)}</span></li>`).join("")
+         }</ul>` : ""}
+       </details>`
+    : "";
+
+  const gateway = s.gateway && !s.gateway.webhookConfigured
+    ? `<div class="banner bad">
+         <strong>Ninguna pasarela conectada.</strong> ${esc(s.gateway.note)}
+       </div>`
+    : "";
+
+  const blocked = s.couriers && s.couriers.createBlocked
+    ? `<div class="banner bad">${esc(s.couriers.createBlocked)}</div>` : "";
+
+  const truncated = s.scan && s.scan.truncated
+    ? `<div class="banner warn">Los totales cubren los ${s.scan.scanned} pedidos más recientes de ${s.scan.orders}. El libro mayor exporta el mismo rango.</div>`
+    : "";
+  const unreadable = s.scan && s.scan.unreadable
+    ? `<div class="banner warn">${s.scan.unreadable} registro(s) de pedido no se pudieron leer y quedaron fuera de los totales.</div>`
+    : "";
+
+  return `${gateway}${blocked}${alerts}${truncated}${unreadable}
+    <div class="card tight">
+      <div class="row">
+        <span class="k">Facturado</span>
+        <span class="v big">${pen(s.money.billedPen)}</span>
+      </div>
+      <div class="row">
+        <span class="k">Cobrado real (pasarela)</span>
+        <span class="v">${s.money.capturedPen ? pen(s.money.capturedPen) : '<span class="muted">nada cobrado</span>'}</span>
+      </div>
+      <div class="row"><span class="k">Flete cobrado</span><span class="v">${pen(s.money.freightPen)}</span></div>
+      <div class="row"><span class="k">Impuesto estimado</span><span class="v">${pen(s.money.taxEstimatedPen)}</span></div>
+      <div class="row"><span class="k">Impuesto real SUNAT</span><span class="v">${s.money.taxActualPen ? pen(s.money.taxActualPen) : '<span class="muted">sin conciliar</span>'}</span></div>
+      <div class="row"><span class="k">Saldo Aria aplicado</span><span class="v">${pen(s.money.walletAppliedPen)}</span></div>
+      <div class="hr"></div>
+      <div class="row">
+        <span class="k">Pedidos</span>
+        <span class="v">${s.counts.orders}
+          ${s.counts.unpaid ? `<span class="pill warn" style="margin-left:6px">${s.counts.unpaid} sin pagar</span>` : ""}
+          ${s.counts.paid ? `<span class="pill ok" style="margin-left:6px">${s.counts.paid} pagados</span>` : ""}
+        </span>
+      </div>
+      <div class="row"><span class="k">Envíos abiertos</span><span class="v">${s.shipments.open} de ${s.shipments.total}</span></div>
+    </div>`;
+}
+
+/* ---- tab 1: orders ------------------------------------------------- */
+function orderCard(o, payment, shipments) {
+  const [ostat, otone] = ORDER_ES[o.status] || [o.status || "—", "flat"];
+  const cust = o.customer || {};
+  const name = cust.name || cust.nombre || "(sin nombre)";
+  const items = (o.items || []).map((it) => `
+    <li><span>${esc(it.name || it.title || "ítem")}${(it.qty || 1) > 1 ? ` ×${Number(it.qty)}` : ""}</span>
+        <span class="v">${usd((Number(it.priceUsd) || 0) * (Number(it.qty) || 1))}</span></li>`).join("");
+
+  const productsUsd = (o.items || []).reduce((s, it) => s + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
+  const fx = Number(o.fxRateUsed) || null;
+  const penOf = (u) => (fx && u != null && isFinite(u) ? u * fx : null);
+
+  const ship = (shipments || []).map((s) => `
+    <div class="row">
+      <span class="k">${esc(s.provider || "courier")}
+        <span class="pill flat" style="margin-left:4px">${esc(SHIPPING_ES[s.status] || s.status || "sin estado")}</span>
+      </span>
+      <span class="v mono">${esc(s.trackingNumber || "—")}</span>
+    </div>`).join("");
+
+  const mismatch = Number(o.amountMismatchPen)
+    ? `<div class="banner bad" style="margin:9px 0 0">Cobrado ${pen(o.amountCapturedPen)} contra ${pen(o.pricePenCharged)} facturado.</div>`
+    : "";
+
+  const taxRow = Number(o.taxEstimatedPen) > 0 ? `
+    <div class="row">
+      <span class="k">Impuesto ${o.taxReconciledAt ? "real" : "estimado"}</span>
+      <span class="v">${pen(o.taxReconciledAt ? o.taxActualPen : o.taxEstimatedPen)}
+        ${o.taxReconciledAt ? "" : '<span class="pill warn" style="margin-left:6px">sin conciliar</span>'}
+      </span>
+    </div>` : "";
+
+  return `
+  <div class="card">
+    <div class="head">
+      <div>
+        <div class="title mono">${esc(o.orderId)}</div>
+        <div class="sub">${when(o.createdAt)} · ${esc(name)}</div>
+      </div>
+      <div style="text-align:right; display:flex; flex-direction:column; gap:4px; align-items:flex-end">
+        ${payPill(o.paymentStatus || "unpaid")}
+        <span class="pill ${otone}">${esc(ostat)}</span>
+      </div>
+    </div>
+    ${mismatch}
+    <div class="hr"></div>
+    <div class="row"><span class="k">Productos</span><span class="v">${pen(penOf(productsUsd))}</span></div>
+    <div class="row"><span class="k">Flete</span><span class="v">${pen(penOf(o.freteChargedUsd))}</span></div>
+    ${Number(o.smallOrderFeePen) ? `<div class="row"><span class="k">Cargo pedido pequeño</span><span class="v">${pen(o.smallOrderFeePen)}</span></div>` : ""}
+    ${taxRow}
+    ${Number(o.walletAppliedPen) ? `<div class="row"><span class="k">Saldo Aria</span><span class="v">- ${pen(o.walletAppliedPen)}</span></div>` : ""}
+    <div class="row"><span class="k"><strong>Total a la tarjeta</strong></span><span class="v big">${pen(o.pricePenCharged)}</span></div>
+    ${o.amountCapturedPen != null ? `<div class="row"><span class="k">Cobrado real</span><span class="v">${pen(o.amountCapturedPen)}</span></div>` : ""}
+    ${ship ? `<div class="hr"></div>${ship}` : `<div class="hr"></div><div class="row"><span class="k">Envío</span><span class="v muted">sin envío creado</span></div>`}
+    <details>
+      <summary>Ver ${(o.items || []).length} ítem(s), cliente y conciliación</summary>
+      <ul class="items">${items}</ul>
+      <div class="hr"></div>
+      <div class="row"><span class="k">Email</span><span class="v">${esc(o.buyerEmail || cust.email || "—")}</span></div>
+      ${cust.phone || cust.telefono ? `<div class="row"><span class="k">Teléfono</span><span class="v">${esc(cust.phone || cust.telefono)}</span></div>` : ""}
+      <div class="row"><span class="k">Destino</span><span class="v">${esc(o.shipping?.destCity || o.shipping?.ciudad || "—")}</span></div>
+      ${o.shipping?.addrLine ? `<div class="row"><span class="k">Dirección</span><span class="v" style="font-weight:500">${esc(o.shipping.addrLine)}${o.shipping.addrDistrict ? ", " + esc(o.shipping.addrDistrict) : ""}</span></div>` : ""}
+      ${o.recipient ? `<div class="row"><span class="k">Recibe</span><span class="v" style="font-weight:500">${esc(o.recipient.name)} · ${esc(o.recipient.idNumber)}${o.recipient.relationship ? " · " + esc(o.recipient.relationship) : ""}</span></div>` : ""}
+      <div class="row"><span class="k">Peso estimado</span><span class="v">${o.weightEstimatedKg != null ? Number(o.weightEstimatedKg).toFixed(2) + " kg" : "—"}</span></div>
+      <div class="row"><span class="k">Tipo de cambio</span><span class="v">${fx ? fx.toFixed(3) : "—"}</span></div>
+      <div class="row"><span class="k">Pago</span><span class="v mono">${esc(o.paymentId || "—")}</span></div>
+      ${Number(o.taxEstimatedPen) > 0 ? taxForm(o) : ""}
+    </details>
+  </div>`;
+}
+
+/* The SUNAT reconciliation form. Recording the real figure and ISSUING
+   the saldo are two separate acts on purpose: the first is data entry,
+   the second moves money, and the second only happens when somebody
+   presses the second button. */
+function taxForm(o) {
+  return `
+  <div class="hr"></div>
+  <div class="sub" style="margin-bottom:7px; font-weight:800; color:var(--ink-2)">Conciliar con SUNAT</div>
+  <div class="grid2">
+    <label class="field"><span>Impuesto real (USD)</span>
+      <input type="number" step="0.01" inputmode="decimal" id="tax-usd-${esc(o.orderId)}" value="${o.taxActualUsd != null ? Number(o.taxActualUsd) : ""}"></label>
+    <label class="field"><span>Doc. SUNAT</span>
+      <input type="text" id="tax-doc-${esc(o.orderId)}" value="${esc(o.sunatDocRef || "")}"></label>
+  </div>
+  <div class="btns">
+    <button class="btn" onclick="saveTax('${esc(o.orderId)}')">Guardar impuesto real</button>
+  </div>
+  <p class="note" id="tax-msg-${esc(o.orderId)}" style="margin:8px 0 0"></p>`;
+}
+
+async function saveTax(orderId) {
+  const msg = document.getElementById(`tax-msg-${orderId}`);
+  const usdVal = document.getElementById(`tax-usd-${orderId}`).value;
+  const doc = document.getElementById(`tax-doc-${orderId}`).value;
+  msg.textContent = "Guardando…";
+  try {
+    const res = await fetch("/.netlify/functions/admin-orders-update", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId, tax: { taxActualUsd: usdVal === "" ? null : Number(usdVal), sunatDocRef: doc } }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error");
+    const owed = data.taxOwed;
+    if (owed && owed.creditDuePen > 0) {
+      msg.innerHTML = `Guardado. Cobramos <strong>${pen(owed.creditDuePen)}</strong> de más — le corresponde como saldo Aria a ${esc(owed.buyerEmail || "el comprador")}.
+        <button class="btn" style="margin-top:8px" onclick="issueCredit('${esc(orderId)}','${esc(owed.buyerEmail || "")}',${owed.creditDuePen})">Emitir ${pen(owed.creditDuePen)} de saldo</button>`;
+    } else if (owed && owed.absorbedPen > 0) {
+      msg.innerHTML = `Guardado. SUNAT cobró <strong>${pen(owed.absorbedPen)}</strong> más que el estimado: Aria lo absorbe, el cliente no se vuelve a cobrar.`;
+    } else {
+      msg.textContent = owed ? "Guardado. El estimado coincidió con el real." : "Conciliación borrada.";
+    }
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+}
+
+async function issueCredit(orderId, email, amountPen) {
+  const msg = document.getElementById(`tax-msg-${orderId}`);
+  if (!email) { msg.textContent = "Este pedido no tiene una cuenta asociada — el saldo Aria necesita un comprador registrado."; return; }
+  msg.textContent = "Emitiendo saldo…";
+  try {
+    const res = await fetch("/.netlify/functions/admin-wallet-credit", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, amountPen, orderId, reason: `Impuesto real menor al estimado — pedido ${orderId}` }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error");
+    msg.innerHTML = `Saldo emitido. Nuevo saldo de ${esc(email)}: <strong>${pen(data.balancePen)}</strong>.`;
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+}
+
+function renderOrders() {
+  const d = state.orders;
+  if (!d) return '<div class="spin">Cargando pedidos…</div>';
+  if (!d.orders.length) {
+    return `<div class="card"><div class="title">Sin pedidos</div>
+      <p class="note" style="margin-top:6px">Todavía no hay ningún pedido registrado.</p></div>`;
+  }
+  const cards = d.orders.map((o) =>
+    orderCard(o, (d.payments || {})[o.orderId], (d.shipments || {})[o.orderId])).join("");
+  const more = d.hasMore
+    ? `<button class="btn wide" onclick="loadMoreOrders()" id="moreBtn">Cargar más (${d.offset + d.orders.length} de ${d.total})</button>`
+    : `<p class="note" style="text-align:center">${d.total} pedido(s) en total.</p>`;
+  const bad = d.unreadable
+    ? `<div class="banner warn">${d.unreadable} registro(s) de esta página no se pudieron leer.</div>` : "";
+  return `<h2>Pedidos · más recientes primero</h2>${bad}<div class="cols">${cards}</div>${more}`;
+}
+
+async function loadMoreOrders() {
+  const btn = document.getElementById("moreBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Cargando…"; }
+  const next = await api({ view: "orders", offset: state.orders.offset + state.orders.orders.length, limit: 25 });
+  state.orders = {
+    ...next,
+    orders: [...state.orders.orders, ...next.orders],
+    payments: { ...state.orders.payments, ...next.payments },
+    shipments: { ...state.orders.shipments, ...next.shipments },
+    offset: state.orders.offset,
+  };
+  paint();
+}
+
+/* ---- tab 2: payments ----------------------------------------------- */
+function renderPayments() {
+  const d = state.payments;
+  if (!d) return '<div class="spin">Cargando pagos…</div>';
+
+  const gw = d.gateway || {};
+  const head = gw.webhookConfigured
+    ? `<div class="banner info">Webhook de Stripe configurado. Un pedido dice «pagado» solo cuando Stripe lo confirmó.</div>`
+    : `<div class="card">
+         <div class="title" style="color:var(--bad); margin-bottom:6px">Stripe no está conectado</div>
+         <p class="note">${esc(gw.note || "")}</p>
+         <div class="hr"></div>
+         <p class="note"><strong>Para conectarlo:</strong></p>
+         <ol class="note" style="margin:6px 0 0; padding-left:20px; line-height:1.6">
+           <li>En Stripe → Developers → Webhooks, añade
+               <span class="mono">https://ariashop.pe${esc(gw.webhookPath || "")}</span></li>
+           <li>Suscribe <span class="mono">payment_intent.succeeded</span>,
+               <span class="mono">payment_intent.payment_failed</span>,
+               <span class="mono">charge.refunded</span> y
+               <span class="mono">charge.dispute.created</span></li>
+           <li>En Netlify, guarda el signing secret como
+               <span class="mono">STRIPE_WEBHOOK_SECRET</span></li>
+           <li>Quien cree el PaymentIntent debe poner el id del pedido en
+               <span class="mono">metadata.orderId</span></li>
+         </ol>
+       </div>`;
+
+  if (!d.payments.length) {
+    return `<h2>Pagos</h2>${head}
+      <div class="card">
+        <div class="title">Ningún pago registrado</div>
+        <p class="note" style="margin-top:6px">
+          ${gw.webhookConfigured
+            ? `Stripe está conectado y todavía no llegó ningún pago. Los ${d.orderCount} pedido(s) registrados siguen sin pagar.`
+            : `No hay ninguna pasarela conectada, así que no se ha cobrado nada. Los ${d.orderCount} pedido(s) registrados están sin pagar.`}
+        </p>
+      </div>`;
+  }
+
+  const cards = d.payments.map((p) => `
+    <div class="card">
+      <div class="head">
+        <div>
+          <div class="title mono">${esc(p.paymentId)}</div>
+          <div class="sub">${when(p.receivedAt)}${p.livemode ? "" : " · modo prueba"}</div>
+        </div>
+        ${payPill(p.derivedPaymentStatus)}
+      </div>
+      ${p.attention ? `<div class="banner bad" style="margin:9px 0 0">Requiere atención: ${esc(p.attention)}</div>` : ""}
+      <div class="hr"></div>
+      <div class="row"><span class="k">Monto</span><span class="v big">${p.currency === "pen" ? pen(p.amount) : esc((p.currency || "").toUpperCase()) + " " + Number(p.amount || 0).toFixed(2)}</span></div>
+      ${Number(p.amountRefunded) ? `<div class="row"><span class="k">Reembolsado</span><span class="v">${pen(p.amountRefunded)}</span></div>` : ""}
+      <div class="row"><span class="k">Pedido</span><span class="v mono">${p.orderId ? esc(p.orderId) : '<span class="pill bad">sin asociar</span>'}</span></div>
+      ${p.orderId && !p.orderExists ? `<div class="row"><span class="k muted">…que no existe en la tienda</span><span class="v"></span></div>` : ""}
+      ${p.orderBilledPen != null ? `<div class="row"><span class="k">Facturado en ese pedido</span><span class="v">${pen(p.orderBilledPen)}</span></div>` : ""}
+      ${p.orderCustomer ? `<div class="row"><span class="k">Cliente</span><span class="v">${esc(p.orderCustomer)}</span></div>` : ""}
+      ${p.customerEmail ? `<div class="row"><span class="k">Email en Stripe</span><span class="v">${esc(p.customerEmail)}</span></div>` : ""}
+      <details>
+        <summary>Historial (${(p.events || []).length})</summary>
+        <ul class="items">
+          ${(p.events || []).slice().reverse().map((e) => `
+            <li><span>${esc(e.type)}${e.failureMessage ? " — " + esc(e.failureMessage) : ""}</span>
+                <span class="v">${when(e.at)}</span></li>`).join("")}
+        </ul>
+      </details>
+    </div>`).join("");
+
+  const flagged = d.payments.filter((p) => p.attention).length;
+  return `<h2>Pagos · ${d.total} en total${flagged ? ` · ${flagged} por revisar` : ""}</h2>${head}<div class="cols">${cards}</div>`;
+}
+
+/* ---- tab 3: couriers ----------------------------------------------- */
+function renderCouriers() {
+  const d = state.couriers;
+  if (!d) return '<div class="spin">Probando adaptadores…</div>';
+
+  const blocked = d.createBlocked ? `<div class="banner bad">${esc(d.createBlocked)}</div>` : "";
+  const cards = (d.providers || []).map((p) => {
+    const tone = p.health === "up" ? "ok" : (p.health === "disabled" ? "flat" : "bad");
+    const label = p.health === "up" ? "Operativo" : (p.health === "disabled" ? "Desactivado" : "Caído");
+    return `
+    <div class="card">
+      <div class="head">
+        <div>
+          <div class="title">${esc(p.label)}</div>
+          <div class="sub">${esc(ROLE_ES[p.role] || p.role || "")}${p.isPrimary ? " · enruta todo hoy" : ""} · modo ${esc(p.mode || "?")}</div>
+        </div>
+        <span class="pill ${tone}"><span class="dot"></span>${label}</span>
+      </div>
+      ${p.errors && p.errors.length
+        ? `<div class="banner bad" style="margin:9px 0 0">${p.errors.map(esc).join("<br>")}</div>` : ""}
+      ${p.note ? `<p class="note" style="margin:9px 0 0">${esc(p.note)}</p>` : ""}
+      <div class="hr"></div>
+      <div class="row">
+        <span class="k">Última cotización (sonda ${p.lastQuote ? p.lastQuote.probeWeightKg : 1} kg)</span>
+        <span class="v">${p.lastQuote
+          ? usd(p.lastQuote.costUsd) + (p.lastQuote.estimated ? ' <span class="pill flat">tarifa de contrato</span>' : "")
+          : '<span class="muted">sin respuesta</span>'}</span>
+      </div>
+      ${p.lastQuote && p.lastQuote.transitDaysMin
+        ? `<div class="row"><span class="k">Tránsito</span><span class="v">${p.lastQuote.transitDaysMin}–${p.lastQuote.transitDaysMax} días</span></div>` : ""}
+      <div class="row">
+        <span class="k">Último rastreo</span>
+        <span class="v">${p.lastTrack
+          ? (p.lastTrack.found
+              ? `${esc(SHIPPING_ES[p.lastTrack.status] || p.lastTrack.status || "sin estado")} · ${p.lastTrack.events} evento(s)`
+              : "no encontrado")
+          : '<span class="muted">sin envíos aún</span>'}</span>
+      </div>
+      ${p.lastTrack && p.lastTrack.trackingNumber
+        ? `<div class="row"><span class="k">Guía</span><span class="v mono">${esc(p.lastTrack.trackingNumber)}</span></div>` : ""}
+      <div class="row"><span class="k">Envíos</span><span class="v">${p.shipmentsOpen} abiertos · ${p.shipmentsTotal} total</span></div>
+      <div class="hr"></div>
+      <div class="btns">
+        <button class="btn" onclick="toggleProvider('${esc(p.key)}', ${p.enabled ? "false" : "true"})">
+          ${p.enabled ? "Desactivar" : "Activar"}
+        </button>
+        ${p.isPrimary || !p.enabled ? "" : `<button class="btn" onclick="setPrimary('${esc(p.key)}')">Hacer primario</button>`}
+      </div>
+      <p class="note" id="prov-msg-${esc(p.key)}" style="margin:8px 0 0"></p>
+    </div>`;
+  }).join("");
+
+  return `<h2>Couriers · ${d.registryCount} en el registro</h2>${blocked}
+    <p class="note" style="margin:0 2px 11px">
+      El estado se comprueba en vivo: se construye el adaptador contra el contrato,
+      se le pide una cotización de sonda y se le pide el rastreo del último envío que llevó.
+      Un adaptador que falla en cualquiera de los tres sale en rojo, y la creación de envíos
+      se bloquea sola si no queda ninguno activo.
+    </p>
+    <div class="cols">${cards}</div>`;
+}
+
+async function providerAction(key, body) {
+  const msg = document.getElementById(`prov-msg-${key}`);
+  if (msg) msg.textContent = "Guardando…";
+  try {
+    const res = await fetch("/.netlify/functions/admin-shipping", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Error");
+    state.couriers = await api({ view: "couriers" });
+    state.summary = await api({ view: "summary" });
+    paint();
+  } catch (e) {
+    if (msg) msg.textContent = e.message;
+  }
+}
+const toggleProvider = (key, enabled) => providerAction(key, { action: "setProviderEnabled", provider: key, enabled });
+const setPrimary = (key) => providerAction(key, { action: "setPrimary", provider: key });
+
+/* ---- tab 4: ledger ------------------------------------------------- */
+function renderLedger() {
+  const d = state.ledger;
+  if (!d) return '<div class="spin">Armando el libro mayor…</div>';
+
+  const withMargin = d.rows.filter((r) => r.marginPen != null);
+  const marginTotal = withMargin.reduce((s, r) => s + r.marginPen, 0);
+  const pending = d.rows.length - withMargin.length;
+
+  const rows = d.rows.slice(0, 12).map((r) => `
+    <div class="card tight">
+      <div class="head">
+        <div><div class="title mono" style="font-size:12.5px">${esc(r.orderId)}</div>
+             <div class="sub">${when(r.createdAt)}</div></div>
+        <span class="v">${r.marginPen != null ? pen(r.marginPen) : '<span class="pill warn">sin conciliar</span>'}</span>
+      </div>
+      <div class="row"><span class="k">Producto / flete</span><span class="v">${pen(r.productsPen)} / ${pen(r.freightPen)}</span></div>
+      <div class="row"><span class="k">Impuesto est. / real</span><span class="v">${pen(r.taxEstimatedPen)} / ${pen(r.taxActualPen)}</span></div>
+      <div class="row"><span class="k">Cobrado / real</span><span class="v">${pen(r.billedPen)} / ${pen(r.capturedPen)}</span></div>
+      ${r.creditIssuedPen ? `<div class="row"><span class="k">Saldo emitido</span><span class="v">${pen(r.creditIssuedPen)}</span></div>` : ""}
+    </div>`).join("");
+
+  return `<h2>Libro mayor</h2>
+    <div class="card">
+      <div class="title" style="margin-bottom:6px">Exportar para el contador</div>
+      <p class="note">
+        Una fila por pedido, ${d.rows.length} fila(s): ingreso por producto, flete cobrado,
+        deuda SUNAT estimada contra real, margen Aria, reembolsos y saldo Aria emitido.
+        Las columnas sin conciliar salen <strong>en blanco, nunca en cero</strong> — un cero
+        se sumaría y haría parecer conciliado lo que no lo está.
+      </p>
+      ${d.truncated ? `<div class="banner warn" style="margin:11px 0 0">Cubre los ${d.scanned} pedidos más recientes de ${d.total}.</div>` : ""}
+      <div class="btns" style="margin-top:12px">
+        <button class="btn primary wide" onclick="downloadLedger()">Descargar CSV</button>
+      </div>
+    </div>
+    <div class="card tight">
+      <div class="row"><span class="k">Margen Aria conciliado</span><span class="v big">${pen(marginTotal)}</span></div>
+      <div class="row"><span class="k">Pedidos conciliados</span><span class="v">${withMargin.length} de ${d.rows.length}</span></div>
+      ${pending ? `<div class="row"><span class="k muted">Faltan costo real de producto y de courier en ${pending}</span><span class="v"></span></div>` : ""}
+    </div>
+    ${rows ? `<h2>Vista previa · primeras ${Math.min(12, d.rows.length)} filas</h2><div class="cols">${rows}</div>` : ""}`;
+}
+
+function downloadLedger() {
+  // A plain navigation, so iOS Safari hands the CSV to the share sheet
+  // and it can go straight to Mail or Files from the phone. A fetch +
+  // blob would download into a sandbox the operator cannot reach.
+  window.location.href = `${API}?view=ledger&format=csv`;
+}
+
+/* ---- shell --------------------------------------------------------- */
+const RENDER = { orders: renderOrders, payments: renderPayments, couriers: renderCouriers, ledger: renderLedger };
+
+function paint() {
+  document.getElementById("main").innerHTML = summaryStrip() + RENDER[state.tab]();
+  for (const b of document.querySelectorAll("nav.tabs button")) {
+    b.setAttribute("aria-selected", String(b.dataset.tab === state.tab));
+  }
+}
+
+const LOADER = {
+  orders: () => api({ view: "orders", limit: 25 }),
+  payments: () => api({ view: "payments", limit: 50 }),
+  couriers: () => api({ view: "couriers" }),
+  ledger: () => api({ view: "ledger" }),
+};
+
+async function go(tab) {
+  state.tab = tab;
+  paint();
+  window.scrollTo({ top: 0, behavior: "instant" });
+  if (!state[tab]) {
+    try {
+      state[tab] = await LOADER[tab]();
+    } catch (e) {
+      if (e.code === 403) return renderGate();
+      document.getElementById("main").innerHTML =
+        summaryStrip() + `<div class="banner bad">${esc(e.message)}</div>`;
+      return;
+    }
+    paint();
+  }
+}
+
+async function refresh() {
+  const btn = document.getElementById("refreshBtn");
+  btn.setAttribute("aria-busy", "true");
+  // Everything already loaded is reloaded; tabs never opened stay lazy.
+  const loaded = Object.keys(LOADER).filter((k) => state[k]);
+  try {
+    state.summary = await api({ view: "summary" });
+    document.getElementById("who").innerHTML =
+      `${esc(state.summary.me || "")}<br><span class="muted">${esc(state.summary.today || "")}</span>`;
+    document.getElementById("tabs").hidden = false;
+    for (const k of loaded) state[k] = await LOADER[k]();
+    if (!state[state.tab]) state[state.tab] = await LOADER[state.tab]();
+    paint();
+  } catch (e) {
+    if (e.code === 403) renderGate();
+    else document.getElementById("main").innerHTML = `<div class="banner bad">${esc(e.message)}</div>`;
+  } finally {
+    btn.removeAttribute("aria-busy");
+  }
+}
+
+refresh();
+</script>
+</body>
+</html>

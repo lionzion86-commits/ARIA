@@ -37,7 +37,7 @@ export const MIN_DISCOUNT_PCT = 5;
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
-  titleWeight, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
+  titleWeight, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
   GENERIC_FALLBACK_KG,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
@@ -360,11 +360,12 @@ export function normalizeDeal(item, retailer) {
     weightSource: weight.source,
     weightReviewKind: weight.reviewKind,
     freightUsd: freight,
+    /* Kept as data, not as a verdict. Nothing renders a label off this
+       number any more (the "Flete alto" badge is gone — it measured
+       cheapness, not weight); it is here so the refresh script and any
+       later calibration can see the distribution. Anything past the
+       feature ceiling never reaches this object at all. */
     freightShare: Math.round(share * 1000) / 1000,
-    // Featured, not hidden — the card badges it so the discount is never
-    // printed as if the freight were not there. Anything past the
-    // ceiling never reaches this object at all.
-    freightHigh: share > FREIGHT_BADGE_SHARE,
     sizes,
     image: images[0] || null,
     images,

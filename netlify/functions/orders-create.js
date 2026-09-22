@@ -1,8 +1,12 @@
-// The one place "payment" actually finalizes (still simulated — no real
-// payment gateway exists or is in scope here). Enforces the daily order
-// cap / kill switch ("launch cash control") and, when the order goes
-// through, persists a real order record that both orders-remaining.js's
-// counter and the admin margin-test view (admin-orders-*.js) read from.
+// Where an order is CREATED. Not where it is paid — nothing here takes
+// money, and as of 2026-09-22 nothing in this repo does: there is no card
+// form and no gateway call. Payment arrives later and separately, through
+// stripe-webhook.js, which is the only writer of paymentStatus.
+//
+// This function enforces the daily order cap / kill switch ("launch cash
+// control") and persists an order record that orders-remaining.js's
+// counter, the admin margin view (admin-orders-*.js) and the ops
+// dashboard (admin-dashboard.js) all read from.
 //
 // NOT atomic: the counter is a plain read-modify-write against Blobs, not
 // a compare-and-swap. Acceptable for a low-volume launch-phase cap (a
@@ -15,7 +19,7 @@ import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
 import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
-import { smallOrderFeePen } from "../../weight-data.js";
+import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE } from "../../weight-data.js";
 
 const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
@@ -26,6 +30,30 @@ const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue per
 // as an estimate, never as a real reconciled fee.
 const GATEWAY_FEE_RATE_ESTIMATE = 0.0399;
 const GATEWAY_FEE_FIXED_PEN_ESTIMATE = 0.5;
+
+const clean = (v, max) => String(v ?? "").trim().slice(0, max);
+
+/**
+ * The person who will actually take the parcel, or null for the buyer.
+ *
+ * THE DOCUMENT IS MANDATORY and it is enforced here, not only in the
+ * form: aduanas and the courier check ID at handoff, and a recipient
+ * whose document is missing from the manifest can be refused the box.
+ * A recipient with no name or no document is therefore not a
+ * half-filled recipient — it is no recipient, and recording it as one
+ * would put a name on the manifest that the courier cannot verify.
+ */
+function normalizeRecipient(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const recipient = {
+    name: clean(raw.name, 120),
+    idNumber: clean(raw.idNumber ?? raw.doc, 40),
+    relationship: clean(raw.relationship, 80),
+    deliveryInstructions: clean(raw.deliveryInstructions, 400),
+  };
+  if (!recipient.name || !recipient.idNumber) return null;
+  return recipient;
+}
 
 export async function handler(event) {
   connectLambda(event);
@@ -73,6 +101,22 @@ export async function handler(event) {
       return { statusCode: 200, headers, body: JSON.stringify({ held: true, message: HELD_MESSAGE, batchHour }) };
     }
 
+    /* THE RECIPIENT IS VALIDATED BEFORE ANYTHING IS CHARGED. The form
+       marks the fields required, but a form can be bypassed, and a box
+       that reaches Lima addressed to a name with no document is a failed
+       delivery we have already paid the freight on. */
+    const recipientAsked = body.recipient && typeof body.recipient === "object";
+    const recipient = normalizeRecipient(body.recipient);
+    if (recipientAsked && !recipient) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          error: "Falta el nombre o el documento de quien recibe el paquete. El courier necesita ambos para entregarlo.",
+        }),
+      };
+    }
+
     const priceUsdTotal = items.reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
     const weightKgTotal = items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
     const fxRateVenta = typeof body.fxRateVenta === "number" ? body.fxRateVenta : null;
@@ -93,8 +137,32 @@ export async function handler(event) {
       ? null
       : Math.round((priceUsdTotal + freightUsdQuoted) * fxRateVenta * 100) / 100;
     const smallOrderFeePenCharged = orderBasePen != null ? smallOrderFeePen(orderBasePen) : 0;
+
+    /* IMPORT TAX — RECOMPUTED, NOT ACCEPTED (2026-09-21).
+
+       The browser sends what it showed so the record can prove the two
+       agreed, but the charge is decided here, from the same shared
+       helper, for the same reason the small-order fee is: a tampered
+       request must not be able to zero it, and a stale page must not be
+       able to charge an old rate.
+
+       THE BASE IS THE ORDER'S OWN NUMBERS: goods from the items, freight
+       from the quote the customer was shown. The threshold is on the
+       goods (FOB), the rate is on goods + freight (CIF) — see
+       importTaxEstimateUsd().
+
+       AND IT IS WHAT THE CUSTOMER PAYS, not what the courier bills. The
+       quote's total_usd still carries AVI's own duty and is recorded
+       below for the margin view, but the customer's total is built from
+       goods + freight + THIS number. When AVI bills more, Aria absorbs
+       it; when the real SUNAT figure comes in lower, the difference is
+       credited back as saldo. taxActual and sunatDocRef are where that
+       reconciliation lands. */
+    const taxEstimatedUsd = importTaxEstimateUsd(priceUsdTotal, freightUsdQuoted);
+    const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd) * 100) / 100;
+    const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
-      ? Math.round((quote.total_usd * fxRateVenta + smallOrderFeePenCharged) * 100) / 100
+      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged) * 100) / 100
       : null;
     /* SALDO ARIA. The browser asks for an amount; the server decides it.
        The balance is re-read here and capped against both the real
@@ -124,7 +192,38 @@ export async function handler(event) {
     const order = {
       orderId,
       createdAt: new Date().toISOString(),
-      status: "confirmed",
+      /* ---- STATUS, AND WHY IT IS NO LONGER "confirmed" -------------
+         This field said "confirmed" on every order from the first one,
+         and nothing had confirmed anything: there is no card form, no
+         gateway call and — until stripe-webhook.js — no webhook. The
+         checkout button says "Pagar", shows a success screen, and no
+         money moves. An order record that claimed otherwise was the
+         single most misleading thing in this codebase, because it is the
+         field ops would reconcile the bank against.
+
+         So there are two fields now and they answer different questions:
+
+           status         where the order is in FULFILMENT.
+                          pending_payment -> confirmed -> (shipping
+                          statuses live on the shipment, not here).
+           paymentStatus  whether MONEY ARRIVED. Written ONLY by
+                          stripe-webhook.js, only after a signature
+                          verified against STRIPE_WEBHOOK_SECRET.
+
+         Both start at the honest value. Nothing in this function can
+         move either of them, which is the point: the server that creates
+         an order is not the server that can say it was paid. */
+      status: "pending_payment",
+      paymentStatus: "unpaid",
+      paymentProvider: null,
+      paymentId: null,
+      paidAt: null,
+      /* What the gateway actually captured, versus what we billed
+         (pricePenCharged below). Null until a payment event lands; a
+         zero here would read as "checked, nothing came in". */
+      amountCapturedPen: null,
+      amountRefundedPen: null,
+      amountMismatchPen: null,
       customer: body.customer || {},
       shipping: body.shipping || {},
       items,
@@ -140,9 +239,36 @@ export async function handler(event) {
       // Itemised on the record, not folded into the total, so the margin
       // view can tell handling revenue apart from freight and product.
       smallOrderFeePen: smallOrderFeePenCharged,
-      totalUsd: quote.total_usd,
+      totalUsd: customerTotalUsd,          // what the customer is charged, in USD
+      courierTotalUsd: quote.total_usd,    // what AVI quoted, duty and all — margin view only
       gatewayFeeEstimatePen,
       quoteSource: quote.source || null,
+
+      /* ---- IMPORT TAX, AND ITS RECONCILIATION ----------------------
+         taxEstimated* is charged today. taxActual and sunatDocRef are
+         written later, when the real assessment arrives, and they exist
+         from the first order rather than being bolted on afterwards —
+         an order placed before the reconciliation UI ships still has
+         somewhere for its real figure to go, so no order is unresolvable
+         later for want of a field.
+
+         THE RULE WHEN THEY DIFFER, so the UI cannot invent its own:
+           taxActual < taxEstimated  -> credit the difference as saldo Aria.
+           taxActual > taxEstimated  -> Aria absorbs it. The customer is
+                                        never billed a second time.
+         taxReconciledAt stays null until someone has actually done it;
+         a null here means "not yet", never "nothing owed". */
+      taxEstimatedUsd,
+      taxEstimatedPen,
+      taxRateUsed: taxEstimatedUsd > 0 ? TAX_ESTIMATE_RATE : null,
+      taxActualUsd: null,
+      taxActualPen: null,
+      sunatDocRef: null,
+      taxReconciledAt: null,
+
+      /* Null when the buyer receives it themselves. Carried onto the
+         courier manifest — see manifestRow() in _shipping/service.js. */
+      recipient,
     };
 
     await ordersStore.setJSON(orderId, order);

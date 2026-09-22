@@ -15,6 +15,7 @@
 
 import fs from "node:fs/promises";
 import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
+import { extractFitment, matchesVehicle } from "./lib/fitment.js";
 
 const SITE = "https://ariashop.pe";
 const OUT_FILE = new URL("../auto-cache.json", import.meta.url);
@@ -24,7 +25,10 @@ const FETCH_TIMEOUT_MS = 60000;
 // and no vehicle-lookup API needed, so this runs at full scope.
 // Keeps the two years from the first seed (so that data stays valid) and
 // adds a third, older year for broader coverage.
-// Full 2009-2026 range — 18 years x 26 vehicles x 4 parts = 1,872 combos.
+// Full 2009-2026 range. 18 years x 30 vehicles x 4 parts = 2,160 combos
+// (was 26 vehicles / 1,872 before the Sonata, Accent, Rio and Seltos rows
+// were added). The script resumes and skips what the cache already holds,
+// so a re-run after this change only fetches the new combinations.
 const AUTOZONE_YEARS = Array.from({ length: 2026 - 2009 + 1 }, (_, i) => String(2009 + i));
 const AUTOZONE_VEHICLES = [
   { make: "Toyota", model: "Camry" }, { make: "Toyota", model: "Corolla" },
@@ -32,6 +36,16 @@ const AUTOZONE_VEHICLES = [
   { make: "Ford", model: "F-150" }, { make: "Ford", model: "Escape" },
   { make: "Kia", model: "Optima" }, { make: "Kia", model: "Sportage" },
   { make: "Hyundai", model: "Elantra" }, { make: "Hyundai", model: "Tucson" },
+  /* SONATA ADDED 2026-09-20, and the reason is worth keeping. The live
+     report that drove the whole fitment rework was "2020 Hyundai Sonata
+     + pastillas de freno" — and the Sonata was never in this list, so
+     that search never hit the cache at all and went out as a live scrape
+     every time. Danny's results were real because AutoZone's own search
+     was scoped to the vehicle; they were just costing an Apify run per
+     shopper and could not be inspected here. A named test case that is
+     not in the cache is a test case that cannot pass deterministically. */
+  { make: "Hyundai", model: "Sonata" }, { make: "Hyundai", model: "Accent" },
+  { make: "Kia", model: "Rio" }, { make: "Kia", model: "Seltos" },
   { make: "Chevrolet", model: "Silverado 1500" }, { make: "Chevrolet", model: "Malibu" },
   { make: "Nissan", model: "Altima" }, { make: "Nissan", model: "Rogue" },
   { make: "Subaru", model: "Outback" }, { make: "Subaru", model: "Forester" },
@@ -177,6 +191,28 @@ async function main() {
   const autozoneComboCount = AUTOZONE_YEARS.length * AUTOZONE_VEHICLES.length * AUTOZONE_PARTS.length;
   console.log(`~${autozoneComboCount} AutoZone Apify runs (~$0.01-0.03 each).\n`);
 
+  /* ORDER MATTERS, AND GETTING IT WRONG COSTS REAL MONEY.
+
+     This script does not call Apify directly — it calls the DEPLOYED
+     site's own functions (SITE above). So the scrape mode it runs under
+     is whatever is live at ariashop.pe right now, not whatever is in
+     this checkout. Re-running before the AUTO_SCRAPE_MODE="detail"
+     change is merged AND published means paying for a full pass that
+     comes back in "overview" mode: no compatibility lists, no green
+     badges, nothing gained.
+
+     There is no endpoint that reports the deployed mode, so this cannot
+     be checked automatically — which is exactly why it is printed here,
+     loudly, before anything is spent. The coverage report at the end
+     tells you whether it worked. */
+  console.log("  ----------------------------------------------------");
+  console.log("  ANTES DE GASTAR: este script usa las funciones del sitio EN VIVO.");
+  console.log("  El calce solo llega si el deploy publicado ya corre");
+  console.log("  AUTO_SCRAPE_MODE=\"detail\" (netlify/functions/apify-scrape-start.js).");
+  console.log("  Si todavía está en \"overview\", esta pasada no trae listas de");
+  console.log("  compatibilidad y el gasto es en vano. Verifica el deploy primero.");
+  console.log("  ----------------------------------------------------\n");
+
   const autozoneCombos = [];
   for (const year of AUTOZONE_YEARS) {
     for (const { make, model } of AUTOZONE_VEHICLES) {
@@ -211,6 +247,58 @@ async function main() {
 
   console.log(`\nWrote ${OUT_FILE.pathname}`);
   console.log(`partSearches: ${Object.keys(cache.partSearches).length} combos`);
+  reportFitmentCoverage();
+}
+
+/* ============================================================
+   DID THIS RUN ACTUALLY BRING BACK FITMENT?
+
+   The whole Aria Auto contract rests on one thing: does a cached part
+   carry a compatibility list naming the vehicle it was cached under? An
+   audit of the previous cache found ZERO across 9,285 items — every one
+   scraped in "overview" mode, which returns description: null,
+   features: [] and a two-key specs object. Nothing in this script or in
+   apify-scrape-status.js drops those fields (checked, twice): the actor
+   simply does not send them in that mode.
+
+   So the mode is the variable, and this is the readout. If it prints 0%
+   after a run, AUTO_SCRAPE_MODE in netlify/functions/apify-scrape-start.js
+   is the thing to change, not this file. Printing it every run is what
+   turns "the badge never went green" from a mystery into a number.
+   ============================================================ */
+function reportFitmentCoverage() {
+  let items = 0;
+  let withList = 0;
+  let matchingItsOwnKey = 0;
+  const sampleSources = new Map();
+
+  for (const [key, entry] of Object.entries(cache.partSearches)) {
+    const [year, make, model] = key.split("|");
+    for (const raw of entry.autozone || []) {
+      items++;
+      const fitment = extractFitment(raw);
+      if (!fitment) continue;
+      withList++;
+      sampleSources.set(fitment.from, (sampleSources.get(fitment.from) || 0) + 1);
+      // The sharper question: does the list name the very vehicle this
+      // result was cached under? A list we cannot match is as good as none.
+      if (matchesVehicle(fitment.vehicles, { year, make, model })) matchingItsOwnKey++;
+    }
+  }
+
+  const pct = (n) => (items ? Math.round((n / items) * 100) : 0);
+  console.log("\n  calce (capa 1 de Aria Auto):");
+  console.log(`    piezas en caché           ${items}`);
+  console.log(`    con lista de compatibilidad ${withList} (${pct(withList)}%)`);
+  console.log(`    que nombran su propio vehículo ${matchingItsOwnKey} (${pct(matchingItsOwnKey)}%)`);
+  if (sampleSources.size) {
+    console.log(`    campos de origen: ${[...sampleSources].map(([k, n]) => `${k}=${n}`).join(", ")}`);
+  }
+  if (!withList) {
+    console.log("    NINGUNA pieza trae lista de compatibilidad. El scrape sigue en modo");
+    console.log("    'overview'. Revisa AUTO_SCRAPE_MODE en netlify/functions/apify-scrape-start.js —");
+    console.log("    ni este script ni apify-scrape-status.js descartan campos.");
+  }
 }
 
 main().catch((err) => {

@@ -152,12 +152,22 @@
             </span>
             <span id="sumWallet" class="tabular font-extrabold text-[15px]" style="color:#7A5B12">- S/ 0.00</span>
           </div>
-          <div id="sumDutyRow" class="rounded-xl px-3 py-2.5 flex items-center justify-between gap-2" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
-            <span class="flex flex-col">
-              <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#8A6B1F">Cargo del gobierno de Perú</span>
-              <span class="text-[12.5px] font-bold" style="color:#5C4813">Aranceles e impuestos</span>
-            </span>
-            <span id="sumDuty" class="tabular font-extrabold text-[15px]" style="color:#8A6B1F">S/ 0.00</span>
+          <!-- IMPORT TAX — ARIA'S ESTIMATE (2026-09-21). This row used to
+               show the courier's own duty, derived back out of the quote
+               total. It is Aria's own estimate now, and the promise under
+               it is the reason that matters: an over-estimate comes back
+               as saldo, an under-estimate is absorbed. Only ever rendered
+               when the goods alone clear $200 — under that, nothing is
+               owed and nothing is shown. -->
+          <div id="sumTaxRow" class="rounded-xl px-3 py-2.5" style="background:#FFF6E0; border:1px solid #F0D28A" hidden>
+            <div class="flex items-center justify-between gap-2">
+              <span class="flex flex-col">
+                <span class="text-[10.5px] font-extrabold uppercase tracking-wide" style="color:#8A6B1F">Cargo del gobierno de Perú</span>
+                <span id="sumTaxLabel" class="text-[12.5px] font-bold" style="color:#5C4813">Impuestos de importación (estimado)</span>
+              </span>
+              <span id="sumTax" class="tabular font-extrabold text-[15px] flex-shrink-0" style="color:#8A6B1F">S/ 0.00</span>
+            </div>
+            <p id="sumTaxNote" class="text-[11.5px] leading-snug mt-1.5" style="color:#7A5E18"></p>
           </div>
           <!-- VISUAL UPDATE (2026-09-17): this policy note used to be easy
                to miss (small, gray text) — made it pop with a strong yellow
@@ -168,9 +178,7 @@
                though every other number on this page now leads with PEN. -->
           <div class="rounded-xl px-3.5 py-3 flex items-start gap-2" style="background:var(--yellow); border:1px solid var(--yellow-dark)">
             <svg class="flex-shrink-0 mt-0.5" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
-            <p class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)">
-              Envíos de hasta $200 no pagan aranceles ni impuestos. Por encima de $200 aplica ~23% de aranceles e IGV sobre el valor declarado.
-            </p>
+            <p id="taxPolicyNote" class="text-[12.5px] font-bold leading-snug" style="color:var(--navy)"></p>
           </div>
           <div class="h-px" style="background:var(--line)"></div>
           <div class="flex justify-between items-baseline">
@@ -271,6 +279,69 @@
                 <label for="addrRef" class="block text-[12px] font-bold mb-1.5">Referencia <span class="font-medium text-zinc-400">(opcional)</span></label>
                 <input id="addrRef" name="addrRef" type="text" placeholder="Frente al parque"
                   class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+              </div>
+            </div>
+
+            <!-- ============================================================
+                 SOMEONE ELSE RECEIVES THE PARCEL (2026-09-21)
+
+                 A parcel handed over in Lima is handed to a PERSON, and
+                 often not the person who paid: it goes to a mother, a
+                 building porter, an office. Until now the only name on
+                 the manifest was the buyer's, so the courier arrived
+                 asking for someone who was at work.
+
+                 THE DOCUMENT IS THE POINT, and it is why this is required
+                 rather than a free-text note. Aduanas and the courier
+                 both check ID at handoff, and a receiver whose document
+                 is not on the manifest can be refused the parcel — which
+                 means a second delivery attempt, or the box going back to
+                 the warehouse. Collecting it costs one field; not
+                 collecting it costs a delivery.
+
+                 Collapsed by default: most orders are received by the
+                 buyer, and four extra fields on every checkout to serve
+                 the minority is how a form gets abandoned.
+                 ============================================================ -->
+            <div class="pt-1">
+              <label class="flex items-start gap-2.5 cursor-pointer select-none">
+                <input type="checkbox" id="altRecipientToggle" name="altRecipientToggle"
+                  class="mt-0.5 w-4 h-4 accent-[#2F5FEE] flex-shrink-0 focus-ring">
+                <span class="text-[13.5px] font-semibold leading-snug" style="color:var(--navy)">
+                  No seré yo quien reciba el paquete.
+                  <span class="block text-[12px] font-normal mt-0.5" style="color:#8A93A8">
+                    Nos dices quién lo recibe y el courier lo entrega a esa persona.
+                  </span>
+                </span>
+              </label>
+            </div>
+
+            <div id="altRecipientFields" class="grid gap-4 rounded-2xl p-4" style="background:var(--sky)" hidden>
+              <div class="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label for="recName" class="block text-[12px] font-bold mb-1.5">Nombre del receptor</label>
+                  <input id="recName" name="recName" type="text" placeholder="María Torres"
+                    class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+                </div>
+                <div>
+                  <label for="recDoc" class="block text-[12px] font-bold mb-1.5">Documento (DNI / CE)</label>
+                  <input id="recDoc" name="recDoc" type="text" inputmode="numeric" placeholder="12345678"
+                    class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring tabular" style="border-color:var(--line)">
+                  <p class="text-[11px] leading-snug mt-1" style="color:#6B7280">
+                    Obligatorio: el courier y aduanas piden el documento de quien recibe.
+                  </p>
+                </div>
+              </div>
+              <div>
+                <label for="recRelation" class="block text-[12px] font-bold mb-1.5">Relación con el comprador</label>
+                <input id="recRelation" name="recRelation" type="text" placeholder="Mi mamá, mi hermano, el portero del edificio…"
+                  class="w-full h-[46px] bg-white border rounded-xl px-4 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+              </div>
+              <div>
+                <label for="recInstructions" class="block text-[12px] font-bold mb-1.5">Instrucciones de entrega</label>
+                <textarea id="recInstructions" name="recInstructions" rows="2"
+                  placeholder="Ej: dejar con el portero, tocar la puerta y preguntar por Ana."
+                  class="w-full bg-white border rounded-xl px-4 py-3 text-[14px] outline-none focus-ring resize-y" style="border-color:var(--line)"></textarea>
               </div>
             </div>
           </div>
@@ -399,7 +470,9 @@
 </div>
 
 <script type="module">
-  import { CHARGE_PER_KG, BASE_FEE, DUTY_THRESHOLD_USD, DUTY_RATE,
+  import { CHARGE_PER_KG, BASE_FEE,
+           TAX_ESTIMATE_THRESHOLD_USD, TAX_ESTIMATE_RATE, importTaxEstimateUsd,
+           TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE,
            SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN, smallOrderFeePen,
            SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE } from './weight-data.js';
   import { RETAILER_LABELS, RETAILER_COLORS, RETAILER_LOGOS } from './scripts/lib/retailers.js';
@@ -487,8 +560,8 @@
   const quoteStatus = document.getElementById('quoteStatus');
   const sumWeight = document.getElementById('sumWeight');
   const sumValor = document.getElementById('sumValor');
-  const sumDutyRow = document.getElementById('sumDutyRow');
-  const sumDuty = document.getElementById('sumDuty');
+  const sumTaxRow = document.getElementById('sumTaxRow');
+  const sumTax = document.getElementById('sumTax');
   const sumFlete = document.getElementById('sumFlete');
   const sumSmallOrderRow = document.getElementById('sumSmallOrderRow');
   const sumSmallOrder = document.getElementById('sumSmallOrder');
@@ -576,7 +649,7 @@
      different number than the one on screen. */
   function orderTotalPenNow(){
     if (!fxRates || !latestQuote) return 0;
-    return round2(latestQuote.total_usd * fxRates.venta + currentSmallOrderFeePen());
+    return round2(orderTotalsUsd().totalUsd * fxRates.venta + currentSmallOrderFeePen());
   }
 
   // What this order can actually consume: never more than the balance,
@@ -596,20 +669,18 @@
     return Number.isFinite(raw) && raw > 0 ? raw : 0;
   }
 
-  // Flat local estimate — only used if the live freight quote can't be reached.
-  // Total is the declared product value plus shipping, matching what the
-  // live quote's total_usd represents (flete_usd is shipping alone).
+  /* Flat local estimate — only used if the live freight quote can't be
+     reached. FREIGHT ONLY, and deliberately so.
+
+     This used to add its own duty from DUTY_RATE, while the live quote
+     carried AVI's duty inside total_usd. The tax a customer saw
+     therefore depended on whether an API call had succeeded, and the two
+     paths never agreed. Import tax is computed in exactly one place now
+     — importTaxEstimateUsd() in weight-data.js — and added to the total
+     the same way whichever quote is in hand. See orderTotalsUsd(). */
   function fallbackQuote(kg, valorUsd){
     const flete = kg * CHARGE_PER_KG + BASE_FEE;
-    // Same real, publicly disclosed Peru duty/IGV policy the live quote
-    // already applies (see DUTY_THRESHOLD_USD/DUTY_RATE in weight-data.js)
-    // — added here so the fallback (only used when the quote API is
-    // unreachable) doesn't silently under-quote an order that's actually
-    // over the duty threshold, which would have made the real charge at
-    // the next successful quote look like a bug rather than a real cost
-    // that was simply missing from the estimate.
-    const duty = valorUsd > DUTY_THRESHOLD_USD ? Math.round(valorUsd * DUTY_RATE * 100) / 100 : 0;
-    return { total_usd: valorUsd + flete + duty, total_pen: null, flete_usd: flete, source: 'fallback' };
+    return { total_usd: valorUsd + flete, total_pen: null, flete_usd: flete, source: 'fallback' };
   }
 
   async function fetchQuote(kg, valorUsd, description){
@@ -738,6 +809,86 @@
     return smallOrderFeePen(round2(orderUsd * fxRates.venta));
   }
 
+  /* EVERY FIGURE THE SUMMARY PRINTS, FROM ONE FUNCTION (2026-09-21).
+
+     The total used to be the courier's total_usd plus the handling fee,
+     with the tax derived back out of it for display. That made the tax
+     a residual of somebody else's arithmetic — it could not be promised
+     in advance, and the fallback and live paths disagreed about it.
+
+     Now Aria builds the total itself: goods + freight + its own tax
+     estimate + handling. The courier's total_usd is still recorded on
+     the order for the margin view, but it is no longer what the customer
+     is charged. Where Aria's estimate is under what AVI bills, Aria
+     absorbs the difference — that is the promise printed on the row. */
+  function orderTotalsUsd(){
+    const fob = currentValor();
+    const freight = currentFreightUsd();
+    const tax = importTaxEstimateUsd(fob, freight);
+    return { fob, freight, tax, goodsAndFreight: round2(fob + freight), totalUsd: round2(fob + freight + tax) };
+  }
+
+  /* One renderer for the tax row, called from both summary branches so
+     the figure cannot differ between "quoting" and "quoted" — the tax
+     depends on goods and freight, and neither changes when the live
+     quote lands. Hidden entirely under the threshold: an explicit
+     "S/ 0.00 de impuestos" would be noise on the 90% of orders that owe
+     nothing. */
+  /* The policy note is generated, not typed. It read "~23% de aranceles
+     e IGV sobre el valor declarado" while the code charged something
+     else on a different base — the copy and the rule have to come from
+     the same two constants or they drift apart again. */
+  document.getElementById('taxPolicyNote').textContent =
+    `Envíos de hasta $${TAX_ESTIMATE_THRESHOLD_USD} en productos no pagan impuestos de importación. `
+    + `Por encima de $${TAX_ESTIMATE_THRESHOLD_USD} estimamos ~${Math.round(TAX_ESTIMATE_RATE * 100)}% sobre el valor de los productos más el flete.`;
+
+  function renderTaxRow(taxUsd){
+    document.getElementById('sumTaxLabel').textContent = TAX_ESTIMATE_LABEL;
+    document.getElementById('sumTaxNote').textContent = TAX_ESTIMATE_NOTE;
+    if (!(taxUsd > 0)){ sumTaxRow.hidden = true; return; }
+    sumTax.textContent = fmtPrimary(taxUsd);
+    sumTaxRow.hidden = false;
+  }
+
+  /* ALTERNATE RECIPIENT. `required` is toggled with the checkbox rather
+     than set in the markup, because a required field inside a hidden
+     block makes the form permanently unsubmittable AND unfocusable —
+     the browser refuses to submit and then cannot scroll to the thing it
+     is complaining about. Hidden means not required; shown means
+     required, on the three fields that have to be there.
+
+     Instructions stay optional: "leave it with the porter" is useful
+     when it exists and inventing a value for it is not. */
+  const altRecipientToggle = document.getElementById('altRecipientToggle');
+  const altRecipientFields = document.getElementById('altRecipientFields');
+  const REQUIRED_RECIPIENT_FIELDS = ['recName', 'recDoc', 'recRelation'];
+
+  function syncAltRecipient(){
+    const on = altRecipientToggle.checked;
+    altRecipientFields.hidden = !on;
+    for (const id of REQUIRED_RECIPIENT_FIELDS){
+      const el = document.getElementById(id);
+      el.required = on;
+      if (!on) el.setCustomValidity('');
+    }
+  }
+  altRecipientToggle.addEventListener('change', syncAltRecipient);
+  syncAltRecipient();
+
+  /* What goes on the order and onto the courier's manifest. Null when
+     the buyer is receiving it themselves — an empty-stringed recipient
+     object would read downstream as "someone else, name unknown". */
+  function altRecipientPayload(){
+    if (!altRecipientToggle.checked) return null;
+    const val = (id) => document.getElementById(id).value.trim();
+    return {
+      name: val('recName'),
+      idNumber: val('recDoc'),
+      relationship: val('recRelation'),
+      deliveryInstructions: val('recInstructions'),
+    };
+  }
+
   function renderSmallOrderRow(fee){
     document.getElementById('sumSmallOrderLabel').textContent = SMALL_ORDER_FEE_LABEL;
     document.getElementById('sumSmallOrderNote').textContent = SMALL_ORDER_FEE_NOTE;
@@ -760,19 +911,17 @@
        threshold — marked as an estimate. Pagar still waits for the real
        quote; only the numbers on screen are filled in. */
     const provisional = kg > 0 && valor > 0 ? fallbackQuote(kg, valor) : null;
+    const totals = orderTotalsUsd();
+    renderTaxRow(totals.tax);
 
     if (loading || !latestQuote){
       const q = latestQuote || provisional;
       if (q){
-        const pendingDuty = round2(q.total_usd - valor - q.flete_usd);
-        sumDuty.textContent = fmtPrimary(pendingDuty) + ' (estimado)';
-        sumDutyRow.hidden = !(pendingDuty > 0.01);
         sumFlete.textContent = fmtPrimary(q.flete_usd) + ' (estimado)';
         sumTotal.textContent = (fxRates
-          ? pen.format(round2(q.total_usd * fxRates.venta + smallOrderFee))
-          : fmtPrimary(q.total_usd)) + ' (estimado)';
+          ? pen.format(round2(totals.totalUsd * fxRates.venta + smallOrderFee))
+          : fmtPrimary(totals.totalUsd)) + ' (estimado)';
       } else {
-        sumDutyRow.hidden = true;
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
       }
@@ -782,21 +931,9 @@
       return;
     }
 
-    // BUG FIX (2026-09-17): total_usd from the quote (or the fallback estimate)
-    // includes a real Peru duty/IGV charge whenever the declared value is
-    // over $200 — previously this was folded silently into the total with
-    // no line item, so the total didn't visibly add up from Peso+Valor+
-    // Flete alone even though the math was correct. Deriving it back out
-    // here (rather than hardcoding the rate) keeps this exactly in sync
-    // with whatever the courier's real quote actually charged.
-    const duty = round2(latestQuote.total_usd - valor - latestQuote.flete_usd);
-    if (duty > 0.01){
-      sumDuty.textContent = fmtPrimary(duty) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
-      sumDutyRow.hidden = false;
-    } else {
-      sumDutyRow.hidden = true;
-    }
-
+    /* The tax row is rendered from Aria's own estimate above, for both
+       the provisional and the settled case, so it never changes when the
+       live quote lands — only the freight does. */
     sumFlete.textContent = fmtPrimary(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
 
     // Saldo comes off the top of what the card pays. Without a live FX
@@ -804,7 +941,7 @@
     // honestly, so the row stays hidden rather than guessing a rate.
     // The small-order fee is part of the order total, so saldo applies
     // against it too and it is inside every figure below.
-    const orderTotalPen = fxRates ? round2(latestQuote.total_usd * fxRates.venta + smallOrderFee) : 0;
+    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee) : 0;
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -822,7 +959,7 @@
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
       sumWalletRow.hidden = true;
-      sumTotal.textContent = fxRates ? pen.format(orderTotalPen) : fmtPrimary(latestQuote.total_usd);
+      sumTotal.textContent = fxRates ? pen.format(orderTotalPen) : fmtPrimary(totals.totalUsd);
       payBtn.disabled = true;
       payBtn.textContent = `Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío`;
       return;
@@ -842,7 +979,12 @@
       return;
     }
     sumWalletRow.hidden = true;
-    const totalLabel = fxRates ? pen.format(orderTotalPen) : fmtPrimary(latestQuote.total_usd);
+    /* totals.totalUsd, never latestQuote.total_usd. The courier's total
+       carries the courier's own duty and not Aria's tax estimate, so
+       printing it here quoted the customer a figure with the tax row
+       missing from it — and only in the degraded no-FX path, which is
+       exactly where a wrong number survives longest. */
+    const totalLabel = fxRates ? pen.format(orderTotalPen) : fmtPrimary(totals.totalUsd);
     sumTotal.textContent = totalLabel;
     payBtn.disabled = false;
     payBtn.textContent = 'Pagar ' + totalLabel;
@@ -1087,9 +1229,16 @@
             addrRef: document.getElementById('addrRef').value.trim(),
             destCity: document.getElementById('destCity').value,
           },
+          // Null unless the buyer ticked the box. The server re-checks
+          // that a recipient carries a document before accepting it.
+          recipient: altRecipientPayload(),
           items: cart,
           quote: latestQuote,
           fxRateVenta: fxRates?.venta ?? null,
+          /* Sent so the record shows what the customer was quoted, but
+             NOT trusted: orders-create.js recomputes the tax from the
+             same shared helper and charges its own answer. */
+          importTaxUsd: orderTotalsUsd().tax,
           // A request, not an instruction: orders-create.js re-reads the
           // balance and caps this against it and against the order total.
           applyWalletPen: walletAppliedPen(orderTotalPenNow()),

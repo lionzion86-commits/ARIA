@@ -111,6 +111,10 @@
      at the end of a scroll and it means no card, no button and no line of
      copy is ever behind the orb. The variable is the single place to
      change if the orb's docked size changes. */
+  /* The device's own safe area, exposed as numbers JS can read: the swim
+     loop needs them to anchor above a home indicator, and env() cannot
+     be read from script directly. 0px everywhere that has no notch. */
+  :root{ --orb-safe-b: env(safe-area-inset-bottom, 0px); --orb-safe-r: env(safe-area-inset-right, 0px) }
   :root{ --orb-dock-safe: 104px }
   .view{ padding-bottom: var(--orb-dock-safe) }
   @media (min-width:1024px){ .view{ padding-bottom: 32px } }
@@ -250,9 +254,10 @@
       </div>
       <button onclick="openCategories()" class="text-[13px] font-bold focus-ring rounded flex-shrink-0 pb-1" style="color:var(--blue)">Ver todas las categorías →</button>
     </div>
-    <!-- Same treatment as Ofertas and Categorías: no little squares
-         anywhere, here included. -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5" id="catGrid"></div>
+    <!-- ONE COLUMN, AT EVERY WIDTH (2026-09-21). Not a grid any more: a
+         scrolled run of full-width shopfronts. Two-up halved the image
+         and put the page back on the spreadsheet side of the line. -->
+    <div class="grid grid-cols-1 gap-5" id="catGrid"></div>
   </div>
 
   <!-- WHY SHOP WITH US -->
@@ -815,7 +820,12 @@
           <div id="productThumbs" class="flex gap-2 mt-3 overflow-x-auto pb-1" hidden></div>
         </div>
         <div class="min-w-0">
-          <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-3"></h1>
+          <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-2"></h1>
+          <!-- Auto parts only: the manufacturer part number, kept visible
+               after the click-through so a buyer can cross-check fit from
+               the page they are actually buying on. Empty and hidden for
+               everything else. -->
+          <div id="productViewPartNumber" class="text-[12.5px] font-semibold mb-3" style="color:var(--navy)" hidden></div>
           <div id="productViewPrice" class="text-[26px] font-extrabold mb-3" style="color:var(--navy)"></div>
           <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-4"></div>
           <!-- BUG FIX (cart rework): size now has to be picked before the
@@ -963,9 +973,9 @@
             <option value="count">Más productos primero</option>
           </select>
         </div>
-        <!-- The Ofertas grid, not a square grid: two across, big cards,
-             scrolled. See the note on CARD_SHELL_CLASS. -->
-        <div id="categoriesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+        <!-- One full-width shopfront per row, scrolled. Same card as the
+             homepage run — see deptTileHTML. -->
+        <div id="categoriesGrid" class="grid grid-cols-1 gap-5"></div>
       </div>
     </div>
   </div>
@@ -1238,14 +1248,19 @@
     <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
       <div class="ariaKicker ariaKicker--onLight mb-3">Dónde compramos</div>
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">
-        Ocho tiendas, todas reales.
+        <span data-store-count>Ocho</span> tiendas, todas reales.
       </h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-9" style="color:#4A5568">
         Las que ya tienen catálogo cargado se abren aquí mismo. Las que estamos conectando lo dicen —
         preferimos un "próximamente" honesto a un logo que no lleva a ningún lado.
       </p>
-      <!-- 4x2. Eight stores fit; seven left a hole. Rendered from the
-           RETAILERS registry, never hand-written. -->
+      <!-- 4-across. Rendered from the RETAILERS registry, never
+           hand-written -- and so is the COUNT in the heading above. It
+           said "Ocho" from the day eight stores fit a 4x2 grid, and was
+           still saying it at twelve: Macy's, SSENSE and then the three
+           beauty stores all arrived without it. A number in prose that
+           nothing recomputes is a number that goes wrong quietly, which
+           is the opposite of what this section is claiming. -->
       <div id="storesGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
       <div class="mt-8 text-[13px]" style="color:#6B7487">¿Buscas algo de una tienda que no está en la lista? Escríbenos por el chat y la conseguimos.</div>
     </div>
@@ -2414,9 +2429,84 @@ function renderHonestPricingBanners(){
    ============================================================ */
 let departmentCacheData = { retailers: {} };
 let departmentCachePromise = null;
+/* ============================================================
+   TWO CATALOGUE FILES, ONE IN-MEMORY SHAPE (2026-09-22)
+
+   department-cache.json is SCRAPED — produced by
+   scripts/refresh-department-cache.js from live retailer feeds.
+   macys-catalog.json is BUILT FROM AN EXPORT — a file Danny supplied,
+   turned into the same shape by scripts/build-macys-catalog.mjs.
+
+   They are kept as separate files on purpose. Pasting Macy's into the
+   scraped cache would mean the next run of the refresh script silently
+   deleted 431 products, and nobody would notice until a shopper did.
+   Different provenance, different file, merged here at load.
+
+   The merge is per RETAILER, not a deep merge: each file owns its own
+   stores outright, so neither can half-overwrite the other's
+   departments. A Macy's row in the scraped cache would lose to this one,
+   which is the right way round — the export is the authority for Macy's.
+   ============================================================ */
+/* ============================================================
+   ONE SHAPE AT THE DOOR (2026-09-22)
+
+   Every reader downstream -- departmentItems(), topBrandsFor(),
+   fileBackedDeals(), the aisle split -- walks
+   retailers.<key>.departments.<dept>.items. Macy's and SSENSE were
+   built to that shape by our own scripts, so it held.
+
+   beauty-catalog.json arrived built by someone else, and its
+   departments.beauty is a BARE ARRAY rather than { items: [...] }. The
+   brief said it matched ssense-catalog.json's envelope; it does not.
+   Nothing would have thrown: `bucket?.items || []` on an array is
+   undefined, so all 197 products would simply have been invisible --
+   three stores on Tiendas with empty catalogues and no error anywhere.
+
+   Normalising HERE, and not by rewriting the committed file, is the
+   deliberate choice. The file is tracked against a data branch; editing
+   it would fork it from its source and the fix would have to be redone
+   by hand on every re-pull. One adapter at the load boundary costs
+   nothing and covers the next export that arrives shaped its own way.
+
+   It is a pure reshape: no field is added, renamed or dropped. */
+function normalizeCatalogueEnvelope(file){
+  const retailers = file?.retailers;
+  if (!retailers || typeof retailers !== 'object') return { retailers: {} };
+  const out = {};
+  for (const [key, bucket] of Object.entries(retailers)){
+    const departments = {};
+    for (const [dept, entry] of Object.entries(bucket?.departments || {})){
+      departments[dept] = Array.isArray(entry) ? { label: dept, items: entry } : entry;
+    }
+    out[key] = { ...bucket, departments };
+  }
+  return { ...file, retailers: out };
+}
+
 function loadDepartmentCache(){
   if (!departmentCachePromise){
-    departmentCachePromise = fetch('/department-cache.json').then(r => r.json()).catch(() => ({ retailers: {} }));
+    const scraped = fetch('/department-cache.json')
+      .then(r => r.json())
+      .catch(() => ({ retailers: {} }));
+    /* CATALOGUE FILES, one per browse-only store. A missing or broken one
+       must not take the scraped cache down with it: the rest of the site
+       keeps working and that store simply has nothing to show, which
+       openStore already handles honestly. Each catches its own failure
+       for exactly that reason.
+
+       Adding a store here is one line. Nothing else in the merge cares
+       which file a retailer came from, so a file-backed store behaves
+       like a scraped one everywhere downstream — search, categories,
+       aisles, budget and Ofertas all read the merged object. */
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json'];
+    const files = CATALOGUE_FILES.map(url => fetch(url)
+      .then(r => r.json())
+      .then(normalizeCatalogueEnvelope)
+      .catch(() => ({ retailers: {} })));
+    departmentCachePromise = Promise.all([scraped, ...files]).then(parts => ({
+      ...parts[0],
+      retailers: Object.assign({}, ...parts.map(p => p?.retailers || {})),
+    }));
   }
   return departmentCachePromise;
 }
@@ -2441,170 +2531,233 @@ function metaFor(map, key){
   return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '🛍️' };
 }
 
-// BUG FIX (2026-09-17): the department tile cover image used to be
-// "whichever item, in cache order, happens to be first and merely has a
-// non-empty image field" — no relevance check at all. Since Walmart is
-// first in cache order, its first item for a department won by luck alone
-// regardless of fit: electronics showed a TV wall-mount, pharmacy showed a
-// sparkling energy drink, sporting_goods showed a car first-aid kit — all
-// real scraped items, just not representative of the department. This
-// only excludes those specific known-bad categories (a denylist, not an
-// exhaustive allowlist of "good" titles, since we can't anticipate every
-// real product a live scrape might return) and only for the three
-// departments actually reported wrong — every other department keeps its
-// existing behavior unchanged.
-const DEPARTMENT_THUMB_EXCLUDE = {
-  electronics: /\bmount\b|\bcase\b|\bcable\b|\bcharger\b|\bscreen protector\b/i,
-  pharmacy: /\bsoda\b|\benergy drink\b|\bsparkling\b|\bcandy\b|\bchocolate\b/i,
-  sporting_goods: /\bfirst aid\b|\bbandage\b|\bband-?aid\b/i,
-};
-
 /* ============================================================
-   CATEGORY TILE IMAGES (2026-09-20) — rebuilt in three layers.
+   CATEGORY COVERS ARE CURATED, NEVER SCRAPED (2026-09-22)
 
-   REJECTED, AND WHY. The old rule was "first cached item with a non-empty
-   image field, unless it matches a small denylist". That is not a choice,
-   it is an accident of cache order, and it showed: half-objects, obscure
-   SKUs nobody recognises, and apparel shots cropped to a fragment of a
-   person because the tile was object-cover on a portrait photo.
+   THE BUG, from a live phone: Electrónica fronted by a USB stick and a
+   cable, Salud y Farmacia by a bag of wormwood-and-black-walnut parasite
+   cleanse, Ropa by a headless torso in cargo pants. Danny's word for it
+   was "cajón de sastre" — a junk drawer — and that is exactly right.
 
-   LAYER 1 — A PIN BEATS EVERYTHING. CATEGORY_IMAGE_PIN below is the
-   manual override: put a key in it and that category's tile uses that
-   image permanently, whatever the scrape returns tomorrow. It takes a
-   local path (assets/category/<key>.jpg) or any URL. Nothing else needs
-   to change; this is the escape hatch for any tile the automatic choice
-   gets wrong.
+   WHAT WAS TRIED AND IS NOW RETIRED. Three rounds of this: first "the
+   first cached item with an image", then a scored selection over every
+   candidate, then per-category denylists and a cross-tile de-duplicator
+   on top of that. Each round removed a class of embarrassment and none
+   of them could work, for one reason that no amount of tuning fixes:
 
-   LAYER 2 — SCORED SELECTION, NOT FIRST-PAST-THE-POST. Every candidate
-   item in the category is scored and the best one wins (see
-   scoreTileCandidate). The signals are the ones a title can actually
-   carry: is this a HERO product for the category (a television for
-   electronics, a pair of trainers for Moda Hombre) or a peripheral one;
-   is it an accessory, a refill, a spare part, a multipack, a gift card —
-   the things that photograph as an unrecognisable fragment; and is the
-   title short and plain, because a 140-character title with four variant
-   codes in it is almost never the category's most recognisable product.
+     THE SCORER READS TITLES, NOT PIXELS.
 
-   LAYER 3 — NOTHING IS CROPPED. The tile fits the image inside itself
-   (object-fit: contain, centred) on a soft neutral field instead of
-   filling and cropping it. That is what actually kills the "cropped body
-   fragment" and "half-object" class of problem: a portrait apparel shot
-   now sits centred and whole with air either side, rather than having its
-   head and feet cut off to fill a landscape box. Retail product shots are
-   overwhelmingly on white, so they sit on the field cleanly.
+   "Cargo Pants With Stretch" is a perfectly good title. It is also a
+   photo of a decapitated mannequin. Nothing in the string says so. A
+   category's cover is the one image on the site that has to be chosen by
+   somebody who can SEE it, and a scraper feed cannot supply that.
 
-   HONEST LIMIT: none of this looks at the PIXELS. We score titles, not
-   photographs. A badly shot product with a perfect title can still win,
-   and that is exactly what layer 1 is for.
+   SO THE COVER IS ART, NOT INVENTORY. Two layers:
+
+     1. A CURATED FILE, if one exists for the category — dropped into
+        assets/category/<key>.<ext> and listed in CATEGORY_COVERS below.
+        This is the real answer and the only source of a photograph.
+     2. OTHERWISE THE BRAND FIELD: a drawn navy-on-sky composition,
+        identical in light and crop across every tile. It depicts
+        nothing at all — no object, no mark, no glyph — so it cannot
+        carry a price, cannot crop a product in half, and cannot make
+        one category read as a different set from the next.
+
+        IT IS NOT AN ICON IN A BOX. The first version of it was exactly
+        that, a 64px emoji in a ring, and it shipped to QA looking like
+        clip-art because that is what it was. See designedCoverHTML.
+
+   There is deliberately no third layer back to the scraper. A category
+   with no curated file gets the designed cover, not a lucky dip.
+
+   THE PERMANENT RULE, from the brief: never a product photo with prices
+   or numbers printed on it. It is enforced structurally rather than by
+   pattern-matching — layer 2 has no photo at all, and layer 1 only
+   accepts a LOCAL asset path, so a retailer's image URL can never
+   become a cover. assertCuratedCover() below is what says no, and a test
+   pins it.
    ============================================================ */
 
-/* MANUAL OVERRIDE — pin a category's tile image permanently.
-   e.g.  electronics: 'assets/category/electronics.jpg',
-         women:       'https://…/some-image.jpg',
-   A pinned key skips scoring entirely. Empty by default: nothing is
-   pinned until a human looks at a tile and decides. */
-const CATEGORY_IMAGE_PIN = {};
+/* Curated covers, by category key. Empty until real art exists: a
+   missing entry is not a gap, it is the designed cover doing its job.
 
-/* Products that photograph as something unrecognisable, in any category:
-   accessories and spares (a photo of a bracket), refills and multipacks
-   (a photo of a pile of boxes), gift cards, and anything sold as a
-   fragment of a thing. Heavily penalised, never hard-excluded — a
-   category that sells nothing else still needs a tile.
+   To add one: save the file as assets/category/<key>.jpg (or .png /
+   .webp), add the line here, and nothing else changes.
+       electronics: 'assets/category/electronics.jpg',
 
-   A bare COUNT ("90ct", "120 Count") is deliberately NOT penalised: it is
-   ordinary retail labelling on a single bottle, and penalising it ranked
-   a weight-loss pill above a multivitamin on the Salud tile. Only a
-   genuine MULTIPACK counts against a candidate. */
-const TILE_IMAGE_PENALISE = /\b(refill|replacement|spare|repuesto|accessor\w*|adapter|adaptador|bracket|mount|soporte|strap|correa|filter|filtro|liner|insert|cartridge|cartucho|gift ?card|tarjeta de regalo|sticker|decal|label|etiqueta|sample|muestra|travel size|mini size|swatch|assorted|surtido|variety pack|bundle|\d{1,3}\s?[- ]?(?:pack|pk|pcs?|pieces?))\b/i;
+   Shoot or source them at roughly 1200x750 (the window is 16:10-ish and
+   up to 340px tall on a wide screen, so that is ~3x for retina). One
+   photographic style across the set matters more than any single image:
+   the tiles are seen as a column, and a mixed set reads as the junk
+   drawer this replaced even when each photo is good on its own. */
+const CATEGORY_COVERS = {};
 
-/* A raw model code in the title ("32S2V1", "WH1000XM5B") is a sign of a
-   listing written for a catalogue rather than for a person, and those
-   listings tend to carry the flattest, least recognisable photography.
-   A mild penalty, not a veto. */
-const TILE_SKU_NOISE_RE = /\b(?=[A-Z0-9-]{5,}\b)(?=[A-Z-]*\d)[A-Z0-9-]+\b/;
-
-/* The most recognisable thing each category sells — what a shopper would
-   draw if you asked them to draw the category. Two tiers, because "a
-   television" and "a webcam" are both electronics but only one of them
-   says ELECTRONICS at 146 pixels tall: [0] is the face of the category,
-   [1] is a solid second choice. */
-const TILE_IMAGE_HERO = {
-  electronics: [
-    /\b(tv|television|televisor|laptop|macbook|headphones?|aud[ií]fonos)\b/i,
-    /\b(speaker|parlante|tablet|ipad|smartwatch|console|playstation|xbox|nintendo|camera|c[áa]mara|monitor)\b/i,
-  ],
-  clothing: [
-    /\b(jeans?|jacket|coat|dress|casaca|vestido)\b/i,
-    /\b(hoodie|sweater|shirt|polo|chompa|camisa|pantal[óo]n)\b/i,
-  ],
-  men: [
-    /\b(jeans?|jacket|sneakers?|casaca|zapatillas)\b/i,
-    /\b(hoodie|sweater|shirt|polo|shoes?|boots?|camisa|chompa)\b/i,
-  ],
-  women: [
-    /\b(dress|jeans?|jacket|heels?|vestido|casaca)\b/i,
-    /\b(blouse|skirt|sweater|sneakers?|boots?|blusa|falda|chompa|zapatillas)\b/i,
-  ],
-  kids: [
-    /\b(jacket|sneakers?|dress|casaca|zapatillas)\b/i,
-    /\b(hoodie|shoes?|jeans?|t-?shirt|polo)\b/i,
-  ],
-  candy_chocolate: [
-    /\b(chocolate|chocolates|lollipop)\b/i,
-    /\b(candy|gummy|gummies|caramelo|chicle|bar)\b/i,
-  ],
-  sporting_goods: [
-    /\b(basketball|soccer ?ball|f[úu]tbol|bicycle|bike|bicicleta|pelota)\b/i,
-    /\b(football|baseball|dumbbell|yoga mat|tent|kayak|treadmill|racket|raqueta)\b/i,
-  ],
-  home_goods: [
-    /\b(comforter|duvet|quilt|pillow|blanket|rug|lamp|curtains?|edred[óo]n|almohada|cortinas?|alfombra)\b/i,
-    /\b(sheet set|towel|toalla|cushion|throw)\b/i,
-  ],
-  pharmacy: [
-    /\b(vitamin|multivitamin|vitamina|multivitam[íi]nico)\b/i,
-    /\b(supplement|suplemento|omega|probiotic|collagen|magnesium|magnesio)\b/i,
-  ],
-  beauty: [
-    /\b(lipstick|labial|perfume|eau de (?:parfum|toilette)|palette|paleta)\b/i,
-    /\b(mascara|r[ií]mel|foundation|base de maquillaje|serum|s[ée]rum|blush|rubor)\b/i,
-  ],
-};
-
-/* A title's own shape is a signal. Real hero products have short, plain
-   names ("Levi's 501 Original Fit Jeans"); the long ones are variant
-   soup ("... , Sizes XS-3XL, 12 Colors Available, Pack of 2, Style #4471B"). */
-const TILE_TITLE_IDEAL_LEN = 60;
-
-function scoreTileCandidate(title, key){
-  const t = String(title || '');
-  let score = 0;
-  const hero = TILE_IMAGE_HERO[key] || [];
-  if (hero[0] && hero[0].test(t)) score += 7;
-  else if (hero[1] && hero[1].test(t)) score += 5;
-  if (TILE_SKU_NOISE_RE.test(t)) score -= 1.5;
-  // The per-category denylist that already existed, kept and sharpened
-  // from a hard exclusion into the strongest single penalty.
-  const excluded = DEPARTMENT_THUMB_EXCLUDE[key];
-  if (excluded && excluded.test(t)) score -= 8;
-  if (TILE_IMAGE_PENALISE.test(t)) score -= 5;
-  // Length, as a gentle tiebreak only — never enough to beat a hero match.
-  score -= Math.min(3, Math.max(0, (t.length - TILE_TITLE_IDEAL_LEN) / 40));
-  if (t.length <= TILE_TITLE_IDEAL_LEN) score += 1;
-  return score;
+/* A cover must be a LOCAL asset. This is the permanent rule in code: a
+   remote URL is a scraper feed by definition, and a scraper feed is what
+   put a parasite cleanse on Salud y Farmacia. Returns the path, or null
+   with a console warning loud enough to notice in review. */
+function assertCuratedCover(key, path){
+  if (!path) return null;
+  const p = String(path);
+  if (/^(https?:)?\/\//.test(p) || /^data:/.test(p)){
+    console.warn(`[covers] "${key}" points at a remote image and was ignored: category covers must be local curated assets (assets/category/...).`);
+    return null;
+  }
+  return p;
 }
 
-/** The best image for a category tile, or null when there is none. */
-function pickTileImage(key, candidates){
-  if (CATEGORY_IMAGE_PIN[key]) return CATEGORY_IMAGE_PIN[key];
-  let best = null;
-  let bestScore = -Infinity;
-  for (const c of candidates){
-    if (!c.image) continue;
-    const score = scoreTileCandidate(c.title, key);
-    if (score > bestScore){ bestScore = score; best = c.image; }
-  }
-  return best;
+function categoryCoverFor(key){
+  return assertCuratedCover(key, CATEGORY_COVERS[key]);
+}
+
+/* ============================================================
+   THE BRAND FIELD — the cover a category gets when no curated
+   photograph exists.
+
+   WHAT THIS REPLACES, AND THE MISTAKE WORTH NAMING (2026-09-22, QA
+   round 2). The previous version of this function drew a 64px EMOJI in
+   a navy ring and called itself "the designed cover". On an iPhone
+   those are full-colour Apple glyphs, so Electronica rendered a cartoon
+   laptop and Ropa a cartoon t-shirt. The brief that asked for this had
+   already ruled emojis out in as many words -- "nunca un emoji como
+   sustituto" -- and named the fallback it wanted: "tratamiento
+   abstracto azul/navy consistente (gradiente/textura de marca)". A
+   glyph in a circle is clip-art with extra steps; calling it "designed"
+   did not make it abstract.
+
+   WHAT THIS IS INSTEAD. One drawn composition, identical in every tile:
+   the same light source, the same crop, the same geometry. Concentric
+   navy arcs sweeping from a fixed origin on the light end of the navy
+   family, with a soft highlight top-right. It depicts nothing. There is
+   no object to be half-cropped, no price to be rendered into a photo,
+   and no category can look like a different set from the one beside it.
+
+   VARIATION IS DELIBERATELY SMALL. The brief asked for "mismo
+   tratamiento de luz y recorte en todas las categorias", so the only
+   thing that moves between tiles is a bounded rotation of the arc
+   system and the size of one accent disc, both derived from the
+   category key. Enough that a column of tiles is not six identical
+   rectangles; not enough to break the set. The name is carried by the
+   navy sign underneath, so telling categories apart was never this
+   layer's job.
+
+   THIS IS THE FALLBACK, NOT THE GOAL. A real curated photograph in
+   CATEGORY_COVERS wins over it every time -- see the note there. This
+   exists so that "we have no photograph yet" renders as something
+   deliberate rather than as a placeholder.
+   ============================================================ */
+
+/* A stable small integer from a category key. Not security, not
+   uniformity -- just a number that is the same on every render so a
+   tile does not reshuffle itself when the grid re-renders. */
+let coverInstance = 0;
+
+function coverSeed(key){
+  const s = String(key || 'aria');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+function designedCoverHTML(t){
+  const key = String(t.key || t.label || 'aria');
+  const seed = coverSeed(key);
+  /* SVG ids are document-global, so two covers sharing one id makes the
+     second paint from the first one's <defs>. It survives until the
+     first is removed from the DOM, and then the second turns
+     transparent -- a bug that looks like "the CSS is random".
+
+     SEEDING THE ID FROM THE KEY WAS NOT ENOUGH, and the audit caught it:
+     the same category renders in BOTH grids (the home rail and
+     Categorias), so "electronics" produced the same id twice on one
+     page -- 80 ids, 40 unique. The counter is what makes it per
+     INSTANCE. The geometry still comes from the key, so a tile looks
+     the same wherever it appears; only the id differs. */
+  const id = 'cv' + (coverInstance++).toString(36) + (seed % 46656).toString(36);
+
+  /* The bands sweep the same way in every tile; only where they sit
+     moves, and only within one band-width. Same light, same crop, same
+     direction -- which is what the brief asked for. */
+  const shift = (seed % 74) - 37;
+  const SKEW = 132;                       // lean, in user units over the full height
+  const band = (x, w) => {
+    const a = x + shift, b = a + w;
+    return `M${a} 300 L${b} 300 L${b + SKEW} -24 L${a + SKEW} -24 Z`;
+  };
+
+  return `<svg class="w-full h-full block" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"
+       role="presentation" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="${id}f" x1="0" y1="0" x2="0.85" y2="1">
+        <stop offset="0%" stop-color="#F6F9FF"/>
+        <stop offset="42%" stop-color="#E2EAFF"/>
+        <stop offset="100%" stop-color="#BDCFF2"/>
+      </linearGradient>
+      <linearGradient id="${id}b" x1="0" y1="1" x2="0.6" y2="0">
+        <stop offset="0%" stop-color="#0A1F44"/>
+        <stop offset="100%" stop-color="#2F5FEE"/>
+      </linearGradient>
+      <radialGradient id="${id}g" cx="0.8" cy="0.1" r="0.8">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+      </radialGradient>
+      <clipPath id="${id}c"><rect width="400" height="300"/></clipPath>
+    </defs>
+
+    <rect width="400" height="300" fill="url(#${id}f)"/>
+
+    <g clip-path="url(#${id}c)">
+      <!-- A fine rule every 25 units: texture you feel before you see it. -->
+      <g stroke="#0A1F44" stroke-opacity="0.045" stroke-width="1">
+        <path d="M25 0V300M50 0V300M75 0V300M100 0V300M125 0V300M150 0V300M175 0V300M200 0V300M225 0V300M250 0V300M275 0V300M300 0V300M325 0V300M350 0V300M375 0V300"/>
+      </g>
+
+      <!-- The bands. One direction, three depths, a lit edge on each. -->
+      <g fill="url(#${id}b)">
+        <path d="${band(-150, 104)}" fill-opacity="0.07"/>
+        <path d="${band(-20, 132)}"  fill-opacity="0.13"/>
+        <path d="${band(148, 88)}"   fill-opacity="0.19"/>
+      </g>
+      <g stroke="#0A1F44" stroke-opacity="0.16" stroke-width="1.2" fill="none">
+        <path d="${band(-150, 104)}"/>
+        <path d="${band(-20, 132)}"/>
+        <path d="${band(148, 88)}"/>
+      </g>
+
+      <!-- A horizon rule lived here and came out as a scratch across the
+           crop at full size: a horizontal line cutting three diagonals
+           reads as a rendering seam, not as ground. The bands carry the
+           composition on their own. -->
+    </g>
+
+    <rect width="400" height="300" fill="url(#${id}g)"/>
+  </svg>`;
+}
+
+/* A curated file that 404s must not leave a broken image or raw alt text
+   across the window — same rule as the store logos. It falls back to the
+   designed cover, which is always available because it is drawn, not
+   fetched. */
+function categoryCoverFallback(img){
+  const holder = img.closest('[data-cover]');
+  if (!holder) { img.remove(); return; }
+  /* The KEY, not the icon: the brand field is seeded from the category
+     key, so a tile that loses its photograph must fall back to the same
+     field it would have had with no photograph at all. Passing an icon
+     here is what the emoji version needed, and there is no icon in a
+     cover any more. */
+  holder.innerHTML = designedCoverHTML({ key: holder.getAttribute('data-cover-key') || '' });
+}
+
+/** The art for one category's window: curated photo if there is one, else the designed cover. */
+function categoryCoverArtHTML(t){
+  const curated = categoryCoverFor(t.key);
+  const inner = curated
+    ? `<img src="${escapeHtml(curated)}" alt="${escapeHtml(t.label || '')}" loading="lazy"
+             class="w-full h-full" style="object-fit:cover; object-position:center"
+             onerror="window.categoryCoverFallback && categoryCoverFallback(this)">`
+    : designedCoverHTML(t);
+  return `<div class="w-full h-full" data-cover data-cover-key="${escapeHtml(t.key || '')}">${inner}</div>`;
 }
 
 // One tile per unique department/brand key found anywhere in the cache
@@ -2766,28 +2919,21 @@ function collectTiles(kind){
     : Object.keys(DEPARTMENT_SPEC);
   const byKey = {};
   for (const key of keys){
-    byKey[key] = { key, retailers: [], candidates: [], count: 0 };
+    byKey[key] = { key, retailers: [], count: 0 };
     for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
       const entryItems = departmentItemsFor(data, kind, key);
       if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
-      /* EVERY item with an image is a candidate, across every carrying
-         store — the old code took the first acceptable one it met and
-         stopped, which made the tile a function of cache order. Scoring
-         needs to see the whole field to pick the best of it. */
-      for (const raw of entryItems){
-        const it = normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined });
-        if (it.image) byKey[key].candidates.push({ title: it.title, image: it.image });
-      }
     }
   }
+  /* No cover is chosen here any more. The cache decides which categories
+     EXIST and how many products they hold; what a category LOOKS like is
+     art, and comes from CATEGORY_COVERS. See the note above it for the
+     three rounds of scoring this replaced and why none of them could
+     work. */
   // A department no retailer carries gets no tile at all.
   for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
-  for (const t of Object.values(byKey)){
-    t.thumb = pickTileImage(t.key, t.candidates);
-    delete t.candidates;
-  }
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
 }
 
@@ -2846,11 +2992,21 @@ function collectTiles(kind){
 const CARD_SHELL_CLASS = 'group bg-white border rounded-2xl overflow-hidden transition hover:shadow-[0_14px_34px_rgba(10,31,68,0.10)] h-full flex flex-col';
 
 /* The 4:5 photo field. `inner` fills it; `overlay` is anything absolutely
-   positioned on top (Ofertas puts its discount and "Flete alto" badges
-   there). White, because retail photography is shot on white and a tint
-   draws a seam around the product. */
-function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff' }){
-  return `<div class="relative${open ? ' cursor-pointer' : ''}" style="aspect-ratio:4/5; background:${background}"${open ? ` onclick="${open}"` : ''}>
+   positioned on top (Ofertas puts its discount badge there). White,
+   because retail photography is shot on white and a tint draws a seam
+   around the product. */
+/* A frame is sized by ASPECT or by HEIGHT, and the choice is not
+   cosmetic. A product card wants an aspect: whatever the column width,
+   the photo keeps the same shape beside its neighbours. A full-width
+   shopfront must NOT, because an aspect on a full-bleed element is a
+   function of the viewport — 16:10 is 238px tall on a phone and 775px
+   tall on a desktop, i.e. too small exactly where the punchlist wanted
+   it big, and a monster where it wanted a banner. `heightClass` pins the
+   window instead, so it is generous on a phone and a letterbox on a
+   desktop. */
+function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null }){
+  const sizing = heightClass ? '' : `aspect-ratio:${aspect}; `;
+  return `<div class="relative${heightClass ? ' ' + heightClass : ''}${open ? ' cursor-pointer' : ''}" style="${sizing}background:${background}"${open ? ` onclick="${open}"` : ''}>
       ${inner}
       ${overlay}
     </div>`;
@@ -2859,27 +3015,153 @@ function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff' }){
 /* A product photo, whole. Never cover, never a bare width/height — see
    the note above. `onerror` is optional because a product card has no
    fallback art to swap to and a category tile does. */
-function cardPhotoHTML(src, { alt = '', onerror = '' } = {}){
-  return src
-    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"
-             style="object-fit:contain; object-position:center; padding:10px"${onerror ? ` onerror="${onerror}"` : ''}>`
-    : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`;
+/* A PRODUCT PHOTO THAT 404s FALLS BACK, IT DOES NOT BREAK (2026-09-22).
+
+   Every other image on this site already had an error path — store
+   logos, category covers — and product photos did not, because until now
+   every image URL came straight from a retailer's own feed and either
+   worked or the item had none.
+
+   Macy's changed that: its export ships Scene7 PATH FRAGMENTS and no
+   host, so the URL is CONSTRUCTED (see IMAGE_BASE in
+   scripts/build-macys-catalog.mjs) and a wrong base would turn every
+   card on the storefront into a broken-image icon. The same placeholder
+   the no-image case already uses is the honest answer, and it costs one
+   attribute to cover the whole site. */
+/* ============================================================
+   ASK THE CDN FOR A BIGGER FILE (2026-09-22)
+
+   Every retailer image on this site is a URL WE BUILD THE QUERY ON, not
+   a fixed asset, and the size is a parameter. Macy's export ships
+   `wid=600`, which has no headroom left on a retina phone and none at
+   all under the detail page's pinch-zoom -- the 600px file is being
+   drawn at 600 CSS px on a 3x screen. One parameter buys the crispness.
+
+   WHY HERE AND NOT IN THE DATA FILES. macys-catalog.json and
+   beauty-catalog.json are tracked against a data branch. Rewriting 754
+   URLs in a committed export forks it from its source and the edit has
+   to be redone on every re-pull -- the same reasoning that put
+   normalizeCatalogueEnvelope() at the load boundary. This runs on the
+   way into normalizeLiveItem, so every surface gets it and no file
+   changes.
+
+   A SPECULATIVE UPGRADE CARRIES ITS OWN UNDO. YesStyle's CloudFront
+   assets are named by size prefix -- M_p0114021549.jpg is the medium --
+   and L_ at the same path is the large. That variant could NOT be
+   verified from this build environment: every retailer CDN answers 403
+   through the egress proxy here, so nothing was probed. So the L_ URL
+   ships with the M_ URL attached as a fallback, and the first image that
+   404s swaps back with no broken frame and no lost product. If L_ turns
+   out not to exist, the cost is one failed request per image on a cold
+   cache and the shopper sees the medium they would have seen anyway.
+   Macy's `wid` is NOT speculative -- it is the same asset at a different
+   size -- so it carries no fallback.
+   ============================================================ */
+const MACYS_IMAGE_WIDTH = 1200;
+
+function upgradeImageUrl(url){
+  const u = typeof url === 'string' ? url : '';
+  if (!u) return u;
+  // Macy's Scene7: wid= is the rendered width. Only ever raised.
+  if (/macysassets\.com/i.test(u)) {
+    return u.replace(/([?&]wid=)(\d+)/i, (m, p, n) =>
+      Number(n) < MACYS_IMAGE_WIDTH ? p + MACYS_IMAGE_WIDTH : m);
+  }
+  // YesStyle CloudFront: .../Assets/49/215/M_p0114021549.jpg -> L_...
+  if (/cloudfront\.net\/Assets\//i.test(u)) return u.replace(/\/M_([^/]+)$/, '/L_$1');
+  return u;
 }
 
-/* OFERTAS IS DESIGNED, NOT SCRAPED.
+/**
+ * The URL to retry with when a SPECULATIVE upgrade fails, or ''.
+ *
+ * Derived from the upgraded URL rather than remembered alongside it, so
+ * nothing has to carry a second field through the cart, the cache and
+ * the router for one retailer's sake. Only the guess is reversible:
+ * Macy's `wid` is the same asset at another size and has nothing to fall
+ * back to.
+ */
+function imageRetryUrl(url){
+  const u = typeof url === 'string' ? url : '';
+  return /cloudfront\.net\/Assets\//i.test(u) ? u.replace(/\/L_([^/]+)$/, '/M_$1') : '';
+}
 
-   It was showing whatever product the deals cache happened to surface —
-   a collage of unrelated markdowns, which says nothing about what the
-   tile is for. Ofertas is not a category of products, it is a promise
-   about price, so it gets the promise: the Precio Honesto navy field, a
-   gold accent, and the one line that explains it. */
+/* ============================================================
+   NO PRODUCT WEARS A GREY BOX (2026-09-22)
+
+   The missing-photo state was the words "Sin imagen" in light grey on
+   white -- which on a wall of real photographs reads as a broken tile,
+   not as a designed one. It is the shop's own frame now: the brand's
+   sky field, the Aria mark in navy, and a line that says what is
+   actually true. Nobody has to wonder whether the page is broken.
+
+   It is drawn, not an <img>. A placeholder that is itself a file can
+   fail the same way the photo did, and then there is nothing at all. */
+function photoPlaceholderHTML(note = 'Foto en camino'){
+  return `<div class="w-full h-full grid place-items-center" style="background:var(--sky)">
+    <div class="text-center px-4">
+      <div class="text-[15px] font-extrabold tracking-[0.16em]" style="color:var(--navy); opacity:.55">ARIA</div>
+      <div class="text-[11px] mt-1 font-semibold" style="color:var(--navy); opacity:.42">${escapeHtml(note)}</div>
+    </div>
+  </div>`;
+}
+
+function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '' } = {}){
+  const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
+  return src
+    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"${
+        fallbackSrc ? ` data-img-fallback="${escapeHtml(fallbackSrc)}"` : ''}
+             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
+    : photoPlaceholderHTML();
+}
+
+/**
+ * A photo that would not load.
+ *
+ * TWO STAGES, and the order matters: an image that carries a fallback
+ * URL (a speculative size upgrade -- see upgradeImageUrl) gets ONE retry
+ * at the URL we know works, and only a second failure reaches the
+ * placeholder. The attribute is cleared before the retry so a fallback
+ * that also fails cannot loop.
+ */
+function cardPhotoFallback(img){
+  const alt = img.getAttribute('data-img-fallback');
+  if (alt){
+    img.removeAttribute('data-img-fallback');
+    img.src = alt;
+    return;
+  }
+  const holder = document.createElement('div');
+  holder.className = 'w-full h-full';
+  holder.innerHTML = photoPlaceholderHTML();
+  img.replaceWith(holder.firstElementChild);
+}
+
+/* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
+
+   It first showed whatever product the deals cache happened to surface: a
+   collage of unrelated markdowns that said nothing about what the tile is
+   for. That was replaced with the Precio Honesto navy field, which was
+   honest but had the opposite problem — on a wall of navy category signs
+   the one card that means SALE looked like all the others.
+
+   So Ofertas wears the gold. Every other category is a navy shopfront
+   sign; this one is the yellow sale board in the window, which is what
+   the treatment means in any shop in the world. It is the same two brand
+   colours, swapped: gold field, navy type. Nothing here is scraped, and
+   the claim it makes is one we enforce — a deal is verified against the
+   source store's own price before it is published. */
 function ofertasTileArtHTML(){
-  return `<div class="relative h-full w-full overflow-hidden ariaNavyBand grid place-items-center">
-    <div class="ariaGoldHair"></div>
-    <div class="text-center px-3">
-      <div class="text-[10px] font-extrabold tracking-[0.18em] uppercase mb-1" style="color:#F4C463">Precio Honesto</div>
-      <div class="text-[19px] sm:text-[22px] font-extrabold tracking-[-0.02em] leading-tight" style="color:#fff">Ofertas reales</div>
-      <div class="text-[11px] mt-1 leading-snug" style="color:#AFBBD6">Rebajas verificadas en la tienda de origen</div>
+  return `<div class="relative h-full w-full overflow-hidden grid place-items-center"
+       style="background:linear-gradient(150deg, #F7CE72 0%, #F4C463 52%, #E9B44A 100%)">
+    <div class="absolute inset-0" style="background:radial-gradient(circle at 78% 18%, rgba(255,255,255,0.45), transparent 58%)"></div>
+    <!-- The card's own sign says "Ofertas" underneath, so the board must
+         not say it again. It carries the PROMISE instead — which is the
+         part a shopper cannot get from the category name. -->
+    <div class="relative text-center px-5">
+      <div class="text-[10px] font-extrabold tracking-[0.18em] uppercase mb-2" style="color:rgba(10,31,68,0.68)">Precio Honesto</div>
+      <div class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.03em] leading-[1.02]" style="color:var(--navy)">Rebajas<br>verificadas</div>
+      <div class="text-[12.5px] mt-2 font-semibold leading-snug" style="color:rgba(10,31,68,0.74)">Comprobadas en la tienda de origen, no inventadas</div>
     </div>
   </div>`;
 }
@@ -2899,44 +3181,96 @@ function ofertasTileArtHTML(){
    price, no rating and no store, and inventing them to reuse
    productCardHTML wholesale would be worse than a second style. The
    chassis is shared; what sits in it is not. */
+/* ============================================================
+   A CATEGORY IS A SHOPFRONT, NOT A ROW IN A TABLE (2026-09-21)
+
+   THE VERDICT THIS ANSWERS: "white-on-white reads as database, not a
+   place", and the ask that came with it — full width, one big bold image
+   per category, scrolled vertically, so browsing "feels like walking
+   past storefronts instead of scanning a spreadsheet".
+
+   WHAT CHANGED. The tile was a portrait 4:5 photo with the category name
+   in navy text on a white body, two across on desktop. Three problems at
+   once: two-up halves the image, 4:5 is the shape of a PRODUCT rather
+   than of a shop window, and a white card on a white page has no edges,
+   so twelve of them read as a list.
+
+   So: ONE COLUMN AT EVERY WIDTH, a wide 16:10 window, and the name on a
+   NAVY SIGN under it. The sign is the whole point — it is the brand's
+   own colour, it gives every card a hard edge against the page, and it
+   is the thing you actually read walking past. Ofertas gets the gold
+   version of the same sign, because a sale board is yellow everywhere.
+
+   WHAT DELIBERATELY DID NOT CHANGE: the photo is still object-fit
+   CONTAIN on a soft field, never cropped. A wide window with cover-fit
+   would slice the top and bottom off every portrait apparel shot, which
+   is the exact "half-object" failure the scoring rebuild was written to
+   end. A bigger window makes a contained product bigger; it does not
+   licence cropping it. See the CATEGORY TILE IMAGES note above. */
 function deptTileHTML(t, kind){
   const count = Number(t.count) || 0;
   const isOfertas = kind === 'department' && t.key === 'sale';
   const open = `openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')`;
 
-  const art = isOfertas
-    ? ofertasTileArtHTML()
-    : (t.thumb
-        ? cardPhotoHTML(t.thumb, { alt: t.label, onerror: 'handleDeptThumbError(this)' }).replace('<img ', `<img data-icon="${escapeHtml(t.icon || '')}" `)
-        : `<div class="w-full h-full grid place-items-center text-[56px]">${t.icon || ''}</div>`);
+  const art = isOfertas ? ofertasTileArtHTML() : categoryCoverArtHTML(t);
 
+  /* The sign. Navy for a department, gold for Ofertas — and the type
+     inverts with it so both stay readable rather than one being the
+     other with a filter over it. */
+  const signBg = isOfertas
+    ? 'linear-gradient(150deg, #F7CE72 0%, #F4C463 52%, #E9B44A 100%)'
+    : 'linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)';
+  const nameColor = isOfertas ? 'var(--navy)' : '#fff';
+  const subColor = isOfertas ? 'rgba(10,31,68,0.74)' : '#AFBBD6';
+  const cueColor = isOfertas ? 'var(--navy)' : '#F4C463';
+
+  /* THE WINDOW IS SKY, NOT GREY (2026-09-21). It was #F7F8FA, a cool grey
+     a hair away from the page's own #FAFAF8 — so the window had no edge
+     against the page and the card read as one pale slab with a navy bar
+     stuck to the bottom. --sky is the navy family's light tint, and
+     already the product page's image field, so the window now belongs to
+     the same colour as the sign under it.
+
+     NOT YELLOW, DELIBERATELY. Gold is the discount treatment on this site
+     and nothing else may borrow it. The one gold window here is Ofertas,
+     which IS the discount card.
+
+     THE TRADE, stated because cardImageFrameHTML's own default argues the
+     other way: retail photography is shot on white, so a white-background
+     product photo shows a faint seam against a tint. Category art is the
+     drawn brand field (designedCoverHTML), which carries its own light
+     end of the same family and so has no seam to show — but PRODUCT
+     cards keep the white default for exactly that reason, which is why
+     this is passed here rather than changed in the frame.
+
+     A curated PHOTOGRAPH, when one lands in CATEGORY_COVERS, covers the
+     window edge to edge and the tint never shows at all. */
   return `<button onclick="${open}" class="${CARD_SHELL_CLASS} text-left focus-ring w-full">
-    ${cardImageFrameHTML({ inner: art, background: isOfertas ? 'var(--navy)' : '#fff' })}
-    <div class="p-4 flex flex-col flex-1">
-      <div class="text-[17px] font-extrabold tracking-[-0.01em] leading-snug mb-1" style="color:var(--navy)">${escapeHtml(t.label)}</div>
-      <div class="text-[12.5px] mb-3.5 flex-1" style="color:#6B7487">${
-        count ? `${count} producto${count === 1 ? '' : 's'} · precio puerta a puerta` : 'Ver lo que hay disponible'
-      }</div>
-      <div class="w-full h-11 rounded-xl text-white text-[14px] font-bold grid place-items-center" style="background:var(--blue)">
-        Ver categoría
+    ${cardImageFrameHTML({
+      inner: art,
+      heightClass: 'h-[300px] sm:h-[340px]',
+      background: isOfertas ? 'var(--amber)' : 'var(--sky)',
+    })}
+    <div class="relative px-5 py-4 sm:px-6 sm:py-5 flex items-center gap-4" style="background:${signBg}">
+      ${isOfertas ? '' : '<div class="ariaGoldHair"></div>'}
+      <div class="min-w-0 flex-1">
+        <div class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-tight" style="color:${nameColor}">${escapeHtml(t.label)}</div>
+        <div class="text-[12.5px] mt-1 leading-snug" style="color:${subColor}">${
+          count ? `${count} producto${count === 1 ? '' : 's'} · precio puerta a puerta` : 'Ver lo que hay disponible'
+        }</div>
+      </div>
+      <div class="flex items-center gap-1.5 text-[13px] font-bold flex-shrink-0" style="color:${cueColor}">
+        <span class="hidden sm:inline">Ver categoría</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
       </div>
     </div>
   </button>`;
 }
 
-/* A retailer image that 404s must not leave the department name floating
-   as raw alt text across a 146px block — same rule as the store logos.
-   The tile falls back to its own category icon. */
-function handleDeptThumbError(img){
-  const fallback = document.createElement('div');
-  fallback.className = 'w-full h-full grid place-items-center text-[56px]';
-  fallback.textContent = img.dataset.icon || '\uD83D\uDECD\uFE0F';
-  img.replaceWith(fallback);
-}
-
 function initDepartmentTiles(){
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
+    paintStoreBrandLines(data);
     /* "Comprar por marca" was its own section with a single Nike card in
        it. One card is not a section, so brands ride in the same grid as
        the departments — they browse identically (openCatalog with a
@@ -2978,6 +3312,159 @@ loadFxRate(); // kick off the fetch as early as possible; render paths below awa
    DEPARTMENT_CONFIG/BRAND_CONFIG in apify-scrape-start.js for the source
    of truth.
    ============================================================ */
+
+/* ============================================================
+   SUBCATEGORIES — the aisle inside a department.
+   MIRROR of scripts/lib/subcategories.js. This page is a plain <script>
+   and cannot import; a parity test pins the two together.
+
+   WHY: Macy's "Women" shipped as one bucket of 754 products whose first
+   several screens were bras and panties, so a shopper looking for a
+   dress never reached the 228 that were sitting there. The fix is
+   navigational, and the ORDER BELOW IS THE FIX -- editorial, not by
+   count, with lingerie last. Sorting by size is what produced the
+   original problem.
+
+   Generic on purpose: any store whose items carry a type splits the
+   same way, and a store whose items carry none does not split and loses
+   nothing, because "Ver todo" always holds the whole department.
+   ============================================================ */
+function normalizeType(raw){
+  /* ACCENTS ARE FOLDED, NOT DELETED (2026-09-22). The beauty catalogue
+     is the first whose types are Spanish, and "Unas" with a tilde hit
+     the [^A-Z0-9] rule as U + (dropped) + AS -> "U_AS", a token nobody
+     would think to write. NFD splits the letter from its tilde and only
+     the tilde is stripped. Nothing existing moves: Macy's and SSENSE
+     send pure ASCII. Mirrors scripts/lib/subcategories.js. */
+  return String(raw ?? '').trim().toUpperCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+}
+
+const SUBCATEGORY_SPEC = [
+  { key: 'dresses',      label: 'Vestidos y faldas',     types: ['DRESS', 'SKIRT', 'GOWN'] },
+  { key: 'tops',         label: 'Tops y blusas',         types: ['TOP', 'BLOUSE', 'SHIRT', 'TSHIRT', 'T_SHIRT', 'POLO', 'HENLEY', 'TANK_TOP'] },
+  { key: 'knitwear',     label: 'Chompas y sudaderas',   types: ['SWEATER', 'SWEATSHIRT', 'HOODIE', 'CARDIGAN',
+                 'CREWNECK', 'V_NECK', 'TURTLENECK', 'SHAWLNECK', 'HOODIES_ZIPUPS', 'KNIT'] },
+  { key: 'jeans',        label: 'Jeans',                 types: ['JEANS', 'DENIM'] },
+  { key: 'pants',        label: 'Pantalones y shorts',   types: ['PANTS', 'SHORTS', 'TROUSERS', 'LEGGINGS',
+                 'CARGO_PANTS', 'SWEATPANTS', 'LEATHER_PANTS', 'CHINOS'] },
+  { key: 'outerwear',    label: 'Casacas y abrigos',     types: ['JACKET', 'COAT', 'BLAZER', 'VEST',
+                 'LEATHER_JACKETS', 'BOMBER', 'WAISTCOAT', 'PARKA', 'PUFFER'] },
+  { key: 'sets',         label: 'Conjuntos y trajes',    types: ['SUIT', 'OUTFIT', 'JUMPSUIT', 'ROMPER'] },
+  { key: 'swim',         label: 'Ropa de baño',          types: ['SWIMSUIT', 'SWIMWEAR', 'BIKINI'] },
+  { key: 'shoes',        label: 'Zapatos',               types: ['SHOE', 'SHOES', 'BOOT', 'SANDAL', 'SNEAKER',
+                 'SLIPPERS_LOAFERS', 'LACE_UPS_OXFORDS', 'BOAT_SHOES_MOCCASINS',
+                 'MONKSTRAP', 'ESPADRILLE', 'LOAFER', 'OXFORD'] },
+  { key: 'bags',         label: 'Bolsos y mochilas',     types: ['BACKPACK_MESSENGER', 'BACKPACK', 'HANDBAG', 'BAG', 'TOTE'] },
+  { key: 'accessories',  label: 'Accesorios',            types: ['BELT', 'SCARF', 'SCARVES', 'HAT', 'JEWELRY', 'WATCH', 'SUNGLASSES', 'WALLET',
+                 'NECK_TIE', 'TIE', 'GLOVE', 'CAP'] },
+  /* LAST, DELIBERATELY. Grouped exactly as the brief grouped it, and
+     placed where it stops being the thing you scroll past to reach a
+     dress. */
+  { key: 'lingerie',     label: 'Ropa interior y pijamas',
+    types: ['BRA', 'PANTY', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY',
+            'PYJAMAS_LOUNGEWEAR', 'PYJAMA', 'LOUNGEWEAR', 'BOXER'] },
+
+  /* ---- BELLEZA (2026-09-22) ---------------------------------------
+     Same mechanism, different floor. One table serves both verticals
+     because the vocabularies do not overlap: no apparel export sends
+     ROSTRO and no beauty export sends DRESS. A third vertical needs no
+     code either.
+
+     Editorial order again, and FRAGANCIA IS LAST for the same reason
+     lingerie is: it is the restricted aisle (four per envio) and the
+     smallest, so it must not be what meets a shopper first.
+
+     'BELLEZA' IS DELIBERATELY UNMAPPED. 37 of 197 items carry it and it
+     is the export's own catch-all -- a lip gloss, an undereye patch, a
+     pencil sharpener and a gift set all wear it. Inventing an aisle for
+     them would be guessing; they stay in 'Ver todo', which holds the
+     whole department, and the card says how many are there. */
+  { key: 'face',        label: 'Rostro',              types: ['ROSTRO', 'FACE', 'FOUNDATION', 'CONCEALER', 'BLUSH', 'BRONZER', 'HIGHLIGHTER', 'PRIMER'] },
+  { key: 'lips',        label: 'Labios',              types: ['LABIOS', 'LIP', 'LIPSTICK', 'LIP_GLOSS', 'LIP_BALM'] },
+  { key: 'eyes',        label: 'Ojos',                types: ['OJOS', 'EYE', 'MASCARA', 'EYELINER', 'EYESHADOW', 'BROW'] },
+  { key: 'skincare',    label: 'Cuidado de la piel',  types: ['CUIDADO_DE_LA_PIEL', 'SKINCARE', 'SKIN_CARE', 'MOISTURIZER', 'SERUM', 'CLEANSER', 'SUNSCREEN', 'MASK'] },
+  { key: 'nails',       label: 'U\u00f1as',              types: ['UNAS', 'NAIL', 'NAIL_POLISH', 'MANICURE'] },
+  { key: 'fragrance',   label: 'Fragancia',           types: ['FRAGANCIA', 'FRAGRANCE', 'PERFUME', 'EAU_DE_PARFUM', 'COLOGNE', 'BODY_MIST'] },
+];
+
+const SUBCATEGORY_BY_TYPE = new Map();
+for (const row of SUBCATEGORY_SPEC) for (const t of row.types) SUBCATEGORY_BY_TYPE.set(normalizeType(t), row.key);
+
+/* PLURALS ARE NOT A NEW VOCABULARY. Macy's says "JACKET"; SSENSE says
+   "JACKETS". An exact miss falls back to the singular, which alone
+   placed JACKETS, SHIRTS, BLAZERS, SUITS, SWEATSHIRTS, CARDIGANS,
+   POLOS and T-SHIRTS when SSENSE landed. Compound and irregular tokens
+   are still written out — guessing at those is how a shirt ends up in
+   the shoe aisle. */
+function subcategoryForType(raw){
+  const t = normalizeType(raw);
+  if (!t) return null;
+  const exact = SUBCATEGORY_BY_TYPE.get(t);
+  if (exact) return exact;
+  if (t.endsWith('S')){
+    const singular = SUBCATEGORY_BY_TYPE.get(t.slice(0, -1));
+    if (singular) return singular;
+  }
+  return null;
+}
+function subcategoryLabel(key){
+  return (SUBCATEGORY_SPEC.find(r => r.key === key) || {}).label || null;
+}
+function subcategoryOfItem(item){
+  return subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
+}
+function groupBySubcategory(items){
+  const bucket = new Map();
+  /* A FACE FOR EACH AISLE (2026-09-22). An aisle card that is a word and
+     a bar is a table of contents, and the standing rule on this site is
+     that a shopper picks with their eyes. Each row carries the image of
+     the FIRST item it holds -- a real product photo from the store's own
+     CDN, never an illustration and never an emoji.
+
+     First, not "best": any deterministic pick is stable across renders,
+     and the feed is already in the order the store sent it. A row whose
+     items carry no image has none, and the card falls back to the
+     text-only treatment rather than to a placeholder. */
+  const face = new Map();
+  let typed = 0;
+  for (const item of items || []){
+    const key = subcategoryOfItem(item);
+    if (!key) continue;
+    typed += 1;
+    bucket.set(key, (bucket.get(key) || 0) + 1);
+    if (!face.has(key)){
+      const img = item?.image || (Array.isArray(item?.images) ? item.images[0] : null);
+      if (typeof img === 'string' && img) face.set(key, img);
+    }
+  }
+  const rows = SUBCATEGORY_SPEC.filter(r => bucket.get(r.key))
+    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key), image: face.get(r.key) || null }));
+  const total = (items || []).length;
+  return { rows, typed, total, untyped: total - typed };
+}
+
+/* WHEN A SPLIT IS WORTH SHOWING. All three are about not making
+   navigation worse: the feed has to be big enough that a flat list is
+   the problem, enough of it has to be placeable so the aisles are not a
+   veneer over a mostly-untyped list, and there has to be more than one
+   aisle or it is two routes to the same page. */
+const SPLIT_MIN_ITEMS = 40;
+const SPLIT_MIN_TYPED_SHARE = 0.6;
+const SPLIT_MIN_AISLES = 3;
+
+function shouldSplit(g){
+  if (!g.total || g.total < SPLIT_MIN_ITEMS) return false;
+  if (g.rows.length < SPLIT_MIN_AISLES) return false;
+  return g.typed / g.total >= SPLIT_MIN_TYPED_SHARE;
+}
+
+function itemsInSubcategory(items, key){
+  if (!key) return items || [];
+  return (items || []).filter(it => subcategoryOfItem(it) === key);
+}
+
 /* The grid every listing surface uses: 2-across, large cards, the
    browsing density Ofertas was approved at. Named so a new surface
    cannot quietly invent a tighter one. */
@@ -2994,21 +3481,29 @@ const LISTING_PAGE_SIZE = 24;
    a `const` referenced before its declaration is a temporal-dead-zone
    throw that kills the whole page script on load — the same way
    GENERAL_RETAILERS once did (see its comment). Keep declaration order. */
-let catalogState = { kind: 'department', key: null, retailerFilter: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+let catalogState = { kind: 'department', key: null, retailerFilter: null, subKey: null, budget: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
 
 function catalogGoBack(){
   // In-page "Volver" and the browser's back arrow have to agree.
   if (routeDepth > 0){ history.back(); return; }
-  // Deep link, with nothing of ours in the stack: undo one level of
-  // narrowing (store filter -> whole category) instead of throwing away
-  // the category, which is the context this page exists to keep.
-  if (catalogState.retailerFilter) openCatalog(catalogState.kind, catalogState.key);
+  /* Deep link, with nothing of ours in the stack: undo ONE level of
+     narrowing instead of throwing away the category, which is the
+     context this page exists to keep. The levels, narrowest first:
+     aisle -> store filter -> whole category. */
+  if (catalogState.subKey){
+    openCatalog(catalogState.kind, catalogState.key,
+      catalogState.retailerFilter ? { retailerFilter: catalogState.retailerFilter } : {});
+  }
+  else if (catalogState.retailerFilter) openCatalog(catalogState.kind, catalogState.key);
   else goHome();
 }
 
 async function openCatalog(kind, key, opts = {}){
   const retailerFilter = opts.retailerFilter || null;
-  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter });
+  // The aisle is part of the address: it gets its own URL, so one back
+  // press returns to the aisle list rather than out of the category.
+  const subKey = opts.subKey || null;
+  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter, subKey });
   /* BUG FIX: the "Ofertas" department tile came through here and landed on
      the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
      so a shopper tapping Ofertas from the homepage got a store list while
@@ -3030,7 +3525,7 @@ async function openCatalog(kind, key, opts = {}){
     (kind === 'department' && key === 'beauty') ? fragranceLimitNoticeHTML() : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
-      (retailerFilter ? [retailerFilter] : GENERAL_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
+      (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
 
   const data = await loadDepartmentCache();
   departmentCacheData = data;
@@ -3038,7 +3533,7 @@ async function openCatalog(kind, key, opts = {}){
   // has to carry honest counts for the stores you are NOT looking at, or
   // the filter has quietly become a gate again.
   const byRetailer = new Map();
-  for (const retailer of GENERAL_RETAILERS){
+  for (const retailer of CATALOG_RETAILERS){
     const items = departmentItemsFor(data.retailers[retailer], kind, key)
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
       .filter(it => it.title);
@@ -3046,7 +3541,9 @@ async function openCatalog(kind, key, opts = {}){
   }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
-  catalogState = { kind, key, retailerFilter, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+  // A new category is a new question: the budget does not follow you into
+  // it, for the same reason the search term does not.
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
   renderCatalogFeed();
 }
 
@@ -3054,8 +3551,42 @@ async function openCatalog(kind, key, opts = {}){
 // category with the filter applied, so it gets its own URL and one back
 // press returns to the whole category.
 function setCatalogStore(retailer){
-  openCatalog(catalogState.kind, catalogState.key, retailer ? { retailerFilter: retailer } : {});
+  /* The aisle survives a store change: a shopper in "Vestidos" who taps
+     another store wants that store's dresses, not its whole department.
+     Dropping subKey here would throw away the narrowing they just made. */
+  openCatalog(catalogState.kind, catalogState.key, {
+    ...(retailer ? { retailerFilter: retailer } : {}),
+    ...(catalogState.subKey ? { subKey: catalogState.subKey } : {}),
+  });
 }
+
+/* An aisle is navigation, not a silent swap — same rule as the store
+   chips. null means "back to the aisle list", never "show me everything
+   and hide the aisles". */
+function setCatalogSub(subKey){
+  openCatalog(catalogState.kind, catalogState.key, {
+    ...(catalogState.retailerFilter ? { retailerFilter: catalogState.retailerFilter } : {}),
+    ...(subKey ? { subKey } : {}),
+  });
+}
+
+/* Budget re-renders in place rather than pushing a route. It is a
+   refinement of the feed you are already looking at, not a new
+   destination — and putting it in the URL would make the back button
+   undo a chip tap instead of leaving the category, which is the
+   behaviour the store and aisle chips deliberately DO have because
+   those change what you are looking at. */
+function setCatalogBudget(key){
+  catalogState.budget = key || null;
+  catalogState.pageSize = LISTING_PAGE_SIZE;   // a new question, a first page
+  renderCatalogFeed();
+}
+
+/* "Ver todo" is a REAL destination, not the absence of a choice: it
+   shows the whole department, aisles included, and is reachable in one
+   tap from the aisle list. It is distinguished from the aisle list by
+   subKey === "__all__", which never matches a real aisle key. */
+const SUB_ALL = '__all__';
 
 // The store filter. "Todas las tiendas" is the default and is always one
 // tap away — this row can never become a gate in front of the products.
@@ -3107,6 +3638,179 @@ function catalogSearchBarHTML(){
     </div>`;
 }
 
+
+/* ============================================================
+   THE AISLE LIST — what a big department shows instead of a wall.
+
+   THE BUG (2026-09-22, QA on an iPhone): Macy's "Women" was 754
+   products in one feed, sorted by price, and the first several screens
+   were bras and panties. The 228 dresses and 50 pairs of jeans were
+   there the whole time and unreachable by scrolling.
+
+   THE RULE THE BRIEF SET, and it is the important one: no aisle may be
+   the default. Landing straight in "Dresses" would bury everything else
+   exactly the way underwear buried the dresses. So the landing is the
+   LIST, "Ver todo" is one deliberate tap, and every aisle is the same
+   distance away.
+
+   Not a Macy's feature: any department whose items say what they are
+   splits this way (see shouldSplit), and one whose items do not simply
+   renders as it always has.
+   ============================================================ */
+/* AN AISLE WEARS THE FACE OF WHAT IS IN IT (2026-09-22).
+
+   This card was a label, a count and a bar -- a table of contents. The
+   standing rule on this site is that a shopper picks with their eyes,
+   and it is the rule the category covers were sent back twice for.
+
+   THE PHOTO IS A REAL PRODUCT, from the store's own CDN: the first item
+   the aisle holds (groupBySubcategory picks it). Not an illustration,
+   not an emoji, not a stock photo of a concept -- so "Labios" shows a
+   lipstick that is actually one tap away, and cannot promise a look the
+   aisle does not carry.
+
+   THE IMAGE AREA IS OPTIONAL, AND THAT MATTERS. A store whose export
+   carries no images (or a CDN that fails) renders the card exactly as
+   it rendered before, rather than a grey box where a photo should be.
+   onerror removes the frame instead of leaving a broken-image glyph.
+
+   cover, not contain: a packshot is centred, so cropping takes white
+   space off the edges; contain would letterbox every tile and make the
+   grid look like a spreadsheet. */
+/* ============================================================
+   THE BROWSE TILE — one component for every "pick a shelf" grid.
+
+   There were two of these and they had drifted into opposite ends of
+   the site. The AISLE list (inside a department) had just been given a
+   real product photo; the STORE'S DEPARTMENT list -- the first screen
+   of Macy's, SSENSE, Sephora -- was still a 26px emoji over a label and
+   a count. Same object, same job, two looks, and the emoji one was the
+   first thing a shopper saw when they tapped a store.
+
+   So it is one function. A photo, a name, how many things are behind
+   it, and a bar for how big a share of what you are looking at it is.
+   A new grid gets the treatment for free, which is what stops the next
+   one from being invented as text again.
+
+   THE PHOTO IS A REAL PRODUCT from that shelf -- first item with an
+   image -- from the store's own CDN. Never an illustration, never an
+   emoji, and never a tile promising something that is not behind it.
+
+   NO PHOTO IS A REAL STATE, not a broken one: a store whose export
+   carries no images renders the text card this replaced, rather than a
+   grey box or an emoji standing in for a picture.
+   ============================================================ */
+/** A tile photo that failed: retry once at the known-good URL, then
+    drop the frame so the tile reads as the text card, never as a break. */
+function browseTilePhotoError(img){
+  const alt = img.getAttribute('data-img-fallback');
+  if (alt){
+    img.removeAttribute('data-img-fallback');
+    img.src = alt;
+    return;
+  }
+  img.parentNode.remove();
+}
+
+function browseTileHTML({ label, count, image, pct = 0, onclick }){
+  /* THE SAME TWO-STAGE RETRY THE PRODUCT CARDS GET, and it is not
+     optional here. A speculative size upgrade (upgradeImageUrl) that
+     turns out not to exist would otherwise strip the photo off every
+     tile in the grid on the first load -- which is exactly what
+     happened to YesStyle in test, where the L_ variant 404s. One retry
+     at the URL we know works, then the frame goes rather than leaving a
+     broken-image glyph. */
+  const retry = image ? imageRetryUrl(image) : '';
+  const photo = image ? `<div class="mb-2.5 -mx-4 -mt-4 aspect-[4/3] overflow-hidden" style="background:var(--sky)">
+      <img src="${escapeHtml(image)}" alt="" loading="lazy" decoding="async"${
+        retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''}
+        style="width:100%; height:100%; object-fit:cover; object-position:center"
+        onerror="window.browseTilePhotoError && browseTilePhotoError(this)">
+    </div>` : '';
+  return `<button onclick="${onclick}"
+    class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)] w-full overflow-hidden"
+    style="border-color:var(--line); background:#fff">
+    ${photo}
+    <div class="flex items-baseline justify-between gap-3">
+      <span class="font-extrabold text-[15px] tracking-[-0.01em]" style="color:var(--navy)">${escapeHtml(label)}</span>
+      <span class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#6B7487">${count}</span>
+    </div>
+    <div class="mt-2 h-1 rounded-full overflow-hidden" style="background:var(--sky)">
+      <div class="h-full rounded-full" style="width:${Math.max(4, pct)}%; background:var(--navy); opacity:.55"></div>
+    </div>
+  </button>`;
+}
+
+function catalogAisleCardHTML(row, total){
+  return browseTileHTML({
+    label: row.label,
+    count: row.count,
+    image: row.image,
+    pct: total ? Math.round((row.count / total) * 100) : 0,
+    onclick: `setCatalogSub('${jsAttr(row.key)}')`,
+  });
+}
+
+function catalogAisleListHTML(grouped, storeLabel){
+  const total = grouped.total;
+  return `
+    ${catalogSearchBarHTML()}
+    ${catalogStoreChipsHTML()}
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      ${grouped.rows.map(r => catalogAisleCardHTML(r, total)).join('')}
+    </div>
+    <button onclick="setCatalogSub('${SUB_ALL}')"
+      class="w-full rounded-2xl border p-4 text-left focus-ring transition hover:shadow-sm"
+      style="border-color:var(--navy); background:var(--sky)">
+      <div class="flex items-baseline justify-between gap-3">
+        <span class="font-extrabold text-[15px]" style="color:var(--navy)">Ver todo</span>
+        <span class="tabular text-[12.5px] font-bold" style="color:var(--navy)">${total}</span>
+      </div>
+      <div class="text-[12px] mt-1" style="color:#4A5670">Todo ${escapeHtml(storeLabel)} en esta categoría, en un solo feed.${
+        /* SAY WHERE THE REMAINDER IS (2026-09-22). The aisles never hold
+           the whole department -- an item whose store reports no type,
+           or a type no aisle claims, is reachable only here. Beauty made
+           that visible: 37 of 197 products carry the export's catch-all
+           "Belleza" and belong to no aisle. A shopper who adds up the
+           aisle counts and comes up short has to be told where the rest
+           went, or "Ver todo" looks like it is hiding them. */
+        grouped.untyped > 0 ? ` Incluye ${grouped.untyped} que no entra${grouped.untyped === 1 ? '' : 'n'} en ninguna categoría de arriba.` : ''
+      }</div>
+    </button>`;
+}
+
+/* The row of aisles shown ABOVE a filtered feed, so switching aisle is
+   one tap and going back to the list is never hidden. "Todo" here
+   returns to the aisle LIST, which is the landing — not to a flat feed
+   that would put us back where we started. */
+function catalogAisleChipsHTML(grouped){
+  const active = catalogState.subKey;
+  const chip = (isOn, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+    </button>`;
+  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+    ${chip(false, '&#8592; Categorías', null, 'setCatalogSub(null)')}
+    ${chip(active === SUB_ALL, 'Ver todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
+    ${grouped.rows.map(r => chip(active === r.key, escapeHtml(r.label), r.count, `setCatalogSub('${jsAttr(r.key)}')`)).join('')}
+  </div>`;
+}
+
+/* Bring each chip row's pressed chip into view, without moving the
+   PAGE — scrollIntoView() would drag the whole viewport, so each row is
+   scrolled on its own axis instead. Centred where there is room, so the
+   chips either side stay discoverable. */
+function revealActiveChips(root){
+  if (!root) return;
+  for (const row of root.querySelectorAll('.no-scrollbar')){
+    const active = row.querySelector('[aria-pressed="true"]');
+    if (!active) continue;
+    const target = active.offsetLeft - (row.clientWidth - active.offsetWidth) / 2;
+    row.scrollLeft = Math.max(0, target);
+  }
+}
+
 function renderCatalogFeed(){
   const { retailerFilter, byRetailer } = catalogState;
   const sections = document.getElementById('catalogSections');
@@ -3124,6 +3828,32 @@ function renderCatalogFeed(){
   const all = [];
   for (const retailer of active) for (const it of byRetailer.get(retailer)) all.push({ ...it, retailer });
 
+  /* ---- AISLES ------------------------------------------------------
+     Computed from the ACTIVE feed, so the counts match what a tap will
+     actually show — an aisle promising 228 and delivering 12 because a
+     store filter is on is worse than no aisle at all. */
+  const grouped = groupBySubcategory(all);
+  const splittable = shouldSplit(grouped);
+  const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
+
+  /* THE LANDING. A splittable department with no aisle chosen and no
+     search term shows the LIST, not a feed. This is the whole fix: no
+     aisle is the default, so none of them buries the others. A search
+     term overrides it — someone who typed "vestido" has already said
+     what they want and a list of aisles is in their way. */
+  if (splittable && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
+    subtitle.textContent = `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`;
+    sections.innerHTML = catalogAisleListHTML(grouped, storeLabel);
+    revealActiveChips(sections);
+    return;
+  }
+
+  /* An aisle key that is not SUB_ALL narrows the feed. An unknown key
+     yields nothing rather than everything — a stale URL must not
+     silently show the flat list it was meant to replace. */
+  const aisleKey = catalogState.subKey && catalogState.subKey !== SUB_ALL ? catalogState.subKey : null;
+  const feed = aisleKey ? itemsInSubcategory(all, aisleKey) : all;
+
   /* An in-category search narrows the cached feed first — instant and
      free. When that comes back thin, the on-demand card at the bottom
      offers to go and look in the real store. */
@@ -3137,9 +3867,13 @@ function renderCatalogFeed(){
   const typed = String(catalogState.searchTerm || '').trim();
   const term = typed.toLowerCase();
   const tokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
-  const items = tokens.length
-    ? all.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
-    : all;
+  const searched = tokens.length
+    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
+    : feed;
+  /* Budget last, so its chip counts are taken against everything the
+     other filters left standing — a band promising 12 has to deliver 12
+     from THIS feed, not from the category as a whole. */
+  const items = catalogState.budget ? searched.filter(it => inBudget(it, catalogState.budget)) : searched;
 
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
@@ -3149,17 +3883,26 @@ function renderCatalogFeed(){
 
   const storeCount = byRetailer.size;
   const n = items.length;
+  const aisleName = aisleKey ? subcategoryLabel(aisleKey) : null;
+  const budgetName = catalogState.budget ? budgetLabelInline(budgetBandFor(catalogState.budget)) : null;
   subtitle.textContent = term
-    ? `${n} resultado${n === 1 ? '' : 's'} para "${term}" en esta categoría`
+    ? `${n} resultado${n === 1 ? '' : 's'} para "${term}"${aisleName ? ` en ${aisleName}` : ' en esta categoría'}`
+    : budgetName
+    ? `${n} producto${n === 1 ? '' : 's'}${aisleName ? ` en ${aisleName}` : ''} por ${budgetName} · puesto en tu puerta`
+    : aisleName
+    ? `${n} producto${n === 1 ? '' : 's'} en ${aisleName}`
     : filterHasStock
       ? `${n} producto${n === 1 ? '' : 's'} de ${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} en esta categoría · toca "Todas las tiendas" para comparar con las demás`
       : retailerFilter
         ? `${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} no tiene productos de esta categoría — te mostramos las ${storeCount} tiendas que sí.`
         : `${n} producto${n === 1 ? '' : 's'} de ${storeCount} tienda${storeCount === 1 ? '' : 's'} en un solo feed · el flete y los aranceles se calculan en el checkout`;
 
+  const budgetBand = budgetBandFor(catalogState.budget);
   sections.innerHTML = `
     ${catalogSearchBarHTML()}
+    ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
+    ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
         <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
@@ -3170,10 +3913,21 @@ function renderCatalogFeed(){
       shown.map(it => listingCardHTML(it, it.retailer)).join('')}</div>
     ${catalogLoadMoreHTML(items.length, shown.length)}
     ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
+    ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">
+      Nada aquí por ${escapeHtml(budgetLabelInline(budgetBand))} — el total incluye el flete a tu puerta.
+      <button onclick="setCatalogBudget(null)" class="underline font-bold" style="color:var(--blue)">Ver todos los precios</button>
+    </div>` : ''}
     <div id="catalogOnDemandWrap" class="mt-6"></div>`;
   // The <select> was just re-created, so put the chosen sort back on it.
   const sel = document.getElementById('catalogSort');
   if (sel) sel.value = sortBy;
+  /* A horizontally-scrolling chip row whose ACTIVE chip is off-screen
+     reads as "no filter applied". On a 393px phone the Macy's chip sits
+     past the right edge, so the row showed "Todas las tiendas 756" while
+     the subtitle said 730 Macy's products — two true numbers that look
+     like a contradiction. Both rows are scrolled to their own selection
+     after every render. */
+  revealActiveChips(sections);
   /* This feed is served from a cache rebuilt once a day, so "thin" here
      usually means "we have not looked recently", not "the store does not
      sell it". The offer only makes sense once the shopper has told us
@@ -3200,24 +3954,60 @@ function renderCatalogFeed(){
    store would be the dishonest option.
    ============================================================ */
 function storeCardHTML(r){
-  const pending = !r.search;
+  /* Pending means "no catalogue yet", not "no scraper yet". A browse-only
+     store (Macy's) has a real catalogue from a file and must not wear the
+     muted plate or the "Conectando el catálogo" badge. */
+  const pending = !(r.search || r.browse);
   /* A store's mark, rendered at ONE size on a white plate whatever the
      source. A logo file gets an <img> sized to the plate; a store with no
      file gets its wordmark on its own brand colour — a designed
      treatment, not a fallback a shopper can pick out. Neither is a grey
      pill and neither is an abbreviation.
 
-     ONE HEIGHT CAP, CONTAIN-FIT, FOR EVERY ASPECT RATIO. Foot Locker's
-     wordmark is 9.5:1 and Target's bullseye is square; both are capped
-     at 34px tall and 130px wide and scaled inside that, so a square mark
-     and a wide one read at the same optical height and nothing is ever
-     stretched. A banner-shaped file (Victoria's Secret ships 1200x631)
-     needs nothing special — it lands 34px tall and ~65px wide. The plate
-     is the card's own background, so a transparent PNG sits directly on
-     it with no box or backdrop behind it. */
+     A LOGO ZONE, NOT A HEIGHT CAP (2026-09-20). Every mark is contain-fit
+     inside the same zone, so each one grows until it maxes out
+     whichever dimension its own proportions reach first, and nothing is
+     ever stretched. `width:100%` is the part that makes it a zone rather
+     than a ceiling: max-* alone only clamps, it never grows a file that
+     is already small, so a mark could sit well inside the plate and there
+     was nothing to push it out.
+
+     THE WIDTH CAP IS A PERCENTAGE, AND THAT IS THE WHOLE FIX (2026-09-21).
+
+     It was 130px — a fixed number — and a fixed cap cannot hold a
+     proportion, because the card is fluid. Measured: a 130px mark filled
+     71% of a 182px card on a phone and only 50% of a 258px card at the
+     4-across desktop width. Same CSS, and the desktop grid is where they
+     were reported as microscopic. Raising the number would only have
+     moved the problem to a different breakpoint and overflowed the phone.
+
+     75% of the plate's content box holds the proportion at every width:
+     70% of the card at 4-across, 68% on a phone. The plate's padding came
+     down from px-4 to px-2 at the same time, because 32px of white was a
+     tenth of the card being spent on nothing.
+
+     HEIGHT STAYS IN PIXELS, and the two are not inconsistent: the width
+     is a share of a fluid card, the height is a share of a fixed plate.
+
+     The zone aspect that makes a square mark and a w:1 wordmark cover the
+     SAME AREA is sqrt(w): a square gets HxH, a wordmark gets WxW/w, and
+     those are equal when W/H = sqrt(w). Walmart is our widest real
+     wordmark at 5.26:1, so sqrt(5.26) = 2.29. At the 4-across width the
+     cap resolves to 180px against a 78px height — 2.31 — and Walmart
+     lands 180x34 (6120 sq px) against Target's 78x78 (6084). Within 1%.
+     That is what "the same visual size" has to mean for logos of
+     different shapes; equal HEIGHTS would mean the opposite, which is the
+     mistake the first cap encoded.
+
+     A PERCENTAGE CAP CANNOT BE CHECKED STATICALLY, so the equal-area
+     guarantee is asserted in browser-tests.mjs against real measured
+     pixels rather than by reading these two numbers out of the style.
+
+     The plate is the card's own background, so a transparent PNG sits
+     directly on it with no box or backdrop behind it. */
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
-         style="max-height:34px; max-width:130px; object-fit:contain"
+         style="width:100%; max-height:78px; max-width:75%; object-fit:contain"
          onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="inline-flex items-center h-[30px] px-3 rounded-lg text-[13px] font-extrabold text-white text-center leading-tight"
          style="background:${r.color}">${escapeHtml(r.label)}</span>`;
@@ -3242,12 +4032,17 @@ function storeCardHTML(r){
          A store's logo is their art, not ours to restyle, so the muting
          now applies to the plate and to the wordmark treatment, never to
          a real logo. -->
-    <div class="h-[92px] grid place-items-center px-4" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
+    <div class="h-[112px] grid place-items-center px-2" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
       ${mark}
     </div>
     <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">
       <div class="text-[13.5px] font-extrabold leading-tight" style="color:var(--navy)">${escapeHtml(r.label)}</div>
-      <div class="text-[12px] leading-snug mt-0.5 flex-1" style="color:#6B7487">${escapeHtml(r.tagline || '')}</div>
+      <div class="text-[12px] leading-snug mt-0.5" style="color:#6B7487">${escapeHtml(r.tagline || '')}</div>
+      <!-- Filled from the catalogue once it loads (paintStoreBrandLines).
+           Hidden until then: a store with no brands we can name says
+           nothing rather than guessing. -->
+      <div data-brandline="${escapeHtml(r.key)}" hidden
+           class="text-[11.5px] leading-snug mt-1 flex-1 font-semibold" style="color:var(--navy); opacity:.78"></div>
       ${pending
         ? `<div class="mt-2.5 inline-flex items-center gap-1.5 text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-1 rounded-full self-start" style="background:var(--sky); color:var(--navy)">
              <span class="w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>${escapeHtml(r.pendingNote || 'Próximamente')}
@@ -3260,14 +4055,69 @@ function storeCardHTML(r){
   </button>`;
 }
 
+
+/* ============================================================
+   THE BRAND LINE — a store introduced by what it CARRIES.
+
+   Danny's constraint, and it is the reason the luxury tier exists at
+   all: a shopper in Lima does not know "SSENSE" and knows Rick Owens,
+   Moncler and Stone Island perfectly well. So a high-end card names
+   brands.
+
+   IT READS THEM FROM THE CATALOGUE, NEVER FROM A LIST. The SSENSE row
+   was first written from the brief as "Gucci, Prada, Balenciaga" — and
+   the export that arrived carries 192 brands, neither of the first two
+   among them. A hand-written brand list is a promise nobody checks. A
+   derived one cannot name a label the store is not actually stocking.
+
+   PROGRESSIVE, AND SILENT UNTIL KNOWN. The grid renders before the
+   catalogue loads, so this fills in afterwards. No brands known means
+   no line — never a placeholder, never a guess.
+
+   BY COUNT, not alphabetical: the brands a store has most of are the
+   ones it is actually known for. */
+const STORE_BRAND_COUNT = 4;
+
+function topBrandsFor(retailerKey, cache){
+  const bucket = cache?.retailers?.[retailerKey];
+  if (!bucket) return [];
+  const counts = new Map();
+  for (const entry of Object.values(bucket.departments || {})){
+    for (const it of entry?.items || []){
+      const b = String(it?.brand || '').trim();
+      if (b) counts.set(b, (counts.get(b) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, STORE_BRAND_COUNT)
+    .map(([b]) => b);
+}
+
+/* Fill the brand line on every card that has a slot for one. Called
+   once the department cache resolves; safe to call again. */
+function paintStoreBrandLines(cache){
+  for (const el of document.querySelectorAll('[data-brandline]')){
+    const brands = topBrandsFor(el.getAttribute('data-brandline'), cache);
+    if (!brands.length) continue;
+    el.textContent = brands.join(' · ');
+    el.hidden = false;
+  }
+}
+
 /* The compact mark used in the homepage row: the same real logo or
-   wordmark as the full card, at one consistent size, with the same
-   honest muting for a store still being connected. */
+   wordmark as the full card, in the same kind of contain-fit zone, with
+   the same honest muting for a store still being connected.
+
+   96x42 is storeCardHTML's 130x56 scaled down to the 62px chip, and it is
+   the same sqrt(5.26) = 2.29 aspect, so a square mark and Walmart's
+   wordmark cover the same area here too. Sizing this one on height alone
+   is what left Sephora a 19px sliver in the homepage row. */
 function homeStoreChipHTML(r){
-  const pending = !r.search;
+  const pending = !(r.search || r.browse);
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
-         style="max-height:26px; max-width:96px; object-fit:contain"
+         style="width:100%; max-height:42px; max-width:96px; object-fit:contain"
          onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="text-[11.5px] font-extrabold text-white px-2 py-1 rounded-md text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
   const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;
@@ -3288,7 +4138,7 @@ function homeStoreChipHTML(r){
 function renderHowItWorksStores(){
   const chips = document.getElementById('howStoreChips');
   if (chips){
-    const stores = GENERAL_RETAILERS;
+    const stores = CATALOG_RETAILERS;
     const shown = stores.slice(0, 2);
     const hidden = stores.length - shown.length;
     chips.innerHTML = shown.map(r => retailerBadgeHTML(r, 18)).join('')
@@ -3302,12 +4152,62 @@ function renderHowItWorksStores(){
 }
 window.addEventListener('DOMContentLoaded', renderHowItWorksStores);
 
+/* ============================================================
+   TIENDAS, GROUPED BY TIER (2026-09-22).
+
+   It was one flat run of logos. Danny's call is that the directory
+   needs a visible high-end section, and the reason is worth keeping:
+   a shopper in Lima does not know "SSENSE", but knows Gucci and Prada
+   perfectly well. A tier heading with a line of plain Spanish under it
+   does the introducing that a logo cannot.
+
+   THE GROUPING IS PRESENTATION ONLY. Every store still appears exactly
+   once, and nothing here can keep a store out of search, out of Ofertas
+   or out of a price comparison -- a test asserts that the set of cards
+   rendered equals the set of active rows, so a tier can never quietly
+   become a filter.
+
+   A tier with no stores renders no heading at all (retailersByTier
+   drops it), so this does not leave an empty "Diseñador y lujo" band
+   behind if that row is ever removed. */
+/* A small count, spelled the way the page writes it. Past twenty it
+   falls back to the digit rather than growing a Spanish number library:
+   "23 tiendas, todas reales" reads fine, and a wrong word would not. */
+const SPANISH_NUMBERS = ['Cero', 'Una', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis', 'Siete', 'Ocho', 'Nueve', 'Diez',
+  'Once', 'Doce', 'Trece', 'Catorce', 'Quince', 'Dieciséis', 'Diecisiete', 'Dieciocho', 'Diecinueve', 'Veinte'];
+function spanishCount(n){
+  return SPANISH_NUMBERS[n] || String(n);
+}
+
 function renderStoresGrid(){
-  const stores = activeRetailers();
   const grid = document.getElementById('storesGrid');
-  if (grid) grid.innerHTML = stores.map(storeCardHTML).join('');
+  if (grid){
+    const tiers = retailersByTier();
+    /* One tier does not need a heading to explain itself -- that is the
+       flat list we already had, and a single "Tiendas de siempre" band
+       over everything is noise. */
+    grid.innerHTML = tiers.length < 2
+      ? `<div class="col-span-full grid grid-cols-2 lg:grid-cols-4 gap-4">${
+          tiers.flatMap(t => t.stores).map(storeCardHTML).join('')}</div>`
+      : tiers.map(t => `
+          <section class="col-span-full">
+            <div class="flex items-baseline gap-3 flex-wrap mb-3 mt-2">
+              <h3 class="text-[17px] font-extrabold tracking-[-0.02em]" style="color:var(--navy)">${escapeHtml(t.label)}</h3>
+              <p class="text-[12.5px]" style="color:#6B7487">${escapeHtml(t.blurb)}</p>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">${t.stores.map(storeCardHTML).join('')}</div>
+          </section>`).join('');
+  }
+  /* THE HEADING COUNTS, IT DOES NOT REMEMBER. See the comment beside
+     #storesGrid in the markup for why this is not a literal. */
+  const listed = activeRetailers().length;
+  for (const el of document.querySelectorAll('[data-store-count]')) el.textContent = spanishCount(listed);
+
+  /* The home rail stays ONE row, ungrouped: it is a glance, not a
+     directory, and a heading in a horizontal chip strip reads as a
+     broken card. */
   const row = document.getElementById('homeStoresRow');
-  if (row) row.innerHTML = stores.map(homeStoreChipHTML).join('');
+  if (row) row.innerHTML = activeRetailers().map(homeStoreChipHTML).join('');
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
 
@@ -3325,8 +4225,12 @@ async function openStore(retailer){
   /* A store we have not wired a scraper for yet says so plainly rather
      than showing "sin departamentos", which reads as "this shop is
      empty" when the truth is "we are still connecting it". */
+  /* A store with a CATALOGUE is not "still being connected", whether or
+     not a live scraper exists for it — Macy's is browsable from a file.
+     Gating this on `search` alone showed the holding message on a store
+     with 431 real products behind it. */
   const meta = retailerFor(retailer);
-  if (meta && !meta.search){
+  if (meta && !(meta.search || meta.browse)){
     document.getElementById('storeViewSubtitle').textContent = 'Catálogo en preparación';
     document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
       <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Estamos conectando el catálogo de ${escapeHtml(meta.label)}</div>
@@ -3344,28 +4248,65 @@ async function openStore(retailer){
   // it actually carries stock for, which is no longer the same thing as
   // "has a bucket of that name". Walmart now shows Moda Hombre and Ofertas
   // here without ever having had a bucket called either.
+  /* The ITEMS, not just the count: the tile shows a real product photo
+     from the department behind it, so the list has to look at what is
+     actually in there. This is the same read the count already did. */
   const carried = Object.keys(DEPARTMENT_SPEC)
-    .map(key => [key, departmentItemsFor(retailerData, 'department', key).length])
-    .filter(([, count]) => count > 0);
+    .map(key => [key, departmentItemsFor(retailerData, 'department', key)])
+    .filter(([, items]) => items.length > 0);
   // Ropa is redundant next to the gendered pages for a fashion retailer —
   // it is the same stock split three ways.
   const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
   const deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
+  const storeTotal = deptEntries.reduce((n, [, items]) => n + items.length, 0);
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = 'Sin departamentos disponibles por ahora.';
     return;
   }
   document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${deptEntries.length > 1 ? 's' : ''} disponibles`;
-  document.getElementById('storeViewSections').innerHTML += `<div class="grid sm:grid-cols-2 md:grid-cols-3 gap-4">${
-    deptEntries.map(([key, count]) => {
-      const meta = metaFor(DEPARTMENT_META, key);
-      return `<button onclick="openCatalog('department','${key}',{retailerFilter:'${retailer}'})" class="rounded-2xl border p-5 text-left focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)]" style="border-color:var(--line)">
-        <div class="text-[26px] mb-2">${meta.icon}</div>
-        <div class="font-bold text-[14px]">${escapeHtml(meta.label)}</div>
-        <div class="text-[12px] text-zinc-500 mt-0.5">${count} producto${count === 1 ? '' : 's'}</div>
-      </button>`;
-    }).join('')
+  /* THE FIRST SCREEN OF A STORE IS PRODUCTS, NOT ICONS (2026-09-22).
+
+     This grid was a 26px emoji over a label and a count -- the tile a
+     shopper meets the instant they tap Macy's or SSENSE, and the most
+     database-looking thing on the site. It is the same browse tile the
+     aisle list uses now, with a real photograph from the department it
+     opens. See browseTileHTML.
+
+     DEPARTMENTS OVERLAP, SO THE FACES ARE DEDUPED. Ofertas is not a
+     shelf of its own -- it is whatever is marked down across the other
+     shelves -- so on Macy's, whose only two departments are Moda Mujer
+     and Ofertas, one product can be the first item of both. It is not
+     today (measured: 37875082 against 37525083, because Macy's first
+     women's item happens not to be marked down) and that is luck, not
+     structure: a re-export that puts a discounted dress first gives
+     both tiles the same photograph, and two identical images side by
+     side read as a rendering bug -- worse than the emoji this replaced.
+     So each tile takes the first photo the grid has not used yet, and
+     repeats one only when its department has nothing else, because a
+     duplicate still beats a hole. */
+  const usedPhotos = new Set();
+  const photoOf = (it) => upgradeImageUrl(safeUrl(it?.image || it?.imageUrl || it?.thumbnail) || '');
+  const deptPhoto = (items) => {
+    let firstSeen = null;
+    for (const it of items){
+      const url = photoOf(it);
+      if (!url) continue;
+      if (!firstSeen) firstSeen = url;
+      if (usedPhotos.has(url)) continue;
+      usedPhotos.add(url);
+      return url;
+    }
+    return firstSeen;
+  };
+  document.getElementById('storeViewSections').innerHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${
+    deptEntries.map(([key, items]) => browseTileHTML({
+      label: metaFor(DEPARTMENT_META, key).label,
+      count: items.length,
+      image: deptPhoto(items),
+      pct: storeTotal ? Math.round((items.length / storeTotal) * 100) : 0,
+      onclick: `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`,
+    })).join('')
   }</div>`;
 }
 
@@ -3417,10 +4358,16 @@ async function openStoreResults(retailer, query){
    the right click target for free. */
 function productCardOpenExpr(p, retailer){
   const r = retailer || p.retailer;
+  /* `null` for the gallery is what this builder has always passed (the
+     argument was simply absent), kept explicit now that a further one
+     follows it. The last is the catalogue's own weight, which has to
+     reach addToCart or checkout re-estimates and disagrees with the
+     card -- see catalogWeightDetail(). */
   return `showProduct('${jsAttr(r)}', '${jsAttr(p.title)}', ${p.price != null ? p.price : 0}, ${p.weightKg}, `
     + `'${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, `
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
-    + `'${jsAttr(p.rating != null ? String(p.rating) : '')}')`;
+    + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
+    + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'})`;
 }
 
 /** The standard card for any listed product, on any surface. */
@@ -3491,7 +4438,7 @@ const ROUTE_VIEWS = {
   homeView:         { key: null },
   resultsView:      { key: 'buscar',    params: ['q'] },
   productView:      { key: 'producto',  params: ['retailer', 'name'] },
-  catalogView:      { key: 'categoria', params: ['kind', 'catKey', 'retailerFilter'] },
+  catalogView:      { key: 'categoria', params: ['kind', 'catKey', 'retailerFilter', 'subKey'] },
   storeView:        { key: 'tienda',    params: ['retailer'] },
   storeResultsView: { key: 'tienda-buscar', params: ['retailer', 'q'] },
   salesView:        { key: 'ofertas',   params: ['retailer'] },
@@ -3554,7 +4501,7 @@ function parseRoute(search){
     if (view === 'resultsView') route.q = slug;
     else if (view === 'storeResultsView'){ const [r, ...rest] = String(slug).split(':'); route.retailer = r; route.q = rest.join(':'); }
     else if (view === 'productView') route.name = slug;
-    else if (view === 'catalogView'){ route.catKey = slug; route.kind = params.get('kind') || 'department'; route.retailerFilter = params.get('retailerFilter') || null; }
+    else if (view === 'catalogView'){ route.catKey = slug; route.kind = params.get('kind') || 'department'; route.retailerFilter = params.get('retailerFilter') || null; route.subKey = params.get('subKey') || null; }
     else if (view === 'storeView') route.retailer = slug;
     else if (view === 'salesView') route.retailer = slug === '1' ? null : slug;
     return route;
@@ -3597,12 +4544,15 @@ async function applyRoute(route){
           || (autoPartsRendered || []).find(it => it.title === route.name);
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
-          known.rating != null ? String(known.rating) : '', known.images || []);
+          known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null);
         else if (route.name) showResults(route.name, { fromHistory: true });
         else showPage('homeView');
         break;
       }
-      case 'catalogView': await openCatalog(route.kind || 'department', route.catKey, route.retailerFilter ? { retailerFilter: route.retailerFilter } : {}); break;
+      case 'catalogView': await openCatalog(route.kind || 'department', route.catKey, {
+        ...(route.retailerFilter ? { retailerFilter: route.retailerFilter } : {}),
+        ...(route.subKey ? { subKey: route.subKey } : {}),
+      }); break;
       case 'storeView': await openStore(route.retailer); break;
       case 'storeResultsView': await openStoreResults(route.retailer, route.q); break;
       case 'salesView': goSales(route.retailer || undefined); break;
@@ -4128,7 +5078,7 @@ function openSearchProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || []);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
 }
 
 /* Same product, different store. Retailers word titles differently, so
@@ -4613,9 +5563,31 @@ let pendingProduct = null;
 let productGallery = [];
 let productGalleryIndex = 0;
 
+/* One place that points the detail image at a URL, so the retry is
+   attached every time and not only on the path somebody remembered. */
+function setProductImageSrc(img, src){
+  if (!img) return;
+  const retry = imageRetryUrl(src);
+  if (retry) img.setAttribute('data-img-fallback', retry);
+  else img.removeAttribute('data-img-fallback');
+  img.src = src;
+}
+
 function handleProductImgError(){
+  const img = document.getElementById('productViewImg');
+  /* ONE RETRY FIRST. A speculative size upgrade (see upgradeImageUrl)
+     carries the URL it replaced, and the detail page has to honour it
+     for the same reason the card does -- otherwise the biggest image on
+     the site is the one most likely to be missing. Cleared before the
+     retry so a dead fallback cannot loop. */
+  const alt = img && img.getAttribute('data-img-fallback');
+  if (alt){
+    img.removeAttribute('data-img-fallback');
+    img.src = alt;
+    return;
+  }
   // A dead image URL must not leave a broken frame sitting there.
-  document.getElementById('productViewImg').classList.add('hidden');
+  img.classList.add('hidden');
   document.getElementById('productViewImgFallback').classList.remove('hidden');
   productMagnifierOff();
 }
@@ -4639,7 +5611,7 @@ function selectProductImage(i){
   if (!productGallery[i]) return;
   productGalleryIndex = i;
   const img = document.getElementById('productViewImg');
-  img.src = productGallery[i];
+  setProductImageSrc(img, productGallery[i]);
   img.classList.remove('hidden');
   document.getElementById('productViewImgFallback').classList.add('hidden');
   renderProductThumbs();
@@ -4724,13 +5696,30 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape' && !document.getElementById('imageLightbox')?.classList.contains('hidden')) closeImageLightbox();
 });
 
-function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images){
+/* Handed from an auto card to showProduct(), one product at a time, and
+   consumed there so it cannot leak onto the next product opened. Declared
+   above its reader rather than beside its writer: a `let` read from
+   thousands of lines further up is the temporal-dead-zone shape that has
+   already taken this page down once. */
+let pendingAutoPartNumber = null;
+
+function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
-  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView };
+  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
+  /* Set by openAutoPart() immediately before this call, and consumed
+     here so it cannot leak onto the next product a shopper opens. */
+  const partNumberEl = document.getElementById('productViewPartNumber');
+  if (partNumberEl){
+    partNumberEl.innerHTML = pendingAutoPartNumber
+      ? `N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(pendingAutoPartNumber)}</span>`
+      : '';
+    partNumberEl.hidden = !pendingAutoPartNumber;
+  }
+  pendingAutoPartNumber = null;
   const statedWeight = contentLabelFor(name);
   document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0
     ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
@@ -4747,7 +5736,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   const img = document.getElementById('productViewImg');
   const fallback = document.getElementById('productViewImgFallback');
   if (productGallery.length){
-    img.src = productGallery[0];
+    setProductImageSrc(img, productGallery[0]);
     img.classList.remove('hidden');
     fallback.classList.add('hidden');
   } else {
@@ -4829,6 +5818,21 @@ function addToCartFromProduct(){
     // Falls back to the same title-based estimate every card uses;
     // checkout re-resolves it server side regardless.
     weightKg: Number.isFinite(p.weightKg) && p.weightKg > 0 ? p.weightKg : estimateRetailWeightKg(p.name),
+    /* THE CATALOGUE'S NUMBER TRAVELS WITH THE LINE (2026-09-22).
+
+       The cart's `weightKg` is marked estimated (addToCart does that),
+       and the server resolver deliberately re-estimates an estimate
+       rather than echoing it back as a store measurement. That is the
+       right rule and it would have thrown this away: a BB cream would
+       show 0.20 kg on the card and be billed at 0.05 kg, because the
+       server would fall back to its own beauty table.
+
+       So the catalogue figure rides along under the name the resolver
+       reads. It is still an estimate there -- catalogWeightKg() keeps
+       `estimated: true` and bands it -- it is just a better-sourced one
+       than a guess from the title. Absent for every store that
+       publishes no weight, which is every store but this catalogue. */
+    ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
     image: p.imageUrl || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   });
@@ -4866,9 +5870,65 @@ const RETAILERS = {
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.svg', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
-  sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: null,                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
-  victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: null,                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
-  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: null,              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  /* SEPHORA IS BROWSABLE (2026-09-22). beauty-catalog.json landed with
+     80 Sephora products, so this row flips `browse: true` and drops the
+     pending note -- the same two-flag distinction Macy's introduced.
+     Victoria's Secret and Bath & Body Works are NOT in that file and
+     stay pending: a store is browsable when a catalogue names it, not
+     when it sells the same kind of thing.
+
+     THE TAGLINE NAMES NO BRAND, same rule as SSENSE. The brief's line
+     was "Maquillaje y skincare -- NARS, Rare Beauty" and both really are
+     in the export, so it would be true today. It is still the wrong
+     place for it: the card already paints a brand line read from the
+     catalogue (paintStoreBrandLines), so naming them by hand prints the
+     same two names twice on one card and goes stale the first time the
+     export changes. */
+  sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
+     file. Browse-without-scrape, like Macy's and SSENSE.
+
+     BOTH MARKS LANDED the same day. They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours — and `color` is no
+     longer a placeholder either: both values were SAMPLED FROM THE
+     SUPPLIED ARTWORK rather than recalled (Ulta's orange is #F88038
+     across 229,142 pixels of its file; YesStyle's most common ink is
+     its near-black, but a near-black badge is indistinguishable from
+     Sephora's and SSENSE's, so the row takes the green that says whose
+     mark it is). The colour only ever backs the wordmark pill and the
+     small text badge now, neither of which renders while the logo file
+     resolves.
+
+     YesStyle's file needed cropping — the wordmark filled 7.4% of its
+     canvas, which is the SSENSE sliver all over again. See the logo
+     coverage test. Mirrors scripts/lib/retailers.js. */
+  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
+     it has a real catalogue (macys-catalog.json); `search: false` keeps
+     it out of the live fan-out, which has no actor for it. See the note
+     on the Macy's row in scripts/lib/retailers.js. */
+  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
+     bot protection returned zero products across three integrations.
+     Catalogue file ssense-catalog.json (2,426 men's products) is committed
+     at repo root and merged by loadDepartmentCache like Macy's.
+     The tagline leads with the BRANDS because "SSENSE" means nothing to a
+     shopper in Lima and "Gucci" means everything. */
+  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
+     bot protection returned zero products across three integrations.
+     Browsable from a file (ssense-catalog.json, 2,426 men's products,
+     192 brands); no actor, so it stays out of the live search fan-out.
+
+     THE TAGLINE NAMES NO BRAND, on purpose. It said "Gucci, Prada,
+     Balenciaga" when the row was written from the brief, and the
+     catalogue that arrived carries NEITHER Gucci NOR Prada. The real
+     names are read from the data by topBrandsFor(), so the card can
+     only ever promise a label the store is actually carrying. */
+  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
@@ -4878,6 +5938,37 @@ const RETAILERS = {
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
 function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
+/* TIERS — how the Tiendas directory is GROUPED, and nothing else.
+   MIRROR of scripts/lib/retailers.js; a parity test pins the two.
+
+   A tier decides which heading a store sits under. It does NOT decide
+   who is in the cross-store search, who is in Ofertas, or whose prices
+   are compared -- those read `search`, `browse` and the deals feed, none
+   of which look at tier. That separation is the point: "Adidas
+   sneakers" has to show SSENSE beside Foot Locker, and an SSENSE
+   markdown has to compete in Ofertas on the same row as a Macy's one. */
+const TIERS = [
+  { key: 'luxury',   label: 'Diseñador y lujo',
+    blurb: 'Las marcas que ya conoces, importadas igual que todo lo demás.' },
+  { key: 'everyday', label: 'Tiendas de siempre',
+    blurb: 'Lo de todos los días, a precio puerta a puerta.' },
+  { key: 'auto',     label: 'Repuestos', blurb: 'Autopartes vía Aria Auto.' },
+];
+const DEFAULT_TIER = 'everyday';
+
+function tierOf(r){
+  if (!r) return DEFAULT_TIER;
+  if (r.tier) return r.tier;
+  if (r.kind === 'auto') return 'auto';
+  return DEFAULT_TIER;
+}
+
+function retailersByTier(){
+  const active = activeRetailers();
+  return TIERS.map(t => ({ ...t, stores: active.filter(r => tierOf(r) === t.key) }))
+    .filter(t => t.stores.length);
+}
+
 function isBeautyRetailer(key){ return retailerFor(key)?.catalog === 'beauty'; }
 
 /* The stores the live cross-store search actually fans out to. AutoZone
@@ -4968,6 +6059,33 @@ function retailerBadgeHTML(retailer, heightPx = 28){
 // touched GENERAL_RETAILERS.length, before the live results container was
 // ever unhidden or populated. Must stay below LIVE_RETAILERS.
 const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => retailerFor(r)?.kind !== 'auto');
+
+/* BROWSE AND SEARCH ARE DIFFERENT CAPABILITIES (2026-09-22).
+
+   GENERAL_RETAILERS is the LIVE SEARCH fan-out: stores we can query on
+   demand, which needs an Apify actor behind them. Macy's has a full
+   catalogue and no actor, so it belongs in every list that walks a
+   catalogue and in none that issues a query — calling an unconfigured
+   retailer returns a failed store card, which reads as a bug.
+
+   So: search paths keep GENERAL_RETAILERS, catalogue paths read this.
+   Mirrors browsableRetailers() in scripts/lib/retailers.js. */
+const CATALOG_RETAILERS = activeRetailers()
+  .filter(r => (r.search || r.browse) && r.kind !== 'auto')
+  .map(r => r.key);
+
+/* A store with a catalogue FILE and no live scraper. Mirrors
+   isBrowseOnlyRetailer() in scripts/lib/retailers.js.
+
+   This is what tells the deals feed which stores the scraper cache does
+   NOT cover, so the two halves of Ofertas union without double
+   counting. It was missing from this mirror when fileBackedDeals() was
+   first written, and the result was a silent ReferenceError inside an
+   async function: Ofertas simply stayed empty, with no visible error. */
+function isBrowseOnlyRetailer(key){
+  const r = retailerFor(key);
+  return Boolean(r && r.browse && !r.search);
+}
 
 // Retailers whose entire catalog is apparel/footwear — used so a real
 // shoe like "Nike Kobe Air Force 1 Low" (Foot Locker) or "Rotation
@@ -6369,21 +7487,38 @@ function bulkyWeightKg(text){
   return hit ? withBuffer(hit.kg, 'reasoned') : null;
 }
 
-/* FREIGHT SHARE — TWO LINES, NOT ONE (2026-09-20). There used to be a
-   single 30% suppression threshold and a deal over it simply vanished,
-   which hid the cost rather than disclosing it.
+/* ONE FREIGHT LINE, AND IT IS NOT A WARNING (2026-09-21).
 
-     under 50%   an ordinary deal.
-     50%-100%    featured, with a "Flete alto" badge and the real figure.
-     over 100%   freight costs more than the product: still listed,
-                 searchable and badged, but not featurable as a deal.
+   THE "FLETE ALTO" BADGE IS GONE. A 0.23 kg t-shirt at S/ 25.29 with
+   S/ 10.07 of freight wore it, and the diagnosis is that the rule
+   measured freight as a SHARE OF PRICE — so it fired on CHEAP items
+   rather than HEAVY ones. S/ 10.07 is not a high freight bill by any
+   measure a shopper would recognise; the t-shirt is simply inexpensive.
+   Recalibrating the threshold would not have fixed that. The
+   denominator was the bug, and the badge went with it.
 
-   The ceiling only decides what Ofertas may FEATURE — it never hides a
-   product and never blocks a purchase. The ambiguous MAX_FREIGHT_SHARE
-   alias is gone: with two thresholds in play, a name that does not say
-   which one it means is how they drift. Mirrors FREIGHT_BADGE_SHARE and
-   FREIGHT_FEATURE_CEILING in scripts/lib/item-weight.js. */
-const FREIGHT_BADGE_SHARE = 0.50;
+   It also fought the brand. "Flete honesto" is a promise to disclose,
+   not to alarm, and the card already discloses completely:
+
+     + S/ 10.07 de flete (0.23 kg x $13/kg)
+
+   The cost, the weight and the rate, in the open, before anyone pays —
+   that line IS the argument this shop is built on. A warning label on
+   top of it tells a shopper the number they can already see is
+   something to be frightened of, and the cheap first order it scares
+   off is exactly the one a launch depends on.
+
+   IF A HEAVY-ITEM INDICATOR EVER COMES BACK it triggers on ABSOLUTE
+   freight (the figure discussed was around S/ 40) and reads as neutral
+   information, never a warning. A share-of-price rule is the thing that
+   was wrong here; do not reintroduce one.
+
+   THE CEILING STAYS, and it is a different tool. It decides exactly one
+   thing — whether Ofertas may FEATURE something as a deal — and it never
+   labels a product, hides one, or blocks a purchase. Calling an item a
+   bargain when the freight costs more than the item is a claim we cannot
+   stand behind; saying nothing at all about a merely heavy item is not.
+   Mirrors FREIGHT_FEATURE_CEILING in scripts/lib/item-weight.js. */
 const FREIGHT_FEATURE_CEILING = 1.00;
 
 function freightUsd(weightKg){
@@ -6420,6 +7555,99 @@ function doorToDoorUsd(p){
   return displayPriceUsd(price) + freight;
 }
 
+
+/* ============================================================
+   BUDGET — "qué puedo comprar con S/ X".
+
+   Danny's call (2026-09-22): a shopper should be able to browse by what
+   they can SPEND, not only by what a store stocks. That is a different
+   question from sorting by price, and sorting does not answer it: a
+   sorted list still makes you scroll past everything you cannot afford
+   to find the edge of what you can.
+
+   THE NUMBER IS THE DOOR-TO-DOOR TOTAL, NOT THE STICKER. A budget that
+   filtered on the product price would be a lie the size of the freight:
+   a S/ 90 top with S/ 40 of freight does not belong in "menos de S/
+   100". doorToDoorUsd() is the same figure the card prints and the
+   "mejor precio" sort already uses, so the three cannot disagree.
+
+   THE BANDS ARE FIXED AND ROUND, not derived from the data. Adaptive
+   bands re-cut themselves every time you touch another filter, so the
+   band you just chose stops meaning what it meant. These are the
+   numbers a shopper already thinks in.
+
+   Only bands with something in them are rendered, so a luxury store
+   does not show an empty "menos de S/ 100" and Old Navy does not show
+   an empty "S/ 1,000+". And the filter hides itself entirely when the
+   exchange rate never loaded -- soles we cannot compute are soles we do
+   not print (same rule as fmtPEN). */
+const BUDGET_BANDS = [
+  { key: 'u100',   label: 'Menos de S/ 100', min: 0,    max: 100 },
+  { key: '100250', label: 'S/ 100 – 250',    min: 100,  max: 250 },
+  { key: '250500', label: 'S/ 250 – 500',    min: 250,  max: 500 },
+  { key: '5001k',  label: 'S/ 500 – 1,000',  min: 500,  max: 1000 },
+  { key: 'o1k',    label: 'Más de S/ 1,000', min: 1000, max: Infinity },
+];
+
+function budgetBandFor(key){
+  return BUDGET_BANDS.find(b => b.key === key) || null;
+}
+
+/* A band's label mid-sentence ("193 productos por ..."). Lowercasing the
+   whole label turned "S/ 100 - 250" into "s/ 100 - 250"; lowercasing
+   only the first letter did too, because "S" IS a letter. A currency
+   symbol is not a word, so a label that opens with one is left exactly
+   as written and only a real opening word drops its capital. */
+function budgetLabelInline(band){
+  const s = String(band?.label || '');
+  if (s.startsWith('S/')) return s;
+  return /^[A-Za-zÁÉÍÓÚÑ]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s;
+}
+
+/** An item's door-to-door total in soles, or null when it cannot be known. */
+function doorToDoorPen(p){
+  if (!fxRate) return null;
+  const usd = doorToDoorUsd(p);
+  if (!Number.isFinite(usd)) return null;
+  return usd * fxRate;
+}
+
+function inBudget(p, bandKey){
+  const band = budgetBandFor(bandKey);
+  if (!band) return true;
+  const pen = doorToDoorPen(p);
+  /* An item whose total we cannot compute is NOT quietly kept. A budget
+     filter that leaks unpriced items is a budget filter a shopper stops
+     trusting the first time one appears. */
+  if (pen == null) return false;
+  return pen >= band.min && pen < band.max;
+}
+
+/** Bands with something in them, counted against the feed as it stands. */
+function budgetChipsHTML(items, activeKey, onclickFor){
+  if (!fxRate) return '';
+  const counts = new Map();
+  for (const it of items){
+    const pen = doorToDoorPen(it);
+    if (pen == null) continue;
+    const band = BUDGET_BANDS.find(b => pen >= b.min && pen < b.max);
+    if (band) counts.set(band.key, (counts.get(band.key) || 0) + 1);
+  }
+  const live = BUDGET_BANDS.filter(b => counts.get(b.key));
+  // One band holding everything is not a choice; it is a label.
+  if (live.length < 2) return '';
+  const chip = (isOn, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+    </button>`;
+  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+    <span class="text-[12px] font-bold self-center flex-shrink-0 pr-1" style="color:#6B7487">Presupuesto</span>
+    ${chip(!activeKey, 'Cualquiera', items.length, onclickFor(null))}
+    ${live.map(b => chip(activeKey === b.key, b.label, counts.get(b.key), onclickFor(b.key))).join('')}
+  </div>`;
+}
+
 /** Comparator for every "Mejor precio primero" / "mayor a menor" select. */
 function byDoorToDoor(sortBy){
   return (a, b) => {
@@ -6432,25 +7660,19 @@ function byDoorToDoor(sortBy){
   };
 }
 
-/* THE BADGE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
+/* A SHARE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
 
-   REPORTED LIVE: a card showing S/ 25.29 and S/ 10.07 of freight — 40%,
-   comfortably under the 50% line — was wearing the "Flete alto" badge.
-   Two separate things were wrong, and this is the second of them.
+   Written for the "Flete alto" badge, which no longer exists. The rule
+   outlives it, because the feature ceiling still divides by a price and
+   the bug recorded here is about the DENOMINATOR rather than the
+   threshold: the share used to be taken against the RAW scraped price
+   while the card printed displayPriceUsd(price). Over the $200
+   import-tax threshold those differ by 23%, so the ratio was decided on
+   a number the shopper never sees.
 
-     1. The live build was still running the old single 30% threshold,
-        which 40% clears. FREIGHT_BADGE_SHARE above is the fix for that:
-        one line, at 0.50, and the card reads it rather than a number of
-        its own.
-
-     2. The share was divided by the RAW scraped price while the card
-        printed displayPriceUsd(price). Over the $200 import-tax
-        threshold those differ by 23%, so the badge was decided on a
-        denominator the shopper never sees. A warning nobody can check by
-        dividing the two numbers in front of them is worse than none.
-
-   Mirrors freightShare() in scripts/lib/item-weight.js, which divides by
-   the same displayed price; test-badge asserts they agree. */
+   Anything computed from a price divides by the price ON THE CARD, so a
+   shopper can reproduce it from the figures in front of them. Mirrors
+   freightShare() in scripts/lib/item-weight.js. */
 /* ONE RULE FOR "WE WILL NOT QUOTE THIS FREIGHT" (2026-09-20).
 
    REPORTED LIVE: a conditioner's product page said "Flete por confirmar
@@ -6483,6 +7705,47 @@ function freightSharePct(weightKg, priceUsd){
    weight the retailer stated in the title is a fact; anything else is an
    estimate and the card has to say so. Mirrors estimateWeightDetail() in
    scripts/lib/sales-sources.js. */
+/* ============================================================
+   A WEIGHT THE CATALOGUE SUPPLIED (2026-09-22)
+
+   beauty-catalog.json ships a `specWeightKg` on all 197 products, and
+   `weightEstimated: true` beside it -- the export saying, honestly,
+   that these are the supplier's estimates and not scale readings. So it
+   is NOT a spec weight: a spec weight is a published measurement,
+   renders as "Peso confirmado por la tienda", and skips the sanity
+   bands. This is an estimate with a better source than ours, and it is
+   banded like every other estimate.
+
+   IT IS WORTH PREFERRING. Measured across those 197 items, our own
+   title-based beauty table agrees within 3x on 189 and comes in LIGHTER
+   on the other eight -- 0.05 kg against the catalogue's 0.20 for BB and
+   eye creams. Under-reading a weight is the direction that costs us
+   money at the courier, so the store's per-product number beats our
+   per-category one.
+
+   Mirrors catalogWeightKg() in netlify/functions/_weight-resolve.js.
+   The two MUST agree: the card shows this number and checkout
+   re-resolves it server side, and a card and a bill that disagree about
+   what a parcel weighs is the bug that rule exists for. */
+function catalogWeightDetail(item, title){
+  // An explicit weightEstimated:false is a different, stronger claim,
+  // and the spec path owns it. Not ours to answer.
+  if (!item || item.weightEstimated === false) return null;
+  const kg = Number(item.specWeightKg);
+  if (!(Number.isFinite(kg) && kg > 0)) return null;
+  const check = weightSanity(title || '', kg);
+  return {
+    kg: check.kg,
+    source: 'catalog',
+    estimated: true,
+    reviewKind: check.ok ? null : 'out-of-band',
+    needsReview: !check.ok,
+    flagged: !check.ok,
+    reason: check.reason,
+    bound: check.key,
+  };
+}
+
 function estimateRetailWeightDetail(text, hints){
   const t = text || '';
   const beauty = beautyWeightDetail(t, hints || {});
@@ -6579,7 +7842,7 @@ const MIN_DISCOUNT_PCT = 5;
 // but there is no word boundary before them, so /\bmen'?s\b/ correctly
 // does NOT match inside "Women's". Without \b every women's item would
 // be misread as menswear.
-const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|juniors?|ni[ñn][oa]s?)\b/i;
+const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|ni[ñn][oa]s?)\b/i;
 const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
 const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
 
@@ -6631,6 +7894,10 @@ function normalizeLiveItem(item, hints){
      An item with NO imageReview field is a live scrape result, which this
      pipeline cannot screen in the browser. Those are left as-is. */
   if (item.imageReview && item.imageReview !== 'clean') images = [];
+  /* THE BIGGEST FILE THE CDN WILL GIVE US, decided once, here, so the
+     card, the gallery, the lightbox and the deals feed all show the same
+     asset at the same size. See upgradeImageUrl. */
+  images = images.map(upgradeImageUrl);
   const image = images[0] || null;
   /* REAL RETAILER DATA OR NOTHING (2026-09-20).
 
@@ -6652,11 +7919,16 @@ function normalizeLiveItem(item, hints){
   const reviewCount = Number.isFinite(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
     ? Math.round(Number(item.reviewCount ?? item.ratingCount ?? item.numberOfReviews))
     : null;
-  const weightDetail = estimateRetailWeightDetail(title, {
+  const weightDetail = catalogWeightDetail(item, title) || estimateRetailWeightDetail(title, {
     retailer: hints?.retailer ?? item.retailer,
     department: hints?.department ?? item.department,
   });
   const weightKg = weightDetail.kg;
+  /* Carried through to the cart line so checkout re-resolves the SAME
+     number rather than falling back to its own estimate. Null for every
+     store that does not publish one, which is every store but the
+     beauty catalogue today. */
+  const catalogWeightKg = weightDetail.source === 'catalog' ? weightKg : null;
 
   // Real available-sizes list, only when the retailer's own scrape data
   // reports one (confirmed present on live Old Navy listing data as
@@ -6698,9 +7970,24 @@ function normalizeLiveItem(item, hints){
     weightReviewReason: weightDetail.reason,
     // The courier's four-per-shipment fragrance clause travels with the
     // item, so every card and the cart can state it without re-parsing.
-    restrictedFragrance: isFragrance(title),
+    /* THE STORE'S OWN DECLARATION WINS. beauty-catalog.json marks 11
+       items `restricted: "fragancia-max-4"`, which is the courier
+       clause stated as data instead of inferred from a title. Measured
+       against all 197: the flag and isFragrance() agree on every single
+       one, so this changes nothing today -- which is the point. It
+       means the day an export flags something whose title does not say
+       "parfum", the limit is still on the card. The title test stays as
+       the fallback for every store that declares nothing. */
+    restrictedFragrance: item.restricted === 'fragancia-max-4' || isFragrance(title),
     // null unless the retailer really sent one. Never rendered otherwise.
     reviewCount,
+    /* WHAT THE THING IS, when the store says so. This is what lets a
+       department split into aisles (see SUBCATEGORY_SPEC); it was being
+       dropped here, which is why Macy's "Women" could only be one flat
+       list. Empty string for a store that reports nothing, which simply
+       does not split. */
+    type: normalizeType(item.type ?? item.typeName ?? item.productType),
+    catalogWeightKg,
     sizes, onSale: hasRealDiscount, originalPrice };
 }
 
@@ -7438,6 +8725,51 @@ function autoSourceLabel(key) {
   return autoSourceFor(key)?.label || key || "Tienda";
 }
 
+/* ============================================================
+   THE PART NUMBER IS THE BUYER'S OWN CHECK
+
+   Danny's standing point, and it is how he verified the Sonata pads
+   himself: in auto parts, reading the manufacturer's part or series
+   number and cross-checking it is normal buyer diligence, not a burden
+   we invented. A "D2076" pasted into a search engine answers "does this
+   fit my car" in seconds.
+
+   So every auto listing shows it. When we can confirm fitment from the
+   source's own data we say so outright with the green badge; when we
+   genuinely cannot, the number is what lets the shopper close the gap
+   instead of guessing. It is the one piece of information that makes an
+   unconfirmed listing useful rather than a shrug.
+
+   Sources name it differently, so this reads the shapes they use and
+   returns the most specific one. `oem` is kept separate because an OEM
+   number and an aftermarket number are different lookups.
+   ============================================================ */
+function partNumberOf(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const first = (...keys) => {
+    for (const k of keys) {
+      const v = raw[k];
+      if (v == null) continue;
+      const s = String(v).trim();
+      if (s && s.toLowerCase() !== "null") return s;
+    }
+    return null;
+  };
+  const partNumber = first("part_number", "partNumber", "sku", "mpn", "manufacturerPartNumber", "item_id");
+  const oem = first("oem_part_number", "oemPartNumber", "oem");
+  const lineCode = first("line_code", "lineCode", "brand", "sub_brand");
+  if (!partNumber && !oem) return null;
+  return { partNumber, oem, lineCode };
+}
+
+/** "Duralast D2076" — what the shopper pastes into a search engine. */
+function partNumberLabel(raw) {
+  const p = partNumberOf(raw);
+  if (!p) return null;
+  const core = p.partNumber || p.oem;
+  return p.lineCode && p.partNumber ? `${p.lineCode} ${core}` : core;
+}
+
 /* A source's own mark. Aria Auto's sources are deliberately NOT in the
    Tiendas registry, so retailerBadgeHTML() cannot resolve them — this
    reads the auto registry instead and falls back to a wordmark pill on
@@ -7833,6 +9165,11 @@ function openAutoPart(idx){
   // "Duralast Ceramic Brake Pads" alone is the same string for both axles,
   // which is exactly how someone ends up with the wrong set.
   const title = p.axle ? `${p.title} (${AXLE_LABEL_ES[p.axle]})` : p.title;
+  /* The part number rides along so the detail page can show it too. A
+     shopper who clicks a part to look closer is exactly the shopper
+     about to cross-check the number, and losing it on the click is
+     losing it at the moment it is wanted. */
+  pendingAutoPartNumber = p.partNumber || null;
   showProduct(p.retailer, title, p.price, p.weightKg, p.image || '', [], false, '',
     p.rating != null ? String(p.rating) : '');
 }
@@ -7915,6 +9252,17 @@ function logFitmentGap(vehicle, query){
   } catch { /* never let a tally break a search */ }
 }
 
+/* THE SECOND LINE USED TO STATE A CAUSE AS FACT (2026-09-20). It read
+   "Ese modelo no se vendió en Estados Unidos" — one possible reason, and
+   not the usual one. The 2020 Sonata is a US-market car and this state
+   fires for it whenever the store simply returned nothing. Asserting a
+   cause we have not established is the same class of error as the badge
+   this section was fixed for, pointed the other way: it is now offered
+   as one possibility among two, which is what we actually know.
+
+   (Kept as a JS comment, not an HTML one: this function's markup is a
+   template literal, so an HTML comment here would ship into the DOM of
+   every empty state — and would carry the false sentence with it.) */
 function fitmentGapHTML(label, vehicle, query, sourceKey){
   const v = escapeHtml(vehicleLabel(vehicle));
   return `<div class="mb-8">
@@ -7922,8 +9270,9 @@ function fitmentGapHTML(label, vehicle, query, sourceKey){
     <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
       <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">No tenemos datos de calce para tu ${v} en tiendas de EE. UU.</div>
       <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
-        Ese modelo no se vendió en Estados Unidos, así que las tiendas de allá no tienen el calce registrado.
-        No vamos a mostrarte repuestos que quizá no encajen: preferimos decirte la verdad.
+        La tienda no devolvió repuestos para este vehículo. Puede ser que no lo tenga en catálogo,
+        o que ese modelo no se haya vendido en Estados Unidos. No vamos a mostrarte repuestos que
+        quizá no encajen: preferimos decirte la verdad y buscarlo a mano.
       </p>
       <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">
         Escríbenos qué pieza necesitas y la buscamos manualmente
@@ -8019,6 +9368,33 @@ function axleSelectorHTML(blockId){
    a store that does have data. If AutoZone confirms four pads and
    RockAuto has nothing for the car, the shopper sees both facts. That
    is the comparison this section exists to give. */
+/* ============================================================
+   THE THREE OUTCOMES, AND WHICH ONE IS THE DEFAULT (2026-09-20)
+
+   CORRECTION on the first cut of this fix. It collapsed everything we
+   could not positively confirm into the honest empty state, and Danny
+   was right that this overshoots: he searched Sonata brake pads, and the
+   pads the page had been showing were genuinely Sonata-fitting — he
+   checked the series number himself. Hiding them did not make the
+   section honest, it made it dead. Confirmed fit is the goal; the empty
+   state is the fail-closed fallback, never the normal view.
+
+   1. CONFIRMED — the source's compatibility list names this vehicle.
+      Only those parts, each with the green "Compatible con tu [vehículo]"
+      badge. This is what the section is for.
+   2. UNCONFIRMED — the source returned parts for a search scoped to this
+      exact vehicle, but publishes no compatibility list we can read. The
+      parts are SHOWN, with the manufacturer part number prominent so the
+      buyer can close the gap the way Danny did, and one honest line
+      saying we could not confirm it ourselves. This is not the banned
+      badge: that was banned as a substitute for confirmation we COULD
+      have given, and here we genuinely cannot.
+   3. NOTHING — the source returned no parts at all. The honest empty
+      state and the concierge path.
+
+   A part whose list names a DIFFERENT car is still excluded in branch 1.
+   That is the source answering the shopper's question with a no.
+   ============================================================ */
 function renderAutoPartBlock(label, result, query, sourceKey){
   const header = `<div class="mb-3">${autoSourceBadgeHTML(sourceKey || label, 22)}</div>`;
   if (!result.ok){
@@ -8027,34 +9403,30 @@ function renderAutoPartBlock(label, result, query, sourceKey){
     </div>`;
   }
   const vehicle = selectedVehicle;
-  const rawItems = Array.isArray(result.items) ? result.items : [];
+  const rawItems = filterAutomotiveParts(Array.isArray(result.items) ? result.items : [], query);
 
-  /* OUTCOME 2: no compatibility data anywhere in this store's results.
-     Say so, show nothing, log the gap. Never fall back to the unfiltered
-     keyword results — that was the bug. */
-  if (!rawItems.length || !hasFitmentData(rawItems, vehicle)){
+  // OUTCOME 3: nothing came back at all.
+  if (!rawItems.length){
     logFitmentGap(vehicle, query);
     return fitmentGapHTML(label, vehicle, query, sourceKey);
   }
 
-  /* OUTCOME 1: filter to the parts whose list names this car. A part
-     with a list that does NOT name it is excluded — a shopper asked
-     whether it fits and the source answered no. Lawn and wheelbarrow
-     tires are dropped separately (filterAutomotiveParts). */
-  const fitted = vehicleFittedItems(rawItems, vehicle);
-  const items = filterAutomotiveParts(fitted, query);
-  const excluded = rawItems.length - fitted.length;
+  const hasData = hasFitmentData(rawItems, vehicle);
+  const fitted = hasData ? vehicleFittedItems(rawItems, vehicle) : rawItems;
+  const excluded = hasData ? rawItems.length - fitted.length : 0;
 
-  if (!items.length){
+  /* Branch 1 with a list that ruled everything out: the source DOES know
+     this vehicle and says none of these parts fit it. That is a real
+     answer and it is not the empty state — say which. */
+  if (hasData && !fitted.length){
     return `<div class="mb-8">${header}
       <div class="rounded-2xl border p-5" style="border-color:var(--line); background:var(--sky)">
         <div class="text-[14px] font-bold mb-1.5" style="color:var(--navy)">
           Nada que calce con tu ${escapeHtml(vehicleLabel(vehicle))} en ${escapeHtml(label)}
         </div>
         <p class="text-[12.5px] leading-relaxed mb-4" style="color:#5B6478">
-          ${excluded > 0
-            ? `Revisamos ${excluded} repuesto${excluded === 1 ? '' : 's'} y ninguno lista tu vehículo. Preferimos no venderte algo que quizá no encaje.`
-            : 'No encontramos repuestos con calce confirmado para tu vehículo aquí.'}
+          Revisamos ${excluded} repuesto${excluded === 1 ? '' : 's'} y la tienda no lista tu vehículo en ninguno.
+          Preferimos no venderte algo que quizá no encaje.
         </p>
         <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">
           Escríbenos qué pieza necesitas y la buscamos manualmente
@@ -8069,11 +9441,11 @@ function renderAutoPartBlock(label, result, query, sourceKey){
   // site. Do not add an <a href> to a scraped item.url here or anywhere
   // else a product card is rendered.
   const blockId = `autoBlockGrid-${String(label).toLowerCase().replace(/[^a-z0-9]+/g, '')}`;
-  const axles = new Set(items.map(axleFromItem).filter(Boolean));
-  const cards = items.map((it) => {
+  const axles = new Set(fitted.map(axleFromItem).filter(Boolean));
+  const cards = fitted.map((it) => {
     const axle = axleFromItem(it);
     const card = {
-      retailer: label,
+      retailer: sourceKey || label,
       title: it.title,
       price: it.price,
       // Each listing's own axle weight — a front set is heavier than a
@@ -8082,31 +9454,50 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       image: it.image || '',
       rating: it.rating != null ? it.rating : null,
       axle,
+      partNumber: partNumberLabel(it.raw),
     };
     const idx = autoPartsRendered.push(card) - 1;
     return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {
       open: `openAutoPart(${idx})`,
-      // Every card in this list is confirmed — that is what got it here.
-      badgeHTML: fitmentBadgeHTML(vehicle, true) + axleBadgeHTML(axle),
+      // Green ONLY where the list named this car. In the unconfirmed
+      // branch there is no badge at all — the absence is the signal, and
+      // the block line above says it in words.
+      badgeHTML: (hasData ? fitmentBadgeHTML(vehicle, true) : '') + axleBadgeHTML(axle),
+      extraHTML: autoPartNumberHTML(card.partNumber),
     })}</div>`;
   }).join('');
 
-  const droppedTires = fitted.length - items.length;
   // Only when the vehicle really has both — a selector with one option is
   // a dead control.
   const selector = axles.has('front') && axles.has('rear') ? axleSelectorHTML(blockId) : '';
-  /* The line is now a statement of fact rather than a disclaimer. Every
-     card below carries a compatibility list naming this vehicle; the old
-     "verifícalo antes de pedir" has nothing left to apply to. */
-  const scopeLine = `${items.length} repuesto${items.length === 1 ? '' : 's'} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
-    + (excluded > 0 ? ` Ocultamos ${excluded} que no lista${excluded === 1 ? '' : 'n'} tu vehículo.` : '')
-    + (droppedTires > 0 && isTireQuery(query)
-        ? ` Y ${droppedTires} que no ${droppedTires === 1 ? 'era' : 'eran'} de auto (jardín, carretilla o remolque).`
-        : '');
+
+  const scopeLine = hasData
+    ? `${fitted.length} repuesto${fitted.length === 1 ? '' : 's'} con calce confirmado para tu ${escapeHtml(vehicleLabel(vehicle))}.`
+      + (excluded > 0 ? ` Ocultamos ${excluded} que no lista${excluded === 1 ? '' : 'n'} tu vehículo.` : '')
+    : `Buscamos en ${escapeHtml(label)} específicamente para tu ${escapeHtml(vehicleLabel(vehicle))}. `
+      + `La tienda no publica la lista de compatibilidad de estas piezas, así que no podemos confirmarlo nosotros: `
+      + `revisa el número de parte antes de pedir.`;
+
   return `<div class="mb-8">${header}
-    <p class="text-[11.5px] mb-3" style="color:#8A93A8">${scopeLine}</p>
+    <p class="text-[11.5px] mb-3" style="color:${hasData ? '#8A93A8' : '#8A6B1F'}">${scopeLine}</p>
     ${selector}
     <div id="${blockId}" class="${LISTING_GRID_CLASS}">${cards}</div>
+    ${hasData ? '' : `<div class="mt-4">
+      <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full border text-[13px] font-bold focus-ring transition" style="border-color:var(--line); color:var(--navy)">
+        ¿Prefieres que lo confirmemos nosotros? Escríbenos
+      </button>
+    </div>`}
+  </div>`;
+}
+
+/* The part number, on the card, where a shopper can read it without
+   opening anything. Danny verified the Sonata pads by pasting "D2076"
+   into a search engine — this is that, made possible without leaving the
+   page. Monospace because it is a code, not prose. */
+function autoPartNumberHTML(partNumber){
+  if (!partNumber) return '';
+  return `<div class="text-[11.5px] mb-1 font-semibold" style="color:var(--navy)">
+    N.° de parte: <span class="tabular" style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace">${escapeHtml(partNumber)}</span>
   </div>`;
 }
 
@@ -8795,17 +10186,21 @@ function renderCartView(){
 // Stubs — real implementations land in later phases of this same build
 // (tax-zone bar, cross-sell rail, order-cap/kill-switch status). Kept as
 // safe no-ops here so the cart page works standalone before those ship.
-// Peru's real $200 de minimis threshold and ~23% duty/IGV rate — mirrors
-// weight-data.js's DUTY_THRESHOLD_USD/DUTY_RATE exactly (checkout.html
-// imports that module directly; this plain <script> can't, so the two
-// numbers are duplicated here rather than restructuring module loading —
-// same pattern checkout.html already uses for its own small self-
-// contained copies of shared constants/helpers). If that policy ever
-// changes, update both places.
-// Same threshold and rate the cards price with — aliased, not repeated,
-// so the two can never drift apart.
+/* THIS BAR DESCRIBES THE CHARGE, SO IT READS THE CHARGED RATE
+   (2026-09-21).
+
+   It used to alias IMPORT_TAX_RATE — the rate the CARDS price with —
+   which was right while checkout also charged 23% on declared value.
+   Checkout now charges TAX_ESTIMATE_RATE on CIF (see weight-data.js), so
+   aliasing the card rate would have this bar promise "~23% adicional"
+   on the same order the payment page then bills at 25%. A bar that
+   states a government charge has to state the one we actually bill.
+
+   Mirrored rather than imported: this is a plain <script>, not a module,
+   the same reason index.html mirrors every other shared constant. A
+   parity test pins it to weight-data.js so the two cannot drift. */
 const TAX_ZONE_THRESHOLD_USD = IMPORT_TAX_THRESHOLD_USD;
-const TAX_ZONE_RATE = IMPORT_TAX_RATE;
+const TAX_ZONE_RATE = 0.25;   // mirrors TAX_ESTIMATE_RATE in weight-data.js
 const TAX_ZONE_AMBER_START_USD = 150;
 
 /* WHY THIS BAR DOES NOT COUNT FREIGHT, unlike the small-order fee
@@ -9035,7 +10430,7 @@ function openCrossSellProduct(idx){
   if (!it) return;
   showProduct(it.retailer, it.title, it.price, it.weightKg, it.image || '', it.sizes || [],
     needsSizeSelection(it.retailer, it.title), sizeCategoryFor(it.retailer, it.title),
-    it.rating != null ? String(it.rating) : '', it.images || []);
+    it.rating != null ? String(it.rating) : '', it.images || [], it.catalogWeightKg ?? null);
 }
 
 function addCrossSellToCart(idx){
@@ -9726,8 +11121,12 @@ function renderSalesFreshness(state){
    paying for. salesStatusLines() and salesSkeletonCardHTML() went with
    them; the Ofertas page no longer has a scanning state at all. */
 
+/* CATALOG_RETAILERS, not GENERAL_RETAILERS: the deals feed now includes
+   file-backed stores (see fileBackedDeals), and a store whose deals are
+   in the feed with no checkbox to filter by is a store the shopper
+   cannot switch off. */
 function initSalesFilters(){
-  document.getElementById('salesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
+  document.getElementById('salesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
     `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="salesStoreFilter accent-[#2F5FEE]" onchange="renderSalesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
   ).join('');
 }
@@ -9739,7 +11138,7 @@ function initSalesFilters(){
 // (collectTiles()/deptTileHTML() above) — departments and brands together,
 // never a second/fake catalog.
 function initCategoriesFilters(){
-  document.getElementById('categoriesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
+  document.getElementById('categoriesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
     `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
   ).join('');
 }
@@ -9925,12 +11324,101 @@ function passesOfertasFreightCeiling(p){
   return freightSharePct(kg, price) <= FREIGHT_FEATURE_CEILING;
 }
 
+/* A DEAL IS A PICTURE OF A THING (2026-09-22).
+
+   Ofertas is the shiniest surface on the site and it was carrying
+   photoless tiles: a grey "Sin imagen" box between real product
+   photographs, which reads as a broken page rather than as a bargain.
+
+   Measured first, because a gate that empties a feed is worse than the
+   tiles it removes: all 754 Macy's, 2,426 SSENSE, 197 beauty and 613
+   scraped-cache products carry an image, so this can only ever act on
+   the LIVE deals cache, where sales-cache.js stores `image` as nullable
+   and a scrape occasionally returns none.
+
+   NOTHING IS HIDDEN FROM THE SHOP. The product keeps its place in its
+   store and in its category, where the placeholder now reads as the
+   brand's own frame. What it does not get is a promoted tile -- the same
+   line already drawn for a trivial markdown and for an unquotable
+   weight: Ofertas FEATURES things, and we do not feature what we cannot
+   show. */
+function passesOfertasPhotoGate(p){
+  return Boolean(p && typeof p.image === 'string' && p.image);
+}
+
 function passesOfertasGate(p){
-  return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p);
+  return passesOfertasWeightGate(p) && passesOfertasFreightCeiling(p) && passesOfertasPhotoGate(p);
+}
+
+
+/* ============================================================
+   DEALS FROM A FILE-BACKED STORE.
+
+   THE GAP (2026-09-22). Ofertas was built entirely on the scraper cache,
+   whose contents come from SALES_SOURCES -- a hand-written list of
+   retailer+department pairs, every one of them a store with an actor.
+   Macy's has no actor: its catalogue is a committed file. So its 405
+   discounted items, a median 40% off and some at 86%, were invisible in
+   Ofertas while sitting in plain view inside the store. Nobody had to
+   break anything; the deals feed simply had no way to see a store that
+   is not scraped.
+
+   Danny's call is that the deals section aggregates EVERY store
+   regardless of tier, so this is the other half of the feed: the cache
+   covers stores with an actor, this covers stores with a file, and the
+   two are unioned.
+
+   NO DOUBLE COUNTING, BY CONSTRUCTION. Only browse-only stores are read
+   here -- a store with a scraper is already represented in the cache, so
+   `isBrowseOnly` is exactly the right predicate and needs no second
+   list to be kept in sync.
+
+   THE SAME NORMALIZER AS EVERY OTHER SURFACE. These go through
+   normalizeLiveItem, which is what the category feed and the product
+   page use, so a deal card and a category card cannot disagree about
+   the price of the same item. Deriving a second pricing path here is
+   precisely the drift the Macy's builder refuses to introduce.
+
+   SSENSE NEEDS NOTHING FROM THIS FUNCTION. The day its catalogue file is
+   committed and its row flips to browse:true, its markdowns appear here
+   on their own -- which is the whole point of not hardcoding a list.
+   ============================================================ */
+async function fileBackedDeals(){
+  let data;
+  try { data = await loadDepartmentCache(); }
+  catch { return []; }
+
+  const out = [];
+  const seen = new Set();
+  for (const retailer of CATALOG_RETAILERS){
+    if (!isBrowseOnlyRetailer(retailer)) continue;   // scraped stores come from the cache
+    const bucket = data?.retailers?.[retailer];
+    for (const [department, entry] of Object.entries(bucket?.departments || {})){
+      for (const raw of entry?.items || []){
+        const it = normalizeLiveItem(raw, { retailer, department });
+        if (!it.title) continue;
+        // A real markdown only. normalizeLiveItem already applied the
+        // discount floor, so onSale here means "big enough to feature".
+        if (!(it.onSale && Number(it.originalPrice) > Number(it.price))) continue;
+        // One store can carry the same item in two departments.
+        const key = retailer + '::' + it.title + '::' + it.price;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        out.push({ ...it, retailer });
+      }
+    }
+  }
+  return out;
 }
 
 async function runSalesScan(){
   await loadFxRate();
+
+  /* Deals from stores with a FILE rather than an actor. Fetched
+     alongside the cache, not after it, because a cold cache must not
+     mean an empty Ofertas when hundreds of real markdowns are sitting in
+     a committed catalogue. */
+  const fromFiles = await fileBackedDeals();
 
   // 1. Cache first — a visitor should never wait on a full live scrape
   //    when a real, recent scan already exists.
@@ -9940,10 +11428,13 @@ async function runSalesScan(){
     if (res.ok) cached = await res.json();
   } catch { /* fall through to a live scan */ }
 
-  if (cached?.items?.length){
-    saleItemsCache = cached.items.map(refreshCachedWeight).filter(passesOfertasGate);
-    salesGeneratedAt = cached.generatedAt;
-    salesStaleNote = salesFreshnessNote(cached.generatedAt, cached.stale);
+  if (cached?.items?.length || fromFiles.length){
+    const scraped = (cached?.items || []).map(refreshCachedWeight);
+    // One feed. The tier a store sits in on Tiendas has no say here:
+    // an SSENSE markdown competes on the same row as a Walmart one.
+    saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+    salesGeneratedAt = cached?.generatedAt || null;
+    salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
     renderSalesGrid();
     return;
   }
@@ -9972,7 +11463,7 @@ function openSaleProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || []);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
@@ -10011,28 +11502,25 @@ function productCardHTML(p, opts){
   const rating = Number(p.rating);
   const hasRating = Number.isFinite(rating) && rating > 0;
 
-  /* LAST LINE OF DEFENCE. The refresh script and the cache sanitizer both
-     drop deals whose freight exceeds the product's own price, so nothing
-     here should be that heavy. If one ever slips through — an old cache entry, a
-     changed threshold — the card must NOT print a discount percentage
-     that freight wipes out. It shows "Flete alto" instead, with the real
-     freight, so the number the customer sees is never a lie.
+  /* A DISCOUNT BADGE IS A FACT ABOUT THE PRODUCT, NOT ABOUT THE FREIGHT
+     (2026-09-21). This slot used to be contested: a heavy item showed
+     "Flete alto" INSTEAD of its discount, on the reasoning that a card
+     must not advertise a saving that freight wipes out.
 
-     2026-09-20: this is no longer a last line of defence, it is the
-     rule. Heavy items are not suppressed any more — they are listed and
-     badged, so the buyer decides with the real figure in front of them
-     rather than never seeing the product. */
+     With the badge gone the discount stands on its own, and that is
+     right. "-30%" describes what the US store did to its own price, and
+     it stays true whatever the parcel weighs. The freight is disclosed
+     two lines below in its own words, and the shopper adds the two up
+     with the same arithmetic we would. Nothing on the card is a lie —
+     one number has simply stopped editorialising about the other.
+
+     The one claim we still decline to make is FEATURING a heavy item as
+     a deal; see FREIGHT_FEATURE_CEILING. That is a merchandising choice
+     about what Ofertas promotes, settled long before a card is built. */
   const weightKg = Number(p.weightKg);
   const price = Number(p.price);
   const hasPrice = Number.isFinite(price) && price > 0;
   const freight = Number.isFinite(weightKg) && weightKg > 0 ? freightUsd(weightKg) : null;
-  /* ONE SHARE, COMPUTED ONCE, ON THE NUMBERS THIS CARD PRINTS. The badge
-     and the "we cannot quote this" rule below both read it, so they can
-     never disagree with each other or with the two figures on screen —
-     see freightSharePct() for the reported bug that came from exactly
-     that kind of drift. */
-  const freightShare = freight != null && hasPrice ? freightSharePct(weightKg, price) : null;
-  const freightHeavy = freightShare != null && freightShare > FREIGHT_BADGE_SHARE;
 
   /* FAIL CLOSED. A weight outside its category's plausible band is not a
      number to build a price on, in either direction — a projector at
@@ -10052,8 +11540,8 @@ function productCardHTML(p, opts){
      guess produces a freight bill larger than the product's own price,
      the guess is doing all the work and none of it is knowledge. The
      card says the freight is being confirmed instead. A weight we
-     actually have a row for still quotes, however heavy it is — that is
-     what the "Flete alto" badge is for. */
+     actually have a row for still quotes, however heavy it is, and the
+     freight line below says plainly what it comes to. */
   const weightUnderReview = !freightQuotable({
     kg: weightKg,
     needsReview: p.weightNeedsReview === true || localDetail?.needsReview === true,
@@ -10065,14 +11553,12 @@ function productCardHTML(p, opts){
   const original = Number(p.originalPrice);
   const hasOriginal = Number.isFinite(original) && hasPrice && original > price;
   const badgeHTML = opts.badgeHTML != null ? opts.badgeHTML
-    : freightHeavy
-      ? `<span class="absolute top-3 left-3 text-[12.5px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#8A6B1F; color:#fff">Flete alto</span>`
-      : hasOriginal
-        ? `<span class="absolute top-3 left-3 text-[15px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#C0392B; color:#fff">-${discountPct(p)}%</span>`
-        : '';
+    : hasOriginal
+      ? `<span class="absolute top-3 left-3 text-[15px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#C0392B; color:#fff">-${discountPct(p)}%</span>`
+      : '';
   return `
   <div class="${CARD_SHELL_CLASS}" style="border-color:var(--line)">
-    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image), open, overlay: badgeHTML })}
+    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) }), open, overlay: badgeHTML })}
     <div class="p-4 flex flex-col flex-1">
       <div class="flex items-center justify-between gap-2 mb-2">
         <div>${retailerBadgeHTML(p.retailer, 20)}</div>
@@ -10091,7 +11577,7 @@ function productCardHTML(p, opts){
       ${opts.extraHTML || ''}
       ${weightUnderReview
         ? `<div class="text-[11.5px] mb-1 font-semibold" style="color:#8A6B1F">Flete por confirmar — lo cotizamos antes de que pagues</div>`
-        : freight != null ? `<div class="text-[11.5px] mb-1" style="color:${freightHeavy ? '#8A6B1F' : '#7A8296'}">
+        : freight != null ? `<div class="text-[11.5px] mb-1" style="color:#7A8296">
         + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}
@@ -10224,6 +11710,43 @@ const orbSwim = {
    bug fix.) */
 const ORB_SIZE_DOCKED = 64;     // phones: smaller, parked in the corner
 const ORB_LANE_MIN = 56;        // a lane narrower than this is not a lane
+
+/* NO ROAMING LANE ON A PHONE (2026-09-22).
+
+   REPORTED, with a screenshot: "el orbe vaga por media pantalla" and
+   parks on top of the category cards. Both halves of that were real. The
+   lane runs from ORB_TOP_SAFE to the bottom margin, which on a phone IS
+   most of the screen height — and whether a phone got a lane at all
+   depended on how wide the active view's content column measured, so the
+   same handset could dock on one page and roam on another.
+
+   Below this width the orb is always corner-anchored. A lane is a
+   desktop affordance: it only makes sense when there is a real gutter
+   beside the content, and on a phone there is none to find. */
+const ORB_ANCHOR_MAX_VW = 1024;
+
+/* The float, once anchored. Danny asked for "flotación suave dentro de
+   un radio pequeño (~su propio diámetro)", so the drift is half a
+   diameter in each axis — about 30px of travel on a 64px orb, which
+   reads as alive without being travel. Two slow sine waves on different
+   periods rather than a random walk: no jitter, no drift accumulation,
+   and it never needs clamping back. */
+const ORB_FLOAT_PX = 30;
+const ORB_FLOAT_PERIOD_X_MS = 9400;
+const ORB_FLOAT_PERIOD_Y_MS = 7100;
+
+/* Tucked away reads better than hidden. When content is under her she
+   retreats to the edge, and fades, so the sliver that remains reads as a
+   tab to pull rather than a ball sitting on a card.
+
+   THE TRADE, measured and worth knowing: on a card-dense page the corner
+   is over a card almost all of the time — on Categorías, 24 of 24
+   samples — so the orb spends that page tucked. "Never overlaps content"
+   and "always fully visible" cannot both hold for a fixed launcher above
+   full-width scrolling cards; the brief asks for the first, so the
+   second gives way. 0.6 rather than 0.5 keeps the tab findable at a
+   glance, which is the least this can cost and still obey the rule. */
+const ORB_PEEK_OPACITY = 0.6;
 const ORB_CONTENT_GAP = 10;     // never breathe on the text
 /* Docked, she still has to get out of the way. When the corner she is
    parked in has content under it, she retreats to the screen edge until
@@ -10262,6 +11785,25 @@ function orbContentColumn(){
 
 /* Where the orb is allowed to be: a vertical lane in the wider gutter,
    or — when there is no gutter — the docked corner. */
+/** The device's safe-area inset, in px, read from the CSS custom property. */
+function orbSafeInset(which){
+  const raw = getComputedStyle(document.documentElement).getPropertyValue(which);
+  const n = parseFloat(raw);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/* The anchored corner: bottom-right, above the home indicator and inside
+   the margin. This is the ONLY place the anchor is computed, so the float
+   below and the cover retreat cannot disagree about where home is. */
+function orbAnchor(){
+  const s = ORB_SIZE_DOCKED;
+  const safeB = orbSafeInset('--orb-safe-b');
+  const safeR = orbSafeInset('--orb-safe-r');
+  const x = Math.max(ORB_MARGIN, window.innerWidth - s - 12 - safeR);
+  const y = Math.max(ORB_TOP_SAFE, window.innerHeight - s - 12 - safeB);
+  return { size: s, x, y };
+}
+
 function orbLane(){
   const topSafe = ORB_TOP_SAFE;
   const bottom = window.innerHeight - ORB_MARGIN;
@@ -10272,11 +11814,12 @@ function orbLane(){
   const gutter = Math.max(leftGutter, rightGutter);
   const size = Math.min(ORB_SIZE, Math.floor(gutter));
 
-  if (size < ORB_LANE_MIN || bottom - topSafe < size + 20){
-    const s = ORB_SIZE_DOCKED;
-    const x = Math.max(ORB_MARGIN, window.innerWidth - s - 12);
-    const y = Math.max(topSafe, window.innerHeight - s - 12);
-    return { mode: 'dock', size: s, minX: x, maxX: x, minY: y, maxY: y };
+  /* A phone never gets a lane, whatever the measured gutter says — see
+     ORB_ANCHOR_MAX_VW. This check comes FIRST precisely because the
+     gutter measurement is what used to let a handset roam. */
+  if (window.innerWidth < ORB_ANCHOR_MAX_VW || size < ORB_LANE_MIN || bottom - topSafe < size + 20){
+    const a = orbAnchor();
+    return { mode: 'dock', size: a.size, minX: a.x, maxX: a.x, minY: a.y, maxY: a.y };
   }
   const x = onRight
     ? Math.min(window.innerWidth - size - ORB_MARGIN, (col ? col.right + ORB_CONTENT_GAP : ORB_MARGIN) + Math.max(0, (gutter - size) / 2))
@@ -10289,21 +11832,68 @@ function orbBounds(){
   return { minX: lane.minX, maxX: lane.maxX, minY: lane.minY, maxY: lane.maxY, mode: lane.mode, size: lane.size };
 }
 
+/* What counts as content the orb must not sit on. Card SURFACES are in
+   the list as well as text and media: a product panel is a thing a
+   shopper is looking at, and an orb parked on its corner is on the page
+   whether or not a letter of text happens to be under that pixel. */
+const ORB_CONTENT_SELECTOR = [
+  'p','h1','h2','h3','h4','h5','h6','blockquote','li','figcaption','label',
+  'button','a','input','select','textarea','article','img','svg','video','table',
+  '[class*="rounded-2xl"]','[class*="rounded-3xl"]','[class*="aspect-"]',
+].join(',');
+
 /* Is there page content under the orb right now? Asked of the page
    itself rather than guessed from geometry, with the orb made
-   click-through for the duration so it cannot find itself. */
+   click-through for the duration so it cannot find itself.
+
+   THE BUG THIS FIXES (2026-09-21), reported live as "the chat orb
+   launcher is overlapping the product image". The probe used
+   elementFromPoint, which returns only the TOPMOST element at a point.
+   The product image carries a "Toca para ampliar" pill in its own
+   bottom-right corner — exactly where a docked orb parks — and a <span>
+   is not on the content list, nor is any of its plain-<div> ancestry. So
+   closest() walked up, found nothing it recognised, and reported clear
+   while the orb was sitting squarely on the photo.
+
+   Anything painted ON something can mask it that way: a badge, a chip, a
+   gradient scrim. So the probe reads the WHOLE STACK at each point
+   (elementsFromPoint, plural) rather than whichever element happens to
+   be on top, and stops at the view shell, which is layout rather than
+   content. Five points, not four: the four corners the old centre-biased
+   sample could straddle, plus the middle. */
+/* ---- CURRENTLY UNUSED, AND SAID OUT LOUD (2026-09-22) ------------
+   Nothing calls this any more. The retreat it fed was removed after QA
+   on a real phone read the tuck-to-a-sliver as a bug, so orbStep now
+   sets `orbSwim.covering = false` unconditionally and never asks. What
+   keeps the orb off content today is the reserved corner
+   (orbReserveSpace), not a retreat.
+
+   KEPT, NOT DELETED, for one reason: it is the expensive half. The
+   elementsFromPoint stack-walk in here is what finally saw a product
+   image through the "Toca para ampliar" pill sitting on top of it, and
+   a browser test still pins that behaviour. If a future response to
+   "the orb is over something" is ever wanted — a nudge, a fade, a
+   shrink — this is the detection it would be built on, already correct.
+
+   ORB_PEEK_PX, ORB_PEEK_OPACITY and ORB_COVER_CHECK_MS are orphaned by
+   the same decision and kept for the same reason. Nothing reads them.
+   ------------------------------------------------------------------ */
 function orbCoversContent(x, y, size){
   const btn = document.getElementById('assistantBtn');
   if (!btn) return false;
   const prev = btn.style.pointerEvents;
   btn.style.pointerEvents = 'none';
   let covers = false;
-  for (const [fx, fy] of [[0.18, 0.5], [0.5, 0.5], [0.5, 0.85], [0.5, 0.15]]){
-    const el = document.elementFromPoint(x + size * fx, y + size * fy);
-    if (el && el.closest('p,h1,h2,h3,h4,h5,h6,blockquote,li,figcaption,label,button,a,input,select,textarea,article,img')){
-      covers = true;
-      break;
+  const points = [[0.5, 0.5], [0.15, 0.15], [0.85, 0.15], [0.15, 0.85], [0.85, 0.85]];
+  for (const [fx, fy] of points){
+    const px = x + size * fx, py = y + size * fy;
+    if (px < 0 || py < 0 || px > window.innerWidth || py > window.innerHeight) continue;
+    for (const el of document.elementsFromPoint(px, py)){
+      if (el === btn || btn.contains(el) || el.closest('#ariaOrbTrail')) continue;
+      if (el.classList && el.classList.contains('view')) break;   // the shell, not content
+      if (el.matches && el.matches(ORB_CONTENT_SELECTOR)){ covers = true; break; }
     }
+    if (covers) break;
   }
   btn.style.pointerEvents = prev;
   return covers;
@@ -10404,13 +11994,29 @@ function orbStep(now){
   }
 
   if (docked){
-    // Docked, the only decision left is how far out of the way to be.
-    if (now - (orbSwim.lastCoverCheck || 0) > ORB_COVER_CHECK_MS){
-      orbSwim.lastCoverCheck = now;
-      orbSwim.covering = orbCoversContent(lane.minX, lane.minY, lane.size);
-    }
-    tx = orbSwim.covering ? window.innerWidth - ORB_PEEK_PX : lane.minX;
-    ty = lane.minY;
+    /* ANCHORED, WITH A LITTLE LIFE IN IT. The float is half a diameter up
+       and to the left of the anchor — never down or right, which would
+       push her off the screen edge or under the home indicator. Two slow
+       sines, so the path is smooth and bounded by construction.
+
+       She holds still while the panel is open: the close button must not
+       drift away from the finger reaching for it. */
+    const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const amp = (panelOpen || reduceMotion) ? 0 : ORB_FLOAT_PX;
+    const fx = amp * 0.5 * (1 + Math.sin(now / ORB_FLOAT_PERIOD_X_MS));
+    const fy = amp * 0.5 * (1 + Math.sin(now / ORB_FLOAT_PERIOD_Y_MS));
+    const floatX = lane.minX - fx;
+    const floatY = lane.minY - fy;
+
+    /* 2026-09-22: the tuck-to-a-sliver is gone. On a real phone it read
+       as a bug — "one eighth of the orb coming out the side" — and the
+       QA bar is the orb fully inside the frame, always. A fixed chat
+       bubble floating over scrolling content is standard; the reserved
+       corner (orbReserveSpace) still keeps the last line of a page from
+       ending up underneath her. */
+    orbSwim.covering = false;
+    tx = floatX;
+    ty = floatY;
   }
 
   // The lane is the guarantee: whatever the drift or the cursor lean
@@ -10421,13 +12027,8 @@ function orbStep(now){
   // Eased follow: the orb never snaps, it glides — except out of the way.
   // Gliding off a line of text still crosses it, so the retreat is
   // instant and only the return is eased.
-  if (docked && orbSwim.covering){
-    orbSwim.x = orbSwim.targetX;
-    orbSwim.y = orbSwim.targetY;
-  } else {
-    orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
-    orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
-  }
+  orbSwim.x += (orbSwim.targetX - orbSwim.x) * Math.min(1, dt * 2.6);
+  orbSwim.y += (orbSwim.targetY - orbSwim.y) * Math.min(1, dt * 2.6);
 
   const btn = document.getElementById('assistantBtn');
   // Scaled from its top-left corner, so the drawn orb is exactly the box
@@ -10436,6 +12037,7 @@ function orbStep(now){
   if (btn){
     btn.style.transformOrigin = '0 0';
     btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${scale.toFixed(3)})`;
+
   }
 
   // The trail: each dot follows the one ahead of it, so the whole thing

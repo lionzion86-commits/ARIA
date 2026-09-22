@@ -63,14 +63,13 @@ const MIN_DISCOUNT_PCT = 5;
    the cache. Only the PUBLIC charged rate appears here — internal
    cost/margin never do. */
 const CHARGE_PER_KG_USD = 13;
-const FREIGHT_BADGE_SHARE = 0.50;
 const FREIGHT_FEATURE_CEILING = 1.00;
-/* Both lines are measured against the price the CARD PRINTS, which over
+/* The ceiling is measured against the price the CARD PRINTS, which over
    the $200 threshold carries Peru's import tax — see freightShare() in
-   scripts/lib/item-weight.js for the reported badge bug this comes from.
+   scripts/lib/item-weight.js for the reported bug this comes from.
    Dividing by the raw scraped price here and by the displayed price on
-   the page would let the cache publish a freightHigh flag the card
-   disagrees with. */
+   the page would let the cache and the card disagree about the same
+   item. */
 const IMPORT_TAX_THRESHOLD_USD = 200;
 const IMPORT_TAX_RATE = 0.23;
 const shownPriceUsd = (usd) => (usd > IMPORT_TAX_THRESHOLD_USD
@@ -161,8 +160,8 @@ export function sanitizeItem(raw) {
     rating,
     weightKg,
     freightUsd: freight,
+    // Data, not a verdict: nothing renders a label off this any more.
     freightShare: Math.round(share * 1000) / 1000,
-    freightHigh: share > FREIGHT_BADGE_SHARE,
     weightSource: cleanString(raw.weightSource, 20),
     weightReviewKind: cleanString(raw.weightReviewKind, 20),
     sizes,

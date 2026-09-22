@@ -42,10 +42,17 @@ export const AUTO_SOURCES = {
        all. `partial` is the honest answer for AutoZone today: the actor
        runs in overview mode, which returns no description, no features
        and a two-key specs object — an audit of all 9,285 cached items
-       found exactly zero compatibility lists. The list exists on the
-       product detail page; capturing it is a scrape-mode change, not a
-       code change. Until a refresh brings it in, every AutoZone result
-       is `unknown` and the honest empty state is what shows. */
+       found exactly zero compatibility lists, and neither this pipeline
+       nor apify-scrape-status.js drops them, so the actor simply does
+       not send them in that mode. The lists exist on the product detail
+       page; capturing them is a scrape-mode change (AUTO_SCRAPE_MODE),
+       not a code change.
+
+       UNTIL A REFRESH BRINGS THEM IN, results still show — with the part
+       number prominent and an honest line saying we could not confirm
+       the fit ourselves. Hiding them instead was the first cut of this
+       fix, and it turned a section whose results were actually correct
+       into a dead one. See renderAutoPartBlock's three outcomes. */
     fitmentData: "partial",
     note: "Catálogo amplio; el calce viene en la ficha del producto, no en el listado.",
   },
@@ -108,6 +115,51 @@ export const AUTO_SOURCES = {
     excludedReason: "Rechaza peticiones de scraping (probado 2026-09).",
   },
 };
+
+/* ============================================================
+   THE PART NUMBER IS THE BUYER'S OWN CHECK
+
+   Danny's standing point, and it is how he verified the Sonata pads
+   himself: in auto parts, reading the manufacturer's part or series
+   number and cross-checking it is normal buyer diligence, not a burden
+   we invented. A "D2076" pasted into a search engine answers "does this
+   fit my car" in seconds.
+
+   So every auto listing shows it. When we can confirm fitment from the
+   source's own data we say so outright with the green badge; when we
+   genuinely cannot, the number is what lets the shopper close the gap
+   instead of guessing. It is the one piece of information that makes an
+   unconfirmed listing useful rather than a shrug.
+
+   Sources name it differently, so this reads the shapes they use and
+   returns the most specific one. `oem` is kept separate because an OEM
+   number and an aftermarket number are different lookups.
+   ============================================================ */
+export function partNumberOf(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const first = (...keys) => {
+    for (const k of keys) {
+      const v = raw[k];
+      if (v == null) continue;
+      const s = String(v).trim();
+      if (s && s.toLowerCase() !== "null") return s;
+    }
+    return null;
+  };
+  const partNumber = first("part_number", "partNumber", "sku", "mpn", "manufacturerPartNumber", "item_id");
+  const oem = first("oem_part_number", "oemPartNumber", "oem");
+  const lineCode = first("line_code", "lineCode", "brand", "sub_brand");
+  if (!partNumber && !oem) return null;
+  return { partNumber, oem, lineCode };
+}
+
+/** "Duralast D2076" — what the shopper pastes into a search engine. */
+export function partNumberLabel(raw) {
+  const p = partNumberOf(raw);
+  if (!p) return null;
+  const core = p.partNumber || p.oem;
+  return p.lineCode && p.partNumber ? `${p.lineCode} ${core}` : core;
+}
 
 /** Sources Aria Auto actually queries. */
 export function searchableAutoSources() {

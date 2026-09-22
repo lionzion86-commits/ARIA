@@ -39,6 +39,13 @@ export async function handler(event) {
   const amountPen = roundPen(body.amountPen);
   const kind = body.kind === "debit" ? "debit" : "credit";
   const reason = String(body.reason || "").trim();
+  /* OPTIONAL, AND THE LEDGER NEEDS IT (2026-09-22). A credit is usually
+     issued BECAUSE of an order — a SUNAT assessment that came in under
+     the estimate, a goodwill refund on a late parcel — and without the
+     order id on the transaction there is no way to put that credit on
+     the order's ledger row. It stays optional: a pure goodwill credit
+     that belongs to no order passes null, which is honest. */
+  const orderId = String(body.orderId || "").trim().slice(0, 64) || null;
 
   if (!email) return { statusCode: 400, headers, body: JSON.stringify({ error: "Email inválido" }) };
   if (!Number.isFinite(amountPen) || amountPen <= 0) {
@@ -51,7 +58,7 @@ export async function handler(event) {
 
   try {
     const { balancePen, txn } = await postTransaction({
-      email, kind, amountPen, reason, by: callerEmail,
+      email, kind, amountPen, reason, by: callerEmail, orderId,
     });
     return { statusCode: 200, headers, body: JSON.stringify({ ok: true, email, balancePen, txn }) };
   } catch (error) {
