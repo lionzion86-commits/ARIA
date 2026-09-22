@@ -434,12 +434,23 @@ await check("Aria Auto lists its sources without touching the Tiendas grid", asy
     sources: AUTO_PARTS_SOURCES.map((s) => `${s.id}:${s.pending ? "pending" : "live"}`),
     pendingBlock: autoPendingBlockHTML({ id: "rockauto", label: "RockAuto", pendingNote: "Conectando el catálogo" },
       { year: "2020", make: "Hyundai", model: "Sonata" }, "pastillas de freno"),
-    tiendas: Object.values(RETAILERS).filter((r) => !r.retired).length,
+    /* The rule is "a parts source is never a storefront tile", not "the
+       grid is eight". Counting was a proxy for it, and the proxy broke
+       the day a real ninth STORE arrived (Macy's, 2026-09-22). AutoZone
+       predates the split and is Aria Auto's own source, so it is the one
+       key legitimately in both lists. */
+    leaked: AUTO_PARTS_SOURCES
+      .map((s) => s.id)
+      .filter((id) => id !== "autozone")
+      .filter((id) => Object.keys(RETAILERS).includes(id) && !RETAILERS[id].retired),
+    tiendaTiles: document.querySelectorAll("#storesGrid > *").length,
+    listedStores: Object.values(RETAILERS).filter((x) => !x.retired).length,
   }));
   eq(r.sources.join(","), "autozone:live,rockauto:pending", "the source list comes from the registry");
   if (!/RockAuto/.test(r.pendingBlock)) throw new Error("the pending source has no block of its own");
   if (!/Conectando el catálogo/.test(r.pendingBlock)) throw new Error("the pending block is not honest about why");
-  eq(r.tiendas, 8, "the Tiendas grid is still eight");
+  if (r.leaked.length) throw new Error(`${r.leaked.join(", ")} leaked into the Tiendas grid`);
+  eq(r.tiendaTiles, r.listedStores, "the Tiendas grid is the registry, not a hand-written list");
   await ctx.close();
 });
 
@@ -540,9 +551,15 @@ await check("the three beauty stores render their real logo, unfiltered", async 
     eq(v.stillPending, true, `${key} stopped saying its catalogue is being connected`);
     eq(v.hasWordmarkPill, false, `${key} still renders the wordmark fallback`);
   }
-  // And the grid is still the symmetric eight.
-  const count = await page.evaluate(() => document.querySelectorAll("#storesGrid > *").length);
-  eq(count, 8, "Tiendas store count");
+  /* And the grid is the registry, not a hand-written list. It was "the
+     symmetric eight" until Macy's became the ninth store on 2026-09-22;
+     pinning a number would have blocked every store the shop signs. */
+  const grid = await page.evaluate(() => ({
+    rendered: document.querySelectorAll("#storesGrid > *").length,
+    listed: Object.values(RETAILERS).filter((x) => !x.retired).length,
+  }));
+  eq(grid.rendered, grid.listed, "every listed store gets a tile");
+  if (grid.rendered < 8) throw new Error(`Tiendas is down to ${grid.rendered} stores`);
   await ctx.close();
 });
 
@@ -599,7 +616,13 @@ await check("no store logo is dwarfed by the wordmarks beside it", async () => {
     });
   });
 
-  eq(marks.length, 8, "store marks measured");
+  /* Not a fixed count: the grid is the registry, and Macy's became the
+     ninth store on 2026-09-22. What matters is that every store with a
+     logo file got measured, not how many there are this week. */
+  const withLogos = await page.evaluate(() =>
+    Object.values(RETAILERS).filter((r) => !r.retired && r.logo).length);
+  eq(marks.length, withLogos, "store marks measured vs stores with a logo file");
+  if (marks.length < 8) throw new Error(`only ${marks.length} store marks — the grid lost stores`);
 
   /* Every mark reaches an edge of the zone. A mark that touches neither
      is one max-* rule short of filling anything — which is what happens

@@ -25,6 +25,8 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL
          importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
          TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
+import * as retailers from "../lib/retailers.js";
+import * as deptMap from "../lib/department-map.js";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
@@ -2270,13 +2272,62 @@ check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
 });
 
 check("the parts sources never enter the Tiendas grid", () => {
-  // The grid stays at its symmetric eight.
+  /* WHAT THIS RULE IS ACTUALLY FOR. It was written as "the grid stays at
+     its symmetric eight", which is how it was phrased at the time, but
+     the rule being protected is narrower and it is about PARTS SOURCES:
+     RockAuto and Advance Auto live inside Aria Auto as places we buy
+     car parts, and must never appear as storefront tiles a shopper can
+     walk into. AutoZone predates the split and is Aria Auto's own
+     source, so it is the one row in both.
+
+     The count was a proxy for that, and it stopped being a good one the
+     moment a real ninth STORE arrived: Macy's (2026-09-22), added on
+     Danny's explicit instruction. Asserting 8 forever would have blocked
+     every future store the shop signs, which is the opposite of what
+     anyone wanted. So the rule is asserted directly. */
   const tiendas = Object.keys(RETAILERS).filter((k) => !RETAILERS[k].retired);
-  eq(tiendas.length, 8, `Tiendas shows ${tiendas.length} stores`);
   for (const key of Object.keys(autoSources.AUTO_SOURCES)) {
     if (key === "autozone") continue;   // predates the split, and Aria Auto's own source
     if (tiendas.includes(key)) throw new Error(`${key} leaked into the Tiendas grid`);
   }
+  // And the grid is the registry, never a hand-written list.
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/storefrontRetailers\(\)|activeRetailers\(\)/.test(src)) {
+    throw new Error("the Tiendas grid is no longer rendered from the registry");
+  }
+});
+
+check("a browsable store is not treated as one still being connected", () => {
+  /* Macy's arrived as a FILE, not an actor, which split an assumption
+     this registry was built on: `search` meant both "browsable" and
+     "queryable live". A store with a catalogue and no scraper was
+     showing the "Conectando el catálogo" holding message over 431 real
+     products, and wearing the muted plate on Tiendas. */
+  eq(retailers.isBrowseOnlyRetailer("macys"), true, "Macy's is browse-only");
+  eq(retailers.searchableRetailers().includes("macys"), false, "Macy's must stay out of the live fan-out");
+  if (!retailers.browsableRetailers().includes("macys")) throw new Error("Macy's is not browsable");
+  // A store with no catalogue at all is still pending.
+  eq(retailers.isBrowseOnlyRetailer("sephora"), false, "Sephora has no catalogue yet");
+
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  // Both the card and the chip must read BOTH flags, or Macy's is muted.
+  // Scoped to those two functions: "pending" is a common local name.
+  for (const fn of ["storeCardHTML", "homeStoreChipHTML"]) {
+    const at = src.indexOf(`function ${fn}(`);
+    if (at < 0) throw new Error(`${fn} is gone`);
+    const body = src.slice(at, at + 600);
+    const line = /const pending = [^;]+;/.exec(body)?.[0];
+    if (!line) throw new Error(`${fn} no longer computes a pending state`);
+    if (!/r\.search \|\| r\.browse/.test(line)) {
+      throw new Error(`${fn} still reads search alone: ${line}`);
+    }
+  }
+  // The storefront gate too.
+  if (!/!\(meta\.search \|\| meta\.browse\)/.test(src)) {
+    throw new Error("openStore still shows the holding message for a browse-only store");
+  }
+  // Catalogue paths read the browsable list; search paths must not.
+  if (!/const CATALOG_RETAILERS = /.test(src)) throw new Error("index.html has no browsable-retailer list");
 });
 
 check("a source with no verified actor is not queried", () => {
@@ -2678,6 +2729,118 @@ check("the order record has somewhere to put the real tax from day one", () => {
     throw new Error("the customer total is no longer built from Aria's own numbers");
   }
   if (!/courierTotalUsd/.test(code)) throw new Error("the courier's own total is no longer recorded for margin");
+});
+
+/* ------------------------------------------------------------------
+   MACY'S (2026-09-22) — the first store browsable from a file.
+   ------------------------------------------------------------------ */
+group("Macy's: a catalogue without a scraper");
+
+const macysCatalog = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8"));
+const macysItems = macysCatalog.retailers.macys.departments.women.items;
+
+check("the catalogue is real, and says how complete it is", () => {
+  /* The export arrived truncated at exactly 2 MiB — an upload cap, not
+     corrupt data — so the builder recovers complete products and records
+     what it could not reach. A catalogue that quietly claimed 960 while
+     serving 431 is the thing to avoid. */
+  if (!(macysItems.length > 300)) throw new Error(`only ${macysItems.length} items published`);
+  eq(macysCatalog.declaredProductCount, 960, "what the export claimed");
+  if (!(macysCatalog.recoveredProductCount <= macysCatalog.declaredProductCount)) {
+    throw new Error("recovered more products than the export declared");
+  }
+  eq(typeof macysCatalog.truncatedExport, "boolean", "truncation is recorded either way");
+  eq(macysCatalog.retailers.macys.label, "Macy's");
+});
+
+check("prices are RAW USD — the margin is applied by the page, once", () => {
+  /* Baking 1.07 x 1.24 into the file would be the drift: Macy's cards
+     would stop moving when the constants move, and nobody would see it
+     until the two retailers disagreed on screen. normalizeLiveItem()
+     owns the chain for every store. */
+  const src = readFileSync(root("scripts/build-macys-catalog.mjs"), "utf8");
+  if (/1\.24|1\.07|SALES_TAX_RATE|LIVE_PRICE_MARKUP/.test(src)) {
+    throw new Error("the builder is applying the markup — that belongs to normalizeLiveItem");
+  }
+  for (const it of macysItems) {
+    if (!(typeof it.price === "number" && it.price > 0)) throw new Error(`bad price on "${it.name}"`);
+    if (!it.name) throw new Error("an item has no name");
+    // A US clothing price over $2000 would mean a marked-up or bad figure.
+    if (it.price > 2000) throw new Error(`implausible raw price ${it.price} on "${it.name}"`);
+    if (it.originalPrice != null && !(it.originalPrice > it.price)) {
+      throw new Error(`"${it.name}" claims a discount that is not one`);
+    }
+  }
+});
+
+check("every image URL is built from one base, so one fix reaches all", () => {
+  /* The export ships Scene7 path fragments and no host, so the URL is
+     constructed — and it could not be verified from the build container,
+     whose egress proxy refuses every host outside a small allowlist. The
+     value of one base is that a wrong guess is a one-line fix and a
+     re-run, not 431 edits. */
+  const bases = new Set(macysItems.filter((i) => i.image).map((i) => i.image.split("/products/")[0]));
+  eq(bases.size, 1, `images come from ${bases.size} different bases`);
+  for (const it of macysItems) {
+    for (const url of it.images || []) {
+      if (!/^https:\/\//.test(url)) throw new Error(`non-https image on "${it.name}"`);
+    }
+  }
+  // And a URL that 404s must degrade to the placeholder, not a broken icon.
+  const page = stripComments(readFileSync(root("index.html"), "utf8"));
+  const photo = page.slice(page.indexOf("function cardPhotoHTML"), page.indexOf("function cardPhotoFallback"));
+  if (!/onerror=/.test(photo)) throw new Error("a product photo has no error path");
+  if (!/function cardPhotoFallback/.test(page)) throw new Error("there is no photo fallback");
+});
+
+check("the catalogue never claims its images were screened", () => {
+  /* scripts/image-price-scan.js is what clears an image of rendered
+     price text, and it fetches every image — impossible from the build
+     container. So no Macy's item carries imageReview: "clean", because
+     that would be a claim nobody made. Omitting the field is the
+     documented "live scrape, unscreened" state normalizeLiveItem
+     already handles, and is how every other retailer's items arrive. */
+  for (const it of macysItems) {
+    if (it.imageReview === "clean") throw new Error(`"${it.name}" claims a screening that never ran`);
+  }
+});
+
+check("Juniors is womenswear, not childrenswear", () => {
+  /* 19 Macy's items — sequined corset gowns, strapless ball gowns,
+     wide-leg jeans — landed in Moda Niños because KID_MARKER matched
+     "Juniors". In US retail that is a young women's size range. */
+  const women = "Juniors' Strapless Lace Corset Midi Dress";
+  eq(deptMap.genderFromTitle(women), null, "no positive gender marker in a Juniors title");
+  eq(deptMap.genderOfItem({ name: women }, "women"), "women", "so it inherits the women bucket");
+  // Real childrenswear markers still work.
+  for (const kid of ["Boys' Graphic Tee", "Girls' Denim Jacket", "Toddler Sneakers", "Kids' Hoodie"]) {
+    eq(deptMap.genderFromTitle(kid), "kids", kid);
+  }
+  // And the page mirror agrees, or the two disagree about the same item.
+  const page = readFileSync(root("index.html"), "utf8");
+  const pageKid = /const KID_MARKER = (.+)/.exec(page)?.[1];
+  const modKid = /const KID_MARKER = (.+)/.exec(readFileSync(root("scripts/lib/department-map.js"), "utf8"))?.[1];
+  eq(pageKid, modKid, "KID_MARKER mirror");
+  if (/junior/i.test(pageKid || "")) throw new Error("Juniors is back in the kids matcher");
+});
+
+check("Macy's is browsable but never queried, and its logo fills the zone", () => {
+  const row = RETAILERS.macys;
+  eq(row.browse, true, "browse");
+  eq(row.search, false, "search — there is no actor for Macy's");
+  eq(row.kind, "general");
+  if (!existsSync(root(row.logo))) throw new Error(`missing logo file: ${row.logo}`);
+  /* The supplied PNG was 800x600 with the mark occupying 24% of the
+     height — in the Tiendas zone that renders about 19px tall, the exact
+     "microscopic logo" bug. The empty canvas is cropped out (colours
+     untouched), which makes it a wordmark shape like Old Navy's and lets
+     the shared zone do its job. */
+  const png = readFileSync(root(row.logo));
+  const w = png.readUInt32BE(16), h = png.readUInt32BE(20);
+  const aspect = w / h;
+  if (aspect < 2) {
+    throw new Error(`macys.png is ${w}x${h} (aspect ${aspect.toFixed(2)}): the empty canvas is back, so the mark will render tiny`);
+  }
 });
 
 /* ------------------------------------------------------------------ */

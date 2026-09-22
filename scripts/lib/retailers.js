@@ -34,6 +34,10 @@
      4. Flip `search: true` on the row. That is what puts the store in
         the live cross-store search fan-out.
    Nothing else in the site needs to change.
+
+   A STORE WITH A CATALOGUE BUT NO ACTOR skips steps 3 and 4 and sets
+   `browse: true` instead — see the Macy's row. It is listed, browsable
+   and shoppable; it just is not queried by the live search.
    ------------------------------------------------------------
    ============================================================ */
 
@@ -134,6 +138,40 @@ export const RETAILERS = {
     search: false,
     pendingNote: "Conectando el catálogo",
   },
+  /* ============================================================
+     MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
+
+     Macy's arrived as a file: an export of 960 women's-clothing best
+     sellers, not a live actor. That broke an assumption baked into this
+     registry since it was written — that `search` meant both "you can
+     browse this store" and "we can query it live". Those are different
+     capabilities and Macy's has exactly one of them, so they are two
+     flags now:
+
+       search  the live cross-store fan-out may call it. Needs a
+               RETAILER_CONFIG actor in apify-scrape-start.js. FALSE for
+               Macy's: calling an unconfigured retailer returns a failed
+               store card, which looks like a bug to a shopper.
+       browse  it has a real catalogue a shopper can walk through, from
+               whatever source. TRUE — macys-catalog.json, built by
+               scripts/build-macys-catalog.mjs.
+
+     A store with `browse` is NOT "conectando el catálogo": it has one.
+     That distinction is why storeCardHTML's pending state reads both
+     flags rather than just `search`.
+
+     Fulfilment is not a question here — Macy's ships to the Miami
+     warehouse like the rest, so nothing special is needed downstream. */
+  macys: {
+    key: "macys",
+    label: "Macy's",
+    color: "#E21A2C",
+    logo: "logos/macys.png",
+    tagline: "Moda mujer, marcas y vestidos",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   autozone: {
     key: "autozone",
     label: "AutoZone",
@@ -167,6 +205,23 @@ export function searchableRetailers() {
 /** Every store a shopper can browse on Tiendas, Aria Auto's source included. */
 export function storefrontRetailers() {
   return activeRetailers();
+}
+
+/**
+ * Stores whose catalogue a shopper can actually walk through — live
+ * scraper OR cached file. This is the list the storefront and the
+ * department feeds read; searchableRetailers() is the narrower one, and
+ * conflating them is what would send a search to a retailer with no
+ * actor behind it.
+ */
+export function browsableRetailers() {
+  return activeRetailers().filter((r) => r.search || r.browse).map((r) => r.key);
+}
+
+/** True when this store has a catalogue but no live scraper behind it. */
+export function isBrowseOnlyRetailer(key) {
+  const r = retailerFor(key);
+  return Boolean(r && r.browse && !r.search);
 }
 
 /** One row, case-insensitively, or null. */

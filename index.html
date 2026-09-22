@@ -2424,9 +2424,39 @@ function renderHonestPricingBanners(){
    ============================================================ */
 let departmentCacheData = { retailers: {} };
 let departmentCachePromise = null;
+/* ============================================================
+   TWO CATALOGUE FILES, ONE IN-MEMORY SHAPE (2026-09-22)
+
+   department-cache.json is SCRAPED — produced by
+   scripts/refresh-department-cache.js from live retailer feeds.
+   macys-catalog.json is BUILT FROM AN EXPORT — a file Danny supplied,
+   turned into the same shape by scripts/build-macys-catalog.mjs.
+
+   They are kept as separate files on purpose. Pasting Macy's into the
+   scraped cache would mean the next run of the refresh script silently
+   deleted 431 products, and nobody would notice until a shopper did.
+   Different provenance, different file, merged here at load.
+
+   The merge is per RETAILER, not a deep merge: each file owns its own
+   stores outright, so neither can half-overwrite the other's
+   departments. A Macy's row in the scraped cache would lose to this one,
+   which is the right way round — the export is the authority for Macy's.
+   ============================================================ */
 function loadDepartmentCache(){
   if (!departmentCachePromise){
-    departmentCachePromise = fetch('/department-cache.json').then(r => r.json()).catch(() => ({ retailers: {} }));
+    const scraped = fetch('/department-cache.json')
+      .then(r => r.json())
+      .catch(() => ({ retailers: {} }));
+    /* A missing or broken Macy's file must not take the scraped cache
+       down with it: the rest of the site keeps working and Macy's simply
+       has nothing to show, which openStore already handles honestly. */
+    const macys = fetch('/macys-catalog.json')
+      .then(r => r.json())
+      .catch(() => ({ retailers: {} }));
+    departmentCachePromise = Promise.all([scraped, macys]).then(([a, b]) => ({
+      ...a,
+      retailers: { ...(a.retailers || {}), ...(b.retailers || {}) },
+    }));
   }
   return departmentCachePromise;
 }
@@ -2826,11 +2856,33 @@ function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', as
 /* A product photo, whole. Never cover, never a bare width/height — see
    the note above. `onerror` is optional because a product card has no
    fallback art to swap to and a category tile does. */
+/* A PRODUCT PHOTO THAT 404s FALLS BACK, IT DOES NOT BREAK (2026-09-22).
+
+   Every other image on this site already had an error path — store
+   logos, category covers — and product photos did not, because until now
+   every image URL came straight from a retailer's own feed and either
+   worked or the item had none.
+
+   Macy's changed that: its export ships Scene7 PATH FRAGMENTS and no
+   host, so the URL is CONSTRUCTED (see IMAGE_BASE in
+   scripts/build-macys-catalog.mjs) and a wrong base would turn every
+   card on the storefront into a broken-image icon. The same placeholder
+   the no-image case already uses is the honest answer, and it costs one
+   attribute to cover the whole site. */
 function cardPhotoHTML(src, { alt = '', onerror = '' } = {}){
+  const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
   return src
     ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"
-             style="object-fit:contain; object-position:center; padding:10px"${onerror ? ` onerror="${onerror}"` : ''}>`
+             style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
     : `<div class="w-full h-full grid place-items-center text-zinc-300 text-[12px]">Sin imagen</div>`;
+}
+
+/** Replace an unloadable photo with the same placeholder a missing one gets. */
+function cardPhotoFallback(img){
+  const holder = document.createElement('div');
+  holder.className = 'w-full h-full grid place-items-center text-zinc-300 text-[12px]';
+  holder.textContent = 'Sin imagen';
+  img.replaceWith(holder);
 }
 
 /* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
@@ -3056,7 +3108,7 @@ async function openCatalog(kind, key, opts = {}){
     (kind === 'department' && key === 'beauty') ? fragranceLimitNoticeHTML() : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
-      (retailerFilter ? [retailerFilter] : GENERAL_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
+      (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
 
   const data = await loadDepartmentCache();
   departmentCacheData = data;
@@ -3064,7 +3116,7 @@ async function openCatalog(kind, key, opts = {}){
   // has to carry honest counts for the stores you are NOT looking at, or
   // the filter has quietly become a gate again.
   const byRetailer = new Map();
-  for (const retailer of GENERAL_RETAILERS){
+  for (const retailer of CATALOG_RETAILERS){
     const items = departmentItemsFor(data.retailers[retailer], kind, key)
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
       .filter(it => it.title);
@@ -3226,7 +3278,10 @@ function renderCatalogFeed(){
    store would be the dishonest option.
    ============================================================ */
 function storeCardHTML(r){
-  const pending = !r.search;
+  /* Pending means "no catalogue yet", not "no scraper yet". A browse-only
+     store (Macy's) has a real catalogue from a file and must not wear the
+     muted plate or the "Conectando el catálogo" badge. */
+  const pending = !(r.search || r.browse);
   /* A store's mark, rendered at ONE size on a white plate whatever the
      source. A logo file gets an <img> sized to the plate; a store with no
      file gets its wordmark on its own brand colour — a designed
@@ -3328,7 +3383,7 @@ function storeCardHTML(r){
    wordmark cover the same area here too. Sizing this one on height alone
    is what left Sephora a 19px sliver in the homepage row. */
 function homeStoreChipHTML(r){
-  const pending = !r.search;
+  const pending = !(r.search || r.browse);
   const mark = r.logo
     ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
          style="width:100%; max-height:42px; max-width:96px; object-fit:contain"
@@ -3352,7 +3407,7 @@ function homeStoreChipHTML(r){
 function renderHowItWorksStores(){
   const chips = document.getElementById('howStoreChips');
   if (chips){
-    const stores = GENERAL_RETAILERS;
+    const stores = CATALOG_RETAILERS;
     const shown = stores.slice(0, 2);
     const hidden = stores.length - shown.length;
     chips.innerHTML = shown.map(r => retailerBadgeHTML(r, 18)).join('')
@@ -3389,8 +3444,12 @@ async function openStore(retailer){
   /* A store we have not wired a scraper for yet says so plainly rather
      than showing "sin departamentos", which reads as "this shop is
      empty" when the truth is "we are still connecting it". */
+  /* A store with a CATALOGUE is not "still being connected", whether or
+     not a live scraper exists for it — Macy's is browsable from a file.
+     Gating this on `search` alone showed the holding message on a store
+     with 431 real products behind it. */
   const meta = retailerFor(retailer);
-  if (meta && !meta.search){
+  if (meta && !(meta.search || meta.browse)){
     document.getElementById('storeViewSubtitle').textContent = 'Catálogo en preparación';
     document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
       <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Estamos conectando el catálogo de ${escapeHtml(meta.label)}</div>
@@ -4950,6 +5009,11 @@ const RETAILERS = {
   sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
   bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
+     it has a real catalogue (macys-catalog.json); `search: false` keeps
+     it out of the live fan-out, which has no actor for it. See the note
+     on the Macy's row in scripts/lib/retailers.js. */
+  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
@@ -5049,6 +5113,20 @@ function retailerBadgeHTML(retailer, heightPx = 28){
 // touched GENERAL_RETAILERS.length, before the live results container was
 // ever unhidden or populated. Must stay below LIVE_RETAILERS.
 const GENERAL_RETAILERS = LIVE_RETAILERS.filter(r => retailerFor(r)?.kind !== 'auto');
+
+/* BROWSE AND SEARCH ARE DIFFERENT CAPABILITIES (2026-09-22).
+
+   GENERAL_RETAILERS is the LIVE SEARCH fan-out: stores we can query on
+   demand, which needs an Apify actor behind them. Macy's has a full
+   catalogue and no actor, so it belongs in every list that walks a
+   catalogue and in none that issues a query — calling an unconfigured
+   retailer returns a failed store card, which reads as a bug.
+
+   So: search paths keep GENERAL_RETAILERS, catalogue paths read this.
+   Mirrors browsableRetailers() in scripts/lib/retailers.js. */
+const CATALOG_RETAILERS = activeRetailers()
+  .filter(r => (r.search || r.browse) && r.kind !== 'auto')
+  .map(r => r.key);
 
 // Retailers whose entire catalog is apparel/footwear — used so a real
 // shoe like "Nike Kobe Air Force 1 Low" (Foot Locker) or "Rotation
@@ -6671,7 +6749,7 @@ const MIN_DISCOUNT_PCT = 5;
 // but there is no word boundary before them, so /\bmen'?s\b/ correctly
 // does NOT match inside "Women's". Without \b every women's item would
 // be misread as menswear.
-const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|juniors?|ni[ñn][oa]s?)\b/i;
+const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|ni[ñn][oa]s?)\b/i;
 const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
 const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
 
@@ -9939,7 +10017,7 @@ function initSalesFilters(){
 // (collectTiles()/deptTileHTML() above) — departments and brands together,
 // never a second/fake catalog.
 function initCategoriesFilters(){
-  document.getElementById('categoriesStoreFilters').innerHTML = GENERAL_RETAILERS.map(r =>
+  document.getElementById('categoriesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
     `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
   ).join('');
 }
