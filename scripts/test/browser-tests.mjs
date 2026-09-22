@@ -1109,6 +1109,85 @@ await check("SSENSE's brand panel lists all 192, searches and jumps", async () =
   await ctx.close();
 });
 
+await check("every multi-brand storefront carries the same panel", async () => {
+  /* "Wire it into every storefront that carries multiple brands." The
+     list is asserted store by store rather than as a count, because the
+     interesting half is which stores DON'T get it:
+
+       * Foot Locker sells one scraped brand (Nike) — a brand search
+         with one setting is not a search, so it keeps its categories.
+       * Walmart, Target and Old Navy name no brand on any scraped item.
+         There is nothing to list, and guessing one from a product title
+         is exactly the mistake the category covers taught us not to
+         make. That is a scraper gap, and it is the only thing standing
+         between those three and a panel. */
+  const { ctx, page, errors } = await openPage();
+  const expected = { sephora: 2, ulta: 30, yesstyle: 29, macys: 107, ssense: 192 };
+  const bare = ["walmart", "target", "oldnavy", "footlocker"];
+  for (const [store, count] of Object.entries(expected)) {
+    await page.evaluate((k) => openStore(k), store);
+    await page.waitForTimeout(700);
+    const seen = await page.evaluate(() => {
+      const p = document.querySelector("[data-brand-panel]");
+      return p && {
+        heading: p.querySelector("h3").textContent,
+        rows: p.querySelectorAll("[data-brand-name]").length,
+        search: !!document.getElementById("brandPanelSearch"),
+        letters: [...p.querySelectorAll("[data-brand-jump]")].length,
+        numeric: [...p.querySelectorAll("[data-brand-name]")].filter((x) => /^[0-9]+$/.test(x.getAttribute("data-brand-name"))).length,
+      };
+    });
+    if (!seen) throw new Error(`${store} has no brand panel`);
+    // SAME COMPONENT, SAME BEHAVIOUR — Ulta's thirty get what SSENSE's
+    // 192 get, down to the search box.
+    eq(seen.heading, "Busca por marca", `${store} heading`);
+    eq(seen.rows, count, `${store} brand rows`);
+    eq(seen.search, true, `${store} lost its search box`);
+    if (!seen.letters) throw new Error(`${store} has no letter index`);
+    /* The beauty three's `brands` key is a bare array of NAMES, which
+       decodes as brands called "0" and "1". Deriving off their stock is
+       what keeps those out of a shopper's way. */
+    if (store !== "ssense" && seen.numeric) throw new Error(`${store} is listing a brand called by a number`);
+  }
+  for (const store of bare) {
+    await page.evaluate((k) => openStore(k), store);
+    await page.waitForTimeout(700);
+    const drawn = await page.evaluate(() => !!document.querySelector("[data-brand-panel]"));
+    if (drawn) throw new Error(`${store} was offered a brand search it has no brands for`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a derived brand routes, and its count is the truth", async () => {
+  /* Macy's ships no brands bucket at all — its list is counted off its
+     own 754 items. The row says 43 Wacoal and the page it opens has to
+     agree, or the number on the row is decoration. */
+  const { ctx, page, errors } = await openPage();
+  await page.evaluate(() => openStore("macys"));
+  await page.waitForTimeout(900);
+  const row = await page.evaluate(() => {
+    const el = [...document.querySelectorAll("[data-brand-name]")].find((x) => x.getAttribute("data-brand-name") === "Wacoal");
+    return el && { count: Number(el.lastElementChild.textContent), onclick: el.getAttribute("onclick") };
+  });
+  if (!row) throw new Error("Macy's biggest brand is not in its panel");
+  eq(row.onclick, "openCatalog('brand','wacoal')", "a derived brand's route");
+  await page.evaluate(() => [...document.querySelectorAll("[data-brand-name]")].find((x) => x.getAttribute("data-brand-name") === "Wacoal").click());
+  await page.waitForTimeout(1600);
+  const landed = await page.evaluate(() => ({
+    title: document.getElementById("catalogTitle").textContent,
+    url: location.search,
+    subtitle: document.getElementById("catalogSubtitle").textContent,
+  }));
+  eq(landed.title, "Wacoal", "the derived brand's page title");
+  eq(landed.url, "?categoria=wacoal&kind=brand", "the derived brand's URL");
+  if (!landed.subtitle.startsWith(`${row.count} productos`)) {
+    throw new Error(`the row promised ${row.count} and the page says "${landed.subtitle.slice(0, 40)}"`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await check("a brand row opens exactly what its card opened", async () => {
   /* The cards are gone; their route is not. This is the assertion that
      decides whether 192 links survived the deletion. */

@@ -2607,6 +2607,52 @@ function brandGroups(rows){
   return out;
 }
 
+/* THE SLUG A BRAND ROUTES ON.
+
+   ACCENTS ARE DROPPED HERE, NOT FOLDED — the opposite of foldBrand, and
+   deliberately so. SSENSE's export slugs "Courreges" with the accent
+   DELETED (`courrges`, not `courreges`), and those keys are already live
+   URLs. Folding instead would have produced a second key for eight
+   brands and quietly broken every link anyone had saved.
+
+   The two rules answer two questions and must not be merged: a key is an
+   address and has to match what shipped; a folded name is what a shopper
+   reads and types, where "sefr" must still find "Sefr". */
+function brandKeyOf(label){
+  return String(label ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/* BRANDS OFF THE SHELF, when the catalogue does not hand us a list.
+
+   "Every storefront that carries multiple brands" cannot be answered
+   from `retailers.<key>.brands`, because almost nobody has a usable one:
+   SSENSE ships 192 real buckets, Foot Locker ships 1, Macy's ships NONE
+   while 754 of its items each name their brand (107 distinct), and the
+   beauty three ship a bare ARRAY OF NAMES with no items behind it —
+   which decodes as brands called "0", "1", "2".
+
+   So the list is counted off the store's own stock, the only source that
+   cannot disagree with what the shopper will actually find. Run over
+   SSENSE it reproduces that export exactly: same 192 keys, same labels,
+   same counts, asserted by a test.
+
+   The caller passes items it has ALREADY DEDUPED — Old Navy's synthetic
+   `clothing` bucket is a merge of its gendered ones and would otherwise
+   count every item twice. The first spelling of a name wins its key, so
+   two casings of one brand collapse into one row. */
+function brandBucketsFromItems(items){
+  const out = {};
+  for (const raw of items || []){
+    const label = String(raw?.brand ?? '').trim();
+    if (!label) continue;
+    const key = brandKeyOf(label);
+    if (!key) continue;
+    if (!out[key]) out[key] = { label, items: [] };
+    out[key].items.push(raw);
+  }
+  return out;
+}
+
 /* The display name for a brand key, from whichever store stocks it.
    BRAND_META is still consulted first — it is the one place a name can
    be overridden by hand — and the title-cased slug is the last resort,
@@ -2979,9 +3025,57 @@ function notQuarantined(raw){ return raw?.imageReview !== 'quarantined'; }
    the department's name. Deduped, because Old Navy's synthetic "clothing"
    bucket is a merge of its men/women/kids buckets and reaches the same
    item twice. */
+/* EVERYTHING A STORE STOCKS, once. Same dedupe rule the department read
+   uses and for the same reason: Old Navy's synthetic `clothing` bucket
+   is a merge of its men/women/kids buckets, so a plain concatenation
+   reaches a third of its stock twice. */
+function retailerItemsFor(retailerData){
+  const out = [];
+  const seen = new Set();
+  for (const bucket of Object.values(retailerData?.departments || {})){
+    for (const raw of bucket?.items || []){
+      if (!notQuarantined(raw)) continue;
+      const dedupe = rawTitleOf(raw) + '::' + (raw.price ?? raw.effectivePrice ?? '');
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
+      out.push(raw);
+    }
+  }
+  return out;
+}
+
+/* This store's brands, however its catalogue happens to carry them.
+
+   AN EXPLICIT BUCKET ALWAYS WINS, and that is not a preference — it is
+   what keeps Foot Locker's `brands.nike` reachable. Its 24 shoes sit in
+   that bucket and its department items name no brand at all, so a purely
+   derived list would drop Nike and break a link that exists today.
+
+   Everything else is counted off the shelf (brandBucketsFromItems). The
+   result is cached per catalogue object: collectTiles('brand') asks for
+   it once per brand per retailer, and rebuilding a 2,426-item index two
+   hundred times is the difference between a page and a pause. */
+const brandBucketCache = new WeakMap();
+function retailerBrandBuckets(retailerData){
+  if (!retailerData || typeof retailerData !== 'object') return {};
+  const cached = brandBucketCache.get(retailerData);
+  if (cached) return cached;
+  const out = {};
+  for (const [key, bucket] of Object.entries(retailerData.brands || {})){
+    if (Array.isArray(bucket?.items) && bucket.items.length){
+      out[key] = { label: String(bucket.label || key), items: bucket.items };
+    }
+  }
+  for (const [key, bucket] of Object.entries(brandBucketsFromItems(retailerItemsFor(retailerData)))){
+    if (!out[key]) out[key] = bucket;
+  }
+  brandBucketCache.set(retailerData, out);
+  return out;
+}
+
 function departmentItemsFor(retailerData, kind, key){
   if (kind === 'brand'){
-    return (retailerData?.brands?.[key]?.items || []).filter(notQuarantined);
+    return (retailerBrandBuckets(retailerData)[key]?.items || []).filter(notQuarantined);
   }
   const out = [];
   const seen = new Set();
@@ -4347,12 +4441,13 @@ window.addEventListener('DOMContentLoaded', renderStoresGrid);
    still lands in the same place. */
 function storeBrandPanelHTML(rows){
   const groups = brandGroups(rows);
-  /* A SHORT LIST IS JUST A LIST. Foot Locker stocks exactly one brand
-     we have scraped, and a search box plus a one-letter index over a
-     single row reads as a half-built feature. Under a screenful, the
-     furniture comes off and the names stand on their own — the same
-     judgement that once said "one card is not a section". */
-  const compact = rows.length < 8;
+  /* ONE COMPONENT, ONE BEHAVIOUR, EVERY STORE. An earlier cut of this
+     stripped the search box and the index off short lists. It is gone:
+     a shopper who learns this panel on SSENSE meets the same panel on
+     Ulta, and "sometimes there is a search box" is a worse surprise than
+     a search box over thirty names. The stores where it would have
+     looked thin are the single-brand ones, and they no longer get a
+     panel at all — see openStore. */
   const letters = groups.map(g => `<button type="button" onclick="jumpToBrandLetter('${jsAttr(g.letter)}')"
       data-brand-jump="${escapeHtml(g.letter)}" aria-label="Marcas con ${escapeHtml(g.letter)}"
       class="w-[32px] h-[32px] rounded-lg text-[12.5px] font-extrabold grid place-items-center focus-ring transition hover:opacity-80"
@@ -4374,19 +4469,19 @@ function storeBrandPanelHTML(rows){
       <div class="relative px-5 py-4 sm:px-6 sm:py-5" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
         <div class="ariaGoldHair"></div>
         <div class="flex items-baseline justify-between gap-3">
-          <h3 class="text-[19px] sm:text-[22px] font-extrabold tracking-[-0.02em]" style="color:#fff">Ver por marca</h3>
+          <h3 class="text-[19px] sm:text-[22px] font-extrabold tracking-[-0.02em]" style="color:#fff">Busca por marca</h3>
           <span id="brandPanelCount" class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#F4C463">${rows.length} marca${rows.length === 1 ? '' : 's'}</span>
         </div>
-        <p class="text-[12.5px] mt-1" style="color:#AFBBD6">${compact ? 'Todo lo que tenemos de esta tienda, por marca.' : 'Escribe para buscarla o salta a su letra.'}</p>
-        ${compact ? '' : `<input id="brandPanelSearch" type="search" inputmode="search" autocomplete="off" spellcheck="false"
+        <p class="text-[12.5px] mt-1" style="color:#AFBBD6">Escribe para buscarla o salta a su letra.</p>
+        <input id="brandPanelSearch" type="search" inputmode="search" autocomplete="off" spellcheck="false"
           placeholder="Buscar marca…" oninput="filterBrandPanel()" aria-label="Buscar marca"
           class="mt-3 w-full rounded-xl px-4 py-3 text-[15px] font-semibold focus-ring"
-          style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(244,196,99,0.45)">`}
+          style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(244,196,99,0.45)">
       </div>
       <div class="md:flex md:items-start">
-        ${compact ? '' : `<nav aria-label="Índice alfabético" class="px-4 pt-4 pb-2 md:py-5 md:px-3 md:w-[108px] md:flex-shrink-0 md:border-r md:self-stretch" style="border-color:var(--line)">
+        <nav aria-label="Índice alfabético" class="px-4 pt-4 pb-2 md:py-5 md:px-3 md:w-[108px] md:flex-shrink-0 md:border-r md:self-stretch" style="border-color:var(--line)">
           <div class="flex flex-wrap gap-1.5">${letters}</div>
-        </nav>`}
+        </nav>
         <div id="brandPanelList" class="brandList flex-1 min-w-0 px-4 pb-5 md:py-5 md:px-6">
           ${body}
           <p id="brandPanelEmpty" class="text-[13px] py-6" style="color:#6B7487; display:none"></p>
@@ -4493,11 +4588,16 @@ async function openStore(retailer){
   const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
   const deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
   const storeTotal = deptEntries.reduce((n, [, items]) => n + items.length, 0);
-  /* Brands are this store's, and only this store's. A store with none
-     — Macy's, the beauty three — draws no panel at all rather than an
-     empty heading. */
-  const brandList = brandRows(retailerData?.brands);
-  const brandPanel = brandList.length ? storeBrandPanelHTML(brandList) : '';
+  /* Brands are this store's, and only this store's, counted off its own
+     stock (retailerBrandBuckets).
+
+     MULTIPLE BRANDS, OR NOTHING. A store that sells one label — Foot
+     Locker has only Nike scraped, and Victoria's Secret will be the same
+     when it lands — keeps its category sections and gets no brand panel,
+     because "Busca por marca" over a single name is a control with one
+     setting. Two is where a list starts to be worth reading. */
+  const brandList = brandRows(retailerBrandBuckets(retailerData));
+  const brandPanel = brandList.length > 1 ? storeBrandPanelHTML(brandList) : '';
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = brandPanel

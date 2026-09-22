@@ -84,3 +84,64 @@ export function brandGroups(rows) {
   }
   return out;
 }
+
+/* ============================================================
+   THE SLUG A BRAND ROUTES ON.
+
+   Derived, not invented: run it over SSENSE's brand labels and it
+   reproduces the keys that export already ships — "Paul Smith" ->
+   paulsmith, "Dries Van Noten" -> driesvannoten, "MM6 Maison Margiela"
+   -> mm6maisonmargiela, "We11done" -> we11done. That is what lets a
+   store WITHOUT a brands bucket share one route with a store that has
+   one: both arrive at openCatalog('brand', key) with the same key for
+   the same brand.
+   ============================================================ */
+export function brandKeyOf(label) {
+  /* ACCENTS ARE DROPPED HERE, NOT FOLDED -- the opposite of foldBrand,
+     and deliberately so. SSENSE's export slugs "Courreges" with the
+     accent DELETED (`courrges`, not `courreges`), and those keys are
+     already live URLs. Folding instead would have produced a second key
+     for eight brands and quietly broken every link anyone had saved.
+
+     The two rules answer two questions and must not be merged: a key is
+     an address and has to match what shipped; a folded name is what a
+     shopper reads and types, where "sefr" must still find "Sefr". */
+  return String(label ?? "").toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+/* ============================================================
+   BRANDS OFF THE SHELF, when the catalogue does not hand us a list.
+
+   WHY (2026-09-22). "Wire it into every storefront that carries
+   multiple brands" cannot be answered from `retailers.<key>.brands`,
+   because almost nobody has one that is usable:
+
+     * SSENSE      192 real buckets, items and all.
+     * Foot Locker  1 bucket (Nike).
+     * Macy's       none at all -- but 754 items each naming its brand,
+                    107 distinct.
+     * The beauty three: a `brands` key that is a bare ARRAY OF NAMES,
+                    not buckets. No items behind it. Unusable as a
+                    catalogue, and it decodes as brands "0", "1", "2".
+
+   So the brand list is counted off the store's own stock, which is the
+   only source that cannot disagree with what the shopper will find. The
+   caller passes items it has already deduped -- Old Navy's synthetic
+   `clothing` bucket is a merge of its gendered ones and would otherwise
+   count every item twice.
+
+   The FIRST spelling of a name wins its key, so two casings of one
+   brand collapse into one row instead of splitting the shelf.
+   ============================================================ */
+export function brandBucketsFromItems(items) {
+  const out = {};
+  for (const raw of items || []) {
+    const label = String(raw?.brand ?? "").trim();
+    if (!label) continue;
+    const key = brandKeyOf(label);
+    if (!key) continue;
+    if (!out[key]) out[key] = { label, items: [] };
+    out[key].items.push(raw);
+  }
+  return out;
+}

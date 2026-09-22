@@ -303,7 +303,7 @@ export function loadPageBrandSlice() {
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { foldBrand, brandLetter, brandMatches, brandRows, brandGroups };",
+    html.slice(from, to) + "\n;globalThis.__exports = { foldBrand, brandLetter, brandMatches, brandRows, brandGroups, brandKeyOf, brandBucketsFromItems };",
     sandbox,
     { filename: "index.html#brands" },
   );

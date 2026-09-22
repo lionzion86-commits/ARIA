@@ -4229,6 +4229,17 @@ check("the page's brand index and the module agree, brand for brand", () => {
   for (const q of ["margiela", "SEFR", "séfr", "", "zzz"]) {
     eq(brandPage.brandMatches("Séfr", q), brandIndex.brandMatches("Séfr", q), `brandMatches(Séfr, ${q})`);
   }
+  /* The routing slug is mirrored too, and it is the one that must not
+     drift by even a character: it is the address in the URL bar. */
+  for (const raw of ["Courrèges", "Maison Kitsuné", "MM6 Maison Margiela", "A.P.C.", "424", "a.v. vattev"]) {
+    eq(brandPage.brandKeyOf(raw), brandIndex.brandKeyOf(raw), `brandKeyOf(${raw})`);
+  }
+  const sample = ssenseBrands.driesvannoten.items.concat(ssenseBrands.apc.items);
+  eq(
+    JSON.stringify(Object.keys(brandPage.brandBucketsFromItems(sample))),
+    JSON.stringify(Object.keys(brandIndex.brandBucketsFromItems(sample))),
+    "brandBucketsFromItems drifted",
+  );
 });
 
 check("every one of SSENSE's 192 brands is in the list, exactly once", () => {
@@ -4306,6 +4317,79 @@ check("a brand with nothing behind it is not listed", () => {
   eq(rows.map((r) => r.key).join(), "real", "an empty brand made it into the list");
 });
 
+check("a brand list can be counted off a store's own stock", () => {
+  /* WHY THIS EXISTS. "Wire it into every storefront that carries
+     multiple brands" cannot be answered from `retailers.<key>.brands`.
+     SSENSE ships 192 real buckets; Foot Locker ships 1; Macy's ships
+     NONE while every one of its 754 items names its brand; and the
+     beauty three ship a bare ARRAY OF NAMES with no items behind it,
+     which decodes as brands called "0", "1", "2".
+
+     THE INVARIANT THAT MAKES DERIVING SAFE: run the derivation over
+     SSENSE's own items and it reproduces SSENSE's own export — same
+     192 keys, same labels, same counts. The rule is not ours, it is
+     theirs, which is why a Macy's brand and an SSENSE brand can share
+     one route. */
+  const ssense = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8")).retailers.ssense;
+  const derived = brandIndex.brandBucketsFromItems(ssense.departments.men.items);
+  eq(Object.keys(derived).length, Object.keys(ssense.brands).length, "derived brand count");
+  for (const [key, bucket] of Object.entries(ssense.brands)) {
+    if (!derived[key]) throw new Error(`deriving lost SSENSE's own key: ${key}`);
+    eq(derived[key].label, bucket.label, `${key} label`);
+    eq(derived[key].items.length, bucket.items.length, `${key} count`);
+  }
+
+  /* ACCENTS ARE DROPPED, NOT FOLDED, and that is the whole reason the
+     keys line up: SSENSE slugs "Courreges" with the accent DELETED.
+     Folding would have minted a second key for eight brands and broken
+     every saved link to them. */
+  eq(brandIndex.brandKeyOf("Courr\u00e8ges"), "courrges", "an accented brand keeps the key that shipped");
+  eq(brandIndex.brandKeyOf("Maison Kitsun\u00e9"), "maisonkitsun", "Maison Kitsune");
+  eq(brandIndex.brandKeyOf("MM6 Maison Margiela"), "mm6maisonmargiela", "MM6");
+  // ...while the SEARCH still folds, because a phone keyboard does not.
+  eq(brandIndex.brandMatches("Courr\u00e8ges", "courreges"), true, "an unaccented search finds an accented brand");
+
+  // Macy's: no brands bucket at all, and a real list behind its stock.
+  const macys = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8")).retailers.macys;
+  eq(Object.keys(macys.brands || {}).length, 0, "Macy's suddenly has a brands bucket — read it instead of deriving");
+  const macysRows = brandIndex.brandRows(brandIndex.brandBucketsFromItems(macys.departments.women.items));
+  if (macysRows.length < 50) throw new Error(`Macy's derived only ${macysRows.length} brands`);
+  if (!macysRows.some((r) => r.label === "Wacoal")) throw new Error("Macy's biggest brand is not in its list");
+
+  /* The beauty three's `brands` really is a list of NAMES. Deriving is
+     the only way they get a panel, and the bogus numeric keys must not
+     reach a shopper. */
+  const beautyFile = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    const store = beautyFile.retailers[key];
+    const items = Array.isArray(store.departments.beauty) ? store.departments.beauty : store.departments.beauty.items;
+    const rows = brandIndex.brandRows(brandIndex.brandBucketsFromItems(items));
+    if (rows.length < 2) throw new Error(`${key} derived ${rows.length} brands — it would lose its panel`);
+    if (rows.some((r) => /^[0-9]+$/.test(r.key))) throw new Error(`${key} is listing a brand called "0"`);
+  }
+});
+
+check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
+  /* Foot Locker's 24 shoes live in `brands.nike` and its department
+     items name no brand at all, so a purely derived list would drop
+     Nike and break a link that exists today. The page's merge is what
+     stops that, so the page's merge is what is read here. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const merge = src.slice(src.indexOf("function retailerBrandBuckets("), src.indexOf("function departmentItemsFor("));
+  if (!/Object\.entries\(retailerData\.brands \|\| \{\}\)/.test(merge)) throw new Error("the explicit buckets are no longer read");
+  if (!/if \(!out\[key\]\) out\[key\] = bucket;/.test(merge)) throw new Error("a derived bucket now overwrites the catalogue's own");
+  // A bucket with no items behind it (the beauty three's name list)
+  // must not shadow the derived one.
+  if (!/Array\.isArray\(bucket\?\.items\) && bucket\.items\.length/.test(merge)) throw new Error("an empty brands bucket can shadow the real list again");
+
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8")).retailers.footlocker;
+  eq(Object.keys(cache.brands).join(), "nike", "Foot Locker's brand bucket");
+  if (!cache.brands.nike.items.length) throw new Error("Foot Locker's Nike bucket is empty");
+  // And its items really do carry no brand, which is why the bucket matters.
+  const derived = brandIndex.brandBucketsFromItems(Object.values(cache.departments).flatMap((d) => d.items || []));
+  eq(Object.keys(derived).length, 0, "Foot Locker's items now name their brand — the fallback may be enough");
+});
+
 check("the home page is departments only — the brand wall is gone", () => {
   /* THE WALL: eleven department covers followed by 193 brand cards,
      each ~340px tall, as the first thing anyone met on the home page.
@@ -4353,14 +4437,16 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
   if (!/244,196,99/.test(panel) && !/var\(--amber\)/.test(panel)) throw new Error("the panel has no gold in it");
   if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(panel)) throw new Error("an emoji is standing in for the panel's furniture");
 
-  /* A ONE-BRAND STORE IS A LIST, NOT A SEARCH ENGINE. Foot Locker has
-     exactly one scraped brand, and a search box with a one-letter index
-     over a single row reads as a half-built feature. */
-  if (!/const compact = rows\.length </.test(panel)) throw new Error("a one-brand store still gets the full search furniture");
+  /* ONE COMPONENT, ONE BEHAVIOUR. An earlier cut stripped the search box
+     and the index off short lists; a shopper who learns this panel on
+     SSENSE has to meet the same panel on Ulta. */
+  if (/compact/.test(panel)) throw new Error("the panel has grown a second, quieter version of itself");
 
-  // And the store page actually draws it, only when there are brands.
+  // And the store page draws it off its own stock, for multi-brand
+  // stores only.
   const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
-  if (!/brandRows\(retailerData\?\.brands\)/.test(store)) throw new Error("the store page reads no brands");
+  if (!/brandRows\(retailerBrandBuckets\(retailerData\)\)/.test(store)) throw new Error("the store page reads no brands");
+  if (!/brandList\.length > 1/.test(store)) throw new Error("a single-brand store is being offered a brand search");
   if (!/brandPanel/.test(store)) throw new Error("the store page never draws the panel");
 });
 
