@@ -17,6 +17,28 @@ navy-to-sky field with the category's mark on it. That is a deliberate
 treatment, not a placeholder, so there is no rush and no half-finished
 state — add covers one at a time and the grid stays coherent throughout.
 
+## What is here (2026-09-22)
+
+A curated photograph for every department: `beauty`, `candy_chocolate`,
+`clothing`, `electronics`, `home_goods`, `kids`, `men`, `pharmacy`,
+`sale`, `sporting_goods`, `women`.
+
+Ten arrived first. `beauty` followed a few hours later — the department
+itself only became real that morning, when Sephora, Ulta and YesStyle
+landed with 197 products between them, so it briefly rendered the
+designed cover beside ten photographs. A test named that gap by key
+rather than tolerating it, which is what got the eleventh shot.
+
+That test now asserts the uncovered set is **empty**. Adding a twelfth
+department without a cover is not a failure — it gets the designed
+cover — but the assertion will change, and whoever changes it has to
+decide on purpose.
+
+**Ofertas takes a photograph too.** Its drawn gold board
+(`ofertasTileArtHTML`) is still the fallback, and its gold sign is
+unchanged either way — only the art in the window differs. See the note
+in `deptTileHTML`.
+
 ## Why these are curated and not scraped
 
 Three rounds were spent picking covers out of the scraper feed: the first
