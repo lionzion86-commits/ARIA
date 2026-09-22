@@ -115,9 +115,16 @@ export function publicTrackingView(shipment) {
    pickup receipt, so the columns are the ones a person reads down a page,
    not the ones a database would pick.
    ------------------------------------------------------------ */
+/* "Relación" and "Instrucciones de entrega" (2026-09-21) are for the
+   driver, not for us: they are what turns a correct address into a
+   completed delivery when the buyer is not the one at the door. Both sit
+   next to the recipient's own columns because that is where a driver
+   reading the sheet is already looking. Still no cost column — see the
+   note below. */
 export const MANIFEST_COLUMNS = [
-  "Envío", "Tracking", "Pedidos", "Destinatario", "Documento", "Teléfono",
-  "Dirección", "Ciudad", "Peso real (kg)", "Valor declarado (USD)",
+  "Envío", "Tracking", "Pedidos", "Destinatario", "Documento", "Relación",
+  "Teléfono", "Dirección", "Ciudad", "Instrucciones de entrega",
+  "Peso real (kg)", "Valor declarado (USD)",
   "Restricciones", "Estado", "Notas",
 ];
 
@@ -128,9 +135,11 @@ export function manifestRow(s) {
     (s.orderIds || []).join(" | "),
     s.recipient?.name || "",
     s.recipient?.idNumber || "",
+    s.recipient?.relationship || "",
     s.recipient?.phone || "",
     s.recipient?.address || "",
     s.recipient?.city || "",
+    s.recipient?.deliveryInstructions || "",
     s.weightKg == null ? "" : String(s.weightKg),
     s.declaredValueUsd == null ? "" : String(s.declaredValueUsd),
     (s.restrictedFlags || []).join(" | "),

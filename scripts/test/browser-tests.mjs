@@ -106,25 +106,46 @@ await check("an English query is passed through untouched", async () => {
   await ctx.close();
 });
 
-await check("the badge fires on the numbers the card prints", async () => {
+await check("a card discloses its freight and never labels it", async () => {
+  /* The reported t-shirt: S/ 25.29 with S/ 10.07 of freight. It wore a
+     "Flete alto" badge because the rule thresholded freight as a share
+     of PRICE, so it fired on a cheap item rather than a heavy one. The
+     badge is gone; the itemised line that made it redundant is not.
+
+     The 80% case is the one that matters for the regression: an item
+     genuinely deep in the old badge band must ALSO come back clean, or
+     the badge has only been re-tuned rather than removed. */
   const { ctx, page, errors } = await openPage();
   if (errors.length) throw new Error(errors.join(" | "));
   const r = await page.evaluate(() => {
-    const kg = estimateRetailWeightDetail("Hello Kitty and Friends Girls T-Shirt").kg;
+    const title = "Hello Kitty and Friends Girls T-Shirt";
+    const kg = estimateRetailWeightDetail(title).kg;
     const freight = freightUsd(kg);
-    const price = freight * (25.29 / 10.07);       // the reported 40%
-    const card = productCardHTML({ title: "Hello Kitty and Friends Girls T-Shirt", price, weightKg: kg, retailer: "walmart" }, { open: "" });
+    const card = (price) => productCardHTML({ title, price, weightKg: kg, retailer: "walmart" }, { open: "" });
+    const reported = card(freight * (25.29 / 10.07));   // the reported 40%
     return {
-      share: freightSharePct(kg, price),
-      badge: /Flete alto/.test(card),
-      heavyBadge: /Flete alto/.test(productCardHTML({ title: "Hello Kitty and Friends Girls T-Shirt", price: freight / 0.8, weightKg: kg, retailer: "walmart" }, { open: "" })),
-      rate: /\$13\/kg/.test(card),
+      kg,
+      share: freightSharePct(kg, freight * (25.29 / 10.07)),
+      badgeAt40: /Flete alto/.test(reported),
+      badgeAt80: /Flete alto/.test(card(freight / 0.8)),
+      badgeAt300: /Flete alto/.test(card(freight / 3)),
+      rate: /\$13\/kg/.test(reported),
+      freightLine: /de flete/.test(reported),
+      weightShown: reported.includes(`${kg} kg`),
+      // The discount badge is a fact about the US price and still shows,
+      // even on an item the old rule would have overwritten it on.
+      discount: /-\d+%/.test(productCardHTML(
+        { title, price: freight / 0.8, originalPrice: freight / 0.4, weightKg: kg, retailer: "walmart" }, { open: "" })),
     };
   });
   if (Math.abs(r.share - 10.07 / 25.29) > 0.002) throw new Error(`share drifted: ${r.share}`);
-  eq(r.badge, false, "no 'Flete alto' at 40%");
-  eq(r.heavyBadge, true, "the badge still fires at 80%");
-  eq(r.rate, true, "the card still shows the $13/kg rate");
+  eq(r.badgeAt40, false, "the reported 40% card still carries a label");
+  eq(r.badgeAt80, false, "80% still carries a label — the badge was re-tuned, not removed");
+  eq(r.badgeAt300, false, "freight at 3x the price still carries a label");
+  eq(r.rate, true, "the card stopped showing the $13/kg rate");
+  eq(r.freightLine, true, "the card stopped itemising freight");
+  eq(r.weightShown, true, "the card stopped printing the weight");
+  eq(r.discount, true, "a heavy item lost its discount badge");
   await ctx.close();
 });
 
@@ -169,12 +190,12 @@ await check("every view still renders, with nothing thrown on the way", async ()
   // The two pages rebuilt in this batch must still have their store grids.
   await page.evaluate(() => showPage("storesView"));
   await page.waitForTimeout(250);
-  const stores = await page.evaluate(() => document.querySelectorAll("#storesGrid > *").length);
+  const stores = await page.evaluate(() => document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length);
   if (stores < 8) throw new Error(`Tiendas shows ${stores} stores, expected 8`);
   await ctx.close();
 });
 
-await check("Categorías renders big cards, two across, nothing cropped", async () => {
+await check("Categorías renders one full-width shopfront per row, nothing cropped", async () => {
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -191,20 +212,28 @@ await check("Categorías renders big cards, two across, nothing cropped", async 
   const r = await page.evaluate(() => {
     const grid = document.getElementById("categoriesGrid");
     const card = grid.firstElementChild;
-    const frame = card?.querySelector('[style*="aspect-ratio"]');
+    const window_ = card?.querySelector('[class*="h-["]');
+    const photo = card?.querySelector("img, [class*='place-items-center']");
     return {
       count: grid.children.length,
       gridClass: grid.className,
       cardClass: card ? card.className : "",
-      frameStyle: frame ? frame.getAttribute("style") : null,
+      windowClass: window_ ? window_.className : null,
+      cropped: card ? /object-fit:\s*cover/.test(card.innerHTML) : false,
+      // The sign: the category name on the brand navy, not navy-on-white.
+      signed: card ? /0A1F44/.test(card.innerHTML) : false,
       squares: grid.querySelectorAll('[class*="h-[124px]"], [class*="h-[146px]"]').length,
     };
   });
   if (!r.count) throw new Error("Categorías rendered no tiles");
-  if (!/grid-cols-1 md:grid-cols-2/.test(r.gridClass)) throw new Error(`grid is ${r.gridClass}`);
-  if (/grid-cols-[34]/.test(r.gridClass)) throw new Error("the four-across square grid is back");
+  if (!/grid-cols-1/.test(r.gridClass)) throw new Error(`grid has no single-column base: ${r.gridClass}`);
+  if (/(?:sm|md|lg|xl):grid-cols-\d/.test(r.gridClass)) {
+    throw new Error(`Categorías splits into columns again: ${r.gridClass}`);
+  }
   if (!/rounded-2xl/.test(r.cardClass)) throw new Error(`a tile is not a card: ${r.cardClass}`);
-  if (!/aspect-ratio:4\/5/.test(r.frameStyle || "")) throw new Error(`photo field is ${r.frameStyle}`);
+  if (!/h-\[\d+px\]/.test(r.windowClass || "")) throw new Error(`the window is not pinned: ${r.windowClass}`);
+  eq(r.cropped, false, "a category photo is being cropped");
+  eq(r.signed, true, "the category name is not on a navy sign");
   eq(r.squares, 0, "fixed-height square tiles left in the grid");
   await ctx.close();
 });
@@ -218,11 +247,17 @@ await check("the category card and the Ofertas card are the same object", async 
     const tile = deptTileHTML({ key: "women", label: "Moda Mujer", count: 82, thumb: "x.jpg", icon: "\u{1F455}" }, "department");
     const card = productCardHTML({ title: "T", price: 20, weightKg: 0.2, retailer: "walmart", image: "x.jpg" }, { open: "" });
     const shell = (h) => (h.match(/class="([^"]*rounded-2xl[^"]*)"/) || [])[1] || "";
-    const frame = (h) => (h.match(/style="aspect-ratio:[^"]*"/) || [])[0] || "";
     return {
       tileShell: shell(tile), cardShell: shell(card),
-      tileFrame: frame(tile), cardFrame: frame(card),
+      // 2026-09-21: the two no longer share a photo FIELD. A category is
+      // a shopfront on a pinned-height window; a product is a product on
+      // the 4:5 field. They still share the shell and the contain-fit.
+      tileWindow: /h-\[\d+px\]/.test(tile),
+      cardField: /aspect-ratio:4\/5/.test(card),
+      tileCrops: /object-fit:\s*cover/.test(tile),
+      cardCrops: /object-fit:\s*cover/.test(card),
       tileHasSquare: /h-\[124px\]|h-\[146px\]/.test(tile),
+      tileHasSign: /Moda Mujer/.test(tile) && /0A1F44/.test(tile),
     };
   });
   if (!same.tileShell.includes("rounded-2xl")) throw new Error("the tile lost the card shell");
@@ -231,8 +266,12 @@ await check("the category card and the Ofertas card are the same object", async 
   if (!same.tileShell.startsWith(same.cardShell)) {
     throw new Error(`the tile shell diverged:\n  tile: ${same.tileShell}\n  card: ${same.cardShell}`);
   }
-  eq(same.tileFrame, same.cardFrame, "photo field");
+  eq(same.tileWindow, true, "the category window is not pinned to a height");
+  eq(same.cardField, true, "the product card lost its 4:5 field");
+  eq(same.tileCrops, false, "the category window crops its photo");
+  eq(same.cardCrops, false, "the product card crops its photo");
   eq(same.tileHasSquare, false, "the old fixed-height square is gone");
+  eq(same.tileHasSign, true, "the category name is not on a navy sign");
   await ctx.close();
 });
 
@@ -311,7 +350,7 @@ await check("no courier name is rendered anywhere a shopper browses", async () =
   await ctx.close();
 });
 
-await check("Aria Auto filters on fitment, and never shows a maybe", async () => {
+await check("Aria Auto confirms what it can and shows the rest with a part number", async () => {
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -319,21 +358,8 @@ await check("Aria Auto filters on fitment, and never shows a maybe", async () =>
 
   const r = await page.evaluate(() => {
     const vehicle = { year: "2020", make: "Hyundai", model: "Sonata" };
-    // Exactly the payload shape the cache holds today: VEHICLE_SPECIFIC
-    // and nothing else. This is the live bug.
-    const noFitment = [{ title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
-      raw: { vehicle_fitment: "VEHICLE_SPECIFIC", specs: { "Pad Type": "Ceramic" } } }];
-    // …and the shape the detail scrape returns.
-    const withFitment = [
-      { title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
-        raw: { specs: { Fits: "Hyundai Sonata, Hyundai Tucson, Kia K5 2020-2024" }, location: "Front" } },
-      { title: "Wrong Pads For Another Car", price: 21.5,
-        raw: { specs: { Fits: "Honda Civic 2016-2021" } } },
-    ];
     /* selectedVehicle is a top-level `let`, not a window property, so
-       assigning window.selectedVehicle would silently do nothing. Drive
-       the page's own selectors instead — which also exercises the real
-       path a shopper takes. */
+       drive the page's own selectors — the real path a shopper takes. */
     const setSel = (id, value) => {
       const el = document.getElementById(id);
       el.innerHTML = `<option value="${value}">${value}</option>`;
@@ -345,21 +371,58 @@ await check("Aria Auto filters on fitment, and never shows a maybe", async () =>
     setSel("autoModelSelect", vehicle.model);
     maybeRevealPartSearch();
 
-    const gap = renderAutoPartBlock("AutoZone", { ok: true, items: noFitment }, "pastillas de freno", "autozone");
-    const good = renderAutoPartBlock("AutoZone", { ok: true, items: withFitment }, "pastillas de freno", "autozone");
+    // Exactly the payload shape the cache holds today: no compatibility
+    // list anywhere, but a real part number.
+    const noFitment = [{ title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
+      raw: { vehicle_fitment: "VEHICLE_SPECIFIC", part_number: "D2076", line_code: "EPA",
+             specs: { "Pad Type": "Ceramic" } } }];
+    // …and the shape the detail scrape returns.
+    const withFitment = [
+      { title: "Duralast Ceramic Brake Pads D2076", price: 43.99,
+        raw: { specs: { Fits: "Hyundai Sonata, Hyundai Tucson, Kia K5 2020-2024" },
+               part_number: "D2076", location: "Front" } },
+      { title: "Wrong Pads For Another Car", price: 21.5,
+        raw: { specs: { Fits: "Honda Civic 2016-2021" }, part_number: "X9" } },
+    ];
+
+    const unconfirmed = renderAutoPartBlock("AutoZone", { ok: true, items: noFitment }, "pastillas de freno", "autozone");
+    const confirmed = renderAutoPartBlock("AutoZone", { ok: true, items: withFitment }, "pastillas de freno", "autozone");
+    const empty = renderAutoPartBlock("AutoZone", { ok: true, items: [] }, "pastillas de freno", "autozone");
+
     return {
-      gapIsEmptyState: /No tenemos datos de calce/.test(gap),
-      gapShowsProducts: /Duralast/.test(gap),
-      goodShowsConfirmed: /Compatible con tu/.test(good),
-      goodShowsWrongCar: /Wrong Pads/.test(good),
-      anyMaybe: /Verifica el calce|verifícalo antes de pedir/.test(gap + good),
+      // Branch 2: shown, not hidden.
+      unconfirmedShowsProduct: /Duralast/.test(unconfirmed),
+      unconfirmedShowsPartNumber: /D2076/.test(unconfirmed) && /N\.° de parte/.test(unconfirmed),
+      unconfirmedHasGreenBadge: /Compatible con tu/.test(unconfirmed),
+      unconfirmedIsHonest: /no podemos confirmarlo nosotros/.test(unconfirmed),
+      unconfirmedIsEmptyState: /No tenemos datos de calce/.test(unconfirmed),
+      // Branch 1: confirmed only.
+      confirmedHasBadge: /Compatible con tu/.test(confirmed),
+      confirmedShowsWrongCar: /Wrong Pads/.test(confirmed),
+      confirmedShowsPartNumber: /D2076/.test(confirmed),
+      // Branch 3: nothing at all.
+      emptyIsEmptyState: /No tenemos datos de calce/.test(empty),
+      emptyClaimsUsMarket: /Ese modelo no se vendió en Estados Unidos/.test(empty),
+      // The banned badge, nowhere.
+      anyBannedBadge: /Verifica el calce|verifícalo antes de pedir/.test(unconfirmed + confirmed + empty),
     };
   });
-  eq(r.gapIsEmptyState, true, "no fitment data must give the honest empty state");
-  eq(r.gapShowsProducts, false, "unfiltered keyword results must never be shown");
-  eq(r.goodShowsConfirmed, true, "a confirmed part gets the green badge");
-  eq(r.goodShowsWrongCar, false, "a part whose list names another car is excluded");
-  eq(r.anyMaybe, false, "the banned middle ground is rendered nowhere");
+
+  // Branch 2 — the correction: these are the Sonata-fitting pads Danny
+  // verified, and hiding them killed the section.
+  eq(r.unconfirmedShowsProduct, true, "unconfirmed parts must still be shown");
+  eq(r.unconfirmedShowsPartNumber, true, "the part number is the buyer's own check");
+  eq(r.unconfirmedHasGreenBadge, false, "an unconfirmed part must not claim confirmation");
+  eq(r.unconfirmedIsHonest, true, "it must say we could not confirm it");
+  eq(r.unconfirmedIsEmptyState, false, "no-fitment-data is not the empty state");
+  // Branch 1
+  eq(r.confirmedHasBadge, true, "a confirmed part gets the green badge");
+  eq(r.confirmedShowsWrongCar, false, "a part listing another car is excluded");
+  eq(r.confirmedShowsPartNumber, true, "confirmed parts show their number too");
+  // Branch 3
+  eq(r.emptyIsEmptyState, true, "nothing back means the honest empty state");
+  eq(r.emptyClaimsUsMarket, false, "the empty state must not assert a cause");
+  eq(r.anyBannedBadge, false, "the banned disclaimer appears nowhere");
   await ctx.close();
 });
 
@@ -372,12 +435,23 @@ await check("Aria Auto lists its sources without touching the Tiendas grid", asy
     sources: AUTO_PARTS_SOURCES.map((s) => `${s.id}:${s.pending ? "pending" : "live"}`),
     pendingBlock: autoPendingBlockHTML({ id: "rockauto", label: "RockAuto", pendingNote: "Conectando el catálogo" },
       { year: "2020", make: "Hyundai", model: "Sonata" }, "pastillas de freno"),
-    tiendas: Object.values(RETAILERS).filter((r) => !r.retired).length,
+    /* The rule is "a parts source is never a storefront tile", not "the
+       grid is eight". Counting was a proxy for it, and the proxy broke
+       the day a real ninth STORE arrived (Macy's, 2026-09-22). AutoZone
+       predates the split and is Aria Auto's own source, so it is the one
+       key legitimately in both lists. */
+    leaked: AUTO_PARTS_SOURCES
+      .map((s) => s.id)
+      .filter((id) => id !== "autozone")
+      .filter((id) => Object.keys(RETAILERS).includes(id) && !RETAILERS[id].retired),
+    tiendaTiles: document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length,
+    listedStores: Object.values(RETAILERS).filter((x) => !x.retired).length,
   }));
   eq(r.sources.join(","), "autozone:live,rockauto:pending", "the source list comes from the registry");
   if (!/RockAuto/.test(r.pendingBlock)) throw new Error("the pending source has no block of its own");
   if (!/Conectando el catálogo/.test(r.pendingBlock)) throw new Error("the pending block is not honest about why");
-  eq(r.tiendas, 8, "the Tiendas grid is still eight");
+  if (r.leaked.length) throw new Error(`${r.leaked.join(", ")} leaked into the Tiendas grid`);
+  eq(r.tiendaTiles, r.listedStores, "the Tiendas grid is the registry, not a hand-written list");
   await ctx.close();
 });
 
@@ -395,13 +469,13 @@ await check("the reported vitamin bottles price sanely on a real card", async ()
     ]) {
       const kg = estimateRetailWeightDetail(title).kg;
       const card = productCardHTML({ title, price: priceUsd, weightKg: kg, retailer: "walmart" }, { open: "" });
-      out[key] = { kg, badge: /Flete alto/.test(card), shown: /0\.68 kg|1\.08 kg/.test(card) };
+      out[key] = { kg, badge: /Flete alto/.test(card), shown: /0\.68 kg|1\.08 kg/.test(card) };  // badge: must stay false — it is gone site-wide
     }
     return out;
   });
   for (const [key, v] of Object.entries(r)) {
     if (v.kg >= 0.4) throw new Error(`${key} still estimates ${v.kg} kg`);
-    eq(v.badge, false, `${key} still wears a manufactured Flete alto`);
+    eq(v.badge, false, `${key} wears a Flete alto badge — it was removed site-wide`);
     eq(v.shown, false, `${key} still prints a banned constant`);
   }
   await ctx.close();
@@ -424,6 +498,509 @@ await check("the small-order fee follows the order, not the products", async () 
   eq(r.small, 10, "a genuinely small order still pays");
   eq(r.atLine, 0, "exactly S/ 50 is not small");
   if (!/productos \+ flete/i.test(r.note)) throw new Error(`the note hides its basis: ${r.note}`);
+  await ctx.close();
+});
+
+await check("the three beauty stores render their real logo, unfiltered", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => showPage("storesView"));
+  await page.waitForTimeout(400);
+
+  const r = await page.evaluate(async () => {
+    // Wait for decode: a tag with the right src but a broken file would
+    // pass every other assertion here and show nothing to a shopper.
+    const all = [...document.querySelectorAll("#storesGrid img")];
+    await Promise.all(all.map((i) => (i.complete ? null : new Promise((res) => { i.onload = res; i.onerror = res; }))));
+    const out = {};
+    for (const key of ["sephora", "victoriassecret", "bathandbodyworks"]) {
+      const card = [...document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)")]
+        .find((el) => (el.outerHTML || "").includes(`logos/${key}.`));
+      if (!card) { out[key] = { found: false }; continue; }
+      const img = card.querySelector("img");
+      const plate = img ? img.closest("div") : null;
+      out[key] = {
+        found: true,
+        isImage: Boolean(img),
+        src: img ? img.getAttribute("src") : null,
+        // A brand's mark is never ours to recolour — the pending
+        // treatment used to grey the whole tile, logo included.
+        plateFilter: plate ? getComputedStyle(plate).filter : null,
+        imgFilter: img ? getComputedStyle(img).filter : null,
+        objectFit: img ? getComputedStyle(img).objectFit : null,
+        naturalWidth: img ? img.naturalWidth : 0,
+        // Still honest about the catalogue not being connected.
+        stillPending: /Conectando el catálogo/.test(card.textContent || ""),
+        // …and no text-pill fallback left behind.
+        hasWordmarkPill: Boolean(card.querySelector(".store-logo-fallback")),
+      };
+    }
+    return out;
+  });
+
+  for (const [key, v] of Object.entries(r)) {
+    if (!v.found) throw new Error(`${key} has no card on Tiendas`);
+    eq(v.isImage, true, `${key} is still a text pill, not an image`);
+    if (!v.src.endsWith(`logos/${key}.png`)) throw new Error(`${key} src is ${v.src}`);
+    for (const [what, f] of [["plate", v.plateFilter], ["img", v.imgFilter]]) {
+      if (f && f !== "none") throw new Error(`${key} ${what} carries a CSS filter (${f}) — a brand's mark is not ours to recolour`);
+    }
+    if (v.objectFit && v.objectFit !== "contain") throw new Error(`${key} is ${v.objectFit}, not contain`);
+    if (!(v.naturalWidth > 0)) throw new Error(`${key} has the right src but the image did not decode`);
+    /* THE PENDING BADGE IS PER STORE, NOT PER CATEGORY (2026-09-22).
+       Sephora's 80 products landed in beauty-catalog.json, so its card
+       must NOT say "conectando" any more; Victoria's Secret and Bath &
+       Body Works are not in that file and still must. The three stopped
+       being interchangeable, and that is the badge telling the truth
+       rather than a regression. */
+    eq(v.stillPending, key !== "sephora",
+      key === "sephora" ? "Sephora has a catalogue and must not read as pending"
+                        : `${key} stopped saying its catalogue is being connected`);
+    eq(v.hasWordmarkPill, false, `${key} still renders the wordmark fallback`);
+  }
+  /* And the grid is the registry, not a hand-written list. It was "the
+     symmetric eight" until Macy's became the ninth store on 2026-09-22;
+     pinning a number would have blocked every store the shop signs. */
+  const grid = await page.evaluate(() => ({
+    rendered: document.querySelectorAll("#storesGrid section > div.grid > *, #storesGrid > *:not(section)").length,
+    listed: Object.values(RETAILERS).filter((x) => !x.retired).length,
+  }));
+  eq(grid.rendered, grid.listed, "every listed store gets a tile");
+  if (grid.rendered < 8) throw new Error(`Tiendas is down to ${grid.rendered} stores`);
+  await ctx.close();
+});
+
+await check("a big department opens as aisles, and no aisle is the default", async () => {
+  /* THE BUG (2026-09-22, QA on an iPhone): Macy's "Women" was one bucket
+     of 754 products whose first several phone screens were bras and
+     panties, so the 228 dresses behind them were unreachable by
+     scrolling. Nothing was wrong with the data. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+
+  await page.evaluate(() => openCatalog("department", "women", { retailerFilter: "macys" }));
+  await page.waitForFunction(() => catalogState.byRetailer.size > 0, { timeout: 15000 });
+
+  const landing = await page.evaluate(() => ({
+    hasGrid: Boolean(document.getElementById("catalogGrid")),
+    aisles: [...document.querySelectorAll("#catalogSections button")]
+      .map((b) => (b.textContent || "").replace(/\s+/g, " ").trim())
+      .filter((t) => /^(Vestidos|Tops|Chompas|Jeans|Pantalones|Casacas|Conjuntos|Ropa de baño|Zapatos|Bolsos|Accesorios|Ropa interior|Ver todo)/.test(t)),
+  }));
+
+  /* NO AISLE IS THE DEFAULT. Landing in the biggest one would bury the
+     rest exactly the way underwear buried the dresses, so the landing is
+     the LIST and "Ver todo" is a deliberate tap. */
+  eq(landing.hasGrid, false, "the landing shows aisles, not a product wall");
+  if (landing.aisles.length < 6) throw new Error(`only ${landing.aisles.length} aisles rendered`);
+  if (!landing.aisles[0].startsWith("Vestidos")) throw new Error(`the list leads with "${landing.aisles[0]}", not dresses`);
+  const lingerie = landing.aisles.findIndex((a) => a.startsWith("Ropa interior"));
+  const verTodo = landing.aisles.findIndex((a) => a.startsWith("Ver todo"));
+  if (lingerie < 0) throw new Error("lingerie is not listed — it must be present, just not first");
+  if (verTodo < 0) throw new Error("Ver todo is gone");
+  if (lingerie !== verTodo - 1) throw new Error("lingerie is no longer last of the aisles");
+
+  // Into an aisle: the feed is that aisle, and it says so.
+  await page.evaluate(() => setCatalogSub("dresses"));
+  await page.waitForSelector("#catalogGrid", { timeout: 10000 });
+  const inAisle = await page.evaluate(() => {
+    const promised = Number((document.getElementById("catalogSubtitle").textContent.match(/^(\d+)/) || [])[1]);
+    const actual = [...catalogState.byRetailer.values()].flat()
+      .filter((it) => subcategoryOfItem(it) === "dresses").length;
+    return {
+      promised, actual,
+      subtitle: document.getElementById("catalogSubtitle").textContent.trim(),
+      url: location.search,
+      // Nothing from the lingerie aisle may appear here.
+      leaked: [...document.querySelectorAll("#catalogGrid > *")]
+        .filter((c) => /\b(bra|panty|thong)\b/i.test(c.textContent || "")).length,
+    };
+  });
+  eq(inAisle.actual, inAisle.promised, "an aisle delivers exactly what the list promised");
+  if (!/Vestidos y faldas/.test(inAisle.subtitle)) throw new Error(`the subtitle does not name the aisle: ${inAisle.subtitle}`);
+  eq(inAisle.leaked, 0, "lingerie did not contaminate the dresses");
+  if (!/subKey=dresses/.test(inAisle.url)) throw new Error(`the aisle has no URL of its own: ${inAisle.url}`);
+
+  /* The active chip must be ON SCREEN. A horizontally-scrolling row
+     whose selection sits past the right edge reads as "no filter
+     applied", which is how the store row looked on a 393px phone while
+     the subtitle said otherwise. */
+  const chips = await page.evaluate(() =>
+    [...document.querySelectorAll("#catalogSections .no-scrollbar")].map((row) => {
+      const a = row.querySelector('[aria-pressed="true"]');
+      if (!a) return null;
+      const r = a.getBoundingClientRect();
+      return { label: (a.textContent || "").trim().slice(0, 24), left: r.left, right: r.right, vw: window.innerWidth };
+    }).filter(Boolean));
+  for (const c of chips) {
+    if (c.right <= 0 || c.left >= c.vw) throw new Error(`the active chip "${c.label}" is off-screen (${Math.round(c.left)}..${Math.round(c.right)} of ${c.vw})`);
+  }
+
+  // And back to the list, not to the flat feed it replaced.
+  await page.evaluate(() => setCatalogSub(null));
+  await page.waitForFunction(() => !document.getElementById("catalogGrid"), { timeout: 10000 });
+  await ctx.close();
+});
+
+await check("a department whose items carry no type does not split", async () => {
+  /* The aisles are generic, not a Macy's feature — and the other half of
+     that promise is that a store reporting no type loses nothing and
+     renders exactly as it always did. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => openCatalog("department", "electronics"));
+  await page.waitForSelector("#catalogGrid", { timeout: 15000 });
+  const flat = await page.evaluate(() => ({
+    cards: document.querySelectorAll("#catalogGrid > *").length,
+    typed: [...catalogState.byRetailer.values()].flat().filter((it) => subcategoryOfItem(it)).length,
+  }));
+  if (!(flat.cards > 0)) throw new Error("the untyped department renders nothing");
+  eq(flat.typed, 0, "electronics has no apparel types to split on");
+  await ctx.close();
+});
+
+await check("every category cover renders as abstract art, in the DOM", async () => {
+  /* THE NODE TEST READS SOURCE; QA READS A SCREEN. This bug shipped past
+     a green source-level test (2026-09-22 round 2): designedCoverHTML
+     drew a 64px emoji, so Electronica rendered a cartoon laptop on an
+     iPhone. What was wrong was what PAINTED, so this asserts that. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => openCategories());
+  await page.waitForSelector("#categoriesGrid [data-cover]", { timeout: 15000 });
+
+  const audit = await page.evaluate(() => {
+    const GLYPH = /[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1F2FF}]/u;
+    const covers = [...document.querySelectorAll("[data-cover]")];
+    return {
+      total: covers.length,
+      glyphs: covers.filter((c) => GLYPH.test(c.textContent || "")).map((c) => c.getAttribute("data-cover-key")),
+      texty: covers.filter((c) => (c.textContent || "").trim().length).map((c) => c.getAttribute("data-cover-key")),
+      drawn: covers.filter((c) => c.querySelector("svg") || c.querySelector("img")).length,
+      ids: covers.flatMap((c) => [...c.querySelectorAll("svg [id]")].map((n) => n.id)),
+      /* A cover that paints nothing is worse than an ugly one — but
+         measure only the ones on screen. The home rail's covers are in
+         the DOM and display:none while Categorias is open, so they
+         measure 0x0 and are not a defect. Their ids still count below,
+         because a hidden duplicate collides exactly as hard. */
+      visible: [...document.querySelectorAll("#categoriesGrid [data-cover]")].length,
+      collapsed: [...document.querySelectorAll("#categoriesGrid [data-cover]")].filter((c) => {
+        const r = c.getBoundingClientRect();
+        return r.width < 40 || r.height < 40;
+      }).length,
+    };
+  });
+
+  if (!(audit.total >= 6)) throw new Error(`only ${audit.total} covers rendered`);
+  if (audit.glyphs.length) throw new Error(`emoji rendered in: ${audit.glyphs.join(", ")}`);
+  if (audit.texty.length) throw new Error(`type rendered inside the cover of: ${audit.texty.join(", ")}`);
+  eq(audit.drawn, audit.total, "every cover paints either drawn art or a curated photo");
+  if (!(audit.visible >= 6)) throw new Error(`only ${audit.visible} covers on the Categorias grid`);
+  eq(audit.collapsed, 0, "no visible cover collapsed to nothing");
+
+  /* SVG ids are document-global. The same category renders in BOTH the
+     home rail and Categorias, so a key-derived id repeated itself and
+     the second copy painted from the first one's <defs> — invisible
+     until the first is removed and the second goes transparent. */
+  const unique = new Set(audit.ids).size;
+  if (unique !== audit.ids.length) {
+    throw new Error(`${audit.ids.length} SVG ids but only ${unique} unique — covers will paint from each other's gradients`);
+  }
+  await ctx.close();
+});
+
+await check("no store logo is dwarfed by the wordmarks beside it", async () => {
+  /* THE BUG: reported live on the Tiendas grid — "Sephora is a tiny
+     sliver, Victoria's Secret and Bath & Body Works are small thumbnails,
+     while Walmart/Target/Old Navy fill their cards". The files were fine.
+     The zone was 130x34, which is a wordmark's shape, so Walmart drew
+     130px across and anything square drew 34x34. Sephora's artwork is
+     portrait, so it drew 24px wide.
+
+     Checking the CSS string is not enough — the numbers only mean
+     something once each file's own proportions are applied to them. So
+     this measures what actually gets drawn. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => showPage("storesView"));
+  await page.waitForTimeout(400);
+
+  const marks = await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll("#storesGrid img")];
+    await Promise.all(imgs.map((i) => (i.complete ? null : new Promise((res) => { i.onload = res; i.onerror = res; }))));
+
+    /* Tailwind's CDN is blocked in this harness, so the card and its
+       plate come out unstyled and shrink-to-fit around their contents —
+       which would cap the zone at each file's own intrinsic width and
+       measure the harness rather than the page. Widen them to what the
+       real grid gives a card, so every mark gets the whole zone. */
+    for (const img of imgs) {
+      for (let el = img.parentElement, n = 0; el && n < 2; el = el.parentElement, n++) {
+        el.style.display = "block";
+        el.style.width = "240px";
+      }
+    }
+
+    return imgs.map((img) => {
+      const box = img.getBoundingClientRect();
+      const nw = img.naturalWidth, nh = img.naturalHeight;
+      // What object-fit:contain actually paints inside that box.
+      const scale = Math.min(box.width / nw, box.height / nh);
+      return {
+        key: img.getAttribute("data-retailer"),
+        drawnW: nw * scale,
+        drawnH: nh * scale,
+        zoneW: box.width,
+        zoneH: box.height,
+        // The plate is pinned to 240px above, so this is the share of the
+        // card a mark actually covers — the figure the brief is written in.
+        plateW: img.parentElement.getBoundingClientRect().width,
+        aspect: nw / nh,
+      };
+    });
+  });
+
+  /* Not a fixed count: the grid is the registry, and Macy's became the
+     ninth store on 2026-09-22. What matters is that every store with a
+     logo file got measured, not how many there are this week. */
+  const withLogos = await page.evaluate(() =>
+    Object.values(RETAILERS).filter((r) => !r.retired && r.logo).length);
+  eq(marks.length, withLogos, "store marks measured vs stores with a logo file");
+  if (marks.length < 8) throw new Error(`only ${marks.length} store marks — the grid lost stores`);
+
+  /* Every mark reaches an edge of the zone. A mark that touches neither
+     is one max-* rule short of filling anything — which is what happens
+     the moment someone drops the width:100% that makes the caps a zone. */
+  for (const m of marks) {
+    const fillsWidth = Math.abs(m.drawnW - m.zoneW) < 1.5;
+    const fillsHeight = Math.abs(m.drawnH - m.zoneH) < 1.5;
+    if (!fillsWidth && !fillsHeight) {
+      throw new Error(
+        `${m.key} draws ${m.drawnW.toFixed(1)}x${m.drawnH.toFixed(1)} inside a ` +
+        `${m.zoneW.toFixed(0)}x${m.zoneH.toFixed(0)} zone — it fills neither dimension`,
+      );
+    }
+  }
+
+  const by = Object.fromEntries(marks.map((m) => [m.key, m]));
+  const area = (m) => m.drawnW * m.drawnH;
+  const walmart = by.walmart;
+  if (!walmart) throw new Error("Walmart has no mark to compare against");
+
+  /* Walmart is the reference because it is the one Danny named as
+     rendering correctly, and it is the widest real wordmark (5.26:1), so
+     it is the hardest case for a square mark to match. Anything under
+     60% of its area reads as "a thumbnail next to a logo". Before the
+     fix Sephora sat at 25%. */
+  /* ulta and yesstyle joined the list when their marks landed
+     (2026-09-22). YesStyle is the one worth watching: its supplied file
+     was 7.4% wordmark on a white canvas, and uncropped it would draw a
+     sliver here while still decoding, still having a sane aspect ratio,
+     and still passing every other check. It measures 71% of Walmart
+     cropped — the same band as AutoZone and Foot Locker. */
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks", "target", "ulta", "yesstyle"]) {
+    const m = by[key];
+    if (!m) throw new Error(`${key} has no mark on the grid`);
+    const ratio = area(m) / area(walmart);
+    if (ratio < 0.6) {
+      throw new Error(
+        `${key} draws ${m.drawnW.toFixed(0)}x${m.drawnH.toFixed(0)} — ${(ratio * 100).toFixed(0)}% of ` +
+        `Walmart's area (${walmart.drawnW.toFixed(0)}x${walmart.drawnH.toFixed(0)}). It reads as a thumbnail.`,
+      );
+    }
+  }
+
+  /* HOW MUCH OF THE CARD A MARK COVERS (2026-09-21). Reported on the
+     4-across desktop grid: "they currently render microscopic". The zone
+     was right in shape but wrong in size, and specifically the width cap
+     was a FIXED 130px — a fixed number cannot hold a proportion of a
+     fluid card. Measured at the time: 71% of a 182px phone card and 50%
+     of a 258px desktop card, from the same CSS. The cap is a percentage
+     now, so the proportion holds at every width.
+
+     Asserted on the WIDE marks only: under contain-fit a square mark
+     reaches the zone's height long before its width, so it can never
+     cover 70% of the card, and demanding that it did would mean cropping
+     it. What a square mark owes is equal AREA, which the check above
+     enforces. */
+  const wide = marks.filter((m) => m.aspect >= 3);
+  if (wide.length < 3) throw new Error(`expected several wide wordmarks, found ${wide.length}`);
+  for (const m of wide) {
+    const fill = m.drawnW / m.plateW;
+    if (fill < 0.65) {
+      throw new Error(
+        `${m.key} covers only ${(fill * 100).toFixed(0)}% of its card width ` +
+        `(${m.drawnW.toFixed(0)}px of ${m.plateW.toFixed(0)}px) — the brief asks for about 70%`,
+      );
+    }
+    if (fill > 0.92) {
+      throw new Error(`${m.key} covers ${(fill * 100).toFixed(0)}% of its card — it is touching the edges`);
+    }
+  }
+
+  await ctx.close();
+});
+
+await check("the orb never reads a covered product image as empty space", async () => {
+  /* REPORTED LIVE: "the chat orb launcher is overlapping the product
+     image". The rule is that the orb does not drift over content, and
+     the machinery for it existed — it just could not see the image.
+
+     orbCoversContent() used elementFromPoint, which returns only the
+     TOPMOST element at a point. The product image carries a "Toca para
+     ampliar" pill in its own bottom-right corner, which is exactly where
+     a docked orb parks, and a <span> is on no content list — nor is any
+     of its plain-<div> ancestry, so closest() walked all the way up and
+     reported clear while the orb sat on the photo.
+
+     This parks an orb-sized box on that corner and asserts the probe
+     sees it. Anything painted on top of content can mask it the same
+     way, so the fix reads the whole stack rather than the top of it. */
+  const { ctx, page, errors } = await openPage();
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() =>
+    showProduct("walmart", "Wrangler Men's Relaxed Fit Jeans with Flex", 39.9, 0.6, "", [], false, "", 4.4, []));
+  await page.waitForTimeout(600);
+
+  const r = await page.evaluate(() => {
+    const wrap = document.getElementById("productViewImgWrap");
+    /* Tailwind's CDN is blocked here, so the image wrap comes out far
+       taller than it renders in production and its corner can sit below
+       the fold. The probe correctly ignores off-screen points, so aim at
+       a part of the image that is genuinely visible. */
+    wrap.scrollIntoView({ block: "center" });
+    const w = wrap.getBoundingClientRect();
+    const cx = Math.round(Math.min(Math.max(w.left + w.width / 2, 40), window.innerWidth - 40));
+    const cy = Math.round(Math.min(Math.max(w.top + w.height / 2, 40), window.innerHeight - 40));
+    const box = { x: cx - 32, y: cy - 32, size: 64 };
+    if (document.elementsFromPoint(cx, cy).length === 0) throw new Error("probe point is off screen");
+    // What the OLD topmost-only probe saw at the same point, for contrast.
+    const btn = document.getElementById("assistantBtn");
+    const prev = btn.style.pointerEvents;
+    btn.style.pointerEvents = "none";
+    const top = document.elementFromPoint(box.x + 32, box.y + 32);
+    const oldWouldSee = Boolean(top && top.closest(
+      "p,h1,h2,h3,h4,h5,h6,blockquote,li,figcaption,label,button,a,input,select,textarea,article,img"));
+    btn.style.pointerEvents = prev;
+    return {
+      onImage: orbCoversContent(box.x, box.y, box.size),
+      oldWouldSee,
+      // Well clear of every view: far off to the side, nothing under it.
+      offPage: orbCoversContent(-500, -500, 64),
+    };
+  });
+  eq(r.onImage, true, "the orb still reads the product image as empty space");
+  eq(r.oldWouldSee, false, "the masking case no longer reproduces — this test has stopped testing anything");
+  eq(r.offPage, false, "the orb now thinks empty space is content and will never settle");
+  await ctx.close();
+});
+
+await check("on a phone the orb is anchored, barely travels, and never lands on a card", async () => {
+  /* REPORTED with a screenshot from a live phone: "el orbe vaga por media
+     pantalla" and parks on top of the category cards. Both halves were
+     real. The lane runs from ORB_TOP_SAFE to the bottom margin, which on
+     a phone is most of the screen height — and whether a handset got a
+     lane at all depended on how wide the active view's content column
+     happened to measure, so the same device could dock on one page and
+     roam on another.
+
+     A phone is corner-anchored now regardless of the measured gutter,
+     and the float is bounded to about half a diameter. This samples the
+     orb over several seconds of real animation on the category grid,
+     which is the exact surface it was reported parking on.
+
+     WHAT KEEPS HER OFF THE CARDS CHANGED ON 2026-09-22, and this test
+     did not: it asserts the OUTCOME, not the mechanism. The orb used to
+     retreat to a sliver at the edge when it detected content underneath;
+     QA on a real phone rejected that sliver, so the retreat is gone and
+     the reserved corner (orbReserveSpace) is what holds the space now.
+     Same guarantee, different machinery — which is why an outcome
+     assertion survived a mechanism being deleted underneath it. */
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
+  await page.route("**/.netlify/functions/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(700);
+  await page.evaluate(() => openCategories());
+  await page.waitForTimeout(600);
+  if (errors.length) throw new Error(errors.join(" | "));
+
+  const r = await page.evaluate(async () => {
+    const btn = document.getElementById("assistantBtn");
+    const samples = [];
+    for (let i = 0; i < 16; i++) {
+      await new Promise((res) => setTimeout(res, 200));
+      const b = btn.getBoundingClientRect();
+      let onCard = false;
+      for (const card of document.querySelectorAll("#categoriesGrid > button")) {
+        const c = card.getBoundingClientRect();
+        const ix = Math.max(0, Math.min(b.right, c.right) - Math.max(b.left, c.left));
+        const iy = Math.max(0, Math.min(b.bottom, c.bottom) - Math.max(b.top, c.top));
+        if (ix > 2 && iy > 2) { onCard = true; break; }
+      }
+      /* CLIPPING IS MEASURED FROM THE TRANSFORM, NOT THE RECT.
+         Tailwind's CDN is blocked in this harness, so `position: fixed`
+         never applies and the button sits at its document position in a
+         47,000px-tall unstyled page — getBoundingClientRect() reports it
+         45,000px below the fold and every viewport looks "clipped".
+         The translate3d values ARE the viewport coordinates once fixed
+         positioning applies, which is what production paints by, so the
+         check reads those plus the drawn size. */
+      const m = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/.exec(btn.style.transform || "");
+      const size = orbLane().size;
+      let clipped = null;
+      if (m) {
+        const tx = parseFloat(m[1]), ty = parseFloat(m[2]);
+        clipped = tx < 0 ? "left" : ty < 0 ? "top"
+          : tx + size > window.innerWidth ? "right"
+          : ty + size > window.innerHeight ? "bottom" : null;
+      }
+      samples.push({ x: b.x, y: b.y, onCard, clipped });
+    }
+    const xs = samples.map((s) => s.x), ys = samples.map((s) => s.y);
+    return {
+      mode: orbLane().mode,
+      travelX: Math.max(...xs) - Math.min(...xs),
+      travelY: Math.max(...ys) - Math.min(...ys),
+      onCard: samples.filter((s) => s.onCard).length,
+      offFrame: samples.find((s) => s.clipped)?.clipped || null,
+      lowest: Math.max(...ys),
+      vh: window.innerHeight,
+    };
+  });
+
+  eq(r.mode, "dock", "a phone got a roaming lane again");
+  eq(r.onCard, 0, "the orb is landing on category cards again");
+  /* FULLY IN FRAME, ALWAYS (2026-09-22). The tuck-to-a-sliver was
+     removed after QA on a real phone read it as a bug — "one eighth of
+     the orb coming out the side" — so the bar is now that she is never
+     clipped by any edge. Nothing asserted that before, and the retreat
+     that used to push her off-frame is exactly what would break it. */
+  if (r.offFrame) {
+    throw new Error(`the orb is clipped by a viewport edge (${r.offFrame}) — the tuck-to-a-sliver is back`);
+  }
+  // Bounded to about one diameter of travel, not half a screen.
+  const diameter = 64;
+  if (r.travelX > diameter || r.travelY > diameter) {
+    throw new Error(`the orb roams ${r.travelX.toFixed(0)}x${r.travelY.toFixed(0)}px — more than its own diameter`);
+  }
+  // Anchored to the BOTTOM, not drifting up the page.
+  if (r.lowest < r.vh * 0.6) {
+    throw new Error(`the orb settled at y=${r.lowest.toFixed(0)} in a ${r.vh}px viewport — that is not the bottom corner`);
+  }
   await ctx.close();
 });
 

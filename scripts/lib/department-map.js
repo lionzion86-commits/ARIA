@@ -71,7 +71,17 @@ export const BUCKET_SPEC = {
 // Positive gender markers retailers really put in titles. \b matters:
 // "Women's" contains the letters "men's" but with no word boundary before
 // them, so /\bmen'?s\b/ correctly does not match inside it.
-const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|juniors?|ni[ñn][oa]s?)\b/i;
+/* "JUNIORS" IS NOT CHILDRENSWEAR (2026-09-22). It was in this list and it
+   put 19 Macy's items -- sequined corset gowns, strapless ball gowns,
+   wide-leg jeans -- into Moda Ninos. In US retail "Juniors" is a young
+   WOMEN'S size range, sized 0-15 and sold beside womenswear; it is not a
+   children's department, and those garments under a kids label is not a
+   mistake anyone wants to ship.
+
+   Removing it does not leave those items homeless: a title with no gender
+   marker falls back to the gender of the BUCKET it was scraped from
+   (genderOfItem below), which for all 19 is women. */
+const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|ni[ñn][oa]s?)\b/i;
 const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
 const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
 

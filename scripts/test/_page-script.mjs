@@ -43,14 +43,21 @@ export function loadPageWeightSlice() {
     console,
   };
   vm.createContext(sandbox);
-  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_BADGE_SHARE, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
   return sandbox.__exports;
 }
 
-const TILE_START = "const DEPARTMENT_THUMB_EXCLUDE = {";
-const TILE_END = "// One tile per unique department/brand key found anywhere in the cache";
+/* 2026-09-22: the scored-selection block this used to load is gone —
+   category covers are curated art now, not a lucky dip over scraped
+   photos (see the note above CATEGORY_COVERS in index.html). What is
+   left to load is the curated-cover resolver, which is pure. */
+const TILE_START = "const CATEGORY_COVERS = {";
+/* Anchored on the declaration, not on prose: the first version of this
+   marker matched a sentence in a comment, and rewording that comment
+   broke the loader. */
+const TILE_END = "function designedCoverHTML(";
 
-/** The category-tile image selection block, on its own. */
+/** The curated-cover resolver, on its own. */
 export function loadPageTileSlice() {
   const html = readFileSync(INDEX, "utf8");
   const from = html.indexOf(TILE_START);
@@ -61,9 +68,80 @@ export function loadPageTileSlice() {
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { scoreTileCandidate, pickTileImage, CATEGORY_IMAGE_PIN, TILE_IMAGE_HERO };",
+    html.slice(from, to) + "\n;globalThis.__exports = { CATEGORY_COVERS, assertCuratedCover, categoryCoverFor, coverSeed };",
     sandbox,
     { filename: "index.html#tiles" },
+  );
+  return sandbox.__exports;
+}
+
+/* The tier mirror. Grouping only — a tier decides a heading on Tiendas
+   and never a capability, so this slice holds the table and nothing
+   that could filter a store out of search or Ofertas. */
+const TIER_START = "const TIERS = [";
+const TIER_END = "function retailersByTier(){";
+
+export function loadPageTierSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(TIER_START);
+  const to = html.indexOf(TIER_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html tier slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { TIERS, DEFAULT_TIER, tierOf };",
+    sandbox,
+    { filename: "index.html#tiers" },
+  );
+  return sandbox.__exports;
+}
+
+/* The budget bands. Pure arithmetic over a door-to-door total, so the
+   band table and its lookup load without the page's pricing chain. */
+const BUDGET_START = "const BUDGET_BANDS = [";
+const BUDGET_END = "/** An item's door-to-door total in soles";
+
+export function loadPageBudgetSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(BUDGET_START);
+  const to = html.indexOf(BUDGET_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html budget slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { BUDGET_BANDS, budgetBandFor };",
+    sandbox,
+    { filename: "index.html#budget" },
+  );
+  return sandbox.__exports;
+}
+
+/* The subcategory mirror. index.html is a plain <script> and cannot
+   import scripts/lib/subcategories.js, so the table is duplicated there
+   and this slice is what lets a test prove the two agree. Anchored on
+   declarations, never on prose. */
+const SUB_START = "function normalizeType(raw){";
+const SUB_END = "/* The grid every listing surface uses";
+
+/** The aisle table and its helpers, on their own. */
+export function loadPageSubcategorySlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(SUB_START);
+  const to = html.indexOf(SUB_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html subcategory slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { SUBCATEGORY_SPEC, normalizeType, subcategoryForType, subcategoryLabel, subcategoryOfItem, groupBySubcategory, shouldSplit, itemsInSubcategory, SPLIT_MIN_ITEMS, SPLIT_MIN_TYPED_SHARE, SPLIT_MIN_AISLES };",
+    sandbox,
+    { filename: "index.html#subcategories" },
   );
   return sandbox.__exports;
 }
@@ -146,10 +224,64 @@ export function loadPageFitmentSlice() {
 }
 
 const AUTOSRC_START = "const AUTO_SOURCES = {";
-const AUTOSRC_END = "/* A source's own mark.";
+const AUTOSRC_END = "/* ONE SEARCH PATH FOR EVERY SOURCE.";
 
 /** The Aria Auto parts-source registry mirror, on its own. */
 export function loadPageAutoSourcesSlice() {
   return runSlice(AUTOSRC_START, AUTOSRC_END, "index.html#auto-sources",
-    "{ AUTO_SOURCES, searchableAutoSources, visibleAutoSources, autoSourceFor, autoSourceLabel }");
+    "{ AUTO_SOURCES, searchableAutoSources, visibleAutoSources, autoSourceFor, autoSourceLabel, partNumberOf, partNumberLabel }");
+}
+
+/* ============================================================
+   THE CATALOGUE ENVELOPE ADAPTER.
+
+   beauty-catalog.json arrived with departments.<key> as a BARE ARRAY
+   rather than { items: [...] }, which every reader on the page walks.
+   Nothing would have thrown — `bucket?.items || []` on an array is
+   undefined — so all 197 products would simply have been invisible.
+   normalizeCatalogueEnvelope() reshapes at the load boundary, and this
+   slice is what lets a test feed it the real file. Anchored on the
+   declaration and on the function that follows it. */
+const ENVELOPE_START = "function normalizeCatalogueEnvelope(file){";
+const ENVELOPE_END = "function loadDepartmentCache(){";
+
+export function loadPageEnvelopeSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(ENVELOPE_START);
+  const to = html.indexOf(ENVELOPE_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html envelope slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope };",
+    sandbox,
+    { filename: "index.html#envelope" },
+  );
+  return sandbox.__exports;
+}
+
+/* The image-URL upgrader. Retailer CDNs size by query parameter or by
+   filename prefix, and getting either wrong is a broken photo on every
+   card — so the rules are pinned against real URLs from the committed
+   catalogues rather than against examples someone typed. */
+const IMGURL_START = "const MACYS_IMAGE_WIDTH =";
+const IMGURL_END = "function photoPlaceholderHTML(";
+
+export function loadPageImageUrlSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(IMGURL_START);
+  const to = html.indexOf(IMGURL_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html image-url slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { upgradeImageUrl, imageRetryUrl, MACYS_IMAGE_WIDTH };",
+    sandbox,
+    { filename: "index.html#image-url" },
+  );
+  return sandbox.__exports;
 }

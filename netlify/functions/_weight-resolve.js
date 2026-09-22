@@ -148,9 +148,39 @@ export function specWeightKg(item) {
 }
 
 /**
+ * A weight the CATALOGUE FILE supplied, or null.
+ *
+ * WHY THIS IS NOT specWeightKg() ABOVE, despite the field being spelled
+ * `specWeightKg` in beauty-catalog.json (2026-09-22). Every one of those
+ * 197 rows also carries `weightEstimated: true` — the export is telling
+ * us, honestly, that these are the supplier's estimates and not weights
+ * a scale produced. specWeightKg() is for published measurements and
+ * returns `estimated: false`, which would put "Peso confirmado por la
+ * tienda" on a guess. So a catalogue weight gets its own branch, keeps
+ * `estimated: true`, and still goes through the band check.
+ *
+ * It is worth having: measured against the 197 beauty items, our own
+ * title-based estimate agrees within 3x on 189 of them and comes in
+ * LIGHTER on the other eight (0.05 kg against the catalogue's 0.20 for
+ * BB and eye creams). Under-reading a weight is the direction that costs
+ * us money at the courier, so the supplier's per-product number wins
+ * over our per-category one.
+ *
+ * An explicit `weightEstimated: false` is a different claim, and that
+ * one is specWeightKg()'s to make — so this branch declines it and lets
+ * the spec path answer.
+ */
+export function catalogWeightKg(item) {
+  if (!item || typeof item !== "object") return null;
+  if (item.weightEstimated === false) return null;  // a real spec: not ours to answer
+  const kg = toKg(item.specWeightKg, "kg");
+  return kg ? { kg, from: "specWeightKg" } : null;
+}
+
+/**
  * One item's shipping weight, always > 0.
  * Returns { weightKg, source, estimated, basis } where source is
- * "spec" | "beauty" | "title" | "category" | "fallback".
+ * "spec" | "catalog" | "beauty" | "title" | "category" | "fallback".
  */
 export function resolveItemWeight(item) {
   const title = String(item?.title ?? item?.name ?? "");
@@ -184,6 +214,13 @@ export function resolveItemWeight(item) {
       maxKg: check.maxKg,
     };
   };
+
+  /* The catalogue's own per-product number, before every table below:
+     a figure the store shipped with the item beats a figure we derived
+     from its name. Banded like any other estimate, because "the
+     supplier said so" is not the same as "a scale said so". */
+  const catalog = catalogWeightKg(item);
+  if (catalog) return banded(catalog.kg, "catalog", "peso estimado del catálogo de la tienda");
 
   // Beauty before the title parse — a fragrance title states the liquid's
   // volume, not the parcel's weight. See beauty-weight.js.

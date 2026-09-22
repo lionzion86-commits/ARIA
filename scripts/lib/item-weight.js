@@ -595,33 +595,41 @@ export function freightUsd(weightKg, chargePerKg) {
    it — with two thresholds in play, a name that does not say which one
    it means is how they drift apart.
 
-     under 50%   an ordinary deal. Freight is itemised, as always.
-     50%-100%    FEATURED, with a "Flete alto" badge and the real figure
-                 beside it. The buyer decides with their eyes open.
-     over 100%   freight costs more than the product. Still listed in
-                 search, in its category and in its store, still badged —
-                 but NOT FEATURABLE as a deal. Ofertas is the one surface
-                 that promotes a product, and calling something a bargain
-                 when getting it here costs more than the thing itself is
-                 not a claim we can stand behind.
+   ONE LINE IS LEFT (2026-09-21), and the badge line is gone with the
+   badge. FREIGHT_BADGE_SHARE fired at 50% of price, which meant it fired
+   on CHEAP items rather than HEAVY ones: a 0.23 kg t-shirt at S/ 25.29
+   with S/ 10.07 of freight wore "Flete alto", and S/ 10.07 is not a high
+   freight bill by any measure a shopper would recognise. The share was
+   the wrong quantity to threshold, so moving the threshold would not
+   have helped. Freight is itemised on every card either way, which is
+   the disclosure the shop actually promises.
 
-   The ceiling only decides what Ofertas may FEATURE. It never hides a
-   product and it never blocks a purchase: a shopper who wants the item
-   can find it, see exactly what the freight is, and buy it. */
-export const FREIGHT_BADGE_SHARE = 0.50;
+     any share    an ordinary deal. Freight is itemised, as always.
+     over 100%    freight costs more than the product. Still listed in
+                  search, in its category and in its store — but NOT
+                  FEATURABLE as a deal. Ofertas is the one surface that
+                  promotes a product, and calling something a bargain
+                  when getting it here costs more than the thing itself
+                  is not a claim we can stand behind.
+
+   The ceiling only decides what Ofertas may FEATURE. It never labels a
+   product, never hides one and never blocks a purchase: a shopper who
+   wants the item can find it, see exactly what the freight is, and buy
+   it. A future heavy-item indicator triggers on ABSOLUTE freight and
+   reads as neutral information — never a share of price, never a
+   warning. */
 export const FREIGHT_FEATURE_CEILING = 1.00;
 
-/* THE BADGE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
+/* A SHARE IS COMPUTED ON THE NUMBERS THE SHOPPER CAN SEE (2026-09-20).
 
    REPORTED LIVE: a card showing S/ 25.29 and S/ 10.07 of freight — 40%,
    comfortably under the 50% line — was wearing the "Flete alto" badge.
-   Two separate things were wrong, and this is the second of them.
+   Two separate things were wrong with it. The first was the threshold,
+   and the badge has since been removed outright because a share of
+   price was the wrong quantity to threshold at all. The second survives
+   the badge, because the feature ceiling still divides by a price:
 
-     1. The site was still running the old single 30% threshold, which
-        40% clears. That is what the shopper actually hit, and it is
-        fixed by FREIGHT_BADGE_SHARE above.
-
-     2. The share was divided by the RAW scraped price while the card
+        the share was divided by the RAW scraped price while the card
         printed the DISPLAYED one. Over the $200 import-tax threshold
         those are not the same number: a $250 item prints $307.50 and the
         badge was being decided on $250. A smaller denominator means a
@@ -629,7 +637,7 @@ export const FREIGHT_FEATURE_CEILING = 1.00;
         reproduce from anything in front of them — and a warning nobody
         can check is worse than no warning.
 
-   So the share is freight over the price ON THE CARD. Anyone can divide
+   So a share is freight over the price ON THE CARD. Anyone can divide
    the two numbers they see and land on the same answer we did. This is
    the same rule doorToDoorUsd() sorts by, for the same reason. */
 export const IMPORT_TAX_THRESHOLD_USD = 200;
@@ -647,11 +655,6 @@ export function freightShare(weightKg, priceUsd, chargePerKg) {
   const price = shownPriceUsd(priceUsd);
   if (!Number.isFinite(price) || price <= 0) return Infinity;
   return freightUsd(weightKg, chargePerKg) / price;
-}
-
-/** True when freight is a big enough slice of the price to say so on the card. */
-export function freightIsHigh(weightKg, priceUsd, chargePerKg) {
-  return freightShare(weightKg, priceUsd, chargePerKg) > FREIGHT_BADGE_SHARE;
 }
 
 /* ============================================================
