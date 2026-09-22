@@ -2590,7 +2590,28 @@ function metaFor(map, key){
    photographic style across the set matters more than any single image:
    the tiles are seen as a column, and a mixed set reads as the junk
    drawer this replaced even when each photo is good on its own. */
-const CATEGORY_COVERS = {};
+/* THE TEN CURATED COVERS (2026-09-22). Every department key that exists
+   in DEPARTMENT_SPEC now has a photograph, so designedCoverHTML below is
+   a genuine fallback again rather than what the homepage actually shows.
+   A key with no entry here still gets the drawn brand field, which is a
+   deliberate treatment and not a gap -- that is what makes adding an
+   eleventh department safe.
+
+   Local paths only, and assertCuratedCover refuses anything else. The
+   filenames are the department keys verbatim, so a typo here is a
+   missing file rather than a silently wrong picture. */
+const CATEGORY_COVERS = {
+  candy_chocolate: 'assets/category/candy_chocolate.jpg',
+  clothing:        'assets/category/clothing.jpg',
+  electronics:     'assets/category/electronics.jpg',
+  home_goods:      'assets/category/home_goods.jpg',
+  kids:            'assets/category/kids.jpg',
+  men:             'assets/category/men.jpg',
+  pharmacy:        'assets/category/pharmacy.jpg',
+  sale:            'assets/category/sale.jpg',
+  sporting_goods:  'assets/category/sporting_goods.jpg',
+  women:           'assets/category/women.jpg',
+};
 
 /* A cover must be a LOCAL asset. This is the permanent rule in code: a
    remote URL is a scraper feed by definition, and a scraper feed is what
@@ -3212,7 +3233,22 @@ function deptTileHTML(t, kind){
   const isOfertas = kind === 'department' && t.key === 'sale';
   const open = `openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')`;
 
-  const art = isOfertas ? ofertasTileArtHTML() : categoryCoverArtHTML(t);
+  /* OFERTAS TAKES A PHOTOGRAPH TOO, NOW THAT THERE IS ONE (2026-09-22).
+     ofertasTileArtHTML is the drawn gold board, and it exists because
+     the two things before it were worse: a collage of whatever the deals
+     cache surfaced (meaningless), then the navy Precio Honesto field
+     (honest, but identical to every other card on a wall of navy signs).
+     A CURATED photograph is neither of those failures -- it is chosen,
+     not scraped -- so it wins when one is configured, and the board
+     stays as the fallback for the day the file is missing.
+
+     WHAT DOES NOT CHANGE IS THE SIGN. Ofertas keeps its gold band, gold
+     window backing and navy type below, because that is what marks it as
+     the sale card; only the art in the window is different. Gold stays
+     the discount treatment and nothing else borrows it. */
+  const art = isOfertas
+    ? (categoryCoverFor(t.key) ? categoryCoverArtHTML(t) : ofertasTileArtHTML())
+    : categoryCoverArtHTML(t);
 
   /* The sign. Navy for a department, gold for Ofertas — and the type
      inverts with it so both stay readable rather than one being the
