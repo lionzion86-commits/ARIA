@@ -2507,10 +2507,15 @@ function metaFor(map, key){
      1. A CURATED FILE, if one exists for the category — dropped into
         assets/category/<key>.<ext> and listed in CATEGORY_COVERS below.
         This is the real answer and the only source of a photograph.
-     2. OTHERWISE A DESIGNED COVER: the brand's own navy-to-sky field
-        with the category's mark on it. Consistent across every tile by
-        construction, never a junk drawer, and it cannot carry a price
-        because there is no photograph in it.
+     2. OTHERWISE THE BRAND FIELD: a drawn navy-on-sky composition,
+        identical in light and crop across every tile. It depicts
+        nothing at all — no object, no mark, no glyph — so it cannot
+        carry a price, cannot crop a product in half, and cannot make
+        one category read as a different set from the next.
+
+        IT IS NOT AN ICON IN A BOX. The first version of it was exactly
+        that, a 64px emoji in a ring, and it shipped to QA looking like
+        clip-art because that is what it was. See designedCoverHTML.
 
    There is deliberately no third layer back to the scraper. A category
    with no curated file gets the designed cover, not a lucky dip.
@@ -2555,29 +2560,128 @@ function categoryCoverFor(key){
   return assertCuratedCover(key, CATEGORY_COVERS[key]);
 }
 
-/* The designed cover, on the LIGHT tint (2026-09-22).
+/* ============================================================
+   THE BRAND FIELD — the cover a category gets when no curated
+   photograph exists.
 
-   It was first drawn on a saturated navy-to-blue field, which looked
-   deliberate but put a dark window directly above a dark sign — the card
-   came out almost entirely blue, and it contradicted the same brief's
-   other line asking for "tinte de la familia azul-claro". So the field
-   is the light end of the family (--sky through a slightly deeper blue),
-   the mark sits in a navy ring on it, and the navy sign underneath now
-   has something to contrast against instead of blending into.
+   WHAT THIS REPLACES, AND THE MISTAKE WORTH NAMING (2026-09-22, QA
+   round 2). The previous version of this function drew a 64px EMOJI in
+   a navy ring and called itself "the designed cover". On an iPhone
+   those are full-colour Apple glyphs, so Electronica rendered a cartoon
+   laptop and Ropa a cartoon t-shirt. The brief that asked for this had
+   already ruled emojis out in as many words -- "nunca un emoji como
+   sustituto" -- and named the fallback it wanted: "tratamiento
+   abstracto azul/navy consistente (gradiente/textura de marca)". A
+   glyph in a circle is clip-art with extra steps; calling it "designed"
+   did not make it abstract.
 
-   No photograph, which is the point: no price, no SKU, no half a person,
-   and every tile in the column reads as one set. */
+   WHAT THIS IS INSTEAD. One drawn composition, identical in every tile:
+   the same light source, the same crop, the same geometry. Concentric
+   navy arcs sweeping from a fixed origin on the light end of the navy
+   family, with a soft highlight top-right. It depicts nothing. There is
+   no object to be half-cropped, no price to be rendered into a photo,
+   and no category can look like a different set from the one beside it.
+
+   VARIATION IS DELIBERATELY SMALL. The brief asked for "mismo
+   tratamiento de luz y recorte en todas las categorias", so the only
+   thing that moves between tiles is a bounded rotation of the arc
+   system and the size of one accent disc, both derived from the
+   category key. Enough that a column of tiles is not six identical
+   rectangles; not enough to break the set. The name is carried by the
+   navy sign underneath, so telling categories apart was never this
+   layer's job.
+
+   THIS IS THE FALLBACK, NOT THE GOAL. A real curated photograph in
+   CATEGORY_COVERS wins over it every time -- see the note there. This
+   exists so that "we have no photograph yet" renders as something
+   deliberate rather than as a placeholder.
+   ============================================================ */
+
+/* A stable small integer from a category key. Not security, not
+   uniformity -- just a number that is the same on every render so a
+   tile does not reshuffle itself when the grid re-renders. */
+let coverInstance = 0;
+
+function coverSeed(key){
+  const s = String(key || 'aria');
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
 function designedCoverHTML(t){
-  return `<div class="relative h-full w-full overflow-hidden grid place-items-center"
-       style="background:linear-gradient(155deg, #F2F6FF 0%, #EAF0FF 46%, #D8E3FF 100%)">
-    <div class="absolute inset-0" style="background:radial-gradient(circle at 78% 16%, rgba(255,255,255,0.75), transparent 62%)"></div>
-    <div class="relative grid place-items-center">
-      <div class="grid place-items-center rounded-full"
-           style="width:132px; height:132px; background:rgba(10,31,68,0.045); border:1px solid rgba(10,31,68,0.12)">
-        <span class="text-[64px] leading-none" aria-hidden="true">${t.icon || '\uD83D\uDECD\uFE0F'}</span>
-      </div>
-    </div>
-  </div>`;
+  const key = String(t.key || t.label || 'aria');
+  const seed = coverSeed(key);
+  /* SVG ids are document-global, so two covers sharing one id makes the
+     second paint from the first one's <defs>. It survives until the
+     first is removed from the DOM, and then the second turns
+     transparent -- a bug that looks like "the CSS is random".
+
+     SEEDING THE ID FROM THE KEY WAS NOT ENOUGH, and the audit caught it:
+     the same category renders in BOTH grids (the home rail and
+     Categorias), so "electronics" produced the same id twice on one
+     page -- 80 ids, 40 unique. The counter is what makes it per
+     INSTANCE. The geometry still comes from the key, so a tile looks
+     the same wherever it appears; only the id differs. */
+  const id = 'cv' + (coverInstance++).toString(36) + (seed % 46656).toString(36);
+
+  /* The bands sweep the same way in every tile; only where they sit
+     moves, and only within one band-width. Same light, same crop, same
+     direction -- which is what the brief asked for. */
+  const shift = (seed % 74) - 37;
+  const SKEW = 132;                       // lean, in user units over the full height
+  const band = (x, w) => {
+    const a = x + shift, b = a + w;
+    return `M${a} 300 L${b} 300 L${b + SKEW} -24 L${a + SKEW} -24 Z`;
+  };
+
+  return `<svg class="w-full h-full block" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice"
+       role="presentation" aria-hidden="true" focusable="false">
+    <defs>
+      <linearGradient id="${id}f" x1="0" y1="0" x2="0.85" y2="1">
+        <stop offset="0%" stop-color="#F6F9FF"/>
+        <stop offset="42%" stop-color="#E2EAFF"/>
+        <stop offset="100%" stop-color="#BDCFF2"/>
+      </linearGradient>
+      <linearGradient id="${id}b" x1="0" y1="1" x2="0.6" y2="0">
+        <stop offset="0%" stop-color="#0A1F44"/>
+        <stop offset="100%" stop-color="#2F5FEE"/>
+      </linearGradient>
+      <radialGradient id="${id}g" cx="0.8" cy="0.1" r="0.8">
+        <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+      </radialGradient>
+      <clipPath id="${id}c"><rect width="400" height="300"/></clipPath>
+    </defs>
+
+    <rect width="400" height="300" fill="url(#${id}f)"/>
+
+    <g clip-path="url(#${id}c)">
+      <!-- A fine rule every 25 units: texture you feel before you see it. -->
+      <g stroke="#0A1F44" stroke-opacity="0.045" stroke-width="1">
+        <path d="M25 0V300M50 0V300M75 0V300M100 0V300M125 0V300M150 0V300M175 0V300M200 0V300M225 0V300M250 0V300M275 0V300M300 0V300M325 0V300M350 0V300M375 0V300"/>
+      </g>
+
+      <!-- The bands. One direction, three depths, a lit edge on each. -->
+      <g fill="url(#${id}b)">
+        <path d="${band(-150, 104)}" fill-opacity="0.07"/>
+        <path d="${band(-20, 132)}"  fill-opacity="0.13"/>
+        <path d="${band(148, 88)}"   fill-opacity="0.19"/>
+      </g>
+      <g stroke="#0A1F44" stroke-opacity="0.16" stroke-width="1.2" fill="none">
+        <path d="${band(-150, 104)}"/>
+        <path d="${band(-20, 132)}"/>
+        <path d="${band(148, 88)}"/>
+      </g>
+
+      <!-- A horizon rule lived here and came out as a scratch across the
+           crop at full size: a horizontal line cutting three diagonals
+           reads as a rendering seam, not as ground. The bands carry the
+           composition on their own. -->
+    </g>
+
+    <rect width="400" height="300" fill="url(#${id}g)"/>
+  </svg>`;
 }
 
 /* A curated file that 404s must not leave a broken image or raw alt text
@@ -2587,7 +2691,12 @@ function designedCoverHTML(t){
 function categoryCoverFallback(img){
   const holder = img.closest('[data-cover]');
   if (!holder) { img.remove(); return; }
-  holder.innerHTML = designedCoverHTML({ icon: holder.getAttribute('data-icon') || '' });
+  /* The KEY, not the icon: the brand field is seeded from the category
+     key, so a tile that loses its photograph must fall back to the same
+     field it would have had with no photograph at all. Passing an icon
+     here is what the emoji version needed, and there is no icon in a
+     cover any more. */
+  holder.innerHTML = designedCoverHTML({ key: holder.getAttribute('data-cover-key') || '' });
 }
 
 /** The art for one category's window: curated photo if there is one, else the designed cover. */
@@ -2598,7 +2707,7 @@ function categoryCoverArtHTML(t){
              class="w-full h-full" style="object-fit:cover; object-position:center"
              onerror="window.categoryCoverFallback && categoryCoverFallback(this)">`
     : designedCoverHTML(t);
-  return `<div class="w-full h-full" data-cover data-icon="${escapeHtml(t.icon || '')}">${inner}</div>`;
+  return `<div class="w-full h-full" data-cover data-cover-key="${escapeHtml(t.key || '')}">${inner}</div>`;
 }
 
 // One tile per unique department/brand key found anywhere in the cache
@@ -2985,11 +3094,14 @@ function deptTileHTML(t, kind){
 
      THE TRADE, stated because cardImageFrameHTML's own default argues the
      other way: retail photography is shot on white, so a white-background
-     product photo shows a faint seam against a tint. Category art is
-     mostly transparent PNGs and the emoji fallback, and a card with no
-     edges was the worse problem — but PRODUCT cards keep the white
-     default for exactly that reason, which is why this is passed here
-     rather than changed in the frame. */
+     product photo shows a faint seam against a tint. Category art is the
+     drawn brand field (designedCoverHTML), which carries its own light
+     end of the same family and so has no seam to show — but PRODUCT
+     cards keep the white default for exactly that reason, which is why
+     this is passed here rather than changed in the frame.
+
+     A curated PHOTOGRAPH, when one lands in CATEGORY_COVERS, covers the
+     window edge to edge and the tint never shows at all. */
   return `<button onclick="${open}" class="${CARD_SHELL_CLASS} text-left focus-ring w-full">
     ${cardImageFrameHTML({
       inner: art,

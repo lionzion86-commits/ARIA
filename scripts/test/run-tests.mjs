@@ -987,27 +987,106 @@ check("the cover never comes from the cache again", () => {
   }
 });
 
-check("every category can draw a cover with no assets at all", () => {
-  /* The designed cover is drawn, not fetched, so it is always available
-     — which is what lets layer 1 be empty and lets a 404 fall back to
-     something rather than to a broken image. */
+check("the fallback cover is abstract art — never a glyph, never clip-art", () => {
+  /* THE BUG THIS EXISTS FOR, and it shipped to QA (2026-09-22, round 2).
+     designedCoverHTML drew a 64px EMOJI in a navy ring. On an iPhone
+     those are full-colour Apple glyphs, so Electronica rendered a
+     cartoon laptop and Ropa a cartoon t-shirt, and Danny rejected the
+     round. The brief had already ruled it out in as many words --
+     "nunca un emoji como sustituto" -- and the old test here passed
+     anyway, because it only asked whether the cover was drawn rather
+     than fetched. It never asked WHAT was drawn.
+
+     So this asks. Any glyph in the cover fails: the emoji ranges, the
+     misc-symbols and dingbat blocks, and the variation selector that
+     turns a bare character into an emoji. */
   const src = readFileSync(root("index.html"), "utf8");
-  if (!/function designedCoverHTML/.test(src)) throw new Error("there is no designed cover");
+  if (!/function designedCoverHTML/.test(src)) throw new Error("there is no fallback cover");
   const designed = src.slice(src.indexOf("function designedCoverHTML"), src.indexOf("function categoryCoverFallback"));
-  if (/<img/.test(designed)) throw new Error("the designed cover fetches an image — it must be drawn");
-  if (!/linear-gradient/.test(designed)) throw new Error("the designed cover is not on the brand field");
+  const code = stripComments(designed);
+
+  if (/<img/.test(code)) throw new Error("the fallback cover fetches an image — it must be drawn");
+
+  /* Emoji and pictographs, by codepoint rather than by listing the ones
+     we happen to have used: astral pictographs, misc symbols, dingbats,
+     and FE0F (the emoji presentation selector).
+
+     ESCAPE SEQUENCES COUNT. The source may spell an emoji as a literal
+     \\uD83D\\uDCBB, which is not a pictograph in the FILE but is one in
+     the DOM — and the version of this guard written first missed
+     exactly that, because it scanned the raw text. So the escapes are
+     decoded before the scan, the same way the JS engine would. */
+  const decoded = code.replace(/\\u\{([0-9a-fA-F]+)\}/g, (_, h) => String.fromCodePoint(parseInt(h, 16)))
+                      .replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const GLYPH = /[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1F2FF}]/u;
+  if (GLYPH.test(decoded)) {
+    const hit = decoded.match(GLYPH)[0];
+    throw new Error(`the fallback cover contains a pictograph (U+${hit.codePointAt(0).toString(16).toUpperCase()}) — it must be abstract, not clip-art`);
+  }
+  /* And no <text> at all. A pictograph is the failure that happened;
+     ANY typography in the cover is the same category of mistake, since
+     the category's name is already on the navy sign underneath it. */
+  if (/<text[\s>]/.test(code)) throw new Error("the fallback cover is drawing type — the sign underneath carries the name");
+  // And it must not reach for the icon field, which is where the emoji came from.
+  if (/\.icon\b/.test(code)) throw new Error("the fallback cover is reading the category icon again — that field is emoji");
+
+  // It is real drawn geometry, not an empty rectangle.
+  if (!/<svg/.test(code)) throw new Error("the fallback cover is no longer drawn as SVG");
+  if (!/<circle|<path|<rect/.test(code)) throw new Error("the fallback cover has no geometry in it");
+
   /* The LIGHT end of the navy family, per the brief's "tinte de la
      familia azul-claro". Drawn dark first, which put a dark window above
      a dark sign and made the whole card one blue slab. */
-  if (!/EAF0FF|F2F6FF|D8E3FF|--sky/.test(designed)) throw new Error("the designed cover is not on the light blue tint");
-  if (/#0A1F44 0%|#0D2A5C 0%/.test(designed)) throw new Error("the designed cover is back on a dark field");
-  if (/F4C463|--yellow|--amber/.test(designed)) throw new Error("the designed cover borrowed the discount gold");
+  /* The light end of the navy family. Matched loosely on purpose: this
+     pinned four exact hex values once and broke the moment the
+     composition was retuned, which taught nothing. What matters is that
+     the FIELD is pale and cool, so the navy sign underneath has
+     something to contrast with. */
+  const fieldStops = (code.match(/stop-color="#([0-9A-Fa-f]{6})"/g) || [])
+    .map((m) => m.slice(-7, -1));   // the six hex digits, without the "#"
+  const pale = fieldStops.filter((hex) => {
+    const r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    return r > 0xB0 && g > 0xB0 && b > 0xE0 && b >= r;   // pale, and cooler than it is warm
+  });
+  if (pale.length < 2) throw new Error(`the fallback cover is not on a pale cool field (found ${pale.length} pale stops)`);
+  if (/F4C463|--yellow|--amber/.test(code)) throw new Error("the fallback cover borrowed the discount gold");
+  // Navy has to be present, or "azul/navy" is just a pale rectangle.
+  if (!/0A1F44/.test(code)) throw new Error("the fallback cover has no navy in it");
+
+  /* SVG ids are document-global and several tiles render at once, so a
+     shared id makes every tile paint with the FIRST tile's gradients.
+     The ids have to be per-tile. */
+  const ids = code.match(/id="\$\{id\}|id="[a-z]/g) || [];
+  if (!/id="\$\{id\}/.test(code)) throw new Error("SVG ids are not per-tile — every cover would paint with the first tile's gradients");
+
   // A curated file that 404s falls back to it rather than to alt text.
   const fb = src.slice(src.indexOf("function categoryCoverFallback"), src.indexOf("/** The art for one category"));
-  if (!/designedCoverHTML/.test(fb)) throw new Error("a 404 on a curated cover no longer falls back to the designed one");
+  if (!/designedCoverHTML/.test(fb)) throw new Error("a 404 on a curated cover no longer falls back to the drawn one");
   if (!/onerror=/.test(src.slice(src.indexOf("function categoryCoverArtHTML")))) {
     throw new Error("a curated cover has no error path");
   }
+});
+
+check("the same cover is drawn every time, and tiles do not collide", () => {
+  /* The seed makes a tile stable across re-renders — a cover that
+     reshuffled when the grid repainted would read as a glitch — and
+     different enough between categories that a column is not six
+     identical rectangles. */
+  const { coverSeed } = covers;
+  eq(typeof coverSeed, "function", "coverSeed is exported from the page");
+  eq(coverSeed("electronics"), coverSeed("electronics"), "the same key seeds the same cover");
+  const keys = ["electronics", "clothing", "men", "women", "kids", "home_goods", "pharmacy", "candy_chocolate", "sporting_goods", "beauty"];
+  const rotations = new Set(keys.map((k) => (coverSeed(k) % 25) - 12));
+  if (rotations.size < 4) {
+    throw new Error(`only ${rotations.size} distinct rotations across ${keys.length} categories — the set reads as identical tiles`);
+  }
+  // Bounded, so every tile keeps the same reading. The brief asked for
+  // "mismo tratamiento de luz y recorte en todas las categorias".
+  for (const k of keys) {
+    const rot = (coverSeed(k) % 25) - 12;
+    if (Math.abs(rot) > 12) throw new Error(`${k} rotates ${rot}deg — past the bound that keeps the set coherent`);
+  }
+  eq(coverSeed(""), coverSeed(""), "an empty key still seeds deterministically");
 });
 
 check("the tile carries no retailer logos and still states its count", () => {

@@ -563,6 +563,58 @@ await check("the three beauty stores render their real logo, unfiltered", async 
   await ctx.close();
 });
 
+await check("every category cover renders as abstract art, in the DOM", async () => {
+  /* THE NODE TEST READS SOURCE; QA READS A SCREEN. This bug shipped past
+     a green source-level test (2026-09-22 round 2): designedCoverHTML
+     drew a 64px emoji, so Electronica rendered a cartoon laptop on an
+     iPhone. What was wrong was what PAINTED, so this asserts that. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  if (errors.length) throw new Error(errors.join(" | "));
+  await page.evaluate(() => openCategories());
+  await page.waitForSelector("#categoriesGrid [data-cover]", { timeout: 15000 });
+
+  const audit = await page.evaluate(() => {
+    const GLYPH = /[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1F2FF}]/u;
+    const covers = [...document.querySelectorAll("[data-cover]")];
+    return {
+      total: covers.length,
+      glyphs: covers.filter((c) => GLYPH.test(c.textContent || "")).map((c) => c.getAttribute("data-cover-key")),
+      texty: covers.filter((c) => (c.textContent || "").trim().length).map((c) => c.getAttribute("data-cover-key")),
+      drawn: covers.filter((c) => c.querySelector("svg") || c.querySelector("img")).length,
+      ids: covers.flatMap((c) => [...c.querySelectorAll("svg [id]")].map((n) => n.id)),
+      /* A cover that paints nothing is worse than an ugly one — but
+         measure only the ones on screen. The home rail's covers are in
+         the DOM and display:none while Categorias is open, so they
+         measure 0x0 and are not a defect. Their ids still count below,
+         because a hidden duplicate collides exactly as hard. */
+      visible: [...document.querySelectorAll("#categoriesGrid [data-cover]")].length,
+      collapsed: [...document.querySelectorAll("#categoriesGrid [data-cover]")].filter((c) => {
+        const r = c.getBoundingClientRect();
+        return r.width < 40 || r.height < 40;
+      }).length,
+    };
+  });
+
+  if (!(audit.total >= 6)) throw new Error(`only ${audit.total} covers rendered`);
+  if (audit.glyphs.length) throw new Error(`emoji rendered in: ${audit.glyphs.join(", ")}`);
+  if (audit.texty.length) throw new Error(`type rendered inside the cover of: ${audit.texty.join(", ")}`);
+  eq(audit.drawn, audit.total, "every cover paints either drawn art or a curated photo");
+  if (!(audit.visible >= 6)) throw new Error(`only ${audit.visible} covers on the Categorias grid`);
+  eq(audit.collapsed, 0, "no visible cover collapsed to nothing");
+
+  /* SVG ids are document-global. The same category renders in BOTH the
+     home rail and Categorias, so a key-derived id repeated itself and
+     the second copy painted from the first one's <defs> — invisible
+     until the first is removed and the second goes transparent. */
+  const unique = new Set(audit.ids).size;
+  if (unique !== audit.ids.length) {
+    throw new Error(`${audit.ids.length} SVG ids but only ${unique} unique — covers will paint from each other's gradients`);
+  }
+  await ctx.close();
+});
+
 await check("no store logo is dwarfed by the wordmarks beside it", async () => {
   /* THE BUG: reported live on the Tiendas grid — "Sephora is a tiny
      sliver, Victoria's Secret and Bath & Body Works are small thumbnails,

@@ -68,7 +68,7 @@ export function loadPageTileSlice() {
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { CATEGORY_COVERS, assertCuratedCover, categoryCoverFor };",
+    html.slice(from, to) + "\n;globalThis.__exports = { CATEGORY_COVERS, assertCuratedCover, categoryCoverFor, coverSeed };",
     sandbox,
     { filename: "index.html#tiles" },
   );
