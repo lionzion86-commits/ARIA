@@ -2453,9 +2453,15 @@ function loadDepartmentCache(){
     const macys = fetch('/macys-catalog.json')
       .then(r => r.json())
       .catch(() => ({ retailers: {} }));
-    departmentCachePromise = Promise.all([scraped, macys]).then(([a, b]) => ({
+    /* Same defensive pattern: a missing/broken SSENSE file must not take
+       the rest down. Merged at load so the scraped-cache refresh can never
+       silently delete it. */
+    const ssense = fetch('/ssense-catalog.json')
+      .then(r => r.json())
+      .catch(() => ({ retailers: {} }));
+    departmentCachePromise = Promise.all([scraped, macys, ssense]).then(([a, b, c]) => ({
       ...a,
-      retailers: { ...(a.retailers || {}), ...(b.retailers || {}) },
+      retailers: { ...(a.retailers || {}), ...(b.retailers || {}), ...(c.retailers || {}) },
     }));
   }
   return departmentCachePromise;
@@ -5431,12 +5437,11 @@ const RETAILERS = {
   macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
   /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
      bot protection returned zero products across three integrations.
-     Listed and honestly pending: the 2,431-product men's pull exists in
-     Apify but no catalogue file has been committed here yet, so
-     browse stays false and the card says it is being connected. The
-     tagline leads with the BRANDS because "SSENSE" means nothing to a
+     Catalogue file ssense-catalog.json (2,426 men's products) is committed
+     at repo root and merged by loadDepartmentCache like Macy's.
+     The tagline leads with the BRANDS because "SSENSE" means nothing to a
      shopper in Lima and "Gucci" means everything. */
-  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: null,                   tagline: 'Diseñador y lujo — Gucci, Prada, Balenciaga',  kind: 'general', tier: 'luxury', search: false, browse: false, pendingNote: 'Conectando el catálogo' },
+  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',   tagline: 'Diseñador y lujo — Gucci, Prada, Balenciaga',  kind: 'general', tier: 'luxury', search: false, browse: false, pendingNote: 'Conectando el catálogo' },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
