@@ -65,6 +65,12 @@
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  /* The brand directory's scroller. NOT a Tailwind utility on purpose:
+     the page is built to boot with the CDN blocked, and an unbounded
+     192-row list inside a store page is the one place where losing the
+     height turns a panel into a second wall. See storeBrandPanelHTML. */
+  .brandList{ max-height:62vh; overflow-y:auto; overscroll-behavior:contain; position:relative }
+  @media (min-width:768px){ .brandList{ max-height:520px } }
   .ariaCard{ border-radius:24px; padding:28px; height:100%; display:flex; flex-direction:column;
              background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22) }
   .ariaCardIcon{ width:48px; height:48px; border-radius:16px; display:grid; place-items:center; margin-bottom:24px;
@@ -936,7 +942,8 @@
         <div class="ariaKicker mb-4">Explora</div>
         <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">Categorías</h1>
         <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
-          Todos los departamentos y marcas disponibles, con inventario real de nuestras tiendas.
+          Todos los departamentos disponibles, con inventario real de nuestras tiendas.
+          ¿Buscas una marca? Está dentro de cada tienda, en “Busca por marca”.
         </p>
       </div>
     </div>
@@ -2532,6 +2539,136 @@ function metaFor(map, key){
 }
 
 /* ============================================================
+   THE A-Z BRAND INDEX — MIRROR of scripts/lib/brand-index.js.
+   index.html is a plain <script> and cannot import, so these five pure
+   functions exist twice and a parity test pins them together. CHANGE
+   ONE, CHANGE THE OTHER. The module carries the full note on why this
+   exists; the short version is below.
+
+   WHAT IT REPLACED (2026-09-22). SSENSE's export carries 192 brands and
+   every one of them was a full-size category card on the home page — a
+   204-card wall between the shopper and the rest of the site. The wall
+   is gone from the home grid; the brands live inside the store that
+   stocks them, as a list you can search and jump around in.
+
+   THE LABEL COMES FROM THE CATALOGUE. The key is a slug
+   (`driesvannoten`, `mm6maisonmargiela`), and title-casing a slug gives
+   "Driesvannoten". Every brand bucket carries its real `label`.
+   ============================================================ */
+function foldBrand(raw){
+  return String(raw ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+}
+
+/* Anything not starting with a latin letter — "424", "1017 ALYX 9SM" —
+   files under "#", the way a printed directory does it. */
+function brandLetter(label){
+  const first = foldBrand(label).charAt(0);
+  return first >= 'A' && first <= 'Z' ? first : '#';
+}
+
+/* Substring, on the folded form, so "margiela" finds "MM6 Maison
+   Margiela" — a list of 192 is searched by the part of the name you
+   remember, which is very often not the first word. */
+function brandMatches(label, query){
+  const q = foldBrand(query);
+  if (!q) return true;
+  return foldBrand(label).includes(q);
+}
+
+/* A brand with no items is dropped rather than listed as "0": the panel
+   is navigation, and a row that leads to an empty page is worse than no
+   row at all. */
+function brandRows(brands){
+  const rows = [];
+  for (const [key, bucket] of Object.entries(brands || {})){
+    const count = Array.isArray(bucket?.items) ? bucket.items.length : 0;
+    if (!count) continue;
+    const label = String(bucket?.label || key).trim() || key;
+    rows.push({ key, label, count, letter: brandLetter(label) });
+  }
+  return rows.sort((a, b) => {
+    if (a.letter !== b.letter) return a.letter === '#' ? -1 : b.letter === '#' ? 1 : a.letter < b.letter ? -1 : 1;
+    return foldBrand(a.label).localeCompare(foldBrand(b.label), 'es');
+  });
+}
+
+/* Only letters that actually have brands get a section — an empty "Q"
+   in the index is a dead tap. */
+function brandGroups(rows){
+  const out = [];
+  for (const row of rows){
+    const last = out[out.length - 1];
+    if (last && last.letter === row.letter) last.brands.push(row);
+    else out.push({ letter: row.letter, brands: [row] });
+  }
+  return out;
+}
+
+/* THE SLUG A BRAND ROUTES ON.
+
+   ACCENTS ARE DROPPED HERE, NOT FOLDED — the opposite of foldBrand, and
+   deliberately so. SSENSE's export slugs "Courreges" with the accent
+   DELETED (`courrges`, not `courreges`), and those keys are already live
+   URLs. Folding instead would have produced a second key for eight
+   brands and quietly broken every link anyone had saved.
+
+   The two rules answer two questions and must not be merged: a key is an
+   address and has to match what shipped; a folded name is what a shopper
+   reads and types, where "sefr" must still find "Sefr". */
+function brandKeyOf(label){
+  return String(label ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+}
+
+/* BRANDS OFF THE SHELF, when the catalogue does not hand us a list.
+
+   "Every storefront that carries multiple brands" cannot be answered
+   from `retailers.<key>.brands`, because almost nobody has a usable one:
+   SSENSE ships 192 real buckets, Foot Locker ships 1, Macy's ships NONE
+   while 754 of its items each name their brand (107 distinct), and the
+   beauty three ship a bare ARRAY OF NAMES with no items behind it —
+   which decodes as brands called "0", "1", "2".
+
+   So the list is counted off the store's own stock, the only source that
+   cannot disagree with what the shopper will actually find. Run over
+   SSENSE it reproduces that export exactly: same 192 keys, same labels,
+   same counts, asserted by a test.
+
+   The caller passes items it has ALREADY DEDUPED — Old Navy's synthetic
+   `clothing` bucket is a merge of its gendered ones and would otherwise
+   count every item twice. The first spelling of a name wins its key, so
+   two casings of one brand collapse into one row. */
+function brandBucketsFromItems(items){
+  const out = {};
+  for (const raw of items || []){
+    const label = String(raw?.brand ?? '').trim();
+    if (!label) continue;
+    const key = brandKeyOf(label);
+    if (!key) continue;
+    if (!out[key]) out[key] = { label, items: [] };
+    out[key].items.push(raw);
+  }
+  return out;
+}
+
+/* The display name for a brand key, from whichever store stocks it.
+   BRAND_META is still consulted first — it is the one place a name can
+   be overridden by hand — and the title-cased slug is the last resort,
+   for a brand the cache has not loaded yet (a deep link lands on the
+   catalogue page before the fetch resolves). */
+function brandLabelFor(key, fallback){
+  if (BRAND_META[key]?.label) return BRAND_META[key].label;
+  for (const data of Object.values(departmentCacheData.retailers || {})){
+    const label = data?.brands?.[key]?.label;
+    if (label) return String(label);
+  }
+  return fallback || metaFor(BRAND_META, key).label;
+}
+
+/* ============================================================
    CATEGORY COVERS ARE CURATED, NEVER SCRAPED (2026-09-22)
 
    THE BUG, from a live phone: Electrónica fronted by a USB stick and a
@@ -2590,7 +2727,34 @@ function metaFor(map, key){
    photographic style across the set matters more than any single image:
    the tiles are seen as a column, and a mixed set reads as the junk
    drawer this replaced even when each photo is good on its own. */
-const CATEGORY_COVERS = {};
+/* THE CURATED COVERS (2026-09-22). Every department key in
+   DEPARTMENT_SPEC has a photograph, so designedCoverHTML below is a
+   genuine fallback again rather than what the homepage actually shows.
+   A key with no entry here still gets the drawn brand field, which is a
+   deliberate treatment and not a gap -- that is what makes adding a
+   twelfth department safe.
+
+   Ten landed first; `beauty` followed a few hours later, because the
+   department itself only became real that morning when Sephora, Ulta
+   and YesStyle arrived with 197 products between them. The grid is
+   complete now, and the test that named the gap by key is what said so.
+
+   Local paths only, and assertCuratedCover refuses anything else. The
+   filenames are the department keys verbatim, so a typo here is a
+   missing file rather than a silently wrong picture. */
+const CATEGORY_COVERS = {
+  beauty:          'assets/category/beauty.jpg',
+  candy_chocolate: 'assets/category/candy_chocolate.jpg',
+  clothing:        'assets/category/clothing.jpg',
+  electronics:     'assets/category/electronics.jpg',
+  home_goods:      'assets/category/home_goods.jpg',
+  kids:            'assets/category/kids.jpg',
+  men:             'assets/category/men.jpg',
+  pharmacy:        'assets/category/pharmacy.jpg',
+  sale:            'assets/category/sale.jpg',
+  sporting_goods:  'assets/category/sporting_goods.jpg',
+  women:           'assets/category/women.jpg',
+};
 
 /* A cover must be a LOCAL asset. This is the permanent rule in code: a
    remote URL is a scraper feed by definition, and a scraper feed is what
@@ -2889,9 +3053,58 @@ function notQuarantined(raw){ return raw?.imageReview !== 'quarantined'; }
    the department's name. Deduped, because Old Navy's synthetic "clothing"
    bucket is a merge of its men/women/kids buckets and reaches the same
    item twice. */
+/* EVERYTHING A STORE STOCKS, once. Same dedupe rule the department read
+   uses and for the same reason: Old Navy's synthetic `clothing` bucket
+   is a merge of its men/women/kids buckets, so a plain concatenation
+   reaches a third of its stock twice. */
+function retailerItemsFor(retailerData){
+  const out = [];
+  const seen = new Set();
+  for (const bucket of Object.values(retailerData?.departments || {})){
+    for (const raw of bucket?.items || []){
+      if (!notQuarantined(raw)) continue;
+      const dedupe = rawTitleOf(raw) + '::' + (raw.price ?? raw.effectivePrice ?? '');
+      if (seen.has(dedupe)) continue;
+      seen.add(dedupe);
+      out.push(raw);
+    }
+  }
+  return out;
+}
+
+/* This store's brands, however its catalogue happens to carry them.
+
+   AN EXPLICIT BUCKET ALWAYS WINS, and that is not a preference — it is
+   what keeps Foot Locker's `brands.nike` reachable. Its 24 shoes sit in
+   that bucket and its department items name no brand at all, so a purely
+   derived list would drop Nike and break a link that exists today.
+
+   Everything else is counted off the shelf (brandBucketsFromItems). The
+   result is cached per catalogue object, because the callers ask for it
+   in loops: openCatalog walks every retailer to build a brand's page,
+   and openStore builds the panel on each visit. Rebuilding a 2,426-item
+   index each time is the difference between a page and a pause. */
+const brandBucketCache = new WeakMap();
+function retailerBrandBuckets(retailerData){
+  if (!retailerData || typeof retailerData !== 'object') return {};
+  const cached = brandBucketCache.get(retailerData);
+  if (cached) return cached;
+  const out = {};
+  for (const [key, bucket] of Object.entries(retailerData.brands || {})){
+    if (Array.isArray(bucket?.items) && bucket.items.length){
+      out[key] = { label: String(bucket.label || key), items: bucket.items };
+    }
+  }
+  for (const [key, bucket] of Object.entries(brandBucketsFromItems(retailerItemsFor(retailerData)))){
+    if (!out[key]) out[key] = bucket;
+  }
+  brandBucketCache.set(retailerData, out);
+  return out;
+}
+
 function departmentItemsFor(retailerData, kind, key){
   if (kind === 'brand'){
-    return (retailerData?.brands?.[key]?.items || []).filter(notQuarantined);
+    return (retailerBrandBuckets(retailerData)[key]?.items || []).filter(notQuarantined);
   }
   const out = [];
   const seen = new Set();
@@ -2908,20 +3121,28 @@ function departmentItemsFor(retailerData, kind, key){
   return out;
 }
 
-function collectTiles(kind){
-  const metaMap = kind === 'brand' ? BRAND_META : DEPARTMENT_META;
-  // Departments come from the taxonomy, brands from whatever was scraped.
+/* DEPARTMENTS ONLY. A BRAND IS NEVER A TILE (2026-09-22).
+
+   This took a `kind` and would build a tile per brand as readily as a
+   tile per department. That is how the home page ended up 204 cards
+   long and Categorias the same, and the parameter is gone with them:
+   there is now no code path anywhere that can turn 192 brands into a
+   grid. Brand browsing is "Busca por marca" inside the store that
+   stocks them (storeBrandPanelHTML), which is a list you read rather
+   than a wall you scroll past.
+
+   Brands are still first-class everywhere else — the panel, the
+   openCatalog('brand', key) route, departmentItemsFor's brand branch
+   and brandLabelFor are all untouched. What went is the tiling. */
+function collectTiles(){
   // Driving departments off DEPARTMENT_SPEC rather than off bucket names
   // is the whole point: a department gets a tile when some retailer
   // carries its category, even with no bucket of that name anywhere.
-  const keys = kind === 'brand'
-    ? [...new Set(Object.values(departmentCacheData.retailers || {}).flatMap(d => Object.keys(d.brands || {})))]
-    : Object.keys(DEPARTMENT_SPEC);
   const byKey = {};
-  for (const key of keys){
+  for (const key of Object.keys(DEPARTMENT_SPEC)){
     byKey[key] = { key, retailers: [], count: 0 };
     for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
-      const entryItems = departmentItemsFor(data, kind, key);
+      const entryItems = departmentItemsFor(data, 'department', key);
       if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
@@ -2934,7 +3155,7 @@ function collectTiles(kind){
      work. */
   // A department no retailer carries gets no tile at all.
   for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
-  return Object.values(byKey).map(t => ({ ...t, ...metaFor(metaMap, t.key) }));
+  return Object.values(byKey).map(t => ({ ...t, ...metaFor(DEPARTMENT_META, t.key) }));
 }
 
 /* The department/brand tile, on Categorías and the home page both.
@@ -3212,7 +3433,22 @@ function deptTileHTML(t, kind){
   const isOfertas = kind === 'department' && t.key === 'sale';
   const open = `openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')`;
 
-  const art = isOfertas ? ofertasTileArtHTML() : categoryCoverArtHTML(t);
+  /* OFERTAS TAKES A PHOTOGRAPH TOO, NOW THAT THERE IS ONE (2026-09-22).
+     ofertasTileArtHTML is the drawn gold board, and it exists because
+     the two things before it were worse: a collage of whatever the deals
+     cache surfaced (meaningless), then the navy Precio Honesto field
+     (honest, but identical to every other card on a wall of navy signs).
+     A CURATED photograph is neither of those failures -- it is chosen,
+     not scraped -- so it wins when one is configured, and the board
+     stays as the fallback for the day the file is missing.
+
+     WHAT DOES NOT CHANGE IS THE SIGN. Ofertas keeps its gold band, gold
+     window backing and navy type below, because that is what marks it as
+     the sale card; only the art in the window is different. Gold stays
+     the discount treatment and nothing else borrows it. */
+  const art = isOfertas
+    ? (categoryCoverFor(t.key) ? categoryCoverArtHTML(t) : ofertasTileArtHTML())
+    : categoryCoverArtHTML(t);
 
   /* The sign. Navy for a department, gold for Ofertas — and the type
      inverts with it so both stay readable rather than one being the
@@ -3271,16 +3507,25 @@ function initDepartmentTiles(){
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
     paintStoreBrandLines(data);
-    /* "Comprar por marca" was its own section with a single Nike card in
-       it. One card is not a section, so brands ride in the same grid as
-       the departments — they browse identically (openCatalog with a
-       different kind) and the row fills out instead of looking empty.
-       When there are enough brands to carry a section of their own, this
-       is the one place to split them back out. */
-    const tiles = [
-      ...collectTiles('department').map(t => ({ t, kind: 'department' })),
-      ...collectTiles('brand').map(t => ({ t, kind: 'brand' })),
-    ];
+    /* DEPARTMENTS ONLY. THE BRAND WALL IS GONE (2026-09-22).
+
+       History, because this line has now moved twice. Brands were once
+       their own section with a single Nike card in it; one card is not a
+       section, so they were folded into this grid. Then SSENSE's export
+       landed with 192 of them and the fold became the whole problem:
+       eleven department covers followed by 193 brand cards, a 204-card
+       wall, the first thing anyone met on the home page.
+
+       Brands are not gone from the site — they moved to where they are
+       actually stocked. Every store page now carries a searchable A-Z
+       brand panel (storeBrandPanelHTML), which is a list you can read
+       rather than a wall you have to scroll past, and Categorías still
+       carries the brand tiles with its own sort and store filter.
+
+       So this grid is the eleven departments, and they carry the section
+       on their own. If brands ever come back here they need a section
+       and a cap, not a spread. */
+    const tiles = collectTiles().map(t => ({ t, kind: 'department' }));
     const catGrid = document.getElementById('catGrid');
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')
@@ -3516,7 +3761,8 @@ async function openCatalog(kind, key, opts = {}){
   await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   document.getElementById('catalogIcon').textContent = meta.icon;
-  document.getElementById('catalogTitle').textContent = meta.label;
+  document.getElementById('catalogTitle').textContent =
+    kind === 'brand' ? brandLabelFor(key, meta.label) : meta.label;
   document.getElementById('catalogSubtitle').textContent = 'Buscando en nuestras tiendas…';
   /* A beauty category leads with the four-per-shipment fragrance limit,
      for the same reason a beauty store does: it can invalidate a whole
@@ -3529,6 +3775,10 @@ async function openCatalog(kind, key, opts = {}){
 
   const data = await loadDepartmentCache();
   departmentCacheData = data;
+  /* Named again now the catalogue is in hand. On a deep link the title
+     above was drawn from the slug, because the only source of a brand's
+     real name is the file that just finished loading. */
+  if (kind === 'brand') document.getElementById('catalogTitle').textContent = brandLabelFor(key, meta.label);
   // Every carrying store is read even when a filter is on: the chip row
   // has to carry honest counts for the stores you are NOT looking at, or
   // the filter has quietly become a gate again.
@@ -4211,6 +4461,131 @@ function renderStoresGrid(){
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
 
+/* ============================================================
+   "VER POR MARCA" — the store's own A-Z brand directory.
+
+   THE WALL IT REPLACES (2026-09-22). SSENSE's 192 brands were 192
+   full-size cards on the home page. Danny's word was "a wall", and it
+   was: eleven department covers, then a brand card every 340px for the
+   rest of the scroll. The stock is real and still has to be reachable,
+   so it moved to the one page where a shopper is already asking "what
+   does this store carry" — and became a list instead of a grid.
+
+   ONE MARKUP, TWO LAYOUTS, no duplicated list. The letter index is a
+   flex container that wraps horizontally on a phone (a compact A-Z bar
+   above the names) and stacks into a column on a laptop (an index down
+   the left of the panel). Same buttons, same handler; only the flex
+   direction changes at `md`.
+
+   IT IS NOT A DATABASE TABLE. Navy sign, gold hairline, gold section
+   letters — the same furniture as the department cards, at list scale.
+   No grey pills: the only grey here is the product count, which is the
+   same grey the browse tiles already use for the same number.
+
+   THE ROW KEEPS TODAY'S ROUTE. openCatalog('brand', key) — byte for
+   byte what the cards called — so every brand link that existed before
+   still lands in the same place. */
+function storeBrandPanelHTML(rows){
+  const groups = brandGroups(rows);
+  /* ONE COMPONENT, ONE BEHAVIOUR, EVERY STORE. An earlier cut of this
+     stripped the search box and the index off short lists. It is gone:
+     a shopper who learns this panel on SSENSE meets the same panel on
+     Ulta, and "sometimes there is a search box" is a worse surprise than
+     a search box over thirty names. The stores where it would have
+     looked thin are the single-brand ones, and they no longer get a
+     panel at all — see openStore. */
+  const letters = groups.map(g => `<button type="button" onclick="jumpToBrandLetter('${jsAttr(g.letter)}')"
+      data-brand-jump="${escapeHtml(g.letter)}" aria-label="Marcas con ${escapeHtml(g.letter)}"
+      class="w-[32px] h-[32px] rounded-lg text-[12.5px] font-extrabold grid place-items-center focus-ring transition hover:opacity-80"
+      style="background:var(--sky); color:var(--navy)">${escapeHtml(g.letter)}</button>`).join('');
+  const body = groups.map(g => `<section data-brand-group="${escapeHtml(g.letter)}" class="mb-5 last:mb-0">
+      <div data-brand-letter="${escapeHtml(g.letter)}" class="sticky top-0 z-10 flex items-center gap-3 py-2 mb-1" style="background:#fff">
+        <span class="text-[13px] font-extrabold tracking-[0.12em]" style="color:var(--amber)">${escapeHtml(g.letter)}</span>
+        <span class="flex-1 h-px" style="background:linear-gradient(90deg, rgba(244,196,99,0.75), rgba(244,196,99,0))"></span>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-5">${g.brands.map(b => `<button type="button"
+          onclick="openCatalog('brand','${jsAttr(b.key)}')" data-brand-name="${escapeHtml(b.label)}"
+          class="w-full text-left flex items-baseline justify-between gap-3 py-2 px-2 -mx-2 rounded-lg focus-ring transition hover:bg-[#EAF0FF]">
+          <span class="text-[14.5px] font-bold tracking-[-0.01em] truncate" style="color:var(--navy)">${escapeHtml(b.label)}</span>
+          <span class="tabular text-[12px] font-bold flex-shrink-0" style="color:#6B7487">${b.count}</span>
+        </button>`).join('')}</div>
+    </section>`).join('');
+  return `<section class="mt-10" data-brand-panel>
+    <div class="rounded-2xl border overflow-hidden" style="border-color:var(--line); background:#fff">
+      <div class="relative px-5 py-4 sm:px-6 sm:py-5" style="background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%)">
+        <div class="ariaGoldHair"></div>
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="text-[19px] sm:text-[22px] font-extrabold tracking-[-0.02em]" style="color:#fff">Busca por marca</h3>
+          <span id="brandPanelCount" class="tabular text-[12.5px] font-bold flex-shrink-0" style="color:#F4C463">${rows.length} marca${rows.length === 1 ? '' : 's'}</span>
+        </div>
+        <p class="text-[12.5px] mt-1" style="color:#AFBBD6">Escribe para buscarla o salta a su letra.</p>
+        <input id="brandPanelSearch" type="search" inputmode="search" autocomplete="off" spellcheck="false"
+          placeholder="Buscar marca…" oninput="filterBrandPanel()" aria-label="Buscar marca"
+          class="mt-3 w-full rounded-xl px-4 py-3 text-[15px] font-semibold focus-ring"
+          style="background:rgba(255,255,255,0.08); color:#fff; border:1px solid rgba(244,196,99,0.45)">
+      </div>
+      <div class="md:flex md:items-start">
+        <nav aria-label="Índice alfabético" class="px-4 pt-4 pb-2 md:py-5 md:px-3 md:w-[108px] md:flex-shrink-0 md:border-r md:self-stretch" style="border-color:var(--line)">
+          <div class="flex flex-wrap gap-1.5">${letters}</div>
+        </nav>
+        <div id="brandPanelList" class="brandList flex-1 min-w-0 px-4 pb-5 md:py-5 md:px-6">
+          ${body}
+          <p id="brandPanelEmpty" class="text-[13px] py-6" style="color:#6B7487; display:none"></p>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
+
+/* Live, on every keystroke. Rows and whole sections are hidden with an
+   inline display, not the `hidden` attribute: Tailwind's reset puts
+   [hidden] inside :where(), so a `flex` or `grid` utility class outranks
+   it and the "hidden" row stays on screen. */
+function filterBrandPanel(){
+  const input = document.getElementById('brandPanelSearch');
+  const list = document.getElementById('brandPanelList');
+  if (!input || !list) return;
+  const query = input.value;
+  let shown = 0;
+  for (const group of list.querySelectorAll('[data-brand-group]')){
+    let visible = 0;
+    for (const row of group.querySelectorAll('[data-brand-name]')){
+      const hit = brandMatches(row.getAttribute('data-brand-name'), query);
+      row.style.display = hit ? '' : 'none';
+      if (hit) visible++;
+    }
+    group.style.display = visible ? '' : 'none';
+    shown += visible;
+  }
+  /* A letter with nothing behind it stops being a target rather than
+     scrolling to a section that is no longer there. */
+  for (const chip of document.querySelectorAll('[data-brand-jump]')){
+    const group = list.querySelector(`[data-brand-group="${chip.getAttribute('data-brand-jump')}"]`);
+    const off = !group || group.style.display === 'none';
+    chip.disabled = off;
+    chip.style.opacity = off ? '0.3' : '';
+  }
+  const counter = document.getElementById('brandPanelCount');
+  if (counter) counter.textContent = `${shown} marca${shown === 1 ? '' : 's'}`;
+  const empty = document.getElementById('brandPanelEmpty');
+  if (empty){
+    empty.style.display = shown ? 'none' : '';
+    empty.textContent = `Ninguna marca coincide con “${input.value.trim()}”.`;
+  }
+  list.scrollTop = 0;
+}
+
+/* The letter jump scrolls the PANEL, not the page. scrollIntoView would
+   drag the whole document up to meet a list that is already on screen;
+   the shopper asked to move inside the list. */
+function jumpToBrandLetter(letter){
+  const list = document.getElementById('brandPanelList');
+  const target = list && list.querySelector(`[data-brand-letter="${letter}"]`);
+  if (!target) return;
+  const top = target.getBoundingClientRect().top - list.getBoundingClientRect().top + list.scrollTop;
+  list.scrollTo({ top: Math.max(0, top - 4), behavior: 'smooth' });
+}
+
 async function openStore(retailer){
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
@@ -4259,12 +4634,28 @@ async function openStore(retailer){
   const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
   const deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
   const storeTotal = deptEntries.reduce((n, [, items]) => n + items.length, 0);
+  /* Brands are this store's, and only this store's, counted off its own
+     stock (retailerBrandBuckets).
+
+     MULTIPLE BRANDS, OR NOTHING. A store that sells one label — Foot
+     Locker has only Nike scraped, and Victoria's Secret will be the same
+     when it lands — keeps its category sections and gets no brand panel,
+     because "Busca por marca" over a single name is a control with one
+     setting. Two is where a list starts to be worth reading. */
+  const brandList = brandRows(retailerBrandBuckets(retailerData));
+  const brandPanel = brandList.length > 1 ? storeBrandPanelHTML(brandList) : '';
 
   if (!deptEntries.length){
-    document.getElementById('storeViewSubtitle').textContent = 'Sin departamentos disponibles por ahora.';
+    document.getElementById('storeViewSubtitle').textContent = brandPanel
+      ? 'Sin departamentos por ahora — busca por marca.'
+      : 'Sin departamentos disponibles por ahora.';
+    if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
     return;
   }
-  document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${deptEntries.length > 1 ? 's' : ''} disponibles`;
+  // "1 departamento disponibles" — the noun was pluralised and the
+  // adjective was not, which Sephora (one department) showed on the page.
+  const plural = deptEntries.length === 1 ? '' : 's';
+  document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${plural} disponible${plural}`;
   /* THE FIRST SCREEN OF A STORE IS PRODUCTS, NOT ICONS (2026-09-22).
 
      This grid was a 26px emoji over a label and a count -- the tile a
@@ -4308,6 +4699,7 @@ async function openStore(retailer){
       onclick: `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`,
     })).join('')
   }</div>`;
+  if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
 }
 
 // Entry-point-scoping rule's "stayed scoped to the search" half — a live
@@ -11135,8 +11527,14 @@ function initSalesFilters(){
 // small teaser grid — this is a real page with its own sort (name/product
 // count) and store filter, same UI pattern as the Ofertas page. Built from
 // the exact same real department-cache.json data as the homepage tiles
-// (collectTiles()/deptTileHTML() above) — departments and brands together,
-// never a second/fake catalog.
+// (collectTiles()/deptTileHTML() above) — never a second/fake catalog.
+//
+// DEPARTMENTS ONLY, SAME RULE AS THE HOME PAGE (2026-09-22). This grid
+// carried the brand tiles too, so pulling the wall off the home page
+// moved it here instead: 11 departments and 193 brands, 204 cards, on
+// the one page whose whole job is to let you see what we sell. Brands
+// live in "Busca por marca" inside each multi-brand store now, and
+// nothing on this page can build a tile for one — see collectTiles.
 function initCategoriesFilters(){
   document.getElementById('categoriesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
     `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
@@ -11154,10 +11552,9 @@ function renderCategoriesGrid(){
   const activeStores = Array.from(document.querySelectorAll('.categoriesStoreFilter:checked')).map(cb => cb.value);
   const sortBy = document.getElementById('categoriesSort').value;
 
-  let tiles = [
-    ...collectTiles('department').map(t => ({ ...t, kind: 'department' })),
-    ...collectTiles('brand').map(t => ({ ...t, kind: 'brand' })),
-  ].filter(t => t.retailers.some(r => activeStores.includes(r)));
+  let tiles = collectTiles()
+    .map(t => ({ ...t, kind: 'department' }))
+    .filter(t => t.retailers.some(r => activeStores.includes(r)));
 
   if (sortBy === 'count') tiles.sort((a, b) => b.count - a.count);
   else tiles.sort((a, b) => a.label.localeCompare(b.label, 'es'));

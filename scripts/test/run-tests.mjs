@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -44,6 +44,7 @@ import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
 import * as subcats from "../lib/subcategories.js";
+import * as brandIndex from "../lib/brand-index.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -963,13 +964,65 @@ check("a cover is only ever a local curated asset", () => {
   eq(covers.assertCuratedCover("electronics", undefined), null, "no entry at all");
 });
 
-check("no category is wired to a scraped cover today", () => {
-  // Empty is the correct state: a missing entry means the designed cover,
-  // which is a deliberate treatment and not a gap.
+check("every department has a curated photograph, and every one is on disk", () => {
+  /* THE COVERS LANDED (2026-09-22). Until they did, an empty map was the
+     correct state and the drawn brand field was what the homepage
+     showed. Ten photographs later the fallback is a fallback again --
+     and the thing to guard is that a configured cover is real. A key
+     pointing at a file that is not committed renders a broken image on
+     the first card a shopper sees, and nothing else in the pipeline
+     would notice: the path is a string, and a string is always valid. */
   for (const [key, path] of Object.entries(covers.CATEGORY_COVERS)) {
     if (covers.categoryCoverFor(key) !== path) {
       throw new Error(`${key} is configured with something that is not a local asset: ${path}`);
     }
+    if (!existsSync(root(path))) throw new Error(`${key} points at ${path}, which is not committed`);
+    if (!/^assets\/category\//.test(path)) throw new Error(`${key} lives outside assets/category: ${path}`);
+    // The filename IS the key, so a typo is a missing file rather than
+    // the wrong picture on the right card.
+    if (!new RegExp(`/${key}\\.(jpg|jpeg|png|webp)$`).test(path)) {
+      throw new Error(`${key} is wired to ${path} — the filename must match the key`);
+    }
+  }
+  /* EVERY COVER BELONGS TO A REAL DEPARTMENT. The reverse is not
+     required — a department with no entry gets the drawn brand field,
+     which is a deliberate treatment — but a cover for a key that does
+     not exist is a file nobody will ever see. */
+  for (const key of Object.keys(covers.CATEGORY_COVERS)) {
+    if (!deptMap.DEPARTMENT_SPEC[key]) throw new Error(`${key} has a cover but is not a department`);
+  }
+
+  /* EVERY DEPARTMENT HAS A PHOTOGRAPH NOW. This assertion read "beauty"
+     for a few hours: ten covers were delivered, and beauty had become a
+     real department that same morning when Sephora, Ulta and YesStyle
+     landed with 197 products between them, so it rendered the drawn
+     field beside ten photographs. Naming the gap by key rather than
+     tolerating it is what got the eleventh shot.
+
+     The empty string is the load-bearing part. A new department added
+     without a cover is NOT a failure — it gets the drawn brand field,
+     which is a deliberate treatment — but this line will change, and
+     whoever changes it has to decide on purpose whether that department
+     ships with a photograph or without one. */
+  const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
+  eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
+});
+
+check("Ofertas takes a photograph but keeps its gold sign", () => {
+  /* The drawn gold board exists because the two things before it were
+     worse: a scraped collage (meaningless) and the navy field (identical
+     to every other card). A CURATED photo is neither, so it wins — but
+     only the art in the window changes. The band, its gold gradient and
+     its navy type are what mark this as the sale card. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const tile = src.slice(src.indexOf("function deptTileHTML("), src.indexOf("function initDepartmentTiles("));
+  if (!/isOfertas[\s\S]{0,120}categoryCoverFor\(t\.key\)/.test(tile)) {
+    throw new Error("Ofertas cannot take a curated cover");
+  }
+  if (!/ofertasTileArtHTML\(\)/.test(tile)) throw new Error("the drawn board is gone, not kept as the fallback");
+  // The sign is untouched: gold band, navy type, gold window backing.
+  for (const rule of ["#F7CE72", "var\\(--navy\\)", "var\\(--amber\\)"]) {
+    if (!new RegExp(rule).test(tile)) throw new Error(`the Ofertas sign lost ${rule}`);
   }
 });
 
@@ -4201,6 +4254,272 @@ check("every browse grid is photographs, and no grid is emoji", () => {
   // And there is a second photo to move to when they do collide.
   if (new Set(sale).size < 2) throw new Error("Ofertas has no second photo to fall back to");
 });
+
+/* ------------------------------------------------------------------ */
+group("The A-Z brand index (and the wall it replaced)");
+
+const brandPage = loadPageBrandSlice();
+const ssenseBrands = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8")).retailers.ssense.brands;
+
+check("the page's brand index and the module agree, brand for brand", () => {
+  /* THE MIRROR. index.html is a plain <script> and cannot import, so
+     these five functions exist twice. Compared over the real 192-brand
+     export rather than over examples someone typed: the list on the
+     page is built from this file, so this file is the fixture. */
+  const pageRows = brandPage.brandRows(ssenseBrands);
+  const modRows = brandIndex.brandRows(ssenseBrands);
+  eq(JSON.stringify(pageRows), JSON.stringify(modRows), "brandRows drifted between page and module");
+  eq(
+    JSON.stringify(brandPage.brandGroups(pageRows).map((g) => [g.letter, g.brands.length])),
+    JSON.stringify(brandIndex.brandGroups(modRows).map((g) => [g.letter, g.brands.length])),
+    "brandGroups drifted",
+  );
+  for (const raw of ["Séfr", "sacai", "424", "MM6 Maison Margiela", "  ", "Ünde"]) {
+    eq(brandPage.foldBrand(raw), brandIndex.foldBrand(raw), `foldBrand(${raw})`);
+    eq(brandPage.brandLetter(raw), brandIndex.brandLetter(raw), `brandLetter(${raw})`);
+  }
+  for (const q of ["margiela", "SEFR", "séfr", "", "zzz"]) {
+    eq(brandPage.brandMatches("Séfr", q), brandIndex.brandMatches("Séfr", q), `brandMatches(Séfr, ${q})`);
+  }
+  /* The routing slug is mirrored too, and it is the one that must not
+     drift by even a character: it is the address in the URL bar. */
+  for (const raw of ["Courrèges", "Maison Kitsuné", "MM6 Maison Margiela", "A.P.C.", "424", "a.v. vattev"]) {
+    eq(brandPage.brandKeyOf(raw), brandIndex.brandKeyOf(raw), `brandKeyOf(${raw})`);
+  }
+  const sample = ssenseBrands.driesvannoten.items.concat(ssenseBrands.apc.items);
+  eq(
+    JSON.stringify(Object.keys(brandPage.brandBucketsFromItems(sample))),
+    JSON.stringify(Object.keys(brandIndex.brandBucketsFromItems(sample))),
+    "brandBucketsFromItems drifted",
+  );
+});
+
+check("every one of SSENSE's 192 brands is in the list, exactly once", () => {
+  /* The whole point of pulling the wall down is that nothing behind it
+     is lost. 192 cards left the home page; 192 rows have to arrive in
+     the panel, with no key appearing twice and none of them invented. */
+  const rows = brandIndex.brandRows(ssenseBrands);
+  eq(rows.length, Object.keys(ssenseBrands).length, "brand count changed between the export and the panel");
+  eq(new Set(rows.map((r) => r.key)).size, rows.length, "a brand key is listed twice");
+  for (const r of rows) {
+    if (!ssenseBrands[r.key]) throw new Error(`the panel invented a brand: ${r.key}`);
+    eq(r.count, ssenseBrands[r.key].items.length, `${r.key} count`);
+  }
+  // And every row lands in exactly one section.
+  const groups = brandIndex.brandGroups(rows);
+  eq(groups.reduce((n, g) => n + g.brands.length, 0), rows.length, "a brand fell out of its section");
+  eq(new Set(groups.map((g) => g.letter)).size, groups.length, "a letter has two sections");
+});
+
+check("a brand is named by its catalogue, never by title-casing its slug", () => {
+  /* THE BUG THIS PINS: metaFor() turns an unknown key into a
+     title-cased slug, so `driesvannoten` came out "Driesvannoten" and
+     `mm6maisonmargiela` came out "Mm6Maisonmargiela". That was already
+     on the brand cards; a 192-row alphabetical list makes it
+     unmissable, and an A-Z of mangled names is not a directory. */
+  const byKey = Object.fromEntries(brandIndex.brandRows(ssenseBrands).map((r) => [r.key, r.label]));
+  eq(byKey.driesvannoten, "Dries Van Noten", "Dries Van Noten");
+  eq(byKey.mm6maisonmargiela, "MM6 Maison Margiela", "MM6 Maison Margiela");
+  eq(byKey.paulsmith, "Paul Smith", "Paul Smith");
+
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/function brandLabelFor\(/.test(src)) throw new Error("brandLabelFor is gone");
+  /* The tiles used to need this too. They do not any more — a brand is
+     never a tile — so the one surface left that names a brand from a
+     key is its own catalogue page, and that is where it is asserted. */
+  const catalog = src.slice(src.indexOf("async function openCatalog("), src.indexOf("function setCatalogStore("));
+  if (!/brandLabelFor\(/.test(catalog)) throw new Error("a brand's catalogue page is titled from its slug again");
+});
+
+check("the list reads like a directory: # first, then A-Z, case-blind", () => {
+  const rows = brandIndex.brandRows(ssenseBrands);
+  eq(rows[0].letter, "#", "the numbered brands come first");
+  eq(brandIndex.brandLetter("424"), "#", "424");
+  eq(brandIndex.brandLetter("1017 ALYX 9SM"), "#", "1017 ALYX 9SM");
+  eq(brandIndex.brandLetter("sacai"), "S", "a lower-case name still files under its letter");
+  eq(brandIndex.brandLetter("Séfr"), "S", "an accented name files under the unaccented letter");
+
+  // Letters only ever move forward through the list.
+  const letters = brandIndex.brandGroups(rows).map((g) => g.letter);
+  eq(JSON.stringify(letters.slice(1)), JSON.stringify([...letters.slice(1)].sort()), "the sections are out of order");
+  // And inside a section, case never decides the order.
+  for (const g of brandIndex.brandGroups(rows)) {
+    const names = g.brands.map((b) => brandIndex.foldBrand(b.label));
+    eq(JSON.stringify(names), JSON.stringify([...names].sort((a, b) => a.localeCompare(b, "es"))), `section ${g.letter}`);
+  }
+});
+
+check("search finds the part of the name you remember", () => {
+  /* A 192-row list is searched by the word that stuck, which is very
+     often not the first one — nobody types "MM6" to find Margiela. */
+  const rows = brandIndex.brandRows(ssenseBrands);
+  const hit = (q) => rows.filter((r) => brandIndex.brandMatches(r.label, q)).map((r) => r.key);
+  if (!hit("margiela").includes("mm6maisonmargiela")) throw new Error("a mid-name search finds nothing");
+  if (!hit("MARGIELA").includes("mm6maisonmargiela")) throw new Error("search is case-sensitive");
+  eq(hit("").length, rows.length, "an empty box hides brands");
+  eq(hit("zzzzz").length, 0, "a nonsense query still matches");
+  // Accents fold both ways: the phone keyboard and the catalogue can
+  // disagree about them and the shopper must not pay for it.
+  eq(brandIndex.brandMatches("Séfr", "sefr"), true, "unaccented query against an accented name");
+  eq(brandIndex.brandMatches("Sefr", "séfr"), true, "accented query against an unaccented name");
+});
+
+check("a brand with nothing behind it is not listed", () => {
+  // A row that opens an empty page is worse than no row.
+  const rows = brandIndex.brandRows({ real: { label: "Real", items: [{}] }, empty: { label: "Empty", items: [] }, broken: { label: "Broken" } });
+  eq(rows.map((r) => r.key).join(), "real", "an empty brand made it into the list");
+});
+
+check("a brand list can be counted off a store's own stock", () => {
+  /* WHY THIS EXISTS. "Wire it into every storefront that carries
+     multiple brands" cannot be answered from `retailers.<key>.brands`.
+     SSENSE ships 192 real buckets; Foot Locker ships 1; Macy's ships
+     NONE while every one of its 754 items names its brand; and the
+     beauty three ship a bare ARRAY OF NAMES with no items behind it,
+     which decodes as brands called "0", "1", "2".
+
+     THE INVARIANT THAT MAKES DERIVING SAFE: run the derivation over
+     SSENSE's own items and it reproduces SSENSE's own export — same
+     192 keys, same labels, same counts. The rule is not ours, it is
+     theirs, which is why a Macy's brand and an SSENSE brand can share
+     one route. */
+  const ssense = JSON.parse(readFileSync(root("ssense-catalog.json"), "utf8")).retailers.ssense;
+  const derived = brandIndex.brandBucketsFromItems(ssense.departments.men.items);
+  eq(Object.keys(derived).length, Object.keys(ssense.brands).length, "derived brand count");
+  for (const [key, bucket] of Object.entries(ssense.brands)) {
+    if (!derived[key]) throw new Error(`deriving lost SSENSE's own key: ${key}`);
+    eq(derived[key].label, bucket.label, `${key} label`);
+    eq(derived[key].items.length, bucket.items.length, `${key} count`);
+  }
+
+  /* ACCENTS ARE DROPPED, NOT FOLDED, and that is the whole reason the
+     keys line up: SSENSE slugs "Courreges" with the accent DELETED.
+     Folding would have minted a second key for eight brands and broken
+     every saved link to them. */
+  eq(brandIndex.brandKeyOf("Courr\u00e8ges"), "courrges", "an accented brand keeps the key that shipped");
+  eq(brandIndex.brandKeyOf("Maison Kitsun\u00e9"), "maisonkitsun", "Maison Kitsune");
+  eq(brandIndex.brandKeyOf("MM6 Maison Margiela"), "mm6maisonmargiela", "MM6");
+  // ...while the SEARCH still folds, because a phone keyboard does not.
+  eq(brandIndex.brandMatches("Courr\u00e8ges", "courreges"), true, "an unaccented search finds an accented brand");
+
+  // Macy's: no brands bucket at all, and a real list behind its stock.
+  const macys = JSON.parse(readFileSync(root("macys-catalog.json"), "utf8")).retailers.macys;
+  eq(Object.keys(macys.brands || {}).length, 0, "Macy's suddenly has a brands bucket — read it instead of deriving");
+  const macysRows = brandIndex.brandRows(brandIndex.brandBucketsFromItems(macys.departments.women.items));
+  if (macysRows.length < 50) throw new Error(`Macy's derived only ${macysRows.length} brands`);
+  if (!macysRows.some((r) => r.label === "Wacoal")) throw new Error("Macy's biggest brand is not in its list");
+
+  /* The beauty three's `brands` really is a list of NAMES. Deriving is
+     the only way they get a panel, and the bogus numeric keys must not
+     reach a shopper. */
+  const beautyFile = JSON.parse(readFileSync(root("beauty-catalog.json"), "utf8"));
+  for (const key of ["sephora", "ulta", "yesstyle"]) {
+    const store = beautyFile.retailers[key];
+    const items = Array.isArray(store.departments.beauty) ? store.departments.beauty : store.departments.beauty.items;
+    const rows = brandIndex.brandRows(brandIndex.brandBucketsFromItems(items));
+    if (rows.length < 2) throw new Error(`${key} derived ${rows.length} brands — it would lose its panel`);
+    if (rows.some((r) => /^[0-9]+$/.test(r.key))) throw new Error(`${key} is listing a brand called "0"`);
+  }
+});
+
+check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
+  /* Foot Locker's 24 shoes live in `brands.nike` and its department
+     items name no brand at all, so a purely derived list would drop
+     Nike and break a link that exists today. The page's merge is what
+     stops that, so the page's merge is what is read here. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const merge = src.slice(src.indexOf("function retailerBrandBuckets("), src.indexOf("function departmentItemsFor("));
+  if (!/Object\.entries\(retailerData\.brands \|\| \{\}\)/.test(merge)) throw new Error("the explicit buckets are no longer read");
+  if (!/if \(!out\[key\]\) out\[key\] = bucket;/.test(merge)) throw new Error("a derived bucket now overwrites the catalogue's own");
+  // A bucket with no items behind it (the beauty three's name list)
+  // must not shadow the derived one.
+  if (!/Array\.isArray\(bucket\?\.items\) && bucket\.items\.length/.test(merge)) throw new Error("an empty brands bucket can shadow the real list again");
+
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8")).retailers.footlocker;
+  eq(Object.keys(cache.brands).join(), "nike", "Foot Locker's brand bucket");
+  if (!cache.brands.nike.items.length) throw new Error("Foot Locker's Nike bucket is empty");
+  // And its items really do carry no brand, which is why the bucket matters.
+  const derived = brandIndex.brandBucketsFromItems(Object.values(cache.departments).flatMap((d) => d.items || []));
+  eq(Object.keys(derived).length, 0, "Foot Locker's items now name their brand — the fallback may be enough");
+});
+
+check("no grid anywhere can build a wall of brands", () => {
+  /* THE WALL: eleven department covers followed by 193 brand cards,
+     each ~340px tall, as the first thing anyone met on the home page.
+     Danny's word for it was "a wall" — and pulling it off the home page
+     only moved it to Categorías, which carried the same 204 tiles on
+     the one page whose job is to show what we sell.
+
+     SO THE GUARD IS ON THE BUILDER, NOT THE TWO CALLERS. collectTiles
+     took a `kind` and would make a tile per brand as readily as a tile
+     per department; the parameter is gone, so there is no longer a code
+     path that turns 192 brands into a grid, whoever calls it next.
+
+     Brands are not gone from the site — the panel, the route,
+     departmentItemsFor's brand branch and brandLabelFor are all live.
+     What went is the tiling. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const tiles = src.slice(src.indexOf("function collectTiles("), src.indexOf("function deptTileHTML("));
+  if (/brand/i.test(tiles)) throw new Error("collectTiles can make a brand tile again");
+  if (!/DEPARTMENT_SPEC/.test(tiles)) throw new Error("collectTiles lost the department taxonomy");
+
+  for (const [label, from, to] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)"],
+    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan("],
+  ]) {
+    const grid = src.slice(src.indexOf(from), src.indexOf(to));
+    if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
+    if (!/collectTiles\(\)/.test(grid)) throw new Error(`${label} lost its department tiles`);
+  }
+
+  // And the route a brand still travels is untouched.
+  if (!/openCatalog\('brand'/.test(src)) throw new Error("the brand route is gone with the tiles");
+  const items = src.slice(src.indexOf("function departmentItemsFor("), src.indexOf("function collectTiles("));
+  if (!/kind === 'brand'/.test(items)) throw new Error("a brand's products are no longer reachable");
+});
+
+check("the store's brand panel is navigable, and keeps today's route", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const panel = src.slice(src.indexOf("function storeBrandPanelHTML("), src.indexOf("function filterBrandPanel("));
+  if (!panel) throw new Error("there is no brand panel");
+
+  /* SAME ROUTE AS THE CARDS. This is the one line that decides whether
+     192 brand links kept working when their cards were deleted. */
+  if (!/openCatalog\('brand','\$\{jsAttr\(b\.key\)\}'\)/.test(panel)) {
+    throw new Error("a brand row no longer opens openCatalog('brand', key)");
+  }
+  // Search box, letter jumps, and a section anchor for each to land on.
+  if (!/id="brandPanelSearch"/.test(panel)) throw new Error("the panel has no search box");
+  if (!/oninput="filterBrandPanel\(\)"/.test(panel)) throw new Error("typing no longer filters");
+  if (!/jumpToBrandLetter\(/.test(panel)) throw new Error("the letter jump is gone");
+  if (!/data-brand-letter=/.test(panel)) throw new Error("the letters have nothing to jump to");
+
+  /* BOTH VIEWPORTS OUT OF ONE MARKUP: the index wraps into a bar on a
+     phone and stacks into a column at md. Two copies of a 192-row list
+     is how one of them goes stale. */
+  eq((panel.match(/<nav/g) || []).length, 1, "there is more than one letter index");
+  if (!/flex flex-wrap/.test(panel)) throw new Error("the letter index no longer wraps into a bar on a phone");
+  if (!/md:w-\[/.test(panel)) throw new Error("the letter index does not become a column on a laptop");
+  eq(panel.match(/data-brand-name=/g).length, 1, "the brand list is rendered more than once");
+
+  // Navy and gold, not a grey database table.
+  if (!/var\(--navy\)/.test(panel)) throw new Error("the panel left the navy palette");
+  if (!/244,196,99/.test(panel) && !/var\(--amber\)/.test(panel)) throw new Error("the panel has no gold in it");
+  if (/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(panel)) throw new Error("an emoji is standing in for the panel's furniture");
+
+  /* ONE COMPONENT, ONE BEHAVIOUR. An earlier cut stripped the search box
+     and the index off short lists; a shopper who learns this panel on
+     SSENSE has to meet the same panel on Ulta. */
+  if (/compact/.test(panel)) throw new Error("the panel has grown a second, quieter version of itself");
+
+  // And the store page draws it off its own stock, for multi-brand
+  // stores only.
+  const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+  if (!/brandRows\(retailerBrandBuckets\(retailerData\)\)/.test(store)) throw new Error("the store page reads no brands");
+  if (!/brandList\.length > 1/.test(store)) throw new Error("a single-brand store is being offered a brand search");
+  if (!/brandPanel/.test(store)) throw new Error("the store page never draws the panel");
+});
+
 
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

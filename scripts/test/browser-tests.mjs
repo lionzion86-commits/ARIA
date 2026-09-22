@@ -194,7 +194,7 @@ await check("every view still renders, with nothing thrown on the way", async ()
   await ctx.close();
 });
 
-await check("Categorías renders one full-width shopfront per row, nothing cropped", async () => {
+await check("Categorías renders one full-width shopfront per row, departments only", async () => {
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -219,9 +219,13 @@ await check("Categorías renders one full-width shopfront per row, nothing cropp
       cardClass: card ? card.className : "",
       windowClass: window_ ? window_.className : null,
       cropped: card ? /object-fit:\s*cover/.test(card.innerHTML) : false,
+      letterboxed: card ? /object-fit:\s*contain/.test(card.innerHTML) : false,
+      first: (card?.textContent || "").trim().split("\n")[0].trim(),
       // The sign: the category name on the brand navy, not navy-on-white.
       signed: card ? /0A1F44/.test(card.innerHTML) : false,
       squares: grid.querySelectorAll('[class*="h-[124px]"], [class*="h-[146px]"]').length,
+      names: [...grid.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
+      counter: document.getElementById("categoriesCount").textContent,
     };
   });
   if (!r.count) throw new Error("Categorías rendered no tiles");
@@ -231,9 +235,32 @@ await check("Categorías renders one full-width shopfront per row, nothing cropp
   }
   if (!/rounded-2xl/.test(r.cardClass)) throw new Error(`a tile is not a card: ${r.cardClass}`);
   if (!/h-\[\d+px\]/.test(r.windowClass || "")) throw new Error(`the window is not pinned: ${r.windowClass}`);
-  eq(r.cropped, false, "a category photo is being cropped");
+  /* THIS ASSERTION READ `false` UNTIL TODAY, AND IT WAS NEVER MEASURING
+     A CATEGORY PHOTO (2026-09-22). It samples the FIRST tile, and this
+     grid is sorted by name, so the first tile used to be SSENSE's
+     "032c" — a brand tile, which draws an SVG field and therefore never
+     crops. The brand tiles are gone from this grid, so the sample is
+     now a real department with a real curated cover, and the rule that
+     applies is the one already asserted on the shared card above: a
+     cover was COMPOSED for this window and fills it edge to edge; only
+     a product photo, shot on white by a retailer who has never seen our
+     card, is shown whole. */
+  if (!r.first) throw new Error("the first Categorías tile has no name");
+  eq(r.cropped, true, `the cover on "${r.first}" no longer fills its window`);
+  eq(r.letterboxed, false, `the cover on "${r.first}" is letterboxed instead of filling`);
   eq(r.signed, true, "the category name is not on a navy sign");
   eq(r.squares, 0, "fixed-height square tiles left in the grid");
+
+  /* DEPARTMENTS ONLY, SAME RULE AS THE HOME PAGE (2026-09-22). Pulling
+     the 192 brand cards off the home page only moved the wall here:
+     this grid carried 11 departments and 193 brands, 204 tiles, on the
+     one page whose whole job is to show what we sell. Brands live in
+     "Busca por marca" inside each multi-brand store now. */
+  eq(r.count, 11, "Categorías tiles");
+  eq(r.counter, "11 categorías", "the counter above the grid");
+  for (const brand of ["032c", "424", "Rick Owens", "Dries Van Noten", "Acne Studios", "Nike"]) {
+    if (r.names.includes(brand)) throw new Error(`the brand wall is back on Categorías: ${brand}`);
+  }
   await ctx.close();
 });
 
@@ -255,6 +282,7 @@ await check("the category card and the Ofertas card are the same object", async 
       cardField: /aspect-ratio:4\/5/.test(card),
       tileCrops: /object-fit:\s*cover/.test(tile),
       cardCrops: /object-fit:\s*cover/.test(card),
+      tileContains: /object-fit:\s*contain/.test(tile),
       tileHasSquare: /h-\[124px\]|h-\[146px\]/.test(tile),
       tileHasSign: /Moda Mujer/.test(tile) && /0A1F44/.test(tile),
     };
@@ -267,7 +295,17 @@ await check("the category card and the Ofertas card are the same object", async 
   }
   eq(same.tileWindow, true, "the category window is not pinned to a height");
   eq(same.cardField, true, "the product card lost its 4:5 field");
-  eq(same.tileCrops, false, "the category window crops its photo");
+  /* THE TWO FIELDS CROP DIFFERENTLY, AND THAT IS THE POINT (2026-09-22).
+     This used to assert that NEITHER cropped, which was true only while
+     the cover map was empty and every category drew an SVG. Ten curated
+     photographs later the rule is the one assets/category/README.md
+     always stated: a cover was COMPOSED for this window, so it fills it
+     edge to edge and the crop is part of the composition; a product
+     photo was shot on white by a retailer who has never seen our card,
+     so it is shown whole and letterboxing is the honest answer.
+     Distortion is never the answer for either. */
+  eq(same.tileCrops, true, "the category cover no longer fills its window");
+  eq(same.tileContains, false, "the category cover is letterboxed instead of filling");
   eq(same.cardCrops, false, "the product card crops its photo");
   eq(same.tileHasSquare, false, "the old fixed-height square is gone");
   eq(same.tileHasSign, true, "the category name is not on a navy sign");
@@ -676,6 +714,20 @@ await check("every category cover renders as abstract art, in the DOM", async ()
   await page.evaluate(() => openCategories());
   await page.waitForSelector("#categoriesGrid [data-cover]", { timeout: 15000 });
 
+  /* THE PHOTOS ARE LAZY, AND THIS HARNESS HAS NO TAILWIND (2026-09-22).
+     cdn.tailwindcss.com is blocked here on purpose — the page must boot
+     without it — so `w-full h-full` and the window's pinned height do
+     not apply, and a <img> that has not decoded yet is a 0x0 box. Ten
+     curated covers therefore measured "collapsed" the moment they
+     landed, which is the harness and not the page. Decoding them first
+     makes the collapse check mean what it says again. */
+  await page.evaluate(async () => {
+    const imgs = [...document.querySelectorAll("#categoriesGrid [data-cover] img")];
+    for (const i of imgs) i.loading = "eager";
+    await Promise.all(imgs.map((i) => (i.complete ? null : new Promise((r) => { i.onload = r; i.onerror = r; }))));
+  });
+  await page.waitForTimeout(400);
+
   const audit = await page.evaluate(() => {
     const GLYPH = /[\u{1F300}-\u{1FAFF}\u{2190}-\u{2BFF}\u{FE0F}\u{1F000}-\u{1F2FF}]/u;
     const covers = [...document.querySelectorAll("[data-cover]")];
@@ -694,7 +746,12 @@ await check("every category cover renders as abstract art, in the DOM", async ()
       collapsed: [...document.querySelectorAll("#categoriesGrid [data-cover]")].filter((c) => {
         const r = c.getBoundingClientRect();
         return r.width < 40 || r.height < 40;
-      }).length,
+      }).map((c) => c.getAttribute("data-cover-key")),
+      /* A curated cover that 404s falls back to the drawn one, so it
+         never shows a broken-image glyph — but it also means the photo
+         somebody committed is not being seen. Name it. */
+      deadPhotos: [...document.querySelectorAll("#categoriesGrid [data-cover] img")]
+        .filter((i) => !i.naturalWidth).map((i) => i.getAttribute("src")),
     };
   });
 
@@ -703,7 +760,8 @@ await check("every category cover renders as abstract art, in the DOM", async ()
   if (audit.texty.length) throw new Error(`type rendered inside the cover of: ${audit.texty.join(", ")}`);
   eq(audit.drawn, audit.total, "every cover paints either drawn art or a curated photo");
   if (!(audit.visible >= 6)) throw new Error(`only ${audit.visible} covers on the Categorias grid`);
-  eq(audit.collapsed, 0, "no visible cover collapsed to nothing");
+  eq(audit.collapsed.join(), "", `covers collapsed to nothing: ${audit.collapsed.join(", ")}`);
+  eq(audit.deadPhotos.join(), "", `curated photos that did not load: ${audit.deadPhotos.join(", ")}`);
 
   /* SVG ids are document-global. The same category renders in BOTH the
      home rail and Categorias, so a key-derived id repeated itself and
@@ -1000,6 +1058,213 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
   if (r.lowest < r.vh * 0.6) {
     throw new Error(`the orb settled at y=${r.lowest.toFixed(0)} in a ${r.vh}px viewport — that is not the bottom corner`);
   }
+  await ctx.close();
+});
+
+/* ============================================================
+   THE BRAND WALL, AND THE PANEL THAT REPLACED IT.
+
+   192 SSENSE brand cards used to sit under the eleven department
+   covers on the home page. Two things have to hold at once now: the
+   wall is really gone from that grid, and not one of those 192 brands
+   became unreachable in the process. Both are browser facts — one is a
+   rendered grid, the other is a filter and a scroll — so neither can be
+   proved by reading the file.
+   ============================================================ */
+await check("the home page grid is departments only", async () => {
+  const { ctx, page, errors } = await openPage();
+  if (errors.length) throw new Error("page-load errors: " + errors.join(" | "));
+  const grid = await page.evaluate(() => {
+    const g = document.getElementById("catGrid");
+    return {
+      cards: g.children.length,
+      names: [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
+    };
+  });
+  /* Eleven departments. The number is asserted, not just "fewer than
+     before": a regression that puts brands back would sail past a
+     `< 50` and the wall would be back at the next export. */
+  eq(grid.cards, 11, "home page tiles");
+  // And none of them is a brand. SSENSE's are the ones that were here.
+  for (const brand of ["Rick Owens", "Driesvannoten", "Dries Van Noten", "Acne Studios", "Nike"]) {
+    if (grid.names.includes(brand)) throw new Error(`the brand wall is back: ${brand} is on the home page grid`);
+  }
+  await ctx.close();
+});
+
+await check("SSENSE's brand panel lists all 192, searches and jumps", async () => {
+  const { ctx, page, errors } = await openPage();
+  await page.evaluate(() => openStore("ssense"));
+  await page.waitForTimeout(1200);
+  if (errors.length) throw new Error("errors after opening the store: " + errors.join(" | "));
+
+  const shape = await page.evaluate(() => {
+    const list = document.getElementById("brandPanelList");
+    if (!list) return { missing: true };
+    const rows = [...list.querySelectorAll("[data-brand-name]")];
+    const chips = [...document.querySelectorAll("[data-brand-jump]")];
+    return {
+      rows: rows.length,
+      letters: chips.map((c) => c.textContent.trim()),
+      names: rows.map((r) => r.getAttribute("data-brand-name")),
+      scrolls: list.scrollHeight > list.clientHeight,
+    };
+  });
+  if (shape.missing) throw new Error("SSENSE has no brand panel");
+  eq(shape.rows, 192, "brands listed in the panel");
+  // The slugs never reach the shopper.
+  if (shape.names.includes("Driesvannoten")) throw new Error("a brand is named by its slug");
+  if (!shape.names.includes("Dries Van Noten")) throw new Error("Dries Van Noten is not in the list");
+  // A letter with no brands behind it would be a dead tap.
+  eq(shape.letters[0], "#", "the numbered brands come first");
+  if (shape.letters.includes("Q")) throw new Error("the index offers a letter with nothing behind it");
+
+  /* THE JUMP MOVES THE LIST, NOT THE PAGE. scrollIntoView would drag
+     the whole document to meet a panel already on screen. */
+  const jump = await page.evaluate(async () => {
+    const list = document.getElementById("brandPanelList");
+    list.scrollTop = 0;
+    const before = window.scrollY;
+    document.querySelector('[data-brand-jump="R"]').click();
+    /* The scroll is smooth, and with the CDN blocked the list is one
+       tall column, so R can be ten thousand pixels down. Wait for the
+       scroll to SETTLE rather than for a guessed number of ms. */
+    let last = -1;
+    for (let i = 0; i < 60 && last !== list.scrollTop; i++) { last = list.scrollTop; await new Promise((r) => setTimeout(r, 100)); }
+    const head = list.querySelector('[data-brand-letter="R"]').getBoundingClientRect();
+    const atEnd = list.scrollTop >= list.scrollHeight - list.clientHeight - 1;
+    return { scrollTop: list.scrollTop, offset: head.top - list.getBoundingClientRect().top, atEnd, pageMoved: window.scrollY - before };
+  });
+  if (jump.scrollTop <= 0) throw new Error("the letter jump did not move the list");
+  /* R sits at the top of the list, unless the list has simply run out
+     of scroll under it — a section near the end cannot reach the top
+     and it is not the jump's fault. */
+  if (!jump.atEnd && Math.abs(jump.offset) > 40) throw new Error(`R landed ${Math.round(jump.offset)}px from the top of the list`);
+  if (jump.atEnd && jump.offset < 0) throw new Error("the jump overshot past R");
+  eq(jump.pageMoved, 0, "the letter jump scrolled the whole page");
+
+  // Typing filters live, mid-name, and the index follows it.
+  const search = await page.evaluate(async () => {
+    const box = document.getElementById("brandPanelSearch");
+    const list = document.getElementById("brandPanelList");
+    const visible = () => [...list.querySelectorAll("[data-brand-name]")].filter((r) => r.offsetParent !== null);
+    const type = async (v) => { box.value = v; box.dispatchEvent(new Event("input")); await new Promise((r) => setTimeout(r, 80)); };
+    await type("margiela");
+    const hits = visible().map((r) => r.getAttribute("data-brand-name"));
+    const live = [...document.querySelectorAll("[data-brand-jump]")].filter((c) => !c.disabled).map((c) => c.textContent.trim());
+    await type("zzzz");
+    const none = visible().length;
+    const empty = document.getElementById("brandPanelEmpty");
+    const told = empty && empty.offsetParent !== null;
+    await type("");
+    return { hits, live, none, told, restored: visible().length };
+  });
+  if (!search.hits.includes("MM6 Maison Margiela")) throw new Error("a mid-name search finds nothing");
+  eq(search.live.join(), "M", "the letter index did not follow the search");
+  eq(search.none, 0, "a nonsense query still shows brands");
+  eq(search.told, true, "an empty result says nothing at all");
+  eq(search.restored, 192, "clearing the box did not bring the brands back");
+  await ctx.close();
+});
+
+await check("every multi-brand storefront carries the same panel", async () => {
+  /* "Wire it into every storefront that carries multiple brands." The
+     list is asserted store by store rather than as a count, because the
+     interesting half is which stores DON'T get it:
+
+       * Foot Locker sells one scraped brand (Nike) — a brand search
+         with one setting is not a search, so it keeps its categories.
+       * Walmart, Target and Old Navy name no brand on any scraped item.
+         There is nothing to list, and guessing one from a product title
+         is exactly the mistake the category covers taught us not to
+         make. That is a scraper gap, and it is the only thing standing
+         between those three and a panel. */
+  const { ctx, page, errors } = await openPage();
+  const expected = { sephora: 2, ulta: 30, yesstyle: 29, macys: 107, ssense: 192 };
+  const bare = ["walmart", "target", "oldnavy", "footlocker"];
+  for (const [store, count] of Object.entries(expected)) {
+    await page.evaluate((k) => openStore(k), store);
+    await page.waitForTimeout(700);
+    const seen = await page.evaluate(() => {
+      const p = document.querySelector("[data-brand-panel]");
+      return p && {
+        heading: p.querySelector("h3").textContent,
+        rows: p.querySelectorAll("[data-brand-name]").length,
+        search: !!document.getElementById("brandPanelSearch"),
+        letters: [...p.querySelectorAll("[data-brand-jump]")].length,
+        numeric: [...p.querySelectorAll("[data-brand-name]")].filter((x) => /^[0-9]+$/.test(x.getAttribute("data-brand-name"))).length,
+      };
+    });
+    if (!seen) throw new Error(`${store} has no brand panel`);
+    // SAME COMPONENT, SAME BEHAVIOUR — Ulta's thirty get what SSENSE's
+    // 192 get, down to the search box.
+    eq(seen.heading, "Busca por marca", `${store} heading`);
+    eq(seen.rows, count, `${store} brand rows`);
+    eq(seen.search, true, `${store} lost its search box`);
+    if (!seen.letters) throw new Error(`${store} has no letter index`);
+    /* The beauty three's `brands` key is a bare array of NAMES, which
+       decodes as brands called "0" and "1". Deriving off their stock is
+       what keeps those out of a shopper's way. */
+    if (store !== "ssense" && seen.numeric) throw new Error(`${store} is listing a brand called by a number`);
+  }
+  for (const store of bare) {
+    await page.evaluate((k) => openStore(k), store);
+    await page.waitForTimeout(700);
+    const drawn = await page.evaluate(() => !!document.querySelector("[data-brand-panel]"));
+    if (drawn) throw new Error(`${store} was offered a brand search it has no brands for`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a derived brand routes, and its count is the truth", async () => {
+  /* Macy's ships no brands bucket at all — its list is counted off its
+     own 754 items. The row says 43 Wacoal and the page it opens has to
+     agree, or the number on the row is decoration. */
+  const { ctx, page, errors } = await openPage();
+  await page.evaluate(() => openStore("macys"));
+  await page.waitForTimeout(900);
+  const row = await page.evaluate(() => {
+    const el = [...document.querySelectorAll("[data-brand-name]")].find((x) => x.getAttribute("data-brand-name") === "Wacoal");
+    return el && { count: Number(el.lastElementChild.textContent), onclick: el.getAttribute("onclick") };
+  });
+  if (!row) throw new Error("Macy's biggest brand is not in its panel");
+  eq(row.onclick, "openCatalog('brand','wacoal')", "a derived brand's route");
+  await page.evaluate(() => [...document.querySelectorAll("[data-brand-name]")].find((x) => x.getAttribute("data-brand-name") === "Wacoal").click());
+  await page.waitForTimeout(1600);
+  const landed = await page.evaluate(() => ({
+    title: document.getElementById("catalogTitle").textContent,
+    url: location.search,
+    subtitle: document.getElementById("catalogSubtitle").textContent,
+  }));
+  eq(landed.title, "Wacoal", "the derived brand's page title");
+  eq(landed.url, "?categoria=wacoal&kind=brand", "the derived brand's URL");
+  if (!landed.subtitle.startsWith(`${row.count} productos`)) {
+    throw new Error(`the row promised ${row.count} and the page says "${landed.subtitle.slice(0, 40)}"`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a brand row opens exactly what its card opened", async () => {
+  /* The cards are gone; their route is not. This is the assertion that
+     decides whether 192 links survived the deletion. */
+  const { ctx, page, errors } = await openPage();
+  await page.evaluate(() => openStore("ssense"));
+  await page.waitForTimeout(1200);
+  await page.evaluate(() => document.querySelector('[data-brand-name="Dries Van Noten"]').click());
+  await page.waitForTimeout(1500);
+  const landed = await page.evaluate(() => ({
+    view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+    title: document.getElementById("catalogTitle").textContent,
+    url: location.search,
+    products: document.querySelectorAll("#catalogSections button, #catalogSections article").length,
+  }));
+  eq(landed.view, "catalogView", "a brand row did not open the catalogue");
+  eq(landed.title, "Dries Van Noten", "the brand page is titled by its slug");
+  eq(landed.url, "?categoria=driesvannoten&kind=brand", "the brand's URL changed");
+  if (!landed.products) throw new Error("the brand page opened with nothing in it");
+  if (errors.length) throw new Error("errors on the brand page: " + errors.join(" | "));
   await ctx.close();
 });
 
