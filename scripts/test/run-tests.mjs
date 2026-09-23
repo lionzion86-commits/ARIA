@@ -5287,6 +5287,56 @@ check("the image-quality gate survived the restyle", () => {
 
 
 /* ------------------------------------------------------------------ */
+
+group("The designer's name, and the size that goes with it");
+
+check("the brand is an eyebrow above the title, and absent when there is none", () => {
+  /* item.brand was in the data and rendered nowhere: the "Brown Curved
+     Vent Blazer" at $1,790 -> $537 is EGONlab and no surface said so.
+     For a premium or marked-down piece the label IS the decision. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fn = src.slice(src.indexOf("function brandEyebrowHTML(brand, opts){"), src.indexOf("/** The standard card for any listed product"));
+  if (!fn) throw new Error("the brand eyebrow is gone");
+  if (!/if \(!name\) return '';/.test(fn)) throw new Error("an empty brand still renders an element — a hole above every unbranded title");
+  if (!/uppercase/.test(fn)) throw new Error("the eyebrow is not small caps");
+  if (!/var\(--navy\)/.test(fn)) throw new Error("the eyebrow is not navy");
+  if (!/escapeHtml\(name\)/.test(fn)) throw new Error("a retailer's brand string reaches innerHTML unescaped");
+
+  /* ABOVE THE TITLE on all three surfaces, and a <span> in the rail's
+     card because a <div> inside a <button> is not valid content. */
+  const rail = src.slice(src.indexOf("function railCardHTML(p, onclick, attr){"), src.indexOf("function mobileDealCardHTML"));
+  const railBrand = rail.indexOf("brandEyebrowHTML"), railTitle = rail.indexOf("escapeHtml(p.title)");
+  if (railBrand < 0) throw new Error("the rail card lost the brand");
+  if (!(railBrand < railTitle)) throw new Error("the rail card puts the brand below the title");
+  if (!/tag: 'span'/.test(rail)) throw new Error("the rail card emits a <div> inside its <button>");
+
+  const card = src.slice(src.indexOf("function productCardHTML(p, opts){"), src.indexOf("function productCardHTML(p, opts){") + 9000);
+  const cardBrand = card.indexOf("brandEyebrowHTML"), cardTitle = card.indexOf("escapeHtml(p.title)");
+  if (cardBrand < 0) throw new Error("the listing card lost the brand");
+  if (!(cardBrand < cardTitle)) throw new Error("the listing card puts the brand below the title");
+
+  const pdp = src.slice(src.indexOf('id="productViewBrand"'), src.indexOf('id="productViewTitle"'));
+  if (!pdp) throw new Error("the PDP's brand element is gone, or moved below the title");
+});
+
+check("the PDP is told the brand, and cannot inherit the last one", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  if (!/function showProduct\(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts\)/.test(src)) {
+    throw new Error("showProduct no longer takes the options object the brand travels in");
+  }
+  const body = src.slice(src.indexOf("  const brandEl = document.getElementById('productViewBrand');"), src.indexOf("document.getElementById('productViewTitle').textContent"));
+  if (!body) throw new Error("the PDP never sets its brand");
+  /* textContent, not innerHTML: this is a retailer's string. And it is
+     ALWAYS written, so a product with no brand clears the one before it
+     rather than inheriting it -- the same leak pendingAutoPartNumber
+     guards against two lines below. */
+  if (!/brandEl\.textContent = brand;/.test(body)) throw new Error("the brand reaches the page as HTML, or is not cleared between products");
+  if (!/brandEl\.hidden = !brand;/.test(body)) throw new Error("an empty brand still occupies space above the title");
+  // Every card surface hands it over.
+  const expr = src.slice(src.indexOf("function productCardOpenExpr(p, retailer){"), src.indexOf("/** The standard card for any listed product"));
+  if (!/brand: p\.brand/.test(expr)) throw new Error("the shared card's onclick does not pass the brand");
+});
+
 group("cómo funciona: the shopper is the one doing the buying");
 
 check("step 3 never makes us the buyer", () => {

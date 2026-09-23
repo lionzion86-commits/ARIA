@@ -920,6 +920,11 @@
           <div id="productThumbs" class="flex gap-2 mt-3 overflow-x-auto pb-1" hidden></div>
         </div>
         <div class="min-w-0">
+          <!-- Filled by showProduct() from the item's own brand, and left
+               EMPTY (not blank-but-present) when the store carries none,
+               so nothing reserves space above the title. -->
+          <div id="productViewBrand" class="text-[12px] font-bold uppercase leading-tight mb-1"
+            style="color:var(--navy); letter-spacing:0.09em"></div>
           <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-2"></h1>
           <!-- Auto parts only: the manufacturer part number, kept visible
                after the click-through so a buyer can cross-check fit from
@@ -3716,7 +3721,8 @@ function openMobileDeal(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 /* ============================================================
@@ -3745,6 +3751,7 @@ function railCardHTML(p, onclick, attr){
     </span>
     <span class="block px-3 pt-2.5 pb-3">
       <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</span>
+      ${brandEyebrowHTML(p.brand, { tag: 'span', cls: 'block text-[10px] mb-0.5' })}
       <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
       <span class="flex items-baseline gap-1.5">
         <span class="text-[15px] font-extrabold tabular" style="color:var(--navy)">${fmtDisplayPrice(p.price)}</span>
@@ -3867,7 +3874,8 @@ function openRelatedProduct(idx){
      opens that product's page, which renders its own rail". */
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 async function renderRelatedRail(anchorIn){
@@ -5270,7 +5278,37 @@ function productCardOpenExpr(p, retailer){
     + `'${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, `
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
     + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
-    + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'})`;
+    + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'}, `
+    + `${escapeHtml(JSON.stringify({ brand: p.brand || '' }))})`;
+}
+
+/* ============================================================
+   THE DESIGNER'S NAME, ABOVE THE PRODUCT'S.
+
+   item.brand has been in the data all along and nothing rendered it:
+   the "Brown Curved Vent Blazer" at $1,790 -> $537 is EGONlab, and the
+   card said so nowhere. For a premium or a marked-down piece the label
+   IS the decision -- it is what a shopper searches to check the price
+   is real, and for a market still learning these houses it is the
+   whole education.
+
+   SMALL CAPS, NAVY, ABOVE THE TITLE, in the reference's manner: the
+   name is read first and takes almost no room, and the photograph is
+   still the loudest thing on the card.
+
+   HIDDEN WHEN THERE IS NONE, not blanked. Three of our nine stores
+   (Walmart, Target, Old Navy -- the scraped ones) carry no brand field
+   at all: 456 of 6,259 items. An empty eyebrow would leave a hole above
+   every one of their titles, so the element is not emitted.
+
+   TAG IS A PARAMETER because the rail's card is a <button>, and a
+   <div> inside a button is not valid content. Same rule, two tags. */
+function brandEyebrowHTML(brand, opts){
+  const name = String(brand || '').trim();
+  if (!name) return '';
+  const { tag = 'div', cls = 'text-[10.5px] mb-1' } = opts || {};
+  return `<${tag} class="${cls} font-bold uppercase leading-tight"`
+    + ` style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(name)}</${tag}>`;
 }
 
 /** The standard card for any listed product, on any surface. */
@@ -5447,7 +5485,8 @@ async function applyRoute(route){
           || (autoPartsRendered || []).find(it => it.title === route.name);
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
-          known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null);
+          known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
+          { brand: known.brand });
         else if (route.name) showResults(route.name, { fromHistory: true });
         else showPage('homeView');
         break;
@@ -5981,7 +6020,8 @@ function openSearchProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 /* Same product, different store. Retailers word titles differently, so
@@ -6606,12 +6646,31 @@ document.addEventListener('keydown', (e) => {
    already taken this page down once. */
 let pendingAutoPartNumber = null;
 
-function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg){
+/* AN OPTIONS OBJECT, NOT A TWELFTH POSITIONAL ARGUMENT. Eleven
+   positions is already more than anyone can read at a call site, and
+   the brand is the first thing here that only SOME callers have. The
+   alternative the file already uses for this -- a module-level
+   `pendingProductBrand` set immediately before the call -- works, and
+   its own comment explains the hazard: it has to be consumed here "so
+   it cannot leak onto the next product". A value passed with the call
+   cannot leak at all. Callers with no brand pass nothing and the
+   eyebrow is simply not drawn. */
+function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
+  /* The designer, above the product. textContent, never innerHTML: this
+     string comes from a retailer's catalogue. Emptied when there is no
+     brand so the previous product's label cannot survive onto this one
+     -- the same leak the part-number field guards against below. */
+  const brandEl = document.getElementById('productViewBrand');
+  if (brandEl){
+    const brand = String(opts?.brand || '').trim();
+    brandEl.textContent = brand;
+    brandEl.hidden = !brand;
+  }
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
   /* Set by openAutoPart() immediately before this call, and consumed
      here so it cannot leak onto the next product a shopper opens. */
@@ -11386,7 +11445,8 @@ function openCrossSellProduct(idx){
   if (!it) return;
   showProduct(it.retailer, it.title, it.price, it.weightKg, it.image || '', it.sizes || [],
     needsSizeSelection(it.retailer, it.title), sizeCategoryFor(it.retailer, it.title),
-    it.rating != null ? String(it.rating) : '', it.images || [], it.catalogWeightKg ?? null);
+    it.rating != null ? String(it.rating) : '', it.images || [], it.catalogWeightKg ?? null,
+    { brand: it.brand });
 }
 
 function addCrossSellToCart(idx){
@@ -12424,7 +12484,8 @@ function openSaleProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
@@ -12540,6 +12601,7 @@ function productCardHTML(p, opts){
          grid rather than a column of inset text blocks. -->
     <div class="pt-3 pb-1 flex flex-col flex-1">
       <div class="mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</div>
+      ${brandEyebrowHTML(p.brand, { cls: 'text-[10.5px] mb-1' })}
       <div class="text-[13px] leading-snug mb-2 cursor-pointer line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
       <!-- THE RATING CAME OFF THE STORE MARK'S ROW. Side by side they
            needed more than a two-across card has: measured at 393px the
@@ -13390,7 +13452,7 @@ async function streamAssistantReply(payload, sink){
 function addAssistantProductCard(item, retailer){
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating); };
+  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
