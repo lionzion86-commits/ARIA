@@ -348,3 +348,45 @@ export function loadPageChatRoutingSlice() {
     sandbox, { filename: "index.html#chat-routing" });
   return sandbox.__exports;
 }
+
+/* The Ofertas rail's store spread, on its own. Pure list work, so it is
+   run rather than pattern-matched: "one card per store in the first
+   five" is a claim about what comes out, not about what the source
+   looks like. */
+export function loadPageDealSpreadSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const MOBILE_RAIL_LEAD = 5;");
+  const to = html.indexOf("function renderMobileDealsRail(");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html deal-spread markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(html.slice(from, to) + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD };",
+    sandbox, { filename: "index.html#deal-spread" });
+  return sandbox.__exports;
+}
+
+/* The product page's "También te puede interesar" selection, on its own.
+   Pure list work over an anchor and a pool, so the rules the brief
+   states -- same department, ±50%, backfill from the same store, ten at
+   most, never a priceless one -- are RUN against made-up catalogues
+   rather than grepped for. A rule you can only see in the source is a
+   rule nobody has checked. */
+const RELATED_START = "const RELATED_RAIL_MIN = 8;";
+const RELATED_END = "/* Every catalogue item once, with every department it appears in.";
+
+export function loadPageRelatedSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(RELATED_START);
+  const to = html.indexOf(RELATED_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html related-rail markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(html.slice(from, to) +
+    "\n;globalThis.__exports = { relatedProducts, relatedKeyOf, RELATED_RAIL_MIN, RELATED_RAIL_MAX, RELATED_PRICE_BAND };",
+    sandbox, { filename: "index.html#related" });
+  return sandbox.__exports;
+}
