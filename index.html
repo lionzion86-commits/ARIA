@@ -343,7 +343,7 @@
     <div class="flex items-end justify-between gap-4 mb-6">
       <div>
         <div class="ariaKicker ariaKicker--onLight mb-2">Explora</div>
-        <h2 class="text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]" style="color:var(--navy)">Comprar por departamento</h2>
+        <h2 class="text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]" style="color:var(--navy)">Comprar por categoría</h2>
         <p class="text-[13.5px] text-zinc-500 mt-1.5">Inventario real de nuestras tiendas en EE. UU., en un solo feed por categoría.</p>
       </div>
     </div>
@@ -1053,7 +1053,7 @@
         <div class="ariaKicker mb-4">Explora</div>
         <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">Categorías</h1>
         <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
-          Todos los departamentos disponibles, con inventario real de nuestras tiendas.
+          Todas las categorías disponibles, con inventario real de nuestras tiendas.
           ¿Buscas una marca? Está dentro de cada tienda, en “Busca por marca”.
         </p>
       </div>
@@ -3683,7 +3683,7 @@ function initDepartmentTiles(){
     const catGrid = document.getElementById('catGrid');
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')
-      : '<div class="col-span-full text-[13px] text-zinc-400">No hay departamentos disponibles por ahora.</div>';
+      : '<div class="col-span-full text-[13px] text-zinc-400">No pudimos cargar las categorías por ahora.</div>';
     // The phone's third rail, from the SAME tiles — never a second list.
     renderMobileCatsRail(tiles);
   });
@@ -5102,14 +5102,14 @@ async function openStore(retailer){
   showPage('storeView');
   await loadFxRate();
   document.getElementById('storeViewHero').innerHTML = retailerBadgeHTML(retailer, 44);
-  document.getElementById('storeViewSubtitle').textContent = 'Cargando departamentos…';
+  document.getElementById('storeViewSubtitle').textContent = 'Cargando artículos…';
   /* A beauty store leads with the courier's fragrance limit. It is the
      one rule that can invalidate a whole basket, so it belongs at the top
      of the page the basket gets built on. */
   document.getElementById('storeViewSections').innerHTML = isBeautyRetailer(retailer) ? fragranceLimitNoticeHTML() : '';
 
   /* A store we have not wired a scraper for yet says so plainly rather
-     than showing "sin departamentos", which reads as "this shop is
+     than showing "sin artículos", which reads as "this shop is
      empty" when the truth is "we are still connecting it". */
   /* A store with a CATALOGUE is not "still being connected", whether or
      not a live scraper exists for it — Macy's is browsable from a file.
@@ -5158,15 +5158,15 @@ async function openStore(retailer){
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = brandPanel
-      ? 'Sin departamentos por ahora — busca por marca.'
-      : 'Sin departamentos disponibles por ahora.';
+      ? 'Sin categorías por ahora — busca por marca.'
+      : 'No hay artículos disponibles por ahora.';
     if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
     return;
   }
-  // "1 departamento disponibles" — the noun was pluralised and the
+  // "1 categoría disponible(s)" — the noun was pluralised and the
   // adjective was not, which Sephora (one department) showed on the page.
   const plural = deptEntries.length === 1 ? '' : 's';
-  document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} departamento${plural} disponible${plural}`;
+  document.getElementById('storeViewSubtitle').textContent = `${deptEntries.length} categoría${plural} disponible${plural}`;
   /* THE FIRST SCREEN OF A STORE IS PRODUCTS, NOT ICONS (2026-09-22).
 
      This grid was a 26px emoji over a label and a count -- the tile a
