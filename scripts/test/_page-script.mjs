@@ -309,3 +309,25 @@ export function loadPageBrandSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The footwear detector. Pure string work over an item, so it loads
+   without the cache the department read needs around it. */
+const SHOE_START = "const FOOTWEAR_TYPE =";
+const SHOE_END = "function rawTitleOf(item){";
+
+export function loadPageFootwearSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(SHOE_START);
+  const to = html.indexOf(SHOE_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html footwear slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { isFootwear, isFootwearType, isFootwearTitle, FOOTWEAR_RETAILERS };",
+    sandbox,
+    { filename: "index.html#footwear" },
+  );
+  return sandbox.__exports;
+}

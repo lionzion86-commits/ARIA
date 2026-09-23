@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageFootwearSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -45,6 +45,7 @@ import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
 import * as subcats from "../lib/subcategories.js";
 import * as brandIndex from "../lib/brand-index.js";
+import * as footwear from "../lib/footwear.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -999,13 +1000,19 @@ check("every department has a curated photograph, and every one is on disk", () 
      field beside ten photographs. Naming the gap by key rather than
      tolerating it is what got the eleventh shot.
 
-     The empty string is the load-bearing part. A new department added
-     without a cover is NOT a failure — it gets the drawn brand field,
-     which is a deliberate treatment — but this line will change, and
-     whoever changes it has to decide on purpose whether that department
-     ships with a photograph or without one. */
+     The empty string was the load-bearing part, and it did its job
+     again: a new department added without a cover is NOT a failure — it
+     gets the drawn brand field, which is a deliberate treatment — but
+     this line changes, and whoever changes it has to decide on purpose.
+
+     IT READS "shoes" NOW (2026-09-23), decided on purpose. Zapatos
+     shipped with 539 real pairs across four stores and its photograph
+     did not arrive with the brief. It renders the drawn navy/sky field
+     until shoes.jpg lands in assets/category/, at which point this goes
+     back to "" and one line joins CATEGORY_COVERS. Nothing else about
+     the department is waiting on the picture. */
   const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
-  eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
+  eq(uncovered.join(), "shoes", "a department is on the drawn cover — give it a photo or accept it here");
 });
 
 check("Ofertas takes a photograph but keeps its gold sign", () => {
@@ -4520,6 +4527,146 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
   if (!/brandPanel/.test(store)) throw new Error("the store page never draws the panel");
 });
 
+
+/* ------------------------------------------------------------------ */
+group("Zapatos: a department made of other people's buckets");
+
+const shoePage = loadPageFootwearSlice();
+
+function everyCatalogueItem() {
+  const rows = [];
+  for (const file of ["department-cache.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    for (const [retailer, bucket] of Object.entries(data.retailers || {})) {
+      for (const [, entry] of Object.entries(bucket.departments || {})) {
+        for (const item of (Array.isArray(entry) ? entry : entry.items) || []) rows.push({ retailer, item });
+      }
+    }
+  }
+  return rows;
+}
+
+check("the page's footwear detector and the module agree, item for item", () => {
+  // Compared over all 3,990 real items rather than over examples: the
+  // whole department is this one predicate, twice.
+  let checked = 0;
+  for (const { retailer, item } of everyCatalogueItem()) {
+    const a = shoePage.isFootwear(item, retailer);
+    const b = footwear.isFootwear(item, retailer);
+    if (a !== b) throw new Error(`drifted on ${retailer}: ${JSON.stringify(item).slice(0, 90)}`);
+    checked++;
+  }
+  if (checked < 3000) throw new Error(`only compared ${checked} items`);
+});
+
+check("Zapatos is populated, priced, and spread across real stores", () => {
+  /* ACCEPTANCE: "opens to real priced footwear; Foot Locker items show
+     here". Asserted as a floor per store, not an exact total, so a
+     re-scrape does not break the build — but a store falling to zero
+     does, because that is the signal a detector stopped working. */
+  const files = ["department-cache.json", "macys-catalog.json", "ssense-catalog.json"].map((f) =>
+    JSON.parse(readFileSync(root(f), "utf8")));
+  const counts = {};
+  let priced = 0, total = 0;
+  for (const data of files) {
+    for (const [retailer, bucket] of Object.entries(data.retailers || {})) {
+      const items = deptMap.departmentItems(bucket, "shoes", retailer);
+      if (!items.length) continue;
+      counts[retailer] = items.length;
+      for (const it of items) {
+        total++;
+        const n = Number(it.price);
+        if (Number.isFinite(n) && n > 0) priced++;
+      }
+    }
+  }
+  if (!counts.footlocker) throw new Error("Foot Locker, the anchor shoe store, has nothing in Zapatos");
+  for (const [store, floor] of [["footlocker", 50], ["ssense", 300], ["macys", 15], ["walmart", 3]]) {
+    if (!(counts[store] >= floor)) throw new Error(`${store} dropped to ${counts[store] || 0} shoes (floor ${floor})`);
+  }
+  if (total < 400) throw new Error(`Zapatos holds only ${total} pairs`);
+  // Priceless records exist site-wide (see the no-price guards); the
+  // department must still be overwhelmingly buyable.
+  if (priced / total < 0.98) throw new Error(`only ${priced}/${total} pairs carry a price`);
+});
+
+check("Foot Locker is found by its badge, not by its words", () => {
+  /* THE FINDING THAT SHAPED THIS. Foot Locker's titles are model names
+     — "New Balance 9060 - Men's", "ASICS GEL-1130 - Women's", "Nike KD
+     19". A keyword list catches 2 of its 65 products, so the brief's
+     title-keyword approach alone would have missed the anchor store
+     almost entirely. The STORE is the signal. */
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const titles = new Set();
+  for (const entry of Object.values(cache.retailers.footlocker.departments || {})) {
+    for (const item of entry.items || []) titles.add(deptMap.titleOf(item));
+  }
+  const byTitle = [...titles].filter((t) => footwear.isFootwearTitle(t));
+  if (byTitle.length > 10) throw new Error(`${byTitle.length}/${titles.size} Foot Locker titles now name footwear — the store rule may be redundant`);
+  if (!footwear.FOOTWEAR_RETAILERS.has("footlocker")) throw new Error("Foot Locker is no longer a footwear store");
+  // ...and every one of them lands anyway.
+  eq(deptMap.departmentItems(cache.retailers.footlocker, "shoes", "footlocker").length,
+     deptMap.departmentItems(cache.retailers.footlocker, "shoes", "footlocker").length, "sanity");
+  if (deptMap.departmentItems(cache.retailers.footlocker, "shoes", "footlocker").length < 50) {
+    throw new Error("the store rule is not reaching Foot Locker's catalogue");
+  }
+});
+
+check("the words that look like shoes and are not", () => {
+  /* Every one of these was a real hit on the real catalogue before it
+     was excluded — this is the regression net for the whole detector. */
+  for (const notShoe of [
+    "Wrangler Rustler Men's Regular Fit Boot Cut Cotton Jeans",
+    "Classic Fit Everyday Oxford Shirt",
+    "Men's Hanes Crew Socks with FreshIQ 8pk",
+    "NEWZILL Plantar Fasciitis Socks with Arch Support",
+    "SKLZ Star Kick Sports Trainer - Yellow",
+    "SKLZ Recoil 360 Resistance Trainer - Black",
+    "Taco Seasoning Mix, 1 oz",
+    "3-Tier Shoe Rack Organizer",
+    "Memory Foam Insoles for Running",
+  ]) {
+    if (footwear.isFootwearTitle(notShoe)) throw new Error(`"${notShoe}" was filed as footwear`);
+  }
+  // ...while the real thing still matches, in both languages.
+  for (const shoe of [
+    "Men's 5000 Athletic Running Sneakers, Wide Width Available",
+    "Josmo Boys Wingtip Oxford Lace Dress Shoes - Black, 10",
+    "Purcolt Women's Mid Heel Slingback Pumps Dress Shoes",
+    "Zapatillas de cuero para hombre",
+    "Botas de lluvia para niña",
+    "Sandalias planas de verano",
+    "Tacones altos de fiesta",
+  ]) {
+    if (!footwear.isFootwearTitle(shoe)) throw new Error(`"${shoe}" was not recognised as footwear`);
+  }
+});
+
+check("a retailer's own type outranks our keyword, both ways", () => {
+  /* "Oxford" is a shoe and a cloth. SSENSE's "Gray Oxford Single
+     Blazer" matched the keyword while SSENSE's own type field said
+     BLAZERS. The retailer was right. */
+  eq(footwear.isFootwear({ name: "Gray Oxford Single Blazer", type: "BLAZERS" }), false, "an oxford-cloth blazer");
+  eq(footwear.isFootwear({ name: "Green Oxford Nylon-TC Jacket", type: "JACKETS" }), false, "an oxford-cloth jacket");
+  eq(footwear.isFootwear({ name: "Black Suede Boat Shoes", type: "BOAT SHOES & MOCCASINS" }), true, "a typed shoe");
+  eq(footwear.isFootwear({ name: "Women's 327 Sneakers", type: "SHOE" }), true, "Macy's typed shoe");
+  // A typed garment stays out even from a footwear store.
+  eq(footwear.isFootwear({ productName: "Nike Club Fleece Hoodie", type: "HOODIES & ZIPUPS" }, "footlocker"), false,
+     "a typed hoodie escaped through the store rule");
+  // And an untyped garment at a footwear store is caught by its title.
+  eq(footwear.isFootwear({ productName: "Nike Everyday Crew Socks 3pk" }, "footlocker"), false,
+     "socks from a shoe store are still not shoes");
+});
+
+check("Zapatos is a department with a name and a place in the taxonomy", () => {
+  eq(deptMap.DEPARTMENT_SPEC.shoes.footwearOnly, true, "the shoes spec");
+  eq(deptMap.DEPARTMENT_SPEC.shoes.anyCategory, true, "shoes must scan every bucket, not one named bucket");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/shoes: \{ label: 'Zapatos'/.test(src)) throw new Error("the department has no Spanish name");
+  // The page's spec mirrors the module's.
+  const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
+  if (!/shoes:\s+\{ anyCategory: true, footwearOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no shoes");
+});
 
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
