@@ -4767,6 +4767,140 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
 });
 
 
+/* ==================================================================
+   THE IMAGE LIGHTBOX — six ways out, and none of them coverable.
+   ================================================================== */
+group("The lightbox is not a trap");
+
+const lbSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const lbStyle = lbSrc.slice(lbSrc.indexOf("<style>"), lbSrc.indexOf("</style>"));
+const lbMarkup = lbSrc.slice(lbSrc.indexOf('<div id="imageLightbox"'), lbSrc.indexOf('<div id="toast"'));
+
+check("the photograph is contained on BOTH axes", () => {
+  /* THE BUG. `max-w-none` with `width:auto` caps only the HEIGHT, which
+     is not containment: measured at 393px, a 1600x900 photo rendered
+     1393px wide and hung 952px off the right-hand side. */
+  if (/max-w-none/.test(lbMarkup)) throw new Error("the lightbox image is back to an uncapped width");
+  const rule = lbStyle.slice(lbStyle.indexOf("#lightboxImg{"), lbStyle.indexOf("#imageLightbox[data-zoom"));
+  if (!rule) throw new Error("the lightbox image has no sizing rule");
+  for (const needed of ["max-width:100%", "max-height:100%", "object-fit:contain"]) {
+    if (!rule.includes(needed)) throw new Error(`the image is not contained: missing ${needed}`);
+  }
+  if (/max-width:\s*none/.test(rule)) throw new Error("the image's width cap was removed again");
+  // And the stage does not scroll unless we have deliberately zoomed.
+  const stage = lbStyle.slice(lbStyle.indexOf("#lightboxStage{"), lbStyle.indexOf("#lightboxImg{"));
+  if (!/overflow:hidden/.test(stage)) throw new Error("the stage scrolls at rest — the image can leave the frame");
+});
+
+check("the way out cannot be moved off screen", () => {
+  const btn = lbMarkup.slice(lbMarkup.indexOf("data-lightbox-close"));
+  const tag = lbMarkup.slice(lbMarkup.lastIndexOf("<button", lbMarkup.indexOf("data-lightbox-close")), lbMarkup.indexOf(">", lbMarkup.indexOf("data-lightbox-close")));
+  /* FIXED, NOT ABSOLUTE. Absolute pinned it to the overlay, so anything
+     that moved the visible area took it along -- a sideways scroll, and
+     on iOS a pinch, which zooms the LAYOUT viewport and carries every
+     absolutely-positioned thing with it. */
+  if (!/\bfixed\b/.test(tag)) throw new Error("the close button is not fixed to the viewport");
+  if (/\babsolute\b/.test(tag)) throw new Error("the close button is pinned to the overlay again");
+  if (!/w-11 h-11/.test(tag)) throw new Error("the close button is under the 44px minimum");
+  // Above the image layer.
+  const z = Number((tag.match(/z-\[(\d+)\]/) || [])[1]);
+  const boxZ = Number((lbMarkup.match(/id="imageLightbox"[^>]*z-\[(\d+)\]/) || [])[1]);
+  if (!(z > boxZ)) throw new Error(`the close button (z ${z}) is not above the overlay (z ${boxZ})`);
+  if (!/aria-label="Cerrar"/.test(tag)) throw new Error("the close button is unlabelled");
+});
+
+check("six ways out, and the photo covers none of them", () => {
+  // backdrop, button, Escape, swipe, back gesture, double-tap reset
+  if (!/id="imageLightbox"[^>]*onclick="closeImageLightbox\(event\)"/.test(lbMarkup)) throw new Error("the backdrop no longer dismisses");
+  if (!/onclick="closeImageLightbox\(\)"/.test(lbMarkup)) throw new Error("the close button no longer dismisses");
+  const js = lbSrc.slice(lbSrc.indexOf("let lightboxScrollY = 0;"), lbSrc.indexOf("/* Handed from an auto card"));
+  if (!js) throw new Error("the lightbox's behaviour is gone");
+  if (!/e\.key === 'Escape'/.test(js)) throw new Error("Escape no longer dismisses");
+  if (!/SWIPE_CLOSE_PX/.test(js)) throw new Error("swipe-down no longer dismisses");
+  if (!/setLightboxZoom\(box\.getAttribute\('data-zoom'\) !== '1'\)/.test(js)) throw new Error("double-tap no longer toggles the zoom");
+
+  /* A TAP ON THE PHOTO IS NOT A DISMISSAL -- the shopper is looking at
+     it -- but a DOWNWARD SWIPE on it is, and only when not zoomed,
+     where the same gesture is how the photograph is panned. */
+  if (!/event\.target\.id === 'lightboxImg'\) return;/.test(js)) throw new Error("tapping the photo closes it");
+  if (!/!zoomed && dy > SWIPE_CLOSE_PX && Math\.abs\(dy\) > Math\.abs\(dx\)/.test(js)) {
+    throw new Error("a swipe closes in the wrong direction, or while zoomed");
+  }
+  // Two fingers is a pinch and none of our business.
+  if (!/e\.touches\.length === 1/.test(js)) throw new Error("a two-finger gesture is being read as a swipe");
+});
+
+check("zoom can never take the way out with it", () => {
+  /* NATIVE PINCH WAS THE MECHANISM. touch-action:pinch-zoom on the
+     stage let iOS zoom the layout viewport, which is what carried the
+     close button away. The zoom is a transform we set, so we always
+     know the state and can always reset it. */
+  const stage = lbStyle.slice(lbStyle.indexOf("#lightboxStage{"), lbStyle.indexOf("#lightboxImg{"));
+  if (/pinch-zoom/.test(stage)) throw new Error("the stage hands the pinch back to the browser");
+  if (!/touch-action:none/.test(stage)) throw new Error("the stage does not own its gestures");
+  if (!/#imageLightbox\[data-zoom="1"\] #lightboxImg\{ transform:scale/.test(lbStyle)) throw new Error("the zoom is not a transform we control");
+  const js = lbSrc.slice(lbSrc.indexOf("function setLightboxZoom("), lbSrc.indexOf("function lightboxHintText("));
+  if (!/box\.removeAttribute\('data-zoom'\)/.test(js)) throw new Error("the zoom cannot be reset");
+  // Closing always resets it, so it can never be reopened zoomed.
+  /* SLICED FORWARD FROM THE FUNCTION, not back to a marker that moved.
+     The popstate listeners were deliberately moved up beside the
+     router's (order is their whole mechanism), so an end marker of
+     "window.addEventListener('popstate'" now finds the EARLIER one and
+     produces a backwards, empty slice -- which read as "closing leaves
+     the zoom on" about code that removes it. */
+  const dismissAt = lbSrc.indexOf("function dismissLightbox(){");
+  const dismiss = lbSrc.slice(dismissAt, lbSrc.indexOf("document.addEventListener('keydown'", dismissAt));
+  if (!dismiss) throw new Error("dismissLightbox is gone");
+  if (!/removeAttribute\('data-zoom'\)/.test(dismiss)) throw new Error("closing leaves the zoom on");
+  const open = lbSrc.slice(lbSrc.indexOf("function openImageLightbox(){"), lbSrc.indexOf("function closeImageLightbox("));
+  if (!/setLightboxZoom\(false\)/.test(open)) throw new Error("it can reopen zoomed");
+});
+
+check("the page behind is pinned, and put back exactly", () => {
+  const lock = lbSrc.slice(lbSrc.indexOf("function lockPageBehind(){"), lbSrc.indexOf("function lightboxIsOpen(){"));
+  /* `body{overflow:hidden}` alone does not hold on iOS and loses where
+     the shopper was. The negative offset IS the scroll position, so the
+     restore is not a guess. */
+  if (!/b\.position = 'fixed'/.test(lock)) throw new Error("the page behind is not pinned");
+  if (!/b\.top = `-\$\{lightboxScrollY\}px`/.test(lock)) throw new Error("the lock does not record where the shopper was");
+  if (!/window\.scrollTo\(0, lightboxScrollY\)/.test(lock)) throw new Error("the scroll position is never restored");
+  // Idempotent in both directions: anything at all may call unlock.
+  if (!/if \(lightboxLocked\) return;/.test(lock)) throw new Error("locking twice would lose the scroll position");
+  if (!/if \(!lightboxLocked\) return;/.test(lock)) throw new Error("unlocking when nothing is locked is not safe");
+
+  /* THE HALF OF THE BUG THAT OUTLIVED THE OVERLAY: navigate away with
+     it open and the lock stayed on the body forever. */
+  if (!/window\.addEventListener\('popstate', \(\) => \{ if \(!lightboxIsOpen\(\)\) unlockPageBehind\(\); \}\);/.test(lbSrc)) {
+    throw new Error("a route change can leave the page behind permanently unscrollable");
+  }
+});
+
+check("the back gesture closes the lightbox and nothing else", () => {
+  /* ORDER IS THE WHOLE MECHANISM. popstate fires ON window, so window
+     IS the target -- and at the target, listeners run in REGISTRATION
+     order, capture flag or not. Registered after the router's, a
+     capture listener runs second and stopImmediatePropagation() is far
+     too late. Measured before this was fixed: tapping the X on a
+     product page landed the shopper on Ofertas. */
+  const ours = lbSrc.indexOf("if (lightboxPopPending){");
+  const router = lbSrc.indexOf("routeDepth = Math.max(0, routeDepth - 1);");
+  if (ours < 0) throw new Error("the lightbox no longer handles the back gesture");
+  if (!(ours < router)) throw new Error("the lightbox's popstate listener is registered after the router's — it will never run first");
+  if (!/e\.stopImmediatePropagation\(\);/.test(lbSrc.slice(ours, router))) throw new Error("the router still sees the lightbox's own pop");
+
+  /* AND ONE POP PER DISMISSAL. history.back() is asynchronous and the
+     close button sits INSIDE the overlay, so one tap ran
+     closeImageLightbox twice -- and the second call, with the flag not
+     yet cleared, popped a second entry. */
+  const close = lbSrc.slice(lbSrc.indexOf("function closeImageLightbox(event){"), lbSrc.indexOf("function dismissLightbox(){"));
+  if (!/if \(lightboxHistoryPushed && !lightboxPopPending\)/.test(close)) throw new Error("two handlers on one tap can pop two history entries");
+  if (!/lightboxHistoryPushed = false;\s*\n\s*lightboxPopPending = true;/.test(close)) {
+    throw new Error("the flag is not cleared before the asynchronous back()");
+  }
+  if (!/if \(!lightboxIsOpen\(\) && !lightboxHistoryPushed\) return;/.test(close)) throw new Error("a second dismissal is not a no-op");
+});
+
+
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

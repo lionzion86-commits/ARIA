@@ -21,6 +21,7 @@
    every check: the page must boot without it.
    ============================================================ */
 import { chromium } from "playwright";
+import { deflateSync as zlibDeflate } from "node:zlib";
 
 const BASE = process.env.ARIA_BASE_URL || "http://127.0.0.1:8899";
 let passed = 0;
@@ -1428,6 +1429,189 @@ await check("the desktop home page never builds the rails", async () => {
   eq(state.started, false, "the desktop ran the phone's shopfront");
   eq(state.deals, 0, "the desktop built the deals rail");
   eq(state.stores, 0, "the desktop built the stores rail");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+
+/* ==================================================================
+   THE LIGHTBOX, DRIVEN.
+
+   Sizing and positions are pinned in run-tests.mjs -- this harness
+   blocks the CDN and would be measuring an unstyled page. What only a
+   running page can answer: does each way out actually work, does the
+   page behind come back exactly where it was, and does the back gesture
+   close the overlay without carrying the shopper off the product.
+   ================================================================== */
+const LB_PHONE = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+/* A REAL PHOTOGRAPH, BECAUSE THE LIGHTBOX CORRECTLY REFUSES TO OPEN
+   WITHOUT ONE. openImageLightbox() bails when the product image is
+   hidden or has no src, and this harness stubs no retailer CDN -- so
+   the first run of these checks reported "the lightbox never opened",
+   which was the page being right about having no photo in it. A 320x180
+   landscape PNG, built here rather than committed: landscape is the
+   shape that used to overflow the frame. */
+function lbPhotoPNG() {
+  const W = 320, H = 180, px = Buffer.alloc(W * H * 3, 242);
+  for (let y = 20; y < 160; y++) for (let x = 40; x < 280; x++) { const i = (y * W + x) * 3; px[i] = 90; px[i + 1] = 120; px[i + 2] = 200; }
+  const raw = Buffer.alloc(H * (W * 3 + 1));
+  for (let y = 0; y < H; y++) { raw[y * (W * 3 + 1)] = 0; px.copy(raw, y * (W * 3 + 1) + 1, y * W * 3, (y + 1) * W * 3); }
+  const T = [];
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[n] = c >>> 0; }
+  const crc = (b) => { let c = 0xFFFFFFFF; for (const v of b) c = T[(c ^ v) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const chunk = (t, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t, "ascii"), d]); const cr = Buffer.alloc(4); cr.writeUInt32BE(crc(td)); return Buffer.concat([l, td, cr]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", zlibDeflate(raw)), chunk("IEND", Buffer.alloc(0))]);
+}
+const LB_PNG = lbPhotoPNG();
+
+/* Everything off this machine becomes that photograph; everything on it
+   is served as usual, with the functions stubbed the way every other
+   check stubs them. */
+const LB_ROUTES = {
+  "**/*": (route) => {
+    const url = route.request().url();
+    if (url.includes("127.0.0.1")) return route.continue();
+    return route.fulfill({ status: 200, contentType: "image/png", body: LB_PNG });
+  },
+  "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+};
+
+async function openLightbox(page) {
+  return page.evaluate(async () => {
+    goSales(); await new Promise((r) => setTimeout(r, 2400));
+    openSaleProduct(0); await new Promise((r) => setTimeout(r, 2000));
+    window.scrollTo(0, 420); await new Promise((r) => setTimeout(r, 300));
+    const before = window.scrollY;
+    openImageLightbox(); await new Promise((r) => setTimeout(r, 400));
+    return { before, open: !document.getElementById("imageLightbox").classList.contains("hidden") };
+  });
+}
+
+await check("every way out of the lightbox works, and puts the page back", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  eq(opened.open, true, "the lightbox never opened");
+  if (!opened.before) throw new Error("the page was not scrolled before opening — the restore proves nothing");
+
+  const ways = await page.evaluate(async (before) => {
+    const box = document.getElementById("imageLightbox");
+    const closed = () => box.classList.contains("hidden");
+    const reopen = async () => { if (closed()) { openImageLightbox(); await new Promise((r) => setTimeout(r, 350)); } };
+    /* RESTORED EXACTLY means three things: the overlay gone, the body
+       unpinned, and the shopper back on the same pixel they left. */
+    const restored = () => closed() && !document.body.style.position && Math.abs(window.scrollY - before) < 3;
+    const out = {};
+    const swipe = (y0, y1) => {
+      const im = document.getElementById("lightboxImg");
+      const mk = (t, yy) => new TouchEvent(t, { bubbles: true, cancelable: true,
+        touches: t === "touchend" ? [] : [new Touch({ identifier: 1, target: im, clientX: 196, clientY: yy })],
+        changedTouches: [new Touch({ identifier: 1, target: im, clientX: 196, clientY: yy })] });
+      im.dispatchEvent(mk("touchstart", y0)); im.dispatchEvent(mk("touchmove", (y0 + y1) / 2));
+      im.dispatchEvent(mk("touchmove", y1)); im.dispatchEvent(mk("touchend", y1));
+    };
+
+    await reopen(); document.querySelector("[data-lightbox-close]").click();
+    await new Promise((r) => setTimeout(r, 450)); out.close = restored();
+    await reopen(); box.click();
+    await new Promise((r) => setTimeout(r, 450)); out.backdrop = restored();
+    await reopen(); swipe(200, 520);
+    await new Promise((r) => setTimeout(r, 450)); out.swipeDown = restored();
+    await reopen(); document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await new Promise((r) => setTimeout(r, 450)); out.escape = restored();
+
+    // ...and the two gestures that must NOT dismiss.
+    await reopen(); document.getElementById("lightboxImg").click();
+    await new Promise((r) => setTimeout(r, 250)); out.tapPhotoKeepsOpen = !closed();
+    swipe(520, 200);
+    await new Promise((r) => setTimeout(r, 300)); out.swipeUpKeepsOpen = !closed();
+    return out;
+  }, opened.before);
+
+  for (const way of ["close", "backdrop", "swipeDown", "escape"]) {
+    eq(ways[way], true, `${way} did not dismiss and restore the page behind`);
+  }
+  eq(ways.tapPhotoKeepsOpen, true, "tapping the photograph closed it");
+  eq(ways.swipeUpKeepsOpen, true, "swiping up closed it");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the back gesture closes the lightbox without leaving the product", async () => {
+  /* BOTH HALVES OF THE REPORTED BUG. The overlay has to go, and the
+     page behind must not be left pinned -- that lock outlived the
+     overlay and was the "frozen" in the report. */
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  await openLightbox(page);
+  const after = await page.evaluate(async () => {
+    const viewOf = () => [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join();
+    const before = viewOf();
+    history.back();
+    await new Promise((r) => setTimeout(r, 900));
+    return {
+      before, view: viewOf(),
+      closed: document.getElementById("imageLightbox").classList.contains("hidden"),
+      bodyPos: document.body.style.position,
+      bodyOverflow: document.body.style.overflow,
+    };
+  });
+  eq(after.closed, true, "the back gesture left the lightbox open");
+  eq(after.view, after.before, `the back gesture carried the shopper off the product: ${after.before} → ${after.view}`);
+  eq(after.bodyPos, "", "the page behind is still pinned");
+  eq(after.bodyOverflow, "", "the page behind is still locked");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("zoom never takes the way out with it", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  const z = await page.evaluate(async (before) => {
+    const box = document.getElementById("imageLightbox");
+    const dbl = () => {
+      const im = document.getElementById("lightboxImg");
+      const mk = (t) => new TouchEvent(t, { bubbles: true, cancelable: true,
+        touches: t === "touchend" ? [] : [new Touch({ identifier: 1, target: im, clientX: 196, clientY: 300 })],
+        changedTouches: [new Touch({ identifier: 1, target: im, clientX: 196, clientY: 300 })] });
+      im.dispatchEvent(mk("touchstart")); im.dispatchEvent(mk("touchend"));
+    };
+    const tapTwice = async () => { dbl(); await new Promise((r) => setTimeout(r, 60)); dbl(); await new Promise((r) => setTimeout(r, 320)); };
+    await tapTwice();
+    const zoomed = box.getAttribute("data-zoom") === "1";
+    /* WHAT "REACHABLE" CAN MEAN WITHOUT A STYLESHEET. This harness
+       blocks the CDN, so `fixed top-4 right-4 w-11 h-11` are classes
+       that do nothing and the button measures a few pixels wherever the
+       flow puts it -- asserting its size or corner here measures the
+       missing stylesheet, not the fix. Its size, its `fixed` and its
+       z-index are pinned in run-tests.mjs, by the rules that decide
+       them.
+
+       What IS real with no CSS: zooming must not detach the button from
+       the document or make it unclickable. So that is what is checked
+       -- it is still in the tree, still inside the overlay, and the
+       click below still lands. */
+    const btn = document.querySelector("[data-lightbox-close]");
+    const reachable = !!btn && box.contains(btn) && btn.isConnected;
+    await tapTwice();
+    const reset = box.getAttribute("data-zoom") !== "1";
+    await tapTwice();   // zoom again, then leave by the button
+    document.querySelector("[data-lightbox-close]").click();
+    await new Promise((r) => setTimeout(r, 450));
+    return { zoomed, reachable, reset,
+      closedWhileZoomed: box.classList.contains("hidden"),
+      zoomCleared: box.getAttribute("data-zoom") !== "1",
+      restored: !document.body.style.position && Math.abs(window.scrollY - before) < 3 };
+  }, opened.before);
+  eq(z.zoomed, true, "a double tap did not zoom");
+  eq(z.reachable, true, "zooming detached the close button from the overlay");
+  eq(z.reset, true, "a second double tap did not reset the zoom");
+  eq(z.closedWhileZoomed, true, "the close button did not work while zoomed");
+  eq(z.zoomCleared, true, "the zoom survived the close — it would reopen zoomed");
+  eq(z.restored, true, "closing from a zoom did not put the page back");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });

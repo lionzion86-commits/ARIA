@@ -69,6 +69,29 @@
      halfway through one, and no scrollbar because a touch rail with a
      visible track reads as a desktop widget. Nothing here animates:
      the shopper swipes, the rail follows. */
+  /* ============================================================
+     THE LIGHTBOX'S SIZING, HAND-WRITTEN.
+
+     CONTAIN, NOT "tall enough". The image used to cap only its height
+     and leave `max-width:none`, which is not containment at all: a
+     landscape photo just grew sideways until it left the screen. Both
+     axes are capped now and object-fit finishes the job, so no part of
+     the photograph can render outside the frame at any aspect ratio.
+
+     ZOOM IS A STATE WE OWN. Native pinch on the container was what let
+     the viewport move out from under the close button on iOS. A double
+     tap toggles a transform we set ourselves, so the page's zoom never
+     changes and the X never moves -- and because we know the state, the
+     X and the second tap can always put it back. The stage only scrolls
+     while zoomed, and never otherwise.
+     ============================================================ */
+  #lightboxStage{ overflow:hidden; touch-action:none; -webkit-overflow-scrolling:touch }
+  #lightboxImg{ max-width:100%; max-height:100%; width:auto; height:auto;
+                object-fit:contain; transform-origin:center center;
+                transition:transform .18s ease; user-select:none; -webkit-user-drag:none }
+  #imageLightbox[data-zoom="1"] #lightboxStage{ overflow:auto; touch-action:pan-x pan-y }
+  #imageLightbox[data-zoom="1"] #lightboxImg{ transform:scale(2.4) }
+  @media (prefers-reduced-motion: reduce){ #lightboxImg{ transition:none } }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -2262,14 +2285,39 @@
      surface: touch-action:pinch-zoom lets the browser's own native
      pinch/pan handle the gesture, which is smoother and more predictable
      than re-implementing it with touch events. -->
+<!-- ============================================================
+     THE LIGHTBOX, AND THE TRAP IT USED TO BE (2026-09-23)
+
+     REPRODUCED AT 393px ON A 1600x900 PRODUCT PHOTO. The image carried
+     `max-w-none` with `width:auto`, so only its HEIGHT was capped: it
+     rendered 1393px wide inside a 457px viewport and hung 952px off the
+     right-hand side, inside a container that scrolled sideways. The
+     close button was pinned to the container rather than the viewport,
+     so anything that moved the visible area -- a sideways scroll, and on
+     a real iPhone a pinch, which zooms the LAYOUT viewport and takes
+     `position:absolute` with it -- carried the one way out off screen.
+
+     AND THE PART THAT OUTLIVED THE LIGHTBOX. Opening it set
+     `body{overflow:hidden}` and only closing it put that back. Navigate
+     away with it open -- the iOS back swipe, or any route change -- and
+     the overlay went with the view while the lock stayed on the body:
+     the page behind was left permanently unscrollable. That is the
+     "frozen" in the report, and it survived the thing that caused it.
+
+     Six ways out now, and the image can never cover any of them:
+     the X, the backdrop, a swipe down, Escape, the back gesture, and a
+     double tap when zoomed. The X is FIXED to the viewport, not to the
+     container, so no amount of scrolling or zooming can move it.
+     ============================================================ -->
 <div id="imageLightbox" class="fixed inset-0 z-[60] hidden items-center justify-center" style="background:rgba(4,12,28,0.93)" onclick="closeImageLightbox(event)">
-  <button onclick="closeImageLightbox()" aria-label="Cerrar" class="absolute top-4 right-4 w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.14)">
+  <button onclick="closeImageLightbox()" aria-label="Cerrar" data-lightbox-close
+    class="fixed top-4 right-4 z-[70] w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.22)">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
   </button>
-  <div class="w-full h-full overflow-auto grid place-items-center p-4" style="touch-action:pinch-zoom">
-    <img id="lightboxImg" alt="" class="max-w-none" style="max-height:92vh;width:auto;object-fit:contain">
+  <div id="lightboxStage" class="w-full h-full grid place-items-center p-4">
+    <img id="lightboxImg" alt="" draggable="false">
   </div>
-  <div id="lightboxHint" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+  <div id="lightboxHint" class="fixed bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none" style="background:rgba(255,255,255,0.14); color:#fff"></div>
 </div>
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
@@ -5236,6 +5284,48 @@ async function applyRoute(route){
   requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
 }
 
+/* ==================================================================
+   THE LIGHTBOX GETS THE BACK GESTURE FIRST, AND THIS IS WHY IT IS
+   REGISTERED HERE RATHER THAN BESIDE THE REST OF THE LIGHTBOX CODE.
+
+   `popstate` fires ON `window`, so window IS the event's target -- and
+   at the target, listeners run in REGISTRATION ORDER, capture flag or
+   not. A `{capture:true}` listener added a thousand lines further down
+   therefore runs AFTER the router's, not before it, and
+   stopImmediatePropagation() comes far too late to matter. Measured:
+   tapping the X on a product page landed the shopper on Ofertas.
+
+   So it is registered immediately above the router's. Order is the
+   whole mechanism, which is the only reason this block lives out of
+   place; the functions it calls are declared with the lightbox and
+   hoisted.
+   ================================================================== */
+window.addEventListener('popstate', (e) => {
+  /* OUR OWN POP, from a dismissal that has already happened. Nothing
+     left to do but keep it away from the router. */
+  if (lightboxPopPending){
+    lightboxPopPending = false;
+    e.stopImmediatePropagation();
+    return;
+  }
+  /* THE SHOPPER'S BACK GESTURE, with the overlay still up: close it,
+     and only it. The entry being popped is a DUPLICATE of the route we
+     are already on, so there is nothing for the router to apply and its
+     depth bookkeeping is right to stay where it is. */
+  if (lightboxHistoryPushed){
+    lightboxHistoryPushed = false;
+    dismissLightbox();
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+/* THE LAST-RESORT UNLOCK. If the overlay is ever gone while the body is
+   still pinned -- a route change from anywhere, a stray error mid-close
+   -- the page behind is left permanently unscrollable, which is the bug
+   as it was reported and the half of it that outlived the overlay.
+   Whatever route the app applies, it cannot leave that lock standing. */
+window.addEventListener('popstate', () => { if (!lightboxIsOpen()) unlockPageBehind(); });
+
 window.addEventListener('popstate', (event) => {
   routeDepth = Math.max(0, routeDepth - 1);
   applyRoute(event.state || parseRoute(location.search));
@@ -6335,32 +6425,199 @@ function productMagnifierMove(event){
   lens.style.backgroundPosition = `${-((x - offX) * ZOOM - size / 2)}px ${-((y - offY) * ZOOM - size / 2)}px`;
 }
 
+/* ==================================================================
+   THE LIGHTBOX: OPENING IT MUST NEVER COST THE SHOPPER THE PAGE.
+
+   The whole of this block exists because the overlay could be dismissed
+   in exactly one way that the image itself was able to cover, and
+   because the scroll lock it set outlived it.
+   ================================================================== */
+
+/* THE PAGE BEHIND, LOCKED AND PUT BACK EXACTLY.
+
+   `body{overflow:hidden}` alone does not hold on iOS -- Safari scrolls
+   the page under a fixed overlay anyway -- and it loses where the
+   shopper was. Pinning the body at a negative offset is what actually
+   freezes it, and it is also what makes the restore exact: the offset
+   IS the scroll position, so putting it back is not a guess.
+
+   It is idempotent in both directions on purpose. Anything at all may
+   call unlock -- a route change, a popstate, a second close -- and it
+   has to be safe to call when nothing is locked. */
+let lightboxScrollY = 0;
+let lightboxLocked = false;
+
+function lockPageBehind(){
+  if (lightboxLocked) return;
+  lightboxScrollY = window.scrollY || window.pageYOffset || 0;
+  const b = document.body.style;
+  b.position = 'fixed';
+  b.top = `-${lightboxScrollY}px`;
+  b.left = '0';
+  b.right = '0';
+  b.width = '100%';
+  b.overflow = 'hidden';
+  lightboxLocked = true;
+}
+
+function unlockPageBehind(){
+  if (!lightboxLocked) return;
+  const b = document.body.style;
+  b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = ''; b.overflow = '';
+  lightboxLocked = false;
+  window.scrollTo(0, lightboxScrollY);
+}
+
+function lightboxIsOpen(){
+  const box = document.getElementById('imageLightbox');
+  return !!box && !box.classList.contains('hidden');
+}
+
+/* ZOOM IS OURS, SO IT CAN ALWAYS BE UNDONE. Native pinch moves the
+   LAYOUT viewport on iOS and takes every absolutely-positioned thing
+   with it, which is how the close button left the screen. A state we
+   set ourselves can always be reset -- by the second tap, by the X, and
+   by closing. */
+function setLightboxZoom(on){
+  const box = document.getElementById('imageLightbox');
+  if (!box) return;
+  if (on) box.setAttribute('data-zoom', '1');
+  else {
+    box.removeAttribute('data-zoom');
+    const stage = document.getElementById('lightboxStage');
+    if (stage) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+  }
+  const hint = document.getElementById('lightboxHint');
+  if (hint) hint.textContent = lightboxHintText(on);
+}
+
+function lightboxHintText(zoomed){
+  if (zoomed) return 'Toca dos veces para alejar';
+  return window.matchMedia('(hover: none)').matches
+    ? 'Toca dos veces para acercar · desliza hacia abajo para cerrar'
+    : 'Haz clic fuera para cerrar';
+}
+
+/* A PUSHED HISTORY ENTRY, SWALLOWED ON THE WAY BACK. The back gesture
+   has to close the overlay and nothing else -- not navigate the shopper
+   off the product they were looking at. So opening pushes a duplicate
+   of the CURRENT route (same URL, one extra flag) and the handler below
+   runs in the CAPTURE phase, ahead of the app's router, and stops the
+   event there. The router's depth and scroll bookkeeping never see it,
+   which is exactly what we want: the entry we popped was a duplicate,
+   so the route genuinely has not changed. */
+let lightboxHistoryPushed = false;   // our duplicate entry is on the stack
+let lightboxPopPending = false;      // ...and we have already asked to pop it
+
 function openImageLightbox(){
   const img = document.getElementById('productViewImg');
   if (!img || img.classList.contains('hidden') || !img.src) return;
   productMagnifierOff();
   const box = document.getElementById('imageLightbox');
   document.getElementById('lightboxImg').src = img.src;
-  document.getElementById('lightboxHint').textContent =
-    window.matchMedia('(hover: none)').matches ? 'Pellizca para acercar' : 'Haz clic fuera para cerrar';
+  setLightboxZoom(false);
   box.classList.remove('hidden');
   box.classList.add('flex');
-  document.body.style.overflow = 'hidden'; // no background scroll behind the overlay
+  lockPageBehind();
+  if (!lightboxHistoryPushed){
+    try {
+      history.pushState({ ...(history.state || {}), ariaLightbox: true }, '', location.href);
+      lightboxHistoryPushed = true;
+    } catch (e) { /* a browser that refuses the push still has five other ways out */ }
+  }
+  document.querySelector('[data-lightbox-close]')?.focus();
 }
 
+/* Everything that dismisses ends up here. `event` is present only when a
+   click did it, and the one click that must NOT close is one on the
+   photograph itself -- the shopper is looking at it. */
 function closeImageLightbox(event){
-  // Clicking the image itself must not close it — only the backdrop or
-  // the explicit close button.
   if (event && event.target && event.target.id === 'lightboxImg') return;
+  /* ONE DISMISSAL, HOWEVER MANY HANDLERS SAW THE TAP. The close button
+     sits inside the overlay, so a tap on it runs the button's onclick
+     AND bubbles into the backdrop's -- closeImageLightbox twice, from
+     one tap. That was harmless until this function started popping
+     history: history.back() is ASYNCHRONOUS, so the second call still
+     saw the flag set and popped a SECOND entry. Measured: tapping the X
+     on a product page landed the shopper on Ofertas. */
+  if (!lightboxIsOpen() && !lightboxHistoryPushed) return;
+  dismissLightbox();
+  /* Pop the entry we pushed, so the back gesture is not left pointing at
+     a lightbox that is already gone. The flag is cleared HERE, before
+     the asynchronous back(), and a separate one tells the popstate
+     handler that this pop is ours to swallow. */
+  if (lightboxHistoryPushed && !lightboxPopPending){
+    lightboxHistoryPushed = false;
+    lightboxPopPending = true;
+    try { history.back(); } catch (e) { lightboxPopPending = false; }
+  }
+}
+
+/* The UI half, with no history in it, so the popstate path and the
+   button path cannot disagree about what "closed" means. */
+function dismissLightbox(){
   const box = document.getElementById('imageLightbox');
-  box.classList.add('hidden');
-  box.classList.remove('flex');
-  document.body.style.overflow = '';
+  if (box){
+    box.classList.add('hidden');
+    box.classList.remove('flex');
+    box.removeAttribute('data-zoom');
+  }
+  const stage = document.getElementById('lightboxStage');
+  if (stage) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+  unlockPageBehind();
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !document.getElementById('imageLightbox')?.classList.contains('hidden')) closeImageLightbox();
+  if (e.key === 'Escape' && lightboxIsOpen()) closeImageLightbox();
 });
+
+/* SWIPE DOWN, AND DOUBLE TAP. Bound once, on the overlay, and only ever
+   acted on for a SINGLE finger: two fingers is a pinch and is none of
+   our business. A swipe is only a dismissal when it is mostly vertical
+   and mostly downward -- dragging a zoomed photo around must not throw
+   it away. */
+(function bindLightboxGestures(){
+  const box = document.getElementById('imageLightbox');
+  if (!box) return;
+  let startX = 0, startY = 0, moved = false, single = false, lastTap = 0;
+  const SWIPE_CLOSE_PX = 90;
+
+  box.addEventListener('touchstart', (e) => {
+    single = e.touches.length === 1;
+    if (!single) return;
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; moved = false;
+  }, { passive: true });
+
+  box.addEventListener('touchmove', (e) => {
+    if (!single || e.touches.length !== 1) { single = false; return; }
+    if (Math.abs(e.touches[0].clientY - startY) > 8 || Math.abs(e.touches[0].clientX - startX) > 8) moved = true;
+  }, { passive: true });
+
+  box.addEventListener('touchend', (e) => {
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!single || !t) { single = false; return; }
+    const dy = t.clientY - startY, dx = t.clientX - startX;
+
+    // A downward swipe closes — but never while zoomed, where the same
+    // gesture is how the shopper pans the photograph.
+    if (moved){
+      const zoomed = box.getAttribute('data-zoom') === '1';
+      if (!zoomed && dy > SWIPE_CLOSE_PX && Math.abs(dy) > Math.abs(dx)) closeImageLightbox();
+      return;
+    }
+
+    // Not a swipe: a tap. Two inside 300ms toggles the zoom, and the
+    // second tap is always able to put it back.
+    const now = Date.now();
+    if (now - lastTap < 300){
+      lastTap = 0;
+      setLightboxZoom(box.getAttribute('data-zoom') !== '1');
+      e.preventDefault();
+    } else {
+      lastTap = now;
+    }
+  }, { passive: false });
+})();
 
 /* Handed from an auto card to showProduct(), one product at a time, and
    consumed there so it cannot leak onto the next product opened. Declared
