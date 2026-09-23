@@ -240,6 +240,78 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* ============================================================
+     THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
+
+     Every one of these is `search: false` with no `browse` flag, which
+     is the honest-pending state the homepage already promises: "Las que
+     estamos conectando lo dicen — preferimos un 'próximamente' honesto
+     a un logo que no lleva a ningún lado." They get the muted plate and
+     the "Conectando el catálogo" badge on Tiendas, and their store page
+     says we buy there by request while the integration is finished.
+     None of them enters the search fan-out, the category feeds or
+     Ofertas, because CATALOG_RETAILERS reads `search || browse` and
+     they have neither. That is the whole mechanism; no new code.
+
+     REAL LOGO TILES, NOT WORDMARK PILLS. Every row below carries a file,
+     so none of them falls back to the pill treatment. `color` is only
+     ever the pill's and the small text badge's background, and each
+     value was SAMPLED FROM THE ARTWORK rather than recalled — Skims is
+     #605848 across 145,523 pixels of its own file, Fendi and Dyson are
+     #202020, and the rest are a true black.
+
+     SUNGLASS HUT USES THE OLD "INTERNATIONAL" MARK, with the split
+     yellow/blue sun. Danny's explicit call: a shopper in Lima knows
+     that logo and does not know the rebrand. It is white-and-colour
+     artwork on its own black field, so it tiles exactly the way
+     Victoria's Secret's pink card and Bath & Body Works' blue one do —
+     the field is IN the file, not in our CSS. Not stretched (the plate
+     is contain-fit) and not recoloured.
+
+     THE LUXURY THREE. Fendi, Miu Miu and Golden Goose sit in the luxury
+     tier beside SSENSE; the other four are everyday. A tier decides one
+     heading on Tiendas and nothing else — see TIERS below.
+     ============================================================ */
+  skims: {
+    key: "skims",
+    label: "Skims",
+    color: "#605848",
+    logo: "logos/skims.png",
+    tagline: "Shapewear, ropa interior y loungewear",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  revolve: {
+    key: "revolve",
+    label: "Revolve",
+    color: "#000000",
+    logo: "logos/revolve.png",
+    tagline: "Moda contemporánea y de diseñador",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  dyson: {
+    key: "dyson",
+    label: "Dyson",
+    color: "#202020",
+    logo: "logos/dyson.png",
+    tagline: "Secadoras, aspiradoras y purificadores",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  sunglasshut: {
+    key: "sunglasshut",
+    label: "Sunglass Hut",
+    color: "#000000",
+    logo: "logos/sunglasshut.png",
+    tagline: "Lentes de sol de marca",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
   autozone: {
     key: "autozone",
     label: "AutoZone",
@@ -290,6 +362,44 @@ export const RETAILERS = {
     tier: "luxury",
     search: false,
     browse: true,
+  },
+
+  /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
+     store in this tier with a catalogue behind it, and retailersByTier()
+     preserves declaration order — so listing three "conectando" cards
+     above it would bury the one a shopper can open today. */
+  fendi: {
+    key: "fendi",
+    label: "Fendi",
+    color: "#202020",
+    logo: "logos/fendi.png",
+    tagline: "Bolsos, accesorios y moda italiana",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  miumiu: {
+    key: "miumiu",
+    label: "Miu Miu",
+    color: "#000000",
+    logo: "logos/miumiu.png",
+    tagline: "Bolsos, calzado y moda italiana",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  goldengoose: {
+    key: "goldengoose",
+    label: "Golden Goose",
+    color: "#000000",
+    logo: "logos/goldengoose.png",
+    tagline: "Zapatillas y moda italiana",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    pendingNote: "Conectando el catálogo",
   },
   /* Listed but not sold: these were integrated once and turned off for
      real reasons (cost, and Nordstrom's bot protection returning zero
