@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageChatRoutingSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -4368,10 +4368,24 @@ check("the page streams into the same bubble, and falls back without double-rend
   const sink = src.slice(src.indexOf("function beginAssistantReply("), src.indexOf("async function streamAssistantReply("));
   /* SAME BUBBLE, SAME CLASSES. "Change only how the response appears"
      is enforced by the markup being identical to addAssistantMessage's,
-     not by remembering to keep two copies in step. */
-  const bubbleClass = "max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed";
-  eq(sink.includes(bubbleClass), true, "the streaming bubble is the standard bot bubble");
-  eq(src.split(bubbleClass).length - 1 >= 2, true, "addAssistantMessage still uses it too");
+     not by remembering to keep two copies in step.
+
+     READ OFF addAssistantMessage RATHER THAN FROZEN AS A LITERAL. The
+     literal used to name text-[13px] and went red the day the phone's
+     bubbles moved to a sized class -- reporting a drift between the two
+     bubbles when there was none. What this rule has always been about
+     is that the two strings MATCH, so it now takes one and looks for
+     the other, and it cannot go stale again. */
+  const typed = src.slice(src.indexOf("function addAssistantMessage("), src.indexOf("function addAssistantProductCard("));
+  const bubbleClass = (typed.match(/bubble\.className = '([^']*rounded-bl-sm[^']*)'/) || [])[1];
+  if (!bubbleClass) throw new Error("addAssistantMessage no longer draws a bot bubble we can read");
+  eq(sink.includes(bubbleClass), true, "the streaming bubble is not the standard bot bubble");
+  /* And the size it is drawn at is a class the stylesheet owns, not a
+     utility frozen into two JS strings: iOS Safari zooms a page whose
+     focused field is under 16px, and the fix only works if one rule
+     raises the whole conversation at once. */
+  eq(bubbleClass.includes("ariaChatMsg"), true, "the bot bubble is not carrying the sized chat class");
+  if (/text-\[1[0-5](\.\d+)?px\]/.test(bubbleClass)) throw new Error("a hard-coded sub-16px size is back on the bubbles");
   // NO JANK: one DOM write per frame, whatever the token rate.
   if (!/requestAnimationFrame\(flush\)/.test(sink)) throw new Error("tokens are written to the DOM unbatched");
   if (!/cancelAnimationFrame/.test(sink)) throw new Error("a pending frame is not cancelled on finish");
@@ -4853,6 +4867,206 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
   if (!/background:#F4C463[\s\S]{0,40}-\$\{pct\}%/.test(badge)) throw new Error("the discount badge is no longer the gold one");
   if (!/cardPhotoHTML\(/.test(badge)) throw new Error("a deal card is not using the shared product photo");
   if (/[\u{1F300}-\u{1FAFF}]/u.test(badge)) throw new Error("an emoji is standing in for a product photo");
+});
+
+
+/* ==================================================================
+   THE ASSISTANT ON A PHONE.
+
+   Mobile is the store and the chat is the on-ramp, so nearly all of
+   this is geometry and type size -- which the browser suite cannot see,
+   because it boots with the Tailwind CDN blocked on purpose. Everything
+   a stylesheet decides is pinned here, by the rule that decides it.
+   ================================================================== */
+group("The assistant, phone-first");
+
+/* NORMALISED, BECAUSE index.html IS CRLF FROM END TO END. Every marker
+   below that spans two lines would otherwise never match, and the
+   checks would pass vacuously on an empty slice -- which is how they
+   first reported "the sheet's stylesheet is gone" about a stylesheet
+   that was right there. */
+const chatSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const chatStyle = chatSrc.slice(chatSrc.indexOf("<style>"), chatSrc.indexOf("</style>"));
+const chatPanel = chatSrc.slice(chatSrc.indexOf('<div id="assistantPanel"'), chatSrc.indexOf("<!-- ============ PRODUCT IMAGE LIGHTBOX"));
+const chatSheetCss = chatStyle.slice(chatStyle.indexOf("  @media (max-width: 1023px){\n    #assistantPanel{"), chatStyle.indexOf(".ariaQuickChip:active"));
+
+check("the chat is a bottom sheet on a phone, and a floating card everywhere else", () => {
+  if (!chatSheetCss) throw new Error("the sheet's stylesheet is gone");
+
+  /* ONE MOBILE BREAKPOINT FOR THE WHOLE SITE. 1024px is where the nav
+     goes behind the hamburger (hidden lg:flex), where the orb
+     corner-parks (ORB_ANCHOR_MAX_VW) and where the shopfront's rails
+     appear (lg:hidden). A chat that became a sheet at a DIFFERENT width
+     would leave a band of tablet sizes with a corner card and no nav. */
+  eq(chatSrc.includes("const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)'"), true, "the chat's breakpoint");
+  eq(chatSrc.includes("const ORB_ANCHOR_MAX_VW = 1024;"), true, "the orb's breakpoint moved away from the chat's");
+
+  // Bottom-anchored, full width, and NOT a full-screen takeover: the
+  // shopper has to be able to see the product they are asking about.
+  for (const rule of ["left:0; right:0;", "width:100%; max-width:none;", "border-radius:22px 22px 0 0"]) {
+    if (!chatSheetCss.includes(rule)) throw new Error(`the sheet lost: ${rule}`);
+  }
+  if (!/height:var\(--ariaSheetPeek, 62vh\)/.test(chatSheetCss)) throw new Error("the sheet has no peek height — it is a takeover");
+  if (!/\[data-sheet="expanded"\]\{ height:var\(--ariaSheetFull, 92vh\)/.test(chatSheetCss)) throw new Error("the sheet cannot be expanded");
+  if (/height:100vh|height:100dvh|inset:0/.test(chatSheetCss)) throw new Error("the sheet became a full-screen takeover");
+
+  /* HAND-WRITTEN, NOT TAILWIND, like .brandList and .ariaRail. The page
+     is built to boot with the CDN blocked, and a sheet that loses its
+     height in that state is the takeover this rule exists to prevent. */
+  if (/@media \(max-width: 1023px\)/.test(chatPanel)) throw new Error("the sheet's geometry moved into the markup");
+
+  // One tap out, and the grab handle between the two heights.
+  if (!/aria-label="Cerrar la conversación"/.test(chatPanel)) throw new Error("the sheet has no close button");
+  if (!/onclick="toggleAssistant\(\)"/.test(chatPanel)) throw new Error("the close button does not close it");
+  if (!/id="assistantSheetHandle"/.test(chatPanel)) throw new Error("the sheet has no grab handle");
+  if (!/aria-expanded="false"/.test(chatPanel)) throw new Error("the handle does not say which height it is at");
+});
+
+check("iOS Safari cannot zoom the page when the shopper taps the field", () => {
+  /* THE NAMED BUG. Mobile Safari zooms in on a focused input whose
+     computed font-size is under 16px, and it does not zoom back out:
+     the header scrolls away, the sheet is wider than the screen, and
+     the shopper is stuck in it. 16px is the fix, not a preference. */
+  if (!/#assistantInput\{ font-size:16px \}/.test(chatSheetCss)) throw new Error("the input can be under 16px on a phone");
+  if (!/\.ariaChatMsg\{ font-size:16px \}/.test(chatSheetCss)) throw new Error("the conversation can be under 16px on a phone");
+
+  /* AND THE BASE IS DECLARED ABOVE THE OVERRIDE. At equal specificity
+     the LAST rule wins, so a 13px base written underneath its own media
+     query silently defeats it -- which is exactly what happened on the
+     first cut of this, and what the measurement caught. */
+  const basePos = chatStyle.indexOf(".ariaChatMsg{ font-size:13px }");
+  const overridePos = chatStyle.indexOf(".ariaChatMsg{ font-size:16px }");
+  if (basePos < 0 || overridePos < 0) throw new Error("the chat's two type sizes are not both declared");
+  if (basePos > overridePos) throw new Error("the 13px base is declared after the 16px override and wins on a phone");
+
+  // The bubbles carry the class rather than a frozen utility, in BOTH
+  // the typed path and the streamed one.
+  eq((chatSrc.match(/bubble\.className = 'ariaChatMsg /g) || []).length, 3, "every chat bubble carries the sized class");
+  if (/rounded-bl-sm px-3\.5 py-2\.5 text-\[13px\]/.test(chatSrc)) throw new Error("a bubble is back on a hard-coded 13px");
+});
+
+check("every tap target in the sheet is one a thumb can hit", () => {
+  /* 44px is Apple's documented minimum. The mic was a 40px grey outline
+     -- under the floor and reading as secondary, on the control most of
+     this shop's customers will actually reach for. */
+  if (!/\.ariaQuickChip\{[^}]*min-height:44px/.test(chatStyle)) throw new Error("a quick reply can be under 44px");
+  const mic = chatPanel.slice(chatPanel.indexOf('id="assistantMicBtn"'));
+  if (!/w-12 h-12/.test(mic.slice(0, mic.indexOf(">")))) throw new Error("the mic is no longer 48px");
+  if (!/background:var\(--navy\)/.test(mic.slice(0, mic.indexOf(">")))) throw new Error("the mic is back to a quiet outline");
+  if (!/w-12 h-12[^>]*aria-label="Enviar"|aria-label="Enviar"[^>]*w-12 h-12/.test(chatPanel)) {
+    if (!/aria-label="Enviar"/.test(chatPanel) || !/w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition"\s*style="background:var\(--blue\)/.test(chatPanel)) {
+      throw new Error("the send button is no longer 48px");
+    }
+  }
+  if (!/class="w-11 h-11/.test(chatPanel)) throw new Error("the close button is under 44px");
+
+  /* ONE PLACE DECIDES THE MIC'S LOOK. It was five -- four of them
+     writing "idle" as an empty string -- so the filled button set in
+     the markup was wiped by whichever ran first. */
+  eq((chatSrc.match(/assistantMicBtn'\)\.style\./g) || []).length, 0, "the mic's look is written directly again");
+  if (!/function setAssistantMicState\(listening\)/.test(chatSrc)) throw new Error("the mic has no single state function");
+  eq((chatSrc.match(/setAssistantMicState\(/g) || []).length >= 6, true, "not every mic state writer goes through it");
+});
+
+check("the keyboard cannot trap the shopper", () => {
+  /* iOS does NOT shrink the layout viewport for the keyboard, so a
+     sheet at bottom:0 ends up behind it with its input out of reach.
+     The visual viewport is the part you can see; the difference is the
+     keyboard, and that is what lifts the sheet. */
+  const sync = chatSrc.slice(chatSrc.indexOf("function syncAssistantSheet(){"), chatSrc.indexOf("function toggleAssistantSheet(){"));
+  if (!/window\.visualViewport/.test(sync)) throw new Error("the sheet does not read the visual viewport");
+  if (!/window\.innerHeight - \(vv\.height \+ vv\.offsetTop\)/.test(sync)) throw new Error("the keyboard's height is not measured");
+  if (!/--ariaSheetInset/.test(sync)) throw new Error("the sheet is not lifted by the keyboard");
+  if (!/bottom:var\(--ariaSheetInset, 0px\)/.test(chatSheetCss)) throw new Error("the stylesheet ignores the lift");
+  /* A browser with no visualViewport -- and, just as importantly, a
+     LAYOUT VIEWPORT IN DIFFERENT UNITS FROM THE VISUAL ONE -- must still
+     get a sheet in roughly the right place rather than one thrown off
+     the bottom of the screen. The widths agreeing is how the two cases
+     are told apart: a keyboard changes the visible height alone, a
+     zoomed or shrunk-to-fit layout viewport changes both. */
+  if (!/Math\.abs\(window\.innerWidth - vv\.width\) <= 1/.test(sync)) {
+    throw new Error("the sheet subtracts two viewports without checking they are in the same units");
+  }
+  if (!/sameUnits \? vv\.height : window\.innerHeight/.test(sync)) throw new Error("no fallback when the visual viewport cannot be trusted");
+  if (!/const inset = sameUnits \?/.test(sync)) throw new Error("the lift is taken from an untrusted measurement");
+
+  /* iOS reports the keyboard as a visualViewport SCROLL as often as a
+     resize; listening to only one of them leaves the sheet behind it. */
+  const bind = chatSrc.slice(chatSrc.indexOf("(function bindAssistantSheetViewport(){"), chatSrc.indexOf("function hideGreetBubble(){"));
+  for (const ev of ["'resize'", "'orientationchange'", "'scroll'"]) {
+    if (!bind.includes(ev)) throw new Error(`the sheet does not re-measure on ${ev}`);
+  }
+
+  // The column must not hand its overscroll to the page behind it.
+  if (!/#assistantMessages\{ overscroll-behavior:contain \}/.test(chatStyle)) throw new Error("scrolling the chat scrolls the page under it");
+
+  /* AND THE FIELD IS NOT FOCUSED ON OPEN. Focusing it throws the
+     keyboard up over the products the sheet was sized to leave visible,
+     before the shopper has decided to type at all. */
+  const toggle = chatSrc.slice(chatSrc.indexOf("function toggleAssistant(){"), chatSrc.indexOf("function hideGreetBubble(){"));
+  if (!/if \(!isMobileChat\(\)\) document\.getElementById\('assistantInput'\)\?\.focus\(\)/.test(toggle)) {
+    throw new Error("the phone autofocuses the input and throws the keyboard up");
+  }
+  // And the launcher gets out of the sheet's way.
+  if (!/body\[data-chat-open\] #assistantBtn/.test(chatStyle)) throw new Error("the orb sits on the sheet's input row");
+});
+
+check("a quick reply says exactly what it sends, and every one of them lands", () => {
+  const routing = loadPageChatRoutingSlice();
+  const chips = routing.ARIA_QUICK_REPLIES;
+  eq(chips.length >= 2, true, "there are quick replies at all");
+
+  /* NO SECOND ROUTING TABLE. The chip's label IS the message, sent
+     through the same brain a typed message goes through -- which is the
+     only arrangement in which a button cannot come to do something
+     other than what it says. */
+  const send = chatSrc.slice(chatSrc.indexOf("function sendAssistantQuickReply(text){"), chatSrc.indexOf("function dismissAssistantForNavigation(){"));
+  if (!/addAssistantMessage\('user', text\)/.test(send)) throw new Error("a chip's text is not shown as what the shopper said");
+  if (!/runAssistantBrain\(text\)/.test(send)) throw new Error("a chip does not go through the same brain as typing");
+  if (!/data-quick-reply="\$\{escapeHtml\(q\)\}"[\s\S]{0,140}>\$\{escapeHtml\(q\)\}</.test(chatSrc)) {
+    throw new Error("a chip's label and the message it sends are two different strings");
+  }
+
+  /* THE BRIEF'S OWN CHIP HAS TO REACH THE FEED. Not by a special case:
+     runAssistantBrain's SALE_KEYWORDS see "oferta" in it, which is the
+     routing the chat already had. */
+  const ofertas = chips.filter(q => routing.SALE_KEYWORDS.some(k => q.toLowerCase().includes(k)));
+  eq(ofertas.length, 1, "exactly one chip routes to Ofertas");
+  eq(ofertas[0], "¿Qué hay en oferta?", "the Ofertas chip");
+  if (!/goSales\(\);\s*\n\s*dismissAssistantForNavigation\(\);/.test(chatSrc)) {
+    throw new Error("the sheet stays up over Ofertas — the shopper never sees what they asked for");
+  }
+
+  /* AND NOT ONE OF THEM STARTS A THIRTY-SECOND PRODUCT SEARCH.
+     runAssistantBrain sends anything that is neither a sale question nor
+     CHAT_NON_SHOPPING_RE to a LIVE multi-retailer scrape. A chip that
+     did that would sit there spinning for half a minute and come back
+     with nothing, which is worse than having no chip. Executed, not
+     grepped: "Rastrear mi pedido" reads like it is covered and was not
+     — the pattern knew rastreo and rastrea, and the infinitive the
+     brief's own chip uses fell straight through it. */
+  for (const q of chips) {
+    const sale = routing.SALE_KEYWORDS.some(k => q.toLowerCase().includes(k));
+    if (!sale && !routing.CHAT_NON_SHOPPING_RE.test(q)) {
+      throw new Error(`the chip "${q}" would launch a live product search for its own label`);
+    }
+  }
+  eq(routing.CHAT_NON_SHOPPING_RE.test("Rastrear mi pedido"), true, "the tracking chip fell through the pattern again");
+  eq(routing.CHAT_NON_SHOPPING_RE.test("rastreo de mi pedido"), true, "the older spellings stopped matching");
+  eq(routing.CHAT_NON_SHOPPING_RE.test("zapatillas para correr"), false, "the pattern now swallows real product searches");
+});
+
+check("the assistant never opens with an empty bubble", () => {
+  /* THE FIRST THING A SHOPPER SEES OF THE ON-RAMP. A 200 carrying no
+     `reply` -- a degraded endpoint, a cold function -- was passed
+     straight to addAssistantMessage and drew a sky-blue box with
+     nothing in it. */
+  const greet = chatSrc.slice(chatSrc.indexOf("if (assistantOpen && document.getElementById('assistantMessages')"), chatSrc.indexOf("function hideGreetBubble(){"));
+  if (!/const greeting = typeof data\?\.reply === 'string' \? data\.reply\.trim\(\) : ''/.test(greet)) {
+    throw new Error("the greeting is rendered without checking there is one");
+  }
+  if (!/if \(greeting\) addAssistantMessage\('bot', greeting, data\.audio\);/.test(greet)) throw new Error("a blank greeting can reach the panel");
+  eq((greet.match(/ARIA_GREETING_FALLBACK/g) || []).length, 2, "the empty case and the network case give different answers");
 });
 
 
