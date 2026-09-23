@@ -66,17 +66,33 @@ export function inkCoverage(path) {
     if (ctype === 2) return [px[o], px[o+1], px[o+2], 255];
     return [px[o], px[o+1], px[o+2], px[o+3]];
   };
-  const bg = rgba(0);
+  /* WHAT COUNTS AS BACKGROUND, and the transparent case is not the
+     opaque one (2026-09-22). This read the top-left corner and called
+     anything matching it background. On a flat-white file that is
+     right. On a TRANSPARENT one it is badly wrong: the corner decodes
+     as (0,0,0,0), so the reference RGB is black, and every black
+     letterform matches it and is skipped — a correctly-cropped logo
+     reports 0% ink and fails the coverage floor it was written to pass.
+     Caught on the first transparent PNG to arrive (Golden Goose), which
+     would have blocked a whole batch of clean files.
+
+     So transparency decides first. When the corner is transparent the
+     mark IS the opaque pixels, whatever colour they are; only when the
+     corner is opaque does its colour become the background to subtract. */
+  const corner = rgba(0);
+  const bgIsTransparent = corner[3] < 8;
   let x0 = w, y0 = h, x1 = -1, y1 = -1;
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     const p = rgba(y * stride + x * ch);
-    if (p[3] < 8) continue;
-    if (Math.max(Math.abs(p[0]-bg[0]), Math.abs(p[1]-bg[1]), Math.abs(p[2]-bg[2])) <= 12) continue;
+    if (p[3] < 8) continue;                       // see-through is never ink
+    if (!bgIsTransparent &&
+        Math.max(Math.abs(p[0]-corner[0]), Math.abs(p[1]-corner[1]), Math.abs(p[2]-corner[2])) <= 12) continue;
     if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
   }
-  if (x1 < 0) return { w, h, coverage: 0, inkW: 0, inkH: 0 };
+  if (x1 < 0) return { w, h, inkW: 0, inkH: 0, coverage: 0, inkAspect: 0, aspect: w / h, blank: true };
   const inkW = x1 - x0 + 1, inkH = y1 - y0 + 1;
-  return { w, h, inkW, inkH, coverage: (inkW * inkH) / (w * h), inkAspect: inkW / inkH, aspect: w / h };
+  return { w, h, inkW, inkH, coverage: (inkW * inkH) / (w * h), inkAspect: inkW / inkH,
+           aspect: w / h, transparent: bgIsTransparent };
 }
 
 /* ============================================================
