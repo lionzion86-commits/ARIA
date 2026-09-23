@@ -5450,6 +5450,82 @@ check("step 3 never makes us the buyer", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("The header fits the phone it is read on");
+
+function fwd(src, a, b, what){
+  const i = src.indexOf(a);
+  if (i < 0) throw new Error(`${what}: cannot find ${JSON.stringify(a)}`);
+  const j = src.indexOf(b, i + a.length);
+  if (j < 0) throw new Error(`${what}: cannot find ${JSON.stringify(b)} after it`);
+  return src.slice(i, j);
+}
+const hdrSource = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("nothing in the header is unshrinkable at a phone's width", () => {
+  /* THE BUG. The header's inner row is justify-between with BOTH children
+     flex-shrink-0: the wordmark (155px) and the right cluster (203.5px).
+     358.5px that cannot shrink, inside 393 - 40 of padding = 353px. The
+     page scrolled sideways 11px at 393, 44px at 360 and 83px at 320, and
+     the words nearest the edge were cut until you dragged.
+
+     These are SOURCE assertions, not geometry: browser-tests.mjs blocks
+     the Tailwind CDN on purpose, so measuring a Tailwind-driven layout
+     there compares one unstyled number to another. */
+  const src = hdrSource();
+
+  /* The wordmark scales rather than overflowing, and the size lives in
+     our own stylesheet — a text-[22px] utility is gone with the CDN. */
+  const css = fwd(src, "<style>", "</style>", "the inline stylesheet");
+  const wm = fwd(css, ".ariaWordmark{", "}", ".ariaWordmark");
+  if (!/clamp\(/.test(wm)) throw new Error("the wordmark is a fixed size again — it cannot shrink on a small phone");
+  const floor = wm.match(/clamp\(\s*(\d+(?:\.\d+)?)px/);
+  if (!floor) throw new Error("cannot read the wordmark's minimum size");
+  if (Number(floor[1]) > 17) throw new Error(`the wordmark's floor is ${floor[1]}px — too wide to fit a 320px header`);
+
+  const logo = fwd(src, 'aria-label="Aria Shop™ — inicio"', "</button>", "the wordmark button");
+  if (/text-\[22px\]/.test(logo)) throw new Error("the wordmark is back on a fixed text-[22px] utility");
+  if (!/ariaWordmark/.test(logo)) throw new Error("the wordmark is not using .ariaWordmark");
+
+  // and the header's own padding gives the phone its margin back
+  if (!/px-3 sm:px-5 h-\[68px\]/.test(src)) throw new Error("the header no longer tightens its padding below sm");
+});
+
+check("the header's auth buttons are responsive in BOTH places that write them", () => {
+  /* THE TRAP THIS PINS, and it nearly shipped: the markup in the header
+     is only the logged-out default. renderAuthUI() rewrites #authArea
+     from its own template on load and on every login/logout. Fixing the
+     padding in the markup alone looks correct in the file and reverts
+     the moment the page runs. */
+  const src = hdrSource();
+  const header = fwd(src, 'aria-label="Aria Shop™ — inicio"', 'id="mobileMenu"', "the header");
+  const render = fwd(src, "function renderAuthUI(", "document.getElementById('authAreaMobile')", "renderAuthUI");
+  for (const [where, slice] of [["the header markup", header], ["renderAuthUI", render]]) {
+    const bare = [...slice.matchAll(/h-9 px-4 rounded-full/g)].length;
+    if (bare) throw new Error(`${where} still has ${bare} auth button(s) on fixed px-4 — they overflow a 360px header`);
+    if (!/px-2\.5 sm:px-4/.test(slice)) throw new Error(`${where} has no responsive auth-button padding`);
+  }
+});
+
+check("below 360px the header CTA moves into the menu rather than off the screen", () => {
+  /* A 320px header cannot hold a wordmark, a cart, a signup button AND a
+     menu button. Scaling type and shaving padding cleared 393 and 360 and
+     still left 320 five pixels over; the next shave would have been the
+     third in a row. The button moves to where it already exists —
+     renderAuthUI writes #authAreaMobile inside the hamburger — so nothing
+     is lost, only relocated. */
+  const src = hdrSource();
+  const css = fwd(src, "<style>", "</style>", "the inline stylesheet");
+  if (!/@media \(max-width:359\.98px\)\{[\s\S]*?#authArea\{ display:none \}/.test(css)) {
+    throw new Error("the sub-360px rule that moves the header CTA into the menu is gone");
+  }
+  /* It may only be hidden because the menu really does carry it. */
+  if (!/id="authAreaMobile"/.test(src)) throw new Error("#authAreaMobile is gone — hiding the header CTA would now lose it");
+  if (!/getElementById\('authAreaMobile'\)\.innerHTML/.test(src)) {
+    throw new Error("nothing fills #authAreaMobile any more — the relocated CTA would be an empty div");
+  }
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);
