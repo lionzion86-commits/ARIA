@@ -43,6 +43,7 @@ import { COST_PER_KG as courierCostPerKg } from "../../netlify/functions/_courie
 import * as fitment from "../lib/fitment.js";
 import * as autoSources from "../lib/auto-sources.js";
 import * as supplements from "../lib/supplement-weight.js";
+import * as chatModel from "../../netlify/functions/_aria-chat-model.js";
 import * as subcats from "../lib/subcategories.js";
 import * as brandIndex from "../lib/brand-index.js";
 import * as footwear from "../lib/footwear.js";
@@ -4106,6 +4107,21 @@ check("no logo file is mostly empty canvas", () => {
       );
     }
   }
+  /* A TRANSPARENT BACKGROUND IS NOT AN EMPTY ONE (2026-09-22). The
+     coverage reader took the top-left pixel as the background colour,
+     which is right on a flat-white file and badly wrong on an alpha
+     one: a transparent corner decodes as (0,0,0,0), so the reference
+     RGB is black, every black letterform matches it, and a perfectly
+     cropped logo reports 0% ink — failing the floor it exists to pass.
+     Found on the first alpha PNG to arrive, which would have blocked a
+     whole batch of clean files. Six of the logos below are alpha. */
+  const alpha = files.map((f) => inkCoverage(root(`logos/${f}`))).filter((i) => i.transparent);
+  if (alpha.length < 3) throw new Error("no transparent logos left to guard the alpha path");
+  for (const info of alpha) {
+    if (info.blank) throw new Error("a transparent logo reads as blank — the alpha background bug is back");
+    if (!(info.coverage > 0.5)) throw new Error(`a transparent logo reads ${(info.coverage * 100).toFixed(0)}% ink`);
+  }
+
   // And the one that was broken is specifically fixed, with its real
   // proportions — a 4.7:1 wordmark, in Macy's and Walmart's company.
   const ssense = inkCoverage(root("logos/ssense.png"));
@@ -4258,6 +4274,157 @@ check("every browse grid is photographs, and no grid is emoji", () => {
   if (!sale.every((u) => inWomen.has(u))) throw new Error("Ofertas is no longer a subset of Moda Mujer");
   // And there is a second photo to move to when they do collide.
   if (new Set(sale).size < 2) throw new Error("Ofertas has no second photo to fall back to");
+});
+
+/* ------------------------------------------------------------------
+   STREAMING THE CHAT — the reply arrives as it is written
+   ------------------------------------------------------------------ */
+group("aria chat: the reply streams, and it is the same reply");
+
+check("both endpoints build the identical model request", () => {
+  /* THE RISK THIS PINS is not a crash, it is a personality. Two
+     endpoints answering the same question could drift on model,
+     temperature or reply-length cap, and a shopper would meet a
+     different Aria depending on whether streaming happened to work that
+     day. The brief forbids exactly that, so the request is built once
+     and both endpoints send it verbatim. */
+  const body = {
+    message: "¿tienen zapatillas?",
+    history: [{ role: "user", content: "hola" }, { role: "assistant", content: "¡Hola!" }],
+    products: [{ title: "Nike Air", retailer: "Foot Locker", priceLabel: "S/ 400" }],
+    recipient: { gender: "women", ageBand: "adult", label: "una mujer" },
+  };
+  const req = chatModel.chatRequestBody(body);
+  eq(req.model, chatModel.GROQ_MODEL);
+  eq(req.temperature, chatModel.TEMPERATURE);
+  eq(req.max_tokens, chatModel.MAX_TOKENS);
+  eq(req.messages[0].role, "system");
+  eq(req.messages[req.messages.length - 1].content, body.message, "the question is last");
+  // History really travels — it was silently dropped once, and every
+  // turn was answered with no memory of the one before.
+  eq(req.messages.length, 4, "system + two history turns + the question");
+  // The grounding the prose must not contradict.
+  if (!req.messages[0].content.includes("Nike Air")) throw new Error("products are not in the system prompt");
+
+  const groq = stripComments(readFileSync(root("netlify/functions/aria-chat-groq.js"), "utf8"));
+  const stream = stripComments(readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8"));
+  for (const [name, src] of [["aria-chat-groq", groq], ["aria-chat-stream", stream]]) {
+    if (!/chatRequestBody\(body\)/.test(src)) throw new Error(`${name} builds its own request again`);
+    // Nothing about the answer may be set locally in either file.
+    for (const knob of ["temperature", "max_tokens", "model:"]) {
+      if (src.includes(knob)) throw new Error(`${name} sets ${knob} itself — it belongs in _aria-chat-model.js`);
+    }
+    if (/buildSystemPrompt/.test(src)) throw new Error(`${name} builds its own system prompt`);
+  }
+  // …and the ONLY difference is the flag that makes it a stream.
+  if (!/stream: true/.test(stream)) throw new Error("the streaming endpoint does not ask Groq to stream");
+  if (/stream: true/.test(groq)) throw new Error("the buffered endpoint is asking for a stream");
+});
+
+check("Groq's event lines are parsed, and a bad one never ends the reply", () => {
+  const line = (obj) => "data: " + JSON.stringify(obj);
+  eq(chatModel.deltaFromLine(line({ choices: [{ delta: { content: "Hola" } }] })), "Hola");
+  eq(chatModel.deltaFromLine(line({ choices: [{ delta: { content: " envío" } }] })), " envío");
+  // The end marker is not a delta, and it is recognised for what it is.
+  eq(chatModel.isDoneLine("data: [DONE]"), true);
+  eq(chatModel.deltaFromLine("data: [DONE]"), null);
+  /* EVERYTHING ELSE YIELDS null AND IS SKIPPED. A keep-alive, a comment,
+     a half-written line, a chunk with no content — none of them may end
+     a reply halfway through a sentence, which is what throwing here
+     would do. */
+  for (const bad of ["", ":ping", "data:", "data: {", "data: null", "event: message",
+                     line({}), line({ choices: [] }), line({ choices: [{ delta: {} }] }),
+                     line({ choices: [{ delta: { content: "" } }] }), null, undefined]) {
+    eq(chatModel.deltaFromLine(bad), null, `skipped: ${JSON.stringify(bad)}`);
+  }
+  /* THE MARKER IS TRIMMED BEFORE COMPARING, and that is deliberate: an
+     SSE stream is CRLF-delimited on plenty of intermediaries, so
+     "data: [DONE]\r" is the same marker and refusing it would leave the
+     reader waiting for an end that already came. Only the text has to
+     match exactly. */
+  eq(chatModel.isDoneLine("data: [DONE]\r"), true, "a CRLF stream still ends");
+  eq(chatModel.isDoneLine("  data: [DONE]  "), true);
+  eq(chatModel.isDoneLine("data: [DONEX]"), false, "a near-miss is not the end");
+  eq(chatModel.isDoneLine("data: done"), false);
+});
+
+check("the streaming endpoint is a v2 function and cannot be buffered quietly", () => {
+  const src = readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8");
+  /* V1's `export async function handler(event)` returns a COMPLETE
+     response object — there is nowhere to put a body that is still
+     arriving, which is why this is a new file rather than a flag on the
+     old one. */
+  if (!/export default async function handler\(req\)/.test(src)) {
+    throw new Error("not a Netlify v2 handler, so it cannot stream at all");
+  }
+  if (!/new ReadableStream\(/.test(src)) throw new Error("the response body is not a stream");
+  const nostrip = stripComments(src);
+  for (const header of ["text/event-stream", "no-cache, no-transform", "X-Accel-Buffering"]) {
+    if (!nostrip.includes(header)) throw new Error(`the response is missing ${header}`);
+  }
+  /* FAIL BEFORE THE FIRST BYTE, NOT DURING. A model error returned as a
+     status code lets the client fall back cleanly; the same error sent
+     as the first event would leave an apology in the bubble with no way
+     back to the endpoint that still works. */
+  if (!/if \(!upstream\.ok \|\| !upstream\.body\)/.test(nostrip)) {
+    throw new Error("an upstream failure is not caught before the stream opens");
+  }
+  // A dropped connection keeps what the shopper is already reading.
+  if (!/truncated: true/.test(nostrip)) throw new Error("a mid-stream failure discards the partial reply");
+  // The decoder must be told chunks continue, or a split "í" becomes a
+  // replacement character — Spanish is full of them.
+  if (!/decoder\.decode\(value, \{ stream: true \}\)/.test(nostrip)) {
+    throw new Error("multi-byte characters split across reads will be mangled");
+  }
+});
+
+check("the page streams into the same bubble, and falls back without double-rendering", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  for (const fn of ["function beginAssistantReply(", "async function streamAssistantReply(",
+                    "function speakAssistantReply(", "function rememberAssistantTurn("]) {
+    if (!src.includes(fn)) throw new Error(`${fn} is missing`);
+  }
+
+  const sink = src.slice(src.indexOf("function beginAssistantReply("), src.indexOf("async function streamAssistantReply("));
+  /* SAME BUBBLE, SAME CLASSES. "Change only how the response appears"
+     is enforced by the markup being identical to addAssistantMessage's,
+     not by remembering to keep two copies in step. */
+  const bubbleClass = "max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed";
+  eq(sink.includes(bubbleClass), true, "the streaming bubble is the standard bot bubble");
+  eq(src.split(bubbleClass).length - 1 >= 2, true, "addAssistantMessage still uses it too");
+  // NO JANK: one DOM write per frame, whatever the token rate.
+  if (!/requestAnimationFrame\(flush\)/.test(sink)) throw new Error("tokens are written to the DOM unbatched");
+  if (!/cancelAnimationFrame/.test(sink)) throw new Error("a pending frame is not cancelled on finish");
+  // NO LAYOUT SHIFT: the indicator is removed in the same frame the
+  // bubble appears, and the scroll is only pinned if already at bottom.
+  if (!/hideAssistantTyping\(\);\s*\n\s*wrap\.appendChild\(bubble\)/.test(sink)) {
+    throw new Error("the typing indicator and the bubble can coexist");
+  }
+  if (!/assistantAtBottom\(wrap\)/.test(sink)) throw new Error("streaming scrolls even when the shopper scrolled up");
+
+  const reader = src.slice(src.indexOf("async function streamAssistantReply("), src.indexOf("function addAssistantProductCard("));
+  /* Every reason a deploy might not stream has to end as a clean null:
+     the function is not deployed, the browser cannot read a stream, or
+     what came back is not an event stream at all. */
+  for (const guard of ["typeof ReadableStream === 'undefined'", "!res.ok", "getReader !== 'function'", "event-stream"]) {
+    if (!reader.includes(guard)) throw new Error(`the stream does not fall back on: ${guard}`);
+  }
+  if (!/if \(sink\.started\) return \{ reply: sink\.text/.test(reader)) {
+    throw new Error("a stream that dies after rendering would be re-asked and answered twice");
+  }
+  if (!/await reader\.cancel\(\)/.test(reader)) throw new Error("cancel is not awaited — a dead socket logs an uncaught TypeError");
+
+  const brain = src.slice(src.indexOf("async function runAssistantBrain("), src.indexOf("/* --- Voice input"));
+  /* ONE PAYLOAD FOR BOTH ENDPOINTS, or which one answered could change
+     what Aria was told. */
+  eq((brain.match(/JSON\.stringify\(payload\)/g) || []).length, 1, "the fallback posts the same payload object");
+  if (!/streamAssistantReply\(payload, sink\)/.test(brain)) throw new Error("the page never tries the stream");
+  if (!/sink\.discard\(\)/.test(brain)) throw new Error("a failed stream leaves an empty bubble above the real answer");
+  if (!/aria-chat-groq/.test(brain)) throw new Error("the buffered fallback is gone");
+  // The turn is recorded exactly once on each path.
+  eq((brain.match(/rememberAssistantTurn\(text, reply\)/g) || []).length, 2, "both paths record the turn");
+  // And nothing about WHICH retailers are searched moved into this change.
+  if (!/CHAT_RETAILERS/.test(src)) throw new Error("the chat's retailer routing was removed");
 });
 
 /* ------------------------------------------------------------------ */
@@ -5084,6 +5251,60 @@ check("Zapatos is a department with a name and a place in the taxonomy", () => {
   // The page's spec mirrors the module's.
   const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
   if (!/shoes:\s+\{ anyCategory: true, footwearOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no shoes");
+});
+
+/* ------------------------------------------------------------------ */
+group("cómo funciona: the shopper is the one doing the buying");
+
+check("step 3 never makes us the buyer", () => {
+  /* DANNY'S READ (2026-09-22): "Al confirmar tu pedido, NOSOTROS LO
+     COMPRAMOS directamente en la tienda de origen" sounded like a person
+     taking the customer's money and going shopping on their behalf. That
+     is a glorified Miami locker, not a shop, and it is the opposite of
+     what the site is: the customer buys here, from the official store.
+
+     THE RULE, NOT THE WORDING. Copy gets rewritten and should; what must
+     not come back is the SUBJECT flipping to us in this step. So this
+     asserts the grammar of the promise rather than freezing a sentence
+     — the phrasings below can all be reworded freely as long as the
+     shopper stays the one doing the buying.
+
+     SCOPED TO STEP 3 ON PURPOSE. Step 4 is "Consolidamos en Miami", and
+     there the first person is correct and true: we really do consolidate
+     the parcel. The slice stops at the STEP 4 marker so this can never
+     start policing a sentence it was not written for. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const from = html.indexOf('<div class="ariaKicker mb-3">Compra directa</div>');
+  const to = html.indexOf("<!-- STEP 4 -->");
+  if (from < 0) throw new Error("the Compra directa section is gone — this check needs re-anchoring");
+  if (to < 0 || to <= from) throw new Error("the STEP 4 marker moved — re-anchor before trusting this check");
+  const step3 = html.slice(from, to);
+
+  // Us as the buyer, in the forms that actually appeared or nearly did.
+  for (const phrase of [
+    "nosotros lo compramos",
+    "nosotros compramos",
+    "lo compramos",
+    "compramos por ti",
+    "compramos en la tienda",
+    "compramos el producto",
+  ]) {
+    if (step3.toLowerCase().includes(phrase)) {
+      throw new Error(`step 3 says "${phrase}" — the shopper buys here, we are not their shopper`);
+    }
+  }
+
+  // And the shopper really is the subject, not merely absent.
+  if (!/\bcompras\b/i.test(step3)) throw new Error("step 3 no longer says the shopper buys at all");
+
+  /* The trust point survives the rewrite, moved to the shopper's side:
+     no resellers, and the store's own guarantee. */
+  if (!/revendedores|revendedor/i.test(step3)) throw new Error("the no-resellers promise fell out of step 3");
+  if (!/garant[ií]a/i.test(step3)) throw new Error("the store's own guarantee is no longer named");
+
+  // Step 4 is untouched and still ours to do, which is why it is excluded.
+  const step4 = html.slice(to, to + 1200);
+  if (!/Consolidamos/i.test(step4)) throw new Error("step 4 lost its first person — that one was correct");
 });
 
 /* ------------------------------------------------------------------ */
