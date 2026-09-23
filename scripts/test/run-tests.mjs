@@ -2100,9 +2100,32 @@ check("both category runs are one full-width column at every width", () => {
       throw new Error(`#${id} splits into columns at a breakpoint again: ${tag}`);
     }
   }
-  // The product listing grid keeps its own two-across shape.
+  /* THE PRODUCT GRID IS TWO-ACROSS, AND NOW IT ACTUALLY IS. This check's
+     own comment has said "product grids stay two-across" since it was
+     written, while the literal it froze was `grid-cols-1 md:grid-cols-2`
+     -- one column on a phone, two only from 768px up. The comment
+     described the intent and the assertion pinned the opposite, and a
+     frozen string cannot tell you that.
+
+     It asserts the SHAPE now: a two-column base, no single-column base
+     hiding under it, and a gutter of at least the brief's 16px. */
   const listing = src.match(/const LISTING_GRID_CLASS = '([^']+)'/)?.[1];
-  eq(listing, "grid grid-cols-1 md:grid-cols-2 gap-5", "the product listing grid");
+  if (!listing) throw new Error("LISTING_GRID_CLASS is gone");
+  if (!/\bgrid-cols-2\b/.test(listing)) throw new Error(`the product grid is not two-across on a phone: ${listing}`);
+  if (/\bgrid-cols-1\b/.test(listing)) throw new Error(`the product grid is one column on a phone again: ${listing}`);
+  const gutter = Number((listing.match(/\bgap-(\d+)\b/) || [])[1]);
+  if (!(gutter >= 4)) throw new Error(`the product grid's gutter is ${gutter * 4}px, under the 16px the brief asks for`);
+
+  /* AND THE SAME SHAPE ON THE THREE GRIDS WRITTEN AS LITERALS, so a
+     shopper does not meet a two-across catalogue and a one-across
+     Ofertas feed on the same phone. */
+  for (const id of ["salesGrid", "storeResultsGrid", "liveResultsWrap"]) {
+    const at = src.indexOf(`id="${id}"`);
+    if (at < 0) throw new Error(`#${id} is gone`);
+    const tag = src.slice(src.lastIndexOf("<div", at), src.indexOf(">", at) + 1);
+    if (!/\bgrid-cols-2\b/.test(tag)) throw new Error(`#${id} is not two-across on a phone: ${tag}`);
+    if (/\bgrid-cols-1\b/.test(tag)) throw new Error(`#${id} is one column on a phone again: ${tag}`);
+  }
 });
 
 check("a category card is a shopfront: big window, signed, with an edge", () => {
@@ -5113,6 +5136,168 @@ check("the cards are the Ofertas component, and they route back through showProd
 });
 
 
+/* ==================================================================
+   THE FARFETCH TREATMENT.
+
+   The thesis of the reference is that the luxury look is not a palette:
+   it is the photography carrying the design and the UI getting out of
+   its way. Everything below is the UI getting out of the way, pinned by
+   the rules that decide it -- the browser suite boots with the CDN
+   blocked and would be measuring an unstyled page.
+   ================================================================== */
+group("The Farfetch treatment");
+
+const ffSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const ffStyle = ffSrc.slice(ffSrc.indexOf("<style>"), ffSrc.indexOf("</style>"));
+const ffCard = ffSrc.slice(ffSrc.indexOf("function productCardHTML(p, opts){"), ffSrc.indexOf("function productCardOpenExpr(") > 0 ? ffSrc.length : ffSrc.length);
+const productCard = (() => {
+  const from = ffSrc.indexOf("function productCardHTML(p, opts){");
+  return ffSrc.slice(from, ffSrc.indexOf("\n}", ffSrc.indexOf("return `", from)) + 2);
+})();
+
+check("a product card is a photograph, not a plate", () => {
+  const shell = (ffSrc.match(/const CARD_SHELL_CLASS = '([^']*)'/) || [])[1];
+  if (shell == null) throw new Error("CARD_SHELL_CLASS is gone");
+  /* THE ANTI-PATTERNS, NAMED: no borders, no drop shadows, no grey
+     pills, no bland white cards. The shell keeps layout and gives up
+     chrome. */
+  for (const banned of ["border", "shadow", "bg-white", "bg-zinc", "bg-gray", "bg-slate"]) {
+    if (shell.includes(banned)) throw new Error(`the product card's shell is chrome again: "${banned}" in "${shell}"`);
+  }
+  if (/style="border-color/.test(productCard)) throw new Error("the card is drawing a border inline");
+  if (/shadow-\[/.test(productCard)) throw new Error("the card has a drop shadow again");
+
+  /* THE WHITE MOVED, IT DID NOT GO. Retail photography is shot on white
+     and a tint draws a seam around the product, so the PHOTO field is
+     still white -- and with the shell no longer clipping, the photo has
+     to round and clip itself. */
+  const frame = ffSrc.slice(ffSrc.indexOf("function cardImageFrameHTML("), ffSrc.indexOf("function cardPhotoHTML("));
+  if (!/background = '#fff'/.test(frame)) throw new Error("the photo field is no longer white");
+  if (!/round = true/.test(frame)) throw new Error("the photo field no longer rounds itself");
+  if (!/rounded-2xl overflow-hidden/.test(frame)) throw new Error("the photo field does not clip its own overflow");
+
+  /* AND NO BRAND CHROME ON THE PRODUCT. Navy and gold live at page
+     level -- header bands, section fields, the orb -- and off the card.
+     The one exception is the sale badge, which is the next check. */
+  const body = productCard.slice(productCard.indexOf("return `"));
+  const withoutBadge = body.replace(/background:#F4C463[^"]*/g, "");
+  if (/background:var\(--navy\)|background:var\(--blue\)|background:var\(--amber\)/.test(withoutBadge)) {
+    throw new Error("the product card is wearing brand chrome again");
+  }
+});
+
+check("the category banner is NOT a product card, and kept its own shell", () => {
+  /* THE REGRESSION THIS EXISTS FOR. Stripping the product card's plate
+     silently squared every department tile on the home page, because
+     both read the same constant: the tile relied on the shell's
+     `rounded-2xl overflow-hidden` to hold its photograph and its navy
+     sign band together as one object. The reference says these are a
+     DIFFERENT thing -- full-bleed lifestyle imagery with text over it --
+     so they get a different constant. */
+  const cat = (ffSrc.match(/const CATEGORY_SHELL_CLASS = '([^']*)'/) || [])[1];
+  if (cat == null) throw new Error("CATEGORY_SHELL_CLASS is gone — the banners are sharing the product shell again");
+  for (const needed of ["rounded-2xl", "overflow-hidden", "bg-white"]) {
+    if (!cat.includes(needed)) throw new Error(`the category banner lost "${needed}"`);
+  }
+  const tile = ffSrc.slice(ffSrc.indexOf("function deptTileHTML("), ffSrc.indexOf("function railCardHTML("));
+  if (!/\$\{CATEGORY_SHELL_CLASS\}/.test(tile)) throw new Error("the department tile is not using the category shell");
+  if (/\$\{CARD_SHELL_CLASS\}/.test(tile)) throw new Error("the department tile is back on the product shell");
+  // Its own frame must NOT round, or it would round inside a rounded box.
+  if (!/round: false/.test(tile)) throw new Error("the banner's photo rounds inside an already-rounded box");
+  // And the navy sign band — page-level brand presence — stays.
+  if (!/ariaGoldHair/.test(tile)) throw new Error("the banner lost its gold hairline");
+});
+
+check("information whispers and photography shouts", () => {
+  const body = productCard.slice(productCard.indexOf("return `"));
+  /* The reference's sizes: store mark small, product name small, price
+     small. What was here was a 20px mark over a 15px bold navy title
+     over a 22px extrabold price -- three lines competing with the
+     product for the eye. */
+  if (!/retailerBadgeHTML\(p\.retailer, 16\)/.test(body)) throw new Error("the store mark is not 16px");
+  if (!/text-\[13px\] leading-snug[^"]*line-clamp-2/.test(body)) throw new Error("the product name is not 13px");
+  if (!/text-\[14px\] font-bold tabular/.test(body)) throw new Error("the price is not 14px");
+  for (const loud of ["text-[22px]", "text-[20px]", "text-[18px]", "text-[17px]"]) {
+    if (body.includes(loud)) throw new Error(`the card is shouting again: ${loud}`);
+  }
+});
+
+check("one sale colour on the whole site", () => {
+  /* The big card drew its discount in #C0392B under a drop shadow while
+     the phone's rails drew the same fact in the sale yellow. Two badges
+     in two colours is two different claims to a shopper, and the
+     standing rule is that yellow is for sale badges and for nothing
+     else. */
+  /* SCOPED TO DISCOUNT BADGES, not to the colour. #C0392B is also the
+     site's error red -- a failed login, a negative margin in the admin
+     ledger, a cancel button -- and banning it outright made this check
+     fail on nine places that have nothing to do with a sale. What must
+     not come back is a DISCOUNT drawn in it. */
+  for (const slice of [productCard, ffSrc.slice(ffSrc.indexOf("function railCardHTML("), ffSrc.indexOf("function mobileDealCardHTML("))]) {
+    const pct = slice.slice(Math.max(0, slice.indexOf("discountPct(") - 400), slice.indexOf("discountPct(") + 200);
+    if (/#C0392B|background:\s*red|background:#[eE][0-9a-fA-F]{2}[0-3]/.test(pct)) {
+      throw new Error("a discount badge is drawn in red again");
+    }
+  }
+  const body = productCard.slice(productCard.indexOf("const badgeHTML"));
+  if (!/background:#F4C463; color:var\(--navy\)/.test(body)) throw new Error("the card's discount badge is not the sale yellow");
+  if (/shadow-\[/.test(body.slice(0, body.indexOf("return `")))) throw new Error("the badge has a drop shadow again");
+  // The rails draw the same badge in the same colour.
+  const rail = ffSrc.slice(ffSrc.indexOf("function railCardHTML("), ffSrc.indexOf("function mobileDealCardHTML("));
+  if (!/background:#F4C463; color:var\(--navy\)/.test(rail)) throw new Error("the rail's badge drifted from the card's");
+});
+
+check("'Explora más' is outlined, and the card's CTA is the same quiet shape", () => {
+  const rule = ffStyle.slice(ffStyle.indexOf(".ariaExploraMas{"), ffStyle.indexOf(".ariaExploraMas:hover"));
+  if (!rule) throw new Error("the outlined button style is gone");
+  if (!/background:transparent/.test(rule)) throw new Error("the outlined button grew a fill");
+  if (!/border:1px solid/.test(rule)) throw new Error("the outlined button lost its outline");
+  if (/box-shadow/.test(rule)) throw new Error("the outlined button grew a shadow");
+  if (!/color:var\(--navy\)/.test(rule)) throw new Error("the outlined button is not navy");
+
+  // Under the section, not beside its heading.
+  /* SLICED FORWARD. This ended at "<!-- WHY SHOP WITH US -->", which
+     now sits ABOVE the tiles rather than below them -- the explainer
+     was moved so the category list stops interrupting the brand story.
+     A slice that runs backwards returns "" and then passes every regex
+     put to it while measuring nothing. End on what actually follows. */
+  const catsAt = ffSrc.indexOf('<div id="cats"');
+  const cats = ffSrc.slice(catsAt, ffSrc.indexOf("GARANTÍA DE PRECIO HONESTO", catsAt));
+  if (!cats) throw new Error("the Categorías section's end marker moved again");
+  /* MATCHED AS A WHOLE ATTRIBUTE. `indexOf("data-explora")` also matches
+     `data-exploraX`, so renaming the hook away still read as present --
+     a substring is not an attribute. */
+  const gridAt = cats.indexOf('id="catGrid"'), btnAt = cats.search(/data-explora(?![\w-])/);
+  if (btnAt < 0) throw new Error("there is no Explora más button");
+  if (!/>Explora más</.test(cats)) throw new Error("the button no longer says Explora más");
+  if (!(gridAt < btnAt)) throw new Error("Explora más is still above the section it belongs to");
+  if (!/aria-label="Ver todas las categorías"/.test(cats)) throw new Error("Explora más does not say where it goes");
+
+  /* THE CARD'S CTA IS THE SAME SHAPE. A full-width filled blue button
+     was the loudest thing on a 169px card -- louder than the photo. It
+     was not removed, because it carries the Comprar / Ver detalle
+     distinction that keeps a card from promising a purchase the page
+     behind it cannot complete. */
+  const body = productCard.slice(productCard.indexOf("return `"));
+  if (!/class="ariaExploraMas w-full focus-ring"/.test(body)) throw new Error("the card's CTA is not the quiet outlined shape");
+  if (/background:var\(--blue\)/.test(body)) throw new Error("the card's CTA is a filled blue slab again");
+  if (!/>Comprar</.test(body)) throw new Error("the card lost its CTA entirely");
+});
+
+check("the image-quality gate survived the restyle", () => {
+  /* THE BRIEF ASKS FOR THIS AND IT ALREADY EXISTS -- what it does NOT
+     yet have is anything to act on (see the PR: not one item in any
+     committed catalogue carries an imageReview field, so nothing is
+     actually screened). The gate itself must not be weakened by a
+     visual change, because it is the rule that keeps an image with a US
+     sticker price on it off a card whose price is ~24% higher. */
+  if (!/if \(item\.imageReview && item\.imageReview !== 'clean'\) images = \[\];/.test(ffSrc)) {
+    throw new Error("the image-quality gate is gone — a priced image can reach a card");
+  }
+  if (!existsSync(root("scripts/image-price-scan.js"))) throw new Error("the scanner that sets imageReview is gone");
+});
+
+
 /* ------------------------------------------------------------------ */
 group("Zapatos: a department made of other people's buckets");
 
@@ -5254,6 +5439,108 @@ check("Zapatos is a department with a name and a place in the taxonomy", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("The home page tells the story once");
+
+check("the explainer is photography and type, not clip-art boxes", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('<div id="whyUs"'), src.indexOf("<!-- HOW IT WORKS -->"));
+  if (!why) throw new Error("the explainer section is gone");
+
+  /* THE THUMBNAILS ARE GONE, not swapped. Five 48px stock cartoons sat
+     above five headings, directly over the photographic category tiles,
+     and read like a slide deck next to them. */
+  if (/src="data:image/.test(why)) throw new Error("the clip-art thumbnails are back in the explainer");
+  if (/ariaCard--light/.test(why)) throw new Error("the promises are white boxes again");
+  if (!/assets\/portal-girl-bg\.jpg/.test(why)) throw new Error("the brand photograph is not the background");
+  if (!/class="ariaWhyScrim"/.test(why)) throw new Error("there is no scrim over the photograph");
+
+  /* IT MUST SURVIVE THE PHOTO NOT LOADING. The image is a separate
+     asset; a section whose legibility depends on a file that may 404 is
+     one that eventually renders white-on-white. */
+  if (!/onerror="this\.remove\(\)"/.test(why)) throw new Error("a missing photo would leave a broken image over the text");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const sec = css.slice(css.indexOf("#whyUs{"), css.indexOf(".ariaWhyPhoto{"));
+  if (!/background:var\(--navy\)/.test(sec)) throw new Error("the navy is not on the section — with no photo there is nothing behind the text");
+
+  /* THE SCRIM'S TOP STOP IS ITS THINNEST POINT, and the number was
+     computed, not chosen: at 0.62 the kicker measured 3.12:1 over a
+     pure-white photo pixel. Anything lighter than 0.72 fails again. */
+  const stop = Number((css.match(/\.ariaWhyScrim[\s\S]*?rgba\(4,12,28,([0-9.]+)\)\s*0%/) || [])[1]);
+  if (!(stop >= 0.72)) throw new Error(`the scrim's top stop is ${stop} — below 0.72 the kicker drops under 4.5:1`);
+
+  // The copy is carried over untouched; this was a redesign, not a rewrite.
+  for (const promise of ["Productos que no existen en Perú", "Comparamos varias tiendas a la vez",
+                         "Acceso a las grandes ofertas de EE. UU.", "Precio final, sin sorpresas",
+                         "Seguimiento de tu pedido"]) {
+    if (!why.includes(promise)) throw new Error(`the redesign lost a promise: "${promise}"`);
+  }
+  if ((why.match(/ariaWhyPromise/g) || []).length < 5) throw new Error("a promise was dropped in the redesign");
+  // ...and the card removed earlier stays removed.
+  if (why.includes("Compara con el precio en Perú")) throw new Error("the Peru promise came back with the redesign");
+});
+
+check("the page promises nothing we cannot do", () => {
+  /* "Cuando el producto también existe en tiendas peruanas, te
+     mostramos ambos precios…" was a card in Por qué Aria, and the
+     function behind it does not exist: there is no Peru price source
+     and no matching. It is a parked idea, and a parked idea on the
+     home page is a claim.
+
+     Asserted on the whole page, not just that section, so it cannot
+     come back somewhere else. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  for (const claim of ["Compara con el precio en Perú", "tiendas peruanas, te mostramos ambos precios"]) {
+    if (src.includes(claim)) throw new Error(`the Peru price-comparison promise is back: "${claim}"`);
+  }
+  /* The rest of Por qué Aria is untouched -- this was a removal of one
+     card, not a trim of the section. */
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  for (const kept of ["Acceso a las grandes ofertas de EE. UU.", "Precio final, sin sorpresas",
+                      "marcas y modelos que nunca llegan a las tiendas peruanas"]) {
+    if (!why.includes(kept)) throw new Error(`the removal took more than the one card: "${kept}" is gone`);
+  }
+});
+
+check("the explainer follows the logo, and the category tiles follow the explainer", () => {
+  /* THE PHONE USED TO READ: Ofertas -> Categorías (the compact
+     carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
+     (the long tiles). The visitor met the categories, scrolled past
+     them to reach the brand and how any of this works, and met the
+     categories AGAIN -- the same list twice with the story wedged
+     between its two halves.
+
+     Asserted on SOURCE ORDER, not on measured positions: the browser
+     harness blocks the CDN, so nothing there has a reliable y. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const home = src.slice(src.indexOf("<!-- ============ HOME VIEW ============ -->"), src.indexOf("<!-- ============ RESULTS VIEW ============ -->"));
+  if (!home) throw new Error("the home view is gone");
+
+  const at = (needle, what) => {
+    const i = home.indexOf(needle);
+    if (i < 0) throw new Error(`${what} is gone from the home page`);
+    return i;
+  };
+  const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
+  const cats   = at('id="mobileCatsRow"', "the Categorías rail");
+  const stores = at('id="mobileStoresRow"', "the Tiendas rail");
+  const logo   = at('src="aria-full-logo.png"', "the ARIA logo");
+  const why    = at('id="whyUs"', "the Por qué Aria explainer");
+  const tiles  = at('id="cats"', "the Comprar por categoría tiles");
+
+  // Unchanged, and the brief says so explicitly.
+  if (!(deals < cats && cats < stores)) throw new Error("the three rails are no longer Ofertas -> Categorías -> Tiendas");
+  if (!(stores < logo)) throw new Error("the rails no longer come before the logo");
+  // The move itself.
+  if (!(logo < why)) throw new Error("the explainer no longer follows the ARIA logo it belongs to");
+  if (!(why < tiles)) throw new Error("the category tiles interrupt the brand story again");
+
+  /* NOTHING WAS DELETED. The tiles are still there and still built by
+     the same code -- this was a move, and a test that only checked the
+     order would pass just as well if they had been dropped. */
+  if (!/id="catGrid"/.test(home)) throw new Error("the category tile grid is gone, not moved");
+  if (!/initDepartmentTiles/.test(src)) throw new Error("nothing fills the category tiles any more");
+});
+
 group("cómo funciona: the shopper is the one doing the buying");
 
 check("step 3 never makes us the buyer", () => {
