@@ -4522,6 +4522,83 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
 
 
 /* ------------------------------------------------------------------ */
+group("the mobile shopfront: no core path lives only behind the menu");
+
+check("Ofertas and the departments come before the hero, and only on mobile", () => {
+  /* WHAT A REAL USER TEST FOUND: on a phone, Ofertas and Categorías
+     existed only behind the hamburger, and people do not tap the
+     hamburger — they scroll. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const home = src.indexOf('<div id="homeView"');
+  const banner = src.indexOf('aria-label="Ofertas"');
+  const row = src.indexOf('id="mobileCatRow"');
+  const hero = src.indexOf("Compra en Estados Unidos.");
+  if (banner < 0) throw new Error("there is no Ofertas banner");
+  if (!(home < banner && banner < row && row < hero)) {
+    throw new Error("the banner and the category row are not the first two things in the home scroll");
+  }
+
+  /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so everything
+     below 1024px is behind the hamburger — including tablets. The banner
+     has to appear exactly where the menu takes over. */
+  const strip = stripComments(src).slice(stripComments(src).indexOf('<div id="homeView"'));
+  const bannerMarkup = strip.slice(strip.indexOf('aria-label="Ofertas"') - 200, strip.indexOf('id="mobileCatRow"') + 200);
+  eq((bannerMarkup.match(/lg:hidden/g) || []).length, 2, "both mobile sections hidden at lg");
+  if (/\bmd:hidden\b/.test(bannerMarkup)) throw new Error("the mobile shopfront hides at md, but the menu takes over at lg");
+
+  // It taps through to the feed, and it is the sale colour on navy.
+  if (!/onclick="goSales\(\)"/.test(bannerMarkup)) throw new Error("the banner does not open the Ofertas feed");
+  if (!/#F4C463/.test(bannerMarkup)) throw new Error("the banner is not in the sale colour");
+  if (!/#0A1F44/.test(bannerMarkup)) throw new Error("the banner is not on navy");
+});
+
+check("the banner may only count what the feed will show", () => {
+  /* THE MISTAKE THIS PINS, caught in verification: the first version
+     counted the `sale` DEPARTMENT off the department cache and read
+     "1,358 productos rebajados" while the page it opened said "1066
+     ofertas reales". Two honest numbers of two different things — the
+     feed is that set put through passesOfertasGate and unioned with the
+     scraper cache. A banner promising more than the page behind it is
+     the kind of quiet lie this site is built not to tell. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function paintOfertasBanner("), src.indexOf("function initDepartmentTiles("));
+  if (!/saleItemsCache/.test(fn)) throw new Error("the banner no longer counts the feed's own set");
+  if (/departmentItemsFor|collectTiles/.test(fn)) throw new Error("the banner is counting the department again, not the feed");
+  // ...and it stays silent until that set exists.
+  if (!/!saleItemsCache\.length\) return/.test(fn)) throw new Error("the banner will print a number before the feed is built");
+  // The call sites: once where the feed is built, once on home render.
+  eq((src.match(/paintOfertasBanner\(\)/g) || []).length, 3, "paintOfertasBanner definition + call sites");
+  const build = src.slice(src.indexOf("saleItemsCache = [...scraped"), src.indexOf("saleItemsCache = [...scraped") + 400);
+  if (!/paintOfertasBanner\(\)/.test(build)) throw new Error("the banner is not refreshed when the feed is built");
+});
+
+check("the phone's row is the same taxonomy as the grid", () => {
+  // One list, drawn twice — never a second list that could drift from
+  // it or miss a department the day one is added.
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const init = src.slice(src.indexOf("function initDepartmentTiles("), src.indexOf("window.addEventListener('DOMContentLoaded', initDepartmentTiles)"));
+  if (!/mobileCatRow/.test(init)) throw new Error("the phone's row is not rendered from initDepartmentTiles");
+  if (!/tiles\.map\(\(\{ t, kind \}\) => mobileCatChipHTML\(t, kind\)\)/.test(init)) {
+    throw new Error("the row is built from something other than the tiles the grid just drew");
+  }
+  if (!/data-mobile-cat-all/.test(init)) throw new Error("the row has no way through to all the categories");
+
+  /* IT SCROLLS SIDEWAYS, and that is asserted here rather than in the
+     browser: the browser harness blocks Tailwind on purpose, so an
+     unstyled row simply wraps and `scrollWidth > clientWidth` is false
+     for a reason that has nothing to do with the page being wrong. The
+     classes are what decide it, so the classes are what is pinned. */
+  const src2 = readFileSync(root("index.html"), "utf8");
+  const rowMarkup = src2.slice(src2.indexOf('id="mobileCatRow"'), src2.indexOf('id="mobileCatRow"') + 220);
+  if (!/overflow-x-auto/.test(rowMarkup)) throw new Error("the category row no longer scrolls horizontally");
+  if (!/\bflex\b/.test(rowMarkup)) throw new Error("the category row is not a single row");
+  // The chip carries the department's own curated cover, not an emoji grid.
+  const chip = src.slice(src.indexOf("function mobileCatChipHTML("), src.indexOf("function paintOfertasBanner("));
+  if (!/categoryCoverFor\(t\.key\)/.test(chip)) throw new Error("the chips do not use the curated covers");
+  if (!/<img/.test(chip)) throw new Error("the chips show no photograph");
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

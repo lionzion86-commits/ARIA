@@ -213,6 +213,62 @@
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
 
+  <!-- ============================================================
+       THE MOBILE SHOPFRONT (2026-09-23)
+
+       WHAT A REAL USER TEST FOUND: on a phone, Ofertas and Categorías
+       existed ONLY behind the hamburger, and people do not tap the
+       hamburger. They scroll. A $500 coat at $50 was three taps and a
+       guess away, under a menu nobody opens.
+
+       So the two things a shopper actually came for are now the first
+       two things in the scroll, above the hero. This is the top of the
+       page on a phone.
+
+       lg:hidden, NOT md:hidden, and that is deliberate: the nav is
+       `hidden lg:flex`, so everything below 1024px is behind the
+       hamburger — including tablets. The banner appears exactly where
+       the menu takes over, not at a breakpoint that merely looks close.
+       Desktop is untouched at every width above it.
+       ============================================================ -->
+  <section class="lg:hidden" aria-label="Ofertas">
+    <button onclick="goSales()" class="relative block w-full text-left overflow-hidden focus-ring"
+      style="background:linear-gradient(120deg, #0A1F44 0%, #12336E 52%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <!-- The shine: one soft gold light from the upper right, the same
+           warm the orb and the gold hairline already use. Not animated —
+           a stripe that moves on every page load is a banner ad. -->
+      <div class="absolute inset-0 pointer-events-none" aria-hidden="true"
+        style="background:radial-gradient(120% 140% at 88% 0%, rgba(244,196,99,0.30) 0%, rgba(244,196,99,0.07) 42%, rgba(244,196,99,0) 68%)"></div>
+      <div class="relative px-5 py-4 flex items-center gap-4">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-baseline gap-2">
+            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+            <span aria-hidden="true" class="text-[18px] leading-none">🔥</span>
+          </div>
+          <!-- Filled from the same cache the Ofertas tile counts, once it
+               resolves. No claim until then — see paintOfertasBanner. -->
+          <div id="ofertasBannerStat" class="text-[13px] font-semibold mt-1.5 leading-snug" style="color:#DCE6FF">
+            Precios rebajados en tiendas de EE.&nbsp;UU.
+          </div>
+        </div>
+        <span class="flex items-center gap-1 text-[13px] font-extrabold flex-shrink-0" style="color:#F4C463">
+          Ver
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </span>
+      </div>
+    </button>
+  </section>
+
+  <!-- Every department, one swipe, no menu. Rendered by
+       initDepartmentTiles() from the same taxonomy the full grid uses,
+       so a new department (Zapatos, and whatever comes next) appears
+       here with no second change. -->
+  <nav class="lg:hidden border-b" style="border-color:var(--line); background:#fff" aria-label="Departamentos">
+    <div id="mobileCatRow" class="flex gap-3 overflow-x-auto px-5 py-3.5"
+      style="scrollbar-width:none; -webkit-overflow-scrolling:touch"></div>
+  </nav>
+
   <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
     <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
       <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
@@ -3503,6 +3559,61 @@ function deptTileHTML(t, kind){
   </button>`;
 }
 
+/* ONE CHIP: the department's own cover photo and its name. Small, but
+   the same art the full-size card uses, so the row reads as the shop
+   rather than as a nav bar with words in it. A department with no
+   curated cover falls back to the drawn field, exactly as its card
+   does — categoryCoverArtHTML already decides that, and this asks it
+   the same question rather than inventing a second answer. */
+function mobileCatChipHTML(t, kind){
+  const cover = categoryCoverFor(t.key);
+  const art = cover
+    ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" decoding="async"
+         style="width:100%; height:100%; object-fit:cover; object-position:center">`
+    : `<span class="w-full h-full grid place-items-center text-[20px]" style="background:var(--sky)" aria-hidden="true">${t.icon}</span>`;
+  return `<button onclick="openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')"
+    class="flex-shrink-0 w-[92px] focus-ring rounded-xl text-center" data-mobile-cat="${escapeHtml(t.key)}">
+    <span class="block w-[92px] h-[68px] rounded-xl overflow-hidden border" style="border-color:var(--line)">${art}</span>
+    <span class="block text-[11.5px] font-bold leading-tight mt-1.5 px-0.5" style="color:var(--navy)">${escapeHtml(t.label)}</span>
+  </button>`;
+}
+
+/* THE BANNER MAY ONLY COUNT WHAT THE FEED WILL SHOW.
+
+   THE MISTAKE THIS REPLACES, caught in verification rather than in
+   review: the first version counted the `sale` DEPARTMENT off the
+   department cache — free, already loaded, and wrong. It read "1,358
+   productos rebajados" and the page it opened said "1066 ofertas
+   reales". Two honest numbers of two different things: the department
+   count is every discounted item in the cache, while the feed is that
+   set put through passesOfertasGate (a weight gate, a freight ceiling
+   and a photo gate) and unioned with the scraper cache. A banner that
+   promises a bigger number than the page behind it is the kind of quiet
+   lie this site is built not to tell.
+
+   SO IT ASKS THE FEED ITSELF, and only when the feed has already been
+   built — saleItemsCache is exactly what renderSalesGrid() paints. On a
+   first visit that is empty and the banner keeps its static line, which
+   is true whatever the cache holds. Building the feed here instead
+   would put a sales-cache fetch on every home load to decorate a
+   subtitle, which is not a trade worth making.
+
+   The static line is not a placeholder. It is the claim we can always
+   stand behind; the number is a bonus when it happens to be free. */
+function paintOfertasBanner(){
+  const el = document.getElementById('ofertasBannerStat');
+  if (!el || !Array.isArray(saleItemsCache) || !saleItemsCache.length) return;
+  let best = 0;
+  for (const p of saleItemsCache){
+    const pct = discountPct(p);
+    if (Number.isFinite(pct) && pct > best) best = pct;
+  }
+  const count = saleItemsCache.length.toLocaleString('es-PE');
+  el.textContent = best >= MIN_DISCOUNT_PCT
+    ? `${count} ofertas reales · hasta ${best}% menos`
+    : `${count} ofertas reales`;
+}
+
 function initDepartmentTiles(){
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
@@ -3530,6 +3641,20 @@ function initDepartmentTiles(){
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')
       : '<div class="col-span-full text-[13px] text-zinc-400">No hay departamentos disponibles por ahora.</div>';
+
+    /* The phone's row, from the SAME tiles the grid just drew — never a
+       second list that could drift from it or miss a department. */
+    const row = document.getElementById('mobileCatRow');
+    if (row){
+      row.innerHTML = tiles.map(({ t, kind }) => mobileCatChipHTML(t, kind)).join('')
+        + `<button onclick="openCategories()" class="flex-shrink-0 w-[92px] focus-ring rounded-xl text-center" data-mobile-cat-all>
+             <span class="block w-[92px] h-[68px] rounded-xl grid place-items-center border" style="border-color:var(--line); background:var(--sky); color:var(--navy)">
+               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+             </span>
+             <span class="block text-[11.5px] font-bold leading-tight mt-1.5" style="color:var(--navy)">Ver todas</span>
+           </button>`;
+    }
+    paintOfertasBanner();   // a no-op until the feed has been built
   });
 }
 window.addEventListener('DOMContentLoaded', initDepartmentTiles);
@@ -11830,6 +11955,8 @@ async function runSalesScan(){
     // One feed. The tier a store sits in on Tiendas has no say here:
     // an SSENSE markdown competes on the same row as a Walmart one.
     saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+    // The phone's banner counts THIS set or says nothing. See paintOfertasBanner.
+    paintOfertasBanner();
     salesGeneratedAt = cached?.generatedAt || null;
     salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
     renderSalesGrid();

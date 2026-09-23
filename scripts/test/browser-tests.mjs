@@ -1268,6 +1268,143 @@ await check("a brand row opens exactly what its card opened", async () => {
   await ctx.close();
 });
 
+/* ============================================================
+   THE MOBILE SHOPFRONT — the acceptance criteria, at 393px.
+
+   "Fresh load at 393px — OFERTAS banner visible without scrolling past
+   the header, category row one swipe down."
+   ============================================================ */
+async function openPhone(routes = {}) {
+  const ctx = await browser.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
+  for (const [glob, handler] of Object.entries(routes).reverse()) await page.route(glob, handler);
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(900);
+  return { ctx, page, errors };
+}
+
+await check("at 393px the shopper meets Ofertas before anything else", async () => {
+  const { ctx, page, errors } = await openPhone({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  await page.waitForTimeout(1200);
+  const r = await page.evaluate(() => {
+    const vh = window.innerHeight;
+    const header = document.querySelector("header").getBoundingClientRect();
+    const banner = document.querySelector('[aria-label="Ofertas"] button');
+    const row = document.getElementById("mobileCatRow");
+    const b = banner.getBoundingClientRect();
+    const w = row.getBoundingClientRect();
+    return {
+      bannerTop: Math.round(b.top), headerBottom: Math.round(header.bottom),
+      bannerH: Math.round(b.height), bannerW: Math.round(b.width),
+      pageW: document.documentElement.clientWidth,
+      bannerInView: b.top < vh && b.bottom > 0,
+      rowTop: Math.round(w.top), rowInView: w.top < vh,
+      chips: [...row.querySelectorAll("[data-mobile-cat]")].map((c) => c.getAttribute("data-mobile-cat")),
+      chipsWithPhoto: [...row.querySelectorAll("[data-mobile-cat] img")].length,
+      verTodas: !!row.querySelector("[data-mobile-cat-all]"),
+      departments: Object.keys(DEPARTMENT_SPEC).length,
+    };
+  });
+  /* NO SCROLLING PAST THE HEADER: the banner starts where the header
+     ends, and it is entirely above the fold. */
+  if (Math.abs(r.bannerTop - r.headerBottom) > 2) {
+    throw new Error(`the banner starts at ${r.bannerTop}, the header ends at ${r.headerBottom}`);
+  }
+  eq(r.bannerInView, true, "the banner is below the fold on a fresh load");
+  /* NOT ASSERTED HERE: full-bleed width, and that it hides on desktop.
+     This harness blocks cdn.tailwindcss.com on purpose — the page must
+     boot without it — so `w-full` and `lg:hidden` are not applied and
+     any width measured here is the unstyled one. Those two live in the
+     node suite, which reads the classes that decide them. What IS real
+     without CSS is everything below: document order, the handlers, the
+     chip count and the navigation. */
+  // The row is the next thing, also without scrolling on a 852px phone.
+  eq(r.rowInView, true, "the category row is not reachable in one swipe");
+  if (!(r.rowTop > r.bannerTop)) throw new Error("the row is not under the banner");
+  /* EVERY department, pinned to the taxonomy so a new one (Zapatos, and
+     whatever follows) cannot quietly be left out of the phone's row. */
+  eq(r.chips.length, r.departments, "chips vs departments in the taxonomy");
+  eq(r.chipsWithPhoto, r.departments, "a chip is missing its cover photograph");
+  eq(r.verTodas, true, "the row has no way through to all the categories");
+  /* `overflowX` is deliberately not asserted here either: without
+     Tailwind the row cannot clip itself, so an unstyled 393px page
+     reports 1551px of sideways scroll for a reason that says nothing
+     about the real one. Measured styled during verification: 0. */
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the banner opens the feed and the chips open departments", async () => {
+  const { ctx, page, errors } = await openPhone({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  await page.waitForTimeout(1200);
+  const tapped = await page.evaluate(async () => {
+    document.querySelector('[aria-label="Ofertas"] button').click();
+    await new Promise((r) => setTimeout(r, 1800));
+    const feed = document.getElementById("salesCount").textContent;
+    const view = [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join();
+    /* THE HONESTY CHECK, and the reason this test exists: the banner's
+       number must be the number of the page it opens. The first cut
+       counted the sale DEPARTMENT and said 1,358 over a feed of 1,066. */
+    goHome();
+    await new Promise((r) => setTimeout(r, 700));
+    const banner = document.getElementById("ofertasBannerStat").textContent;
+    return { view, feed, banner, cached: saleItemsCache.length };
+  });
+  eq(tapped.view, "salesView", "the banner did not open the Ofertas feed");
+  const feedN = Number((tapped.feed.match(/([\d.,]+)/) || [])[1].replace(/[.,]/g, ""));
+  const bannerN = Number(((tapped.banner.match(/([\d.,]+) ofertas/) || [])[1] || "0").replace(/[.,]/g, ""));
+  eq(bannerN, feedN, "the banner promises a different number than the feed behind it");
+  eq(bannerN, tapped.cached, "the banner is not counting the feed's own set");
+
+  const chip = await page.evaluate(async () => {
+    const c = document.querySelector('[data-mobile-cat="women"]') || document.querySelector("[data-mobile-cat]");
+    c.click();
+    await new Promise((r) => setTimeout(r, 1800));
+    return {
+      view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+      title: document.getElementById("catalogTitle").textContent,
+    };
+  });
+  eq(chip.view, "catalogView", "a category chip did not open its department");
+  if (!chip.title) throw new Error("the department opened with no name");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the desktop home page keeps its own first screen", async () => {
+  /* The brief is explicit: mobile is the change, desktop is not. Whether
+     the two mobile sections are DISPLAYED at 1280px is a Tailwind
+     question and this harness has no Tailwind (see above), so it is
+     asserted in the node suite by their `lg:hidden` classes. What is
+     checkable here, and worth checking, is that nothing was taken away
+     from the desktop page in the process. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(900);
+  const r = await page.evaluate(() => ({
+    hero: (document.querySelector("#homeView h1").textContent || "").replace(/\s+/g, " ").trim(),
+    search: !!document.getElementById("searchInput"),
+    grid: document.getElementById("catGrid").children.length,
+    departments: Object.keys(DEPARTMENT_SPEC).length,
+    navLinks: [...document.querySelectorAll("header nav a")].length,
+  }));
+  if (!/Compra en Estados Unidos/.test(r.hero)) throw new Error("the desktop hero changed: " + r.hero.slice(0, 60));
+  eq(r.search, true, "the home search box is gone");
+  eq(r.grid, r.departments, "the desktop department grid changed");
+  if (r.navLinks < 8) throw new Error(`the desktop nav lost links: ${r.navLinks}`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
