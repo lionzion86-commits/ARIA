@@ -309,3 +309,21 @@ export function loadPageBrandSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The Ofertas rail's store spread, on its own. Pure list work, so it is
+   run rather than pattern-matched: "one card per store in the first
+   five" is a claim about what comes out, not about what the source
+   looks like. */
+export function loadPageDealSpreadSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const MOBILE_RAIL_LEAD = 5;");
+  const to = html.indexOf("function renderMobileDealsRail(");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html deal-spread markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(html.slice(from, to) + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD };",
+    sandbox, { filename: "index.html#deal-spread" });
+  return sandbox.__exports;
+}

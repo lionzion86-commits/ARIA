@@ -234,8 +234,13 @@
             a link to the deals: the deals. This is the thing that has
             to hit someone in the face before they decide the site is
             not for them.
-         2. TIENDAS — which US stores we actually buy from.
-         3. CATEGORÍAS — every department, when the sale had nothing.
+         2. CATEGORÍAS — every department, for when the deals did not
+            hook. Danny's reasoning, and it is the right one: "in case
+            they don't find the ofertas they're looking for, they know
+            categories is right underneath". The fallback belongs where
+            the eye lands next, not two sections down.
+         3. TIENDAS — which US stores we actually buy from, for the
+            shopper who came knowing where they want to shop.
 
        NOTHING MOVES ON ITS OWN. No autoplay, no timers, no scroll
        hijacking: the shopper swipes and the rail follows. A carousel
@@ -266,15 +271,6 @@
       <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-    <!-- TIENDAS -->
-    <section aria-label="Tiendas" class="border-b" style="border-color:var(--line); background:#fff">
-      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas en EE.&nbsp;UU.</h2>
-        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
-      </div>
-      <div id="mobileStoresRow" class="flex gap-2.5 overflow-x-auto px-5 pb-4 ariaRail"></div>
-    </section>
-
     <!-- CATEGORÍAS -->
     <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -282,6 +278,15 @@
         <button onclick="openCategories()" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
       </div>
       <div id="mobileCatsRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
+
+    <!-- TIENDAS -->
+    <section aria-label="Tiendas" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas en EE.&nbsp;UU.</h2>
+        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
+      </div>
+      <div id="mobileStoresRow" class="flex gap-2.5 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
   </div>
 
@@ -3662,6 +3667,43 @@ function mobileDealCardHTML(p, idx){
   </button>`;
 }
 
+/* ONE STORE PER CARD IN THE OPENING RUN.
+
+   WHY (2026-09-23). Sorted by discount alone, the rail opened on three
+   near-identical Macy's puffer coats -- "Women's Hooded Stand Collar
+   Puffer Coat" and "Women's Collar Hooded Puffer Coat", both -86%, both
+   $53.02 from $465.11. Every one of them honest, and together a weaker
+   first impression than three different things: the rail's job is to
+   make someone stop, and the third coat says nothing the first did not.
+
+   So the FIRST MOBILE_RAIL_LEAD cards take at most one per retailer.
+   Nothing is dropped and nothing is re-ranked beyond that: a store's
+   second markdown keeps its place in the queue and comes back the
+   moment the lead is full, so the rail is still ordered by discount,
+   just not by the same shop five times.
+
+   IT DEGRADES INTO THE OLD BEHAVIOUR ON PURPOSE. If only two stores
+   have deals today, the lead fills from the leftovers rather than
+   coming up short -- five cards from two shops beats two cards. */
+const MOBILE_RAIL_LEAD = 5;
+
+function spreadDealsByStore(sorted, lead){
+  const first = [];
+  const held = [];
+  const seen = new Set();
+  for (const p of sorted){
+    if (first.length >= lead) { held.push(p); continue; }
+    const key = String(p.retailer || '');
+    if (seen.has(key)) { held.push(p); continue; }
+    seen.add(key);
+    first.push(p);
+  }
+  // Short on distinct stores: fill the lead back up from what was held,
+  // in the discount order they already had.
+  while (first.length < lead && held.length) first.push(held.shift());
+  return first.concat(held);
+}
+
 /* BIGGEST DISCOUNT FIRST, which is the whole brief: "80% off first".
    Sorted here rather than trusting the feed's own order, because the
    feed defaults to cheapest door-to-door and this rail is answering a
@@ -3669,11 +3711,11 @@ function mobileDealCardHTML(p, idx){
 function renderMobileDealsRail(){
   const row = document.getElementById('mobileDealsRow');
   if (!row) return;
-  const deals = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
+  const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
-    .sort((a, b) => discountPct(b) - discountPct(a))
-    .slice(0, MOBILE_RAIL_DEALS);
+    .sort((a, b) => discountPct(b) - discountPct(a));
+  const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
   if (!deals.length){
     /* An empty rail is worse than none. The same honest line the Ofertas

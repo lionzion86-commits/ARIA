@@ -1319,10 +1319,41 @@ await check("biggest discount first, and the rail's count is the feed's own", as
     [...document.querySelectorAll("#mobileDealsRow [data-mobile-deal]")]
       .map((c) => { const m = (c.textContent || "").match(/-(\d+)%/); return m ? Number(m[1]) : null; }));
   if (pcts.includes(null)) throw new Error("a deal card is showing no discount badge");
-  for (let i = 1; i < pcts.length; i++) {
+  if (!pcts.length) throw new Error("the deals rail is empty on a full cache");
+
+  /* SORTED BY DISCOUNT, EXCEPT ACROSS THE OPENING RUN, WHICH IS THE
+     POINT OF THE OPENING RUN. The first five cards take one store each
+     so the rail cannot lead on three near-identical markdowns from the
+     same shop, and that deliberately breaks strict descending order
+     inside those five. Everything after them is the untouched queue.
+
+     Both halves are still checked — the tail for its order, the lead
+     for one store per card — so "sorted by discount" cannot quietly
+     become "unsorted". */
+  const { lead, cap, storesWithDeals } = await page.evaluate(() => ({
+    lead: mobileDealsRendered.slice(0, MOBILE_RAIL_LEAD).map((p) => p.retailer),
+    cap: MOBILE_RAIL_LEAD,
+    /* HOW MANY DISTINCT STORES THE FEED CAN ACTUALLY SUPPLY. Today it is
+       four, so the fifth card is necessarily a repeat — and demanding
+       five would be demanding data that does not exist. What must hold
+       is that the run is as varied as the feed allows: a repeat while
+       another store still has an unused deal is the regression. */
+    storesWithDeals: new Set(saleItemsCache
+      .filter((p) => Number(p.price) > 0 && Number(p.originalPrice) > Number(p.price) && p.image)
+      .map((p) => p.retailer)).size,
+  }));
+  eq(new Set(lead).size, Math.min(cap, storesWithDeals),
+    `the opening run is less varied than the feed allows: ${lead.join(",")} from ${storesWithDeals} stores`);
+  // However thin the feed, the run is still full.
+  eq(lead.length, cap, "the opening run came up short");
+  for (let i = cap + 1; i < pcts.length; i++) {
     if (pcts[i] > pcts[i - 1]) throw new Error(`the rail is not sorted by discount: ${pcts[i - 1]}% then ${pcts[i]}%`);
   }
-  if (!pcts.length) throw new Error("the deals rail is empty on a full cache");
+  // The deepest markdown in the feed is still the first thing on the rail.
+  const best = await page.evaluate(() =>
+    Math.max(...saleItemsCache.filter((p) => Number(p.price) > 0 && Number(p.originalPrice) > Number(p.price) && p.image)
+      .map((p) => discountPct(p))));
+  eq(pcts[0], best, "the rail does not open on the deepest markdown in the feed");
 
   const promised = await page.evaluate(() =>
     Number((document.querySelector("#mobileDealsRow [data-mobile-deal-all]").textContent.match(/([\d.,]+)\s+ofertas/) || [])[1].replace(/\D/g, "")));

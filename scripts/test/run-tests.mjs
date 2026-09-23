@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -4561,9 +4561,18 @@ check("the shopfront is the first thing under the header, and only on a phone", 
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, then Tiendas, then Categorías", () => {
+check("Ofertas, then Categorías, then Tiendas", () => {
+  /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
+     words: "in case they don't find the ofertas they're looking for,
+     they know categories is right underneath". Deals first because they
+     are what makes someone stop; departments second because that is
+     where you go when the deals did not have it; stores last, for the
+     shopper who already knows where they want to shop.
+
+     (The written brief numbered Tiendas second. He was asked which, and
+     chose the spoken one — this is that decision, not a drift from it.) */
   const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Tiendas > Categorías", "the shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Categorías > Tiendas", "the shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
@@ -4624,6 +4633,12 @@ check("the deals rail is the Ofertas feed, sorted by discount, never a second li
   if (!/\.sort\(\(a, b\) => discountPct\(b\) - discountPct\(a\)\)/.test(js)) {
     throw new Error("the rail is no longer sorted by discount, descending");
   }
+  /* ...and then ONE STORE PER CARD across the opening run, so the rail
+     cannot lead on three near-identical markdowns from one shop. The
+     spread is applied to the SORTED list, never instead of sorting it. */
+  if (!/spreadDealsByStore\(priced, MOBILE_RAIL_LEAD\)/.test(js)) {
+    throw new Error("the rail can lead on five cards from one store again");
+  }
   // A card with no price, no markdown or no photo is not a deal.
   if (!/Number\.isFinite\(Number\(p\.price\)\)/.test(js)) throw new Error("a priceless line can reach the rail");
   if (!/Number\(p\.originalPrice\) > Number\(p\.price\)/.test(js)) throw new Error("a card with no markdown can claim a discount");
@@ -4632,6 +4647,54 @@ check("the deals rail is the Ofertas feed, sorted by discount, never a second li
   // And the tail counts the feed it opens, not a department.
   if (!/saleItemsCache\.length\.toLocaleString/.test(js)) throw new Error("'Ver todo' is counting something other than the feed");
   if (!/goSales\(\)/.test(js)) throw new Error("'Ver todo' does not open Ofertas");
+});
+
+check("the opening five deals come from five different stores, and nothing is lost", () => {
+  const { spreadDealsByStore, MOBILE_RAIL_LEAD } = loadPageDealSpreadSlice();
+  eq(MOBILE_RAIL_LEAD, 5, "the size of the opening run");
+  const deal = (retailer, pct, id) => ({ retailer, pct, id });
+  const stores = list => list.slice(0, MOBILE_RAIL_LEAD).map(d => d.retailer);
+
+  /* THE CASE THAT PROMPTED IT: one shop owns the deepest markdowns, and
+     sorted by discount alone the rail opened on three near-identical
+     Macy's puffer coats. */
+  const macysHeavy = [
+    deal("macys", 86, "coat-a"), deal("macys", 86, "coat-b"), deal("macys", 85, "coat-c"),
+    deal("ssense", 80, "pants"), deal("macys", 85, "coat-d"), deal("yesstyle", 50, "serum"),
+    deal("ulta", 20, "cream"), deal("ssense", 75, "shirt"),
+  ];
+  const spread = spreadDealsByStore(macysHeavy, MOBILE_RAIL_LEAD);
+  eq(new Set(stores(spread)).size, 4, "the opening run repeats a store while another still has a deal");
+  eq(stores(spread).slice(0, 4).join(), "macys,ssense,yesstyle,ulta", "the opening run is not one deal per store, deepest first");
+
+  /* NOTHING IS DROPPED AND NOTHING IS INVENTED. A held-back deal keeps
+     its place in the queue rather than losing its slot on the rail. */
+  eq(spread.length, macysHeavy.length, "the spread changed how many deals there are");
+  eq(new Set(spread.map(d => d.id)).size, macysHeavy.length, "the spread duplicated or lost a deal");
+
+  /* AND THE QUEUE BEHIND THE OPENING RUN IS STILL IN DISCOUNT ORDER --
+     the spread reorders the lead, it does not re-rank the rail. */
+  const rest = spread.slice(MOBILE_RAIL_LEAD).map(d => d.pct);
+  for (let i = 1; i < rest.length; i++) {
+    if (rest[i] > rest[i - 1]) throw new Error(`the tail lost its discount order: ${rest.join(",")}`);
+  }
+
+  /* IT DEGRADES RATHER THAN COMING UP SHORT. Two stores with deals today
+     must still fill five cards: five from two shops beats two cards. */
+  const twoStores = [
+    deal("macys", 90, "a"), deal("macys", 80, "b"), deal("ssense", 70, "c"),
+    deal("macys", 60, "d"), deal("macys", 50, "e"), deal("ssense", 40, "f"),
+  ];
+  const thin = spreadDealsByStore(twoStores, MOBILE_RAIL_LEAD);
+  eq(thin.length, twoStores.length, "a thin day lost deals");
+  eq(thin.slice(0, 2).map(d => d.id).join(), "a,c", "the two stores did not each lead");
+  eq(thin.slice(0, MOBILE_RAIL_LEAD).length, MOBILE_RAIL_LEAD, "the opening run came up short on a thin day");
+  eq(thin.map(d => d.id).sort().join(), "a,b,c,d,e,f", "a thin day dropped or duplicated a deal");
+
+  // One store and nothing else is still a rail.
+  const solo = [deal("macys", 90, "a"), deal("macys", 80, "b")];
+  eq(spreadDealsByStore(solo, MOBILE_RAIL_LEAD).map(d => d.id).join(), "a,b", "a single-store day stopped working");
+  eq(spreadDealsByStore([], MOBILE_RAIL_LEAD).length, 0, "an empty feed broke the spread");
 });
 
 check("the other two rails reuse what the page already draws", () => {
