@@ -927,6 +927,23 @@
         </div>
       </div>
     </div>
+
+    <!-- ============================================================
+         TAMBIÉN TE PUEDE INTERESAR (2026-09-23)
+
+         Below the product's details and above the footer, on every
+         product page. Empty until renderRelatedRail() has something
+         honest to put in it -- a heading over nothing is worse than no
+         heading, so the wrapper carries neither until the cards exist.
+
+         NOTHING AUTOPLAYS. Same .ariaRail as the shopfront's three: the
+         shopper swipes, the rail follows, and a test asserts there is no
+         timer in the renderer.
+         ============================================================ -->
+    <section id="relatedRail" aria-labelledby="relatedRailTitle" hidden class="mt-10 sm:mt-14">
+      <h2 id="relatedRailTitle" class="text-[17px] sm:text-[20px] font-extrabold tracking-[-0.02em] mb-4" style="color:var(--navy)">También te puede interesar</h2>
+      <div id="relatedRailRow" class="flex gap-3 overflow-x-auto pb-2 ariaRail"></div>
+    </section>
   </div>
 </div>
 
@@ -3642,13 +3659,23 @@ function openMobileDeal(idx){
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
 }
 
-/* One deal, at rail scale. The discount badge is the loudest thing on
-   the card on purpose — it is the number that makes someone stop. */
-function mobileDealCardHTML(p, idx){
+/* ============================================================
+   ONE RAIL CARD, USED BY EVERY RAIL.
+
+   The discount badge is the loudest thing on it on purpose — it is the
+   number that makes someone stop. A product that is NOT marked down
+   simply has no badge and no struck price; the same card draws both,
+   which is what lets the product page's "También te puede interesar"
+   rail use it without a second component drifting away from this one.
+
+   `onclick` and `attr` are the only things a caller varies: each rail
+   owns its own rendered list, so each card has to open the right one.
+   ============================================================ */
+function railCardHTML(p, onclick, attr){
   const pct = discountPct(p);
   const original = Number(p.originalPrice);
   const hasOriginal = Number.isFinite(original) && original > Number(p.price);
-  return `<button onclick="openMobileDeal(${idx})" data-mobile-deal="${idx}"
+  return `<button onclick="${onclick}" ${attr}
     class="flex-shrink-0 w-[172px] text-left rounded-2xl overflow-hidden focus-ring"
     style="background:#fff">
     <span class="relative block w-full h-[172px]" style="background:#fff">
@@ -3665,6 +3692,145 @@ function mobileDealCardHTML(p, idx){
       </span>
     </span>
   </button>`;
+}
+
+/* The Ofertas rail's card: the shared one, pointed at its own list. */
+function mobileDealCardHTML(p, idx){
+  return railCardHTML(p, `openMobileDeal(${idx})`, `data-mobile-deal="${idx}"`);
+}
+
+/* ==================================================================
+   "TAMBIÉN TE PUEDE INTERESAR" — THE PRODUCT PAGE'S RAIL.
+
+   DETERMINISTIC, AND THAT IS THE WHOLE POINT. No model, no embedding,
+   no similarity score anyone would have to take on trust: two rules a
+   shopper could check by hand, in the order Danny wrote them.
+
+     1. THE SAME DEPARTMENT, priced within ±50% of the product being
+        looked at, never the product itself.
+     2. STILL SHORT OF EIGHT? the same STORE, same price band -- because
+        a second thing from the shop you are already buying from ships
+        in the same box, which is the next most useful suggestion when
+        the department runs dry.
+
+   TEN CARDS AT MOST, and fewer without apology: a rail padded out with
+   things that do not fit the band is a rail that stops meaning
+   anything.
+
+   FAIL CLOSED, TWICE OVER. A candidate without a finite price above
+   zero is never shown -- the cache really does carry 174 priceless
+   records, and a card with no price is a promise the product page
+   cannot keep (see the no-price/no-buy work). And if the PRODUCT BEING
+   VIEWED has no valid price there is no band to compute from, so the
+   rail draws nothing at all rather than guessing a centre.
+   ================================================================== */
+const RELATED_RAIL_MIN = 8;      // below this, reach for the same store
+const RELATED_RAIL_MAX = 10;     // "10 cards max"
+const RELATED_PRICE_BAND = 0.5;  // ±50%
+
+function relatedKeyOf(it){ return `${it?.retailer || ''}::${it?.title || ''}`; }
+
+/* Pure: an anchor and a pool in, an ordered list out. Kept free of the
+   DOM and of the cache so it can be run over made-up catalogues in a
+   test -- "one store per card" and "±50%" are claims about what comes
+   out, not about what the source looks like. */
+function relatedProducts(anchor, pool, opts){
+  const { min = RELATED_RAIL_MIN, max = RELATED_RAIL_MAX, band = RELATED_PRICE_BAND } = opts || {};
+  const anchorPrice = Number(anchor?.price);
+  // No band without a price on the thing being looked at.
+  if (!Number.isFinite(anchorPrice) || anchorPrice <= 0) return [];
+  const lo = anchorPrice * (1 - band), hi = anchorPrice * (1 + band);
+
+  const anchorKey = relatedKeyOf(anchor);
+  const anchorDepts = new Set(anchor?.departments || []);
+  const seen = new Set([anchorKey]);
+  const out = [];
+
+  const eligible = (it) => {
+    if (out.length >= max) return false;
+    const key = relatedKeyOf(it);
+    if (!it?.title || seen.has(key)) return false;
+    const price = Number(it.price);
+    if (!Number.isFinite(price) || price <= 0) return false;   // fail closed
+    if (price < lo || price > hi) return false;
+    /* A card is a photograph with a price on it. Without the photograph
+       it is a grey box, which the Ofertas rail already refuses to draw
+       and this one has no reason to draw either. */
+    if (!it.image) return false;
+    return true;
+  };
+  const take = (list) => { for (const it of list){ if (!eligible(it)) continue; seen.add(relatedKeyOf(it)); out.push(it); } };
+
+  // 1. same department
+  take(pool.filter(it => (it.departments || []).some(d => anchorDepts.has(d))));
+  // 2. backfill from the same store, same band
+  if (out.length < min) take(pool.filter(it => it.retailer === anchor?.retailer));
+  return out;
+}
+
+/* Every catalogue item once, with every department it appears in.
+
+   ONE ENTRY PER PRODUCT, NOT PER BUCKET: Old Navy's `clothing` bucket is
+   a merge of its gendered ones, so the same jeans are in the cache
+   twice and a naive pass would offer them to the shopper twice. The
+   departments are collected onto the single entry instead, which is
+   also what lets the anchor match on ANY bucket it belongs to rather
+   than whichever one happened to be read first. */
+let relatedPoolCache = null;
+async function relatedPool(){
+  if (relatedPoolCache) return relatedPoolCache;
+  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
+  const byKey = new Map();
+  for (const [retailer, bucket] of Object.entries(departmentCacheData?.retailers || {})){
+    for (const [department, entry] of Object.entries(bucket?.departments || {})){
+      for (const raw of entry?.items || []){
+        const it = normalizeLiveItem(raw, { retailer, department });
+        if (!it.title) continue;
+        const key = retailer + '::' + it.title;
+        const had = byKey.get(key);
+        if (had){ if (!had.departments.includes(department)) had.departments.push(department); continue; }
+        byKey.set(key, { ...it, retailer, departments: [department] });
+      }
+    }
+  }
+  relatedPoolCache = [...byKey.values()];
+  return relatedPoolCache;
+}
+
+let relatedRendered = [];
+
+function openRelatedProduct(idx){
+  const p = relatedRendered[idx];
+  if (!p) return;
+  /* Straight back into showProduct, which is what makes the next page
+     draw its OWN rail off its own anchor -- the brief's "tapping a card
+     opens that product's page, which renders its own rail". */
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+}
+
+async function renderRelatedRail(anchorIn){
+  const section = document.getElementById('relatedRail');
+  const row = document.getElementById('relatedRailRow');
+  if (!section || !row) return;
+  const anchor = anchorIn;
+  section.hidden = true; row.innerHTML = ''; relatedRendered = [];
+  if (!anchor || !Number.isFinite(Number(anchor.price)) || Number(anchor.price) <= 0) return;
+
+  const pool = await relatedPool().catch(() => []);
+  /* The shopper may have moved on while the cache loaded. Drawing a rail
+     for the product they just left is worse than drawing none. */
+  const current = document.getElementById('productViewTitle')?.textContent || '';
+  if (current !== anchor.title) return;
+
+  const mine = pool.find(it => relatedKeyOf(it) === relatedKeyOf(anchor));
+  const picks = relatedProducts({ ...anchor, departments: mine?.departments || anchor.departments || [] }, pool);
+  if (!picks.length) return;
+
+  relatedRendered = picks;
+  row.innerHTML = picks.map((p, i) => railCardHTML(p, `openRelatedProduct(${i})`, `data-related="${i}"`)).join('');
+  section.hidden = false;
 }
 
 /* ONE STORE PER CARD IN THE OPENING RUN.
@@ -6449,6 +6615,17 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   }
 
   showPage('productView');
+
+  /* THE RAIL IS DRAWN FROM THIS CALL, NOT FROM A ROUTE OR A LISTENER.
+     showProduct() is the one door onto this page -- a card, a search
+     result, a cross-sell, the Ofertas rail, and the related rail itself
+     all come through here -- so hooking it is what makes "tapping a
+     card opens that product's page, which renders its own rail" true
+     without a second place to remember.
+
+     Not awaited: the details are already on screen and the rail fills
+     underneath them when the cache is ready. */
+  renderRelatedRail({ retailer, title: name, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
 }
 
 function goBack(){
