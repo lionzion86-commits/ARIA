@@ -13,6 +13,7 @@
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice } from "./_page-script.mjs";
 
@@ -5857,6 +5858,35 @@ check("the trust photo cannot escape its card when the CDN is gone", () => {
   if (stops.length < 2) throw new Error("the scrim is no longer a gradient");
   if (Math.max(...stops) < 0.72) throw new Error(`the scrim's heaviest stop is ${Math.max(...stops)} — the type sits there and needs at least 0.72`);
   if (Math.min(...stops) > 0.4) throw new Error("the scrim is a flat wash — that is the muddy version the photos exist to avoid");
+});
+
+check("a trust card never borrows a category cover", () => {
+  /* WHY THIS EXISTS. Before the real photographs arrived I rendered the
+     trust strip with four CATEGORY covers dropped in, purely to show the
+     treatment, and sent the picture. It was labelled a stand-in and it
+     still read as the build — soap, a couch and gym gear under
+     "Pagos seguros" and "Aduana resuelta".
+
+     The photographs are right now, but "right now" is not a guarantee.
+     The two sets live one directory apart and are the same shape and
+     size, so a copy in the wrong direction is a plausible slip and an
+     invisible one: nothing about assets/trust/trust-pagos.jpg being a
+     picture of face cream would fail a build. This compares the bytes. */
+  const hash = (p) => createHash("sha1").update(readFileSync(root(p))).digest("hex");
+  const covers = new Map();
+  for (const f of readdirSync(root("assets/category"))) {
+    if (!/\.(jpe?g|png|webp)$/i.test(f)) continue;
+    covers.set(hash(`assets/category/${f}`), f);
+  }
+  if (!covers.size) throw new Error("no category covers found to compare against — this check is not looking at anything");
+
+  for (const [title, path] of Object.entries(TRUST_PHOTOS)) {
+    if (!existsSync(root(path))) continue;   // absence is the other check's business
+    const borrowed = covers.get(hash(path));
+    if (borrowed) {
+      throw new Error(`"${title}" is the category cover ${borrowed} — the trust cards get their own photographs`);
+    }
+  }
 });
 
 check("all four trust photographs are committed, and small enough to send to a phone", () => {
