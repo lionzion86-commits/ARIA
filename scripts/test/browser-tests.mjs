@@ -1401,8 +1401,22 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
     return bots.some((b) => (b.textContent || "").length > 0 && b.hasAttribute("aria-busy"))
       || window.__growth.some((x) => x[1] > 0);
   }, null, { timeout: 20000 }).catch(() => {});
-  const notesBefore = await page.evaluate(() =>
-    [...document.querySelectorAll("#assistantMessages .assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top)));
+  /* MEASURED INSIDE THE TRANSCRIPT, not against the viewport. The rule
+     is "nothing ABOVE the reply moved while it grew", and the panel is
+     `fixed` on a styled page -- so a note's offset from the top of
+     #assistantMessages is exactly that rule. Its viewport coordinate is
+     not: this harness blocks the CDN, so the panel sits in document
+     flow and every note's `top` also carries the height of the entire
+     page above it. Anything that makes a product card taller then reads
+     as a layout shift in the chat, which is what it did -- the brand
+     eyebrow moved these by 52px while changing nothing inside the
+     panel at all. */
+  const notesIn = () => page.evaluate(() => {
+    const wrap = document.getElementById("assistantMessages");
+    const base = wrap.getBoundingClientRect().top;
+    return [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top - base));
+  });
+  const notesBefore = await notesIn();
   await page.waitForFunction(() => {
     const wrap = document.getElementById("assistantMessages");
     const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
@@ -1426,7 +1440,8 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
          about. Counting answers, not boxes. */
       botBubbles: bots.filter((b) => (b.textContent || "").trim().length > 0).length,
       typingLeft: Boolean(document.getElementById("assistantTyping")),
-      notesAfter: [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top)),
+      notesAfter: (() => { const base = wrap.getBoundingClientRect().top;
+        return [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top - base)); })(),
       history: (typeof ariaChatHistory !== "undefined" ? ariaChatHistory : []).map((h) => h.role),
     };
   }, sentAt);

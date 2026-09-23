@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageSizeSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5336,6 +5336,50 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
   const expr = src.slice(src.indexOf("function productCardOpenExpr(p, retailer){"), src.indexOf("/** The standard card for any listed product"));
   if (!/brand: p\.brand/.test(expr)) throw new Error("the shared card's onclick does not pass the brand");
 });
+
+{
+  const sz = loadPageSizeSlice();
+
+  check("a blazer has a size, and a television does not", () => {
+    /* REPORTED FROM A REAL FITTING. Sizes did not come up on most of
+       the designer catalogue: measured, 906 of SSENSE's garments and
+       187 of Macy's offered no size at all, because the rule keys off
+       words in the TITLE and "blazer" was not one of them. Old Navy and
+       Foot Locker were never affected -- they match by RETAILER -- which
+       is exactly why the gap survived spot-checks. */
+    for (const t of ["Brown Curved Vent Blazer", "Men's Every Wear Polo Shirt", "Black Wool Trousers",
+                     "Cashmere Cardigan", "Merino Pullover", "Silk Blouse", "Quilted Vest", "Wool Overshirt"]) {
+      if (!sz.needsSizeSelection("ssense", t)) throw new Error(`no size picker for "${t}"`);
+      if (sz.sizeCategoryFor("ssense", t) !== "clothing") throw new Error(`"${t}" was sized as footwear`);
+    }
+    for (const t of ["Leather Loafers", "Suede Sandals", "Shearling Slippers", "Leather Mules"]) {
+      if (!sz.needsSizeSelection("ssense", t)) throw new Error(`no size picker for "${t}"`);
+      if (sz.sizeCategoryFor("ssense", t) !== "shoe") throw new Error(`"${t}" was sized as clothing`);
+    }
+  });
+
+  check("a size picker never appears on something without a size", () => {
+    /* THE OTHER DIRECTION, and the reason the added words stop where
+       they do. The catalogue really holds a "SKLZ Star Kick Sports
+       Trainer", so "trainer" is not a shoe word here; "pump" is a bike
+       and a breast pump before it is a heel; a bare "top" is a table
+       top. A missing size picker is a bad checkout — one on a toaster
+       is a worse one. */
+    for (const t of ["onn 50 in Class 4K UHD Smart Television", "Nature Made Vitamin D3 Softgels",
+                     "SKLZ Star Kick Sports Trainer", "Breast Pump Electric", "Glass Table Top 90cm",
+                     "Oxford English Dictionary", "Stand Mixer 5qt"]) {
+      if (sz.needsSizeSelection("ssense", t)) throw new Error(`"${t}" was given a size picker`);
+    }
+  });
+
+  check("the two apparel-only stores still match by retailer, not by wording", () => {
+    // Their titles often carry no garment word at all ("Jordan Retro 8").
+    for (const r of ["oldnavy", "footlocker"]) {
+      if (!sz.needsSizeSelection(r, "Jordan Retro 8")) throw new Error(`${r} stopped sizing everything it sells`);
+    }
+    if (sz.needsSizeSelection("walmart", "Jordan Retro 8")) throw new Error("the retailer rule leaked to a general store");
+  });
+}
 
 group("cómo funciona: the shopper is the one doing the buying");
 

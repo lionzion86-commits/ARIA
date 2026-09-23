@@ -7105,8 +7105,37 @@ function isBrowseOnlyRetailer(key){
 // match to catch. Target/Walmart sell everything, so those rely on the
 // title keyword match instead (see APPAREL_KEYWORDS below).
 const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
-const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
-const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b/i;
+/* ============================================================
+   THE WORDS THAT MEAN "THIS HAS A SIZE".
+
+   REPORTED FROM A REAL FITTING (2026-09-23): a shopper checked whether
+   sizes come up, and on most of the designer catalogue they did not.
+   Measured against the committed catalogue at the time:
+
+     ssense   2,275 items   902 offered a size   906 garments did NOT
+     macys      710 items   418 offered a size   187 garments did NOT
+
+   Danny's own example is the proof: needsSizeSelection('ssense',
+   'Brown Curved Vent Blazer') returned false, so a $1,790 -> $537
+   blazer had no size picker at all. "Blazer" was not in this list, and
+   neither were shirt, polo, cardigan, sweater, trousers, loafers or a
+   dozen other things people buy by size.
+
+   Old Navy and Foot Locker were never affected because they match by
+   RETAILER (APPAREL_ONLY_RETAILERS) -- every item gets a size there.
+   Everywhere else it is the title or nothing, which is why the gap was
+   invisible on the two stores most likely to be spot-checked.
+
+   CONSERVATIVE ON PURPOSE. Words that are only sometimes a garment are
+   left out rather than guessed at: "trainer" (the catalogue really does
+   hold a "SKLZ Star Kick Sports Trainer", which is not footwear),
+   "pump" (bike and breast pumps), bare "top" (table top), "oxford" and
+   "derby" (a shirt and a shoe share both words, and sizeCategoryFor
+   would have to pick one). A missing size picker is a bad checkout; a
+   size picker on a toaster is a worse one.
+   ============================================================ */
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b/i;
+const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b/i;
 const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
 function needsSizeSelection(retailer, title){
   return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');

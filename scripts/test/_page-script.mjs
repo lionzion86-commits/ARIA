@@ -352,3 +352,24 @@ export function loadPageRelatedSlice() {
   return sandbox.__exports;
 }
 
+/* The size-selection rule, on its own. It is a pair of regexes and two
+   small functions, and the question it answers -- "does this thing have
+   a size?" -- is one you settle by running it over titles, not by
+   reading the pattern. */
+export function loadPageSizeSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const APPAREL_ONLY_RETAILERS = new Set(");
+  const to = html.indexOf("let liveScrapeQuery = '';");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html size-selection markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { needsSizeSelection, sizeCategoryFor, APPAREL_ONLY_RETAILERS, SHOE_KEYWORDS, CLOTHING_KEYWORDS };",
+    sandbox,
+    { filename: "index.html#sizes" },
+  );
+  return sandbox.__exports;
+}
