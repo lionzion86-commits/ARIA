@@ -120,6 +120,45 @@
   @supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
     .ariaWhyPromise{ background:rgba(4,12,28,0.55) }
   }
+  /* ============================================================
+     THE HEADER FITS A 320px PHONE (2026-09-23)
+
+     THE BUG: the header's inner row is `justify-between` with BOTH of
+     its children `flex-shrink-0` — the wordmark (155px) and the right
+     cluster (203.5px). 358.5px of content that cannot shrink, inside
+     393 - 40px of padding = 353px. The page therefore scrolled sideways
+     by 11px on an iPhone, 44px at 360 and 83px at 320, and the words
+     nearest the edges were cut until you dragged.
+
+     THE FIX IS INTRINSIC WIDTH, NOT overflow-x:hidden. Hiding the
+     scrollbar would have stopped the wiggle and left the content just as
+     cut off — the symptom treated, the complaint intact.
+
+     The wordmark scales instead of overflowing: 22px on a laptop, down
+     to 15px at 320px, no truncation and no ellipsis. Below `sm` the
+     header's padding, its gaps and the auth button's padding tighten
+     too. Measured after: 320px fits with room to spare.
+
+     THE SIZE LIVES HERE, not in a text-[22px] utility, for the usual
+     reason — with the CDN blocked the utility is gone and the wordmark
+     falls back to whatever the browser does, which is not a decision
+     anyone made. */
+  .ariaWordmark{ font-size:clamp(16px, 4.4vw, 22px) }
+  /* BELOW 360px THE HEADER CTA MOVES INTO THE MENU. Scaling type and
+     shaving padding got 393 and 360 clean but left 320 five pixels
+     over, and the next shave would have been the third in a row — at
+     which point it is not a design, it is a bargain with the arithmetic.
+     A 320px header cannot hold a wordmark, a cart, a signup button AND
+     a menu button; something has to go, and it should go somewhere it
+     still exists rather than get squeezed until it fits.
+
+     #authAreaMobile already renders the same auth buttons inside the
+     hamburger — renderAuthUI() writes both — so nothing is lost here,
+     only moved. An ID selector because #authArea also carries Tailwind
+     display utilities, and this must win without an !important. */
+  @media (max-width:359.98px){
+    #authArea{ display:none }
+  }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -210,7 +249,7 @@
 
 <!-- HEADER -->
 <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b" style="border-color:var(--line)">
-  <div class="max-w-[1240px] mx-auto px-5 h-[68px] flex items-center justify-between gap-6">
+  <div class="max-w-[1240px] mx-auto px-3 sm:px-5 h-[68px] flex items-center justify-between gap-6">
     <!-- The triangle mark was removed on 2026-09-19, not restyled: the
          asset (aria-mark-transparent.png, 658x439) is only 5.6% opaque
          with a median luminance of 131, i.e. a soft glow, so at 32px it
@@ -219,8 +258,8 @@
          wordmark's baseline. Drop a real, solid, square mark in here and
          put the <img> back. -->
     <button onclick="goHome()" class="flex items-baseline gap-[7px] flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop™ — inicio">
-      <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
-      <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">™</span></span>
+      <span class="ariaWordmark font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
+      <span class="ariaWordmark font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">™</span></span>
     </button>
     <nav class="hidden lg:flex items-center justify-center gap-6 xl:gap-7 text-[13.5px] flex-1">
       <a href="#" data-nav="howView" onclick="showPage('howView');return false;" class="ariaNavLink">Cómo funciona</a>
@@ -232,7 +271,7 @@
       <a href="#" data-nav="aboutView" onclick="showPage('aboutView');return false;" class="ariaNavLink">Nosotros</a>
       <a href="#" data-nav="returnsView" onclick="showPage('returnsView');return false;" class="ariaNavLink">Devoluciones</a>
     </nav>
-    <div class="flex items-center gap-2.5 flex-shrink-0">
+    <div class="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
       <span class="hidden sm:flex items-center gap-1.5 text-[13px] font-medium text-zinc-500 pr-1">
         🇵🇪 Perú · PEN
       </span>
@@ -245,9 +284,9 @@
            below) — never a dead button again. #authArea is re-rendered on
            login/logout/page-load; the two static buttons here are just
            the logged-out default markup. -->
-      <div id="authArea" class="flex items-center gap-2.5">
-        <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-        <button onclick="openAuthModal('signup')" class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+      <div id="authArea" class="flex items-center gap-2 sm:gap-2.5">
+        <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+        <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
       </div>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -10736,10 +10775,10 @@ function renderAuthUI(){
       <span class="max-w-[140px] truncate">${label}</span>
       ${walletChipHTML('desktop')}
     </div>
-    <button onclick="logout()" class="h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
+    <button onclick="logout()" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const loggedOutHTML = `
-    <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-    <button onclick="openAuthModal('signup')" class="h-9 px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>`;
+    <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+    <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>`;
   document.getElementById('authArea').innerHTML = currentUser ? loggedInHTML : loggedOutHTML;
 
   const mobileLoggedInHTML = `
