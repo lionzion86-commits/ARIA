@@ -4522,6 +4522,77 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
 
 
 /* ------------------------------------------------------------------ */
+group("no price, no buy button");
+
+check("a priceless record is a real thing in the cache, not a hypothesis", () => {
+  /* REPORTED FROM THE LIVE SITE: "Farmhouse Stripe Bedding Collection",
+     a Target home_goods record cached with price: null, rendered
+     "Precio no disponible" beside a live "Agregar al carrito" button.
+     Tapping it wrote priceUsd: 0 into the cart.
+
+     This asserts the INPUT still exists, so the guards below are never
+     mistaken for dead code. If a future cache really has a price for
+     everything, this line is the one that says so out loud. */
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const priceless = [];
+  for (const [retailer, data] of Object.entries(cache.retailers || {})) {
+    for (const [dept, bucket] of Object.entries(data.departments || {})) {
+      for (const item of bucket.items || []) {
+        const n = Number(item.price);
+        if (!(Number.isFinite(n) && n > 0)) priceless.push(`${retailer}/${dept}`);
+      }
+    }
+  }
+  if (!priceless.length) throw new Error("no priceless records left — re-check whether these guards are still needed");
+  // Both flavours the scrapers produce: an explicit null and an empty string.
+  if (priceless.length < 10) throw new Error(`only ${priceless.length} priceless records — verify this is still the live shape`);
+});
+
+check("the guard is at the funnel, not only at the button", () => {
+  /* THREE LAYERS, ON PURPOSE. A disabled button is a courtesy — the
+     console, a stale page and a second entry point all route around it.
+     addToCart() is where every caller passes, which is why the weight
+     guard already lives there, and it is where the price guard belongs
+     too. The cross-sell rail was the proof: it passed `priceUsd:
+     it.price` straight through and never looked at it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+
+  const funnel = src.slice(src.indexOf("function addToCart(item){"), src.indexOf("function removeFromCartByKey("));
+  if (!/Number\.isFinite\(usd\) && usd > 0/.test(funnel)) throw new Error("addToCart no longer refuses a priceless line");
+  if (!/return false/.test(funnel)) throw new Error("addToCart no longer tells its caller it refused");
+  if (!/return true/.test(funnel)) throw new Error("addToCart no longer confirms the line landed");
+
+  const fromProduct = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("LIVE APIFY SCRAPING") >= 0 ? src.indexOf("LIVE APIFY SCRAPING") : src.length);
+  if (!/Number\.isFinite\(p\.totalUsd\) && p\.totalUsd > 0/.test(fromProduct)) throw new Error("the product page no longer checks its own price");
+  /* THE LINE THAT CAUSED IT. `priceUsd: Number.isFinite(...) ? ... : 0`
+     is how a priceless product became a $0 line; there must be no zero
+     fallback left anywhere near a cart line. */
+  if (/priceUsd:\s*Number\.isFinite\([^)]*\)\s*\?[^:]*:\s*0/.test(src)) {
+    throw new Error("a cart line can still fall back to priceUsd: 0");
+  }
+
+  // Both callers stop claiming a success that did not happen.
+  eq((src.match(/if \(!addToCart\(/g) || []).length, 2, "callers that check addToCart's answer");
+
+  // And the button's two states are set in one place.
+  if (!/function setProductBuyable\(/.test(src)) throw new Error("the buy button's states are no longer set in one place");
+  const buyable = src.slice(src.indexOf("function setProductBuyable("), src.indexOf("function addToCartFromProduct("));
+  for (const [what, re] of [["disabled", /btn\.disabled = !hasPrice/], ["relabelled", /btn\.textContent = hasPrice/], ["greyed", /btn\.style\.background/]]) {
+    if (!re.test(buyable)) throw new Error(`the disabled buy button is not ${what}`);
+  }
+});
+
+check("a card with no price does not say Comprar", () => {
+  // The card's button only ever navigates, so the fix is what it CLAIMS:
+  // "Comprar" over "Precio no disponible" is a promise the page it opens
+  // cannot keep. Browsing a priceless record stays possible.
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const card = src.slice(src.indexOf("function productCardHTML(p, opts){"), src.indexOf("function renderSalesGrid("));
+  if (!/hasPrice \? 'Comprar' : 'Ver detalle'/.test(card)) throw new Error("the card still promises a purchase without a price");
+  if (!/Precio no disponible/.test(card)) throw new Error("the card no longer says the price is missing");
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

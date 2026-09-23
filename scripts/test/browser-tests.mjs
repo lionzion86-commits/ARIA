@@ -1268,6 +1268,99 @@ await check("a brand row opens exactly what its card opened", async () => {
   await ctx.close();
 });
 
+/* ============================================================
+   NO PRICE, NO BUY BUTTON.
+
+   Reported from the live site: a Target home_goods record cached with
+   price: null rendered "Precio no disponible" with a live blue
+   "Agregar al carrito" under it. Tapping it wrote priceUsd: 0 into the
+   cart and toasted "Agregado al carrito."
+
+   The money assertion is the third one: the cart must stay empty even
+   when the button is bypassed entirely, because a disabled button is a
+   courtesy and the funnel is the guarantee.
+   ============================================================ */
+await check("a priceless product offers no working buy button", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const r = await page.evaluate(async () => {
+    cart.length = 0;
+    showProduct("target", "Farmhouse Stripe Bedding Collection", null, 1.2, "", [], false, "", "", [], null);
+    await new Promise((res) => setTimeout(res, 300));
+    const btn = document.getElementById("addToCartBtn");
+    const note = document.getElementById("productNoPriceNote");
+    return {
+      price: document.getElementById("productViewPrice").textContent.trim(),
+      label: btn.textContent.trim(),
+      disabled: btn.disabled,
+      aria: btn.getAttribute("aria-disabled"),
+      noteShown: !note.hidden && (note.textContent || "").length > 20,
+    };
+  });
+  eq(r.price, "Precio no disponible", "the price line");
+  eq(r.disabled, true, "the buy button is still live next to a missing price");
+  eq(r.aria, "true", "the button is not disabled for assistive tech");
+  if (r.label === "Agregar al carrito") throw new Error("the dead button still promises to add to the cart");
+  eq(r.noteShown, true, "nothing tells the shopper why they cannot buy");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a $0 line cannot reach the cart, button or no button", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const r = await page.evaluate(async () => {
+    cart.length = 0;
+    showProduct("target", "Farmhouse Stripe Bedding Collection", null, 1.2, "", [], false, "", "", [], null);
+    await new Promise((res) => setTimeout(res, 250));
+    // 1. the handler the button would have called
+    addToCartFromProduct();
+    const afterHandler = cart.length;
+    // 2. the funnel itself, the way a console or a second rail reaches it
+    const nullSaid = addToCart({ retailer: "target", title: "priceless", priceUsd: null, weightKg: 1 });
+    const zeroSaid = addToCart({ retailer: "target", title: "zero", priceUsd: 0, weightKg: 1 });
+    const blankSaid = addToCart({ retailer: "walmart", title: "blank", priceUsd: "", weightKg: 1 });
+    return { afterHandler, cart: cart.length, nullSaid, zeroSaid, blankSaid };
+  });
+  eq(r.afterHandler, 0, "the product page added a priceless line anyway");
+  eq(r.cart, 0, "a priceless or $0 line reached the cart through the funnel");
+  eq(r.nullSaid, false, "addToCart claimed it accepted a null price");
+  eq(r.zeroSaid, false, "addToCart claimed it accepted a $0 price");
+  eq(r.blankSaid, false, "addToCart claimed it accepted an empty price");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a priced product still buys exactly as before", async () => {
+  /* The other half of failing closed: nothing about a real price may
+     have changed. This is the regression the guards could plausibly
+     cause, so it is asserted rather than assumed. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const r = await page.evaluate(async () => {
+    cart.length = 0;
+    showProduct("target", "Something priced", 42.5, 1.2, "", [], false, "", "", [], null);
+    await new Promise((res) => setTimeout(res, 250));
+    const btn = document.getElementById("addToCartBtn");
+    const note = document.getElementById("productNoPriceNote");
+    const before = { label: btn.textContent.trim(), disabled: btn.disabled, noteHidden: note.hidden };
+    btn.click();
+    await new Promise((res) => setTimeout(res, 250));
+    return { ...before, cart: cart.length, price: cart[0]?.priceUsd, qty: cart[0]?.qty };
+  });
+  eq(r.label, "Agregar al carrito", "the live button's label");
+  eq(r.disabled, false, "a priced product's buy button is disabled");
+  eq(r.noteHidden, true, "the no-price note shows on a priced product");
+  eq(r.cart, 1, "a priced product no longer reaches the cart");
+  eq(r.price, 42.5, "the price that landed in the cart");
+  eq(r.qty, 1, "the quantity that landed in the cart");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

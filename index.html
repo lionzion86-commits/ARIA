@@ -847,6 +847,9 @@
             <p id="productSizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
           </div>
           <button id="addToCartBtn" onclick="addToCartFromProduct()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Agregar al carrito</button>
+          <!-- Only ever shown when the price is missing, and the button
+               above is disabled in the same breath. See showProduct(). -->
+          <p id="productNoPriceNote" class="text-[12.5px] mt-2.5 leading-relaxed max-w-[42ch]" style="color:#8A6B1F" hidden></p>
         </div>
       </div>
     </div>
@@ -6113,9 +6116,31 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   }
   pendingAutoPartNumber = null;
   const statedWeight = contentLabelFor(name);
-  document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0
+  /* NO PRICE, NO BUY BUTTON (2026-09-23).
+
+     REPORTED FROM THE LIVE SITE: "Farmhouse Stripe Bedding Collection",
+     a Target home_goods record cached with price: null. The page said
+     "Precio no disponible" and the blue "Agregar al carrito" button sat
+     right underneath it, fully live. Tapping it wrote priceUsd: 0 into
+     the cart and toasted "Agregado al carrito." A shopper could carry a
+     priceless line to checkout.
+
+     BROWSING A PRICELESS RECORD IS FINE. Product pages are served from
+     the catalogue cache, not a live scrape (scraping costs money and
+     ~60s per retailer, so it only fires from search), and a cache with
+     some prices missing is normal. What is not fine is a live buy
+     button next to "Precio no disponible" — it promises a transaction
+     at a number nobody has.
+
+     So the page fails CLOSED and says so. The guard is repeated in
+     addToCartFromProduct() and again in addToCart(), because a disabled
+     button is a courtesy, not a guarantee: the console, a stale page
+     and a second entry point all route around it. */
+  const hasPrice = Number.isFinite(totalUsd) && totalUsd > 0;
+  document.getElementById('productViewPrice').innerHTML = hasPrice
     ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
     : 'Precio no disponible';
+  setProductBuyable(hasPrice);
 
   // Gallery = whatever the retailer really gave us, with the card's own
   // image guaranteed first. Callers that pass no list still work.
@@ -6191,19 +6216,49 @@ function goBack(){
 // a concrete size already attached, and checkout.html reads the cart
 // itself instead of URL params. One path for every purchase, single item
 // or many.
+/* The buy button's two states, in one place so they cannot drift apart.
+
+   Greyed AND disabled AND relabelled: a button that merely looks dead
+   is still tappable by a keyboard, and one that is merely disabled
+   still reads as "Agregar al carrito", which is a promise. */
+function setProductBuyable(hasPrice){
+  const btn = document.getElementById('addToCartBtn');
+  const note = document.getElementById('productNoPriceNote');
+  if (!btn) return;
+  btn.disabled = !hasPrice;
+  btn.setAttribute('aria-disabled', String(!hasPrice));
+  btn.textContent = hasPrice ? 'Agregar al carrito' : 'Precio por confirmar';
+  btn.style.background = hasPrice ? 'var(--blue)' : '#C8CDD8';
+  btn.style.color = hasPrice ? '#fff' : '#5B6478';
+  btn.style.cursor = hasPrice ? '' : 'not-allowed';
+  if (note){
+    note.hidden = hasPrice;
+    note.textContent = hasPrice ? '' : 'La tienda todavía no publica el precio de este producto. Te avisamos en cuanto lo tengamos — escríbenos y lo cotizamos por ti.';
+  }
+}
+
 function addToCartFromProduct(){
   if (!pendingProduct) return;
   const p = pendingProduct;
+  /* The disabled button is the courtesy; this is the rule. */
+  if (!(Number.isFinite(p.totalUsd) && p.totalUsd > 0)){
+    showToast('Este producto aún no tiene precio confirmado.');
+    return;
+  }
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
   if (!sizeWrap.hidden && sizeSelect.required && !sizeSelect.value){
     showToast('Selecciona una talla antes de agregar al carrito.');
     return;
   }
-  addToCart({
+  if (!addToCart({
     retailer: p.retailer,
     title: p.name,
-    priceUsd: Number.isFinite(p.totalUsd) ? p.totalUsd : 0,
+    /* Unconditional now: the guard above has already refused anything
+       that is not a real price, so there is no zero left to fall back
+       to. The old `Number.isFinite(...) ? ... : 0` is exactly how a
+       priceless product became a $0 line. */
+    priceUsd: p.totalUsd,
     // Never 0: a card built without a weight (an older cart, a payload
     // with no weight field) used to store 0 here, and checkout showed
     // "Peso del paquete 0.00 kg" with no freight line and no total.
@@ -6227,7 +6282,7 @@ function addToCartFromProduct(){
     ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
     image: p.imageUrl || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
-  });
+  })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
 }
 
@@ -10325,6 +10380,22 @@ function addToCart(item){
   // Every entry point funnels through here (product page, cross-sell,
   // Aria Auto, chat), so this is where a missing weight is caught once
   // rather than at each caller.
+
+  /* AND A MISSING PRICE, FOR THE SAME REASON (2026-09-23).
+
+     A disabled button on the product page is a courtesy; this is the
+     guarantee. The cross-sell rail passes `priceUsd: it.price` with no
+     check of its own, and a catalogue record with price: null reaches
+     it exactly as it reaches the product page — so the rule lives at
+     the funnel, where every caller present and future passes through.
+
+     Returns false rather than throwing: a caller's job is to skip its
+     "Agregado al carrito" toast, not to handle an exception. */
+  const usd = Number(item.priceUsd);
+  if (!(Number.isFinite(usd) && usd > 0)){
+    showToast('Este producto aún no tiene precio confirmado.');
+    return false;
+  }
   const kg = Number(item.weightKg);
   if (!(Number.isFinite(kg) && kg > 0)) item = { ...item, weightKg: estimateRetailWeightKg(item.title || '') };
   /* SAY WHERE THAT NUMBER CAME FROM (2026-09-20).
@@ -10351,6 +10422,7 @@ function addToCart(item){
   saveCartLocal();
   syncCartToServer();
   renderCartBadge();
+  return true;
 }
 
 function removeFromCartByKey(key){
@@ -10828,8 +10900,13 @@ function openCrossSellProduct(idx){
 function addCrossSellToCart(idx){
   const it = crossSellItems[idx];
   if (!it) return;
-  addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
-    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' });
+  /* This rail passed `priceUsd: it.price` straight through and never
+     looked at it. A catalogue record with price: null reaches it the
+     same way it reaches the product page, so it was the second door
+     into a $0 line item. addToCart refuses and says so; all this has
+     to do is not claim a success that did not happen. */
+  if (!addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
+    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' })) return;
   showToast('Agregado al carrito.');
   renderCartView();
 }
@@ -11979,7 +12056,13 @@ function productCardHTML(p, opts){
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}
       <div class="mb-3.5"></div>
-      <button onclick="${open}" class="w-full h-11 rounded-xl text-white text-[14px] font-bold focus-ring transition" style="background:var(--blue)">Comprar</button>
+      ${/* A card with no price still opens — browsing a priceless record
+            is fine and the catalogue is full of them. What it stops
+            doing is SAYING "Comprar", which is a promise the page it
+            opens cannot keep. See showProduct(). */''}
+      <button onclick="${open}" class="w-full h-11 rounded-xl text-[14px] font-bold focus-ring transition"
+        style="${hasPrice ? 'background:var(--blue); color:#fff' : 'background:#fff; color:var(--navy); box-shadow:inset 0 0 0 1.5px var(--line)'}"
+        >${hasPrice ? 'Comprar' : 'Ver detalle'}</button>
     </div>
   </div>`;
 }
