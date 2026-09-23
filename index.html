@@ -120,6 +120,83 @@
   @supports not ((backdrop-filter:blur(2px)) or (-webkit-backdrop-filter:blur(2px))){
     .ariaWhyPromise{ background:rgba(4,12,28,0.55) }
   }
+  /* ============================================================
+     PHOTOGRAPHIC SECTION BACKGROUNDS (2026-09-23)
+
+     Tiendas was a white strip with eight logos on it. The logos are
+     real, but a white strip says nothing about WHERE those shops are,
+     and "we buy it in the United States and bring it to you" is the
+     whole proposition. A mall row at golden hour says it before a word
+     is read.
+
+     THE SAME STACK AS #whyUs, deliberately -- so the two photographic
+     sections BEHAVE identically instead of being two treatments that
+     merely resemble each other: navy on the section, photo above it,
+     scrim above that, content on .ariaSectionLayer at z-index 2. It
+     degrades in that order too: no photo leaves navy + scrim (dark,
+     legible), no CSS at all leaves ordinary text on the page.
+
+     POSITIONING LIVES HERE, NOT IN A TAILWIND CLASS. `relative` and
+     `overflow-hidden` as utilities would vanish the moment the CDN
+     does, and an absolutely-positioned photo whose containing block
+     just disappeared does not degrade -- it escapes and covers the
+     page. .ariaSectionShot is the same guard #whyUs already uses.
+
+     THE SCRIM IS LIGHTER THAN #whyUs (0.66 vs 0.72) AND THE NUMBER WAS
+     COMPUTED, NOT PICKED. The brightest pixel in this asset is
+     rgb(254,254,248), a blown sky highlight. White text over 0.55 of
+     rgba(4,12,28) lands at 4.39:1 against it -- under the 4.5 floor;
+     0.60 clears at 5.22:1. 0.66 is what ships, for 6.50:1, because the
+     type here is small (12.5-15px) where the explainer's is display
+     size. Past ~0.75 the storefronts stop reading as a photograph and
+     the section is a dark blue band again, which is what it replaced.
+
+     THE ASSET IS CROPPED, NOT MERELY SCALED. The delivered file carried
+     a navy wash baked over its bottom 30% -- a flat gradient starting
+     at row 600 of 859, measured, not guessed. That is a scrim someone
+     else already applied, and a baked scrim only lines up at the one
+     aspect ratio it was made for: on the phone strip, short enough to
+     show almost the whole frame, it landed as a dead band across the
+     bottom third. Cropped out of the asset; this scrim does that job at
+     every size instead.
+     ============================================================ */
+  .ariaSectionShot{ position:relative; overflow:hidden; background:var(--navy) }
+  .ariaSectionPhoto{ position:absolute; inset:0; width:100%; height:100%;
+                     object-fit:cover; object-position:50% 45%; z-index:0 }
+  .ariaSectionScrim{ position:absolute; inset:0; z-index:1;
+                     background:linear-gradient(180deg,
+                       rgba(4,12,28,0.66) 0%,
+                       rgba(4,12,28,0.72) 52%,
+                       rgba(4,12,28,0.86) 100%) }
+  .ariaSectionLayer{ position:relative; z-index:2 }
+  /* ONE PHOTOGRAPHIC TIENDAS SECTION PER BREAKPOINT, AND THE REASON IS
+     THE CROP (2026-09-23).
+
+     The home page carries the store marks twice: the shopfront rail
+     (lg:hidden) and this strip at the foot of the page. Giving the
+     photograph to both put it on screen twice on a phone -- but the
+     repetition was the smaller problem. The foot strip is a GRID, so on
+     a phone it is two columns by ten rows: 393x852, an aspect of 0.46
+     against the asset's 4.29. `cover` then scales to fit the height and
+     shows the middle ELEVEN PER CENT of the frame -- not a mall row,
+     just a dark blur at 9x magnification. Muddy, exactly.
+
+     So the photograph goes where the section is wide and short, which is
+     a different element at each width: the rail on a phone, this strip
+     on a laptop (where the rail is hidden and the grid is four across,
+     1280x482, showing a comfortable 62% of the frame). Below lg this
+     strip is the paper band it always was, down to the caption's colour.
+     The breakpoint is lg because that is where #mobileShopfront hides --
+     the two are the same switch and must not drift apart. */
+  @media (max-width:1023.98px){
+    .ariaSectionShot--lg{ background:var(--paper) }
+    .ariaSectionShot--lg > .ariaSectionPhoto,
+    .ariaSectionShot--lg > .ariaSectionScrim{ display:none }
+    .ariaSectionCaption{ color:#71717A }
+  }
+  @media (min-width:1024px){
+    .ariaSectionCaption{ color:#C3D9FF }
+  }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -331,13 +408,25 @@
       <div id="mobileCatsRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
 
-    <!-- TIENDAS -->
-    <section aria-label="Tiendas" class="border-b" style="border-color:var(--line); background:#fff">
-      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas en EE.&nbsp;UU.</h2>
-        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
+    <!-- TIENDAS. The photograph is the argument -- these are real shops
+         in a real American street, and the rail under it is their marks.
+         The chips themselves are untouched: white cards over a dusk-lit
+         row is the whole picture. See .ariaSectionPhoto for the stack
+         and the scrim's arithmetic. -->
+    <section aria-label="Tiendas" class="ariaSectionShot border-b" style="border-color:var(--line)">
+      <img src="assets/sections/tiendas-mall-row.jpg" alt="" aria-hidden="true" class="ariaSectionPhoto"
+           loading="lazy" decoding="async" onerror="this.remove()">
+      <div class="ariaSectionScrim" aria-hidden="true"></div>
+      <div class="ariaSectionLayer flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:#fff">Tiendas en EE.&nbsp;UU.</h2>
+        <!-- #C3D9FF, NOT the site's usual #7FB8FF-on-navy. Measured against
+             the brightest pixel that actually renders behind this link --
+             rgb(82,83,88), a lit shop window through the scrim -- #7FB8FF
+             is 3.73:1 and #9FC5FF is 4.35:1. Both fail the 4.5 floor. This
+             is the same light blue the explainer's kicker uses, at 5.37:1. -->
+        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#C3D9FF">Ver todas →</button>
       </div>
-      <div id="mobileStoresRow" class="flex gap-2.5 overflow-x-auto px-5 pb-4 ariaRail"></div>
+      <div id="mobileStoresRow" class="ariaSectionLayer flex gap-2.5 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
   </div>
 
@@ -633,9 +722,17 @@
     </div>
   </div>
 
-  <!-- RETAILERS STRIP -->
-  <div class="border-t" style="border-color:var(--line); background:var(--paper)">
-    <div class="max-w-[1240px] mx-auto px-5 py-10 text-center">
+  <!-- RETAILERS STRIP. On a LAPTOP this is the Tiendas section -- the
+       shopfront rail above is lg:hidden -- so it takes the photograph
+       there and only there. On a phone it stays the paper band it was,
+       because this grid is ten rows tall on a 393px screen and a wide
+       photograph cropped into that shape is a blur, not a mall. The
+       arithmetic is in .ariaSectionShot--lg. -->
+  <div class="ariaSectionShot ariaSectionShot--lg border-t" style="border-color:var(--line)">
+    <img src="assets/sections/tiendas-mall-row.jpg" alt="" aria-hidden="true" class="ariaSectionPhoto"
+         loading="lazy" decoding="async" onerror="this.remove()">
+    <div class="ariaSectionScrim" aria-hidden="true"></div>
+    <div class="ariaSectionLayer max-w-[1240px] mx-auto px-5 py-10 text-center">
       <!-- RULE: only list retailers actually wired up in LIVE_RETAILERS/
            apify-scrape-start.js — this list was previously full of
            retailers we don't (or no longer) search live (Costco,
@@ -650,7 +747,7 @@
            the registry and nothing here. Real marks at one size, and the
            stores still being onboarded carry their badge rather than
            being quietly left out. -->
-      <div class="text-[12.5px] text-zinc-500 mb-6">Comparamos precios en tiendas de EE. UU.</div>
+      <div class="ariaSectionCaption text-[12.5px] mb-6">Comparamos precios en tiendas de EE. UU.</div>
       <div id="homeStoresRow" class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-[760px] mx-auto"></div>
     </div>
   </div>

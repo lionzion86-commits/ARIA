@@ -1755,6 +1755,82 @@ await check("the rail does not move on its own", async () => {
   await ctx.close();
 });
 
+/* ---- Tiendas, photographed --------------------------------------- */
+
+await check("the mall photograph stays inside its section when the CDN is blocked", async () => {
+  /* THIS IS THE CHECK THE WHOLE TREATMENT RESTS ON. .ariaSectionPhoto is
+     position:absolute, so it is laid out against the nearest positioned
+     ancestor. If that ancestor is positioned by a Tailwind `relative`
+     utility, then in exactly this environment — CDN blocked, which is how
+     this suite always runs — there is no positioned ancestor, the photo
+     resolves against the viewport, and a 1760px picture lies across the
+     entire page instead of behind a logo strip. It does not degrade; it
+     detonates. So the declaration lives in the inline stylesheet, and
+     this asserts the geometry rather than the stylesheet text. */
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(1200);
+  const geo = await page.evaluate(async () => {
+    const sec = document.querySelector('section[aria-label="Tiendas"]');
+    if (!sec) return { found: false };
+    const img = sec.querySelector("img.ariaSectionPhoto");
+    if (!img) return { found: true, hasImg: false };
+    img.loading = "eager";
+    if (!img.complete) await img.decode().catch(() => {});
+    const s = sec.getBoundingClientRect(), i = img.getBoundingClientRect();
+    return {
+      found: true, hasImg: true,
+      position: getComputedStyle(sec).position,
+      loaded: img.naturalWidth > 0,
+      contained: i.top >= s.top - 1 && i.left >= s.left - 1 && i.bottom <= s.bottom + 1 && i.right <= s.right + 1,
+      imgH: Math.round(i.height), secH: Math.round(s.height),
+    };
+  });
+  eq(geo.found, true, "the Tiendas section is gone");
+  eq(geo.hasImg, true, "the Tiendas section has no photo layer");
+  eq(geo.position, "relative", "the section no longer establishes a containing block without Tailwind");
+  eq(geo.loaded, true, "the photograph did not load");
+  eq(geo.contained, true, `the photo escaped its section (${geo.imgH}px tall inside a ${geo.secH}px section)`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("only one Tiendas surface is photographic at a given width", async () => {
+  /* The home page carries the store marks twice. On a phone the foot
+     strip is a two-column grid ten rows tall, and this photograph is
+     4.29:1 — cropped into that shape it shows the middle eleventh of the
+     frame, which is a dark blur, and it is the same picture the rail
+     already showed. The strip therefore only takes the photo at lg. */
+  const read = async (viewport, isMobile) => {
+    const { ctx, page, errors } = await openPage({}, { viewport, isMobile, hasTouch: isMobile });
+    await page.waitForTimeout(900);
+    const r = await page.evaluate(() => {
+      const shown = (el) => !!el && getComputedStyle(el).display !== "none";
+      return {
+        rail: shown(document.querySelector('section[aria-label="Tiendas"] img.ariaSectionPhoto')),
+        strip: shown(document.querySelector(".ariaSectionShot--lg img.ariaSectionPhoto")),
+        stripBg: getComputedStyle(document.querySelector(".ariaSectionShot--lg")).backgroundColor,
+      };
+    });
+    if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+    await ctx.close();
+    return r;
+  };
+
+  const phone = await read({ width: 393, height: 852 }, true);
+  eq(phone.rail, true, "the phone's Tiendas rail lost its photograph");
+  eq(phone.strip, false, "the retailers strip keeps its photograph on a phone");
+  /* And with the photo gone it is the paper band it always was, rather
+     than navy with nothing on it. */
+  eq(phone.stripBg, "rgb(250, 250, 248)", "the retailers strip has no background of its own on a phone");
+
+  const laptop = await read({ width: 1280, height: 900 }, false);
+  eq(laptop.strip, true, "the retailers strip has no photograph on a laptop");
+  /* NOT asserted: that the rail is hidden at 1280. It hides via Tailwind's
+     lg:hidden, and Tailwind is blocked here by design — so in this suite
+     the rail is still in the layout at desktop width. run-tests.mjs pins
+     the two breakpoints to each other instead, off the source. */
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

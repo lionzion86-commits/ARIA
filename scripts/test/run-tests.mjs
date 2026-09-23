@@ -5450,6 +5450,162 @@ check("step 3 never makes us the buyer", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("Tiendas is a photograph of a street, not a white strip");
+
+/* A slice helper that REFUSES to run backwards. src.slice(indexOf(A),
+   indexOf(B)) returns "" when B sits earlier than A, and an empty string
+   satisfies every negative assertion below while measuring nothing. */
+function forwardSlice(src, a, b, what){
+  const i = src.indexOf(a);
+  if (i < 0) throw new Error(`${what}: cannot find the opening anchor ${JSON.stringify(a)}`);
+  const j = src.indexOf(b, i + a.length);
+  if (j < 0) throw new Error(`${what}: cannot find ${JSON.stringify(b)} after the opening anchor`);
+  return src.slice(i, j);
+}
+
+/* COMMENTS COME OUT BEFORE ANYTHING IS ASSERTED. The markup in this
+   area explains itself at length — which colours were rejected and at
+   what ratio, which class carries the breakpoint. A check reading the
+   raw slice therefore finds "#7FB8FF" inside a sentence saying never to
+   use it, and "ariaSectionShot--lg" inside a note pointing at it, and
+   passes on its own documentation. Two of these checks did exactly that
+   until a mutation run said so. Strip the prose, then read the code. */
+const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
+
+const HOME_SRC = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const SECTION_PHOTO = "assets/sections/tiendas-mall-row.jpg";
+
+check("the mall photograph is committed, and small enough to send to a phone", () => {
+  if (!existsSync(root(SECTION_PHOTO))) throw new Error(`${SECTION_PHOTO} is missing — the sections fall back to flat navy`);
+  const bytes = readFileSync(root(SECTION_PHOTO)).length;
+  /* 200 KB is the budget, and the shipped file is ~114 KB. The delivered
+     original was 443 KB at 2576x859 — a third of it a baked-in navy wash
+     that had to come off anyway. This asserts the compression step was
+     not quietly skipped the next time the picture is replaced. */
+  if (bytes > 200 * 1024) throw new Error(`${SECTION_PHOTO} is ${(bytes/1024).toFixed(0)} KB — over the 200 KB budget for a background nobody came to look at`);
+});
+
+check("both Tiendas surfaces carry the photo, the scrim and a way to lose the photo safely", () => {
+  const src = HOME_SRC();
+  const surfaces = {
+    "the phone's shopfront rail": stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
+    "the laptop's retailers strip": stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
+  };
+  for (const [name, html] of Object.entries(surfaces)){
+    if (!html.includes(SECTION_PHOTO)) throw new Error(`${name} does not reference the photograph`);
+    if (!/class="ariaSectionPhoto"/.test(html)) throw new Error(`${name} does not use the shared photo layer`);
+    if (!/class="ariaSectionScrim"/.test(html)) throw new Error(`${name} has no scrim — text straight onto a golden-hour sky`);
+    /* Below the fold, both of them: the page must not spend a phone's
+       first bytes on a picture behind a logo strip. */
+    if (!/loading="lazy"/.test(html)) throw new Error(`${name}'s photo is not lazy-loaded`);
+    /* A 404 must leave navy + scrim, not a broken-image glyph over the
+       heading. Same guard the explainer carries. */
+    if (!/onerror="this\.remove\(\)"/.test(html)) throw new Error(`${name} would render a broken image if the file went missing`);
+    /* Decorative: the heading already says "Tiendas en EE. UU." and a
+       screen reader repeating a mall row adds nothing. */
+    if (!/alt=""/.test(html) || !/aria-hidden="true"/.test(html)) throw new Error(`${name}'s photo is not marked decorative`);
+  }
+});
+
+check("the photo cannot escape when the Tailwind CDN does", () => {
+  /* THE TRAP THIS PINS. .ariaSectionPhoto is position:absolute. Its
+     containing block is the section, which is only positioned because
+     something says so — and if that something is a Tailwind `relative`
+     utility, then on the day the CDN is blocked (which is exactly how
+     the browser suite runs, deliberately) the containing block becomes
+     the viewport and a 1760px photograph lies across the whole page.
+     The declaration therefore lives in the inline stylesheet. */
+  const src = HOME_SRC();
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const shot = forwardSlice(css, ".ariaSectionShot{", "}", ".ariaSectionShot");
+  if (!/position:relative/.test(shot)) throw new Error(".ariaSectionShot no longer establishes a containing block in the inline CSS");
+  if (!/overflow:hidden/.test(shot)) throw new Error(".ariaSectionShot no longer clips the photo to the section");
+  if (!/background:var\(--navy\)/.test(shot)) throw new Error("the navy moved off the section — with no photo there is nothing behind the text");
+
+  for (const surface of [
+    stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
+    stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
+  ]){
+    /* The opening tag only. Without stripComments above, the strip's
+       slice begins with a comment and this lands on its prose instead. */
+    const tag = surface.slice(0, surface.indexOf(">") + 1);
+    if (/\brelative\b/.test(tag) || /\boverflow-hidden\b/.test(tag)){
+      throw new Error("a Tiendas surface positions itself with Tailwind utilities — those vanish with the CDN and the photo goes with them");
+    }
+    if (!/\bariaSectionShot\b/.test(tag)) throw new Error("a Tiendas surface is not using .ariaSectionShot");
+  }
+});
+
+check("exactly one Tiendas section is photographic at any width", () => {
+  /* Both surfaces exist on a phone: the shopfront rail and, far below
+     it, the retailers grid. The grid is ten rows tall at 393px, so a
+     4.29:1 photograph cropped into it shows the middle eleventh of the
+     frame — a dark blur, and the same picture twice on one page. The
+     strip therefore only takes the photograph at lg, which is precisely
+     where #mobileShopfront hides. If one of those two numbers is ever
+     changed without the other, a width exists that has two photographic
+     Tiendas sections, or none. */
+  const src = HOME_SRC();
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const shopfront = forwardSlice(src, 'id="mobileShopfront"', ">", "#mobileShopfront");
+  if (!/\blg:hidden\b/.test(shopfront)) throw new Error("#mobileShopfront no longer hides at lg — the breakpoint story below is stale");
+
+  if (!/@media \(max-width:1023\.98px\)/.test(css)) throw new Error("the strip's phone rule is gone or moved off Tailwind's lg breakpoint (1024px)");
+  const phoneRule = forwardSlice(css, "@media (max-width:1023.98px){", "@media (min-width:1024px)", "the phone rule");
+  if (!/\.ariaSectionShot--lg > \.ariaSectionPhoto/.test(phoneRule)) throw new Error("the retailers strip keeps its photo on a phone — that crop is the blur this rule exists to prevent");
+  if (!/display:none/.test(phoneRule)) throw new Error("the strip's phone rule no longer hides anything");
+  if (!/background:var\(--paper\)/.test(phoneRule)) throw new Error("with its photo hidden the strip has no background of its own left");
+
+  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
+  if (!/ariaSectionShot--lg/.test(strip)) throw new Error("the retailers strip is not opted into the lg-only treatment");
+  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
+  if (/ariaSectionShot--lg/.test(rail)) throw new Error("the phone's own rail went lg-only — now no width shows the photograph on a phone");
+});
+
+check("the type over the photograph was measured, not eyeballed", () => {
+  /* Every number here came off rendered pixels: the glyphs are hidden,
+     the brightest pixel actually behind each text run is sampled, and
+     the ratio is computed against it. The site's usual on-navy blue
+     (#7FB8FF) measured 3.73:1 over a lit shop window and #9FC5FF 4.35:1
+     — both under the 4.5 floor, both plausible-looking choices. */
+  const src = HOME_SRC();
+  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
+  const h2 = forwardSlice(rail, "<h2", "</h2>", "the rail heading");
+  if (!/color:#fff/.test(h2)) throw new Error("the Tiendas heading is no longer white over the photograph");
+  if (/var\(--navy\)/.test(h2)) throw new Error("the Tiendas heading is navy again — navy type on a navy scrim");
+  if (!/#C3D9FF/.test(rail)) throw new Error('"Ver todas" lost its measured colour');
+  for (const tooDark of ["#7FB8FF", "#9FC5FF", "var(--blue)"]){
+    if (rail.includes(tooDark)) throw new Error(`"Ver todas" is back to ${tooDark}, which measured under 4.5:1 over this photograph`);
+  }
+  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
+  if (/text-zinc-500/.test(strip)) throw new Error("the strip's caption is grey again — unreadable over the photo at lg");
+  if (!/ariaSectionCaption/.test(strip)) throw new Error("the strip's caption no longer switches colour with the breakpoint");
+
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const scrim = forwardSlice(css, ".ariaSectionScrim{", "}", ".ariaSectionScrim");
+  /* The top stop is the scrim's thinnest point and therefore the one
+     that decides legibility. 0.55 measured 4.39:1 against this asset's
+     brightest pixel; 0.60 cleared at 5.22:1; 0.66 ships for 6.50:1
+     because this type is 12.5-15px, not display size. */
+  const top = scrim.match(/rgba\(4,12,28,([\d.]+)\) 0%/);
+  if (!top) throw new Error("the scrim's top stop is gone — cannot tell what the text sits on any more");
+  if (Number(top[1]) < 0.6) throw new Error(`the scrim opens at ${top[1]}; anything under 0.60 measured below 4.5:1 on this photograph`);
+});
+
+check("every category cover named in the page is actually on disk", () => {
+  /* The covers and this photograph are the same kind of promise: a path
+     in the source that a file has to answer. A missing cover degrades to
+     the designed brand field and is survivable; a missing one that
+     nobody noticed for a week is not. */
+  const src = HOME_SRC();
+  const table = forwardSlice(src, "const CATEGORY_COVERS = {", "};", "CATEGORY_COVERS");
+  const paths = [...table.matchAll(/'([^']+\.(?:jpg|jpeg|png|webp))'/g)].map(m => m[1]);
+  if (paths.length < 11) throw new Error(`CATEGORY_COVERS lists only ${paths.length} covers — a department lost its photograph`);
+  const missing = paths.filter(p => !existsSync(root(p)));
+  if (missing.length) throw new Error(`covers named in the page but not committed: ${missing.join(", ")}`);
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);
