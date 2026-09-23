@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Aria — Compra en EE. UU., entregado en Perú</title>
+<title>Aria™ — Compra en EE. UU., entregado en Perú</title>
 <meta name="description" content="Compra en tiendas de EE. UU. y te lo llevamos a Perú. Precio total, envío y aranceles incluidos, sin sorpresas.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://ariashop.pe/">
-<meta property="og:title" content="Aria — Compra en EE. UU., entregado en Perú">
+<meta property="og:title" content="Aria™ — Compra en EE. UU., entregado en Perú">
 <meta property="og:description" content="Compra en tiendas de EE. UU. y te lo llevamos a Perú. Precio total, envío y aranceles incluidos, sin sorpresas.">
 <meta property="og:image" content="https://ariashop.pe/aria-og-image.png">
 <meta property="og:image:width" content="1200">
@@ -69,6 +69,17 @@
      halfway through one, and no scrollbar because a touch rail with a
      visible track reads as a desktop widget. Nothing here animates:
      the shopper swipes, the rail follows. */
+  /* "EXPLORA MÁS", THE REFERENCE'S SECTION FOOTER. An outlined button
+     under the section rather than a coloured link beside its heading:
+     it reads as the end of the run of products instead of as a second
+     thing competing with the heading for the eye. Navy outline on the
+     page's own tint -- no fill, no shadow, no grey pill. */
+  .ariaExploraMas{ display:inline-flex; align-items:center; justify-content:center; gap:8px;
+                   min-height:46px; padding:0 28px; border-radius:999px;
+                   font-size:13.5px; font-weight:700; letter-spacing:0.01em;
+                   color:var(--navy); background:transparent;
+                   border:1px solid rgba(10,31,68,0.28); transition:background .15s ease }
+  .ariaExploraMas:hover{ background:rgba(10,31,68,0.04) }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -167,9 +178,9 @@
          also not square, so object-contain left it optically off the
          wordmark's baseline. Drop a real, solid, square mark in here and
          put the <img> back. -->
-    <button onclick="goHome()" class="flex items-baseline gap-[7px] flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop — inicio">
+    <button onclick="goHome()" class="flex items-baseline gap-[7px] flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop™ — inicio">
       <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
-      <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop</span>
+      <span class="text-[22px] font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">™</span></span>
     </button>
     <nav class="hidden lg:flex items-center justify-center gap-6 xl:gap-7 text-[13.5px] flex-1">
       <a href="#" data-nav="howView" onclick="showPage('howView');return false;" class="ariaNavLink">Cómo funciona</a>
@@ -301,7 +312,7 @@
       <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
     </svg>
     <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 text-center">
-      <img src="aria-full-logo.png" alt="Aria" class="mx-auto w-[220px] sm:w-[260px] h-auto object-contain mb-6">
+      <span class="relative inline-block mb-6"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
       <h1 class="text-[38px] sm:text-[50px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
         Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
       </h1>
@@ -332,15 +343,21 @@
     <div class="flex items-end justify-between gap-4 mb-6">
       <div>
         <div class="ariaKicker ariaKicker--onLight mb-2">Explora</div>
-        <h2 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em]">Comprar por departamento</h2>
+        <h2 class="text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]" style="color:var(--navy)">Comprar por departamento</h2>
         <p class="text-[13.5px] text-zinc-500 mt-1.5">Inventario real de nuestras tiendas en EE. UU., en un solo feed por categoría.</p>
       </div>
-      <button onclick="openCategories()" class="text-[13px] font-bold focus-ring rounded flex-shrink-0 pb-1" style="color:var(--blue)">Ver todas las categorías →</button>
     </div>
     <!-- ONE COLUMN, AT EVERY WIDTH (2026-09-21). Not a grid any more: a
          scrolled run of full-width shopfronts. Two-up halved the image
          and put the page back on the spreadsheet side of the line. -->
     <div class="grid grid-cols-1 gap-5" id="catGrid"></div>
+    <!-- The link moved out from beside the heading to under the run it
+         belongs to. Its visible word is the reference's ("Explora más");
+         the aria-label keeps the destination for anyone who cannot see
+         which section it sits under. -->
+    <div class="mt-7 flex justify-center">
+      <button onclick="openCategories()" data-explora class="ariaExploraMas focus-ring" aria-label="Ver todas las categorías">Explora más</button>
+    </div>
   </div>
 
   <!-- WHY SHOP WITH US -->
@@ -674,7 +691,7 @@
              this site is for. Every retailer's results are merged into a
              single grid, each card carrying its own store badge, with the
              store checkboxes acting as a filter over the feed. -->
-        <div id="liveResultsWrap" class="mb-6 hidden grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+        <div id="liveResultsWrap" class="mb-6 hidden grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-6"></div>
 
         <!-- LIVE SEARCH, ON OFFER. The catalogue has already answered
              above; this is the shopper's choice to have us go and look
@@ -797,7 +814,7 @@
     </button>
     <div id="storeResultsHero" class="mb-3"></div>
     <p id="storeResultsSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
-    <div id="storeResultsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+    <div id="storeResultsGrid" class="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-6"></div>
   </div>
 </div>
 
@@ -1029,7 +1046,7 @@
         </div>
         <!-- Spec §6: "2 columns desktop / 1 column mobile" — deliberately
              NOT a dense commodity grid. -->
-        <div id="salesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+        <div id="salesGrid" class="grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3 xl:gap-6"></div>
       </div>
     </div>
   </div>
@@ -1197,9 +1214,9 @@
   <section class="ariaNavyBand relative overflow-hidden">
     <div class="ariaGoldHair"></div>
     <div class="max-w-[1080px] mx-auto px-5 py-14">
-    <div class="ariaKicker mb-3">Nosotros compramos</div>
+    <div class="ariaKicker mb-3">Compra directa</div>
     <h2 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.15] mb-8 max-w-[24ch]" style="color:#fff">
-      Lo compramos en la tienda y lo <span style="color:#F4C463">consolidamos</span> en Miami.
+      Compras aquí, <span style="color:#F4C463">directo de la tienda</span>.
     </h2>
 
     <div class="space-y-6">
@@ -1209,8 +1226,8 @@
         <div class="grid md:grid-cols-2 gap-8 md:gap-10 items-center w-full">
         <div>
           <div class="w-9 h-9 rounded-full text-white text-[14px] font-bold grid place-items-center mb-4" style="background:var(--blue)">3</div>
-          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Pide con Aria</div>
-          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Al confirmar tu pedido, nosotros lo compramos directamente en la tienda de origen, verificando que sea producto genuino y no de un revendedor externo.</div>
+          <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Compra directa</div>
+          <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Eliges el producto y lo compras aquí mismo, directo de la tienda oficial en EE. UU. — con su garantía real y su política de devolución. Sin intermediarios, sin revendedores, sin que tu plata pase por manos ajenas.</div>
         </div>
         <div class="ariaStepArt">
           <div class="ariaStepFigure">
@@ -1218,8 +1235,8 @@
               <svg width="36" height="36" viewBox="0 0 24 24"><path d="M9 11V7a3 3 0 0 1 6 0v4"/><path d="M4.5 9h15l-1.2 10.2a2 2 0 0 1-2 1.8H7.7a2 2 0 0 1-2-1.8Z"/><path d="m9.6 14.4 1.8 1.8 3.4-3.4"/></svg>
             </div>
             <div>
-              <div class="ariaStepCaption">Compra directa en la tienda</div>
-              <div class="ariaStepSub">Producto genuino, nunca de un revendedor</div>
+              <div class="ariaStepCaption">Directo de la tienda oficial</div>
+              <div class="ariaStepSub">Garantía y devolución reales</div>
             </div>
           </div>
         </div>
@@ -2043,7 +2060,7 @@
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-2">
         <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
-        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA</span>
+        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA<span style="font-size:0.6em;vertical-align:super">™</span></span>
         <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
       </div>
       <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
@@ -3321,7 +3338,43 @@ function collectTiles(){
    and that is the trade Danny asked for explicitly: big and beautiful,
    scrolled, over everything visible at once and cramped.
    ============================================================ */
-const CARD_SHELL_CLASS = 'group bg-white border rounded-2xl overflow-hidden transition hover:shadow-[0_14px_34px_rgba(10,31,68,0.10)] h-full flex flex-col';
+/* ============================================================
+   THE PRODUCT CARD HAS NO CARD (2026-09-23) — the Farfetch treatment.
+
+   WHAT THE REFERENCE ACTUALLY SHOWS. Farfetch's luxury look is not a
+   palette; it is black, white and light grey, barely a palette at all.
+   It comes from the photography carrying the design and the UI getting
+   out of its way: no border around the product, no drop shadow under
+   it, no white plate behind it. Photo, then quiet text under the photo,
+   and nothing else.
+
+   So the shell keeps the layout and gives up the chrome. What was
+   `bg-white border rounded-2xl ... hover:shadow-[0_14px_34px]` is now
+   structure only. The WHITE HAS NOT GONE, it has moved: the photo field
+   is still white (retail photography is shot on white and a tint draws
+   a seam around the product), and the page's own tint runs behind the
+   text instead of a second, slightly different white rectangle.
+
+   THE BRAND DOES NOT LIVE HERE. Navy, gold and the tinted bands stay at
+   PAGE level -- header bands, section fields, the orb -- and off the
+   product entirely. That is the whole trade: the grid breathes white so
+   the products read as the design, and the brand is felt everywhere the
+   products are not. */
+const CARD_SHELL_CLASS = 'group h-full flex flex-col';
+
+/* THE CATEGORY BANNER IS NOT A PRODUCT CARD, and the Farfetch note says
+   so itself: its "Compra hombre / Compra niños" pattern is full-bleed
+   lifestyle imagery with text over it, which is what these already are.
+   The chrome that came off the product card stays on here -- the
+   rounded, clipping box is what holds the photograph and its navy sign
+   band together as one object, and the navy band is exactly the
+   page-level brand presence the note says to keep.
+
+   It is a separate constant rather than a literal so that the two can
+   never again be changed as if they were the same thing: stripping the
+   product card's plate silently squared every department tile on the
+   home page until this existed. */
+const CATEGORY_SHELL_CLASS = 'group bg-white rounded-2xl overflow-hidden h-full flex flex-col';
 
 /* The 4:5 photo field. `inner` fills it; `overlay` is anything absolutely
    positioned on top (Ofertas puts its discount badge there). White,
@@ -3336,9 +3389,15 @@ const CARD_SHELL_CLASS = 'group bg-white border rounded-2xl overflow-hidden tran
    it big, and a monster where it wanted a banner. `heightClass` pins the
    window instead, so it is generous on a phone and a letterbox on a
    desktop. */
-function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null }){
+function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null, round = true }){
   const sizing = heightClass ? '' : `aspect-ratio:${aspect}; `;
-  return `<div class="relative${heightClass ? ' ' + heightClass : ''}${open ? ' cursor-pointer' : ''}" style="${sizing}background:${background}"${open ? ` onclick="${open}"` : ''}>
+  /* THE ROUNDING MOVED HERE WITH THE WHITE. The shell used to be a
+     rounded, clipping box and the photo simply filled it; with the card
+     gone the photo field is the only thing left to round, and it has to
+     clip its own overflow or a wide image squares the corners off
+     again. A full-bleed shopfront banner passes round:false. */
+  const shape = round ? ' rounded-2xl overflow-hidden' : '';
+  return `<div class="relative${shape}${heightClass ? ' ' + heightClass : ''}${open ? ' cursor-pointer' : ''}" style="${sizing}background:${background}"${open ? ` onclick="${open}"` : ''}>
       ${inner}
       ${overlay}
     </div>`;
@@ -3592,11 +3651,12 @@ function deptTileHTML(t, kind){
 
      A curated PHOTOGRAPH, when one lands in CATEGORY_COVERS, covers the
      window edge to edge and the tint never shows at all. */
-  return `<button onclick="${open}" class="${CARD_SHELL_CLASS} text-left focus-ring w-full">
+  return `<button onclick="${open}" class="${CATEGORY_SHELL_CLASS} text-left focus-ring w-full">
     ${cardImageFrameHTML({
       inner: art,
       heightClass: 'h-[300px] sm:h-[340px]',
       background: isOfertas ? 'var(--amber)' : 'var(--sky)',
+      round: false,
     })}
     <div class="relative px-5 py-4 sm:px-6 sm:py-5 flex items-center gap-4" style="background:${signBg}">
       ${isOfertas ? '' : '<div class="ariaGoldHair"></div>'}
@@ -4322,7 +4382,18 @@ function itemsInSubcategory(items, key){
 /* The grid every listing surface uses: 2-across, large cards, the
    browsing density Ofertas was approved at. Named so a new surface
    cannot quietly invent a tighter one. */
-const LISTING_GRID_CLASS = 'grid grid-cols-1 md:grid-cols-2 gap-5';
+/* TWO ACROSS ON A PHONE, and that is only possible now that the card is
+   a photograph instead of a plate: one column of bordered cards with a
+   22px price and a full-width button could not have halved without
+   becoming a spreadsheet row, which is why it was one column. With the
+   chrome gone the photo is the card, and two of them side by side is
+   the shape the reference has.
+
+   gap-4 is the 16px gutter the brief asks for; it opens to 20/24 where
+   there is room. Not to be confused with the DEPARTMENT grid, which
+   Danny deliberately set to one full-width column on 2026-09-21 -- those
+   are shopfront banners, not products, and they stay as they are. */
+const LISTING_GRID_CLASS = 'grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-6';
 
 /* BROWSING, NOT A DEAD END. Big cards mean fewer per screen, so a
    category that holds 300 products must not render 300 at once (slow) or
@@ -7089,7 +7160,45 @@ const RETAILERS = {
      catalogue that arrived carries NEITHER Gucci NOR Prada. The real
      names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
+  /* ============================================================
+     THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
+
+     Every one is `search: false` with no `browse`, which is the
+     honest-pending state this page already promises a few sections up:
+     "Las que estamos conectando lo dicen — preferimos un 'próximamente'
+     honesto a un logo que no lleva a ningún lado." They get the muted
+     plate and the "Conectando el catálogo" badge, and their store page
+     explains that we buy there by request. None reaches the search
+     fan-out, the category feeds or Ofertas, because CATALOG_RETAILERS
+     reads `search || browse` and they have neither. No new code.
+
+     REAL LOGO TILES, NOT WORDMARK PILLS — every row carries a file, so
+     none falls back to the pill. `color` only ever backs that pill and
+     the small text badge, and each value was SAMPLED FROM THE ARTWORK
+     rather than recalled: Skims is #605848 across 145,523 pixels of its
+     own file, Fendi and Dyson are #202020, the rest a true black.
+
+     SUNGLASS HUT USES THE OLD "INTERNATIONAL" MARK with the split
+     yellow/blue sun — Danny's call: a shopper in Lima knows that logo
+     and not the rebrand. It is artwork on its own black field, so it
+     tiles the way Victoria's Secret's pink card and Bath & Body Works'
+     blue one do: the field is IN the file, not in our CSS. Contain-fit,
+     so never stretched, and never recoloured.
+
+     Mirrors scripts/lib/retailers.js.
+     ============================================================ */
+  skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
+  /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
+     store in this tier with a catalogue behind it, and renderStoresGrid
+     preserves declaration order — three "conectando" cards above it
+     would bury the one a shopper can open today. */
+  fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
+  miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
+  goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
@@ -12741,23 +12850,49 @@ function productCardHTML(p, opts){
   const hasOriginal = Number.isFinite(original) && hasPrice && original > price;
   const badgeHTML = opts.badgeHTML != null ? opts.badgeHTML
     : hasOriginal
-      ? `<span class="absolute top-3 left-3 text-[15px] font-extrabold px-3 py-1.5 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.18)]" style="background:#C0392B; color:#fff">-${discountPct(p)}%</span>`
+      /* ONE SALE COLOUR ON THE WHOLE SITE. This badge was #C0392B --
+         a red, under a drop shadow -- while the phone's rails drew the
+         same fact in the sale yellow. Two discount badges in two
+         colours is two different claims to a shopper, and the standing
+         rule is that yellow is strictly for sale and discount badges
+         (and, the other way round, that it is used for nothing else).
+         The shadow goes with the red: the reference has no drop shadows
+         anywhere near a product. */
+      ? `<span class="absolute top-3 left-3 text-[13px] font-extrabold px-2.5 py-1 rounded-full" style="background:#F4C463; color:var(--navy)">-${discountPct(p)}%</span>`
       : '';
   return `
-  <div class="${CARD_SHELL_CLASS}" style="border-color:var(--line)">
+  <div class="${CARD_SHELL_CLASS}">
     ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) }), open, overlay: badgeHTML })}
-    <div class="p-4 flex flex-col flex-1">
-      <div class="flex items-center justify-between gap-2 mb-2">
-        <div>${retailerBadgeHTML(p.retailer, 20)}</div>
-        ${hasRating ? `<div class="text-[12px] font-bold whitespace-nowrap" style="color:var(--navy)">★ ${rating.toFixed(1)}${
-          Number.isFinite(Number(p.reviewCount)) && Number(p.reviewCount) > 0
-            ? ` <span class="font-semibold" style="color:#8A93A8">(${Number(p.reviewCount).toLocaleString('es-PE')})</span>`
-            : ''}</div>` : ''}
-      </div>
-      <div class="text-[15px] font-bold leading-snug mb-2.5 cursor-pointer line-clamp-2" style="color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
-      <div class="flex items-baseline gap-2.5 mb-1.5 mt-auto">
-        <span class="text-[22px] font-extrabold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Precio no disponible'}</span>
-        ${hasOriginal ? `<span class="text-[13px] text-zinc-400 line-through tabular">${fmtPEN(displayPriceUsd(original))}</span>` : ''}
+    <!-- INFORMATION WHISPERS, PHOTOGRAPHY SHOUTS. The text under the
+         photo was a 20px store mark over a 15px bold navy title over a
+         22px extrabold price -- three loud lines competing with the
+         product. The reference sets all three small and lets the
+         photograph carry the card: store mark 16px, title 13px in a
+         grey that reads without shouting, price 14px.
+
+         No horizontal padding: the text sits flush under its own photo,
+         so the column of photographs is what the eye follows down the
+         grid rather than a column of inset text blocks. -->
+    <div class="pt-3 pb-1 flex flex-col flex-1">
+      <div class="mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</div>
+      <div class="text-[13px] leading-snug mb-2 cursor-pointer line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
+      <!-- THE RATING CAME OFF THE STORE MARK'S ROW. Side by side they
+           needed more than a two-across card has: measured at 393px the
+           pair ran 8px past a 169px card and pushed the whole PAGE
+           sideways, because the shell no longer clips what overflows it.
+           It never had to fit before -- the grid was one column and the
+           card was 353px wide.
+
+           Nothing was dropped to make room: the stars and the review
+           count both keep their line, under the title, at the size the
+           rest of the quiet text is. -->
+      ${hasRating ? `<div class="text-[11.5px] font-semibold mb-1.5" style="color:#6B7487">★ ${rating.toFixed(1)}${
+        Number.isFinite(Number(p.reviewCount)) && Number(p.reviewCount) > 0
+          ? ` <span style="color:#9AA3B5">(${Number(p.reviewCount).toLocaleString('es-PE')})</span>`
+          : ''}</div>` : ''}
+      <div class="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mb-1.5 mt-auto">
+        <span class="text-[14px] font-bold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Precio no disponible'}</span>
+        ${hasOriginal ? `<span class="text-[12px] text-zinc-400 line-through tabular">${fmtPEN(displayPriceUsd(original))}</span>` : ''}
       </div>
       ${hasPrice ? taxIncludedNoteHTML(price, 'text-[11px] -mt-1 mb-1') : ''}
       ${weightLabelHTML(p.title, 'text-[11.5px] mb-1 font-semibold')}
@@ -12768,8 +12903,24 @@ function productCardHTML(p, opts){
         + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}
-      <div class="mb-3.5"></div>
-      <button onclick="${open}" class="w-full h-11 rounded-xl text-white text-[14px] font-bold focus-ring transition" style="background:var(--blue)">Comprar</button>
+      <!-- THE CTA STOPPED BEING A SLAB.
+
+           A full-width filled blue button was, measured on a 169px
+           two-across card, the loudest thing on it -- louder than the
+           photograph, which is the one thing the reference says must
+           shout. It is the same outlined treatment "Explora más" uses:
+           quiet, navy on the page's own tint, no fill and no shadow.
+
+           IT WAS NOT REMOVED, and that is deliberate. The reference has
+           no button at all, but this one carries a meaning it was given
+           on purpose: "Comprar" over a price, "Ver detalle" over a card
+           with none, so a card can never promise a purchase the page
+           behind it cannot complete. Deleting it would delete that
+           distinction, and whether this shop wants a buy affordance in
+           its grid is Danny's call, not a side effect of a visual
+           brief. -->
+      <div class="mb-3"></div>
+      <button onclick="${open}" class="ariaExploraMas w-full focus-ring" style="min-height:40px; font-size:12.5px; padding:0 12px">Comprar</button>
     </div>
   </div>`;
 }
@@ -13353,17 +13504,222 @@ function addAssistantMessage(role, text, audioBase64){
   }
   wrap.appendChild(bubble);
   wrap.scrollTop = wrap.scrollHeight;
-  if (role === 'bot') {
-    if (audioBase64) {
-      speakWithAria(audioBase64, text);
-    } else if (typeof speakText === 'function') {
-      speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
-      if (continuousMode) setTimeout(() => { if (continuousMode) startListening(); }, 400);
-    } else if (continuousMode) {
-      // no audio available at all this turn — still resume listening so the flow isn't stuck
-      setTimeout(() => { if (continuousMode) startListening(); }, 400);
-    }
+  if (role === 'bot') speakAssistantReply(text, audioBase64);
+}
+
+/* ONE SPEAK PATH, whether the reply landed in one piece or was streamed
+   in. Lifted out of addAssistantMessage unchanged: a streamed reply
+   reaches this after the words are on screen rather than with them, and
+   everything else about it -- Ara's voice first, the browser's as the
+   fallback, and resuming the mic in continuous mode either way -- is
+   the behaviour the site already had. */
+function speakAssistantReply(text, audioBase64){
+  if (audioBase64) {
+    speakWithAria(audioBase64, text);
+  } else if (typeof speakText === 'function') {
+    speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
+    if (continuousMode) setTimeout(() => { if (continuousMode) startListening(); }, 400);
+  } else if (continuousMode) {
+    // no audio available at all this turn — still resume listening so the flow isn't stuck
+    setTimeout(() => { if (continuousMode) startListening(); }, 400);
   }
+}
+
+/* The model's memory of this conversation, kept in one place so the
+   streamed path and the buffered one cannot record a turn differently.
+   Bounded at ten exchanges: the whole history is re-sent every turn. */
+function rememberAssistantTurn(userText, reply){
+  ariaChatHistory.push({ role: 'user', content: userText });
+  ariaChatHistory.push({ role: 'assistant', content: reply });
+  if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
+}
+
+/* ============================================================
+   A REPLY THAT ARRIVES AS IT IS WRITTEN (2026-09-22)
+
+   THE PROBLEM. The chat waited for the model's whole answer, then put a
+   paragraph on screen at once. The shopper watched a spinner for the
+   full model latency with nothing to read. Nothing was broken and it
+   read as broken.
+
+   THE BUBBLE IS THE SAME BUBBLE. addAssistantMessage builds it, this
+   fills it. Same classes, same colours, same place in the column — the
+   brief's "change only how the response appears" is enforced by sharing
+   the markup rather than by remembering to keep two copies in step.
+
+   NO LAYOUT SHIFT, TWO WAYS:
+
+   1. THE BUBBLE GROWS DOWNWARD AND NOTHING ELSE MOVES. It is appended
+      once, empty, the moment the first token lands, so no element above
+      it ever reflows. The typing indicator is removed in the same frame
+      the bubble appears, so the column never carries both.
+
+   2. THE SCROLL IS ONLY PINNED IF THE SHOPPER IS ALREADY AT THE BOTTOM.
+      Scrolling on every token would rip the view out from under someone
+      who had scrolled up to re-read a product card. Measured before the
+      text goes in, applied after.
+
+   NO JANK ON A PHONE. Tokens arrive faster than a screen refreshes, and
+   writing to the DOM on each one makes mobile Safari lay out the whole
+   column dozens of times a second. Deltas are buffered and flushed once
+   per animation frame instead, so the work per frame is one textContent
+   write whatever the token rate.
+   ============================================================ */
+const ASSISTANT_SCROLL_STICK_PX = 48;
+
+function assistantAtBottom(wrap){
+  return wrap.scrollHeight - wrap.scrollTop - wrap.clientHeight <= ASSISTANT_SCROLL_STICK_PX;
+}
+
+function beginAssistantReply(){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return null;
+  const bubble = document.createElement('div');
+  bubble.className = 'max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed';
+  bubble.style.background = 'var(--sky)';
+  bubble.style.color = 'var(--navy)';
+  /* Announced once, when it settles. aria-live="polite" on a node that
+     changes on every frame would have a screen reader narrating
+     fragments over itself for the whole reply. */
+  bubble.setAttribute('aria-busy', 'true');
+
+  let pending = '';
+  let shown = '';
+  let frame = 0;
+  let appended = false;
+
+  const flush = () => {
+    frame = 0;
+    if (!pending) return;
+    const stick = appended ? assistantAtBottom(wrap) : true;
+    if (!appended){
+      // The indicator and the bubble never coexist: the first token is
+      // what turns one into the other.
+      hideAssistantTyping();
+      wrap.appendChild(bubble);
+      appended = true;
+    }
+    shown += pending;
+    pending = '';
+    bubble.textContent = shown;
+    if (stick) wrap.scrollTop = wrap.scrollHeight;
+  };
+
+  return {
+    push(delta){
+      if (!delta) return;
+      pending += delta;
+      if (!frame) frame = requestAnimationFrame(flush);
+    },
+    /* Everything buffered lands NOW, not on the next frame — the reply
+       must be whole and on screen before the turn is reported done. */
+    finish(finalText){
+      if (frame){ cancelAnimationFrame(frame); frame = 0; }
+      flush();
+      if (typeof finalText === 'string' && finalText && finalText !== shown){
+        /* THE SERVER'S COPY WINS. The deltas are what the shopper
+           watched appear; this is the authoritative string, and a
+           mismatch means an event went missing between the function and
+           a phone on mobile data. Correcting it here is what keeps the
+           chat history we send back next turn honest. */
+        if (!appended){ hideAssistantTyping(); wrap.appendChild(bubble); appended = true; }
+        shown = finalText;
+        bubble.textContent = shown;
+        wrap.scrollTop = wrap.scrollHeight;
+      }
+      bubble.removeAttribute('aria-busy');
+      return shown;
+    },
+    get text(){ return shown + pending; },
+    get started(){ return appended || Boolean(pending); },
+    /* Nothing ever arrived — take the empty bubble back out rather than
+       leaving a blank sky-blue box above the fallback's real answer. */
+    discard(){
+      if (frame){ cancelAnimationFrame(frame); frame = 0; }
+      if (appended) bubble.remove();
+      appended = false;
+      pending = '';
+      shown = '';
+    },
+  };
+}
+
+/* ============================================================
+   THE STREAM ITSELF.
+
+   Returns { reply, audio } when the endpoint answered, or null when it
+   did not — and null is the whole fallback contract: the caller then
+   posts to aria-chat-groq.js exactly as it always has. Every reason a
+   deploy might not stream ends up as null:
+
+     * the function is not deployed (404) or errored (5xx)
+     * the browser has no ReadableStream on fetch bodies
+     * the response is not an event stream at all
+
+   A CDN THAT BUFFERS THE STREAM IS NOT A FAILURE. It arrives complete
+   and late, every delta lands in one frame, and the shopper sees what
+   they see today. Falling back there would double the wait to prove a
+   point.
+
+   ONCE A TOKEN IS ON SCREEN, THERE IS NO FALLBACK. Re-asking the model
+   would render a second answer under the first. A stream that dies
+   mid-reply returns what it had, marked truncated.
+   ============================================================ */
+async function streamAssistantReply(payload, sink){
+  if (typeof ReadableStream === 'undefined' || typeof TextDecoder === 'undefined') return null;
+  let res;
+  try {
+    res = await fetch('/.netlify/functions/aria-chat-stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+  } catch { return null; }
+  if (!res.ok || !res.body || typeof res.body.getReader !== 'function') return null;
+  if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) return null;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = '';
+  let done = null;
+  let failed = null;
+  try {
+    for (;;){
+      const chunk = await reader.read();
+      if (chunk.done) break;
+      // `stream: true` so a multi-byte character split across two reads
+      // is not decoded into a replacement character — Spanish is full
+      // of them ("envío").
+      buffered += decoder.decode(chunk.value, { stream: true });
+      const lines = buffered.split('\n');
+      buffered = lines.pop() || '';
+      for (const line of lines){
+        const trimmed = line.trim();
+        if (!trimmed.startsWith('data:')) continue;
+        let evt;
+        try { evt = JSON.parse(trimmed.slice(5)); } catch { continue; }
+        if (evt.error){ failed = evt.error; continue; }
+        if (evt.done){ done = evt; continue; }
+        if (typeof evt.t === 'string') sink.push(evt.t);
+      }
+    }
+  } catch (err) {
+    failed = err && err.message;
+  } finally {
+    /* AWAITED, and that is not pedantry: cancelling a reader whose
+       socket has already gone rejects, and an un-awaited rejection
+       surfaces as an uncaught TypeError in the console. Measured
+       against a connection dropped mid-reply -- the reply itself was
+       fine and the page still logged "TypeError: network error", which
+       is exactly the signal this whole change exists to remove. */
+    try { await reader.cancel(); } catch { /* already closed */ }
+  }
+
+  if (done) return { reply: done.reply || sink.text, audio: done.audio || null };
+  // Died after it had started: keep what the shopper is already reading.
+  if (sink.started) return { reply: sink.text, audio: null, truncated: true };
+  // Nothing rendered, so the buffered endpoint can still answer cleanly.
+  return null;
 }
 
 function addAssistantProductCard(item, retailer){
@@ -13741,42 +14097,72 @@ async function runAssistantBrain(text){
       }
     }
 
-    const res = await fetch('/.netlify/functions/aria-chat-groq', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        message: text,
-        history: ariaChatHistory,
-        // Retailer travels per item, from the same object the card used.
-        products: foundItems.map(it => ({
-          title: it.title,
-          retailer: LIVE_RETAILER_LABEL[it.retailer] || it.retailer,
-          priceLabel: fmtDisplayPrice(it.price) + (priceIncludesImportTax(it.price) ? ' (incl. impuestos)' : ''),
-        })),
-        // So the reply describes the same person the filter used, and can
-        // say honestly when nothing matched rather than offering the
-        // wrong-gender items that were just discarded.
-        recipient: (recipient.gender || recipient.ageBand)
-          ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
-          : null,
-      })
-    });
+    /* ONE PAYLOAD, TWO ENDPOINTS. The streaming function and the
+       buffered one take the identical body and build the identical Groq
+       request (see _aria-chat-model.js), so which one answers cannot
+       change what Aria says — only when the shopper starts reading it. */
+    const payload = {
+      message: text,
+      history: ariaChatHistory,
+      // Retailer travels per item, from the same object the card used.
+      products: foundItems.map(it => ({
+        title: it.title,
+        retailer: LIVE_RETAILER_LABEL[it.retailer] || it.retailer,
+        priceLabel: fmtDisplayPrice(it.price) + (priceIncludesImportTax(it.price) ? ' (incl. impuestos)' : ''),
+      })),
+      // So the reply describes the same person the filter used, and can
+      // say honestly when nothing matched rather than offering the
+      // wrong-gender items that were just discarded.
+      recipient: (recipient.gender || recipient.ageBand)
+        ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
+        : null,
+    };
 
-    if (!res.ok) {
+    /* THE TYPING INDICATOR STAYS UP UNTIL THE FIRST TOKEN and not a
+       moment longer -- the sink removes it in the same frame it appends
+       the bubble, so the two never overlap and nothing jumps. */
+    const sink = beginAssistantReply();
+    let streamed = sink ? await streamAssistantReply(payload, sink) : null;
+
+    if (!streamed) {
+      /* NOTHING WAS RENDERED (the endpoint is not deployed, the browser
+         cannot read a stream, the response was not an event stream), so
+         the buffered endpoint answers and the page behaves exactly as it
+         did before any of this. */
+      if (sink) sink.discard();
+      const res = await fetch('/.netlify/functions/aria-chat-groq', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        hideAssistantTyping();
+        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+        return;
+      }
+      const data = await res.json();
       hideAssistantTyping();
-      addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+      const reply = data.reply || 'Lo siento, no pude responder eso.';
+      rememberAssistantTurn(text, reply);
+      addAssistantMessage('bot', reply, data.audio);
       return;
     }
 
-    const data = await res.json();
-    const reply = data.reply || 'Lo siento, no pude responder eso.';
-
-    ariaChatHistory.push({ role: 'user', content: text });
-    ariaChatHistory.push({ role: 'assistant', content: reply });
-    if (ariaChatHistory.length > 20) ariaChatHistory = ariaChatHistory.slice(-20);
-
+    /* Streamed. The bubble is already on screen and full; all that is
+       left is to settle the text, record the turn, and let Ara speak --
+       the same speak path addAssistantMessage uses, just reached after
+       the words rather than with them. */
+    const reply = sink.finish(streamed.reply) || 'Lo siento, no pude responder eso.';
     hideAssistantTyping();
-    addAssistantMessage('bot', reply, data.audio);
+    rememberAssistantTurn(text, reply);
+    /* A REPLY THAT STOPPED MID-SENTENCE SAYS SO. The words already on
+       screen are kept -- deleting a paragraph someone is reading to
+       replace it with an error is worse -- but half an answer with no
+       explanation reads as Aria losing her train of thought. The note
+       is the existing narration channel: quieter than a reply, never
+       spoken, never sent back to the model. */
+    if (streamed.truncated) addAssistantNote('Se me cortó ahí, ¿te lo repito?');
+    speakAssistantReply(reply, streamed.audio);
 
   } catch (err) {
     hideAssistantTyping();

@@ -1,0 +1,111 @@
+/* ============================================================
+   ONE DEFINITION OF THE CHAT TURN — shared by the buffered endpoint
+   and the streaming one.
+
+   WHY THIS EXISTS. aria-chat-stream.js answers the same question as
+   aria-chat-groq.js; only the shape of the response differs. If each
+   built its own request, the two would drift the way every duplicated
+   table in this repo has drifted — and the thing that would drift is
+   Aria's PERSONALITY: the model, the temperature, the reply-length cap,
+   the system prompt. A shopper would get a different Aria depending on
+   whether streaming happened to be available that day, which is exactly
+   what the brief forbids.
+
+   So the request is built here, once, and both endpoints send it
+   verbatim. The only line either of them changes is `stream`. A test
+   pins that the two differ in nothing else.
+
+   WHAT IS NOT HERE: routing. Which retailers are searched, what counts
+   as a product, when a search happens at all — all of that is the
+   caller's, in index.html, and none of it moved.
+   ============================================================ */
+import { buildSystemPrompt, sanitizeHistory } from "./_aria-prompt.js";
+
+export const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
+export const GROQ_MODEL = "openai/gpt-oss-120b";
+export const TEMPERATURE = 0.7;
+/* Aria answers in 2-3 sentences (see BASE_PROMPT_ES), so this is a
+   safety rail rather than a target. It matters more under streaming:
+   the cap is what bounds how long a stream can stay open. */
+export const MAX_TOKENS = 250;
+
+/** The exact JSON body both endpoints POST to Groq, minus `stream`. */
+export function chatRequestBody(body) {
+  const message = typeof body?.message === "string" ? body.message : "";
+  // History was already being sent by the caller and silently dropped
+  // before sanitizeHistory landed, so every turn was answered with no
+  // memory of the last one.
+  const history = sanitizeHistory(body?.history);
+  const products = Array.isArray(body?.products) ? body.products.slice(0, 6) : [];
+  // Recipient gender/age the client extracted; see recipientRulesEs.
+  const recipient = body?.recipient && typeof body.recipient === "object" ? body.recipient : null;
+
+  return {
+    model: GROQ_MODEL,
+    messages: [
+      { role: "system", content: buildSystemPrompt(products, recipient) },
+      ...history,
+      { role: "user", content: message },
+    ],
+    temperature: TEMPERATURE,
+    max_tokens: MAX_TOKENS,
+  };
+}
+
+/**
+ * Ara's voice for a finished reply, or null.
+ *
+ * BEST EFFORT, AND IT ALWAYS WAS. A voice failure must never cost the
+ * customer the text reply, so every path here returns null rather than
+ * throwing, and the browser's own speech synthesis covers the gap
+ * client-side. Lifted out of aria-chat-groq.js unchanged so the
+ * streaming endpoint keeps the behaviour the site already has instead
+ * of quietly dropping Ara's voice — the brief said not to ADD audio,
+ * not to take away what is there.
+ */
+export async function speechFor(reply) {
+  if (!reply || !process.env.GROK_API_KEY) return null;
+  try {
+    const res = await fetch("https://api.x.ai/v1/tts", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROK_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ voice_id: "ara", text: reply, language: "es" }),
+    });
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer()).toString("base64");
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The text delta carried by one Groq SSE line, or null.
+ *
+ * Groq speaks OpenAI's dialect: each `data:` line is a chunk whose
+ * choices[0].delta.content holds the new text, and the stream ends with
+ * the literal `data: [DONE]`. Chunks arrive split across TCP reads, so
+ * the CALLER owns the buffering — this only ever judges one complete
+ * line. A line we cannot parse yields null and is skipped: a malformed
+ * keep-alive must not end a reply halfway through a sentence.
+ */
+export function deltaFromLine(line) {
+  const trimmed = String(line || "").trim();
+  if (!trimmed.startsWith("data:")) return null;
+  const payload = trimmed.slice(5).trim();
+  if (!payload || payload === "[DONE]") return null;
+  try {
+    const chunk = JSON.parse(payload);
+    const text = chunk?.choices?.[0]?.delta?.content;
+    return typeof text === "string" && text ? text : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True once a Groq SSE line says the reply is complete. */
+export function isDoneLine(line) {
+  return String(line || "").trim() === "data: [DONE]";
+}
