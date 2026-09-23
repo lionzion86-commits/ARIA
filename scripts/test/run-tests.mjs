@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageCatalogSearchSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -4938,6 +4938,145 @@ check("the cards are the Ofertas component, and they route back through showProd
   if (!/\n  renderRelatedRail\(\{ retailer, title: name, price: totalUsd/.test(show)) {
     throw new Error("showProduct no longer draws the rail unconditionally — a product opened any other way gets none");
   }
+});
+
+
+group("Search answers from the catalogue first");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand, retailer) => ({ title, brand: brand || "", retailer: retailer || "macys", price: 20 });
+
+  check("a token matches a word, never a substring inside one", () => {
+    /* THE BUG THIS PINS. Scoring on haystack.includes(token) ranked
+       "Vanity Fair ... Contour Bra" above Nike trainers for "Nike Air
+       Force", because "air" is inside "Fair". Measured, and the reason
+       matching is on whole words now. */
+    const bra = P("Beauty Back Smoothing Full-Figure Contour Bra", "Vanity Fair Lingerie");
+    const shoe = P("Zoom Vomero 5 Sneakers", "Nike");
+    const toks = cs.searchTokens("nike air force");
+    if (cs.scoreCatalogItem(bra, toks) > 0) throw new Error('"air" matched inside "Fair" — substring matching is back');
+    if (!(cs.scoreCatalogItem(shoe, toks) > 0)) throw new Error("a Nike product no longer matches the word Nike");
+    /* Compare by title, not identity: ranked items are copies now, so
+       the match score can ride along with each one and survive the
+       feed's own sort. */
+    const { items } = cs.rankCatalogMatches([bra, shoe], "nike air force", {});
+    if (items[0].title !== shoe.title) throw new Error("the bra outranks the Nike trainers again");
+    if (!Number.isFinite(items[0].matchScore)) throw new Error("the match score is not carried on the item — any re-sort loses the ranking");
+  });
+
+  check("a pluralised translation still finds the singular title", () => {
+    /* translateQuery("Vitamina D3") returns "vitamins D3" -- the Spanish
+       layer pluralises -- while the catalogue says "Vitamin D3".
+       Measured before the fix: 0 full matches on 5 correct products, on
+       one of the four queries the brief names. */
+    const item = P("Nature Made Extra Strength Vitamin D3 5000 IU", "Nature Made");
+    const res = cs.rankCatalogMatches([item], "vitamins d3", {});
+    if (res.exact !== 1) throw new Error(`"vitamins d3" did not fully match "Vitamin D3" (exact ${res.exact})`);
+    // ...and the stem floor still keeps short tokens from matching everything.
+    if (cs.catalogTokenHits(new Set(["sneakers"]), ["a"]) !== 0) throw new Error('"a" matched a word that starts with it');
+    if (cs.catalogTokenHits(new Set(["de"]), ["desodorante"]) !== 0) throw new Error("a 2-letter word matched a long token");
+  });
+
+  check("matching every token outranks matching some, and a brand hit outranks a title hit", () => {
+    const toks = cs.searchTokens("nike shorts");
+    const both = P("Pro 3in Shorts", "Nike");
+    const brandOnly = P("Zoom Vomero 5 Sneakers", "Nike");
+    const titleOnly = P("Cargo Shorts With Stretch", "");
+    const s1 = cs.scoreCatalogItem(both, toks), s2 = cs.scoreCatalogItem(brandOnly, toks), s3 = cs.scoreCatalogItem(titleOnly, toks);
+    if (!(s1 > s2)) throw new Error("a full match does not outrank a brand-only match");
+    if (!(s2 > s3)) throw new Error("a brand hit does not outrank an incidental title word");
+
+    /* AND THE ORDERING THE BRAND BONUS WOULD OTHERWISE BREAK. Coverage
+       alone puts a brand-only partial (0.5 + 0.75 brand = 1.25) ABOVE a
+       product that matched every word (1.0). Something that answers the
+       whole question must never rank below something that answered half
+       of it loudly, which is what the full-match bonus is for. */
+    const everyWord = P("Nike Pro Shorts", "");            // both tokens, no brand field
+    const brandHalf = P("Zoom Vomero 5 Sneakers", "Nike"); // half the tokens, brand hit
+    if (!(cs.scoreCatalogItem(everyWord, toks) > cs.scoreCatalogItem(brandHalf, toks))) {
+      throw new Error("a brand-only partial match outranks a product that matched every word");
+    }
+  });
+
+  check("thin is counted in FULL matches, never in the total", () => {
+    /* The catalogue holds no Air Force and twelve Nikes. Twelve results
+       with zero full matches is exactly when the live offer has to be
+       loud, so the count that decides it cannot be the total. */
+    const pool = Array.from({ length: 12 }, (_, i) => P(`Nike thing ${i}`, "Nike"));
+    const res = cs.rankCatalogMatches(pool, "nike air force", {});
+    if (res.exact !== 0) throw new Error("something matched all of 'nike air force'");
+    if (res.partial !== 12) throw new Error(`expected 12 partial matches, got ${res.partial}`);
+    if (!cs.catalogResultsAreThin(res)) throw new Error("12 partial matches and 0 full ones did not read as thin");
+    const solid = cs.rankCatalogMatches(Array.from({ length: 4 }, (_, i) => P(`Cargo Pants ${i}`)), "pants", {});
+    if (cs.catalogResultsAreThin(solid)) throw new Error("4 full matches read as thin");
+  });
+
+  check("an empty query matches nothing at all", () => {
+    // Otherwise a stray submit would render the whole catalogue as "results".
+    for (const q of ["", "   ", "!!!"]) {
+      const res = cs.rankCatalogMatches([P("Cargo Pants")], q, {});
+      if (res.items.length) throw new Error(`"${q}" returned ${res.items.length} results`);
+    }
+  });
+
+  check("the feed is capped, and the cap keeps the best", () => {
+    const pool = [...Array.from({ length: 200 }, (_, i) => P(`Pants ${i}`)), P("Cargo Pants", "Nike")];
+    const res = cs.rankCatalogMatches(pool, "nike pants", {});
+    if (res.items.length !== cs.CATALOG_SEARCH_LIMIT) throw new Error(`cap is ${cs.CATALOG_SEARCH_LIMIT}, got ${res.items.length}`);
+    if (res.items[0].brand !== "Nike") throw new Error("the cap dropped the best match");
+  });
+}
+
+check("searching never starts an Apify run on its own", () => {
+  /* THE COST LEAK AND THE OUTAGE, WHICH ARE THE SAME LINE. showResults()
+     used to fan out to every retailer on every submit: a bill per
+     search, and a blank page the moment Apify stopped answering. The
+     fan-out lives in runLiveSearch() now, which only a click reaches. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const show = src.slice(src.indexOf("async function showResults(query, opts = {})"), src.indexOf("async function runLiveSearch()"));
+  if (!show) throw new Error("showResults or runLiveSearch is gone");
+  if (/scrapeRetailer\s*\(/.test(show)) throw new Error("showResults scrapes again — every search is billable and dies with Apify");
+  if (!/await catalogSearch\(/.test(show)) throw new Error("showResults no longer asks the catalogue");
+  const liveFrom = src.indexOf("async function runLiveSearch()");
+  const live = src.slice(liveFrom, src.indexOf("// RULE: every product card on the site", liveFrom));
+  if (!/scrapeRetailer\s*\(/.test(live)) throw new Error("the live scan no longer scrapes anything");
+  if (!/onclick="runLiveSearch\(\)"/.test(src)) throw new Error("nothing in the page can start a live search");
+});
+
+check("the shopper is told the truth when live search cannot run", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveSearchOffer()"));
+  if (!offer) throw new Error("the live-search offer is gone");
+  for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU.", "La búsqueda en vivo no está disponible en este momento."]) {
+    if (!offer.includes(copy)) throw new Error(`the agreed copy is gone: "${copy}"`);
+  }
+  /* "Unavailable" is OUR failure and must not be worded as an answer
+     about the product -- and it must be reachable only when every store
+     failed, not when they all answered "nothing". */
+  /* SLICE FORWARDS. liveSearchOfferHTML() is declared ABOVE
+     runLiveSearch(), so slicing from the one to the other ran backwards
+     and handed this check an empty string -- which passed every regex
+     put to it while measuring nothing. End on something that genuinely
+     follows the function. */
+  const liveAt = src.indexOf("async function runLiveSearch()");
+  const live = src.slice(liveAt, src.indexOf("// RULE: every product card on the site", liveAt));
+  if (!live) throw new Error("runLiveSearch's end marker moved");
+  if (!/failures\.length === GENERAL_RETAILERS\.length \? 'unavailable' : 'done'/.test(live)) {
+    throw new Error("a partial failure now reads as 'live search is unavailable'");
+  }
+  // Yellow means a discount on this site. The offer is not one.
+  if (/var\(--yellow/.test(offer)) throw new Error("the live-search offer is wearing the discount colour");
+});
+
+check("every store that can appear in the feed can also be ticked", () => {
+  /* Measured: "pants" matched 46 Macy's products and 2 Walmart ones and
+     the page rendered 2, because the filter list was GENERAL_RETAILERS
+     -- the four scrapeable stores -- so activeSearchStores() silently
+     excluded every browse-only store the catalogue had just found. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const init = src.slice(src.indexOf("function initResultsFilters()"), src.indexOf("// Runs a real live search"));
+  if (!/CATALOG_RETAILERS\.map/.test(init)) throw new Error("the results filter is built from the live retailers again — browse-only stores get filtered out of their own results");
 });
 
 
