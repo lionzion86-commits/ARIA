@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -4518,6 +4518,252 @@ check("the store's brand panel is navigable, and keeps today's route", () => {
   if (!/brandRows\(retailerBrandBuckets\(retailerData\)\)/.test(store)) throw new Error("the store page reads no brands");
   if (!/brandList\.length > 1/.test(store)) throw new Error("a single-brand store is being offered a brand search");
   if (!/brandPanel/.test(store)) throw new Error("the store page never draws the panel");
+});
+
+
+/* ==================================================================
+   THE PHONE'S THREE RAILS.
+
+   The browser suite deliberately boots the page with the Tailwind CDN
+   blocked, so it measures an UNSTYLED document: it can count the cards
+   in each rail and read the order of their discounts, but it cannot see
+   that the rails scroll, that they snap, or that they are hidden on a
+   desktop. Everything that a stylesheet decides is pinned here, by the
+   class that decides it.
+   ================================================================== */
+group("The mobile shopfront");
+
+const shopfrontSrc = readFileSync(root("index.html"), "utf8");
+const shopfront = shopfrontSrc.slice(
+  shopfrontSrc.indexOf('<div id="mobileShopfront"'),
+  shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+);
+
+check("the shopfront is the first thing under the header, and only on a phone", () => {
+  if (!shopfront) throw new Error("there is no mobile shopfront");
+
+  /* FIRST CHILD OF #homeView. The whole brief is that a shopper who
+     scrolls -- and they all scroll -- meets the deals before anything
+     else. One element moved above this and the rails are below the
+     fold again. */
+  const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
+  const firstTag = home.slice(home.indexOf(">") + 1).search(/<(?!!--)/);
+  if (!home.slice(home.indexOf(">") + 1).slice(firstTag).startsWith('<div id="mobileShopfront"')) {
+    throw new Error("something now sits between the header and the shopfront");
+  }
+
+  /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
+     width below 1024px -- tablets included -- has its shopping paths
+     behind the hamburger. The shopfront has to appear exactly where the
+     menu takes over, or a tablet gets the menu AND no rails. */
+  const open = shopfront.slice(0, shopfront.indexOf(">") + 1);
+  if (!/\blg:hidden\b/.test(open)) throw new Error("the shopfront is not hidden on a desktop");
+  if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
+});
+
+check("Ofertas, then Categorías, then Tiendas", () => {
+  /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
+     words: "in case they don't find the ofertas they're looking for,
+     they know categories is right underneath". Deals first because they
+     are what makes someone stop; departments second because that is
+     where you go when the deals did not have it; stores last, for the
+     shopper who already knows where they want to shop.
+
+     (The written brief numbered Tiendas second. He was asked which, and
+     chose the spoken one — this is that decision, not a drift from it.) */
+  const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Categorías > Tiendas", "the shopfront's scroll order");
+  // Each section owns exactly one rail, and the rails are the ids the
+  // renderers write into.
+  for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
+    eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+});
+
+check("a rail scrolls sideways and snaps, and the page does not", () => {
+  /* .ariaRail is hand-written CSS, not a Tailwind utility, for the same
+     reason .brandList is: the page is built to boot with the CDN
+     blocked, and a rail that loses its overflow becomes a row of cards
+     running off the side of the phone. */
+  const style = shopfrontSrc.slice(shopfrontSrc.indexOf("<style>"), shopfrontSrc.indexOf("</style>"));
+  const rail = style.slice(style.indexOf(".ariaRail{"), style.indexOf(".brandList{"));
+  if (!/scroll-snap-type:\s*x mandatory/.test(rail)) throw new Error("a swipe no longer lands on a card");
+  if (!/scroll-snap-align:\s*start/.test(rail)) throw new Error("the cards have nothing to snap to");
+  if (!/scrollbar-width:\s*none/.test(rail)) throw new Error("the rail grew a desktop scrollbar");
+
+  for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
+    const tag = shopfront.slice(shopfront.indexOf(`id="${id}"`));
+    const cls = tag.slice(0, tag.indexOf(">"));
+    if (!/\bariaRail\b/.test(cls)) throw new Error(`${id} is not a rail`);
+    if (!/\boverflow-x-auto\b/.test(cls)) throw new Error(`${id} cannot be swiped`);
+  }
+});
+
+check("nothing in the shopfront moves on its own", () => {
+  /* THE ONE RULE DANNY WROTE TWICE: "no auto-play on any carousel --
+     user swipes, nothing moves on its own". A carousel that advances on
+     a timer takes the card you were reading away from you, and on a
+     phone you cannot get it back without guessing. */
+  const js = stripComments(shopfrontSrc.slice(
+    shopfrontSrc.indexOf("let mobileDealsRendered = []"),
+    shopfrontSrc.indexOf("window.addEventListener('DOMContentLoaded', renderPrecioHonestoCards)"),
+  ));
+  if (!js) throw new Error("the rails' renderers are gone");
+  for (const banned of ["setInterval", "requestAnimationFrame", "scrollBy(", "scrollTo(", "scrollIntoView(", "scrollLeft ="]) {
+    if (js.includes(banned)) throw new Error(`the rails moved on their own: ${banned}`);
+  }
+  if (/setTimeout/.test(js)) throw new Error("the rails are on a timer");
+  // ...and the markup carries no autoplay attribute or animation either.
+  if (/animation:|autoplay|data-autoplay/i.test(shopfront)) throw new Error("the shopfront markup animates itself");
+});
+
+check("the deals rail is the Ofertas feed, sorted by discount, never a second list", () => {
+  const js = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function renderMobileDealsRail("),
+    shopfrontSrc.indexOf("function renderMobileStoresRail("),
+  );
+
+  /* saleItemsCache IS what renderSalesGrid() paints. Reading anything
+     else is how the banner in the superseded PR came to advertise 1,358
+     ofertas over a feed that held 1,066. */
+  if (!/saleItemsCache/.test(js)) throw new Error("the rail no longer reads the feed's own set");
+  if (/loadDepartmentCache|departmentItems|fetch\(/.test(js)) throw new Error("the rail is building its own list of deals");
+
+  // Biggest discount first -- "80% off first" is the brief.
+  if (!/\.sort\(\(a, b\) => discountPct\(b\) - discountPct\(a\)\)/.test(js)) {
+    throw new Error("the rail is no longer sorted by discount, descending");
+  }
+  /* ...and then ONE STORE PER CARD across the opening run, so the rail
+     cannot lead on three near-identical markdowns from one shop. The
+     spread is applied to the SORTED list, never instead of sorting it. */
+  if (!/spreadDealsByStore\(priced, MOBILE_RAIL_LEAD\)/.test(js)) {
+    throw new Error("the rail can lead on five cards from one store again");
+  }
+  // A card with no price, no markdown or no photo is not a deal.
+  if (!/Number\.isFinite\(Number\(p\.price\)\)/.test(js)) throw new Error("a priceless line can reach the rail");
+  if (!/Number\(p\.originalPrice\) > Number\(p\.price\)/.test(js)) throw new Error("a card with no markdown can claim a discount");
+  if (!/p\.image/.test(js)) throw new Error("a card with no photo can reach the rail");
+
+  // And the tail counts the feed it opens, not a department.
+  if (!/saleItemsCache\.length\.toLocaleString/.test(js)) throw new Error("'Ver todo' is counting something other than the feed");
+  if (!/goSales\(\)/.test(js)) throw new Error("'Ver todo' does not open Ofertas");
+});
+
+check("the opening five deals come from five different stores, and nothing is lost", () => {
+  const { spreadDealsByStore, MOBILE_RAIL_LEAD } = loadPageDealSpreadSlice();
+  eq(MOBILE_RAIL_LEAD, 5, "the size of the opening run");
+  const deal = (retailer, pct, id) => ({ retailer, pct, id });
+  const stores = list => list.slice(0, MOBILE_RAIL_LEAD).map(d => d.retailer);
+
+  /* THE CASE THAT PROMPTED IT: one shop owns the deepest markdowns, and
+     sorted by discount alone the rail opened on three near-identical
+     Macy's puffer coats. */
+  const macysHeavy = [
+    deal("macys", 86, "coat-a"), deal("macys", 86, "coat-b"), deal("macys", 85, "coat-c"),
+    deal("ssense", 80, "pants"), deal("macys", 85, "coat-d"), deal("yesstyle", 50, "serum"),
+    deal("ulta", 20, "cream"), deal("ssense", 75, "shirt"),
+  ];
+  const spread = spreadDealsByStore(macysHeavy, MOBILE_RAIL_LEAD);
+  eq(new Set(stores(spread)).size, 4, "the opening run repeats a store while another still has a deal");
+  eq(stores(spread).slice(0, 4).join(), "macys,ssense,yesstyle,ulta", "the opening run is not one deal per store, deepest first");
+
+  /* NOTHING IS DROPPED AND NOTHING IS INVENTED. A held-back deal keeps
+     its place in the queue rather than losing its slot on the rail. */
+  eq(spread.length, macysHeavy.length, "the spread changed how many deals there are");
+  eq(new Set(spread.map(d => d.id)).size, macysHeavy.length, "the spread duplicated or lost a deal");
+
+  /* AND THE QUEUE BEHIND THE OPENING RUN IS STILL IN DISCOUNT ORDER --
+     the spread reorders the lead, it does not re-rank the rail. */
+  const rest = spread.slice(MOBILE_RAIL_LEAD).map(d => d.pct);
+  for (let i = 1; i < rest.length; i++) {
+    if (rest[i] > rest[i - 1]) throw new Error(`the tail lost its discount order: ${rest.join(",")}`);
+  }
+
+  /* IT DEGRADES RATHER THAN COMING UP SHORT. Two stores with deals today
+     must still fill five cards: five from two shops beats two cards. */
+  const twoStores = [
+    deal("macys", 90, "a"), deal("macys", 80, "b"), deal("ssense", 70, "c"),
+    deal("macys", 60, "d"), deal("macys", 50, "e"), deal("ssense", 40, "f"),
+  ];
+  const thin = spreadDealsByStore(twoStores, MOBILE_RAIL_LEAD);
+  eq(thin.length, twoStores.length, "a thin day lost deals");
+  eq(thin.slice(0, 2).map(d => d.id).join(), "a,c", "the two stores did not each lead");
+  eq(thin.slice(0, MOBILE_RAIL_LEAD).length, MOBILE_RAIL_LEAD, "the opening run came up short on a thin day");
+  eq(thin.map(d => d.id).sort().join(), "a,b,c,d,e,f", "a thin day dropped or duplicated a deal");
+
+  // One store and nothing else is still a rail.
+  const solo = [deal("macys", 90, "a"), deal("macys", 80, "b")];
+  eq(spreadDealsByStore(solo, MOBILE_RAIL_LEAD).map(d => d.id).join(), "a,b", "a single-store day stopped working");
+  eq(spreadDealsByStore([], MOBILE_RAIL_LEAD).length, 0, "an empty feed broke the spread");
+});
+
+check("the other two rails reuse what the page already draws", () => {
+  const stores = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function renderMobileStoresRail("),
+    shopfrontSrc.indexOf("function mobileCatCardHTML("),
+  );
+  /* The same chip as the home page's store grid. Restyled instead of
+     reused, a store's mark, its colour and its honest "próximamente"
+     dot could differ between the rail and the grid below it. */
+  if (!/homeStoreChipHTML\(r\)/.test(stores)) throw new Error("the stores rail has grown its own chip");
+  if (!/activeRetailers\(\)/.test(stores)) throw new Error("the stores rail is not reading the registry");
+  /* The chip carries no width of its own -- in the home grid its cell
+     supplies one -- so the rail's wrapper has to stretch it, or the
+     tiles come out at three different widths. */
+  if (!/w-\[118px\] grid/.test(stores)) throw new Error("the store tiles are no longer a uniform width");
+
+  const cats = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function initDepartmentTiles("),
+    shopfrontSrc.indexOf("window.addEventListener('DOMContentLoaded', initDepartmentTiles)"),
+  );
+  /* THE SAME `tiles`, not a second collectTiles() call. This is what
+     makes a new department -- Zapatos, and whatever follows it --
+     appear in the rail with no second change anywhere. */
+  if (!/renderMobileCatsRail\(tiles\)/.test(cats)) throw new Error("the categories rail is not fed the grid's own tiles");
+});
+
+check("the rails' images are lazy, and its covers are the curated ones", () => {
+  const card = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function mobileCatCardHTML("),
+    shopfrontSrc.indexOf("function renderMobileCatsRail("),
+  );
+  if (!/categoryCoverFor\(t\.key\)/.test(card)) throw new Error("the rail stopped using the photographic covers");
+  if (!/loading="lazy"/.test(card)) throw new Error("the third rail's photos load before the deals");
+  /* The gradient fallback is still there for a department with no
+     photograph -- an emoji on grey beats a broken image box. */
+  if (!/t\.icon/.test(card)) throw new Error("a department with no cover now renders nothing");
+});
+
+check("the shopfront fills itself when a window is dragged across lg", () => {
+  const init = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("const MOBILE_SHOPFRONT_MQ"),
+    shopfrontSrc.indexOf("window.addEventListener('DOMContentLoaded', renderPrecioHonestoCards)"),
+  );
+  // One query, used by both the guard and the listener, so the point at
+  // which the rails appear and the point at which they fill cannot drift.
+  eq((init.match(/MOBILE_SHOPFRONT_MQ/g) || []).length, 3, "the breakpoint is read from one place");
+  eq(shopfrontSrc.includes("(max-width: 1023px)"), true, "the shopfront's breakpoint moved off lg");
+  if (!/addEventListener\('change', initMobileShopfront\)/.test(init)) throw new Error("a resize no longer fills the rails");
+  if (!/mq\.addListener/.test(init)) throw new Error("older iOS Safari never fills the rails on rotation");
+  // Filled once, not on every crossing: a drag across the breakpoint
+  // must not re-fetch the whole sales cache.
+  if (!/if \(mobileShopfrontStarted\) return;/.test(init)) throw new Error("crossing the breakpoint re-runs the sales scan");
+});
+
+check("the shopfront's gold is the brand's, and no emoji is doing an image's job", () => {
+  /* House rules, both of them. Gold (#F4C463) is the orb-and-logo
+     colour and is what the OFERTAS wordmark and the discount badge are
+     painted in; yellow anywhere else on a card would be a sale badge
+     lying about a product. And an emoji is decoration, never the
+     picture of a thing being sold. */
+  if (!/#F4C463/.test(shopfront)) throw new Error("the Ofertas rail lost its gold");
+  const badge = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function mobileDealCardHTML("),
+    shopfrontSrc.indexOf("function renderMobileDealsRail("),
+  );
+  if (!/background:#F4C463[\s\S]{0,40}-\$\{pct\}%/.test(badge)) throw new Error("the discount badge is no longer the gold one");
+  if (!/cardPhotoHTML\(/.test(badge)) throw new Error("a deal card is not using the shared product photo");
+  if (/[\u{1F300}-\u{1FAFF}]/u.test(badge)) throw new Error("an emoji is standing in for a product photo");
 });
 
 

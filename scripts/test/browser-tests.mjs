@@ -33,8 +33,11 @@ function eq(a, b, what) { if (a !== b) throw new Error(`${what ?? "value"}: got 
 const exe = process.env.PLAYWRIGHT_CHROMIUM || undefined;
 const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
-async function openPage(routes = {}) {
-  const ctx = await browser.newContext();
+async function openPage(routes = {}, contextOptions = {}) {
+  /* contextOptions exists for ONE reason: the mobile shopfront only
+     renders below lg, so its checks need a phone-sized context. Every
+     other check keeps the default desktop one. */
+  const ctx = await browser.newContext(contextOptions);
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
@@ -1265,6 +1268,167 @@ await check("a brand row opens exactly what its card opened", async () => {
   eq(landed.url, "?categoria=driesvannoten&kind=brand", "the brand's URL changed");
   if (!landed.products) throw new Error("the brand page opened with nothing in it");
   if (errors.length) throw new Error("errors on the brand page: " + errors.join(" | "));
+  await ctx.close();
+});
+
+
+/* ==================================================================
+   THE PHONE'S THREE RAILS.
+
+   This harness boots with Tailwind's CDN blocked, so it is looking at an
+   UNSTYLED page: it cannot see that a rail scrolls or that the shopfront
+   is hidden on a desktop -- run-tests.mjs pins all of that by class.
+   What it CAN do is the thing no static read can: load the real page,
+   let the real sales scan run, and check that the rail and the feed
+   behind it are telling the shopper the same numbers.
+   ================================================================== */
+const PHONE = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+await check("the phone's rails fill from the page's own data", async () => {
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+  const rails = await page.evaluate(() => ({
+    deals: document.querySelectorAll("#mobileDealsRow [data-mobile-deal]").length,
+    tail: document.querySelectorAll("#mobileDealsRow [data-mobile-deal-all]").length,
+    stores: document.getElementById("mobileStoresRow").children.length,
+    registry: activeRetailers().length,
+    cats: document.querySelectorAll("#mobileCatsRow [data-mobile-cat]").length,
+    grid: document.getElementById("catGrid").children.length,
+    cap: MOBILE_RAIL_DEALS,
+  }));
+  eq(rails.deals, rails.cap, "the deals rail holds its cap");
+  eq(rails.tail, 1, "the deals rail has exactly one 'Ver todo' tail");
+  eq(rails.stores, rails.registry, "the stores rail carries every active store");
+  /* THE SAME TILES THE GRID DREW. A department added to DEPARTMENT_SPEC
+     -- Zapatos, and whatever follows -- has to appear in both or in
+     neither; a literal here would go stale the day one lands. */
+  eq(rails.cats, rails.grid, "the categories rail and the grid disagree about the departments");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("biggest discount first, and the rail's count is the feed's own", async () => {
+  /* THE BUG THIS REPLACES. The superseded banner counted the `sale`
+     DEPARTMENT (1,358) and opened a FEED that holds 1,066 -- the feed
+     applies passesOfertasGate and the department does not. Reading
+     saleItemsCache is what makes the two numbers one number. */
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+
+  const pcts = await page.evaluate(() =>
+    [...document.querySelectorAll("#mobileDealsRow [data-mobile-deal]")]
+      .map((c) => { const m = (c.textContent || "").match(/-(\d+)%/); return m ? Number(m[1]) : null; }));
+  if (pcts.includes(null)) throw new Error("a deal card is showing no discount badge");
+  if (!pcts.length) throw new Error("the deals rail is empty on a full cache");
+
+  /* SORTED BY DISCOUNT, EXCEPT ACROSS THE OPENING RUN, WHICH IS THE
+     POINT OF THE OPENING RUN. The first five cards take one store each
+     so the rail cannot lead on three near-identical markdowns from the
+     same shop, and that deliberately breaks strict descending order
+     inside those five. Everything after them is the untouched queue.
+
+     Both halves are still checked — the tail for its order, the lead
+     for one store per card — so "sorted by discount" cannot quietly
+     become "unsorted". */
+  const { lead, cap, storesWithDeals } = await page.evaluate(() => ({
+    lead: mobileDealsRendered.slice(0, MOBILE_RAIL_LEAD).map((p) => p.retailer),
+    cap: MOBILE_RAIL_LEAD,
+    /* HOW MANY DISTINCT STORES THE FEED CAN ACTUALLY SUPPLY. Today it is
+       four, so the fifth card is necessarily a repeat — and demanding
+       five would be demanding data that does not exist. What must hold
+       is that the run is as varied as the feed allows: a repeat while
+       another store still has an unused deal is the regression. */
+    storesWithDeals: new Set(saleItemsCache
+      .filter((p) => Number(p.price) > 0 && Number(p.originalPrice) > Number(p.price) && p.image)
+      .map((p) => p.retailer)).size,
+  }));
+  eq(new Set(lead).size, Math.min(cap, storesWithDeals),
+    `the opening run is less varied than the feed allows: ${lead.join(",")} from ${storesWithDeals} stores`);
+  // However thin the feed, the run is still full.
+  eq(lead.length, cap, "the opening run came up short");
+  for (let i = cap + 1; i < pcts.length; i++) {
+    if (pcts[i] > pcts[i - 1]) throw new Error(`the rail is not sorted by discount: ${pcts[i - 1]}% then ${pcts[i]}%`);
+  }
+  // The deepest markdown in the feed is still the first thing on the rail.
+  const best = await page.evaluate(() =>
+    Math.max(...saleItemsCache.filter((p) => Number(p.price) > 0 && Number(p.originalPrice) > Number(p.price) && p.image)
+      .map((p) => discountPct(p))));
+  eq(pcts[0], best, "the rail does not open on the deepest markdown in the feed");
+
+  const promised = await page.evaluate(() =>
+    Number((document.querySelector("#mobileDealsRow [data-mobile-deal-all]").textContent.match(/([\d.,]+)\s+ofertas/) || [])[1].replace(/\D/g, "")));
+  await page.evaluate(() => document.querySelector("#mobileDealsRow [data-mobile-deal-all]").click());
+  await page.waitForTimeout(2500);
+  const delivered = await page.evaluate(() => ({
+    view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+    cards: document.querySelectorAll("#salesGrid > *").length,
+  }));
+  eq(delivered.view, "salesView", "'Ver todo' did not open Ofertas");
+  eq(delivered.cards, promised, "the rail promised a different number of ofertas than the feed holds");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("tapping a rail card opens that exact product", async () => {
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+  const card = await page.evaluate(() => {
+    const el = document.querySelector("#mobileDealsRow [data-mobile-deal]");
+    return { title: mobileDealsRendered[0].title, price: mobileDealsRendered[0].price, text: el.textContent.replace(/\s+/g, " ") };
+  });
+  await page.evaluate(() => document.querySelector("#mobileDealsRow [data-mobile-deal]").click());
+  await page.waitForTimeout(1500);
+  const landed = await page.evaluate(() => ({
+    view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+    title: document.getElementById("productViewTitle").textContent.trim(),
+    buyable: !document.getElementById("addToCartBtn").disabled,
+  }));
+  eq(landed.view, "productView", "a rail card did not open a product");
+  eq(landed.title, card.title, "the product page opened a different item than the card showed");
+  /* Every rail card is a priced, marked-down item by construction, so
+     its product page must offer a working buy button -- the no-price /
+     no-buy rule cuts the other way here. */
+  eq(landed.buyable, true, "a priced deal opened a product that cannot be bought");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("nothing in the shopfront moves on its own", async () => {
+  /* The rule stated twice in the brief. Asserted against the running
+     page, not the source: a timer set anywhere -- a library, a copied
+     snippet, a future edit -- would move a rail, and this is what a
+     shopper would feel. */
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+  const drift = await page.evaluate(async () => {
+    const ids = ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"];
+    const before = ids.map((i) => document.getElementById(i).scrollLeft);
+    const y = window.scrollY;
+    await new Promise((r) => setTimeout(r, 5000));
+    const after = ids.map((i) => document.getElementById(i).scrollLeft);
+    return { moved: ids.map((_, i) => before[i] !== after[i]).some(Boolean), scrolled: window.scrollY !== y };
+  });
+  eq(drift.moved, false, "a rail advanced on its own");
+  eq(drift.scrolled, false, "the page scrolled itself");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the desktop home page never builds the rails", async () => {
+  /* Not a style question: initMobileShopfront's guard is what stops a
+     laptop fetching the sales cache and twenty product photos for three
+     sections it will never show. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(4000);
+  const state = await page.evaluate(() => ({
+    deals: document.getElementById("mobileDealsRow").children.length,
+    stores: document.getElementById("mobileStoresRow").children.length,
+    started: mobileShopfrontStarted,
+  }));
+  eq(state.started, false, "the desktop ran the phone's shopfront");
+  eq(state.deals, 0, "the desktop built the deals rail");
+  eq(state.stores, 0, "the desktop built the stores rail");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
 
