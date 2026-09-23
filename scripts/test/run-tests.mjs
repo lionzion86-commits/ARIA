@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -4757,13 +4757,187 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
      lying about a product. And an emoji is decoration, never the
      picture of a thing being sold. */
   if (!/#F4C463/.test(shopfront)) throw new Error("the Ofertas rail lost its gold");
+  /* RE-POINTED AT THE SHARED CARD, not loosened. The card's body moved
+     into railCardHTML so the product page's "También te puede interesar"
+     rail could use the SAME component rather than a second copy of it;
+     mobileDealCardHTML is now a one-line caller. What is asserted is
+     unchanged -- gold badge, shared photo, no emoji -- it is just
+     asserted where the markup now lives. */
   const badge = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function railCardHTML("),
     shopfrontSrc.indexOf("function mobileDealCardHTML("),
-    shopfrontSrc.indexOf("function renderMobileDealsRail("),
   );
+  if (!/railCardHTML\(p, `openMobileDeal\(\$\{idx\}\)`/.test(shopfrontSrc)) {
+    throw new Error("the Ofertas rail stopped using the shared card");
+  }
   if (!/background:#F4C463[\s\S]{0,40}-\$\{pct\}%/.test(badge)) throw new Error("the discount badge is no longer the gold one");
   if (!/cardPhotoHTML\(/.test(badge)) throw new Error("a deal card is not using the shared product photo");
   if (/[\u{1F300}-\u{1FAFF}]/u.test(badge)) throw new Error("an emoji is standing in for a product photo");
+});
+
+
+/* ==================================================================
+   "TAMBIÉN TE PUEDE INTERESAR" — the product page's rail.
+   ================================================================== */
+group("The related-products rail");
+
+const relSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("the rules are the brief's, and they are run rather than read", () => {
+  const { relatedProducts, RELATED_RAIL_MIN, RELATED_RAIL_MAX, RELATED_PRICE_BAND } = loadPageRelatedSlice();
+  eq(RELATED_RAIL_MIN, 8, "the backfill threshold");
+  eq(RELATED_RAIL_MAX, 10, "the card cap");
+  eq(RELATED_PRICE_BAND, 0.5, "the price band");
+
+  const it = (id, retailer, departments, price, extra) =>
+    ({ title: id, retailer, departments, price, image: "x.jpg", ...extra });
+  const anchor = it("ANCHOR", "macys", ["women"], 100);
+
+  /* 1. SAME DEPARTMENT, ±50%, NEVER ITSELF. 50 and 150 are the edges and
+     they are IN; a penny outside either is out. */
+  const band = [
+    it("lowEdge", "macys", ["women"], 50),
+    it("highEdge", "macys", ["women"], 150),
+    it("tooCheap", "macys", ["women"], 49.99),
+    it("tooDear", "macys", ["women"], 150.01),
+    it("otherDept", "macys", ["men"], 100),
+    anchor,
+  ];
+  /* min:0 isolates RULE ONE. Left at its real threshold this pool has
+     only two department matches, so the same-store backfill fires and
+     legitimately pulls `otherDept` in -- which is the rules working, not
+     the band leaking. Rule two is tested on its own below. */
+  eq(relatedProducts(anchor, band, { min: 0 }).map(p => p.title).join(), "lowEdge,highEdge",
+    "rule one: the ±50% band, its edges, the wrong department, and the anchor itself");
+  // Both edges are IN; a penny past either is out.
+  eq(relatedProducts({ ...anchor, price: 100 }, [it("e50", "macys", ["women"], 50)], { min: 0 }).length, 1, "the low edge is excluded");
+  eq(relatedProducts({ ...anchor, price: 100 }, [it("e150", "macys", ["women"], 150)], { min: 0 }).length, 1, "the high edge is excluded");
+  /* And with the real threshold the SAME pool grows, because two matches
+     is under eight -- the backfill is not optional politeness, it is
+     what the brief asks for. */
+  eq(relatedProducts(anchor, band).map(p => p.title).join(), "lowEdge,highEdge,otherDept",
+    "rule two did not backfill a thin department from the same store");
+
+  /* 2. FAIL CLOSED ON PRICE. The cache really does carry priceless
+     records, and a card with no price is a promise the page it opens
+     cannot keep. */
+  const priceless = [
+    it("nullPrice", "macys", ["women"], null),
+    it("zero", "macys", ["women"], 0),
+    it("empty", "macys", ["women"], ""),
+    it("nan", "macys", ["women"], NaN),
+    it("negative", "macys", ["women"], -100),
+    it("good", "macys", ["women"], 100),
+  ];
+  eq(relatedProducts(anchor, priceless).map(p => p.title).join(), "good", "a priceless candidate reached the rail");
+
+  /* ...and if the PRODUCT BEING VIEWED has no price there is no band to
+     compute from, so the rail draws nothing rather than guessing. */
+  for (const bad of [null, 0, -5, NaN, "", undefined]) {
+    eq(relatedProducts({ ...anchor, price: bad }, band).length, 0, `an anchor priced ${JSON.stringify(bad)} still produced a rail`);
+  }
+  eq(relatedProducts(undefined, band).length, 0, "no anchor at all still produced a rail");
+  eq(relatedProducts(anchor, []).length, 0, "an empty catalogue produced a rail");
+
+  // A candidate with no photograph is a grey box, not a card.
+  eq(relatedProducts(anchor, [it("noPhoto", "macys", ["women"], 100, { image: "" }), it("ok", "macys", ["women"], 100)])
+    .map(p => p.title).join(), "ok", "a card with no photograph reached the rail");
+
+  /* 3. BACKFILL FROM THE SAME STORE when the department is thin — and
+     only then, and only inside the same band. */
+  const thin = [
+    it("dept1", "macys", ["women"], 100),
+    it("sameStoreA", "macys", ["home_goods"], 90),
+    it("sameStoreB", "macys", ["home_goods"], 110),
+    it("otherStore", "target", ["home_goods"], 100),   // wrong store, wrong dept
+    it("sameStoreOutOfBand", "macys", ["home_goods"], 400),
+  ];
+  const filled = relatedProducts(anchor, thin).map(p => p.title);
+  eq(filled.join(), "dept1,sameStoreA,sameStoreB", "the backfill is same-store, same-band, department first");
+
+  // With eight already in the department, the backfill never runs.
+  const plenty = Array.from({ length: 9 }, (_, i) => it("d" + i, "macys", ["women"], 100));
+  plenty.push(it("sameStoreFiller", "macys", ["home_goods"], 100));
+  const full = relatedProducts(anchor, plenty).map(p => p.title);
+  if (full.includes("sameStoreFiller")) throw new Error("the backfill ran with nine department matches already found");
+
+  // 4. TEN AT MOST.
+  const many = Array.from({ length: 40 }, (_, i) => it("m" + i, "macys", ["women"], 100));
+  eq(relatedProducts(anchor, many).length, RELATED_RAIL_MAX, "the rail is capped at ten");
+
+  /* THE SAME PRODUCT IS NEVER OFFERED TWICE, however many buckets of the
+     cache it sits in — Old Navy's `clothing` is a merge of its gendered
+     ones, so a naive pass shows the same jeans twice. */
+  const dupe = [it("jeans", "oldnavy", ["women", "clothing"], 100), it("jeans", "oldnavy", ["clothing"], 100)];
+  eq(relatedProducts({ ...anchor, retailer: "oldnavy", departments: ["women"] }, dupe).length, 1, "the same product was offered twice");
+  // And an anchor matches on ANY bucket it belongs to, not just the first.
+  eq(relatedProducts({ title: "A", retailer: "x", departments: ["clothing"], price: 100 },
+    [it("viaSecondBucket", "y", ["women", "clothing"], 100)]).length, 1, "a department match was missed on a second bucket");
+});
+
+check("the rail is deterministic — no model, no score, no timer", () => {
+  const rail = relSrc.slice(relSrc.indexOf("const RELATED_RAIL_MIN = 8;"), relSrc.indexOf("/* ONE STORE PER CARD IN THE OPENING RUN."));
+  if (!rail) throw new Error("the related rail's code is gone");
+  const js = stripComments(rail);
+  /* "Deterministic, no AI" was the brief's first word on sourcing. A
+     fetch to a model, a random tiebreak or a similarity score would all
+     make the rail something a shopper could not check by hand. */
+  for (const banned of ["fetch(", "Math.random", "embedding", "similarity", "aria-chat"]) {
+    if (js.includes(banned)) throw new Error(`the rail is no longer deterministic: ${banned}`);
+  }
+  // Manual swipe only.
+  for (const banned of ["setInterval", "setTimeout", "requestAnimationFrame", "scrollBy(", "scrollTo(", "scrollIntoView(", "scrollLeft ="]) {
+    if (js.includes(banned)) throw new Error(`the rail moves on its own: ${banned}`);
+  }
+});
+
+check("the rail sits below the details and above the footer, on a rail that snaps", () => {
+  const view = relSrc.slice(relSrc.indexOf('<div id="productView"'), relSrc.indexOf('<!-- ============ SALES / DEALS VIEW'));
+  const buyAt = view.indexOf('id="addToCartBtn"');
+  const railAt = view.indexOf('id="relatedRail"');
+  if (railAt < 0) throw new Error("the product page has no related rail");
+  if (!(buyAt >= 0 && buyAt < railAt)) throw new Error("the rail is not below the product's details");
+  // Inside the product view, so it cannot outlive the page it belongs to.
+  if (railAt < 0 || railAt > view.length) throw new Error("the rail escaped the product view");
+
+  if (!/<h2 id="relatedRailTitle"[^>]*>También te puede interesar<\/h2>/.test(view)) {
+    throw new Error("the rail is not titled 'También te puede interesar'");
+  }
+  /* HIDDEN UNTIL IT HAS SOMETHING HONEST TO SHOW. A heading over an
+     empty row is worse than no heading. */
+  if (!/<section id="relatedRail"[^>]*\shidden\b/.test(view)) throw new Error("the rail starts visible and empty");
+  const row = view.slice(view.indexOf('id="relatedRailRow"'));
+  const cls = row.slice(0, row.indexOf(">"));
+  if (!/\bariaRail\b/.test(cls)) throw new Error("the row is not a snapping rail");
+  if (!/\boverflow-x-auto\b/.test(cls)) throw new Error("the row cannot be swiped");
+});
+
+check("the cards are the Ofertas component, and they route back through showProduct", () => {
+  /* REUSED, NOT REDRAWN. One component means the discount badge, the
+     struck price and the store mark cannot come to differ between the
+     home page's rail and this one. */
+  const render = relSrc.slice(relSrc.indexOf("async function renderRelatedRail("), relSrc.indexOf("/* ONE STORE PER CARD IN THE OPENING RUN."));
+  if (!/railCardHTML\(p, `openRelatedProduct\(\$\{i\}\)`/.test(render)) throw new Error("the rail draws its own card instead of the shared one");
+  const card = relSrc.slice(relSrc.indexOf("function railCardHTML("), relSrc.indexOf("function mobileDealCardHTML("));
+  if (!/w-\[172px\]/.test(card)) throw new Error("the card is no longer 172px");
+  if (!/cardPhotoHTML\(/.test(card)) throw new Error("the card lost the shared product photo");
+  if (!/retailerBadgeHTML\(/.test(card)) throw new Error("the card lost the store mark");
+  if (!/background:#F4C463[\s\S]{0,40}-\$\{pct\}%/.test(card)) throw new Error("the card lost the gold discount badge");
+  if (!/line-through/.test(card)) throw new Error("the card lost the struck original price");
+
+  /* TAPPING A CARD OPENS THAT PRODUCT'S PAGE, WHICH RENDERS ITS OWN
+     RAIL — true because the tap goes back through showProduct(), the
+     one door onto this page, and showProduct() is what draws the rail. */
+  const open = relSrc.slice(relSrc.indexOf("function openRelatedProduct("), relSrc.indexOf("async function renderRelatedRail("));
+  if (!/showProduct\(/.test(open)) throw new Error("a card does not open the product page");
+  const show = relSrc.slice(relSrc.indexOf("function showProduct("), relSrc.indexOf("function productBackHref") >= 0 ? relSrc.indexOf("function productBackHref") : relSrc.indexOf("function showProduct(") + 12000);
+  /* THE CALL HAS TO BE LIVE, not merely present. A text match sees
+     `if (0) renderRelatedRail(...)` and reports it as wired, so the
+     statement is required to START its line -- no guard, no `&&`, no
+     comment in front of it. */
+  if (!/\n  renderRelatedRail\(\{ retailer, title: name, price: totalUsd/.test(show)) {
+    throw new Error("showProduct no longer draws the rail unconditionally — a product opened any other way gets none");
+  }
 });
 
 
