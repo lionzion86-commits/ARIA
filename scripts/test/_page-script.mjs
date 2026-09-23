@@ -358,16 +358,23 @@ export function loadPageRelatedSlice() {
    reading the pattern. */
 export function loadPageSizeSlice() {
   const html = readFileSync(INDEX, "utf8");
+  /* TWO REGIONS, because the words and the rules that read them are
+     deliberately no longer neighbours: the single keyword list was
+     lifted above its first use (see the comment on it), and
+     needsSizeSelection lives with the retailer rules further down. */
+  const wordsFrom = html.indexOf("const SHOE_KEYWORDS = /sneaker");
+  const wordsTo = html.indexOf("const APPAREL_KEYWORDS = new RegExp(");
   const from = html.indexOf("const APPAREL_ONLY_RETAILERS = new Set(");
   const to = html.indexOf("let liveScrapeQuery = '';");
-  if (from < 0 || to < 0 || to <= from) {
+  if (wordsFrom < 0 || wordsTo < 0 || from < 0 || to < 0 || to <= from) {
     throw new Error("index.html size-selection markers moved — update scripts/test/_page-script.mjs");
   }
+  const words = html.slice(wordsFrom, html.indexOf("\n", wordsTo) + 1);
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) +
-      "\n;globalThis.__exports = { needsSizeSelection, sizeCategoryFor, APPAREL_ONLY_RETAILERS, SHOE_KEYWORDS, CLOTHING_KEYWORDS };",
+    words + html.slice(from, to) +
+      "\n;globalThis.__exports = { needsSizeSelection, sizeCategoryFor, APPAREL_ONLY_RETAILERS, SHOE_KEYWORDS, CLOTHING_KEYWORDS, APPAREL_KEYWORDS };",
     sandbox,
     { filename: "index.html#sizes" },
   );

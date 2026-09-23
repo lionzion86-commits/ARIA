@@ -5372,6 +5372,66 @@ check("the PDP is told the brand, and cannot inherit the last one", () => {
     }
   });
 
+  check("there is ONE list of size words, not three", () => {
+    /* THE CAUSE OF THE BUG, not just the symptom. The PDP's picker read
+       APPAREL_SIZE_KEYWORDS, needsSizeSelection() read APPAREL_KEYWORDS
+       and standardSizeOptions() read PRODUCT_SHOE_KEYWORDS -- three
+       overlapping copies hundreds of lines apart, so a word added to
+       one was missing from the others. "Blazer" was in none. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "");   // comments may still name the dead constants
+    for (const dead of ["APPAREL_SIZE_KEYWORDS", "PRODUCT_SHOE_KEYWORDS"]) {
+      if (code.includes(dead)) throw new Error(`${dead} is back — a second list of size words will drift from the first`);
+    }
+    // And the two places that used them read the shared list now.
+    if (!/needsSize \|\| \(name && APPAREL_KEYWORDS\.test\(name\)\)/.test(code)) {
+      throw new Error("the PDP's size picker no longer reads the shared list");
+    }
+    if (!/sizeCategory === 'shoe' : SHOE_KEYWORDS\.test\(title\)/.test(code)) {
+      throw new Error("standardSizeOptions no longer reads the shared shoe list");
+    }
+  });
+
+  check("Spanish names the same garments", () => {
+    // The catalogue is English today; the shopper is not, and a live
+    // scrape or a hand-added item can arrive either way.
+    for (const [t, cat] of [["Traje de lana", "clothing"], ["Suéter de cachemira", "clothing"],
+                            ["Sueter sin tilde", "clothing"], ["Chaleco acolchado", "clothing"],
+                            ["Blusa de seda", "clothing"], ["Pantalón de vestir", "clothing"],
+                            ["Zapatillas de cuero", "shoe"], ["Botas de lluvia", "shoe"]]) {
+      if (!sz.needsSizeSelection("ssense", t)) throw new Error(`no size picker for "${t}"`);
+      if (sz.sizeCategoryFor("ssense", t) !== cat) throw new Error(`"${t}" sized as the wrong category`);
+    }
+  });
+
+  check("a garment cannot be bought without a size, even if we failed to offer one", () => {
+    /* FAIL CLOSED. The old guard read `!sizeWrap.hidden && ...`: it only
+       refused when a picker was already on screen, so the one case that
+       matters -- a garment the word list did not recognise, therefore no
+       picker -- completed with no size at all. A S/ 2,946 blazer could
+       be bought sizeless. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("  addToCart({"));
+    if (!fn) throw new Error("the add-to-cart guard is gone");
+    if (/if \(!sizeWrap\.hidden && sizeSelect\.required && !sizeSelect\.value\)\{/.test(fn)) {
+      throw new Error("the guard is fail-open again — it only refuses when a picker is already showing");
+    }
+    if (!/const wantsSize = apparelNeedsSize\(p\.retailer, p\.name\);/.test(fn)) {
+      throw new Error("the buy path no longer asks whether the product is a garment");
+    }
+    if (!/if \(wantsSize && sizeWrap\.hidden\)\{/.test(fn)) {
+      throw new Error("a garment with no picker is no longer stopped");
+    }
+    if (!/revealStandardSizePicker\(p\.name, p\.sizeCategory\)/.test(fn)) {
+      throw new Error("the shopper is refused without being given the picker they were missing");
+    }
+    // The recovery picker must carry the same honest note as the page's.
+    const rev = src.slice(src.indexOf("function revealStandardSizePicker(title, sizeCategory){"), src.indexOf("function addToCartFromProduct(){"));
+    if (!/No pudimos confirmar las tallas exactas/.test(rev)) {
+      throw new Error("the recovered picker drops the disclaimer that these are reference sizes");
+    }
+  });
+
   check("the two apparel-only stores still match by retailer, not by wording", () => {
     // Their titles often carry no garment word at all ("Jordan Retro 8").
     for (const r of ["oldnavy", "footlocker"]) {

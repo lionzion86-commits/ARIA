@@ -6472,8 +6472,28 @@ async function showResults(query, opts = {}){
 // available sizes or (standardSizeOptions) a standard industry size scale
 // chosen by category/gender/kids detection from the title — never a
 // fabricated per-item list or free text.
-const APPAREL_SIZE_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
-const PRODUCT_SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+/* ============================================================
+   ONE LIST OF THE WORDS THAT MEAN "THIS HAS A SIZE".
+
+   THERE USED TO BE THREE, and that is what the bug was. The PDP's size
+   picker read APPAREL_SIZE_KEYWORDS, needsSizeSelection() read
+   APPAREL_KEYWORDS, and standardSizeOptions() read
+   PRODUCT_SHOE_KEYWORDS -- three overlapping copies, defined hundreds
+   of lines apart, and a word added to one silently missing from the
+   others. "Blazer" was in none of them.
+
+   They are defined HERE, above their first use, because two of the old
+   copies were declared before the list they should have been sharing
+   and could not have referenced it without a temporal dead zone. That
+   accident of ordering is most of why they were ever separate.
+
+   SPANISH TOO. A catalogue is English today, but the shopper is not,
+   and a title that arrives as "traje" or "blusa" is the same garment.
+   ============================================================ */
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b/i;
+const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b/i;
+const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
+
 const PRODUCT_KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
 const PRODUCT_MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
 const PRODUCT_WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
@@ -6485,7 +6505,7 @@ const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','
 const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
 
 function standardSizeOptions(title, sizeCategory){
-  const isShoe = sizeCategory ? sizeCategory === 'shoe' : PRODUCT_SHOE_KEYWORDS.test(title);
+  const isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title);
   const isKids = PRODUCT_KIDS_KEYWORDS.test(title);
   if (isShoe && isKids) return KIDS_SHOE_SIZES;
   if (isShoe && PRODUCT_MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
@@ -6731,7 +6751,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
       + rawSizes.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
     sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
-  } else if (needsSize || (name && APPAREL_SIZE_KEYWORDS.test(name))){
+  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name))){
     sizeWrap.hidden = false;
     sizeSelect.required = true;
     const options = standardSizeOptions(name || '', sizeCategory);
@@ -6772,12 +6792,58 @@ function goBack(){
 // a concrete size already attached, and checkout.html reads the cart
 // itself instead of URL params. One path for every purchase, single item
 // or many.
+/* Is this thing sold in sizes? One question, one list -- asked here at
+   the moment of purchase as well as when the page is drawn, so the two
+   cannot disagree about the same product. */
+function apparelNeedsSize(retailer, title){
+  return needsSizeSelection(retailer, title) || APPAREL_KEYWORDS.test(String(title || ''));
+}
+
+/* The same standard picker showProduct() builds, reachable from the buy
+   path so a garment it failed to recognise can still be given a size
+   rather than refused outright. Same honest note: these are reference
+   sizes, not the store's own. */
+function revealStandardSizePicker(title, sizeCategory){
+  const wrap = document.getElementById('productSizeWrap');
+  const select = document.getElementById('productSizeSelect');
+  const note = document.getElementById('productSizeNote');
+  if (!wrap || !select) return;
+  wrap.hidden = false;
+  select.required = true;
+  const options = standardSizeOptions(title || '', sizeCategory);
+  select.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+    + options.map(s => `<option value="${s}">${s}</option>`).join('');
+  if (note) note.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
+  wrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
+
 function addToCartFromProduct(){
   if (!pendingProduct) return;
   const p = pendingProduct;
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
-  if (!sizeWrap.hidden && sizeSelect.required && !sizeSelect.value){
+
+  /* FAIL CLOSED ON A GARMENT WITH NO SIZE.
+
+     This used to read `!sizeWrap.hidden && ...` -- it only refused when
+     a picker was ALREADY on screen. So the one case that matters went
+     straight through: a garment the word list did not recognise got no
+     picker, and the order completed with no size on it at all. Measured
+     before the list was fixed, that was 906 SSENSE garments, including
+     a S/ 2,946 blazer.
+
+     The question asked is now "is this a garment?", not "is there a
+     picker?" -- so a word we still do not know cannot silently sell a
+     sizeless item. And rather than only refusing, the picker is BUILT
+     on the spot: the shopper gets the thing they were missing instead
+     of a dead end. */
+  const wantsSize = apparelNeedsSize(p.retailer, p.name);
+  if (wantsSize && sizeWrap.hidden){
+    revealStandardSizePicker(p.name, p.sizeCategory);
+    showToast('Elige una talla para este producto.');
+    return;
+  }
+  if ((wantsSize || (!sizeWrap.hidden && sizeSelect.required)) && !sizeSelect.value){
     showToast('Selecciona una talla antes de agregar al carrito.');
     return;
   }
@@ -7134,9 +7200,6 @@ const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
    would have to pick one). A missing size picker is a bad checkout; a
    size picker on a toaster is a worse one.
    ============================================================ */
-const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b/i;
-const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b/i;
-const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
 function needsSizeSelection(retailer, title){
   return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
 }
