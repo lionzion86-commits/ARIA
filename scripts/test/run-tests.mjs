@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageCatalogSearchSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageCatalogSearchSlice, loadPageSizeSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5227,16 +5227,88 @@ group("Search answers from the catalogue first");
        Nikes, so "nike" carried nearly all of the intent. Tokens are
        weighted by how many items they match. */
     const pool = [
-      ...Array.from({ length: 60 }, (_, i) => P(`Running Sneakers model ${i}`, "")),
-      P("Nike Air Force 1 '07 - Men's", ""),
+      ...Array.from({ length: 60 }, (_, i) => P(`Everyday Backpack model ${i}`, "")),
+      P("Nike Brasilia Backpack", ""),
     ];
-    const { items } = cs.rankCatalogMatches(pool, "sneakers nike", {});
+    /* Deliberately NOT a category word: "sneakers" now carries a
+       footwear intent, and this check is about rarity weighting, not
+       about category filtering. */
+    const { items } = cs.rankCatalogMatches(pool, "backpack nike", {});
     if (!/Nike/.test(items[0].title)) throw new Error(`the common word still wins: "${items[0].title}"`);
-    const w = cs.catalogTokenWeights(pool, ["sneakers", "nike"]);
+    const w = cs.catalogTokenWeights(pool, ["backpack", "nike"]);
     if (!(w[1] > w[0])) throw new Error("the rarer token is not weighted higher");
   });
 
-  check("an empty query matches nothing at all", () => {
+check("a category query is answered by category, not by wording", () => {
+    /* TRACED AGAINST PRODUCTION. "María, búscame zapatos para niño"
+       ranked women's jeans first (the leaked "María" prefix-matched
+       "Mariah", and rarity weighting made that junk token the most
+       valuable thing in the query), then a dress shoe, then vitamin
+       gummies and T-shirts that matched nothing but "boys".
+
+       Worse, the real answer could not appear at all: "zapatos"
+       translates to "shoes" and no Foot Locker title contains that
+       word -- they read "Jordan Retro 4 - Boys' Grade School". */
+    const shoe = (title, retailer) => ({ title, retailer: retailer || "footlocker", price: 90, departments: ["kids"] });
+    const notShoe = (title) => ({ title, retailer: "target", price: 10, departments: ["pharmacy"] });
+    // categoryOf is injected here; in the page it is catalogItemCategory,
+    // which reads sizeCategoryFor -- the size picker's own rule.
+    const categoryOf = (it) => (it.retailer === "footlocker" || /shoe|sneaker/i.test(it.title) ? "footwear" : null);
+
+    const pool = [
+      notShoe("Juniors' Mariah High-Rise Baggy Wide-Leg Jeans"),
+      notShoe("One A Day Teen Multivitamin Gummies for Boys"),
+      notShoe("Short-Sleeve Graphic T-Shirt for Boys"),
+      shoe("Jordan Retro 4 - Boys' Grade School"),
+      shoe("New Balance 9060 - Boys' Grade School"),
+    ];
+    const res = cs.rankCatalogMatches(pool, "shoes boys", { categoryOf });
+    // 1. Cross-category noise is not a candidate at all.
+    for (const it of res.items) {
+      if (/Mariah|Gummies|T-Shirt/.test(it.title)) throw new Error(`cross-category noise came back: "${it.title}"`);
+    }
+    // 2. A title that never says "shoes" still answers a shoe query.
+    if (!res.items.some((i) => /Jordan Retro 4/.test(i.title))) {
+      throw new Error("Foot Locker's inventory is still invisible to a shoe query");
+    }
+    // ...and it counts as a FULL match, not a partial one.
+    if (res.exact < 2) throw new Error(`the category words were not credited to the item (exact ${res.exact})`);
+  });
+
+check("an item's own category is read three ways, and each one matters", () => {
+    /* The ranking checks above inject categoryOf, so this exercises the
+       REAL catalogItemCategory. In this sandbox sizeCategoryFor does
+       not exist -- that is deliberate, and it isolates the two rules
+       that do not need it. */
+    if (cs.catalogItemCategory({ title: "Jordan Retro 4", retailer: "footlocker", departments: ["shoes"] }) !== "footwear") {
+      throw new Error("a footwear DEPARTMENT no longer settles it");
+    }
+    if (cs.catalogItemCategory({ title: "Running Sneakers, Wide Width", retailer: "walmart", departments: ["clothing"] }) !== "footwear") {
+      throw new Error("a title that names footwear no longer settles it");
+    }
+    if (cs.catalogItemCategory({ title: "Graphic T-Shirt for Boys", retailer: "oldnavy", departments: ["kids"] }) !== null) {
+      throw new Error("a T-shirt reads as footwear");
+    }
+    /* And the boot caveat holds on the item side too, or every pair of
+       bootcut jeans becomes a candidate for a shoe query. */
+    if (cs.catalogItemCategory({ title: "725 High-Waist Stretch Bootcut Jeans", retailer: "macys", departments: ["women"] }) !== null) {
+      throw new Error("bootcut jeans read as footwear");
+    }
+  });
+
+    check("a query with no category intent is left alone", () => {
+    /* The filter must not fire on everything -- "vitamin d3" has no
+       category, so nothing is excluded and the old behaviour stands. */
+    const categoryOf = () => "footwear";
+    const pool = [P("Nature Made Vitamin D3 Softgels", ""), P("Something Else", "")];
+    const res = cs.rankCatalogMatches(pool, "vitamin d3", { categoryOf });
+    if (!res.items.length) throw new Error("a query with no category intent was filtered anyway");
+    if (cs.queryCategoryIntent("vitamin d3")) throw new Error("'vitamin d3' reads as a category query");
+    if (cs.queryCategoryIntent("zapatos") ) throw new Error("the intent is read from the Spanish, not the translated query");
+    if (cs.queryCategoryIntent("shoes") !== "footwear") throw new Error("'shoes' no longer names a category");
+  });
+
+    check("an empty query matches nothing at all", () => {
     // Otherwise a stray submit would render the whole catalogue as "results".
     for (const q of ["", "   ", "!!!"]) {
       const res = cs.rankCatalogMatches([P("Cargo Pants")], q, {});
@@ -5283,10 +5355,26 @@ check("her own name is not part of the order", () => {
   if (!/stripAriaVocative\(String\(text \|\| ''\)\)/.test(build)) throw new Error("the retail query still carries the name");
   const ack = src.slice(src.indexOf("function chatAckEs(text){"), src.indexOf("const short = clampWords"));
   if (!/stripAriaVocative\(text\)/.test(ack)) throw new Error("the status line still echoes the name back");
-  /* "AREA" IS ALSO A PRODUCT WORD. "area rug" must survive, so the
-     dictated spelling is only stripped with punctuation after it. */
-  if (!/ARIA_HEARD_VOCATIVE_RE\s*=\s*\/\^\\s\*area\\b\\s\*\[/.test(src)) {
-    throw new Error("'area' is being stripped without requiring punctuation — 'area rug' loses its first word");
+  /* THE MISHEARD NAMES ARE ALSO REAL WORDS. "area rug" is a product and
+     "Maria Tash" is a jewellery house, so these are only stripped when
+     what follows settles it -- punctuation, or a request verb. Asserted
+     by RUNNING the function: this used to pin the regex's source text,
+     which broke the moment the pattern was rewritten to cover "María"
+     even though every behaviour it cared about still held. */
+  const strip = new Function(src.slice(src.indexOf("const ARIA_GREETED_VOCATIVE_RE"), src.indexOf("function buildChatSearchQuery"))
+    + ";return stripAriaVocative;")();
+  for (const [input, want] of [
+    ["Aria, búscame unos tenis", "búscame unos tenis"],
+    ["hey Aria zapatos", "zapatos"],
+    ["Area, busca zapatillas", "busca zapatillas"],
+    ["María, búscame zapatos para niño", "búscame zapatos para niño"],
+    ["Maria busca zapatos", "busca zapatos"],
+    ["area rug", "area rug"],
+    ["Maria Tash earrings", "Maria Tash earrings"],
+    ["Aria", "Aria"],
+  ]) {
+    const got = strip(input);
+    if (got !== want) throw new Error(`stripAriaVocative(${JSON.stringify(input)}) = ${JSON.stringify(got)}, wanted ${JSON.stringify(want)}`);
   }
 });
 
@@ -5313,6 +5401,28 @@ check("the live offer is refined before it is spent", () => {
   }
   // Yellow means a discount here, and this is not one.
   if (/var\(--yellow/.test(offer)) throw new Error("the offer is wearing the discount colour");
+});
+
+check("a trouser cut is not a shoe", () => {
+  /* \bboot MATCHED "Bootcut". Bootcut is a trouser leg, and the
+     catalogue is full of them -- measured, 23 of the 148 items the
+     catalogue classified as footwear were trousers, every one of them
+     offered SHOE sizes by the PDP's picker. */
+  const sz = loadPageSizeSlice();
+  /* "Bootcut Corduroy" carries NO garment noun, so the precedence rule
+     cannot rescue it -- only the closing \\b and the lookahead can. */
+  if (sz.sizeCategoryFor("macys", "Bootcut Corduroy") !== "clothing") throw new Error("'Bootcut Corduroy' is sized as footwear");
+  if (sz.sizeCategoryFor("macys", "Boot-Cut Corduroy") !== "clothing") throw new Error("'Boot-Cut Corduroy' is sized as footwear");
+  for (const t of ["Regular Fit Boot Cut Jeans", "Women's Mid-Rise Bootcut Pants",
+                   "725 High-Waist Classic Stretch Bootcut Jeans", "Women's 725 High-Rise Kick Boot Jeans",
+                   "Green Boot-Cut Track Pants", "Premium Women's Wedgie Boot High-Rise Jeans"]) {
+    if (sz.sizeCategoryFor("macys", t) !== "clothing") throw new Error(`"${t}" is sized as footwear`);
+  }
+  /* And real boots still are shoes -- including the singular, which is
+     how SSENSE writes them, and which carries no garment word. */
+  for (const t of ["Ankle Boots", "Chelsea Boot", "Booties", "Dress Shoes", "Leather Sneakers"]) {
+    if (sz.sizeCategoryFor("macys", t) !== "shoe") throw new Error(`"${t}" stopped being footwear`);
+  }
 });
 
 check("searching never starts an Apify run on its own", () => {

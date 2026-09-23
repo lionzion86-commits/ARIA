@@ -1913,8 +1913,19 @@ await check("Aria answers from the catalogue with Apify dead, and offers the liv
   }));
   eq(scrapes, 0, `answering a product question started ${scrapes} Apify runs`);
   eq(r.cards > 0, true, "Aria showed no products even though the catalogue has Nike trainers");
-  eq(r.offered, true, "the chat never offers the live search");
   eq(r.echoesName, false, "the status line reads her own name back as part of the request");
+  /* THE OFFER IS NOT ASSERTED HERE ANY MORE, and that is the category
+     work showing. "tenis Nike" used to find nothing that matched every
+     word, so the thin-results gate always opened; now it finds real
+     footwear, so withholding the offer is correct. The offer is proved
+     below, on a question the catalogue genuinely cannot answer. */
+
+  /* A question the catalogue cannot answer: THIS is when the offer is
+     owed, and it is the only time it should appear. */
+  await page.evaluate(() => runAssistantBrain("busco un didgeridoo de bambú"));
+  await page.waitForFunction(() => document.querySelector("[data-assistant-live]"), null, { timeout: 20000 });
+  eq(await page.evaluate(() => !!document.querySelector("[data-assistant-live]")), true,
+     "the chat never offers the live search, even with nothing to show");
 
   // Tapping it is what spends the money, and the cards stay whatever happens.
   const before = r.cards;
@@ -1923,6 +1934,43 @@ await check("Aria answers from the catalogue with Apify dead, and offers the liv
   eq(scrapes > 0, true, "tapping the offer did not start a live search");
   eq(await page.evaluate(() => document.querySelectorAll("#assistantMessages img").length) >= before, true,
      "the failed live search took the catalogue cards with it");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a shoe query reaches Foot Locker, whose titles never say shoes", async () => {
+  /* THE RULE THAT ONLY THE REAL PAGE CAN PROVE. In the pure slice
+     sizeCategoryFor does not exist, so the Foot Locker branch of
+     catalogItemCategory is unexercised there. Here it is loaded, and
+     the catalogues are the committed ones.
+
+     Before: "zapatos" -> "shoes" matched 30 items, every one of them
+     Walmart, because no Foot Locker title contains the word -- they
+     read "Jordan Retro 4 - Boys' Grade School". */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  const r = await page.evaluate(async () => {
+    const pool = await relatedPool();
+    const shoes = rankCatalogMatches(pool, "shoes", { limit: 200 });
+    const kids = rankCatalogMatches(pool, "shoes boys", { limit: 40 });
+    const stores = new Set(shoes.items.map((i) => i.retailer));
+    return {
+      total: shoes.exact,
+      hasFootLocker: stores.has("footlocker"),
+      // Nothing outside the category may appear at all.
+      strays: kids.items.filter((i) => catalogItemCategory(i) !== "footwear").map((i) => i.title).slice(0, 3),
+      kidsTop: (kids.items[0] || {}).title || "",
+      // The trouser cuts must not be in here.
+      bootcuts: shoes.items.filter((i) => /boot[-\s]?(cut|leg)/i.test(i.title)).map((i) => i.title).slice(0, 3),
+    };
+  });
+  eq(r.hasFootLocker, true, "a shoe query still cannot reach Foot Locker's inventory");
+  eq(r.total > 100, true, `a shoe query matched only ${r.total} items`);
+  eq(r.strays.length, 0, `cross-category noise came back: ${JSON.stringify(r.strays)}`);
+  eq(r.bootcuts.length, 0, `bootcut trousers are being returned as shoes: ${JSON.stringify(r.bootcuts)}`);
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });

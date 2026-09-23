@@ -4010,18 +4010,100 @@ function catalogTokenHits(words, toks){
    `weights` is optional everywhere so a single item can still be scored
    on its own, with every token equal, which is what the unit tests
    pin. */
-function catalogTokenWeights(pool, toks){
+/* ============================================================
+   WHAT THE SHOPPER ASKED FOR, NOT JUST WHICH WORDS THEY USED.
+
+   TRACED AGAINST PRODUCTION. "María, búscame zapatos para niño" ranked
+   a pair of women's jeans first:
+
+     0.51  [macys/women]  Juniors' Mariah High-Rise Baggy Wide-Leg …
+     0.49  [walmart]      Josmo Boys Wingtip Oxford Lace Dress Shoes
+     0.33  [target]       One A Day Teen Multivitamin Gummies for Boys
+     0.33  [oldnavy]      Short-Sleeve Graphic T-Shirt for Boys
+
+   Three faults stacked. The leaked "María" prefix-matched "Mariah";
+   rarity weighting then made that one junk token the most valuable
+   thing in the query; and everything else on the list matched nothing
+   but the word "boys" -- gummies and T-shirts answering a question
+   about shoes.
+
+   AND THE REAL SHOES WERE INVISIBLE. "zapatos" translates to "shoes",
+   and not one Foot Locker title contains that word: they read "Jordan
+   Retro 4 - Men's". Searching titles alone, the one store that sells
+   almost nothing but footwear could never answer a footwear query.
+
+   So a query that names a category is answered by CATEGORY, not by
+   coincidence of wording:
+
+     1. items outside the category are not candidates at all -- that is
+        the "never cross-category noise" rule, and it is what drops the
+        gummies and the jeans;
+     2. an item INSIDE it is credited with the category's words even
+        when its title never says them, which is what finally lets
+        "shoes" find a Jordan.
+
+   The category of an item is not a new list. It is sizeCategoryFor(),
+   the same rule the size picker uses -- which already knows Foot
+   Locker sells shoes whatever the title says (SHOE_DEFAULT_RETAILERS).
+   Read through a typeof guard so the pure slice, which does not
+   include it, degrades to the departments and stays testable.
+   ============================================================ */
+const CATALOG_CATEGORY_INTENT = [
+  /* Same boot caveat as SHOE_KEYWORDS: "bootcut" and "boot-leg" are
+     trouser cuts, so neither a query nor a title saying them is about
+     footwear. */
+  { key: 'footwear', re: /\b(?:shoes?|sneakers?|boots?(?![-\s]*(?:cut|leg)\b)|sandals?|slippers?|loafers?|heels?|mules?|espadrilles?|clogs?|footwear)\b/i },
+];
+/* The words an item of this category counts as carrying, so a title
+   that never says "shoes" can still answer "shoes". */
+const CATEGORY_IMPLIED_WORDS = { footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear'] };
+
+function queryCategoryIntent(query){
+  const q = String(query || '');
+  for (const c of CATALOG_CATEGORY_INTENT) if (c.re.test(q)) return c.key;
+  return null;
+}
+
+function catalogItemCategory(item){
+  const title = (item && item.title) || '';
+  const depts = (item && item.departments) || [];
+  // A catalogue that names a footwear department settles it outright.
+  if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
+  /* The title saying so settles it too, by the SAME words a query uses
+     to mean footwear -- so "Running Sneakers" is footwear whether it is
+     being asked for or being offered. */
+  if (queryCategoryIntent(title) === 'footwear') return 'footwear';
+  /* And last, the site's own rule, which is the only one that knows
+     Foot Locker sells shoes when the title never says it. Behind a
+     typeof guard because the pure slice does not include it. */
+  if (typeof sizeCategoryFor === 'function'
+      && sizeCategoryFor(item && item.retailer, title) === 'shoe') return 'footwear';
+  return null;
+}
+
+/* The item's own words, plus the ones its category implies. Used by the
+   weighting pass AND the scoring pass, so the two cannot disagree about
+   what an item says. */
+function catalogWordsWithCategory(item, intent, categoryOf){
+  const words = catalogWordsOf(item);
+  if (intent && categoryOf(item) === intent){
+    for (const w of CATEGORY_IMPLIED_WORDS[intent] || []) words.add(w);
+  }
+  return words;
+}
+
+function catalogTokenWeights(pool, toks, intent, categoryOf){
   const df = toks.map(() => 0);
   for (const item of pool || []){
     if (!item || !item.title) continue;
-    const words = catalogWordsOf(item);
+    const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
     toks.forEach((t, i) => { if (catalogTokenHits(words, [t])) df[i]++; });
   }
   return df.map(n => 1 / Math.log2(2 + n));
 }
 
-function scoreCatalogItem(item, toks, weights){
-  const words = catalogWordsOf(item);
+function scoreCatalogItem(item, toks, weights, wordsIn){
+  const words = wordsIn || catalogWordsOf(item);
   const hits = catalogTokenHits(words, toks);
   if (!hits) return 0;
   let s;
@@ -4042,16 +4124,33 @@ function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   const toks = searchTokens(query);
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
-  const weights = catalogTokenWeights(pool, toks);
+
+  const intent = queryCategoryIntent(query);
+  const rawCategoryOf = (opts && opts.categoryOf)
+    || (typeof catalogItemCategory === 'function' ? catalogItemCategory : () => null);
+  /* Memoised: the weighting pass and the scoring pass both ask, over
+     every item in the pool, and the answer cannot change between them. */
+  const catCache = new Map();
+  const categoryOf = (item) => {
+    if (catCache.has(item)) return catCache.get(item);
+    const c = rawCategoryOf(item);
+    catCache.set(item, c);
+    return c;
+  };
+
+  const candidates = intent
+    ? (pool || []).filter(it => it && it.title && categoryOf(it) === intent)
+    : (pool || []);
+  const weights = catalogTokenWeights(candidates, toks, intent, categoryOf);
   let exact = 0, partial = 0;
   const scored = [];
-  for (const item of pool || []){
+  for (const item of candidates){
     if (!item || !item.title) continue;
-    const words = catalogWordsOf(item);
+    const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
     const hits = catalogTokenHits(words, toks);
     if (!hits) continue;
     if (hits === toks.length) exact++; else partial++;
-    scored.push({ item, score: scoreCatalogItem(item, toks, weights) });
+    scored.push({ item, score: scoreCatalogItem(item, toks, weights, words) });
   }
   scored.sort((a, b) => b.score - a.score);
   /* THE SCORE RIDES WITH THE ITEM. Ranking here and then handing the
@@ -7522,7 +7621,18 @@ function isBrowseOnlyRetailer(key){
 // match to catch. Target/Walmart sell everything, so those rely on the
 // title keyword match instead (see APPAREL_KEYWORDS below).
 const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
-const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+/* \bboot USED TO MATCH "Bootcut". Bootcut is a trouser leg, not a
+   shoe, and the catalogue is full of them -- "Regular Fit Boot Cut
+   Jeans", "Women's Mid-Rise Bootcut Pants", "725 High-Waist Stretch
+   Bootcut Jeans". Every one was classified as footwear, which means
+   the size picker offered them SHOE sizes. 23 of the 148 items the
+   catalogue calls footwear were trousers.
+
+   The closing \b alone fixes the one-word spelling ("bootcut" has no
+   boundary after "boot"); the lookahead is for the two-word one, where
+   "Boot" really is a standalone word. Booties are footwear and keep
+   their own alternative. */
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b/i;
 const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b/i;
 const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
 function needsSizeSelection(retailer, title){
@@ -7537,8 +7647,16 @@ function needsSizeSelection(retailer, title){
 const SHOE_DEFAULT_RETAILERS = new Set(['footlocker']);
 function sizeCategoryFor(retailer, title){
   const t = title || '';
-  if (SHOE_KEYWORDS.test(t)) return 'shoe';
+  /* A GARMENT WORD BEATS A LONE "BOOT", because boot is a trouser cut
+     as often as it is a shoe: "Wedgie Boot High-Rise Jeans", "Kick Boot
+     Jeans", "Sutton Boot-Leg Trousers". Checking shoes first classified
+     all of those as footwear and offered them shoe sizes. "Dress Shoes"
+     is unaffected -- its shoe signal is the noun "shoes", not "boot" --
+     and so is "Chelsea Boot", which carries no garment word at all. */
+  const bootish = /\bboot/i.test(t);
+  if (SHOE_KEYWORDS.test(t) && !(bootish && CLOTHING_KEYWORDS.test(t))) return 'shoe';
   if (CLOTHING_KEYWORDS.test(t)) return 'clothing';
+  if (SHOE_KEYWORDS.test(t)) return 'shoe';
   if (SHOE_DEFAULT_RETAILERS.has(retailer)) return 'shoe';
   return 'clothing';
 }
@@ -14114,9 +14232,20 @@ function recipientLabelEs(recipient){
    which leaves "area rug" alone and still catches the dictated case,
    because dictation puts a comma there. Never strips to nothing: if the
    name was the entire message it stays, and Aria answers a greeting. */
-const ARIA_GREETED_VOCATIVE_RE = /^\s*(?:hey|hi|hola|oye|ok|okay|oiga|escucha)\s*,?\s*(?:aria|arya|area)\b[\s,:!¡.\-]*/i;
+const ARIA_GREETED_VOCATIVE_RE = /^\s*(?:hey|hi|hola|oye|ok|okay|oiga|escucha)\s*,?\s*(?:aria|arya|area|mar[ií]a)\b[\s,:!¡.\-]*/i;
 const ARIA_NAME_VOCATIVE_RE    = /^\s*(?:aria|arya)\b[\s,:!¡.\-]*/i;
-const ARIA_HEARD_VOCATIVE_RE   = /^\s*area\b\s*[,:!¡.\-]+\s*/i;
+/* THE NAMES DICTATION HEARS INSTEAD OF "Aria": "Area", and now
+   "María" -- traced from production, where "María, búscame zapatos para
+   niño" reached the ranker with `maria` still in it, prefix-matched
+   "Mariah" jeans, and the rarity weighting then pushed that one junk
+   token to rank #1 on a shoe query.
+
+   BOTH ARE ALSO REAL WORDS, and "Maria Tash" is a jewellery house
+   somebody will type. So these two are only stripped when what follows
+   settles it: punctuation (which is what dictation inserts), or a
+   request verb. "María, búscame…" and "Maria busca…" go; "Maria Tash
+   earrings" stays whole. */
+const ARIA_HEARD_VOCATIVE_RE   = /^\s*(?:area|mar[ií]a)\b(?:\s*[,:!¡.\-]+\s*|\s+(?=(?:b[uú]sca|busca|buscar|enc[uú]entra|encontrar|nec[eé]sito|quiero|quisiera|mu[eé]strame|ens[eé][ñn]ame|dame|ay[uú]dame|tienes?|tienen|hay)\b))/i;
 
 function stripAriaVocative(raw){
   const text = String(raw || '');

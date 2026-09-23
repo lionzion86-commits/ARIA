@@ -370,9 +370,30 @@ export function loadPageCatalogSearchSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     html.slice(from, to) +
-      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT };",
+      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT };",
     sandbox,
     { filename: "index.html#catalog-search" },
+  );
+  return sandbox.__exports;
+}
+
+/* The size-selection rule, on its own: a pair of regexes and two small
+   functions, and the question they answer -- "is this a shoe?" -- is
+   settled by running them over titles, not by reading the pattern. */
+export function loadPageSizeSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const APPAREL_ONLY_RETAILERS = new Set(");
+  const to = html.indexOf("let liveScrapeQuery = '';");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html size-selection markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { needsSizeSelection, sizeCategoryFor, SHOE_KEYWORDS, CLOTHING_KEYWORDS };",
+    sandbox,
+    { filename: "index.html#sizes" },
   );
   return sandbox.__exports;
 }
