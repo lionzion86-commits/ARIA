@@ -5490,7 +5490,14 @@ check("'Explora más' is outlined, and the card's CTA is the same quiet shape", 
   if (!/color:var\(--navy\)/.test(rule)) throw new Error("the outlined button is not navy");
 
   // Under the section, not beside its heading.
-  const cats = ffSrc.slice(ffSrc.indexOf('<div id="cats"'), ffSrc.indexOf("<!-- WHY SHOP WITH US -->"));
+  /* SLICED FORWARD. This ended at "<!-- WHY SHOP WITH US -->", which
+     now sits ABOVE the tiles rather than below them -- the explainer
+     was moved so the category list stops interrupting the brand story.
+     A slice that runs backwards returns "" and then passes every regex
+     put to it while measuring nothing. End on what actually follows. */
+  const catsAt = ffSrc.indexOf('<div id="cats"');
+  const cats = ffSrc.slice(catsAt, ffSrc.indexOf("GARANTÍA DE PRECIO HONESTO", catsAt));
+  if (!cats) throw new Error("the Categorías section's end marker moved again");
   /* MATCHED AS A WHOLE ATTRIBUTE. `indexOf("data-explora")` also matches
      `data-exploraX`, so renaming the hook away still read as present --
      a substring is not an attribute. */
@@ -5526,6 +5533,108 @@ check("the image-quality gate survived the restyle", () => {
 
 
 /* ------------------------------------------------------------------ */
+group("The home page tells the story once");
+
+check("the explainer is photography and type, not clip-art boxes", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('<div id="whyUs"'), src.indexOf("<!-- HOW IT WORKS -->"));
+  if (!why) throw new Error("the explainer section is gone");
+
+  /* THE THUMBNAILS ARE GONE, not swapped. Five 48px stock cartoons sat
+     above five headings, directly over the photographic category tiles,
+     and read like a slide deck next to them. */
+  if (/src="data:image/.test(why)) throw new Error("the clip-art thumbnails are back in the explainer");
+  if (/ariaCard--light/.test(why)) throw new Error("the promises are white boxes again");
+  if (!/assets\/portal-girl-bg\.jpg/.test(why)) throw new Error("the brand photograph is not the background");
+  if (!/class="ariaWhyScrim"/.test(why)) throw new Error("there is no scrim over the photograph");
+
+  /* IT MUST SURVIVE THE PHOTO NOT LOADING. The image is a separate
+     asset; a section whose legibility depends on a file that may 404 is
+     one that eventually renders white-on-white. */
+  if (!/onerror="this\.remove\(\)"/.test(why)) throw new Error("a missing photo would leave a broken image over the text");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const sec = css.slice(css.indexOf("#whyUs{"), css.indexOf(".ariaWhyPhoto{"));
+  if (!/background:var\(--navy\)/.test(sec)) throw new Error("the navy is not on the section — with no photo there is nothing behind the text");
+
+  /* THE SCRIM'S TOP STOP IS ITS THINNEST POINT, and the number was
+     computed, not chosen: at 0.62 the kicker measured 3.12:1 over a
+     pure-white photo pixel. Anything lighter than 0.72 fails again. */
+  const stop = Number((css.match(/\.ariaWhyScrim[\s\S]*?rgba\(4,12,28,([0-9.]+)\)\s*0%/) || [])[1]);
+  if (!(stop >= 0.72)) throw new Error(`the scrim's top stop is ${stop} — below 0.72 the kicker drops under 4.5:1`);
+
+  // The copy is carried over untouched; this was a redesign, not a rewrite.
+  for (const promise of ["Productos que no existen en Perú", "Comparamos varias tiendas a la vez",
+                         "Acceso a las grandes ofertas de EE. UU.", "Precio final, sin sorpresas",
+                         "Seguimiento de tu pedido"]) {
+    if (!why.includes(promise)) throw new Error(`the redesign lost a promise: "${promise}"`);
+  }
+  if ((why.match(/ariaWhyPromise/g) || []).length < 5) throw new Error("a promise was dropped in the redesign");
+  // ...and the card removed earlier stays removed.
+  if (why.includes("Compara con el precio en Perú")) throw new Error("the Peru promise came back with the redesign");
+});
+
+check("the page promises nothing we cannot do", () => {
+  /* "Cuando el producto también existe en tiendas peruanas, te
+     mostramos ambos precios…" was a card in Por qué Aria, and the
+     function behind it does not exist: there is no Peru price source
+     and no matching. It is a parked idea, and a parked idea on the
+     home page is a claim.
+
+     Asserted on the whole page, not just that section, so it cannot
+     come back somewhere else. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  for (const claim of ["Compara con el precio en Perú", "tiendas peruanas, te mostramos ambos precios"]) {
+    if (src.includes(claim)) throw new Error(`the Peru price-comparison promise is back: "${claim}"`);
+  }
+  /* The rest of Por qué Aria is untouched -- this was a removal of one
+     card, not a trim of the section. */
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  for (const kept of ["Acceso a las grandes ofertas de EE. UU.", "Precio final, sin sorpresas",
+                      "marcas y modelos que nunca llegan a las tiendas peruanas"]) {
+    if (!why.includes(kept)) throw new Error(`the removal took more than the one card: "${kept}" is gone`);
+  }
+});
+
+check("the explainer follows the logo, and the category tiles follow the explainer", () => {
+  /* THE PHONE USED TO READ: Ofertas -> Categorías (the compact
+     carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
+     (the long tiles). The visitor met the categories, scrolled past
+     them to reach the brand and how any of this works, and met the
+     categories AGAIN -- the same list twice with the story wedged
+     between its two halves.
+
+     Asserted on SOURCE ORDER, not on measured positions: the browser
+     harness blocks the CDN, so nothing there has a reliable y. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const home = src.slice(src.indexOf("<!-- ============ HOME VIEW ============ -->"), src.indexOf("<!-- ============ RESULTS VIEW ============ -->"));
+  if (!home) throw new Error("the home view is gone");
+
+  const at = (needle, what) => {
+    const i = home.indexOf(needle);
+    if (i < 0) throw new Error(`${what} is gone from the home page`);
+    return i;
+  };
+  const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
+  const cats   = at('id="mobileCatsRow"', "the Categorías rail");
+  const stores = at('id="mobileStoresRow"', "the Tiendas rail");
+  const logo   = at('src="aria-full-logo.png"', "the ARIA logo");
+  const why    = at('id="whyUs"', "the Por qué Aria explainer");
+  const tiles  = at('id="cats"', "the Comprar por categoría tiles");
+
+  // Unchanged, and the brief says so explicitly.
+  if (!(deals < cats && cats < stores)) throw new Error("the three rails are no longer Ofertas -> Categorías -> Tiendas");
+  if (!(stores < logo)) throw new Error("the rails no longer come before the logo");
+  // The move itself.
+  if (!(logo < why)) throw new Error("the explainer no longer follows the ARIA logo it belongs to");
+  if (!(why < tiles)) throw new Error("the category tiles interrupt the brand story again");
+
+  /* NOTHING WAS DELETED. The tiles are still there and still built by
+     the same code -- this was a move, and a test that only checked the
+     order would pass just as well if they had been dropped. */
+  if (!/id="catGrid"/.test(home)) throw new Error("the category tile grid is gone, not moved");
+  if (!/initDepartmentTiles/.test(src)) throw new Error("nothing fills the category tiles any more");
+});
+
 group("cómo funciona: the shopper is the one doing the buying");
 
 check("step 3 never makes us the buyer", () => {
@@ -5577,6 +5686,82 @@ check("step 3 never makes us the buyer", () => {
   // Step 4 is untouched and still ours to do, which is why it is excluded.
   const step4 = html.slice(to, to + 1200);
   if (!/Consolidamos/i.test(step4)) throw new Error("step 4 lost its first person — that one was correct");
+});
+
+/* ------------------------------------------------------------------ */
+group("The header fits the phone it is read on");
+
+function fwd(src, a, b, what){
+  const i = src.indexOf(a);
+  if (i < 0) throw new Error(`${what}: cannot find ${JSON.stringify(a)}`);
+  const j = src.indexOf(b, i + a.length);
+  if (j < 0) throw new Error(`${what}: cannot find ${JSON.stringify(b)} after it`);
+  return src.slice(i, j);
+}
+const hdrSource = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("nothing in the header is unshrinkable at a phone's width", () => {
+  /* THE BUG. The header's inner row is justify-between with BOTH children
+     flex-shrink-0: the wordmark (155px) and the right cluster (203.5px).
+     358.5px that cannot shrink, inside 393 - 40 of padding = 353px. The
+     page scrolled sideways 11px at 393, 44px at 360 and 83px at 320, and
+     the words nearest the edge were cut until you dragged.
+
+     These are SOURCE assertions, not geometry: browser-tests.mjs blocks
+     the Tailwind CDN on purpose, so measuring a Tailwind-driven layout
+     there compares one unstyled number to another. */
+  const src = hdrSource();
+
+  /* The wordmark scales rather than overflowing, and the size lives in
+     our own stylesheet — a text-[22px] utility is gone with the CDN. */
+  const css = fwd(src, "<style>", "</style>", "the inline stylesheet");
+  const wm = fwd(css, ".ariaWordmark{", "}", ".ariaWordmark");
+  if (!/clamp\(/.test(wm)) throw new Error("the wordmark is a fixed size again — it cannot shrink on a small phone");
+  const floor = wm.match(/clamp\(\s*(\d+(?:\.\d+)?)px/);
+  if (!floor) throw new Error("cannot read the wordmark's minimum size");
+  if (Number(floor[1]) > 17) throw new Error(`the wordmark's floor is ${floor[1]}px — too wide to fit a 320px header`);
+
+  const logo = fwd(src, 'aria-label="Aria Shop™ — inicio"', "</button>", "the wordmark button");
+  if (/text-\[22px\]/.test(logo)) throw new Error("the wordmark is back on a fixed text-[22px] utility");
+  if (!/ariaWordmark/.test(logo)) throw new Error("the wordmark is not using .ariaWordmark");
+
+  // and the header's own padding gives the phone its margin back
+  if (!/px-3 sm:px-5 h-\[68px\]/.test(src)) throw new Error("the header no longer tightens its padding below sm");
+});
+
+check("the header's auth buttons are responsive in BOTH places that write them", () => {
+  /* THE TRAP THIS PINS, and it nearly shipped: the markup in the header
+     is only the logged-out default. renderAuthUI() rewrites #authArea
+     from its own template on load and on every login/logout. Fixing the
+     padding in the markup alone looks correct in the file and reverts
+     the moment the page runs. */
+  const src = hdrSource();
+  const header = fwd(src, 'aria-label="Aria Shop™ — inicio"', 'id="mobileMenu"', "the header");
+  const render = fwd(src, "function renderAuthUI(", "document.getElementById('authAreaMobile')", "renderAuthUI");
+  for (const [where, slice] of [["the header markup", header], ["renderAuthUI", render]]) {
+    const bare = [...slice.matchAll(/h-9 px-4 rounded-full/g)].length;
+    if (bare) throw new Error(`${where} still has ${bare} auth button(s) on fixed px-4 — they overflow a 360px header`);
+    if (!/px-2\.5 sm:px-4/.test(slice)) throw new Error(`${where} has no responsive auth-button padding`);
+  }
+});
+
+check("below 360px the header CTA moves into the menu rather than off the screen", () => {
+  /* A 320px header cannot hold a wordmark, a cart, a signup button AND a
+     menu button. Scaling type and shaving padding cleared 393 and 360 and
+     still left 320 five pixels over; the next shave would have been the
+     third in a row. The button moves to where it already exists —
+     renderAuthUI writes #authAreaMobile inside the hamburger — so nothing
+     is lost, only relocated. */
+  const src = hdrSource();
+  const css = fwd(src, "<style>", "</style>", "the inline stylesheet");
+  if (!/@media \(max-width:359\.98px\)\{[\s\S]*?#authArea\{ display:none \}/.test(css)) {
+    throw new Error("the sub-360px rule that moves the header CTA into the menu is gone");
+  }
+  /* It may only be hidden because the menu really does carry it. */
+  if (!/id="authAreaMobile"/.test(src)) throw new Error("#authAreaMobile is gone — hiding the header CTA would now lose it");
+  if (!/getElementById\('authAreaMobile'\)\.innerHTML/.test(src)) {
+    throw new Error("nothing fills #authAreaMobile any more — the relocated CTA would be an empty div");
+  }
 });
 
 /* ------------------------------------------------------------------ */
