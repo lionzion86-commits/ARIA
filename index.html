@@ -6771,7 +6771,45 @@ const RETAILERS = {
      catalogue that arrived carries NEITHER Gucci NOR Prada. The real
      names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
+  /* ============================================================
+     THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
+
+     Every one is `search: false` with no `browse`, which is the
+     honest-pending state this page already promises a few sections up:
+     "Las que estamos conectando lo dicen — preferimos un 'próximamente'
+     honesto a un logo que no lleva a ningún lado." They get the muted
+     plate and the "Conectando el catálogo" badge, and their store page
+     explains that we buy there by request. None reaches the search
+     fan-out, the category feeds or Ofertas, because CATALOG_RETAILERS
+     reads `search || browse` and they have neither. No new code.
+
+     REAL LOGO TILES, NOT WORDMARK PILLS — every row carries a file, so
+     none falls back to the pill. `color` only ever backs that pill and
+     the small text badge, and each value was SAMPLED FROM THE ARTWORK
+     rather than recalled: Skims is #605848 across 145,523 pixels of its
+     own file, Fendi and Dyson are #202020, the rest a true black.
+
+     SUNGLASS HUT USES THE OLD "INTERNATIONAL" MARK with the split
+     yellow/blue sun — Danny's call: a shopper in Lima knows that logo
+     and not the rebrand. It is artwork on its own black field, so it
+     tiles the way Victoria's Secret's pink card and Bath & Body Works'
+     blue one do: the field is IN the file, not in our CSS. Contain-fit,
+     so never stretched, and never recoloured.
+
+     Mirrors scripts/lib/retailers.js.
+     ============================================================ */
+  skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
+  /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
+     store in this tier with a catalogue behind it, and renderStoresGrid
+     preserves declaration order — three "conectando" cards above it
+     would bury the one a shopper can open today. */
+  fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
+  miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
+  goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.

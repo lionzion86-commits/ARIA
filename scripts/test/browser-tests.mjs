@@ -869,7 +869,15 @@ await check("no store logo is dwarfed by the wordmarks beside it", async () => {
      sliver here while still decoding, still having a sane aspect ratio,
      and still passing every other check. It measures 71% of Walmart
      cropped — the same band as AutoZone and Foot Locker. */
-  for (const key of ["sephora", "victoriassecret", "bathandbodyworks", "target", "ulta", "yesstyle"]) {
+  /* The 2026-09-22 batch joins the list, minus one. GOLDEN GOOSE IS
+     DELIBERATELY ABSENT: its mark is 8.9:1, a hair off Foot Locker's
+     9:1, and a contain-fit zone simply cannot give a wordmark that wide
+     the same area as a square one without cropping it. It measures 59%
+     — which is why Foot Locker is not in this list either. Both are
+     "as large as their own proportions allow", and the coverage test in
+     run-tests.mjs is what guards them instead. */
+  for (const key of ["sephora", "victoriassecret", "bathandbodyworks", "target", "ulta", "yesstyle",
+                     "skims", "revolve", "dyson", "sunglasshut", "fendi", "miumiu"]) {
     const m = by[key];
     if (!m) throw new Error(`${key} has no mark on the grid`);
     const ratio = area(m) / area(walmart);
