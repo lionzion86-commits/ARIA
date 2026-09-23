@@ -4952,6 +4952,34 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
    ================================================================== */
 group("The assistant, phone-first");
 
+check("the conversation can always be closed, and closing never opens", () => {
+  /* THE BUG. The launcher WAS the close button, and a launcher parked in
+     the bottom-right corner sits underneath a bottom sheet -- so once
+     the panel was open on a phone there was nothing left to tap. The X
+     lives in the panel's own header now.
+
+     AND IT CLOSES RATHER THAN TOGGLES. Wired to toggleAssistant(), a
+     control labelled "Cerrar" can OPEN the panel whenever the flag and
+     the DOM disagree. hideAssistant() sets the state instead of
+     flipping it, so a second tap is a no-op. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const panel = src.slice(src.indexOf('<div id="assistantPanel"'), src.indexOf('id="assistantMessages"'));
+  if (!panel) throw new Error("the assistant panel is gone");
+  const btnAt = panel.search(/data-assistant-close(?![\w-])/);
+  if (btnAt < 0) throw new Error("the panel header has no close button — on a phone the chat cannot be dismissed");
+  const tag = panel.slice(panel.lastIndexOf("<button", btnAt), panel.indexOf(">", btnAt));
+  if (!/onclick="hideAssistant\(\)"/.test(tag)) throw new Error("the X is not wired to hideAssistant()");
+  if (/toggleAssistant/.test(tag)) throw new Error("the X toggles — it can re-open what it is meant to close");
+  if (!/w-11 h-11/.test(tag)) throw new Error("the close target is under the 44px minimum");
+  if (!/aria-label="Cerrar la conversación"/.test(tag)) throw new Error("the close button is unlabelled");
+
+  const fn = src.slice(src.indexOf("function hideAssistant(){"), src.indexOf("function toggleAssistant(){"));
+  if (!fn) throw new Error("hideAssistant does not exist");
+  if (/assistantOpen = !assistantOpen/.test(fn)) throw new Error("hideAssistant flips the flag instead of setting it");
+  if (!/assistantOpen = false;/.test(fn)) throw new Error("hideAssistant does not actually close");
+  if (!/e\.key === 'Escape' && assistantOpen/.test(src)) throw new Error("Escape no longer closes the conversation");
+});
+
 /* NORMALISED, BECAUSE index.html IS CRLF FROM END TO END. Every marker
    below that spans two lines would otherwise never match, and the
    checks would pass vacuously on an empty slice -- which is how they
@@ -4989,7 +5017,10 @@ check("the chat is a bottom sheet on a phone, and a floating card everywhere els
 
   // One tap out, and the grab handle between the two heights.
   if (!/aria-label="Cerrar la conversación"/.test(chatPanel)) throw new Error("the sheet has no close button");
-  if (!/onclick="toggleAssistant\(\)"/.test(chatPanel)) throw new Error("the close button does not close it");
+  /* Wired to hideAssistant(), not toggleAssistant(): a control labelled
+     "Cerrar" must never be able to open the panel, whatever state the
+     flag and the DOM are in. The dedicated check below pins the rest. */
+  if (!/onclick="hideAssistant\(\)"/.test(chatPanel)) throw new Error("the close button does not close it");
   if (!/id="assistantSheetHandle"/.test(chatPanel)) throw new Error("the sheet has no grab handle");
   if (!/aria-expanded="false"/.test(chatPanel)) throw new Error("the handle does not say which height it is at");
 });

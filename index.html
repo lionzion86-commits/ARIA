@@ -2356,7 +2356,7 @@
          is underneath a bottom sheet -- so the X lives where the thumb
          looks for it, at the top of the thing it closes. 44px, Apple's
          minimum, not the 24px the icon draws. -->
-    <button type="button" onclick="toggleAssistant()" aria-label="Cerrar la conversación"
+    <button type="button" onclick="hideAssistant()" data-assistant-close aria-label="Cerrar la conversación"
       class="w-11 h-11 -mr-1.5 rounded-full grid place-items-center flex-shrink-0 focus-ring"
       style="color:#fff">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -13222,7 +13222,35 @@ function dismissAssistantForNavigation(){
   if (assistantOpen && isMobileChat()) toggleAssistant();
 }
 
+/* CLOSING IS NOT TOGGLING. The X was wired to toggleAssistant(), which
+   is right only while the flag and the panel agree -- and a control
+   whose job is "close" should never be able to OPEN the thing, however
+   they got out of step. This sets the state rather than flipping it, so
+   tapping it twice, or tapping it on an already-closed panel, is a
+   no-op instead of a surprise. Escape lands here too. */
+function hideAssistant(){
+  if (!assistantOpen && document.getElementById('assistantPanel')?.classList.contains('hidden')) return;
+  assistantOpen = false;
+  document.getElementById('assistantPanel')?.classList.add('hidden');
+  document.getElementById('assistantIconSpark')?.classList.remove('hidden');
+  document.getElementById('assistantIconClose')?.classList.add('hidden');
+  /* AND THE LAUNCHER COMES BACK. This flag is what hides the orb while
+     the sheet is up; a close path that forgot it left the shopper with
+     no sheet AND no way to reopen one. Missing it here was caught by
+     the sheet's own browser check, which is why closing is asserted on
+     the body attribute and not just on the panel. */
+  document.body.removeAttribute('data-chat-open');
+  hideGreetBubble();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && assistantOpen) hideAssistant();
+});
+
 function toggleAssistant(){
+  // ONE CLOSE PATH. Closing from here goes through hideAssistant() so
+  // the two can never drift apart again.
+  if (assistantOpen){ hideAssistant(); return; }
   assistantOpen = !assistantOpen;
   document.getElementById('assistantPanel').classList.toggle('hidden', !assistantOpen);
   document.getElementById('assistantIconSpark').classList.toggle('hidden', assistantOpen);
