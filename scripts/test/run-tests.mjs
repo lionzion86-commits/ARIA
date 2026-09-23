@@ -4795,12 +4795,20 @@ check("the photograph is contained on BOTH axes", () => {
 check("the way out cannot be moved off screen", () => {
   const btn = lbMarkup.slice(lbMarkup.indexOf("data-lightbox-close"));
   const tag = lbMarkup.slice(lbMarkup.lastIndexOf("<button", lbMarkup.indexOf("data-lightbox-close")), lbMarkup.indexOf(">", lbMarkup.indexOf("data-lightbox-close")));
-  /* FIXED, NOT ABSOLUTE. Absolute pinned it to the overlay, so anything
-     that moved the visible area took it along -- a sideways scroll, and
-     on iOS a pinch, which zooms the LAYOUT viewport and carries every
-     absolutely-positioned thing with it. */
-  if (!/\bfixed\b/.test(tag)) throw new Error("the close button is not fixed to the viewport");
-  if (/\babsolute\b/.test(tag)) throw new Error("the close button is pinned to the overlay again");
+  /* ABSOLUTE INSIDE A FIXED LAYER -- AND THIS TEST USED TO ASSERT THE
+     OPPOSITE. It read `fixed` and called the job done, which is exactly
+     the belief the second bug report killed: `fixed` anchors to the
+     LAYOUT viewport, and a pinch does not move the layout viewport, it
+     shrinks the VISUAL one into a window onto it. Measured at 393px:
+     page scale 2 leaves a 197px-wide window with the button still at
+     x=333, i.e. off screen, which is the whole complaint.
+
+     So the FIXED thing is now #lightboxChrome, which is parked on the
+     visual viewport by syncLightboxChrome(); the button is positioned
+     against THAT and so must be absolute. Asserting `fixed` here again
+     would restore the bug. */
+  if (!/\babsolute\b/.test(tag)) throw new Error("the close button is not positioned against the chrome layer");
+  if (/\bfixed\b/.test(tag)) throw new Error("the close button is fixed to the LAYOUT viewport again — a pinch will carry it off screen");
   if (!/w-11 h-11/.test(tag)) throw new Error("the close button is under the 44px minimum");
   // Above the image layer.
   const z = Number((tag.match(/z-\[(\d+)\]/) || [])[1]);
@@ -4873,6 +4881,79 @@ check("the page behind is pinned, and put back exactly", () => {
   if (!/window\.addEventListener\('popstate', \(\) => \{ if \(!lightboxIsOpen\(\)\) unlockPageBehind\(\); \}\);/.test(lbSrc)) {
     throw new Error("a route change can leave the page behind permanently unscrollable");
   }
+});
+
+check("the close button lives above the zoom layer, not inside it", () => {
+  /* STRUCTURAL, NOT COSMETIC. Whatever transform the photograph is
+     wearing must be unable to reach the chrome -- and the only way to
+     guarantee that is for the chrome not to be a descendant of the
+     thing being transformed. A z-index would not do it: a transformed
+     ancestor becomes the containing block for everything inside it. */
+  const stageAt  = lbMarkup.indexOf('id="lightboxStage"');
+  const chromeAt = lbMarkup.indexOf('id="lightboxChrome"');
+  const closeAt  = lbMarkup.indexOf("data-lightbox-close");
+  if (chromeAt < 0) throw new Error("the chrome layer is gone — the close button is back in the layout viewport");
+  if (!(closeAt > chromeAt)) throw new Error("the close button is outside the chrome layer");
+  // The stage is closed before the chrome opens: siblings, not nested.
+  const stageTag = lbMarkup.slice(stageAt);
+  const stageEnd = stageAt + stageTag.indexOf("</div>") + 6;
+  if (!(chromeAt > stageEnd)) throw new Error("the chrome layer is nested inside the zoom stage — the image transform will carry it");
+  // And the layer itself is the fixed one.
+  const rule = lbStyle.slice(lbStyle.indexOf("#lightboxChrome{"), lbStyle.indexOf("#lightboxChrome > *"));
+  if (!rule) throw new Error("the chrome layer has no rule of its own");
+  if (!/position:fixed/.test(rule)) throw new Error("the chrome layer is not fixed");
+  if (!/transform-origin:0 0/.test(rule)) throw new Error("the counter-scale would resolve from the centre, not the corner");
+  // It covers the screen, so it must not eat the backdrop tap.
+  if (!/pointer-events:none/.test(rule)) throw new Error("the chrome layer swallows the backdrop tap");
+  if (!/#lightboxChrome > \*\{ pointer-events:auto \}/.test(lbStyle)) throw new Error("nothing inside the chrome layer can be tapped");
+});
+
+check("the chrome is parked on the VISUAL viewport, at any zoom", () => {
+  const fn = lbSrc.slice(lbSrc.indexOf("function syncLightboxChrome(){"), lbSrc.indexOf("let lightboxChromeBound"));
+  if (!fn) throw new Error("nothing syncs the chrome to the visual viewport");
+  if (!/window\.visualViewport/.test(fn)) throw new Error("the chrome is not measured against the visual viewport");
+  /* THE TWO HALVES, AND NEITHER IS OPTIONAL. The translate follows a
+     pinched page being panned (measured: a real pinch to 2.5x left the
+     visual viewport at offset 118,240). The counter-scale is what keeps
+     44px a real 44px on glass instead of a box the zoom inflates. */
+  if (!/translate\(\$\{vv\.offsetLeft\}px, \$\{vv\.offsetTop\}px\)/.test(fn)) {
+    throw new Error("the chrome does not follow the visual viewport's offset — panning a pinched page loses it");
+  }
+  if (!/scale\(\$\{1 \/ s\}\)/.test(fn)) throw new Error("the chrome is not counter-scaled — the touch target changes size with the zoom");
+  if (!/vv\.width\s*\*\s*s/.test(fn) || !/vv\.height\s*\*\s*s/.test(fn)) {
+    throw new Error("the layer is not sized in its own pre-scale units, so the counter-scale shrinks it off the viewport");
+  }
+  if (!/if \(!vv\)/.test(fn)) throw new Error("a browser with no visualViewport is not handled");
+});
+
+check("the sync runs while the lightbox is open, and only then", () => {
+  const open = lbSrc.slice(lbSrc.indexOf("function openImageLightbox(){"), lbSrc.indexOf("/* Everything that dismisses ends up here."));
+  const dis  = lbSrc.slice(lbSrc.indexOf("function dismissLightbox(){"), lbSrc.indexOf("document.addEventListener('keydown'"));
+  if (!/bindLightboxChrome\(true\)/.test(open)) throw new Error("opening does not start tracking the visual viewport");
+  /* The page can already be pinched when the lightbox opens, so the
+     first sync cannot wait for the next resize event. */
+  if (!/syncLightboxChrome\(\)/.test(open)) throw new Error("opening onto an already-pinched page leaves the chrome misplaced");
+  if (!/bindLightboxChrome\(false\)/.test(dis)) throw new Error("closing leaves visualViewport listeners bound for good");
+  const bind = lbSrc.slice(lbSrc.indexOf("function bindLightboxChrome(on){"), lbSrc.indexOf("/* ZOOM IS OURS"));
+  for (const ev of ["'resize'", "'scroll'"]) {
+    if (!bind.includes(ev)) throw new Error(`the chrome does not track the visual viewport's ${ev}`);
+  }
+  if (!/lightboxChromeBound === on/.test(bind)) throw new Error("binding twice would leave a listener behind");
+});
+
+check("two zooms never stack", () => {
+  /* THE 'SNAPS BACK TO ZOOMED-IN' IN THE REPORT. iOS keeps pinch-zoom
+     as an accessibility gesture that page CSS cannot disable, so our
+     double-tap transform and the browser's page zoom are both live. Let
+     both be on and releasing the pinch returns the PAGE to scale 1 with
+     the photo still at 2.4 -- zoomed in, with no obvious way out. The
+     browser's is the one the shopper can always pinch back out of, so
+     a real two-finger gesture takes ours off. */
+  const g = lbSrc.slice(lbSrc.indexOf("(function bindLightboxGestures(){"), lbSrc.indexOf("/* Handed from an auto card"));
+  if (!g) throw new Error("the lightbox's gestures are gone");
+  const start = g.slice(g.indexOf("'touchstart'"), g.indexOf("'touchmove'"));
+  if (!/if \(!single\)\{/.test(start)) throw new Error("a two-finger gesture is no longer noticed");
+  if (!/setLightboxZoom\(false\)/.test(start)) throw new Error("pinching on top of our own zoom stacks the two");
 });
 
 check("the back gesture closes the lightbox and nothing else", () => {

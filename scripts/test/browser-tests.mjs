@@ -1616,6 +1616,110 @@ await check("zoom never takes the way out with it", async () => {
   await ctx.close();
 });
 
+/* ============================================================
+   THE PINCH, WHICH IS A DIFFERENT ZOOM FROM THE ONE ABOVE.
+
+   The check above drives OUR zoom -- a transform we set on the photo.
+   This one drives the BROWSER'S, the one a shopper gets by pinching,
+   which iOS will not let a page disable. They are not the same
+   mechanism and the first fix here only ever handled the first: it
+   asserted the close button was `position:fixed` and called that safe.
+   Fixed is fixed to the LAYOUT viewport, and a pinch does not move the
+   layout viewport -- it shrinks the VISUAL one into a window onto it.
+   Measured at 393px before the fix:
+
+     pageScale 1   visual 393x852   button at 333,16   on screen
+     pageScale 2   visual 197x426   button at 333,16   OFF SCREEN
+     pageScale 3   visual 131x284   button at 333,16   OFF SCREEN
+
+   Emulation.setPageScaleFactor is how Chrome models a pinch, so it
+   moves the real visualViewport and fires the real events.
+
+   WHAT THIS CAN ASSERT WITH NO STYLESHEET. The harness blocks the CDN,
+   so the button's `absolute top-4 right-4 w-11 h-11` do nothing and its
+   measured box is meaningless here -- its geometry is pinned in
+   run-tests.mjs by the rules that decide it. What is real without CSS
+   is the arithmetic: the chrome layer's transform is computed from
+   window.visualViewport, and it must TRACK a scale change on its own,
+   through the listeners, with nobody calling sync by hand. That last
+   part is the difference between a close button that follows the pinch
+   and one that catches up after it.
+   ============================================================ */
+await check("the close button follows a pinch, not the layout viewport", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  eq(opened.open, true, "the lightbox never opened");
+
+  const cdp = await ctx.newCDPSession(page);
+  const readings = [];
+  for (const scale of [1, 2, 3]) {
+    await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
+    await page.waitForTimeout(260);   // deliberately NOT calling sync by hand
+    readings.push(await page.evaluate(() => {
+      const vv = window.visualViewport;
+      const el = document.getElementById("lightboxChrome");
+      if (!vv || !el) return { missing: true };
+      const s = vv.scale || 1;
+      const want = [vv.offsetLeft, vv.offsetTop, 1 / s];
+      /* NUMBERS, NOT THE STRING. The browser re-serializes what we set:
+         scale(0.3333333333333333) reads back as scale(0.333333), so a
+         string compare fails on a third of the zoom levels for a purely
+         cosmetic reason. Parse and compare with a tolerance. */
+      const nums = (el.style.transform.match(/-?[\d.]+/g) || []).map(Number);
+      const near = (a, b) => Math.abs(a - b) < 0.001;
+      return {
+        scale: +s.toFixed(2),
+        tracks: nums.length === 3 && want.every((w, i) => near(nums[i], w)),
+        got: el.style.transform,
+        want: `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / s})`,
+        // The layer carries its own pre-scale units, so the counter-scale
+        // lands it exactly on the visual viewport rather than inside it.
+        sized: near(parseFloat(el.style.width), vv.width * s) && near(parseFloat(el.style.height), vv.height * s),
+      };
+    }));
+  }
+  await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+
+  for (const r of readings) {
+    eq(!!r.missing, false, "there is no chrome layer to park on the visual viewport");
+    eq(r.tracks, true, `at page scale ${r.scale} the chrome did not follow the pinch: got "${r.got}", wanted "${r.want}"`);
+    eq(r.sized, true, `at page scale ${r.scale} the chrome layer is not sized in its own pre-scale units`);
+  }
+  // It has to actually change, or "tracks" could be passing on a no-op.
+  eq(new Set(readings.map((r) => r.got)).size, readings.length, "the chrome's transform never changed across three zoom levels");
+
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a pinch takes our own zoom off, so the two cannot stack", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  eq(opened.open, true, "the lightbox never opened");
+  const r = await page.evaluate(async () => {
+    const box = document.getElementById("imageLightbox");
+    setLightboxZoom(true);
+    const ourZoomWasOn = box.getAttribute("data-zoom") === "1";
+    /* Two fingers land on the overlay. Releasing a pinch returns the
+       PAGE to scale 1; if our transform were still on, the photo would
+       stay at 2.4 and read as "snapped back to zoomed-in". */
+    const im = document.getElementById("lightboxImg");
+    const t = (id, x) => new Touch({ identifier: id, target: im, clientX: x, clientY: 300 });
+    box.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true,
+      touches: [t(1, 150), t(2, 250)], changedTouches: [t(1, 150), t(2, 250)] }));
+    await new Promise((r) => setTimeout(r, 120));
+    return { ourZoomWasOn, ourZoomNowOff: box.getAttribute("data-zoom") !== "1",
+             stillOpen: !box.classList.contains("hidden") };
+  });
+  eq(r.ourZoomWasOn, true, "our own zoom never turned on, so the check proves nothing");
+  eq(r.ourZoomNowOff, true, "pinching on top of our zoom stacks the two — releasing snaps back to zoomed-in");
+  eq(r.stillOpen, true, "a pinch closed the lightbox outright");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

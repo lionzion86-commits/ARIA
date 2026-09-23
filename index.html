@@ -78,14 +78,32 @@
      axes are capped now and object-fit finishes the job, so no part of
      the photograph can render outside the frame at any aspect ratio.
 
-     ZOOM IS A STATE WE OWN. Native pinch on the container was what let
-     the viewport move out from under the close button on iOS. A double
-     tap toggles a transform we set ourselves, so the page's zoom never
-     changes and the X never moves -- and because we know the state, the
-     X and the second tap can always put it back. The stage only scrolls
-     while zoomed, and never otherwise.
+     TWO ZOOMS, AND ONLY ONE OF THEM IS OURS. A double tap toggles a
+     transform we set ourselves; the shopper's pinch drives the
+     browser's own page zoom, and iOS does not let a page opt out of
+     that one -- `touch-action` does not take it away, because it is an
+     accessibility gesture. So they are not alternatives, they are two
+     live mechanisms, and the rule is that at most one is on at a time:
+     a real two-finger gesture clears ours (bindLightboxGestures) so
+     they can never stack.
+
+     THE CHROME IS PINNED TO THE VISUAL VIEWPORT, NOT THE LAYOUT ONE.
+     `fixed` anchors to the layout viewport, which a pinch does not
+     move -- that is how the X ended up outside the window the shopper
+     was looking through. #lightboxChrome is parked on the visual
+     viewport by syncLightboxChrome() instead. The transform-origin and
+     the will-change are the load-bearing half of that: the origin makes
+     the translate/scale below resolve from the layer's own top-left,
+     and the hint is why it stays a layer rather than being recomputed
+     into `top`/`left` on every frame of a live gesture.
+
+     The stage only scrolls while zoomed, and never otherwise.
      ============================================================ */
   #lightboxStage{ overflow:hidden; touch-action:none; -webkit-overflow-scrolling:touch }
+  #lightboxChrome{ position:fixed; left:0; top:0; width:100%; height:100%;
+                   transform-origin:0 0; pointer-events:none;
+                   will-change:transform; z-index:70 }
+  #lightboxChrome > *{ pointer-events:auto }
   #lightboxImg{ max-width:100%; max-height:100%; width:auto; height:auto;
                 object-fit:contain; transform-origin:center center;
                 transition:transform .18s ease; user-select:none; -webkit-user-drag:none }
@@ -2306,18 +2324,59 @@
 
      Six ways out now, and the image can never cover any of them:
      the X, the backdrop, a swipe down, Escape, the back gesture, and a
-     double tap when zoomed. The X is FIXED to the viewport, not to the
-     container, so no amount of scrolling or zooming can move it.
+     double tap when zoomed.
+
+     AND THE VIEWPORT THE X IS PINNED TO (2026-09-23, second report).
+     `position:fixed` was not enough, and the first fix here said it
+     was. Fixed anchors to the LAYOUT viewport. A pinch does not touch
+     the layout viewport at all -- it shrinks the VISUAL one into a
+     window onto it -- so the X stayed exactly where it was in layout
+     coordinates while the window the shopper was looking through moved
+     off it. Measured at 393px with the page pinched:
+
+       pageScale 1   visual 393x852   X at 333,16   on screen
+       pageScale 2   visual 197x426   X at 333,16   OFF (333 > 197)
+       pageScale 3   visual 131x284   X at 333,16   OFF
+
+       which is the report exactly: the X "only becomes visible while
+       pinching out", because that is the visual viewport growing back
+       toward 393 until 333 falls inside it again.
+
+     So the chrome does not live in the layout viewport any more. It is
+     its own layer, a SIBLING of the zoom surface and never a child of
+     it, positioned and counter-scaled onto the visual viewport on every
+     visualViewport resize/scroll -- both of which fire continuously
+     DURING a pinch on iOS, so it tracks the gesture rather than
+     catching up after it. The counter-scale is what keeps 44px a real
+     44px on glass at every zoom level instead of a 44px box the zoom
+     makes bigger or smaller.
+
+     WHAT THE FIRST FIX GOT WRONG ABOUT PINCH. It assumed
+     `touch-action:none` took native pinch away and that our own
+     double-tap transform was therefore the only zoom in play. iOS keeps
+     pinch-zoom as an accessibility gesture that page CSS cannot
+     disable, so both zooms were live at once and they stacked: pinch
+     while our transform was on, release, and the page came back to
+     scale 1 with the photo still at 2.4 -- "snaps back to zoomed-in".
+     Only one zoom is allowed to be on now; a real two-finger gesture
+     hands it to the browser's.
      ============================================================ -->
 <div id="imageLightbox" class="fixed inset-0 z-[60] hidden items-center justify-center" style="background:rgba(4,12,28,0.93)" onclick="closeImageLightbox(event)">
-  <button onclick="closeImageLightbox()" aria-label="Cerrar" data-lightbox-close
-    class="fixed top-4 right-4 z-[70] w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.22)">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-  </button>
   <div id="lightboxStage" class="w-full h-full grid place-items-center p-4">
     <img id="lightboxImg" alt="" draggable="false">
   </div>
-  <div id="lightboxHint" class="fixed bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+  <!-- THE CHROME LAYER. Declared AFTER the stage so it paints above it,
+       and outside it so no transform applied to the photograph can ever
+       reach these. syncLightboxChrome() parks this rectangle on the
+       visual viewport; everything inside is positioned against THAT,
+       which is why the button below is absolute and not fixed. -->
+  <div id="lightboxChrome" data-lightbox-chrome>
+    <button onclick="closeImageLightbox()" aria-label="Cerrar" data-lightbox-close
+      class="absolute top-4 right-4 z-[70] w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.22)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="lightboxHint" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none whitespace-nowrap" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+  </div>
 </div>
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
@@ -6473,11 +6532,68 @@ function lightboxIsOpen(){
   return !!box && !box.classList.contains('hidden');
 }
 
-/* ZOOM IS OURS, SO IT CAN ALWAYS BE UNDONE. Native pinch moves the
-   LAYOUT viewport on iOS and takes every absolutely-positioned thing
-   with it, which is how the close button left the screen. A state we
-   set ourselves can always be reset -- by the second tap, by the X, and
-   by closing. */
+/* ============================================================
+   PARKING THE CHROME ON THE VISUAL VIEWPORT.
+
+   A pinch leaves the layout viewport alone and shrinks the VISUAL one
+   into a window onto it, so `position:fixed` -- which is fixed to the
+   layout viewport -- does not keep anything on screen. This puts the
+   chrome layer exactly over the window the shopper is actually looking
+   through, and counter-scales it so what is inside keeps its size on
+   glass instead of being magnified with the page.
+
+   THE ARITHMETIC, because it looks like it cancels out and does not.
+   visualViewport reports width/height in LAYOUT css pixels: at scale 2
+   a 393px-wide viewport reports 197. We want a layer that ends up
+   covering those 197 layout px, but whose own coordinate system is the
+   full 394 so that a 44px button inside it renders at 22 layout px --
+   which is 44 real pixels on glass once the page's own scale of 2 is
+   applied. Hence: size the layer vv.width * scale, then scale(1/scale)
+   it back down, and translate it by the visual viewport's offset so it
+   follows a pinched page being panned around.
+
+     scale 2, vv 197x426 @0,0  ->  layer 394x852, scaled 0.5  ->  197x426
+     button at right-4 inside  ->  intrinsic x 334, rendered x 167
+     167 + 22 = 189 <= 197     ->  on screen, and 22 * 2 = 44 on glass
+
+   Bound only while the overlay is open: these fire on every frame of a
+   pinch and on every keyboard show/hide, and there is no reason to run
+   them for a lightbox that is closed. ============================ */
+function syncLightboxChrome(){
+  const chrome = document.getElementById('lightboxChrome');
+  if (!chrome) return;
+  const vv = window.visualViewport;
+  /* No visualViewport (old Safari, jsdom): plain fixed is then the best
+     available answer, and it is the RIGHT one -- without the API there
+     is also no way for us to learn the page was pinched. */
+  if (!vv){ chrome.style.transform = ''; chrome.style.width = ''; chrome.style.height = ''; return; }
+  const s = vv.scale || 1;
+  chrome.style.width  = (vv.width  * s) + 'px';
+  chrome.style.height = (vv.height * s) + 'px';
+  chrome.style.transform = `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / s})`;
+}
+
+let lightboxChromeBound = false;
+function lightboxChromeRaf(){
+  /* Coalesced: a pinch fires these faster than we can usefully paint. */
+  if (lightboxChromeRaf.pending) return;
+  lightboxChromeRaf.pending = true;
+  requestAnimationFrame(() => { lightboxChromeRaf.pending = false; syncLightboxChrome(); });
+}
+function bindLightboxChrome(on){
+  const vv = window.visualViewport;
+  if (!vv || lightboxChromeBound === on) return;
+  const fn = on ? 'addEventListener' : 'removeEventListener';
+  vv[fn]('resize', lightboxChromeRaf);
+  vv[fn]('scroll', lightboxChromeRaf);
+  lightboxChromeBound = on;
+}
+
+/* ZOOM IS OURS, SO IT CAN ALWAYS BE UNDONE -- but it is not the only
+   zoom on the page. The shopper's pinch drives the browser's, which iOS
+   will not let us disable. Ours can always be reset (second tap, X,
+   close); theirs we simply stay out of the way of, and the chrome above
+   is what makes that survivable. */
 function setLightboxZoom(on){
   const box = document.getElementById('imageLightbox');
   if (!box) return;
@@ -6519,6 +6635,8 @@ function openImageLightbox(){
   box.classList.remove('hidden');
   box.classList.add('flex');
   lockPageBehind();
+  bindLightboxChrome(true);
+  syncLightboxChrome();   // the page may ALREADY be pinched when this opens
   if (!lightboxHistoryPushed){
     try {
       history.pushState({ ...(history.state || {}), ariaLightbox: true }, '', location.href);
@@ -6564,6 +6682,7 @@ function dismissLightbox(){
   }
   const stage = document.getElementById('lightboxStage');
   if (stage) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+  bindLightboxChrome(false);
   unlockPageBehind();
 }
 
@@ -6584,7 +6703,16 @@ document.addEventListener('keydown', (e) => {
 
   box.addEventListener('touchstart', (e) => {
     single = e.touches.length === 1;
-    if (!single) return;
+    if (!single){
+      /* TWO FINGERS: THE BROWSER'S ZOOM WINS, AND OURS GETS OUT OF THE
+         WAY. Leaving our transform on while the shopper pinches stacks
+         two zooms: they release, the page returns to scale 1, and the
+         photo is still at 2.4 -- which reads as the pinch "snapping
+         back to zoomed-in" with no way out. Theirs is the one they can
+         always pinch back out of, so it is the one that survives. */
+      setLightboxZoom(false);
+      return;
+    }
     startX = e.touches[0].clientX; startY = e.touches[0].clientY; moved = false;
   }, { passive: true });
 
