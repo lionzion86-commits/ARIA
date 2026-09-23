@@ -1005,14 +1005,12 @@ check("every department has a curated photograph, and every one is on disk", () 
      gets the drawn brand field, which is a deliberate treatment — but
      this line changes, and whoever changes it has to decide on purpose.
 
-     IT READS "shoes" NOW (2026-09-23), decided on purpose. Zapatos
-     shipped with 539 real pairs across four stores and its photograph
-     did not arrive with the brief. It renders the drawn navy/sky field
-     until shoes.jpg lands in assets/category/, at which point this goes
-     back to "" and one line joins CATEGORY_COVERS. Nothing else about
-     the department is waiting on the picture. */
+     It read "shoes" for half an hour on 2026-09-23, between Zapatos
+     shipping with 539 real pairs and its photograph arriving. Back to
+     "" now that shoes.jpg is on disk — twelve departments, twelve
+     photographs. */
   const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
-  eq(uncovered.join(), "shoes", "a department is on the drawn cover — give it a photo or accept it here");
+  eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
 });
 
 check("Ofertas takes a photograph but keeps its gold sign", () => {
