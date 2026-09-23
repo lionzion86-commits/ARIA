@@ -338,28 +338,21 @@
     </div>
   </div>
 
-  <!-- DEPARTMENTS (real per-retailer department data, see department-cache.json) -->
-  <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-12 pb-10">
-    <div class="flex items-end justify-between gap-4 mb-6">
-      <div>
-        <div class="ariaKicker ariaKicker--onLight mb-2">Explora</div>
-        <h2 class="text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]" style="color:var(--navy)">Comprar por categoría</h2>
-        <p class="text-[13.5px] text-zinc-500 mt-1.5">Inventario real de nuestras tiendas en EE. UU., en un solo feed por categoría.</p>
-      </div>
-    </div>
-    <!-- ONE COLUMN, AT EVERY WIDTH (2026-09-21). Not a grid any more: a
-         scrolled run of full-width shopfronts. Two-up halved the image
-         and put the page back on the spreadsheet side of the line. -->
-    <div class="grid grid-cols-1 gap-5" id="catGrid"></div>
-    <!-- The link moved out from beside the heading to under the run it
-         belongs to. Its visible word is the reference's ("Explora más");
-         the aria-label keeps the destination for anyone who cannot see
-         which section it sits under. -->
-    <div class="mt-7 flex justify-center">
-      <button onclick="openCategories()" data-explora class="ariaExploraMas focus-ring" aria-label="Ver todas las categorías">Explora más</button>
-    </div>
-  </div>
+  <!-- ============================================================
+       ORDER ON THE HOME PAGE (2026-09-23)
 
+       The phone used to read: Ofertas -> Categorías (the compact
+       carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
+       (the long tiles). So the visitor met the categories, scrolled
+       past them to reach the brand and how any of this works, and then
+       met the categories AGAIN -- the same list twice, with the story
+       wedged between the two halves of it.
+
+       The tiles were not deleted; they were moved. The explainer now
+       follows the logo it belongs to, and the tiles come after it, so
+       the run is: what is on sale -> what we sell -> who sells it ->
+       who we are -> browse it properly. Nothing above this changed.
+       ============================================================ -->
   <!-- WHY SHOP WITH US -->
   <div id="whyUs" class="border-t" style="border-color:var(--line); background:var(--paper)">
     <div class="max-w-[1100px] mx-auto px-5 py-16">
@@ -447,6 +440,28 @@
           <p class="text-[13.5px] mt-1.5 leading-relaxed" style="color:#4A5568">Nos encargamos de la compra, la aduana y el envío hasta tu puerta.</p>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- DEPARTMENTS (real per-retailer department data, see department-cache.json) -->
+  <div id="cats" class="max-w-[1240px] mx-auto px-5 pt-12 pb-10">
+    <div class="flex items-end justify-between gap-4 mb-6">
+      <div>
+        <div class="ariaKicker ariaKicker--onLight mb-2">Explora</div>
+        <h2 class="text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]" style="color:var(--navy)">Comprar por categoría</h2>
+        <p class="text-[13.5px] text-zinc-500 mt-1.5">Inventario real de nuestras tiendas en EE. UU., en un solo feed por categoría.</p>
+      </div>
+    </div>
+    <!-- ONE COLUMN, AT EVERY WIDTH (2026-09-21). Not a grid any more: a
+         scrolled run of full-width shopfronts. Two-up halved the image
+         and put the page back on the spreadsheet side of the line. -->
+    <div class="grid grid-cols-1 gap-5" id="catGrid"></div>
+    <!-- The link moved out from beside the heading to under the run it
+         belongs to. Its visible word is the reference's ("Explora más");
+         the aria-label keeps the destination for anyone who cannot see
+         which section it sits under. -->
+    <div class="mt-7 flex justify-center">
+      <button onclick="openCategories()" data-explora class="ariaExploraMas focus-ring" aria-label="Ver todas las categorías">Explora más</button>
     </div>
   </div>
 
