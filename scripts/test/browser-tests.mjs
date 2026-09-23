@@ -1432,6 +1432,95 @@ await check("the desktop home page never builds the rails", async () => {
   await ctx.close();
 });
 
+
+/* ==================================================================
+   THE MOBILE HEADER, IN A REAL BROWSER.
+
+   The bar's geometry -- one line, 32px, above a sticky header -- is
+   pinned in run-tests.mjs, because this harness blocks the Tailwind CDN
+   and would be measuring an unstyled document. What only a running page
+   can answer: does the mark's file actually decode, do the two links
+   land on the right section, and are the promises in that section the
+   ones the array holds.
+   ================================================================== */
+await check("the header's mark loads, and it is a square file", async () => {
+  /* A PATH CAN BE WRONG IN A WAY NO STATIC READ CATCHES. naturalWidth
+     is 0 for a 404, a corrupt file, or a name that differs by a letter
+     — and the header would just quietly show nothing. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(1500);
+  const img = await page.evaluate(() => {
+    const el = document.querySelector('header img[src*="aria-mark"]');
+    if (!el) return null;
+    return { w: el.naturalWidth, h: el.naturalHeight, complete: el.complete, src: el.getAttribute("src"), alt: el.getAttribute("alt") };
+  });
+  if (!img) throw new Error("the header has no mark");
+  eq(img.complete, true, "the mark never finished loading");
+  if (!img.w) throw new Error(`the mark decoded to 0px — ${img.src} is missing or corrupt`);
+  eq(img.w, img.h, "the mark is not square");
+  eq(img.alt, "", "the mark is announced as well as drawn");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the utility bar's two links land on their sections", async () => {
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(2500);
+
+  /* ABOVE THE HEADER IN THE DOCUMENT — the one ordering fact that needs
+     no stylesheet at all. */
+  const order = await page.evaluate(() => {
+    const bar = document.getElementById("utilityBar"), h = document.querySelector("header");
+    return bar.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING ? "bar first" : "header first";
+  });
+  eq(order, "bar first", "the utility bar is not above the header");
+
+  const club = await page.evaluate(() => {
+    const el = document.querySelector("[data-key-club]");
+    return { tag: el.tagName, text: el.textContent.replace(/\s+/g, " ").trim(),
+             interactive: !!el.closest("button, a") || !!el.querySelector("button, a") || typeof el.onclick === "function" };
+  });
+  eq(club.tag, "SPAN", "the Key Club teaser is not a plain span");
+  eq(club.interactive, false, "the Key Club teaser is clickable, and there is nothing behind it");
+  if (!club.text.includes("Aria Key Club")) throw new Error("the Key Club lost its name");
+
+  for (const [sel, id] of [['[data-utility="whyUs"]', "whyUs"], ['[data-utility="precioHonesto"]', "precioHonesto"]]) {
+    const landed = await page.evaluate(async ([sel, id]) => {
+      showPage("homeView"); window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 200));
+      document.querySelector(sel).click();
+      await new Promise((r) => setTimeout(r, 1200));
+      const el = document.getElementById(id);
+      return {
+        view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+        hash: location.hash,
+        onScreen: el.getBoundingClientRect().top < window.innerHeight,
+      };
+    }, [sel, id]);
+    eq(landed.view, "homeView", `#${id} is not on the home page any more`);
+    eq(landed.hash, `#${id}`, `the route did not record #${id}`);
+    eq(landed.onScreen, true, `#${id} was never scrolled into view`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("'Por qué Aria' shows the promises the array holds", async () => {
+  /* RENDERED, NOT RETYPED. If the section ever grows its own copy of
+     the promises, this is where the two would be seen to disagree. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(2000);
+  const o = await page.evaluate(() => ({
+    shown: [...document.querySelectorAll("#whyUsPromiseList > div")].map((d) => d.querySelector("span span").textContent.trim()),
+    array: PRECIO_HONESTO_CARDS.map((c) => c.title),
+    alsoOnTheNavySection: document.querySelectorAll("#precioHonestoCards > *").length,
+  }));
+  eq(o.shown.join(" | "), o.array.join(" | "), "the section's promises are not the array's");
+  eq(o.shown.length, o.alsoOnTheNavySection, "the two surfaces are showing different numbers of promises");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

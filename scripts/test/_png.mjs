@@ -78,3 +78,64 @@ export function inkCoverage(path) {
   const inkW = x1 - x0 + 1, inkH = y1 - y0 + 1;
   return { w, h, inkW, inkH, coverage: (inkW * inkH) / (w * h), inkAspect: inkW / inkH, aspect: w / h };
 }
+
+/* ============================================================
+   THE ALPHA SIDE OF THE SAME FILE.
+
+   inkCoverage() answers "where is the artwork in this canvas" by
+   COLOUR, against the corner pixel. A logo on transparency needs the
+   other question answered: how much of it is opaque, and does its edge
+   carry any antialiasing at all.
+
+   WHY IT EXISTS (2026-09-23). aria-mark-transparent.png was pulled from
+   the header with a note calling it "a soft glow". Measured, it was
+   something else: a hard 1-bit mask -- 5.6% opaque, 94.4% clear and
+   ZERO pixels in between -- whose ink filled 259x305 of a 658x439
+   canvas. object-contain fits the canvas, so it drew a third of the
+   size it should have, with jagged edges. Neither fault is visible to a
+   colour-based bounding box: both live in the alpha channel.
+   ============================================================ */
+export function pngShape(path) {
+  const cov = inkCoverage(path);
+  if (!cov || cov.unsupported) return { width: 0, height: 0, alpha: { ink: 0, soft: 0, clear: 0 }, unsupported: cov?.unsupported };
+  const buf = readFileSync(path);
+  let i = 8, ihdr = null, idat = [];
+  while (i < buf.length) {
+    const len = buf.readUInt32BE(i), typ = buf.subarray(i + 4, i + 8).toString("ascii");
+    const body = buf.subarray(i + 8, i + 8 + len);
+    if (typ === "IHDR") ihdr = { w: body.readUInt32BE(0), h: body.readUInt32BE(4), depth: body[8], ctype: body[9] };
+    else if (typ === "IDAT") idat.push(body);
+    i += 12 + len;
+  }
+  const { w, h, ctype } = ihdr;
+  const ch = { 0: 1, 2: 3, 3: 1, 4: 2, 6: 4 }[ctype];
+  const data = inflateSync(Buffer.concat(idat));
+  const stride = w * ch;
+  const px = Buffer.alloc(h * stride);
+  let pos = 0, prev = Buffer.alloc(stride);
+  for (let y = 0; y < h; y++) {
+    const f = data[pos++];
+    const line = Buffer.from(data.subarray(pos, pos + stride)); pos += stride;
+    for (let x = 0; x < stride; x++) {
+      const a = x >= ch ? line[x - ch] : 0, b = prev[x], c = x >= ch ? prev[x - ch] : 0;
+      if (f === 1) line[x] = (line[x] + a) & 255;
+      else if (f === 2) line[x] = (line[x] + b) & 255;
+      else if (f === 3) line[x] = (line[x] + ((a + b) >> 1)) & 255;
+      else if (f === 4) {
+        const p = a + b - c, pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+        line[x] = (line[x] + (pa <= pb && pa <= pc ? a : pb <= pc ? b : c)) & 255;
+      }
+    }
+    line.copy(px, y * stride); prev = line;
+  }
+  // Alpha lives in the last channel, and only for ctype 4 and 6.
+  let ink = 0, soft = 0, clear = 0;
+  const hasAlpha = ctype === 4 || ctype === 6;
+  for (let o = 0; o < px.length; o += ch) {
+    const a = hasAlpha ? px[o + ch - 1] : 255;
+    if (a === 0) clear++; else if (a === 255) ink++; else soft++;
+  }
+  /* `ink` counts the fully opaque pixels; `soft` is the antialiased
+     edge, which a hard mask has none of; `clear` is the rest. */
+  return { width: w, height: h, aspect: w / h, alpha: { ink, soft, clear }, cov };
+}
