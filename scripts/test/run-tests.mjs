@@ -5296,6 +5296,44 @@ check("the image-quality gate survived the restyle", () => {
 /* ------------------------------------------------------------------ */
 group("The home page tells the story once");
 
+check("the explainer is photography and type, not clip-art boxes", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('<div id="whyUs"'), src.indexOf("<!-- HOW IT WORKS -->"));
+  if (!why) throw new Error("the explainer section is gone");
+
+  /* THE THUMBNAILS ARE GONE, not swapped. Five 48px stock cartoons sat
+     above five headings, directly over the photographic category tiles,
+     and read like a slide deck next to them. */
+  if (/src="data:image/.test(why)) throw new Error("the clip-art thumbnails are back in the explainer");
+  if (/ariaCard--light/.test(why)) throw new Error("the promises are white boxes again");
+  if (!/assets\/portal-girl-bg\.jpg/.test(why)) throw new Error("the brand photograph is not the background");
+  if (!/class="ariaWhyScrim"/.test(why)) throw new Error("there is no scrim over the photograph");
+
+  /* IT MUST SURVIVE THE PHOTO NOT LOADING. The image is a separate
+     asset; a section whose legibility depends on a file that may 404 is
+     one that eventually renders white-on-white. */
+  if (!/onerror="this\.remove\(\)"/.test(why)) throw new Error("a missing photo would leave a broken image over the text");
+  const css = src.slice(src.indexOf("<style>"), src.indexOf("</style>"));
+  const sec = css.slice(css.indexOf("#whyUs{"), css.indexOf(".ariaWhyPhoto{"));
+  if (!/background:var\(--navy\)/.test(sec)) throw new Error("the navy is not on the section — with no photo there is nothing behind the text");
+
+  /* THE SCRIM'S TOP STOP IS ITS THINNEST POINT, and the number was
+     computed, not chosen: at 0.62 the kicker measured 3.12:1 over a
+     pure-white photo pixel. Anything lighter than 0.72 fails again. */
+  const stop = Number((css.match(/\.ariaWhyScrim[\s\S]*?rgba\(4,12,28,([0-9.]+)\)\s*0%/) || [])[1]);
+  if (!(stop >= 0.72)) throw new Error(`the scrim's top stop is ${stop} — below 0.72 the kicker drops under 4.5:1`);
+
+  // The copy is carried over untouched; this was a redesign, not a rewrite.
+  for (const promise of ["Productos que no existen en Perú", "Comparamos varias tiendas a la vez",
+                         "Acceso a las grandes ofertas de EE. UU.", "Precio final, sin sorpresas",
+                         "Seguimiento de tu pedido"]) {
+    if (!why.includes(promise)) throw new Error(`the redesign lost a promise: "${promise}"`);
+  }
+  if ((why.match(/ariaWhyPromise/g) || []).length < 5) throw new Error("a promise was dropped in the redesign");
+  // ...and the card removed earlier stays removed.
+  if (why.includes("Compara con el precio en Perú")) throw new Error("the Peru promise came back with the redesign");
+});
+
 check("the page promises nothing we cannot do", () => {
   /* "Cuando el producto también existe en tiendas peruanas, te
      mostramos ambos precios…" was a card in Por qué Aria, and the
