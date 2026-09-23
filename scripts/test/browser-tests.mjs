@@ -268,7 +268,24 @@ await check("Categorías renders one full-width shopfront per row, departments o
   await ctx.close();
 });
 
-await check("the category card and the Ofertas card are the same object", async () => {
+await check("the category banner and the product card share their photo discipline, not their chrome", async () => {
+  /* THIS RULE CHANGED ON PURPOSE (2026-09-23), and the check changed
+     with it rather than being deleted.
+
+     It was written for "Categorías tiles use the Ofertas card", when
+     the point was that the two were ONE object: same shell, same
+     rounding, same contain-fit. The Farfetch brief splits them, and
+     names the split: a category is full-bleed lifestyle imagery with
+     text over it, a product is a bare photograph with quiet text under
+     it and NO chrome at all. So the shells are now deliberately
+     different and asserting they are identical would be asserting the
+     old brief over the new one.
+
+     What still has to hold -- and what this now checks -- is everything
+     that was never about chrome: the pinned window against the 4:5
+     field, the cover filling its window against the product photo being
+     shown whole, and the navy sign band that carries the brand at page
+     level. Plus the new rule: the product card has no shell to share. */
   const { ctx, page, errors } = await openPage({
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
@@ -279,6 +296,7 @@ await check("the category card and the Ofertas card are the same object", async 
     const shell = (h) => (h.match(/class="([^"]*rounded-2xl[^"]*)"/) || [])[1] || "";
     return {
       tileShell: shell(tile), cardShell: shell(card),
+      cardShellClass: CARD_SHELL_CLASS,
       // 2026-09-21: the two no longer share a photo FIELD. A category is
       // a shopfront on a pinned-height window; a product is a product on
       // the 4:5 field. They still share the shell and the contain-fit.
@@ -291,12 +309,16 @@ await check("the category card and the Ofertas card are the same object", async 
       tileHasSign: /Moda Mujer/.test(tile) && /0A1F44/.test(tile),
     };
   });
-  if (!same.tileShell.includes("rounded-2xl")) throw new Error("the tile lost the card shell");
-  // The tile adds what a <button> needs (text-left, focus-ring, w-full);
-  // everything the Ofertas card's shell says, it says first and verbatim.
-  if (!same.tileShell.startsWith(same.cardShell)) {
-    throw new Error(`the tile shell diverged:\n  tile: ${same.tileShell}\n  card: ${same.cardShell}`);
-  }
+  /* THE BANNER KEEPS ITS BOX. Its photograph and its navy sign band are
+     held together as one object by a rounded, clipping shell. */
+  if (!same.tileShell.includes("rounded-2xl")) throw new Error("the category banner lost its rounded shell");
+  if (!same.tileShell.includes("overflow-hidden")) throw new Error("the category banner stopped clipping its photograph");
+  if (!same.tileShell.includes("bg-white")) throw new Error("the category banner lost its plate");
+  /* AND THE PRODUCT CARD HAS NO BOX AT ALL -- no border, no shadow, no
+     plate. The only rounded thing left in it is the photo field itself,
+     which is why `cardShell` reads as the frame and not as a shell. */
+  eq(same.cardShellClass, "group h-full flex flex-col", "the product card grew a shell again");
+  if (/border|shadow|bg-white/.test(same.cardShellClass)) throw new Error("the product card is chrome again");
   eq(same.tileWindow, true, "the category window is not pinned to a height");
   eq(same.cardField, true, "the product card lost its 4:5 field");
   /* THE TWO FIELDS CROP DIFFERENTLY, AND THAT IS THE POINT (2026-09-22).
