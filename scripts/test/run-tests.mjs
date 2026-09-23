@@ -5450,6 +5450,159 @@ check("step 3 never makes us the buyer", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("Dollars lead, and the soles beside them are venta");
+
+/* A slice helper that REFUSES to run backwards. src.slice(indexOf(A),
+   indexOf(B)) returns "" when B sits earlier than A, and an empty string
+   satisfies every negative assertion below while measuring nothing. */
+/* CLOSING-BRACE ANCHORS AND TEMPLATE LITERALS. Ending a slice at "}"
+   looks natural and is wrong for any function containing `${...}`: the
+   first closing brace belongs to the interpolation, so the slice stops
+   mid-string and every assertion after it silently measures nothing.
+   Two checks below passed that way until a real run said otherwise.
+   Anchor on the NEXT declaration instead. */
+function forwardSlice(src, a, b, what){
+  const i = src.indexOf(a);
+  if (i < 0) throw new Error(`${what}: cannot find the opening anchor ${JSON.stringify(a)}`);
+  const j = src.indexOf(b, i + a.length);
+  if (j < 0) throw new Error(`${what}: cannot find ${JSON.stringify(b)} after the opening anchor`);
+  return src.slice(i, j);
+}
+
+const priceSrc = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const checkoutSrc = () => readFileSync(root("checkout.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("the rate the site converts at is venta, never compra and never mid-market", () => {
+  /* WHY VENTA. Shoppers pay in soles; we spend dollars at US stores. We
+     are BUYING dollars, so the soles price has to reflect what dollars
+     cost — the venta (sell) rate. Compra is what a casa de cambio pays
+     for your dollars, and it is lower: converting at it, or at a
+     mid-market average, undercharges every order and we eat the spread. */
+  const src = priceSrc();
+  const loader = forwardSlice(src, "function loadFxRate(){", "\nfunction fmtPEN(", "loadFxRate");
+  if (!/fxRate = data\.venta/.test(loader)) throw new Error("index.html no longer takes venta from the API response");
+  if (!/cached\.venta/.test(loader)) throw new Error("the cached rate is no longer read as venta");
+  if (/data\.compra|cached\.compra/.test(loader)) throw new Error("index.html is reading compra — that undercharges every order");
+
+  /* And the same on the page that actually charges the card. Every
+     conversion there must multiply by venta; compra may only be
+     DISPLAYED, under its own label. */
+  const co = checkoutSrc();
+  const converts = [...co.matchAll(/\*\s*fxRates\.(compra|venta)/g)].map(m => m[1]);
+  if (!converts.length) throw new Error("checkout.html no longer converts through fxRates at all");
+  const wrong = converts.filter(r => r !== "venta");
+  if (wrong.length) throw new Error(`checkout.html converts at ${wrong.join(", ")} — venta is the only correct rate`);
+});
+
+check("nothing anywhere hardcodes an exchange rate", () => {
+  /* The 3.8 that used to sit in checkout.html, and the 3.38 that replaced
+     it, were both wrong within a week of being written. A rate is a fact
+     with a date on it; it comes from SUNAT, daily, or the page degrades
+     to dollars alone. */
+  for (const [name, src] of [["index.html", priceSrc()], ["checkout.html", checkoutSrc()]]) {
+    const code = stripComments(src);
+    const hits = [...code.matchAll(/(?:fxRate|fxRates|venta|compra|tipoCambio)\s*[=:]\s*(\d+\.\d+)/g)];
+    if (hits.length) throw new Error(`${name} hardcodes a rate: ${hits.map(h => h[1]).join(", ")}`);
+  }
+  const fn = readFileSync(root("netlify/functions/exchange-rate.js"), "utf8");
+  if (!/tipo-cambio-sunat/.test(fn)) throw new Error("the rate no longer comes from SUNAT");
+  if (!/typeof data\.venta !== "number"/.test(fn)) throw new Error("the function no longer validates that venta is a real number");
+});
+
+check("the primary figure is the dollar", () => {
+  const src = priceSrc();
+  /* fmtPriceLabel is called from a dozen inline contexts and used to
+     return soles. It returns the dollar now; the soles line is added
+     BESIDE it by solesUnderHTML, never smuggled into its return value —
+     otherwise a caller that only wants a figure gets two. */
+  const label = forwardSlice(src, "function fmtPriceLabel(usd){", "}", "fmtPriceLabel");
+  if (!/return fmtUSD\(usd\)/.test(label)) throw new Error("fmtPriceLabel no longer returns dollars");
+  if (/fmtPEN\(/.test(label)) throw new Error("fmtPriceLabel is returning soles again");
+
+  /* The customs box: every figure in it is a USD customs figure, so the
+     dollar leads there too. */
+  const customs = forwardSlice(src, "function penWithUsd(usdAmount){", "function renderCustomsDisclosure", "penWithUsd");
+  /* THE TWO-CURRENCY RETURN, not the whole function. penWithUsd opens
+     with a no-rate fallback that calls usd0() on its own line, so an
+     indexOf comparison across the body reports "dollars first" even when
+     the template underneath it leads with soles — which is exactly what a
+     mutation run caught this check doing. Read the template. */
+  const tpl = customs.split("\n").find(l => l.includes("return `"));
+  if (!tpl) throw new Error("penWithUsd no longer returns a two-currency template");
+  const iUsd = tpl.indexOf("usd0("), iPen = tpl.indexOf("fmtPEN(");
+  if (iUsd < 0) throw new Error("penWithUsd no longer shows a dollar figure");
+  if (iPen >= 0 && iPen < iUsd) throw new Error("penWithUsd leads with soles again");
+});
+
+check("the soles line carries the rate it was computed at", () => {
+  /* A soles figure alone is an assertion. A soles figure with its rate
+     beside it is arithmetic the shopper can redo — and since the rate is
+     venta, the number they check is the number we paid. */
+  const src = priceSrc();
+  const under = forwardSlice(src, "function solesUnderHTML(usd,", "function solesUnderPenHTML", "solesUnderHTML");
+  if (!/fxRateLabel\(\)/.test(under)) throw new Error("the soles line no longer names its rate");
+  if (!/fmtPEN\(usd\)/.test(under)) throw new Error("the soles line no longer shows soles");
+  /* NO RATE, NO LINE. An invented conversion is worse than none. */
+  if (!/!fxRate\)\s*return ''/.test(under)) throw new Error("the soles line would render without a live rate — that is a fabricated conversion");
+
+  const lbl = forwardSlice(src, "function fxRateLabel(){", "function solesUnderHTML", "fxRateLabel");
+  if (!/TC hoy/.test(lbl)) throw new Error("the rate label no longer reads 'TC hoy'");
+  if (!/toFixed\(2\)/.test(lbl)) throw new Error("the rate is not shown to two decimals");
+
+  const co = checkoutSrc();
+  const coLbl = forwardSlice(co, "function fxLabel(){", "function solesUnder(", "checkout fxLabel");
+  if (!/venta\.toFixed\(2\)/.test(coLbl)) throw new Error("checkout's rate label is not the venta rate");
+});
+
+check("the pay button names what actually leaves the account", () => {
+  /* Everywhere else the soles figure is small and grey under the dollar.
+     Not on this button: the card is charged in SOLES, and a button
+     reading only "Pagar $113.00" does not say what leaves the account.
+     Dollars still lead; the soles amount is never skippable. */
+  const co = checkoutSrc();
+  const pay = forwardSlice(co, "function payLabel(usdAmount, penAmount){", "function setMoney", "payLabel");
+  if (!/Pagar \$\{d\}/.test(pay)) throw new Error("the pay button no longer leads with the dollar figure");
+  if (!/pen\.format\(penAmount\)/.test(pay)) throw new Error("the pay button no longer names the soles charged");
+});
+
+check("the two currencies stack without the Tailwind CDN", () => {
+  /* THE BUG THIS PINS, found by the browser suite rather than by reading.
+     The soles line was a <span class="block ...">, and `block` is a
+     Tailwind utility. With the CDN blocked — how that suite always runs,
+     and how a visitor on a bad network sees the page — the span stays
+     inline and the price reads "$100S/ 341.00". An unreadable price at
+     the moment of deciding. display:block belongs in the inline
+     stylesheet, like every other layout rule that must survive. */
+  for (const [name, src] of [["index.html", priceSrc()], ["checkout.html", checkoutSrc()]]) {
+    const style = forwardSlice(src, "<style>", "</style>", `${name}'s inline stylesheet`);
+    if (!/\.ariaPricePen\{[^}]*display:block/.test(style.replace(/\s+/g, ""))
+        && !/ariaPricePen[^}]*display:block/.test(style.replace(/\s+/g, ""))) {
+      throw new Error(`${name} does not declare .ariaPricePen{display:block} in its own stylesheet`);
+    }
+    if (/class="block \$\{/.test(src)) {
+      throw new Error(`${name} builds a price span out of Tailwind's block utility — it vanishes with the CDN`);
+    }
+  }
+});
+
+check("an authoritative soles figure is never re-derived from the dollar", () => {
+  /* The cart subtotal and the checkout total carry soles-denominated
+     amounts — the small-order fee, the saldo. Printing
+     round2(usdTotal × rate) under them could land a céntimo off what the
+     card is charged, which is the kind of mismatch that produces a
+     support ticket rather than a bug report. */
+  const src = priceSrc();
+  if (!/function solesUnderPenHTML\(/.test(src)) throw new Error("index.html lost the soles-native price line");
+  const cart = forwardSlice(src, "const subtotalPen = orderBasePen == null", "cartCheckoutBtn", "the cart subtotal");
+  if (!/solesUnderPenHTML\(subtotalPen/.test(cart)) throw new Error("the cart subtotal re-converts instead of showing the soles it computed");
+
+  const co = checkoutSrc();
+  if (!/function solesUnderPen\(/.test(co)) throw new Error("checkout.html lost the soles-native price line");
+  if (!/solesUnderPen\(orderTotalPen\)/.test(co)) throw new Error("the checkout total re-converts instead of showing the soles it computed");
+  if (!/solesUnderPen\(chargedPen\)/.test(co)) throw new Error("the post-saldo total re-converts instead of showing the soles charged");
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

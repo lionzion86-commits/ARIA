@@ -1755,6 +1755,97 @@ await check("the rail does not move on its own", async () => {
   await ctx.close();
 });
 
+/* ---- Dollars first, soles at the venta rate ---------------------- */
+
+const FX_COMPRA = 3.35, FX_VENTA = 3.41;   // deliberately different
+const fxRoutes = {
+  /* The specific handler goes FIRST in this object and the catch-all
+     LAST, because openPage reverses the entries — Playwright matches the
+     last route REGISTERED first. Written the other way round, the
+     catch-all swallows exchange-rate and the page sees no rate at all,
+     which is how this check first "passed" against a null rate. */
+  "**/.netlify/functions/exchange-rate": (r) => r.fulfill({ status: 200, contentType: "application/json",
+    body: JSON.stringify({ compra: FX_COMPRA, venta: FX_VENTA, fecha: "2026-09-23", origen: "SUNAT" }) }),
+  "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+};
+
+await check("a $100 product shows $100 first, with S/ at the venta rate under it", async () => {
+  const { ctx, page, errors } = await openPage(fxRoutes, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(1800);
+
+  /* THE RATE ITSELF. compra is 3.35 and venta 3.41, so the soles figure
+     names which one was used: S/ 341 is venta, S/ 335 would be compra —
+     and compra undercharges every order. */
+  const rate = await page.evaluate(async () => { await loadFxRate(); return fxRate; });
+  eq(rate, FX_VENTA, "the page is not converting at the venta rate");
+
+  await page.evaluate(() => showProduct('walmart', 'Producto de prueba', 100, 1, '', [], false, null, null, [], 1));
+  await page.waitForTimeout(700);
+  const r = await page.evaluate(() => {
+    const el = document.getElementById('productViewPrice');
+    const pen = [...el.children].find(c => /S\//.test(c.textContent || ''));
+    /* SIZES ARE READ FROM THE CLASS, NOT FROM getComputedStyle. The type
+       scale here is Tailwind (text-[26px], text-[12.5px]) and Tailwind is
+       blocked in this suite by design, so every element computes to the
+       browser default 16px and a computed-size comparison is not a
+       measurement — it is two 16s. The declared class is the fact. */
+    const sizeOf = (node) => {
+      const m = (node && node.className && String(node.className).match(/text-\[(\d+(?:\.\d+)?)px\]/));
+      return m ? parseFloat(m[1]) : null;
+    };
+    return {
+      firstLine: (el.innerText || '').trim().split("\n")[0].trim(),
+      all: (el.innerText || '').replace(/\s+/g, ' ').trim(),
+      usdSize: sizeOf(el),
+      penSize: pen ? sizeOf(pen) : null,
+      penIsBlock: pen ? getComputedStyle(pen).display : null,
+    };
+  });
+  if (!/^\$100\b/.test(r.firstLine)) throw new Error(`the price does not lead with the dollar: "${r.firstLine}"`);
+  if (!/S\/\s*341[.,]00/.test(r.all)) throw new Error(`the soles conversion is not 100 x 3.41: "${r.all}"`);
+  if (/S\/\s*335/.test(r.all)) throw new Error("the soles figure was computed at compra, not venta");
+  if (!/TC hoy 3\.41/.test(r.all)) throw new Error(`the soles line does not name its rate: "${r.all}"`);
+  if (!(r.penSize && r.usdSize && r.penSize < r.usdSize)) {
+    throw new Error(`the soles line (${r.penSize}px declared) is not smaller than the dollar (${r.usdSize}px declared)`);
+  }
+  /* And it stacks UNDER the dollar with no stylesheet but our own — the
+     .ariaPricePen rule, not Tailwind's `block`. */
+  eq(r.penIsBlock, "block", "the soles line does not stack under the dollar without the CDN");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("no price block anywhere leads with soles", async () => {
+  /* The brief's own acceptance line: "no page still showing soles-first".
+     Every leaf element whose text starts with S/ is checked against the
+     price block it sits in — if a dollar figure appears in that block
+     AFTER the soles, the block leads with the wrong currency. */
+  for (const vp of [{ width: 393, height: 852 }, { width: 1280, height: 900 }]) {
+    const { ctx, page, errors } = await openPage(fxRoutes, { viewport: vp, isMobile: vp.width < 500, hasTouch: vp.width < 500 });
+    await page.waitForTimeout(1800);
+    await page.evaluate(async () => {
+      for (let y = 0; y < document.body.scrollHeight; y += 400) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 40)); }
+      window.scrollTo(0, 0);
+    });
+    await page.waitForTimeout(900);
+    const offenders = await page.evaluate(() => {
+      const out = [];
+      for (const el of document.querySelectorAll('body *')) {
+        if (el.children.length) continue;
+        if (!/^S\//.test((el.textContent || '').trim())) continue;
+        const block = el.closest('div,span,button') || el;
+        const txt = (block.innerText || '').replace(/\s+/g, ' ').trim();
+        const iPen = txt.indexOf('S/'), iUsd = txt.indexOf('$');
+        if (iUsd >= 0 && iPen >= 0 && iPen < iUsd) out.push(txt.slice(0, 80));
+      }
+      return [...new Set(out)];
+    });
+    if (offenders.length) throw new Error(`${vp.width}px: soles lead in ${offenders.length} block(s) — e.g. "${offenders[0]}"`);
+    if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+    await ctx.close();
+  }
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
