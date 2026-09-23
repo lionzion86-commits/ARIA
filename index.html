@@ -65,6 +65,13 @@
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  /* The phone's rails. Snap so a swipe lands on a card rather than
+     halfway through one, and no scrollbar because a touch rail with a
+     visible track reads as a desktop widget. Nothing here animates:
+     the shopper swipes, the rail follows. */
+  .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
+  .ariaRail::-webkit-scrollbar{ display:none }
+  .ariaRail > *{ scroll-snap-align:start }
   /* The brand directory's scroller. NOT a Tailwind utility on purpose:
      the page is built to boot with the CDN blocked, and an unbounded
      192-row list inside a store page is the one place where losing the
@@ -212,6 +219,76 @@
 
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
+
+  <!-- ============================================================
+       THE MOBILE SHOPFRONT (2026-09-23)
+
+       WHAT A REAL USER TEST FOUND: on a phone, Ofertas and Categorías
+       existed ONLY behind the hamburger, and people do not tap the
+       hamburger. They scroll. A $500 coat at $50 was three taps and a
+       guess away, under a menu nobody opens.
+
+       THREE RAILS, IN THE ORDER A SHOPPER ACTUALLY ASKS:
+
+         1. OFERTAS — the deals themselves, biggest discount first. Not
+            a link to the deals: the deals. This is the thing that has
+            to hit someone in the face before they decide the site is
+            not for them.
+         2. CATEGORÍAS — every department, for when the deals did not
+            hook. Danny's reasoning, and it is the right one: "in case
+            they don't find the ofertas they're looking for, they know
+            categories is right underneath". The fallback belongs where
+            the eye lands next, not two sections down.
+         3. TIENDAS — which US stores we actually buy from, for the
+            shopper who came knowing where they want to shop.
+
+       NOTHING MOVES ON ITS OWN. No autoplay, no timers, no scroll
+       hijacking: the shopper swipes and the rail follows. A carousel
+       that advances by itself takes the thing you were reading away
+       from you, and a test asserts there is no timer in here.
+
+       lg:hidden, NOT md:hidden, deliberately: the nav is
+       `hidden lg:flex`, so everything below 1024px is behind the
+       hamburger — tablets included. The shopfront appears exactly where
+       the menu takes over. Desktop is untouched above it.
+       ============================================================ -->
+  <div id="mobileShopfront" class="lg:hidden">
+
+    <!-- OFERTAS: on the navy band, because a sale rail should read as
+         the brightest thing on the page and gold only sings on navy. -->
+    <section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <div class="flex items-baseline gap-2 min-w-0">
+          <span class="text-[22px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+          <span aria-hidden="true" class="text-[15px] leading-none">🔥</span>
+        </div>
+        <button onclick="goSales()" class="flex items-center gap-1 text-[13px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
+          Ver todo
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+        </button>
+      </div>
+      <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+    <!-- CATEGORÍAS -->
+    <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
+        <button onclick="openCategories()" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
+      </div>
+      <div id="mobileCatsRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
+
+    <!-- TIENDAS -->
+    <section aria-label="Tiendas" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas en EE.&nbsp;UU.</h2>
+        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
+      </div>
+      <div id="mobileStoresRow" class="flex gap-2.5 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
+  </div>
 
   <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
     <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
@@ -853,6 +930,23 @@
         </div>
       </div>
     </div>
+
+    <!-- ============================================================
+         TAMBIÉN TE PUEDE INTERESAR (2026-09-23)
+
+         Below the product's details and above the footer, on every
+         product page. Empty until renderRelatedRail() has something
+         honest to put in it -- a heading over nothing is worse than no
+         heading, so the wrapper carries neither until the cards exist.
+
+         NOTHING AUTOPLAYS. Same .ariaRail as the shopfront's three: the
+         shopper swipes, the rail follows, and a test asserts there is no
+         timer in the renderer.
+         ============================================================ -->
+    <section id="relatedRail" aria-labelledby="relatedRailTitle" hidden class="mt-10 sm:mt-14">
+      <h2 id="relatedRailTitle" class="text-[17px] sm:text-[20px] font-extrabold tracking-[-0.02em] mb-4" style="color:var(--navy)">También te puede interesar</h2>
+      <div id="relatedRailRow" class="flex gap-3 overflow-x-auto pb-2 ariaRail"></div>
+    </section>
   </div>
 </div>
 
@@ -3533,9 +3627,355 @@ function initDepartmentTiles(){
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')
       : '<div class="col-span-full text-[13px] text-zinc-400">No hay departamentos disponibles por ahora.</div>';
+    // The phone's third rail, from the SAME tiles — never a second list.
+    renderMobileCatsRail(tiles);
   });
 }
 window.addEventListener('DOMContentLoaded', initDepartmentTiles);
+
+
+
+/* ============================================================
+   THE PHONE'S THREE RAILS.
+
+   ONE SOURCE EACH, AND ALL THREE ARE SOURCES THAT ALREADY EXIST:
+   Ofertas reads saleItemsCache — literally what renderSalesGrid()
+   paints, so the rail and the feed can never disagree about what is on
+   sale or by how much. Tiendas reads the retailer registry through the
+   same chip the home page's store grid uses. Categorías reads the same
+   tiles the department grid just drew. No rail invents a second list.
+
+   NOTHING AUTOPLAYS. There is no timer, no interval and no programmatic
+   scroll anywhere in here. A rail that advances on its own takes the
+   card you were looking at away from you.
+   ============================================================ */
+
+/* The deals the rail is showing, in the order it is showing them, so a
+   tap opens the card that was tapped. Same pattern as salesRendered. */
+let mobileDealsRendered = [];
+
+function openMobileDeal(idx){
+  const p = mobileDealsRendered[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+}
+
+/* ============================================================
+   ONE RAIL CARD, USED BY EVERY RAIL.
+
+   The discount badge is the loudest thing on it on purpose — it is the
+   number that makes someone stop. A product that is NOT marked down
+   simply has no badge and no struck price; the same card draws both,
+   which is what lets the product page's "También te puede interesar"
+   rail use it without a second component drifting away from this one.
+
+   `onclick` and `attr` are the only things a caller varies: each rail
+   owns its own rendered list, so each card has to open the right one.
+   ============================================================ */
+function railCardHTML(p, onclick, attr){
+  const pct = discountPct(p);
+  const original = Number(p.originalPrice);
+  const hasOriginal = Number.isFinite(original) && original > Number(p.price);
+  return `<button onclick="${onclick}" ${attr}
+    class="flex-shrink-0 w-[172px] text-left rounded-2xl overflow-hidden focus-ring"
+    style="background:#fff">
+    <span class="relative block w-full h-[172px]" style="background:#fff">
+      ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) })}
+      ${hasOriginal ? `<span class="absolute top-2 left-2 text-[13px] font-extrabold px-2 py-1 rounded-full"
+        style="background:#F4C463; color:var(--navy)">-${pct}%</span>` : ''}
+    </span>
+    <span class="block px-3 pt-2.5 pb-3">
+      <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</span>
+      <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
+      <span class="flex items-baseline gap-1.5">
+        <span class="text-[15px] font-extrabold tabular" style="color:var(--navy)">${fmtDisplayPrice(p.price)}</span>
+        ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:#9AA3B5">${fmtPEN(displayPriceUsd(original))}</span>` : ''}
+      </span>
+    </span>
+  </button>`;
+}
+
+/* The Ofertas rail's card: the shared one, pointed at its own list. */
+function mobileDealCardHTML(p, idx){
+  return railCardHTML(p, `openMobileDeal(${idx})`, `data-mobile-deal="${idx}"`);
+}
+
+/* ==================================================================
+   "TAMBIÉN TE PUEDE INTERESAR" — THE PRODUCT PAGE'S RAIL.
+
+   DETERMINISTIC, AND THAT IS THE WHOLE POINT. No model, no embedding,
+   no similarity score anyone would have to take on trust: two rules a
+   shopper could check by hand, in the order Danny wrote them.
+
+     1. THE SAME DEPARTMENT, priced within ±50% of the product being
+        looked at, never the product itself.
+     2. STILL SHORT OF EIGHT? the same STORE, same price band -- because
+        a second thing from the shop you are already buying from ships
+        in the same box, which is the next most useful suggestion when
+        the department runs dry.
+
+   TEN CARDS AT MOST, and fewer without apology: a rail padded out with
+   things that do not fit the band is a rail that stops meaning
+   anything.
+
+   FAIL CLOSED, TWICE OVER. A candidate without a finite price above
+   zero is never shown -- the cache really does carry 174 priceless
+   records, and a card with no price is a promise the product page
+   cannot keep (see the no-price/no-buy work). And if the PRODUCT BEING
+   VIEWED has no valid price there is no band to compute from, so the
+   rail draws nothing at all rather than guessing a centre.
+   ================================================================== */
+const RELATED_RAIL_MIN = 8;      // below this, reach for the same store
+const RELATED_RAIL_MAX = 10;     // "10 cards max"
+const RELATED_PRICE_BAND = 0.5;  // ±50%
+
+function relatedKeyOf(it){ return `${it?.retailer || ''}::${it?.title || ''}`; }
+
+/* Pure: an anchor and a pool in, an ordered list out. Kept free of the
+   DOM and of the cache so it can be run over made-up catalogues in a
+   test -- "one store per card" and "±50%" are claims about what comes
+   out, not about what the source looks like. */
+function relatedProducts(anchor, pool, opts){
+  const { min = RELATED_RAIL_MIN, max = RELATED_RAIL_MAX, band = RELATED_PRICE_BAND } = opts || {};
+  const anchorPrice = Number(anchor?.price);
+  // No band without a price on the thing being looked at.
+  if (!Number.isFinite(anchorPrice) || anchorPrice <= 0) return [];
+  const lo = anchorPrice * (1 - band), hi = anchorPrice * (1 + band);
+
+  const anchorKey = relatedKeyOf(anchor);
+  const anchorDepts = new Set(anchor?.departments || []);
+  const seen = new Set([anchorKey]);
+  const out = [];
+
+  const eligible = (it) => {
+    if (out.length >= max) return false;
+    const key = relatedKeyOf(it);
+    if (!it?.title || seen.has(key)) return false;
+    const price = Number(it.price);
+    if (!Number.isFinite(price) || price <= 0) return false;   // fail closed
+    if (price < lo || price > hi) return false;
+    /* A card is a photograph with a price on it. Without the photograph
+       it is a grey box, which the Ofertas rail already refuses to draw
+       and this one has no reason to draw either. */
+    if (!it.image) return false;
+    return true;
+  };
+  const take = (list) => { for (const it of list){ if (!eligible(it)) continue; seen.add(relatedKeyOf(it)); out.push(it); } };
+
+  // 1. same department
+  take(pool.filter(it => (it.departments || []).some(d => anchorDepts.has(d))));
+  // 2. backfill from the same store, same band
+  if (out.length < min) take(pool.filter(it => it.retailer === anchor?.retailer));
+  return out;
+}
+
+/* Every catalogue item once, with every department it appears in.
+
+   ONE ENTRY PER PRODUCT, NOT PER BUCKET: Old Navy's `clothing` bucket is
+   a merge of its gendered ones, so the same jeans are in the cache
+   twice and a naive pass would offer them to the shopper twice. The
+   departments are collected onto the single entry instead, which is
+   also what lets the anchor match on ANY bucket it belongs to rather
+   than whichever one happened to be read first. */
+let relatedPoolCache = null;
+async function relatedPool(){
+  if (relatedPoolCache) return relatedPoolCache;
+  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
+  const byKey = new Map();
+  for (const [retailer, bucket] of Object.entries(departmentCacheData?.retailers || {})){
+    for (const [department, entry] of Object.entries(bucket?.departments || {})){
+      for (const raw of entry?.items || []){
+        const it = normalizeLiveItem(raw, { retailer, department });
+        if (!it.title) continue;
+        const key = retailer + '::' + it.title;
+        const had = byKey.get(key);
+        if (had){ if (!had.departments.includes(department)) had.departments.push(department); continue; }
+        byKey.set(key, { ...it, retailer, departments: [department] });
+      }
+    }
+  }
+  relatedPoolCache = [...byKey.values()];
+  return relatedPoolCache;
+}
+
+let relatedRendered = [];
+
+function openRelatedProduct(idx){
+  const p = relatedRendered[idx];
+  if (!p) return;
+  /* Straight back into showProduct, which is what makes the next page
+     draw its OWN rail off its own anchor -- the brief's "tapping a card
+     opens that product's page, which renders its own rail". */
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+}
+
+async function renderRelatedRail(anchorIn){
+  const section = document.getElementById('relatedRail');
+  const row = document.getElementById('relatedRailRow');
+  if (!section || !row) return;
+  const anchor = anchorIn;
+  section.hidden = true; row.innerHTML = ''; relatedRendered = [];
+  if (!anchor || !Number.isFinite(Number(anchor.price)) || Number(anchor.price) <= 0) return;
+
+  const pool = await relatedPool().catch(() => []);
+  /* The shopper may have moved on while the cache loaded. Drawing a rail
+     for the product they just left is worse than drawing none. */
+  const current = document.getElementById('productViewTitle')?.textContent || '';
+  if (current !== anchor.title) return;
+
+  const mine = pool.find(it => relatedKeyOf(it) === relatedKeyOf(anchor));
+  const picks = relatedProducts({ ...anchor, departments: mine?.departments || anchor.departments || [] }, pool);
+  if (!picks.length) return;
+
+  relatedRendered = picks;
+  row.innerHTML = picks.map((p, i) => railCardHTML(p, `openRelatedProduct(${i})`, `data-related="${i}"`)).join('');
+  section.hidden = false;
+}
+
+/* ONE STORE PER CARD IN THE OPENING RUN.
+
+   WHY (2026-09-23). Sorted by discount alone, the rail opened on three
+   near-identical Macy's puffer coats -- "Women's Hooded Stand Collar
+   Puffer Coat" and "Women's Collar Hooded Puffer Coat", both -86%, both
+   $53.02 from $465.11. Every one of them honest, and together a weaker
+   first impression than three different things: the rail's job is to
+   make someone stop, and the third coat says nothing the first did not.
+
+   So the FIRST MOBILE_RAIL_LEAD cards take at most one per retailer.
+   Nothing is dropped and nothing is re-ranked beyond that: a store's
+   second markdown keeps its place in the queue and comes back the
+   moment the lead is full, so the rail is still ordered by discount,
+   just not by the same shop five times.
+
+   IT DEGRADES INTO THE OLD BEHAVIOUR ON PURPOSE. If only two stores
+   have deals today, the lead fills from the leftovers rather than
+   coming up short -- five cards from two shops beats two cards. */
+const MOBILE_RAIL_LEAD = 5;
+
+function spreadDealsByStore(sorted, lead){
+  const first = [];
+  const held = [];
+  const seen = new Set();
+  for (const p of sorted){
+    if (first.length >= lead) { held.push(p); continue; }
+    const key = String(p.retailer || '');
+    if (seen.has(key)) { held.push(p); continue; }
+    seen.add(key);
+    first.push(p);
+  }
+  // Short on distinct stores: fill the lead back up from what was held,
+  // in the discount order they already had.
+  while (first.length < lead && held.length) first.push(held.shift());
+  return first.concat(held);
+}
+
+/* BIGGEST DISCOUNT FIRST, which is the whole brief: "80% off first".
+   Sorted here rather than trusting the feed's own order, because the
+   feed defaults to cheapest door-to-door and this rail is answering a
+   different question. */
+function renderMobileDealsRail(){
+  const row = document.getElementById('mobileDealsRow');
+  if (!row) return;
+  const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
+    .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
+      && Number(p.originalPrice) > Number(p.price) && p.image)
+    .sort((a, b) => discountPct(b) - discountPct(a));
+  const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
+  mobileDealsRendered = deals;
+  if (!deals.length){
+    /* An empty rail is worse than none. The same honest line the Ofertas
+       page itself shows on a cold cache, not a row of grey boxes. */
+    row.innerHTML = `<div class="text-[12.5px] leading-relaxed pb-1" style="color:#AFBBD6">
+      Estamos actualizando las ofertas. Mientras tanto, busca cualquier producto arriba — el buscador funciona con normalidad.
+    </div>`;
+    return;
+  }
+  row.innerHTML = deals.map(mobileDealCardHTML).join('')
+    + `<button onclick="goSales()" data-mobile-deal-all
+        class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3"
+        style="background:rgba(255,255,255,0.08); border:1px solid rgba(244,196,99,0.45)">
+        <span class="block">
+          <span class="block text-[13px] font-extrabold" style="color:#F4C463">Ver todo</span>
+          <span class="block text-[11.5px] mt-1" style="color:#AFBBD6">${saleItemsCache.length.toLocaleString('es-PE')} ofertas</span>
+        </span>
+      </button>`;
+}
+
+/* The same chip the home page's store grid renders, in a rail. Reused
+   rather than restyled so a store's mark, its colour and its honest
+   "próximamente" treatment cannot differ between the two. */
+function renderMobileStoresRail(){
+  const row = document.getElementById('mobileStoresRow');
+  if (!row) return;
+  row.innerHTML = activeRetailers()
+    /* `grid` so the shared chip -- which carries no width of its own,
+       because in the home grid its cell gives it one -- stretches to the
+       rail's 118px instead of shrinking to fit its logo. A rail whose
+       tiles are each a different width reads as broken, not as a shelf. */
+    .map(r => `<div class="flex-shrink-0 w-[118px] grid">${homeStoreChipHTML(r)}</div>`)
+    .join('');
+}
+
+/* Department cards at rail scale, wearing the same curated covers as
+   the full-size cards. Built from the tiles the grid just drew, so a
+   new department (Zapatos, and whatever follows) appears here with no
+   second change. */
+function mobileCatCardHTML(t, kind){
+  const cover = categoryCoverFor(t.key);
+  const art = cover
+    ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" decoding="async"
+         style="width:100%; height:100%; object-fit:cover; object-position:center">`
+    : `<span class="w-full h-full grid place-items-center text-[26px]" style="background:var(--sky)" aria-hidden="true">${t.icon}</span>`;
+  return `<button onclick="openCatalog('${jsAttr(kind)}','${jsAttr(t.key)}')" data-mobile-cat="${escapeHtml(t.key)}"
+    class="flex-shrink-0 w-[148px] text-left rounded-2xl overflow-hidden border focus-ring" style="border-color:var(--line); background:#fff">
+    <span class="block w-full h-[104px] overflow-hidden" style="background:var(--sky)">${art}</span>
+    <span class="block px-3 py-2.5">
+      <span class="block text-[13px] font-extrabold leading-tight" style="color:var(--navy)">${escapeHtml(t.label)}</span>
+      <span class="block text-[11px] mt-0.5 tabular" style="color:#6B7487">${t.count ? `${t.count.toLocaleString('es-PE')} productos` : 'Ver'}</span>
+    </span>
+  </button>`;
+}
+
+function renderMobileCatsRail(tiles){
+  const row = document.getElementById('mobileCatsRow');
+  if (!row) return;
+  row.innerHTML = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('');
+}
+
+/* OFERTAS LOADS FIRST, per the brief, and it is the one rail that needs
+   anything fetched: runSalesScan() is the feed's own builder (cache +
+   file-backed deals, through passesOfertasGate), so calling it here
+   means the rail shows exactly what the page behind it will show. The
+   department cache it reads is memoized and already on its way.
+
+   Only on the phone. On a desktop the rails are display:none and this
+   would be a fetch and a hundred product photos for nothing -- but a
+   desktop window dragged narrow, or a tablet turned on its side, crosses
+   `lg` and reveals them. So the same query that hides them is watched,
+   and the rails fill the first time they are actually on screen. Once
+   filled they stay filled; re-crossing the breakpoint does not re-fetch. */
+const MOBILE_SHOPFRONT_MQ = '(max-width: 1023px)';
+let mobileShopfrontStarted = false;
+
+function initMobileShopfront(){
+  if (mobileShopfrontStarted) return;
+  if (!document.getElementById('mobileDealsRow')) return;
+  if (!window.matchMedia(MOBILE_SHOPFRONT_MQ).matches) return;
+  mobileShopfrontStarted = true;
+  renderMobileStoresRail();
+  runSalesScan().then(renderMobileDealsRail).catch(() => renderMobileDealsRail());
+}
+window.addEventListener('DOMContentLoaded', () => {
+  initMobileShopfront();
+  const mq = window.matchMedia(MOBILE_SHOPFRONT_MQ);
+  // addListener is the Safari-15-and-older spelling; some iPhones still run it.
+  if (mq.addEventListener) mq.addEventListener('change', initMobileShopfront);
+  else if (mq.addListener) mq.addListener(initMobileShopfront);
+});
 window.addEventListener('DOMContentLoaded', renderPrecioHonestoCards);
 loadFxRate(); // kick off the fetch as early as possible; render paths below await the same memoized promise
 
@@ -6200,6 +6640,17 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   }
 
   showPage('productView');
+
+  /* THE RAIL IS DRAWN FROM THIS CALL, NOT FROM A ROUTE OR A LISTENER.
+     showProduct() is the one door onto this page -- a card, a search
+     result, a cross-sell, the Ofertas rail, and the related rail itself
+     all come through here -- so hooking it is what makes "tapping a
+     card opens that product's page, which renders its own rail" true
+     without a second place to remember.
+
+     Not awaited: the details are already on screen and the rail fills
+     underneath them when the cache is ready. */
+  renderRelatedRail({ retailer, title: name, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
 }
 
 function goBack(){
@@ -8280,6 +8731,10 @@ function estimateRetailWeightKg(text, hints){
 
 // A markdown under this is not worth calling an oferta.
 const MIN_DISCOUNT_PCT = 5;
+/* How many deals the phone's rail holds. Enough that a swipe keeps
+   finding more, few enough that the page is not carrying a hundred
+   product photos before the hero. "Ver todo" carries the rest. */
+const MOBILE_RAIL_DEALS = 20;
 
 // Gender/age markers retailers actually put in titles. Confirmed forms:
 // Old Navy "... for Boys" / "... for Girls"; Foot Locker "... - Men's" /
