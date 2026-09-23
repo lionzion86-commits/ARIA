@@ -5296,6 +5296,28 @@ check("the image-quality gate survived the restyle", () => {
 /* ------------------------------------------------------------------ */
 group("The home page tells the story once");
 
+check("the page promises nothing we cannot do", () => {
+  /* "Cuando el producto también existe en tiendas peruanas, te
+     mostramos ambos precios…" was a card in Por qué Aria, and the
+     function behind it does not exist: there is no Peru price source
+     and no matching. It is a parked idea, and a parked idea on the
+     home page is a claim.
+
+     Asserted on the whole page, not just that section, so it cannot
+     come back somewhere else. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  for (const claim of ["Compara con el precio en Perú", "tiendas peruanas, te mostramos ambos precios"]) {
+    if (src.includes(claim)) throw new Error(`the Peru price-comparison promise is back: "${claim}"`);
+  }
+  /* The rest of Por qué Aria is untouched -- this was a removal of one
+     card, not a trim of the section. */
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  for (const kept of ["Acceso a las grandes ofertas de EE. UU.", "Precio final, sin sorpresas",
+                      "marcas y modelos que nunca llegan a las tiendas peruanas"]) {
+    if (!why.includes(kept)) throw new Error(`the removal took more than the one card: "${kept}" is gone`);
+  }
+});
+
 check("the explainer follows the logo, and the category tiles follow the explainer", () => {
   /* THE PHONE USED TO READ: Ofertas -> Categorías (the compact
      carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
