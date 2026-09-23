@@ -21,6 +21,7 @@
    every check: the page must boot without it.
    ============================================================ */
 import { chromium } from "playwright";
+import { createServer } from "node:http";
 
 const BASE = process.env.ARIA_BASE_URL || "http://127.0.0.1:8899";
 let passed = 0;
@@ -1269,6 +1270,186 @@ await check("a brand row opens exactly what its card opened", async () => {
   if (!landed.products) throw new Error("the brand page opened with nothing in it");
   if (errors.length) throw new Error("errors on the brand page: " + errors.join(" | "));
   await ctx.close();
+});
+
+/* ==================================================================
+   STREAMING THE CHAT — over a real socket, because a fake one proves
+   nothing.
+
+   Playwright's route.fulfill() hands the browser a COMPLETE body. A
+   "stream" mocked that way arrives in one piece and every assertion
+   below would pass against the buffered code this change replaces. So
+   these checks run against a real HTTP server that writes events one at
+   a time, with real delays, and proxies everything else to the static
+   server the rest of this file uses.
+
+   Four deploys are simulated, because the fallback matters as much as
+   the stream: one that streams, one where the function is missing, one
+   where something between us and the browser buffers the stream anyway,
+   and one where the connection dies mid-reply.
+   ================================================================== */
+const SSE_REPLY = "Claro, el envío desde Miami tarda entre siete y diez días hábiles una vez que tu pedido sale del almacén.";
+const SSE_TOKEN_MS = 18;
+const BUFFERED_DELAY_MS = 700;
+
+function startChatMock(mode) {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const server = createServer(async (req, res) => {
+    const path = new URL(req.url, "http://x").pathname;
+
+    if (path === "/.netlify/functions/aria-chat-stream") {
+      if (mode === "missing") { res.writeHead(404).end("not found"); return; }
+      if (mode === "buffered") {
+        // An intermediary that swallows the stream: same events, one write.
+        const body = SSE_REPLY.split(" ").map((w) => `data: ${JSON.stringify({ t: w + " " })}\n\n`).join("")
+          + `data: ${JSON.stringify({ done: true, reply: SSE_REPLY, audio: null })}\n\n`;
+        await sleep(BUFFERED_DELAY_MS);
+        res.writeHead(200, { "Content-Type": "text/event-stream", "Content-Length": Buffer.byteLength(body) }).end(body);
+        return;
+      }
+      res.writeHead(200, { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no" });
+      const words = SSE_REPLY.split(" ");
+      for (let i = 0; i < words.length; i++) {
+        if (mode === "die" && i === 6) { res.destroy(); return; }
+        res.write(`data: ${JSON.stringify({ t: words[i] + (i < words.length - 1 ? " " : "") })}\n\n`);
+        await sleep(SSE_TOKEN_MS);
+      }
+      res.write(`data: ${JSON.stringify({ done: true, reply: SSE_REPLY, audio: null })}\n\n`);
+      res.end();
+      return;
+    }
+    if (path === "/.netlify/functions/aria-chat-groq") {
+      await sleep(BUFFERED_DELAY_MS);
+      res.writeHead(200, { "Content-Type": "application/json" }).end(JSON.stringify({ reply: SSE_REPLY, audio: null }));
+      return;
+    }
+    if (path.startsWith("/.netlify/functions/")) { res.writeHead(200, { "Content-Type": "application/json" }).end("{}"); return; }
+
+    // Everything else is the page itself, from the static server.
+    try {
+      const upstream = await fetch(BASE + path);
+      const buf = Buffer.from(await upstream.arrayBuffer());
+      res.writeHead(upstream.status, { "Content-Type": upstream.headers.get("content-type") || "application/octet-stream" }).end(buf);
+    } catch { res.writeHead(502).end("upstream"); }
+  });
+  return new Promise((resolve) => server.listen(0, "127.0.0.1", () => resolve({ server, port: server.address().port })));
+}
+
+/** Open the chat on the mock, send one question, watch the bubble fill. */
+async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
+  const { server, port } = await startChatMock(mode);
+  const ctx = await browser.newContext({ viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
+  await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(900);
+  await page.evaluate(() => {
+    window.__growth = [];
+    const wrap = document.getElementById("assistantMessages");
+    new MutationObserver(() => {
+      const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+      const last = bots[bots.length - 1];
+      const len = last ? (last.textContent || "").length : 0;
+      const prev = window.__growth[window.__growth.length - 1];
+      if (!prev || prev[1] !== len) window.__growth.push([Math.round(performance.now()), len, bots.length]);
+    }).observe(wrap, { childList: true, subtree: true, characterData: true });
+    toggleAssistant();
+  });
+  await page.waitForTimeout(400);
+  await page.fill("#assistantInput", question);
+  const sentAt = await page.evaluate(() => { const t = performance.now(); sendAssistantText(); return t; });
+  /* THE ANCHOR IS READ ONCE THE REPLY HAS STARTED, not before it. The
+     acknowledgment note ("Dame un segundo…") is added deliberately
+     between the question and the reply, so measuring from before the
+     send would count that as a shift. What must not move is everything
+     already on screen while the bubble GROWS. */
+  await page.waitForFunction(() => {
+    const wrap = document.getElementById("assistantMessages");
+    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    return bots.some((b) => (b.textContent || "").length > 0 && b.hasAttribute("aria-busy"))
+      || window.__growth.some((x) => x[1] > 0);
+  }, null, { timeout: 20000 }).catch(() => {});
+  const notesBefore = await page.evaluate(() =>
+    [...document.querySelectorAll("#assistantMessages .assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top)));
+  await page.waitForFunction(() => {
+    const wrap = document.getElementById("assistantMessages");
+    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const last = bots[bots.length - 1];
+    return last && (last.textContent || "").length > 0 && !last.hasAttribute("aria-busy");
+  }, null, { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(500);
+  const out = await page.evaluate((sentAt) => {
+    const wrap = document.getElementById("assistantMessages");
+    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const last = bots[bots.length - 1];
+    const g = window.__growth.filter((x) => x[1] > 0);
+    return {
+      firstTokenMs: g.length ? Math.round(g[0][0] - sentAt) : null,
+      steps: g.length,
+      text: last ? last.textContent : "",
+      /* NON-EMPTY ONLY. toggleAssistant() greets through a different
+         endpoint, and against this mock that greeting comes back with
+         no reply and renders an EMPTY bubble — a real (pre-existing)
+         rough edge in the greeting path, and not what these checks are
+         about. Counting answers, not boxes. */
+      botBubbles: bots.filter((b) => (b.textContent || "").trim().length > 0).length,
+      typingLeft: Boolean(document.getElementById("assistantTyping")),
+      notesAfter: [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top)),
+      history: (typeof ariaChatHistory !== "undefined" ? ariaChatHistory : []).map((h) => h.role),
+    };
+  }, sentAt);
+  await ctx.close();
+  server.close();
+  return { ...out, errors, notesBefore };
+}
+
+await check("the reply arrives word by word, not all at once", async () => {
+  const r = await runChatTurn("stream");
+  if (r.errors.length) throw new Error(r.errors.join(" | "));
+  eq(r.text, SSE_REPLY, "the whole reply landed");
+  /* THE ASSERTION THAT MATTERS. A buffered reply reaches its final
+     length in ONE step; a streamed one climbs. The old code scored 1
+     here by construction. */
+  if (r.steps < 8) throw new Error(`the bubble filled in ${r.steps} steps — that is not streaming`);
+  // …and the first words are readable long before the reply is done.
+  if (!(r.firstTokenMs !== null && r.firstTokenMs < 1000)) {
+    throw new Error(`first token at ${r.firstTokenMs}ms — the brief asks for under a second`);
+  }
+  eq(r.typingLeft, false, "the typing indicator outlived the first token");
+  // NO LAYOUT SHIFT: nothing above the reply moved while it grew.
+  eq(JSON.stringify(r.notesAfter), JSON.stringify(r.notesBefore), "something above the reply moved");
+  eq(r.history.join(), "user,assistant", "the turn was recorded exactly once");
+});
+
+await check("a deploy that cannot stream still answers, once", async () => {
+  /* THE FALLBACK IS THE POINT. Whether a given Netlify deploy flushes a
+     streamed response through its CDN could not be verified from the
+     build environment, so the page must behave exactly as it did before
+     when it does not — including NOT rendering the answer twice. */
+  for (const mode of ["missing", "buffered"]) {
+    const r = await runChatTurn(mode);
+    if (r.errors.length) throw new Error(`${mode}: ${r.errors.join(" | ")}`);
+    eq(r.text, SSE_REPLY, `${mode}: the reply still arrives`);
+    eq(r.botBubbles, 1, `${mode}: ${r.botBubbles} bot bubbles — the answer was rendered twice`);
+    eq(r.typingLeft, false, `${mode}: the typing indicator was left up`);
+    eq(r.history.join(), "user,assistant", `${mode}: the turn was recorded once`);
+  }
+});
+
+await check("a stream that dies keeps what the shopper is already reading", async () => {
+  const r = await runChatTurn("die");
+  if (r.errors.length) throw new Error(r.errors.join(" | "));
+  /* Deleting a half-read paragraph to replace it with an error is worse
+     than a short answer. The words stay, the history records what was
+     really said, and a quiet note says it stopped. */
+  if (!r.text.length) throw new Error("the partial reply was thrown away");
+  if (r.text.length >= SSE_REPLY.length) throw new Error("the reply was not actually truncated");
+  if (!SSE_REPLY.startsWith(r.text.trim())) throw new Error(`kept text is not a prefix of the reply: ${r.text}`);
+  eq(r.botBubbles, 1, "the dead stream was re-asked and answered twice");
+  eq(r.history.join(), "user,assistant", "the truncated turn was recorded once");
+  if (r.notesAfter.length <= r.notesBefore.length) throw new Error("nothing told the shopper the reply was cut off");
 });
 
 

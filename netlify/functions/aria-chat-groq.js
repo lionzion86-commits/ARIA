@@ -16,7 +16,21 @@
 // The caller now searches first and passes the real results in as
 // `products`. Everything the reply may assert about availability, price
 // and retailer comes from that list.
-import { buildSystemPrompt, sanitizeHistory } from "./_aria-prompt.js";
+//
+// STILL HERE, AND ON PURPOSE (2026-09-22). aria-chat-stream.js renders
+// the same reply token by token and is what index.html tries first. This
+// endpoint is the fallback it drops back to — a Netlify deploy that does
+// not flush an event stream, an old cached page, a browser without
+// ReadableStream. It is also the only shape that can answer at all from
+// a V1 Lambda handler, which is what this is.
+//
+// The request it sends is built by _aria-chat-model.js, which the
+// streaming endpoint also uses, so the two cannot answer differently:
+// same model, same temperature, same cap, same system prompt. That
+// matters more than the duplication it removes — a shopper getting a
+// different Aria depending on whether streaming worked today is the
+// failure this shares a module to prevent.
+import { chatRequestBody, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -31,30 +45,14 @@ export async function handler(event) {
 
   try {
     const body = JSON.parse(event.body || "{}");
-    const message = typeof body.message === "string" ? body.message : "";
-    // History was already being sent by the caller and silently dropped
-    // here, so every turn was answered with no memory of the last one.
-    const history = sanitizeHistory(body.history);
-    const products = Array.isArray(body.products) ? body.products.slice(0, 6) : [];
-    // Recipient gender/age the client extracted; see recipientRulesEs.
-    const recipient = body.recipient && typeof body.recipient === "object" ? body.recipient : null;
 
-    const chatResponse = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    const chatResponse = await fetch(GROQ_CHAT_URL, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "openai/gpt-oss-120b",
-        messages: [
-          { role: "system", content: buildSystemPrompt(products, recipient) },
-          ...history,
-          { role: "user", content: message },
-        ],
-        temperature: 0.7,
-        max_tokens: 250,
-      }),
+      body: JSON.stringify(chatRequestBody(body)),
     });
 
     const chatData = await chatResponse.json();
@@ -64,23 +62,9 @@ export async function handler(event) {
     }
 
     // Grok TTS (still the cheaper voice option). A voice failure must not
-    // cost the customer the text reply, so the audio is best-effort.
-    let audioBase64 = null;
-    try {
-      const ttsResponse = await fetch("https://api.x.ai/v1/tts", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.GROK_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ voice_id: "ara", text: reply, language: "es" }),
-      });
-      if (ttsResponse.ok) {
-        audioBase64 = Buffer.from(await ttsResponse.arrayBuffer()).toString("base64");
-      }
-    } catch {
-      audioBase64 = null; // browser voice fallback handles this client-side
-    }
+    // cost the customer the text reply, so the audio is best-effort — see
+    // speechFor(), which is the same call this file used to make inline.
+    const audioBase64 = await speechFor(reply);
 
     return {
       statusCode: 200,
