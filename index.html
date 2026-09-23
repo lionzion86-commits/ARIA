@@ -2806,6 +2806,7 @@ const DEPARTMENT_META = {
   kids: { label: 'Moda Niños', icon: '🧒' },
   sale: { label: 'Ofertas', icon: '🔥' },
   beauty: { label: 'Belleza', icon: '💄' },
+  shoes: { label: 'Zapatos', icon: '👟' },
 };
 const BRAND_META = {
   nike: { label: 'Nike', icon: '✔️' },
@@ -3028,6 +3029,7 @@ const CATEGORY_COVERS = {
   men:             'assets/category/men.jpg',
   pharmacy:        'assets/category/pharmacy.jpg',
   sale:            'assets/category/sale.jpg',
+  shoes:           'assets/category/shoes.jpg',
   sporting_goods:  'assets/category/sporting_goods.jpg',
   women:           'assets/category/women.jpg',
 };
@@ -3248,6 +3250,19 @@ const DEPARTMENT_SPEC = {
      means the tile appears by itself the moment the first beauty bucket
      lands, with no second change. */
   beauty:          { category: 'beauty' },
+  /* ZAPATOS (2026-09-23). Not a category either, and for a different
+     reason than Ofertas: footwear is a KIND OF ITEM that lives inside
+     other people's buckets. Foot Locker files its shoes under men,
+     women and kids; Walmart's are in clothing and sporting_goods;
+     SSENSE's 442 pairs are all in one "men" bucket. No scrape declares
+     a footwear facet, so no bucket name can find them.
+
+     Answered per item instead — isFootwear() below, mirroring
+     scripts/lib/footwear.js, where the three signals and every false
+     positive they had to learn to refuse are written down. A shoe stays
+     in Moda Hombre too; departments overlap here exactly as Ofertas
+     overlaps everything. */
+  shoes:           { anyCategory: true, footwearOnly: true },
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
@@ -3270,6 +3285,56 @@ const BUCKET_SPEC = {
   beauty:          { category: 'beauty' },
   fragrance:       { category: 'beauty' },
 };
+
+/* ============================================================
+   IS THIS A SHOE? — MIRROR of scripts/lib/footwear.js. Change one,
+   change the other; a parity test compares them over the real
+   catalogues. The module carries the full note; the short version:
+
+   THREE SIGNALS, MOST TRUSTWORTHY FIRST.
+   1. A PUBLISHED TYPE, and it settles the question EITHER WAY. SSENSE
+      and Macy's ship one on every item. It finds 463 of the 539 shoes
+      here, and it is also what keeps SSENSE's "Oxford Single Blazer"
+      out — oxford is a cloth as well as a shoe, and the retailer's own
+      classification beats our keyword.
+   2. A FOOTWEAR RETAILER. Foot Locker's titles are model names ("New
+      Balance 9060 - Men's"); MEASURED, a keyword list catches 2 of its
+      65 products. The store is the signal.
+   3. A TITLE KEYWORD, the last resort — all the generalists give us.
+
+   Two words from the brief are deliberately absent: "taco" (Peruvian
+   Spanish for heel, American English for dinner) and "trainer" (a
+   sneaker in Britain, gym equipment here — it matched two SKLZ
+   resistance trainers and zero shoes).
+   ============================================================ */
+const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?)\b/;
+const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
+const NOT_FOOTWEAR = /\b(socks?|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
+const FOOTWEAR_RETAILERS = new Set(['footlocker']);
+
+function isFootwearType(type){
+  const t = String(type ?? '').toUpperCase();
+  return t ? FOOTWEAR_TYPE.test(t) : false;
+}
+function isFootwearTitle(title){
+  const t = String(title ?? '');
+  if (!t) return false;
+  if (NOT_FOOTWEAR.test(t)) return false;
+  return FOOTWEAR_TITLE.test(t);
+}
+function isFootwear(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  if (item.type) return isFootwearType(item.type);
+  const title = item.title || item.name || item.productTitle || item.productName || '';
+  /* A negative title outranks a footwear store, and has to be CHECKED
+     FIRST to do so — this returned true on the store rule before ever
+     reading the title, which made Foot Locker's crew socks footwear.
+     It sells socks and hoodies in real life; they are just not in
+     today's cache. */
+  if (NOT_FOOTWEAR.test(title)) return false;
+  if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
+  return isFootwearTitle(title);
+}
 
 function rawTitleOf(item){
   return item?.title || item?.name || item?.productTitle || item?.productName || '';
@@ -3307,10 +3372,13 @@ function rawItemOnSale(item){
   return Math.round((1 - price / original) * 100) >= MIN_DISCOUNT_PCT;
 }
 
-function itemBelongsToDepartment(item, bucketName, deptKey){
+/* `retailer` is optional and only Zapatos reads it — Foot Locker's
+   titles are model names, so the STORE is the signal there. */
+function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   const dept = DEPARTMENT_SPEC[deptKey];
   if (!dept) return false;
   if (dept.onSaleOnly) return rawItemOnSale(item);
+  if (dept.footwearOnly) return isFootwear(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
   if (!dept.gender) return true;
@@ -3378,7 +3446,7 @@ function retailerBrandBuckets(retailerData){
   return out;
 }
 
-function departmentItemsFor(retailerData, kind, key){
+function departmentItemsFor(retailerData, kind, key, retailer){
   if (kind === 'brand'){
     return (retailerBrandBuckets(retailerData)[key]?.items || []).filter(notQuarantined);
   }
@@ -3387,7 +3455,7 @@ function departmentItemsFor(retailerData, kind, key){
   for (const [bucketName, bucket] of Object.entries(retailerData?.departments || {})){
     for (const raw of bucket?.items || []){
       if (!notQuarantined(raw)) continue;
-      if (!itemBelongsToDepartment(raw, bucketName, key)) continue;
+      if (!itemBelongsToDepartment(raw, bucketName, key, retailer)) continue;
       const dedupe = rawTitleOf(raw) + '::' + (raw.price ?? raw.effectivePrice ?? '');
       if (seen.has(dedupe)) continue;
       seen.add(dedupe);
@@ -3418,7 +3486,7 @@ function collectTiles(){
   for (const key of Object.keys(DEPARTMENT_SPEC)){
     byKey[key] = { key, retailers: [], count: 0 };
     for (const [retailer, data] of Object.entries(departmentCacheData.retailers || {})){
-      const entryItems = departmentItemsFor(data, 'department', key);
+      const entryItems = departmentItemsFor(data, 'department', key, retailer);
       if (!entryItems.length) continue;   // this retailer carries nothing here
       byKey[key].retailers.push(retailer);
       byKey[key].count += entryItems.length;
@@ -4460,7 +4528,7 @@ async function openCatalog(kind, key, opts = {}){
   // the filter has quietly become a gate again.
   const byRetailer = new Map();
   for (const retailer of CATALOG_RETAILERS){
-    const items = departmentItemsFor(data.retailers[retailer], kind, key)
+    const items = departmentItemsFor(data.retailers[retailer], kind, key, retailer)
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
@@ -5303,7 +5371,7 @@ async function openStore(retailer){
      from the department behind it, so the list has to look at what is
      actually in there. This is the same read the count already did. */
   const carried = Object.keys(DEPARTMENT_SPEC)
-    .map(key => [key, departmentItemsFor(retailerData, 'department', key)])
+    .map(key => [key, departmentItemsFor(retailerData, 'department', key, retailer)])
     .filter(([, items]) => items.length > 0);
   // Ropa is redundant next to the gendered pages for a fashion retailer —
   // it is the same stock split three ways.

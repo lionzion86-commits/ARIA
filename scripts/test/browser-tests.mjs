@@ -260,8 +260,11 @@ await check("Categorías renders one full-width shopfront per row, departments o
      this grid carried 11 departments and 193 brands, 204 tiles, on the
      one page whose whole job is to show what we sell. Brands live in
      "Busca por marca" inside each multi-brand store now. */
-  eq(r.count, 11, "Categorías tiles");
-  eq(r.counter, "11 categorías", "the counter above the grid");
+  /* Pinned to the taxonomy for the same reason the home grid is: a
+     twelfth DEPARTMENT is not the brand wall returning. */
+  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
+  eq(r.count, departments, "Categorías tiles vs departments in the taxonomy");
+  eq(r.counter, `${departments} categorías`, "the counter above the grid");
   for (const brand of ["032c", "424", "Rick Owens", "Dries Van Noten", "Acne Studios", "Nike"]) {
     if (r.names.includes(brand)) throw new Error(`the brand wall is back on Categorías: ${brand}`);
   }
@@ -1115,10 +1118,14 @@ await check("the home page grid is departments only", async () => {
       names: [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
     };
   });
-  /* Eleven departments. The number is asserted, not just "fewer than
-     before": a regression that puts brands back would sail past a
-     `< 50` and the wall would be back at the next export. */
-  eq(grid.cards, 11, "home page tiles");
+  /* PINNED TO THE TAXONOMY, NOT TO A NUMBER. This read `eq(grid.cards,
+     11)` and went red the day Zapatos was added — which is a department
+     arriving, not the wall coming back. What must hold is that the grid
+     is exactly the departments the taxonomy declares: a brand sneaking
+     in would push the count ABOVE that, and a lost department below it,
+     and neither can hide behind a hand-updated literal. */
+  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
+  eq(grid.cards, departments, "home page tiles vs departments in the taxonomy");
   // And none of them is a brand. SSENSE's are the ones that were here.
   for (const brand of ["Rick Owens", "Driesvannoten", "Dries Van Noten", "Acne Studios", "Nike"]) {
     if (grid.names.includes(brand)) throw new Error(`the brand wall is back: ${brand} is on the home page grid`);
@@ -1299,6 +1306,52 @@ await check("a brand row opens exactly what its card opened", async () => {
   eq(landed.url, "?categoria=driesvannoten&kind=brand", "the brand's URL changed");
   if (!landed.products) throw new Error("the brand page opened with nothing in it");
   if (errors.length) throw new Error("errors on the brand page: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ============================================================
+   ZAPATOS — the acceptance criteria, in a real browser.
+   ============================================================ */
+await check("Zapatos appears in Categorías and opens to priced footwear", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const grid = await page.evaluate(async () => {
+    await openCategories();
+    await new Promise((r) => setTimeout(r, 1800));
+    const g = document.getElementById("categoriesGrid");
+    const names = [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim());
+    const i = names.indexOf("Zapatos");
+    return {
+      tiles: g.children.length,
+      found: i >= 0,
+      sign: i >= 0 ? (g.children[i].textContent || "").replace(/\s+/g, " ").trim() : "",
+    };
+  });
+  eq(grid.found, true, "Zapatos is not in Categorías");
+  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
+  eq(grid.tiles, departments, "the Categorías grid vs the taxonomy");
+  /* The card carries name + count in the existing navy band, same as
+     every other department — that is the whole of acceptance item 4. */
+  if (!/^Zapatos \d+ productos · precio puerta a puerta/.test(grid.sign)) {
+    throw new Error(`the Zapatos card does not read like the others: "${grid.sign.slice(0, 70)}"`);
+  }
+
+  const opened = await page.evaluate(async () => {
+    await openCatalog("department", "shoes");
+    await new Promise((r) => setTimeout(r, 2200));
+    const text = document.getElementById("catalogSubtitle").textContent;
+    return {
+      title: document.getElementById("catalogTitle").textContent,
+      count: Number((text.match(/^(\d+)/) || [])[1]),
+      stores: Number((text.match(/de (\d+) tiendas/) || [])[1]),
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
+  });
+  eq(opened.title, "Zapatos", "the department page title");
+  if (!(opened.count >= 400)) throw new Error(`Zapatos opened with only ${opened.count} products`);
+  if (!(opened.stores >= 3)) throw new Error(`Zapatos draws from only ${opened.stores} store(s)`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
 
