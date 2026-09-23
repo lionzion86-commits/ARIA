@@ -1839,6 +1839,94 @@ await check("every search answers from the catalogue, with Apify dead", async ()
   await ctx.close();
 });
 
+await check("the live offer is refined, and the scan goes out with the refinement", async () => {
+  const sent = [];
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) => {
+      sent.push(JSON.parse(r.request().postData() || "{}"));
+      return r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "limit" }) });
+    },
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+
+  const panel = await page.evaluate(() => {
+    const i = document.querySelector("[data-live-refine]");
+    return { prefilled: i && i.value, editable: !!i && !i.readOnly && !i.disabled,
+             chips: document.querySelectorAll("[data-live-chip]").length };
+  });
+  eq(panel.prefilled, "Nike Air Force", "the refine box is not prefilled with what the shopper typed");
+  eq(panel.editable, true, "the refine box is not editable");
+  eq(panel.chips > 0, true, "there are no category chips to refine with");
+
+  // A chip writes into the box, and writes itself back out.
+  const chip = await page.evaluate(() => {
+    const c = [...document.querySelectorAll("[data-live-chip]")].find((x) => x.dataset.liveChip === "shoes");
+    c.click();
+    const on = document.querySelector("[data-live-refine]").value;
+    c.click();
+    return { on, off: document.querySelector("[data-live-refine]").value };
+  });
+  eq(chip.on, "Nike Air Force shoes", "the chip did not write its term into the box");
+  eq(chip.off, "Nike Air Force", "the chip did not take its own term back out");
+
+  // Hand-edit, then run: the stores must be asked for the EDITED words.
+  await page.evaluate(() => {
+    const i = document.querySelector("[data-live-refine]");
+    i.value = "Nike Air Force 1 white";
+    i.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  eq([...new Set(sent.map((s) => s.query))].join("|"), "Nike Air Force 1 white",
+     "the live scan ignored the refined query");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("Aria answers from the catalogue with Apify dead, and offers the live scan", async () => {
+  let scrapes = 0;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) => {
+      scrapes++;
+      return r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "limit" }) });
+    },
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ reply: "Aquí tienes algunas opciones." }) }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  await page.evaluate(() => { toggleAssistant(); runAssistantBrain("Aria, búscame unos tenis Nike"); });
+  await page.waitForFunction(() => document.querySelector("[data-assistant-live]") ||
+    document.querySelectorAll("#assistantMessages img").length > 0, null, { timeout: 20000 });
+  await page.waitForTimeout(800);
+
+  const r = await page.evaluate(() => ({
+    cards: document.querySelectorAll("#assistantMessages img").length,
+    offered: !!document.querySelector("[data-assistant-live]"),
+    /* Her own name must not come back in the line that reads the
+       request to the shopper. */
+    echoesName: [...document.querySelectorAll("#assistantMessages .assistantNote")]
+      .some((n) => /\baria\b/i.test(n.textContent || "")),
+  }));
+  eq(scrapes, 0, `answering a product question started ${scrapes} Apify runs`);
+  eq(r.cards > 0, true, "Aria showed no products even though the catalogue has Nike trainers");
+  eq(r.offered, true, "the chat never offers the live search");
+  eq(r.echoesName, false, "the status line reads her own name back as part of the request");
+
+  // Tapping it is what spends the money, and the cards stay whatever happens.
+  const before = r.cards;
+  await page.evaluate(() => document.querySelector("[data-assistant-live]").click());
+  await page.waitForTimeout(3500);
+  eq(scrapes > 0, true, "tapping the offer did not start a live search");
+  eq(await page.evaluate(() => document.querySelectorAll("#assistantMessages img").length) >= before, true,
+     "the failed live search took the catalogue cards with it");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await check("a dead live search keeps the catalogue results on screen", async () => {
   const { ctx, page, errors } = await openPage(DEAD_APIFY, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
   await page.waitForTimeout(3000);

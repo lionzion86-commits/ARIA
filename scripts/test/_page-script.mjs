@@ -370,7 +370,7 @@ export function loadPageCatalogSearchSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     html.slice(from, to) +
-      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT };",
+      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT };",
     sandbox,
     { filename: "index.html#catalog-search" },
   );

@@ -5202,6 +5202,40 @@ group("Search answers from the catalogue first");
     if (cs.catalogResultsAreThin(solid)) throw new Error("4 full matches read as thin");
   });
 
+  check("an accented word is one token, not two", () => {
+    /* THE BUG, AND IT IS THE SUBSTRING BUG WEARING A DIFFERENT HAT.
+       `[a-z0-9]+` treats "ú" as a separator, so "búscame" tokenised to
+       ["b","scame"] -- and a ONE-CHARACTER token was then allowed to
+       prefix-match every word starting with b. Measured on the real
+       catalogue for "búscame unos tenis Nike": 2,144 partial matches,
+       televisions and a gift box ranked as answers about trainers.
+       After: 19, all footwear. */
+    if (cs.searchTokens("búscame").join(",") !== "buscame") throw new Error("an accented word still splits into pieces");
+    if (cs.searchTokens("Niños").join(",") !== "ninos") throw new Error("ñ splits the word");
+    // ...and a short token may no longer wildcard its way across the shelf.
+    const tv = P("onn 32 in Class 720p HD Smart TV", "");
+    if (cs.scoreCatalogItem(tv, ["b"]) > 0) throw new Error('"b" matched a word merely beginning with b');
+    if (cs.scoreCatalogItem(tv, ["sm"]) > 0) throw new Error('a two-letter prefix still wildcards');
+    // An EXACT word of any length is still a match: "tv", "d3", "5k".
+    if (!(cs.scoreCatalogItem(tv, ["tv"]) > 0)) throw new Error('"tv" no longer matches the word TV');
+  });
+
+  check("the rare word outranks the common one", () => {
+    /* "sneakers nike" put a generic running shoe exactly level with a
+       Nike trainer -- each matched one of two words, so each scored
+       0.5. Hundreds of sneakers are in the catalogue and a few dozen
+       Nikes, so "nike" carried nearly all of the intent. Tokens are
+       weighted by how many items they match. */
+    const pool = [
+      ...Array.from({ length: 60 }, (_, i) => P(`Running Sneakers model ${i}`, "")),
+      P("Nike Air Force 1 '07 - Men's", ""),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "sneakers nike", {});
+    if (!/Nike/.test(items[0].title)) throw new Error(`the common word still wins: "${items[0].title}"`);
+    const w = cs.catalogTokenWeights(pool, ["sneakers", "nike"]);
+    if (!(w[1] > w[0])) throw new Error("the rarer token is not weighted higher");
+  });
+
   check("an empty query matches nothing at all", () => {
     // Otherwise a stray submit would render the whole catalogue as "results".
     for (const q of ["", "   ", "!!!"]) {
@@ -5217,6 +5251,69 @@ group("Search answers from the catalogue first");
     if (res.items[0].brand !== "Nike") throw new Error("the cap dropped the best match");
   });
 }
+
+check("Aria reads the catalogue before she ever calls a store", () => {
+  /* THE BUG. runAssistantBrain fanned straight out to Apify on every
+     product question. With the account over its limit the shopper sat
+     through four timeouts, read "Tuve un problema buscando eso", and
+     the model -- handed no products -- said we had none. We had them. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const brainAt = src.indexOf("async function runAssistantBrain(text){");
+  const brain = src.slice(brainAt, src.indexOf("/* ONE PAYLOAD, TWO ENDPOINTS.", brainAt));
+  if (!brain) throw new Error("runAssistantBrain is gone");
+  if (/scrapeRetailer\s*\(/.test(brain)) throw new Error("Aria scrapes again on every question — billable, and dead when Apify is");
+  if (!/await catalogSearch\(searchQuery/.test(brain)) throw new Error("Aria no longer asks the catalogue");
+  if (!/addAssistantLiveOffer\(searchQuery\)/.test(brain)) throw new Error("there is no way to ask for a live search from the chat");
+  // The live fan-out still exists — it just waits to be asked.
+  const liveAt = src.indexOf("async function runAssistantLiveSearch(query){");
+  if (liveAt < 0) throw new Error("the chat's live search is gone entirely");
+  const live = src.slice(liveAt, src.indexOf("async function runAssistantBrain(text){", liveAt));
+  if (!/scrapeRetailer\s*\(/.test(live)) throw new Error("the chat's live search no longer scrapes");
+  /* Every store failing is our fault and must not be worded as an
+     answer about the product — same rule as the results page. */
+  if (!/failedStores\.length === CHAT_RETAILERS\.length/.test(live)) throw new Error("a partial failure now reads as total");
+  if (!/La búsqueda en vivo no está disponible en este momento/.test(live)) throw new Error("the honest wording is gone from the chat");
+});
+
+check("her own name is not part of the order", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fnAt = src.indexOf("function stripAriaVocative(raw){");
+  if (fnAt < 0) throw new Error("the vocative is back in the query");
+  const build = src.slice(src.indexOf("function buildChatSearchQuery(text, recipient){"), src.indexOf("const extra = [];"));
+  if (!/stripAriaVocative\(String\(text \|\| ''\)\)/.test(build)) throw new Error("the retail query still carries the name");
+  const ack = src.slice(src.indexOf("function chatAckEs(text){"), src.indexOf("const short = clampWords"));
+  if (!/stripAriaVocative\(text\)/.test(ack)) throw new Error("the status line still echoes the name back");
+  /* "AREA" IS ALSO A PRODUCT WORD. "area rug" must survive, so the
+     dictated spelling is only stripped with punctuation after it. */
+  if (!/ARIA_HEARD_VOCATIVE_RE\s*=\s*\/\^\\s\*area\\b\\s\*\[/.test(src)) {
+    throw new Error("'area' is being stripped without requiring punctuation — 'area rug' loses its first word");
+  }
+});
+
+check("the live offer is refined before it is spent", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveChipsOnly()"));
+  if (!offer) throw new Error("the live-search offer is gone");
+  for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU."]) {
+    if (!offer.includes(copy)) throw new Error(`the agreed copy is gone: "${copy}"`);
+  }
+  if (!/data-live-refine/.test(offer)) throw new Error("there is no box to refine the query in");
+  if (!/value="\$\{escapeHtml\(current\)\}"/.test(offer)) throw new Error("the box is not prefilled with the shopper's query");
+  if (/readonly|disabled/i.test(offer)) throw new Error("the box is not editable");
+  /* 16px MINIMUM. Anything smaller and mobile Safari zooms the page in
+     on focus, stranding the shopper zoomed on a panel they were only
+     correcting a word in. */
+  if (!/text-\[16px\]/.test(offer)) throw new Error("the refine box is under 16px — iOS will zoom the page on focus");
+  if (!/liveRefineChipsHTML\(current\)/.test(offer)) throw new Error("the category chips are gone");
+  // The scan must go out with what is in the box, not the original words.
+  const runAt = src.indexOf("async function runLiveSearch(){");
+  const run = src.slice(runAt, runAt + 900);
+  if (!/const query = liveRefineValue\(\)\.trim\(\);/.test(run)) {
+    throw new Error("the live scan ignores the refined query — every chip and correction would be a lie");
+  }
+  // Yellow means a discount here, and this is not one.
+  if (/var\(--yellow/.test(offer)) throw new Error("the offer is wearing the discount colour");
+});
 
 check("searching never starts an Apify run on its own", () => {
   /* THE COST LEAK AND THE OUTAGE, WHICH ARE THE SAME LINE. showResults()
