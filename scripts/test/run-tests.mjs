@@ -5859,14 +5859,22 @@ check("the trust photo cannot escape its card when the CDN is gone", () => {
   if (Math.min(...stops) > 0.4) throw new Error("the scrim is a flat wash — that is the muddy version the photos exist to avoid");
 });
 
-check("the trust photos are named but not yet committed, and that is a designed state", () => {
-  /* Danny's four files had not arrived when this shipped. The cards are
-     navy with white type until they do, which is why every assertion
-     above is about the MARKUP and the fallback rather than the pixels.
-     When the files land this check flips to asserting they exist. */
-  const present = Object.values(TRUST_PHOTOS).filter(p => existsSync(root(p)));
-  if (present.length && present.length < 4) {
-    throw new Error(`${present.length} of 4 trust photos are committed — a half-photographed strip is the one state nobody chose`);
+check("all four trust photographs are committed, and small enough to send to a phone", () => {
+  /* This check was written while the four files were still missing, and
+     only asserted that the strip was never HALF photographed. The files
+     landed; it asserts the whole set now. A half-photographed strip is
+     still the one state nobody chose, so that stays covered by the
+     count being exactly four. */
+  const missing = Object.entries(TRUST_PHOTOS).filter(([, p]) => !existsSync(root(p)));
+  if (missing.length) {
+    throw new Error(`trust photos named in the page but not committed: ${missing.map(([t]) => t).join(", ")}`);
+  }
+  /* 200 KB each, same budget as the Tiendas mall row. The four arrived
+     at 1920x1280 and 1.5 MB the set; they ship at 1200x800 and 390 KB.
+     This asserts nobody quietly re-adds a full-size original. */
+  for (const [title, path] of Object.entries(TRUST_PHOTOS)) {
+    const kb = readFileSync(root(path)).length / 1024;
+    if (kb > 200) throw new Error(`${title} is ${kb.toFixed(0)} KB — over the 200 KB budget for a background`);
   }
 });
 
