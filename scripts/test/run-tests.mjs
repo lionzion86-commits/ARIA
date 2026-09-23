@@ -5751,6 +5751,126 @@ check("every category cover named in the page is actually on disk", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("A department is never a dead page");
+
+check("the catalogue knows the difference between broken and empty", () => {
+  /* THE BUG. loadDepartmentCache catches every fetch failure into
+     { retailers: {} } AND memoises the merged promise. So a first load
+     that fails — offline, a 404 mid-deploy, bad JSON — looked exactly
+     like a department with no stock, and stayed that way for the life of
+     the page because the failed promise was the cached one. Zapatos
+     showed "Sin resultados por ahora." with 539 pairs in the file. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const loader = forwardSlice(src, "function loadDepartmentCache(){", "\nconst DEPARTMENT_META", "loadDepartmentCache");
+  if (!/departmentCacheFailed\s*=\s*loaded === 0/.test(loader)) {
+    throw new Error("nothing records whether the catalogue actually loaded");
+  }
+  /* A silent 503 is the case that started this: r.json() on a 503 body
+     throws, but a 200 carrying an error page would not, so the status is
+     checked rather than trusted. */
+  const okChecks = (loader.match(/if \(!r\.ok\) throw new Error/g) || []).length;
+  if (okChecks < 2) throw new Error(`only ${okChecks} fetch(es) check response.ok — a non-200 would be counted as a load`);
+});
+
+check("a retry can actually succeed", () => {
+  /* A retry that re-awaits the memoised promise replays the same failure
+     and reads as a dead button. Clearing the memo IS the fix, so this
+     asserts it rather than the button's existence. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const retry = forwardSlice(src, "function retryCatalog(kind, key, retailerFilter){", "}", "retryCatalog");
+  if (!/departmentCachePromise\s*=\s*null/.test(retry)) {
+    throw new Error("retryCatalog does not clear the memoised promise — the button would replay the cached failure");
+  }
+  if (!/openCatalog\(/.test(retry)) throw new Error("retryCatalog never re-opens the category");
+});
+
+check("the empty state offers a way on, and never fires a scrape by itself", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const feed = forwardSlice(src, "function renderCatalogFeed(){", "const filterHasStock", "renderCatalogFeed");
+  if (/subtitle\.textContent = 'Sin resultados por ahora\.'/.test(feed)) {
+    throw new Error("the bare dead-end string is back");
+  }
+  if (!/catalogEmptyStateHTML\(\)/.test(feed)) throw new Error("the empty branch no longer renders a state");
+  if (/sections\.innerHTML = ''/.test(feed)) throw new Error("the empty branch still blanks the container");
+
+  const state = forwardSlice(src, "function catalogEmptyStateHTML(){", "\nfunction retryCatalog", "catalogEmptyStateHTML");
+  if (!/retryCatalog\(/.test(state)) throw new Error("the empty state has no retry");
+  if (!/categoriesView/.test(state)) throw new Error("the empty state has no way back to the categories");
+  /* LIVE SEARCH IS A SHOPPER ACTION. It may be OFFERED here, but the
+     department must not start a scrape on its own — that is the
+     behaviour this whole area exists to reverse. */
+  if (!/showResults\(/.test(state)) throw new Error("the empty state does not offer a live search at all");
+  const opener = forwardSlice(src, "async function openCatalog(kind, key, opts = {}){", "renderCatalogFeed();", "openCatalog");
+  for (const scrape of ["startOnDemand", "runLiveSearch", "scrapeRetailer"]) {
+    if (new RegExp("\\b" + scrape + "\\s*\\(").test(opener)) {
+      throw new Error(`openCatalog calls ${scrape}() — the department is scraping on load again`);
+    }
+  }
+});
+
+/* ------------------------------------------------------------------ */
+group("The trust cards are photographs, not white boxes");
+
+const TRUST_PHOTOS = {
+  "Precio transparente": "assets/trust/trust-precio.jpg",
+  "Pagos seguros": "assets/trust/trust-pagos.jpg",
+  "Aduana resuelta": "assets/trust/trust-aduana.jpg",
+  "Entrega puerta a puerta": "assets/trust/trust-entrega.jpg",
+};
+
+check("each card carries its own photograph, its scrim and its escape hatch", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const strip = forwardSlice(src, "<!-- FEATURE STRIP -->", "</div>\n  </div>", "the feature strip");
+  const cards = strip.split('<div class="ariaTrustCard">').slice(1);
+  if (cards.length !== 4) throw new Error(`expected 4 photographic trust cards, found ${cards.length}`);
+
+  for (const [title, path] of Object.entries(TRUST_PHOTOS)) {
+    const card = cards.find(c => c.includes(`>${title}</div>`));
+    if (!card) throw new Error(`no trust card titled "${title}"`);
+    if (!card.includes(path)) throw new Error(`"${title}" does not point at ${path}`);
+    if (!/class="ariaTrustScrim"/.test(card)) throw new Error(`"${title}" has no scrim`);
+    if (!/loading="lazy"/.test(card)) throw new Error(`"${title}" loads its photo eagerly — the strip is below the fold`);
+    if (!/onerror="this\.remove\(\)"/.test(card)) throw new Error(`"${title}" would show a broken image if its file is missing`);
+    if (!/alt=""/.test(card) || !/aria-hidden="true"/.test(card)) throw new Error(`"${title}"'s photo is not marked decorative`);
+    /* THE COPY AND THE ROUNDEL ARE UNTOUCHED — only the colour of the
+       type changes, because it now sits on a photograph. */
+    if (!/width="64" height="64"/.test(card)) throw new Error(`"${title}" lost its icon chip`);
+    if (!/color:#fff/.test(card)) throw new Error(`"${title}"'s title is not white over the photo`);
+    if (/text-zinc-500/.test(card)) throw new Error(`"${title}"'s description is still grey — unreadable on a photo`);
+  }
+});
+
+check("the trust photo cannot escape its card when the CDN is gone", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const card = forwardSlice(css, ".ariaTrustCard{", "}", ".ariaTrustCard");
+  if (!/position:relative/.test(card)) throw new Error(".ariaTrustCard no longer establishes a containing block in the inline CSS");
+  if (!/overflow:hidden/.test(card)) throw new Error(".ariaTrustCard no longer clips its photo");
+  if (!/background:var\(--navy\)/.test(card)) throw new Error("the navy left the card — a missing photo would leave white type on white");
+
+  /* THE SCRIM'S FLOOR BEHIND THE TYPE. Content is bottom-anchored, so
+     the stop that matters is the one nearest the bottom. Measured
+     against a pure white pixel — the worst case any photograph can
+     present — 0.55 is 4.39:1 and fails; 0.60 clears at 5.22:1. */
+  const scrim = forwardSlice(css, ".ariaTrustScrim{", "}", ".ariaTrustScrim");
+  const stops = [...scrim.matchAll(/rgba\(4,12,28,([\d.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 2) throw new Error("the scrim is no longer a gradient");
+  if (Math.max(...stops) < 0.72) throw new Error(`the scrim's heaviest stop is ${Math.max(...stops)} — the type sits there and needs at least 0.72`);
+  if (Math.min(...stops) > 0.4) throw new Error("the scrim is a flat wash — that is the muddy version the photos exist to avoid");
+});
+
+check("the trust photos are named but not yet committed, and that is a designed state", () => {
+  /* Danny's four files had not arrived when this shipped. The cards are
+     navy with white type until they do, which is why every assertion
+     above is about the MARKUP and the fallback rather than the pixels.
+     When the files land this check flips to asserting they exist. */
+  const present = Object.values(TRUST_PHOTOS).filter(p => existsSync(root(p)));
+  if (present.length && present.length < 4) {
+    throw new Error(`${present.length} of 4 trust photos are committed — a half-photographed strip is the one state nobody chose`);
+  }
+});
+
+/* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

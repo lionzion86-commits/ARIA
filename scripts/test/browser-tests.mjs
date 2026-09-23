@@ -1884,6 +1884,110 @@ await check("only one Tiendas surface is photographic at a given width", async (
      the two breakpoints to each other instead, off the source. */
 });
 
+/* ---- Zapatos, and the dead page it used to be --------------------- */
+
+await check("a department renders the catalogue on load without scraping anything", async () => {
+  /* THE BUG THIS PINS. Zapatos showed only "Buscamos 'shoes' en las
+     tiendas de EE. UU." and then nothing, while the catalogue held
+     hundreds of pairs: the department never asked our own data. Catalogue
+     first, live search only on a shopper's tap. */
+  const scraped = [];
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => { scraped.push(r.request().url().split("/").pop().split("?")[0]);
+      return r.fulfill({ status: 200, contentType: "application/json", body: "{}" }); },
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(2500);
+  scraped.length = 0;
+  await page.evaluate(() => openCatalog("department", "shoes"));
+  await page.waitForTimeout(3500);
+  const r = await page.evaluate(() => ({
+    title: document.getElementById("catalogTitle")?.textContent,
+    cards: document.querySelectorAll("#catalogGrid > *").length,
+    empty: !!document.querySelector('#catalogSections button[onclick^="retryCatalog"]'),
+  }));
+  eq(r.title, "Zapatos", "the department is not named Zapatos");
+  if (r.cards < 1) throw new Error("the department rendered no catalogue products on load");
+  eq(r.empty, false, "the empty state rendered although the catalogue loaded");
+  if (scraped.length) throw new Error("a live scrape fired on load: " + scraped.join(", "));
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a broken catalogue is an honest, retryable page — and the retry works", async () => {
+  /* loadDepartmentCache swallows failures into { retailers: {} } and
+     MEMOISES that, so the interesting half of this check is the second
+     half: a retry that only re-calls openCatalog replays the cached
+     failure and looks like a dead button. */
+  let down = true;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+    "**/department-cache.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+    "**/macys-catalog.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+    "**/ssense-catalog.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+    "**/beauty-catalog.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(2200);
+  await page.evaluate(() => openCatalog("department", "shoes"));
+  await page.waitForTimeout(2500);
+
+  const state = await page.evaluate(() => {
+    const sec = document.getElementById("catalogSections");
+    return {
+      bare: (sec?.innerHTML || "").trim() === "",
+      retry: !!sec?.querySelector('button[onclick^="retryCatalog"]'),
+      back: !!sec?.querySelector('button[onclick*="categoriesView"]'),
+      subtitle: document.getElementById("catalogSubtitle")?.textContent || "",
+    };
+  });
+  eq(state.bare, false, "the container is blank — still a dead page");
+  eq(state.retry, true, "a failed catalogue offers no retry");
+  eq(state.back, true, "a failed catalogue offers no way back to the categories");
+  if (/Sin resultados por ahora/.test(state.subtitle)) throw new Error("still the bare dead-end string");
+
+  down = false;
+  await page.click('#catalogSections button[onclick^="retryCatalog"]');
+  await page.waitForTimeout(3500);
+  const after = await page.evaluate(() => document.querySelectorAll("#catalogGrid > *").length);
+  if (after < 1) throw new Error("Reintentar did not recover — the memoised failure was replayed");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ---- The trust cards --------------------------------------------- */
+
+await check("the trust photos stay inside their cards with the CDN blocked", async () => {
+  /* .ariaTrustPhoto is position:absolute. If the card were positioned by
+     a Tailwind `relative` utility then here — CDN blocked, which is how
+     this suite always runs — the photo would resolve against the viewport
+     and lie across the whole page. The geometry is asserted, not the CSS
+     text. The photos themselves may legitimately be absent; the card's
+     navy and its layering must hold either way. */
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(1500);
+  const cards = await page.evaluate(() => [...document.querySelectorAll(".ariaTrustCard")].map((c) => {
+    const b = c.getBoundingClientRect();
+    const img = c.querySelector("img.ariaTrustPhoto");
+    const body = c.querySelector(".ariaTrustBody");
+    const i = img && img.getBoundingClientRect();
+    return {
+      title: c.querySelector(".font-bold")?.textContent || "",
+      position: getComputedStyle(c).position,
+      bg: getComputedStyle(c).backgroundColor,
+      bodyZ: body ? getComputedStyle(body).zIndex : null,
+      contained: !i || (i.top >= b.top - 1 && i.bottom <= b.bottom + 1 && i.left >= b.left - 1 && i.right <= b.right + 1),
+    };
+  }));
+  eq(cards.length, 4, "expected four trust cards");
+  for (const c of cards) {
+    eq(c.position, "relative", `${c.title}: the card does not establish a containing block without Tailwind`);
+    eq(c.bg, "rgb(10, 31, 68)", `${c.title}: the card lost its navy base`);
+    eq(c.bodyZ, "2", `${c.title}: the content is not above the scrim`);
+    eq(c.contained, true, `${c.title}: the photo escaped its card`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
