@@ -5125,7 +5125,7 @@ check("the cards are the Ofertas component, and they route back through showProd
      `if (0) renderRelatedRail(...)` and reports it as wired, so the
      statement is required to START its line -- no guard, no `&&`, no
      comment in front of it. */
-  if (!/\n  renderRelatedRail\(\{ retailer, title: name, price: totalUsd/.test(show)) {
+  if (!/\n  renderRelatedRail\(\{ retailer, title: name, brand: [^,]+, price: totalUsd/.test(show)) {
     throw new Error("showProduct no longer draws the rail unconditionally — a product opened any other way gets none");
   }
 });
@@ -5317,6 +5317,26 @@ check("the brand is an eyebrow above the title, and absent when there is none", 
 
   const pdp = src.slice(src.indexOf('id="productViewBrand"'), src.indexOf('id="productViewTitle"'));
   if (!pdp) throw new Error("the PDP's brand element is gone, or moved below the title");
+});
+
+check("normalization does not drop the designer", () => {
+  /* normalizeLiveItem builds a NEW object from a hand-written field
+     list, and every card and PDP on the site reads its output -- so a
+     field left off that list is dropped once and lost everywhere. That
+     is exactly what happened to `brand`. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fn = src.slice(src.indexOf("function normalizeLiveItem(item, hints){"), src.indexOf("  return { title, brand,"));
+  if (!fn) throw new Error("normalizeLiveItem no longer returns a brand");
+  if (!/const brand = String\(item\.brand \|\| item\.designer \|\| ''\)\.trim\(\);/.test(fn)) {
+    throw new Error("the brand is no longer read from the catalogue record");
+  }
+  // The other hand-written field lists that build card or PDP data.
+  if (!/renderRelatedRail\(\{ retailer, title: name, brand:/.test(src)) {
+    throw new Error("the related rail's anchor drops the brand again");
+  }
+  if (!/\$\{item\.brand \? `<div class="text-\[9\.5px\]/.test(src)) {
+    throw new Error("the chat's product card drops the brand");
+  }
 });
 
 check("the PDP is told the brand, and cannot inherit the last one", () => {

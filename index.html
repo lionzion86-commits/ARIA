@@ -6775,7 +6775,12 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
 
      Not awaited: the details are already on screen and the rail fills
      underneath them when the cache is ready. */
-  renderRelatedRail({ retailer, title: name, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
+  /* The anchor is another hand-written field list, and the brand was
+     missing from it for the same reason it was missing from
+     normalizeLiveItem. Nothing renders the anchor today, so this is
+     not a visible bug -- it is the same omission, closed while the
+     class of it is in view. */
+  renderRelatedRail({ retailer, title: name, brand: opts && opts.brand, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
 }
 
 function goBack(){
@@ -9069,7 +9074,23 @@ function normalizeLiveItem(item, hints){
   const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
   const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
-  return { title, price, image, images, rating, weightKg,
+  /* THE DESIGNER SURVIVES NORMALISATION.
+
+     The eyebrow was built, the data was in the catalogues, and not one
+     item ever showed it: this function returns a NEW object with a
+     hand-written field list, and `brand` was not on it. Everything that
+     draws a card or a product page reads the output of this, so the
+     name was dropped once here and lost everywhere. Measured: 0 of
+     3,553 pooled items carried a brand, including SSENSE's
+     "Beige Water-Repellent Printed Jacket", whose catalogue record says
+     Lacoste.
+
+     `designer` too, because that is what a fashion export is as likely
+     to call the field, and normalising both here is cheaper than every
+     caller guessing. */
+  const brand = String(item.brand || item.designer || '').trim();
+
+  return { title, brand, price, image, images, rating, weightKg,
     weightEstimated: weightDetail.estimated, weightSource: weightDetail.source,
     // Fail-closed signal: nothing may print a freight figure for this item.
     weightNeedsReview: weightDetail.needsReview,
@@ -13551,6 +13572,7 @@ function addAssistantProductCard(item, retailer){
     ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
+      ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
       <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price) : ''}${item.price != null && priceIncludesImportTax(item.price) ? ' · incl. impuestos' : ''}</div>
     </div>`;
