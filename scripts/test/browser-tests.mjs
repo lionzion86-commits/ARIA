@@ -1720,6 +1720,118 @@ await check("a pinch takes our own zoom off, so the two cannot stack", async () 
   await ctx.close();
 });
 
+
+/* ==================================================================
+   "TAMBIÉN TE PUEDE INTERESAR", ON THE REAL CATALOGUE.
+
+   The selection rules are run over made-up catalogues in run-tests.mjs,
+   where every edge can be constructed. What only the running page can
+   answer is whether they hold against the 3,990 records actually in the
+   cache, whether the rail is wired to showProduct at all, and whether a
+   card opens a page that draws its own.
+   ================================================================== */
+async function openAProduct(page) {
+  await page.evaluate(async () => {
+    goSales();
+    await new Promise((r) => setTimeout(r, 2500));
+    openSaleProduct(0);
+    await new Promise((r) => setTimeout(r, 2500));
+  });
+}
+
+await check("the rail obeys its rules against the real catalogue", async () => {
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await openAProduct(page);
+  const o = await page.evaluate(() => {
+    const anchor = { retailer: pendingProduct.retailer, title: document.getElementById("productViewTitle").textContent.trim(), price: Number(pendingProduct.totalUsd) };
+    const lo = anchor.price * 0.5, hi = anchor.price * 1.5;
+    const mine = (relatedPoolCache || []).find((i) => i.retailer === anchor.retailer && i.title === anchor.title);
+    return {
+      anchor, lo, hi, cap: RELATED_RAIL_MAX,
+      cards: document.querySelectorAll("#relatedRailRow [data-related]").length,
+      hidden: document.getElementById("relatedRail").hidden,
+      picks: relatedRendered.map((p) => ({ r: p.retailer, d: p.departments || [], price: Number(p.price), title: p.title, img: !!p.image })),
+      anchorDepts: mine ? mine.departments : [],
+    };
+  });
+  eq(o.hidden, false, "the rail never appeared");
+  if (!o.cards) throw new Error("the rail rendered no cards on a full catalogue");
+  if (o.cards > o.cap) throw new Error(`the rail drew ${o.cards} cards, over the cap of ${o.cap}`);
+  eq(o.cards, o.picks.length, "the cards and the rendered list disagree");
+
+  for (const p of o.picks) {
+    if (!(Number.isFinite(p.price) && p.price > 0)) throw new Error(`"${p.title}" reached the rail priced ${p.price}`);
+    if (p.price < o.lo || p.price > o.hi) throw new Error(`"${p.title}" at $${p.price} is outside $${o.lo.toFixed(2)}–$${o.hi.toFixed(2)}`);
+    if (!p.img) throw new Error(`"${p.title}" reached the rail with no photograph`);
+    if (p.r === o.anchor.retailer && p.title === o.anchor.title) throw new Error("the product is recommending itself");
+  }
+  /* EVERY PICK EARNED ITS PLACE BY ONE OF THE TWO RULES — the same
+     department, or, once the department ran short, the same store. */
+  for (const p of o.picks) {
+    const byDept = p.d.some((d) => o.anchorDepts.includes(d));
+    if (!byDept && p.r !== o.anchor.retailer) throw new Error(`"${p.title}" is neither in the department nor from the store`);
+  }
+  // No product twice, however many buckets of the cache it sits in.
+  const keys = o.picks.map((p) => p.r + "::" + p.title);
+  eq(new Set(keys).size, keys.length, "the rail offered the same product twice");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("tapping a card opens that product, and it draws its own rail", async () => {
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await openAProduct(page);
+  const hop = await page.evaluate(async () => {
+    const before = { title: document.getElementById("productViewTitle").textContent.trim(), picks: relatedRendered.map((p) => p.title) };
+    const target = relatedRendered[0].title;
+    document.querySelector("#relatedRailRow [data-related]").click();
+    await new Promise((r) => setTimeout(r, 2600));
+    return {
+      before, target,
+      landedOn: document.getElementById("productViewTitle").textContent.trim(),
+      view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+      nowHidden: document.getElementById("relatedRail").hidden,
+      nowCards: document.querySelectorAll("#relatedRailRow [data-related]").length,
+      nowPicks: relatedRendered.map((p) => p.title),
+      buyable: !document.getElementById("addToCartBtn").disabled,
+    };
+  });
+  eq(hop.view, "productView", "a card did not open a product page");
+  eq(hop.landedOn, hop.target, "the card opened a different product than it showed");
+  eq(hop.nowHidden, false, "the product opened from the rail has no rail of its own");
+  if (!hop.nowCards) throw new Error("the second product's rail is empty");
+  /* A DIFFERENT ANCHOR MEANS A DIFFERENT RAIL. Identical lists would
+     mean the rail is not being recomputed from the product in front of
+     the shopper. */
+  if (JSON.stringify(hop.nowPicks) === JSON.stringify(hop.before.picks)) {
+    throw new Error("the second product shows exactly the rail of the first");
+  }
+  /* And every card on the rail is a priced product by construction, so
+     the page it opens must be buyable — the no-price rule cuts the
+     other way here. */
+  eq(hop.buyable, true, "a rail card opened a product that cannot be bought");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the rail does not move on its own", async () => {
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await openAProduct(page);
+  const drift = await page.evaluate(async () => {
+    const row = document.getElementById("relatedRailRow");
+    const before = row.scrollLeft, y = window.scrollY;
+    await new Promise((r) => setTimeout(r, 5000));
+    return { moved: row.scrollLeft !== before, scrolled: window.scrollY !== y };
+  });
+  eq(drift.moved, false, "the rail advanced on its own");
+  eq(drift.scrolled, false, "the page scrolled itself");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
 await browser.close();
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
