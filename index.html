@@ -4864,19 +4864,132 @@ function catalogWordsOf(item){
    typed enough to mean something. */
 const CATALOG_MIN_PREFIX = 3;
 
+/* ============================================================
+   SEARCH SYNONYMS — ONE CONCEPT, MANY WORDS.
+
+   Mirrors scripts/lib/search-synonyms.js line for line (this page is a
+   plain <script> and cannot import); the test suite asserts both
+   copies answer identically for every word.
+
+   Danny's requirement (2026-09-24): "sneakers", "shoes", "zapatos" and
+   "zapatillas" must ALL return the same shoe results. Token matching
+   is literal, so a query token that misses gets a second chance
+   against every word in its group (see catalogTokenHits), and
+   rankCatalogMatches canonicalises query tokens to the group concept
+   so the four queries score identically.
+   ============================================================ */
+const SEARCH_SYNONYM_GROUPS = [
+  {
+    concept: "shoes",
+    words: [
+      "shoe", "shoes",
+      "sneaker", "sneakers",
+      "trainer", "trainers",
+      "footwear",
+      /* Peruvian Spanish: zapatillas = trainers, zapatos = shoes,
+         tenis = the everyday word for trainers, calzado = footwear */
+      "zapatilla", "zapatillas",
+      "zapato", "zapatos",
+      "tenis",
+      "calzado", "calzados",
+    ],
+  },
+  {
+    concept: "bra",
+    words: ["bra", "bras", "brassiere", "brassieres", "sosten", "sostenes"],
+  },
+  {
+    concept: "perfume",
+    words: [
+      "perfume", "perfumes",
+      "fragrance", "fragrances",
+      "fragancia", "fragancias",
+      "colonia", "colonias", "cologne", "colognes",
+      "parfum",
+    ],
+  },
+  {
+    concept: "handbag",
+    words: [
+      "handbag", "handbags",
+      "purse", "purses",
+      "cartera", "carteras",
+      "bolso", "bolsos",
+    ],
+  },
+  {
+    concept: "underwear",
+    words: [
+      "underwear",
+      "panty", "panties", "pantys",
+      "brief", "briefs",
+      "thong", "thongs",
+      "calzon", "calzones",
+      "tanga", "tangas",
+    ],
+  },
+  {
+    concept: "dress",
+    words: ["dress", "dresses", "vestido", "vestidos", "gown", "gowns"],
+  },
+  {
+    concept: "watch",
+    words: ["watch", "watches", "reloj", "relojes"],
+  },
+];
+
+const SEARCH_WORD_TO_GROUP = new Map();
+for (const group of SEARCH_SYNONYM_GROUPS) {
+  for (const word of group.words) SEARCH_WORD_TO_GROUP.set(word, group);
+}
+
+/* The synonym group a word belongs to, or null. Lookup is on the
+   already-normalised token (lowercase, accent-free). */
+function synonymGroupOf(word) {
+  return SEARCH_WORD_TO_GROUP.get(String(word || "").toLowerCase()) || null;
+}
+
+/* Canonical token for a query word: the group's concept, or the word
+   itself when it belongs to no group. */
+function canonicalizeToken(word) {
+  const group = synonymGroupOf(word);
+  return group ? group.concept : word;
+}
+
+function canonicalizeTokens(tokens) {
+  return (tokens || []).map(canonicalizeToken);
+}
+
+/* Every word that means the same as `word`, not including `word`
+   itself. Empty when the word is in no group. */
+function synonymsOf(word) {
+  const group = synonymGroupOf(word);
+  if (!group) return [];
+  const w = String(word || "").toLowerCase();
+  return group.words.filter((x) => x !== w);
+}
+
+function catalogTokenHitsOne(words, t){
+  if (words.has(t)) return true;
+  for (const w of words){
+    if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) return true;
+    if (w.length >= 4 && t.length > w.length && t.startsWith(w)) return true;
+  }
+  return false;
+}
+
 function catalogTokenHits(words, toks){
   let n = 0;
   for (const t of toks){
-    if (words.has(t)) { n++; continue; }
-    let hit = false;
-    for (const w of words){
-      if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) { hit = true; break; }
-      if (w.length >= 4 && t.length > w.length && t.startsWith(w)) { hit = true; break; }
-    }
-    if (hit) n++;
+    if (catalogTokenHitsOne(words, t)) { n++; continue; }
+    /* SYNONYMS: one concept, many words. "sneakers" finds "Running
+       Shoes" and "zapatos" finds "Sneakers" — the literal miss gets a
+       second chance against every word in the token's group. */
+    if (synonymsOf(t).some((s) => catalogTokenHitsOne(words, s))) n++;
   }
   return n;
 }
+
 
 /* Coverage is the backbone; the two bonuses only order items that
    already matched. Matching every token outranks matching some, and a
@@ -5011,10 +5124,17 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
 
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
-  const toks = searchTokens(query);
+  /* SYNONYMS CANONICALISED UP FRONT, so "sneakers", "shoes",
+     "zapatos" and "zapatillas" do not merely overlap — they run the
+     identical token list, and return the identical items in the
+     identical order. */
+  const toks = canonicalizeTokens(searchTokens(query));
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
 
-  const intent = queryCategoryIntent(query);
+  /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
+     footwear exactly as much as "shoes" does, and the category filter
+     must agree for all four words. */
+  const intent = queryCategoryIntent(toks.join(' '));
   const rawCategoryOf = (opts && opts.categoryOf)
     || (typeof catalogItemCategory === 'function' ? catalogItemCategory : () => null);
   /* Memoised: the weighting pass and the scoring pass both ask, over
@@ -5910,9 +6030,13 @@ function renderCatalogFeed(){
      is in English. */
   const typed = String(catalogState.searchTerm || '').trim();
   const term = typed.toLowerCase();
-  const tokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
-  const searched = tokens.length
-    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
+  const rawTokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
+  /* SYNONYMS, the same groups the catalogue search uses: each token
+     must hit, but it may hit as any word in its group — "zapatos"
+     narrows to the same shoes "sneakers" does. */
+  const tokenGroups = rawTokens.map((w) => { const g = synonymGroupOf(w); return g ? g.words : [w]; });
+  const searched = rawTokens.length
+    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokenGroups.every((g) => g.some((w) => t.includes(w))); })
     : feed;
   /* Budget last, so its chip counts are taken against everything the
      other filters left standing — a band promising 12 has to deliver 12
