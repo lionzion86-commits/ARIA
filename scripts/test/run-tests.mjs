@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageFootwearSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5389,7 +5389,7 @@ check("the cards are the Ofertas component, and they route back through showProd
      `if (0) renderRelatedRail(...)` and reports it as wired, so the
      statement is required to START its line -- no guard, no `&&`, no
      comment in front of it. */
-  if (!/\n  renderRelatedRail\(\{ retailer, title: name, price: totalUsd/.test(show)) {
+  if (!/\n  renderRelatedRail\(\{ retailer, title: name, brand: [^,]+, price: totalUsd/.test(show)) {
     throw new Error("showProduct no longer draws the rail unconditionally — a product opened any other way gets none");
   }
 });
@@ -5913,6 +5913,180 @@ check("the image-quality gate survived the restyle", () => {
 
 
 /* ------------------------------------------------------------------ */
+
+group("The designer's name, and the size that goes with it");
+
+check("the brand is an eyebrow above the title, and absent when there is none", () => {
+  /* item.brand was in the data and rendered nowhere: the "Brown Curved
+     Vent Blazer" at $1,790 -> $537 is EGONlab and no surface said so.
+     For a premium or marked-down piece the label IS the decision. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fn = src.slice(src.indexOf("function brandEyebrowHTML(brand, opts){"), src.indexOf("/** The standard card for any listed product"));
+  if (!fn) throw new Error("the brand eyebrow is gone");
+  if (!/if \(!name\) return '';/.test(fn)) throw new Error("an empty brand still renders an element — a hole above every unbranded title");
+  if (!/uppercase/.test(fn)) throw new Error("the eyebrow is not small caps");
+  if (!/var\(--navy\)/.test(fn)) throw new Error("the eyebrow is not navy");
+  if (!/escapeHtml\(name\)/.test(fn)) throw new Error("a retailer's brand string reaches innerHTML unescaped");
+
+  /* ABOVE THE TITLE on all three surfaces, and a <span> in the rail's
+     card because a <div> inside a <button> is not valid content. */
+  const rail = src.slice(src.indexOf("function railCardHTML(p, onclick, attr){"), src.indexOf("function mobileDealCardHTML"));
+  const railBrand = rail.indexOf("brandEyebrowHTML"), railTitle = rail.indexOf("escapeHtml(p.title)");
+  if (railBrand < 0) throw new Error("the rail card lost the brand");
+  if (!(railBrand < railTitle)) throw new Error("the rail card puts the brand below the title");
+  if (!/tag: 'span'/.test(rail)) throw new Error("the rail card emits a <div> inside its <button>");
+
+  const card = src.slice(src.indexOf("function productCardHTML(p, opts){"), src.indexOf("function productCardHTML(p, opts){") + 9000);
+  const cardBrand = card.indexOf("brandEyebrowHTML"), cardTitle = card.indexOf("escapeHtml(p.title)");
+  if (cardBrand < 0) throw new Error("the listing card lost the brand");
+  if (!(cardBrand < cardTitle)) throw new Error("the listing card puts the brand below the title");
+
+  const pdp = src.slice(src.indexOf('id="productViewBrand"'), src.indexOf('id="productViewTitle"'));
+  if (!pdp) throw new Error("the PDP's brand element is gone, or moved below the title");
+});
+
+check("normalization does not drop the designer", () => {
+  /* normalizeLiveItem builds a NEW object from a hand-written field
+     list, and every card and PDP on the site reads its output -- so a
+     field left off that list is dropped once and lost everywhere. That
+     is exactly what happened to `brand`. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fn = src.slice(src.indexOf("function normalizeLiveItem(item, hints){"), src.indexOf("  return { title, brand,"));
+  if (!fn) throw new Error("normalizeLiveItem no longer returns a brand");
+  if (!/const brand = String\(item\.brand \|\| item\.designer \|\| ''\)\.trim\(\);/.test(fn)) {
+    throw new Error("the brand is no longer read from the catalogue record");
+  }
+  // The other hand-written field lists that build card or PDP data.
+  if (!/renderRelatedRail\(\{ retailer, title: name, brand:/.test(src)) {
+    throw new Error("the related rail's anchor drops the brand again");
+  }
+  if (!/\$\{item\.brand \? `<div class="text-\[9\.5px\]/.test(src)) {
+    throw new Error("the chat's product card drops the brand");
+  }
+});
+
+check("the PDP is told the brand, and cannot inherit the last one", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  if (!/function showProduct\(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts\)/.test(src)) {
+    throw new Error("showProduct no longer takes the options object the brand travels in");
+  }
+  const body = src.slice(src.indexOf("  const brandEl = document.getElementById('productViewBrand');"), src.indexOf("document.getElementById('productViewTitle').textContent"));
+  if (!body) throw new Error("the PDP never sets its brand");
+  /* textContent, not innerHTML: this is a retailer's string. And it is
+     ALWAYS written, so a product with no brand clears the one before it
+     rather than inheriting it -- the same leak pendingAutoPartNumber
+     guards against two lines below. */
+  if (!/brandEl\.textContent = brand;/.test(body)) throw new Error("the brand reaches the page as HTML, or is not cleared between products");
+  if (!/brandEl\.hidden = !brand;/.test(body)) throw new Error("an empty brand still occupies space above the title");
+  // Every card surface hands it over.
+  const expr = src.slice(src.indexOf("function productCardOpenExpr(p, retailer){"), src.indexOf("/** The standard card for any listed product"));
+  if (!/brand: p\.brand/.test(expr)) throw new Error("the shared card's onclick does not pass the brand");
+});
+
+{
+  const sz = loadPageSizeSlice();
+
+  check("a blazer has a size, and a television does not", () => {
+    /* REPORTED FROM A REAL FITTING. Sizes did not come up on most of
+       the designer catalogue: measured, 906 of SSENSE's garments and
+       187 of Macy's offered no size at all, because the rule keys off
+       words in the TITLE and "blazer" was not one of them. Old Navy and
+       Foot Locker were never affected -- they match by RETAILER -- which
+       is exactly why the gap survived spot-checks. */
+    for (const t of ["Brown Curved Vent Blazer", "Men's Every Wear Polo Shirt", "Black Wool Trousers",
+                     "Cashmere Cardigan", "Merino Pullover", "Silk Blouse", "Quilted Vest", "Wool Overshirt"]) {
+      if (!sz.needsSizeSelection("ssense", t)) throw new Error(`no size picker for "${t}"`);
+      if (sz.sizeCategoryFor("ssense", t) !== "clothing") throw new Error(`"${t}" was sized as footwear`);
+    }
+    for (const t of ["Leather Loafers", "Suede Sandals", "Shearling Slippers", "Leather Mules"]) {
+      if (!sz.needsSizeSelection("ssense", t)) throw new Error(`no size picker for "${t}"`);
+      if (sz.sizeCategoryFor("ssense", t) !== "shoe") throw new Error(`"${t}" was sized as clothing`);
+    }
+  });
+
+  check("a size picker never appears on something without a size", () => {
+    /* THE OTHER DIRECTION, and the reason the added words stop where
+       they do. The catalogue really holds a "SKLZ Star Kick Sports
+       Trainer", so "trainer" is not a shoe word here; "pump" is a bike
+       and a breast pump before it is a heel; a bare "top" is a table
+       top. A missing size picker is a bad checkout — one on a toaster
+       is a worse one. */
+    for (const t of ["onn 50 in Class 4K UHD Smart Television", "Nature Made Vitamin D3 Softgels",
+                     "SKLZ Star Kick Sports Trainer", "Breast Pump Electric", "Glass Table Top 90cm",
+                     "Oxford English Dictionary", "Stand Mixer 5qt"]) {
+      if (sz.needsSizeSelection("ssense", t)) throw new Error(`"${t}" was given a size picker`);
+    }
+  });
+
+  check("there is ONE list of size words, not three", () => {
+    /* THE CAUSE OF THE BUG, not just the symptom. The PDP's picker read
+       APPAREL_SIZE_KEYWORDS, needsSizeSelection() read APPAREL_KEYWORDS
+       and standardSizeOptions() read PRODUCT_SHOE_KEYWORDS -- three
+       overlapping copies hundreds of lines apart, so a word added to
+       one was missing from the others. "Blazer" was in none. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const code = src.replace(/\/\*[\s\S]*?\*\//g, "");   // comments may still name the dead constants
+    for (const dead of ["APPAREL_SIZE_KEYWORDS", "PRODUCT_SHOE_KEYWORDS"]) {
+      if (code.includes(dead)) throw new Error(`${dead} is back — a second list of size words will drift from the first`);
+    }
+    // And the two places that used them read the shared list now.
+    if (!/needsSize \|\| \(name && APPAREL_KEYWORDS\.test\(name\)\)/.test(code)) {
+      throw new Error("the PDP's size picker no longer reads the shared list");
+    }
+    if (!/sizeCategory === 'shoe' : SHOE_KEYWORDS\.test\(title\)/.test(code)) {
+      throw new Error("standardSizeOptions no longer reads the shared shoe list");
+    }
+  });
+
+  check("Spanish names the same garments", () => {
+    // The catalogue is English today; the shopper is not, and a live
+    // scrape or a hand-added item can arrive either way.
+    for (const [t, cat] of [["Traje de lana", "clothing"], ["Suéter de cachemira", "clothing"],
+                            ["Sueter sin tilde", "clothing"], ["Chaleco acolchado", "clothing"],
+                            ["Blusa de seda", "clothing"], ["Pantalón de vestir", "clothing"],
+                            ["Zapatillas de cuero", "shoe"], ["Botas de lluvia", "shoe"]]) {
+      if (!sz.needsSizeSelection("ssense", t)) throw new Error(`no size picker for "${t}"`);
+      if (sz.sizeCategoryFor("ssense", t) !== cat) throw new Error(`"${t}" sized as the wrong category`);
+    }
+  });
+
+  check("a garment cannot be bought without a size, even if we failed to offer one", () => {
+    /* FAIL CLOSED. The old guard read `!sizeWrap.hidden && ...`: it only
+       refused when a picker was already on screen, so the one case that
+       matters -- a garment the word list did not recognise, therefore no
+       picker -- completed with no size at all. A S/ 2,946 blazer could
+       be bought sizeless. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("  addToCart({"));
+    if (!fn) throw new Error("the add-to-cart guard is gone");
+    if (/if \(!sizeWrap\.hidden && sizeSelect\.required && !sizeSelect\.value\)\{/.test(fn)) {
+      throw new Error("the guard is fail-open again — it only refuses when a picker is already showing");
+    }
+    if (!/const wantsSize = apparelNeedsSize\(p\.retailer, p\.name\);/.test(fn)) {
+      throw new Error("the buy path no longer asks whether the product is a garment");
+    }
+    if (!/if \(wantsSize && sizeWrap\.hidden\)\{/.test(fn)) {
+      throw new Error("a garment with no picker is no longer stopped");
+    }
+    if (!/revealStandardSizePicker\(p\.name, p\.sizeCategory\)/.test(fn)) {
+      throw new Error("the shopper is refused without being given the picker they were missing");
+    }
+    // The recovery picker must carry the same honest note as the page's.
+    const rev = src.slice(src.indexOf("function revealStandardSizePicker(title, sizeCategory){"), src.indexOf("function addToCartFromProduct(){"));
+    if (!/No pudimos confirmar las tallas exactas/.test(rev)) {
+      throw new Error("the recovered picker drops the disclaimer that these are reference sizes");
+    }
+  });
+
+  check("the two apparel-only stores still match by retailer, not by wording", () => {
+    // Their titles often carry no garment word at all ("Jordan Retro 8").
+    for (const r of ["oldnavy", "footlocker"]) {
+      if (!sz.needsSizeSelection(r, "Jordan Retro 8")) throw new Error(`${r} stopped sizing everything it sells`);
+    }
+    if (sz.needsSizeSelection("walmart", "Jordan Retro 8")) throw new Error("the retailer rule leaked to a general store");
+  });
+}
+
 group("Zapatos: a department made of other people's buckets");
 
 const shoePage = loadPageFootwearSlice();
@@ -6283,6 +6457,12 @@ group("Tiendas is a photograph of a street, not a white strip");
 /* A slice helper that REFUSES to run backwards. src.slice(indexOf(A),
    indexOf(B)) returns "" when B sits earlier than A, and an empty string
    satisfies every negative assertion below while measuring nothing. */
+/* CLOSING-BRACE ANCHORS AND TEMPLATE LITERALS. Ending a slice at "}"
+   looks natural and is wrong for any function containing `${...}`: the
+   first closing brace belongs to the interpolation, so the slice stops
+   mid-string and every assertion after it silently measures nothing.
+   Two checks below passed that way until a real run said otherwise.
+   Anchor on the NEXT declaration instead. */
 function forwardSlice(src, a, b, what){
   const i = src.indexOf(a);
   if (i < 0) throw new Error(`${what}: cannot find the opening anchor ${JSON.stringify(a)}`);
@@ -6589,6 +6769,142 @@ check("all four trust photographs are committed, and small enough to send to a p
     if (kb > 200) throw new Error(`${title} is ${kb.toFixed(0)} KB — over the 200 KB budget for a background`);
   }
 });
+
+group("Dollars lead, and the soles beside them are venta");
+
+const priceSrc = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const checkoutSrc = () => readFileSync(root("checkout.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("the rate the site converts at is venta, never compra and never mid-market", () => {
+  /* WHY VENTA. Shoppers pay in soles; we spend dollars at US stores. We
+     are BUYING dollars, so the soles price has to reflect what dollars
+     cost — the venta (sell) rate. Compra is what a casa de cambio pays
+     for your dollars, and it is lower: converting at it, or at a
+     mid-market average, undercharges every order and we eat the spread. */
+  const src = priceSrc();
+  const loader = forwardSlice(src, "function loadFxRate(){", "\nfunction fmtPEN(", "loadFxRate");
+  if (!/fxRate = data\.venta/.test(loader)) throw new Error("index.html no longer takes venta from the API response");
+  if (!/cached\.venta/.test(loader)) throw new Error("the cached rate is no longer read as venta");
+  if (/data\.compra|cached\.compra/.test(loader)) throw new Error("index.html is reading compra — that undercharges every order");
+
+  /* And the same on the page that actually charges the card. Every
+     conversion there must multiply by venta; compra may only be
+     DISPLAYED, under its own label. */
+  const co = checkoutSrc();
+  const converts = [...co.matchAll(/\*\s*fxRates\.(compra|venta)/g)].map(m => m[1]);
+  if (!converts.length) throw new Error("checkout.html no longer converts through fxRates at all");
+  const wrong = converts.filter(r => r !== "venta");
+  if (wrong.length) throw new Error(`checkout.html converts at ${wrong.join(", ")} — venta is the only correct rate`);
+});
+
+check("nothing anywhere hardcodes an exchange rate", () => {
+  /* The 3.8 that used to sit in checkout.html, and the 3.38 that replaced
+     it, were both wrong within a week of being written. A rate is a fact
+     with a date on it; it comes from SUNAT, daily, or the page degrades
+     to dollars alone. */
+  for (const [name, src] of [["index.html", priceSrc()], ["checkout.html", checkoutSrc()]]) {
+    const code = stripComments(src);
+    const hits = [...code.matchAll(/(?:fxRate|fxRates|venta|compra|tipoCambio)\s*[=:]\s*(\d+\.\d+)/g)];
+    if (hits.length) throw new Error(`${name} hardcodes a rate: ${hits.map(h => h[1]).join(", ")}`);
+  }
+  const fn = readFileSync(root("netlify/functions/exchange-rate.js"), "utf8");
+  if (!/tipo-cambio-sunat/.test(fn)) throw new Error("the rate no longer comes from SUNAT");
+  if (!/typeof data\.venta !== "number"/.test(fn)) throw new Error("the function no longer validates that venta is a real number");
+});
+
+check("the primary figure is the dollar", () => {
+  const src = priceSrc();
+  /* fmtPriceLabel is called from a dozen inline contexts and used to
+     return soles. It returns the dollar now; the soles line is added
+     BESIDE it by solesUnderHTML, never smuggled into its return value —
+     otherwise a caller that only wants a figure gets two. */
+  const label = forwardSlice(src, "function fmtPriceLabel(usd){", "}", "fmtPriceLabel");
+  if (!/return fmtUSD\(usd\)/.test(label)) throw new Error("fmtPriceLabel no longer returns dollars");
+  if (/fmtPEN\(/.test(label)) throw new Error("fmtPriceLabel is returning soles again");
+
+  /* The customs box: every figure in it is a USD customs figure, so the
+     dollar leads there too. */
+  const customs = forwardSlice(src, "function penWithUsd(usdAmount){", "function renderCustomsDisclosure", "penWithUsd");
+  /* THE TWO-CURRENCY RETURN, not the whole function. penWithUsd opens
+     with a no-rate fallback that calls usd0() on its own line, so an
+     indexOf comparison across the body reports "dollars first" even when
+     the template underneath it leads with soles — which is exactly what a
+     mutation run caught this check doing. Read the template. */
+  const tpl = customs.split("\n").find(l => l.includes("return `"));
+  if (!tpl) throw new Error("penWithUsd no longer returns a two-currency template");
+  const iUsd = tpl.indexOf("usd0("), iPen = tpl.indexOf("fmtPEN(");
+  if (iUsd < 0) throw new Error("penWithUsd no longer shows a dollar figure");
+  if (iPen >= 0 && iPen < iUsd) throw new Error("penWithUsd leads with soles again");
+});
+
+check("the soles line carries the rate it was computed at", () => {
+  /* A soles figure alone is an assertion. A soles figure with its rate
+     beside it is arithmetic the shopper can redo — and since the rate is
+     venta, the number they check is the number we paid. */
+  const src = priceSrc();
+  const under = forwardSlice(src, "function solesUnderHTML(usd,", "function solesUnderPenHTML", "solesUnderHTML");
+  if (!/fxRateLabel\(\)/.test(under)) throw new Error("the soles line no longer names its rate");
+  if (!/fmtPEN\(usd\)/.test(under)) throw new Error("the soles line no longer shows soles");
+  /* NO RATE, NO LINE. An invented conversion is worse than none. */
+  if (!/!fxRate\)\s*return ''/.test(under)) throw new Error("the soles line would render without a live rate — that is a fabricated conversion");
+
+  const lbl = forwardSlice(src, "function fxRateLabel(){", "function solesUnderHTML", "fxRateLabel");
+  if (!/TC hoy/.test(lbl)) throw new Error("the rate label no longer reads 'TC hoy'");
+  if (!/toFixed\(2\)/.test(lbl)) throw new Error("the rate is not shown to two decimals");
+
+  const co = checkoutSrc();
+  const coLbl = forwardSlice(co, "function fxLabel(){", "function solesUnder(", "checkout fxLabel");
+  if (!/venta\.toFixed\(2\)/.test(coLbl)) throw new Error("checkout's rate label is not the venta rate");
+});
+
+check("the pay button names what actually leaves the account", () => {
+  /* Everywhere else the soles figure is small and grey under the dollar.
+     Not on this button: the card is charged in SOLES, and a button
+     reading only "Pagar $113.00" does not say what leaves the account.
+     Dollars still lead; the soles amount is never skippable. */
+  const co = checkoutSrc();
+  const pay = forwardSlice(co, "function payLabel(usdAmount, penAmount){", "function setMoney", "payLabel");
+  if (!/Pagar \$\{d\}/.test(pay)) throw new Error("the pay button no longer leads with the dollar figure");
+  if (!/pen\.format\(penAmount\)/.test(pay)) throw new Error("the pay button no longer names the soles charged");
+});
+
+check("the two currencies stack without the Tailwind CDN", () => {
+  /* THE BUG THIS PINS, found by the browser suite rather than by reading.
+     The soles line was a <span class="block ...">, and `block` is a
+     Tailwind utility. With the CDN blocked — how that suite always runs,
+     and how a visitor on a bad network sees the page — the span stays
+     inline and the price reads "$100S/ 341.00". An unreadable price at
+     the moment of deciding. display:block belongs in the inline
+     stylesheet, like every other layout rule that must survive. */
+  for (const [name, src] of [["index.html", priceSrc()], ["checkout.html", checkoutSrc()]]) {
+    const style = forwardSlice(src, "<style>", "</style>", `${name}'s inline stylesheet`);
+    if (!/\.ariaPricePen\{[^}]*display:block/.test(style.replace(/\s+/g, ""))
+        && !/ariaPricePen[^}]*display:block/.test(style.replace(/\s+/g, ""))) {
+      throw new Error(`${name} does not declare .ariaPricePen{display:block} in its own stylesheet`);
+    }
+    if (/class="block \$\{/.test(src)) {
+      throw new Error(`${name} builds a price span out of Tailwind's block utility — it vanishes with the CDN`);
+    }
+  }
+});
+
+check("an authoritative soles figure is never re-derived from the dollar", () => {
+  /* The cart subtotal and the checkout total carry soles-denominated
+     amounts — the small-order fee, the saldo. Printing
+     round2(usdTotal × rate) under them could land a céntimo off what the
+     card is charged, which is the kind of mismatch that produces a
+     support ticket rather than a bug report. */
+  const src = priceSrc();
+  if (!/function solesUnderPenHTML\(/.test(src)) throw new Error("index.html lost the soles-native price line");
+  const cart = forwardSlice(src, "const subtotalPen = orderBasePen == null", "cartCheckoutBtn", "the cart subtotal");
+  if (!/solesUnderPenHTML\(subtotalPen/.test(cart)) throw new Error("the cart subtotal re-converts instead of showing the soles it computed");
+
+  const co = checkoutSrc();
+  if (!/function solesUnderPen\(/.test(co)) throw new Error("checkout.html lost the soles-native price line");
+  if (!/solesUnderPen\(orderTotalPen\)/.test(co)) throw new Error("the checkout total re-converts instead of showing the soles it computed");
+  if (!/solesUnderPen\(chargedPen\)/.test(co)) throw new Error("the post-saldo total re-converts instead of showing the soles charged");
+});
+
 group("The header fits the phone it is read on");
 
 function fwd(src, a, b, what){
@@ -6748,7 +7064,6 @@ check("the new card is built from the same parts as its neighbours", () => {
   const colours = [...card.matchAll(/color:(#[0-9A-Fa-f]{3,6})/g)].map((m) => m[1]);
   eq([...new Set(colours)].sort().join(","), "#D7E0F4,#fff", `the card introduced a colour: ${colours.join()}`);
 });
-
 group("No vitamins, and no way back to them");
 
 /* ==================================================================
@@ -6889,6 +7204,7 @@ check("a pharmacy bucket that arrives anyway is dropped at the load boundary", (
   }
 });
 
+
 group("Curvy promises only the sizes a store actually publishes");
 
 const curvy = loadPageCurvySlice();
@@ -7026,7 +7342,6 @@ check("the size run only prints where a page asked for it", () => {
     throw new Error("the catalogue feed no longer turns the size run on for Curvy");
   }
 });
-
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

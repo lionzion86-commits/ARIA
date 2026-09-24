@@ -1,16 +1,13 @@
 # Section backgrounds
 
-Full-bleed photographs that sit *behind* a whole home-page section, or
-lead a destination page, as opposed to `assets/category/`, which holds
-the art inside a single tile. A subject can have both, and they are
-different shots because they are different crops: Belleza's tile is
-`assets/category/beauty.jpg`, close and square-ish, while its banner is
-`beauty-banner.jpg` here, wide with the silk left empty for type.
+Full-bleed photographs that sit *behind* a whole home-page section, as
+opposed to `assets/category/`, which holds the art inside a single tile.
+
+One file so far:
 
 | file | section | shipped |
 |---|---|---|
 | `tiendas-mall-row.jpg` | Tiendas — the store-mark rail on a phone, the retailers strip on a laptop | 1760×410, ~114 KB |
-| `beauty-banner.jpg` | Belleza — the banner leading the destination page | 1920×1280, ~325 KB |
 
 ## The rules a section background has to follow
 
@@ -75,18 +72,6 @@ laptop. The switch is `lg`, because that is where `#mobileShopfront`
 hides; the two numbers must not drift apart, and `run-tests.mjs` pins
 them to each other.
 
-## A banner is the same discipline, a different class
-
-`beauty-banner.jpg` leads the Belleza destination page rather than
-sitting behind a home-page section, so it has its own
-`.ariaBeautyBanner` — but the trap is identical and so is the guard:
-that class carries its own `position:relative` and `overflow:hidden` in
-the inline `<style>`, never as a Tailwind utility, and a browser check
-asserts the computed values rather than the class name. It is `alt=""`,
-`aria-hidden`, lazy, and removes itself on error, so a missing file
-leaves the page correct instead of putting a broken glyph above a
-safety warning.
-
 ## Adding another one
 
 Reuse `.ariaSectionShot` / `.ariaSectionPhoto` / `.ariaSectionScrim` /
@@ -94,3 +79,7 @@ Reuse `.ariaSectionShot` / `.ariaSectionPhoto` / `.ariaSectionScrim` /
 looks similar. Keep the file under 200 KB (asserted). No text, badges,
 prices or numbers baked into the image — ever; those are the page's job,
 and a price inside a JPEG cannot be updated, translated, or made honest.
+
+## The beauty destination banner
+
+`beauty-banner.jpg` heads the beauty destination page. A section can have both a tile and a banner: the tile is `assets/category/beauty.jpg` and the banner is `beauty-banner.jpg` here, and they are different shots because they are different crops -- the tile is close and square-ish, the banner is wide with the silk left empty. It follows every rule above: positioning in the inline `<style>` (`.ariaBeautyBanner` carries its own `position:relative` and `overflow:hidden`, asserted by a browser check on computed values rather than the class name), decorative and survivable (`alt=""`, `aria-hidden`, an `onerror` that removes the element), lazy (below the fold of the page that opens it), and no text, badges or prices baked into the image.

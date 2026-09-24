@@ -39,6 +39,7 @@ export const DEPARTMENT_SPEC = {
   candy_chocolate: { category: "grocery" },
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
+
   /* CURVY TAKES THE SLOT PHARMACY LEFT (2026-09-24). Not a category a
      retailer scrapes into -- a filter over apparel on the size run the
      retailer itself publishes. See the long note in index.html beside
@@ -144,6 +145,20 @@ function isOnSale(item) {
   return Math.round((1 - price / original) * 100) >= 5; // same floor the rest of the site uses
 }
 
+/* DEPORTES IS NOT A SHOE STORE (2026-09-24). Walmart and Target file
+   dress shoes in their sporting_goods scrape buckets — princess heels,
+   slingback pumps, wingtip dress shoes — and the bucket is the only
+   signal Deportes has, so they land beside the basketballs. Athletic
+   footwear stays; the dressy kind is refused per item, the same way
+   NOT_FOOTWEAR refuses socks from Zapatos. Mirrors index.html; change
+   one, change the other.
+
+   "pumps" is plural-only on purpose: the Reebok Pump is a basketball
+   shoe. "taco" stays out for the reason the footwear note gives
+   (dinner, not a heel); "tacones"/"tacón" are unambiguous. */
+const NON_ATHLETIC_FOOTWEAR =
+  /\b(heels?|tacones?|tac[oó]n|pumps|stilettos?|slingbacks?|ballerinas?|bailarinas?|mary\s*janes?|princess|princesa|dress\s+shoes?|wedges?|cu[ñn]as?|bridal|wedding|novia|boda|evening\s+shoes?|costume|disfraz|peep[-\s]?toes?|mules?)\b/i;
+
 /* Does this item, found in this bucket, belong in this department?
 
    `retailer` is optional and only Zapatos reads it: Foot Locker's
@@ -158,6 +173,11 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* Deportes refuses dress shoes per item: the retailers'
+     sporting_goods buckets carry them, and the bucket is this
+     department's only other signal. Gated on isFootwear so a
+     "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
+  if (deptKey === "sporting_goods" && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(titleOf(item))) return false;
   if (!dept.gender) return true;
   return genderOfItem(item, bucketName) === dept.gender;
 }
