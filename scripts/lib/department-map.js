@@ -39,7 +39,11 @@ export const DEPARTMENT_SPEC = {
   candy_chocolate: { category: "grocery" },
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
-  pharmacy:        { category: "health" },
+  /* NO PHARMACY. Vitamins and supplements need a DIGEMID import permit
+     that we do not hold, so the department is off the site entirely --
+     see RESTRICTED_DEPARTMENTS in index.html, which drops the bucket at
+     the load boundary even if one reaches a cache again. Nothing routes
+     a scrape at it from here either (scripts/lib/catalog-quotas.js). */
   /* BEAUTY (2026-09-20). No retailer supplies a beauty bucket yet —
      Sephora and Victoria's Secret are real stores whose scrapers are
      still being wired up (see scripts/lib/retailers.js). A department no
@@ -76,7 +80,6 @@ export const BUCKET_SPEC = {
   candy_chocolate: { category: "grocery" },
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
-  pharmacy:        { category: "health" },
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: "beauty" },
   fragrance:       { category: "beauty" },

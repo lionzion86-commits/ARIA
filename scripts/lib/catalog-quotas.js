@@ -61,7 +61,6 @@ export const CATALOG_QUOTAS = {
     { category: "women_clothing", department: "women", query: "womens clothing", target: 60 },
     { category: "home_goods", department: "home_goods", query: "home goods", target: 60 },
     { category: "candy", department: "candy_chocolate", query: "candy", target: 60 },
-    { category: "pharmacy", department: "pharmacy", query: "vitamins", target: 60 },
   ],
   target: [
     { category: "electronics", department: "electronics", query: "electronics", target: 60 },
@@ -69,7 +68,6 @@ export const CATALOG_QUOTAS = {
     { category: "women_clothing", department: "women", query: "womens clothing", target: 60 },
     { category: "home_goods", department: "home_goods", query: "home decor", target: 60 },
     { category: "candy", department: "candy_chocolate", query: "candy", target: 60 },
-    { category: "pharmacy", department: "pharmacy", query: "vitamins", target: 60 },
   ],
   footlocker: [
     { category: "men_shoes", department: "men", query: "mens shoes", target: 60 },
