@@ -44,7 +44,8 @@
   .view{display:none}
   .view.active{display:block}
   /* ============================================================
-     PER-STORE AMBIENT THEMES (2026-09-24) — pilot: Victoria's Secret.
+     PER-STORE AMBIENT THEMES (2026-09-24) — full rollout: every carried
+     store gets a brand-lit backdrop, grounded in its real identity.
 
      A storefront with an ambient gets data-store-theme="<key>" on its
      view container (see applyStoreTheme). The ambient paints the
@@ -54,8 +55,10 @@
      today's look untouched.
 
      Extend by adding a row to STORE_THEMES and a
-     [data-store-theme="<key>"] block here. Themes are dark-only: the
-     overrides below assume light text over a dark ambient. */
+     [data-store-theme="<key>"] block here, following the established
+     pattern (3 radial glows + linear base, then the 7 re-ink rules).
+     Themes are dark-only: the overrides assume light text over a
+     dark ambient. Chip text must hold 4.5:1 against the chip color. */
   [data-store-theme]{ min-height:72vh; }
   /* VICTORIA'S SECRET — moody plum-charcoal with a soft pink glow:
      the real store's lighting. A pink bloom on each upper side (so the
@@ -111,6 +114,388 @@
   /* Rail titles ink light on the VS plum, the way the subtitles do. A
      future dark theme adds its own .ariaCarouselTitle line here. */
   [data-store-theme="victoriassecret"] .ariaCarouselTitle{ color:#FDF3F7 !important; }
+  /* WALMART — everyday value, bright aisles, yellow spark energy
+     True Blue #0071CE + Spark Yellow #FFC220 over deep store-blue.
+  */
+  [data-store-theme="walmart"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(46,155,235,0.32), rgba(46,155,235,0) 70%),
+      radial-gradient(620px 330px at 88% 4%, rgba(255,194,32,0.22), rgba(255,194,32,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(14,77,164,0.36), rgba(14,77,164,0) 72%),
+      linear-gradient(180deg, #0B1E38 0%, #081627 52%, #050F1D 100%);
+  }
+  [data-store-theme="walmart"] h1{ color:#FFFFFF; }
+  [data-store-theme="walmart"] #catalogSubtitle,
+  [data-store-theme="walmart"] #storeViewSubtitle,
+  [data-store-theme="walmart"] #storeResultsSubtitle{ color:#ACCFF7; }
+  [data-store-theme="walmart"] .themeBack{ color:#CFE2FF !important; }
+  [data-store-theme="walmart"] .themeChips [aria-pressed="true"]{
+    background:#0071CE !important; border-color:#4DA3E8 !important; color:#fff !important;
+  }
+  [data-store-theme="walmart"] .themeChips .chipLabel{ color:#ACCFF7 !important; }
+  [data-store-theme="walmart"] #catalogSort{ border-color:#7FB8EE !important; }
+  [data-store-theme="walmart"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* TARGET — playful cheap-chic, bullseye optimism
+     Target Red #CC0000 breathing over warm charcoal-red.
+  */
+  [data-store-theme="target"]{
+    background:
+      radial-gradient(560px 300px at 14% -4%, rgba(240,68,56,0.3), rgba(240,68,56,0) 70%),
+      radial-gradient(600px 320px at 86% 6%, rgba(255,138,122,0.2), rgba(255,138,122,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(122,31,26,0.36), rgba(122,31,26,0) 72%),
+      linear-gradient(180deg, #210D0D 0%, #180A0A 52%, #100606 100%);
+  }
+  [data-store-theme="target"] h1{ color:#FFFFFF; }
+  [data-store-theme="target"] #catalogSubtitle,
+  [data-store-theme="target"] #storeViewSubtitle,
+  [data-store-theme="target"] #storeResultsSubtitle{ color:#F3B8B0; }
+  [data-store-theme="target"] .themeBack{ color:#D6E4FF !important; }
+  [data-store-theme="target"] .themeChips [aria-pressed="true"]{
+    background:#CC0000 !important; border-color:#F06666 !important; color:#fff !important;
+  }
+  [data-store-theme="target"] .themeChips .chipLabel{ color:#F3B8B0 !important; }
+  [data-store-theme="target"] #catalogSort{ border-color:#E8A9A9 !important; }
+  [data-store-theme="target"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* OLD NAVY — upbeat Americana, nautical navy-and-white
+     Real Old Navy navy #003764 lifted bright; a whisper of flag red.
+  */
+  [data-store-theme="oldnavy"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(61,99,245,0.32), rgba(61,99,245,0) 70%),
+      radial-gradient(560px 300px at 88% 4%, rgba(224,52,43,0.18), rgba(224,52,43,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(18,36,92,0.38), rgba(18,36,92,0) 72%),
+      linear-gradient(180deg, #0A1130 0%, #080D26 52%, #05081A 100%);
+  }
+  [data-store-theme="oldnavy"] h1{ color:#FFFFFF; }
+  [data-store-theme="oldnavy"] #catalogSubtitle,
+  [data-store-theme="oldnavy"] #storeViewSubtitle,
+  [data-store-theme="oldnavy"] #storeResultsSubtitle{ color:#B9C6F5; }
+  [data-store-theme="oldnavy"] .themeBack{ color:#C9D6FF !important; }
+  [data-store-theme="oldnavy"] .themeChips [aria-pressed="true"]{
+    background:#2440B8 !important; border-color:#6B86F0 !important; color:#fff !important;
+  }
+  [data-store-theme="oldnavy"] .themeChips .chipLabel{ color:#B9C6F5 !important; }
+  [data-store-theme="oldnavy"] #catalogSort{ border-color:#93A7F2 !important; }
+  [data-store-theme="oldnavy"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* FOOT LOCKER — street-sneaker culture, referee stripes
+     Striper red #E52935 over sport black; gray like the stripes.
+  */
+  [data-store-theme="footlocker"]{
+    background:
+      radial-gradient(560px 300px at 10% -4%, rgba(229,50,45,0.3), rgba(229,50,45,0) 70%),
+      radial-gradient(600px 320px at 90% 6%, rgba(138,143,152,0.18), rgba(138,143,152,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(61,15,14,0.36), rgba(61,15,14,0) 72%),
+      linear-gradient(180deg, #0D0D10 0%, #0A0A0C 52%, #060607 100%);
+  }
+  [data-store-theme="footlocker"] h1{ color:#FFFFFF; }
+  [data-store-theme="footlocker"] #catalogSubtitle,
+  [data-store-theme="footlocker"] #storeViewSubtitle,
+  [data-store-theme="footlocker"] #storeResultsSubtitle{ color:#C9CDD4; }
+  [data-store-theme="footlocker"] .themeBack{ color:#DDE2EA !important; }
+  [data-store-theme="footlocker"] .themeChips [aria-pressed="true"]{
+    background:#D22630 !important; border-color:#F06666 !important; color:#fff !important;
+  }
+  [data-store-theme="footlocker"] .themeChips .chipLabel{ color:#C9CDD4 !important; }
+  [data-store-theme="footlocker"] #catalogSort{ border-color:#9AA0AA !important; }
+  [data-store-theme="footlocker"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* SEPHORA — black-and-white striped luxe
+     Cool monochrome; the pressed pill is white-on-black inverted:
+     the brand IS black-and-white, so the active filter goes white.
+  */
+  [data-store-theme="sephora"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(245,245,247,0.2), rgba(245,245,247,0) 70%),
+      radial-gradient(600px 320px at 88% 4%, rgba(154,154,162,0.14), rgba(154,154,162,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(30,30,36,0.4), rgba(30,30,36,0) 72%),
+      linear-gradient(180deg, #0B0B0D 0%, #09090B 52%, #060607 100%);
+  }
+  [data-store-theme="sephora"] h1{ color:#FFFFFF; }
+  [data-store-theme="sephora"] #catalogSubtitle,
+  [data-store-theme="sephora"] #storeViewSubtitle,
+  [data-store-theme="sephora"] #storeResultsSubtitle{ color:#CFCFD6; }
+  [data-store-theme="sephora"] .themeBack{ color:#E8E8EE !important; }
+  [data-store-theme="sephora"] .themeChips [aria-pressed="true"]{
+    background:#FFFFFF !important; border-color:#FFFFFF !important; color:#000000 !important;
+  }
+  [data-store-theme="sephora"] .themeChips .chipLabel{ color:#CFCFD6 !important; }
+  [data-store-theme="sephora"] #catalogSort{ border-color:#8E8E96 !important; }
+  [data-store-theme="sephora"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* ULTA BEAUTY — bright beauty playground, orange pop
+     Ulta orange #F88038 glowing warm; BLACK text on the orange pill
+     (white on #F88038 fails contrast).
+  */
+  [data-store-theme="ulta"]{
+    background:
+      radial-gradient(580px 310px at 12% -4%, rgba(255,154,77,0.32), rgba(255,154,77,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(255,201,138,0.2), rgba(255,201,138,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(90,42,14,0.38), rgba(90,42,14,0) 72%),
+      linear-gradient(180deg, #1E1108 0%, #170D06 52%, #0F0804 100%);
+  }
+  [data-store-theme="ulta"] h1{ color:#FFF8F0; }
+  [data-store-theme="ulta"] #catalogSubtitle,
+  [data-store-theme="ulta"] #storeViewSubtitle,
+  [data-store-theme="ulta"] #storeResultsSubtitle{ color:#F5C99A; }
+  [data-store-theme="ulta"] .themeBack{ color:#FFE3C2 !important; }
+  [data-store-theme="ulta"] .themeChips [aria-pressed="true"]{
+    background:#F88038 !important; border-color:#FFB37A !important; color:#1A120A !important;
+  }
+  [data-store-theme="ulta"] .themeChips .chipLabel{ color:#F5C99A !important; }
+  [data-store-theme="ulta"] #catalogSort{ border-color:#E8A06A !important; }
+  [data-store-theme="ulta"] .ariaCarouselTitle{ color:#FFF8F0 !important; }
+  /* YESSTYLE — fresh K-beauty glow
+     YesStyle green #50A838 lifted fresh over deep botanical charcoal.
+  */
+  [data-store-theme="yesstyle"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(111,211,95,0.3), rgba(111,211,95,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(184,230,160,0.18), rgba(184,230,160,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(30,74,36,0.38), rgba(30,74,36,0) 72%),
+      linear-gradient(180deg, #0B1A0E 0%, #081408 52%, #050C06 100%);
+  }
+  [data-store-theme="yesstyle"] h1{ color:#FFFFFF; }
+  [data-store-theme="yesstyle"] #catalogSubtitle,
+  [data-store-theme="yesstyle"] #storeViewSubtitle,
+  [data-store-theme="yesstyle"] #storeResultsSubtitle{ color:#BDE5B4; }
+  [data-store-theme="yesstyle"] .themeBack{ color:#D6F5CE !important; }
+  [data-store-theme="yesstyle"] .themeChips [aria-pressed="true"]{
+    background:#257A33 !important; border-color:#6FCF7F !important; color:#fff !important;
+  }
+  [data-store-theme="yesstyle"] .themeChips .chipLabel{ color:#BDE5B4 !important; }
+  [data-store-theme="yesstyle"] #catalogSort{ border-color:#8FD49A !important; }
+  [data-store-theme="yesstyle"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* BATH & BODY WORKS — fragrance mist over brand blue
+     Brand blue #0F4C81 with a pink fragrance-mist second glow.
+  */
+  [data-store-theme="bathandbodyworks"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(90,169,230,0.32), rgba(90,169,230,0) 70%),
+      radial-gradient(620px 330px at 88% 4%, rgba(240,166,200,0.2), rgba(240,166,200,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(14,58,94,0.38), rgba(14,58,94,0) 72%),
+      linear-gradient(180deg, #0A1E33 0%, #081828 52%, #050F1C 100%);
+  }
+  [data-store-theme="bathandbodyworks"] h1{ color:#FFFFFF; }
+  [data-store-theme="bathandbodyworks"] #catalogSubtitle,
+  [data-store-theme="bathandbodyworks"] #storeViewSubtitle,
+  [data-store-theme="bathandbodyworks"] #storeResultsSubtitle{ color:#B9D9F2; }
+  [data-store-theme="bathandbodyworks"] .themeBack{ color:#CFE8FF !important; }
+  [data-store-theme="bathandbodyworks"] .themeChips [aria-pressed="true"]{
+    background:#0F4C81 !important; border-color:#5AA9E6 !important; color:#fff !important;
+  }
+  [data-store-theme="bathandbodyworks"] .themeChips .chipLabel{ color:#B9D9F2 !important; }
+  [data-store-theme="bathandbodyworks"] #catalogSort{ border-color:#8FC3EE !important; }
+  [data-store-theme="bathandbodyworks"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* MACY'S — heritage department-store glamour, red star + gold
+     Macy's red #E21A2C with star-gold; chip deepened for contrast.
+  */
+  [data-store-theme="macys"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(240,68,68,0.3), rgba(240,68,68,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(232,184,75,0.2), rgba(232,184,75,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(78,20,24,0.38), rgba(78,20,24,0) 72%),
+      linear-gradient(180deg, #1E0C0E 0%, #17090B 52%, #0F0607 100%);
+  }
+  [data-store-theme="macys"] h1{ color:#FFFFFF; }
+  [data-store-theme="macys"] #catalogSubtitle,
+  [data-store-theme="macys"] #storeViewSubtitle,
+  [data-store-theme="macys"] #storeResultsSubtitle{ color:#F2B8B8; }
+  [data-store-theme="macys"] .themeBack{ color:#FFE3C9 !important; }
+  [data-store-theme="macys"] .themeChips [aria-pressed="true"]{
+    background:#C81626 !important; border-color:#F06666 !important; color:#fff !important;
+  }
+  [data-store-theme="macys"] .themeChips .chipLabel{ color:#F2B8B8 !important; }
+  [data-store-theme="macys"] #catalogSort{ border-color:#E8A9A9 !important; }
+  [data-store-theme="macys"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* SKIMS — warm minimal neutral luxury
+     Skims taupe #605848 warmed and deepened; espresso base.
+  */
+  [data-store-theme="skims"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(166,139,107,0.3), rgba(166,139,107,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(214,194,168,0.18), rgba(214,194,168,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(46,36,27,0.4), rgba(46,36,27,0) 72%),
+      linear-gradient(180deg, #17120D 0%, #120E0A 52%, #0B0806 100%);
+  }
+  [data-store-theme="skims"] h1{ color:#FFF9F2; }
+  [data-store-theme="skims"] #catalogSubtitle,
+  [data-store-theme="skims"] #storeViewSubtitle,
+  [data-store-theme="skims"] #storeResultsSubtitle{ color:#D8C6B2; }
+  [data-store-theme="skims"] .themeBack{ color:#EFE0CC !important; }
+  [data-store-theme="skims"] .themeChips [aria-pressed="true"]{
+    background:#6E6257 !important; border-color:#A68B6B !important; color:#fff !important;
+  }
+  [data-store-theme="skims"] .themeChips .chipLabel{ color:#D8C6B2 !important; }
+  [data-store-theme="skims"] #catalogSort{ border-color:#B39B82 !important; }
+  [data-store-theme="skims"] .ariaCarouselTitle{ color:#FFF9F2 !important; }
+  /* REVOLVE — LA cool-girl minimalism, warm monochrome
+     Warm (not cool) monochrome — the white pill reads Revolve's
+     stark warmth vs Sephora's cool luxe and SSENSE's brutalism.
+  */
+  [data-store-theme="revolve"]{
+    background:
+      radial-gradient(560px 300px at 14% -4%, rgba(242,237,230,0.2), rgba(242,237,230,0) 70%),
+      radial-gradient(600px 320px at 86% 6%, rgba(185,176,164,0.14), rgba(185,176,164,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(32,28,23,0.4), rgba(32,28,23,0) 72%),
+      linear-gradient(180deg, #0E0D0C 0%, #0B0A09 52%, #070706 100%);
+  }
+  [data-store-theme="revolve"] h1{ color:#FFFFFF; }
+  [data-store-theme="revolve"] #catalogSubtitle,
+  [data-store-theme="revolve"] #storeViewSubtitle,
+  [data-store-theme="revolve"] #storeResultsSubtitle{ color:#D8D2C8; }
+  [data-store-theme="revolve"] .themeBack{ color:#EDE8DE !important; }
+  [data-store-theme="revolve"] .themeChips [aria-pressed="true"]{
+    background:#FFFFFF !important; border-color:#FFFFFF !important; color:#000000 !important;
+  }
+  [data-store-theme="revolve"] .themeChips .chipLabel{ color:#D8D2C8 !important; }
+  [data-store-theme="revolve"] #catalogSort{ border-color:#8E8880 !important; }
+  [data-store-theme="revolve"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* DYSON — futuristic engineering, steel + cool blue
+     Nickel-silver glow on graphite; silver pill, near-black text.
+  */
+  [data-store-theme="dyson"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(159,179,200,0.3), rgba(159,179,200,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(90,107,125,0.2), rgba(90,107,125,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(20,26,34,0.4), rgba(20,26,34,0) 72%),
+      linear-gradient(180deg, #0D1014 0%, #0A0D11 52%, #06080B 100%);
+  }
+  [data-store-theme="dyson"] h1{ color:#F2F6FA; }
+  [data-store-theme="dyson"] #catalogSubtitle,
+  [data-store-theme="dyson"] #storeViewSubtitle,
+  [data-store-theme="dyson"] #storeResultsSubtitle{ color:#B4C4D4; }
+  [data-store-theme="dyson"] .themeBack{ color:#D2E2F2 !important; }
+  [data-store-theme="dyson"] .themeChips [aria-pressed="true"]{
+    background:#C7D0DB !important; border-color:#E8EDF3 !important; color:#101418 !important;
+  }
+  [data-store-theme="dyson"] .themeChips .chipLabel{ color:#B4C4D4 !important; }
+  [data-store-theme="dyson"] #catalogSort{ border-color:#7E93A8 !important; }
+  [data-store-theme="dyson"] .ariaCarouselTitle{ color:#F2F6FA !important; }
+  /* SUNGLASS HUT — the split sun: gold + blue on black
+     The old international mark's yellow/blue sun, glowing on black.
+  */
+  [data-store-theme="sunglasshut"]{
+    background:
+      radial-gradient(580px 310px at 10% -6%, rgba(255,199,44,0.3), rgba(255,199,44,0) 70%),
+      radial-gradient(600px 320px at 90% 6%, rgba(46,155,230,0.22), rgba(46,155,230,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(74,50,8,0.36), rgba(74,50,8,0) 72%),
+      linear-gradient(180deg, #161006 0%, #110C04 52%, #0A0703 100%);
+  }
+  [data-store-theme="sunglasshut"] h1{ color:#FFFFFF; }
+  [data-store-theme="sunglasshut"] #catalogSubtitle,
+  [data-store-theme="sunglasshut"] #storeViewSubtitle,
+  [data-store-theme="sunglasshut"] #storeResultsSubtitle{ color:#F5D998; }
+  [data-store-theme="sunglasshut"] .themeBack{ color:#FFE9B8 !important; }
+  [data-store-theme="sunglasshut"] .themeChips [aria-pressed="true"]{
+    background:#FFC72C !important; border-color:#FFD968 !important; color:#1A1206 !important;
+  }
+  [data-store-theme="sunglasshut"] .themeChips .chipLabel{ color:#F5D998 !important; }
+  [data-store-theme="sunglasshut"] #catalogSort{ border-color:#E8B84B !important; }
+  [data-store-theme="sunglasshut"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* SSENSE — brutalist avant-garde, cold minimal
+     Coldest and most restrained of the monochromes — brutalist.
+  */
+  [data-store-theme="ssense"]{
+    background:
+      radial-gradient(520px 280px at 12% -4%, rgba(237,237,239,0.16), rgba(237,237,239,0) 70%),
+      radial-gradient(560px 300px at 88% 6%, rgba(110,110,120,0.12), rgba(110,110,120,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(16,16,20,0.42), rgba(16,16,20,0) 72%),
+      linear-gradient(180deg, #08080A 0%, #060607 52%, #030304 100%);
+  }
+  [data-store-theme="ssense"] h1{ color:#FFFFFF; }
+  [data-store-theme="ssense"] #catalogSubtitle,
+  [data-store-theme="ssense"] #storeViewSubtitle,
+  [data-store-theme="ssense"] #storeResultsSubtitle{ color:#C6C6CE; }
+  [data-store-theme="ssense"] .themeBack{ color:#E4E4EA !important; }
+  [data-store-theme="ssense"] .themeChips [aria-pressed="true"]{
+    background:#FFFFFF !important; border-color:#FFFFFF !important; color:#000000 !important;
+  }
+  [data-store-theme="ssense"] .themeChips .chipLabel{ color:#C6C6CE !important; }
+  [data-store-theme="ssense"] #catalogSort{ border-color:#6E6E78 !important; }
+  [data-store-theme="ssense"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* FENDI — Roman luxury, FF yellow gold
+     Fendi yellow glowing like the Zucca FF over espresso-black.
+  */
+  [data-store-theme="fendi"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(245,197,24,0.3), rgba(245,197,24,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(255,223,107,0.2), rgba(255,223,107,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(74,56,8,0.38), rgba(74,56,8,0) 72%),
+      linear-gradient(180deg, #171106 0%, #120D05 52%, #0B0803 100%);
+  }
+  [data-store-theme="fendi"] h1{ color:#FFFFFF; }
+  [data-store-theme="fendi"] #catalogSubtitle,
+  [data-store-theme="fendi"] #storeViewSubtitle,
+  [data-store-theme="fendi"] #storeResultsSubtitle{ color:#F2D98C; }
+  [data-store-theme="fendi"] .themeBack{ color:#FFEDBE !important; }
+  [data-store-theme="fendi"] .themeChips [aria-pressed="true"]{
+    background:#EAB308 !important; border-color:#FFD968 !important; color:#1A1206 !important;
+  }
+  [data-store-theme="fendi"] .themeChips .chipLabel{ color:#F2D98C !important; }
+  [data-store-theme="fendi"] #catalogSort{ border-color:#D4A437 !important; }
+  [data-store-theme="fendi"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* MIU MIU — playful vintage luxe, muted rose
+     Muted vintage rose — deliberately distinct from VS's hot pink.
+  */
+  [data-store-theme="miumiu"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(217,140,160,0.3), rgba(217,140,160,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(242,196,206,0.2), rgba(242,196,206,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(61,31,40,0.38), rgba(61,31,40,0) 72%),
+      linear-gradient(180deg, #190D12 0%, #130A0E 52%, #0B0609 100%);
+  }
+  [data-store-theme="miumiu"] h1{ color:#FFF5F7; }
+  [data-store-theme="miumiu"] #catalogSubtitle,
+  [data-store-theme="miumiu"] #storeViewSubtitle,
+  [data-store-theme="miumiu"] #storeResultsSubtitle{ color:#E8B7C2; }
+  [data-store-theme="miumiu"] .themeBack{ color:#F5D9E0 !important; }
+  [data-store-theme="miumiu"] .themeChips [aria-pressed="true"]{
+    background:#A85D6F !important; border-color:#D98CA0 !important; color:#fff !important;
+  }
+  [data-store-theme="miumiu"] .themeChips .chipLabel{ color:#E8B7C2 !important; }
+  [data-store-theme="miumiu"] #catalogSort{ border-color:#C98A99 !important; }
+  [data-store-theme="miumiu"] .ariaCarouselTitle{ color:#FFF5F7 !important; }
+  /* GOLDEN GOOSE — distressed Venetian luxury, vintage gold
+     Antique gold star-glow on near-black; dark text on the gold pill.
+  */
+  [data-store-theme="goldengoose"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(212,164,55,0.3), rgba(212,164,55,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(240,212,136,0.18), rgba(240,212,136,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(58,44,16,0.38), rgba(58,44,16,0) 72%),
+      linear-gradient(180deg, #14100A 0%, #0F0C07 52%, #090705 100%);
+  }
+  [data-store-theme="goldengoose"] h1{ color:#FFFFFF; }
+  [data-store-theme="goldengoose"] #catalogSubtitle,
+  [data-store-theme="goldengoose"] #storeViewSubtitle,
+  [data-store-theme="goldengoose"] #storeResultsSubtitle{ color:#E8D5A0; }
+  [data-store-theme="goldengoose"] .themeBack{ color:#F5E8C4 !important; }
+  [data-store-theme="goldengoose"] .themeChips [aria-pressed="true"]{
+    background:#B8912F !important; border-color:#D4A437 !important; color:#14100A !important;
+  }
+  [data-store-theme="goldengoose"] .themeChips .chipLabel{ color:#E8D5A0 !important; }
+  [data-store-theme="goldengoose"] #catalogSort{ border-color:#B89B5A !important; }
+  [data-store-theme="goldengoose"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* AUTOZONE — DIY garage energy, safety orange
+     AutoZone orange #F58226 (config's green had no basis in the brand)
+     with a parts-green second accent. Chip deepened for contrast.
+  */
+  [data-store-theme="autozone"]{
+    background:
+      radial-gradient(580px 310px at 12% -4%, rgba(255,122,26,0.32), rgba(255,122,26,0) 70%),
+      radial-gradient(600px 320px at 88% 6%, rgba(53,181,88,0.18), rgba(53,181,88,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(74,36,8,0.38), rgba(74,36,8,0) 72%),
+      linear-gradient(180deg, #170E06 0%, #120B05 52%, #0B0703 100%);
+  }
+  [data-store-theme="autozone"] h1{ color:#FFFFFF; }
+  [data-store-theme="autozone"] #catalogSubtitle,
+  [data-store-theme="autozone"] #storeViewSubtitle,
+  [data-store-theme="autozone"] #storeResultsSubtitle{ color:#F5C89A; }
+  [data-store-theme="autozone"] .themeBack{ color:#FFE3C2 !important; }
+  [data-store-theme="autozone"] .themeChips [aria-pressed="true"]{
+    background:#C24E00 !important; border-color:#FF8A3D !important; color:#fff !important;
+  }
+  [data-store-theme="autozone"] .themeChips .chipLabel{ color:#F5C89A !important; }
+  [data-store-theme="autozone"] #catalogSort{ border-color:#E8975A !important; }
+  [data-store-theme="autozone"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
      used to sit on their brand-colour swatch, which made Foot Locker
      (all-black artwork on #000) read as a solid black rectangle and
@@ -9226,7 +9611,8 @@ const RETAILERS = {
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
 function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
 /* ============================================================
-   PER-STORE AMBIENT THEMES (2026-09-24) — pilot: Victoria's Secret.
+   PER-STORE AMBIENT THEMES (2026-09-24) — full rollout 2026-09-24: every
+   carried store gets a brand-grounded ambient. Each row's `glow` is the
 
    A retailer listed here gets a moody, brand-lit backdrop on its
    storefront views: storeView, catalogView and storeResultsView whenever
@@ -9240,7 +9626,25 @@ const STORE_THEMES = {
   /* VICTORIA'S SECRET — moody plum-charcoal, soft pink glow. In Peru VS
      reads as luxury, so its section is lit like the real store instead
      of the white grid every other storefront still uses. */
+  walmart: { glow: '#2E9BEB' },
+  target: { glow: '#F04438' },
+  oldnavy: { glow: '#3D63F5' },
+  footlocker: { glow: '#E5322D' },
+  sephora: { glow: '#F5F5F7' },
+  ulta: { glow: '#FF9A4D' },
+  yesstyle: { glow: '#6FD35F' },
   victoriassecret: { glow: '#E31C79' },
+  bathandbodyworks: { glow: '#5AA9E6' },
+  macys: { glow: '#F04444' },
+  skims: { glow: '#A68B6B' },
+  revolve: { glow: '#F2EDE6' },
+  dyson: { glow: '#9FB3C8' },
+  sunglasshut: { glow: '#FFC72C' },
+  ssense: { glow: '#EDEDEF' },
+  fendi: { glow: '#F5C518' },
+  miumiu: { glow: '#D98CA0' },
+  goldengoose: { glow: '#D4A437' },
+  autozone: { glow: '#FF7A1A' },
 };
 function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
 /* Paint or clear the ambient on a view container. Wired into openStore /
