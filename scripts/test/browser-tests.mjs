@@ -80,8 +80,22 @@ await check("a Spanish query reaches the retailer in English", async () => {
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
   if (errors.length) throw new Error(errors.join(" | "));
+  /* THE TRIGGER MOVED, THE RULE DID NOT. doSearch() no longer scrapes --
+     the catalogue answers first and the live scan is a button now -- so
+     this drives the live scan explicitly. What is being pinned is
+     unchanged and still the important part: whatever reaches a retailer
+     reaches it in English. A test that simply stopped asserting this
+     because the trigger moved would have retired the rule. */
   await page.evaluate(() => { document.getElementById("searchInput").value = "celular"; doSearch(); });
-  await page.waitForTimeout(2500);
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  eq(sent.length, 0, "the catalogue pass sent a query to a retailer — searching is billable again");
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
   if (!sent.length) throw new Error("no retailer request was made");
   for (const body of sent) eq(body.query, "cell phone", `query sent to ${body.retailer}`);
   // …and the shopper still sees their own word, plus what we asked for.
@@ -101,8 +115,16 @@ await check("an English query is passed through untouched", async () => {
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
   if (errors.length) throw new Error(errors.join(" | "));
+  // Same as above: the catalogue answers first, the live scan is asked for.
   await page.evaluate(() => { document.getElementById("searchInput").value = "The North Face jacket"; doSearch(); });
-  await page.waitForTimeout(2500);
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
   if (!sent.length) throw new Error("no retailer request was made");
   for (const body of sent) eq(body.query, "The North Face jacket", "query sent unchanged");
   eq(await page.evaluate(() => document.getElementById("prodSpec").textContent), "", "no translation note");
@@ -1844,6 +1866,272 @@ await check("the rail does not move on its own", async () => {
   });
   eq(drift.moved, false, "the rail advanced on its own");
   eq(drift.scrolled, false, "the page scrolled itself");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ==================================================================
+   CATALOG-FIRST SEARCH, ON THE REAL CATALOGUES.
+
+   The bug: every search fanned out to Apify, so when the account hit
+   its limit "Nike" and "pantalones" both returned nothing. These drive
+   the real search bar against the real committed catalogues with Apify
+   answering 402 to everything -- the actual outage -- and assert the
+   shopper still gets products.
+
+   THE SCRAPE COUNTER IS THE POINT. A search that starts an Apify run is
+   both the cost leak and the outage; zero is the whole fix.
+   ================================================================== */
+/* SPECIFIC FIRST, CATCH-ALL LAST. openPage registers these in reverse
+   and Playwright gives precedence to the last route registered, so a
+   catch-all written first here would swallow the 402 and this would
+   test an empty response instead of a dead account. */
+const DEAD_APIFY = {
+  "**/.netlify/functions/apify-scrape-start**": (r) =>
+    r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "Monthly usage hard limit exceeded" }) }),
+  "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+};
+
+await check("every search answers from the catalogue, with Apify dead", async () => {
+  const { ctx, page, errors } = await openPage(DEAD_APIFY, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  let scrapes = 0;
+  page.on("request", (r) => { if (r.url().includes("apify-scrape-start")) scrapes++; });
+  await page.waitForTimeout(3000);   // let the catalogues land
+
+  const out = [];
+  for (const q of ["Nike", "Nike Air Force", "pantalones", "Vitamina D3"]) {
+    await page.evaluate((query) => { document.getElementById("searchInput").value = query; doSearch(); }, q);
+    await page.waitForFunction((query) => typeof catalogMatch !== "undefined" && catalogMatch !== null && liveScrapeQuery === query, q, { timeout: 15000 });
+    out.push(await page.evaluate(() => ({
+      cards: document.querySelectorAll("#liveResultsWrap > div").length,
+      exact: catalogMatch.exact,
+      offered: !!document.querySelector("[data-live-search]"),
+      topTitle: (searchRendered[0] && searchRendered[0].title) || "",
+    })));
+  }
+  const [nike, af, pants, vit] = out;
+  // All four return SOMETHING, instantly, which is the brief's acceptance test.
+  for (let i = 0; i < out.length; i++) {
+    eq(out[i].cards > 0, true, `query ${i} came back with an empty feed even though the catalogue has matches`);
+    eq(out[i].offered, true, `query ${i} did not offer the live search`);
+  }
+  /* AND THIS ASSERTION WAS WRONG BEFORE IT WAS RIGHT. It first read
+     `af.exact === 0`, from a throwaway script that walked
+     department-cache.json differently from the page and saw 456 of its
+     613 products. Foot Locker stocks three actual Air Force 1s, and the
+     page finds them. Pin what is true: the exact matches lead, and the
+     Nike partials come after rather than the feed stopping at three. */
+  eq(af.exact >= 3, true, `the Air Force 1s Foot Locker stocks are not matching in full (exact ${af.exact})`);
+  eq(/air force/i.test(af.topTitle), true, `an Air Force is not top of an "Air Force" search: "${af.topTitle}"`);
+  eq(af.cards > af.exact, true, "the Nike partials were dropped instead of ranked below the exact matches");
+  eq(nike.exact > 0, true, "no full matches for Nike");
+  eq(pants.exact > 0, true, "the Spanish query found no pants in the catalogue");
+  eq(vit.exact > 0, true, "Vitamina D3 found no full match — the pluralised translation regressed");
+  eq(scrapes, 0, `searching started ${scrapes} Apify runs — that is the cost leak and the outage`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the live offer is refined, and the scan goes out with the refinement", async () => {
+  const sent = [];
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) => {
+      sent.push(JSON.parse(r.request().postData() || "{}"));
+      return r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "limit" }) });
+    },
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+
+  const panel = await page.evaluate(() => {
+    const i = document.querySelector("[data-live-refine]");
+    return { prefilled: i && i.value, editable: !!i && !i.readOnly && !i.disabled,
+             chips: document.querySelectorAll("[data-live-chip]").length };
+  });
+  eq(panel.prefilled, "Nike Air Force", "the refine box is not prefilled with what the shopper typed");
+  eq(panel.editable, true, "the refine box is not editable");
+  eq(panel.chips > 0, true, "there are no category chips to refine with");
+
+  // A chip writes into the box, and writes itself back out.
+  const chip = await page.evaluate(() => {
+    const c = [...document.querySelectorAll("[data-live-chip]")].find((x) => x.dataset.liveChip === "shoes");
+    c.click();
+    const on = document.querySelector("[data-live-refine]").value;
+    c.click();
+    return { on, off: document.querySelector("[data-live-refine]").value };
+  });
+  eq(chip.on, "Nike Air Force shoes", "the chip did not write its term into the box");
+  eq(chip.off, "Nike Air Force", "the chip did not take its own term back out");
+
+  // Hand-edit, then run: the stores must be asked for the EDITED words.
+  await page.evaluate(() => {
+    const i = document.querySelector("[data-live-refine]");
+    i.value = "Nike Air Force 1 white";
+    i.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  eq([...new Set(sent.map((s) => s.query))].join("|"), "Nike Air Force 1 white",
+     "the live scan ignored the refined query");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("Aria answers from the catalogue with Apify dead, and offers the live scan", async () => {
+  let scrapes = 0;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) => {
+      scrapes++;
+      return r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "limit" }) });
+    },
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ reply: "Aquí tienes algunas opciones." }) }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  await page.evaluate(() => { toggleAssistant(); runAssistantBrain("Aria, búscame unos tenis Nike"); });
+  await page.waitForFunction(() => document.querySelector("[data-assistant-live]") ||
+    document.querySelectorAll("#assistantMessages img").length > 0, null, { timeout: 20000 });
+  await page.waitForTimeout(800);
+
+  const r = await page.evaluate(() => ({
+    cards: document.querySelectorAll("#assistantMessages img").length,
+    offered: !!document.querySelector("[data-assistant-live]"),
+    /* Her own name must not come back in the line that reads the
+       request to the shopper. */
+    echoesName: [...document.querySelectorAll("#assistantMessages .assistantNote")]
+      .some((n) => /\baria\b/i.test(n.textContent || "")),
+  }));
+  eq(scrapes, 0, `answering a product question started ${scrapes} Apify runs`);
+  eq(r.cards > 0, true, "Aria showed no products even though the catalogue has Nike trainers");
+  eq(r.echoesName, false, "the status line reads her own name back as part of the request");
+  /* THE OFFER IS NOT ASSERTED HERE ANY MORE, and that is the category
+     work showing. "tenis Nike" used to find nothing that matched every
+     word, so the thin-results gate always opened; now it finds real
+     footwear, so withholding the offer is correct. The offer is proved
+     below, on a question the catalogue genuinely cannot answer. */
+
+  /* A question the catalogue cannot answer: THIS is when the offer is
+     owed, and it is the only time it should appear. */
+  await page.evaluate(() => runAssistantBrain("busco un didgeridoo de bambú"));
+  await page.waitForFunction(() => document.querySelector("[data-assistant-live]"), null, { timeout: 20000 });
+  eq(await page.evaluate(() => !!document.querySelector("[data-assistant-live]")), true,
+     "the chat never offers the live search, even with nothing to show");
+
+  // Tapping it is what spends the money, and the cards stay whatever happens.
+  const before = r.cards;
+  await page.evaluate(() => document.querySelector("[data-assistant-live]").click());
+  await page.waitForTimeout(3500);
+  eq(scrapes > 0, true, "tapping the offer did not start a live search");
+  eq(await page.evaluate(() => document.querySelectorAll("#assistantMessages img").length) >= before, true,
+     "the failed live search took the catalogue cards with it");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a shoe query reaches Foot Locker, whose titles never say shoes", async () => {
+  /* THE RULE THAT ONLY THE REAL PAGE CAN PROVE. In the pure slice
+     sizeCategoryFor does not exist, so the Foot Locker branch of
+     catalogItemCategory is unexercised there. Here it is loaded, and
+     the catalogues are the committed ones.
+
+     Before: "zapatos" -> "shoes" matched 30 items, every one of them
+     Walmart, because no Foot Locker title contains the word -- they
+     read "Jordan Retro 4 - Boys' Grade School". */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  const r = await page.evaluate(async () => {
+    const pool = await relatedPool();
+    const shoes = rankCatalogMatches(pool, "shoes", { limit: 200 });
+    const kids = rankCatalogMatches(pool, "shoes boys", { limit: 40 });
+    const stores = new Set(shoes.items.map((i) => i.retailer));
+    return {
+      total: shoes.exact,
+      hasFootLocker: stores.has("footlocker"),
+      // Nothing outside the category may appear at all.
+      strays: kids.items.filter((i) => catalogItemCategory(i) !== "footwear").map((i) => i.title).slice(0, 3),
+      kidsTop: (kids.items[0] || {}).title || "",
+      // The trouser cuts must not be in here.
+      bootcuts: shoes.items.filter((i) => /boot[-\s]?(cut|leg)/i.test(i.title)).map((i) => i.title).slice(0, 3),
+    };
+  });
+  eq(r.hasFootLocker, true, "a shoe query still cannot reach Foot Locker's inventory");
+  eq(r.total > 100, true, `a shoe query matched only ${r.total} items`);
+  eq(r.strays.length, 0, `cross-category noise came back: ${JSON.stringify(r.strays)}`);
+  eq(r.bootcuts.length, 0, `bootcut trousers are being returned as shoes: ${JSON.stringify(r.bootcuts)}`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a dead live search keeps the catalogue results on screen", async () => {
+  const { ctx, page, errors } = await openPage(DEAD_APIFY, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  const before = await page.evaluate(() => document.querySelectorAll("#liveResultsWrap > div").length);
+  eq(before > 0, true, "the catalogue pass returned nothing to protect");
+
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  const after = await page.evaluate(() => ({
+    state: liveSearchState,
+    cards: document.querySelectorAll("#liveResultsWrap > div").length,
+    text: (document.getElementById("searchLiveWrap").textContent || "").replace(/\s+/g, " ").trim(),
+    retry: !!document.querySelector("#searchLiveWrap button"),
+  }));
+  eq(after.state, "unavailable", "every store refused and the page did not say so");
+  eq(after.text.includes("La búsqueda en vivo no está disponible en este momento."), true,
+     `the honest message is gone: "${after.text.slice(0, 80)}"`);
+  /* THE "NEVER A DEAD-END PAGE" RULE, MEASURED. Not "some results are
+     left" -- the SAME number, because the live scan may only ever add. */
+  eq(after.cards, before, `the failure took ${before - after.cards} catalogue results down with it`);
+  eq(after.retry, true, "there is no way to try the live search again");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a live search that works adds to the catalogue, never replaces it", async () => {
+  let runId = 0;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ retailer: "walmart", runId: `run${++runId}` }) }),
+    "**/.netlify/functions/apify-scrape-status**": (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "SUCCEEDED",
+        items: [{ title: "Live-only Air Force sample", price: 110, image: "", weightKg: 0.9 }],
+      }) }),
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  const before = await page.evaluate(() => searchResults.length);
+
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  const after = await page.evaluate(() => ({
+    state: liveSearchState,
+    total: searchResults.length,
+    hasLive: searchResults.some((p) => /Live-only Air Force sample/i.test(p.title || "")),
+  }));
+  eq(after.state, "done", "a successful live scan did not settle as done");
+  eq(after.hasLive, true, "the live result the stores returned is not in the feed");
+  eq(after.total > before, true, `the live scan replaced the catalogue instead of adding to it (${before} -> ${after.total})`);
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });

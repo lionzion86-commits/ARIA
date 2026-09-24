@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageCatalogSearchSlice, loadPageSizeSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5128,6 +5128,352 @@ check("the cards are the Ofertas component, and they route back through showProd
   if (!/\n  renderRelatedRail\(\{ retailer, title: name, price: totalUsd/.test(show)) {
     throw new Error("showProduct no longer draws the rail unconditionally — a product opened any other way gets none");
   }
+});
+
+
+group("Search answers from the catalogue first");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand, retailer) => ({ title, brand: brand || "", retailer: retailer || "macys", price: 20 });
+
+  check("a token matches a word, never a substring inside one", () => {
+    /* THE BUG THIS PINS. Scoring on haystack.includes(token) ranked
+       "Vanity Fair ... Contour Bra" above Nike trainers for "Nike Air
+       Force", because "air" is inside "Fair". Measured, and the reason
+       matching is on whole words now. */
+    const bra = P("Beauty Back Smoothing Full-Figure Contour Bra", "Vanity Fair Lingerie");
+    const shoe = P("Zoom Vomero 5 Sneakers", "Nike");
+    const toks = cs.searchTokens("nike air force");
+    if (cs.scoreCatalogItem(bra, toks) > 0) throw new Error('"air" matched inside "Fair" — substring matching is back');
+    if (!(cs.scoreCatalogItem(shoe, toks) > 0)) throw new Error("a Nike product no longer matches the word Nike");
+    /* Compare by title, not identity: ranked items are copies now, so
+       the match score can ride along with each one and survive the
+       feed's own sort. */
+    const { items } = cs.rankCatalogMatches([bra, shoe], "nike air force", {});
+    if (items[0].title !== shoe.title) throw new Error("the bra outranks the Nike trainers again");
+    if (!Number.isFinite(items[0].matchScore)) throw new Error("the match score is not carried on the item — any re-sort loses the ranking");
+  });
+
+  check("a pluralised translation still finds the singular title", () => {
+    /* translateQuery("Vitamina D3") returns "vitamins D3" -- the Spanish
+       layer pluralises -- while the catalogue says "Vitamin D3".
+       Measured before the fix: 0 full matches on 5 correct products, on
+       one of the four queries the brief names. */
+    const item = P("Nature Made Extra Strength Vitamin D3 5000 IU", "Nature Made");
+    const res = cs.rankCatalogMatches([item], "vitamins d3", {});
+    if (res.exact !== 1) throw new Error(`"vitamins d3" did not fully match "Vitamin D3" (exact ${res.exact})`);
+    // ...and the stem floor still keeps short tokens from matching everything.
+    if (cs.catalogTokenHits(new Set(["sneakers"]), ["a"]) !== 0) throw new Error('"a" matched a word that starts with it');
+    if (cs.catalogTokenHits(new Set(["de"]), ["desodorante"]) !== 0) throw new Error("a 2-letter word matched a long token");
+  });
+
+  check("matching every token outranks matching some, and a brand hit outranks a title hit", () => {
+    const toks = cs.searchTokens("nike shorts");
+    const both = P("Pro 3in Shorts", "Nike");
+    const brandOnly = P("Zoom Vomero 5 Sneakers", "Nike");
+    const titleOnly = P("Cargo Shorts With Stretch", "");
+    const s1 = cs.scoreCatalogItem(both, toks), s2 = cs.scoreCatalogItem(brandOnly, toks), s3 = cs.scoreCatalogItem(titleOnly, toks);
+    if (!(s1 > s2)) throw new Error("a full match does not outrank a brand-only match");
+    if (!(s2 > s3)) throw new Error("a brand hit does not outrank an incidental title word");
+
+    /* AND THE ORDERING THE BRAND BONUS WOULD OTHERWISE BREAK. Coverage
+       alone puts a brand-only partial (0.5 + 0.75 brand = 1.25) ABOVE a
+       product that matched every word (1.0). Something that answers the
+       whole question must never rank below something that answered half
+       of it loudly, which is what the full-match bonus is for. */
+    const everyWord = P("Nike Pro Shorts", "");            // both tokens, no brand field
+    const brandHalf = P("Zoom Vomero 5 Sneakers", "Nike"); // half the tokens, brand hit
+    if (!(cs.scoreCatalogItem(everyWord, toks) > cs.scoreCatalogItem(brandHalf, toks))) {
+      throw new Error("a brand-only partial match outranks a product that matched every word");
+    }
+  });
+
+  check("thin is counted in FULL matches, never in the total", () => {
+    /* The catalogue holds no Air Force and twelve Nikes. Twelve results
+       with zero full matches is exactly when the live offer has to be
+       loud, so the count that decides it cannot be the total. */
+    const pool = Array.from({ length: 12 }, (_, i) => P(`Nike thing ${i}`, "Nike"));
+    const res = cs.rankCatalogMatches(pool, "nike air force", {});
+    if (res.exact !== 0) throw new Error("something matched all of 'nike air force'");
+    if (res.partial !== 12) throw new Error(`expected 12 partial matches, got ${res.partial}`);
+    if (!cs.catalogResultsAreThin(res)) throw new Error("12 partial matches and 0 full ones did not read as thin");
+    const solid = cs.rankCatalogMatches(Array.from({ length: 4 }, (_, i) => P(`Cargo Pants ${i}`)), "pants", {});
+    if (cs.catalogResultsAreThin(solid)) throw new Error("4 full matches read as thin");
+  });
+
+  check("an accented word is one token, not two", () => {
+    /* THE BUG, AND IT IS THE SUBSTRING BUG WEARING A DIFFERENT HAT.
+       `[a-z0-9]+` treats "ú" as a separator, so "búscame" tokenised to
+       ["b","scame"] -- and a ONE-CHARACTER token was then allowed to
+       prefix-match every word starting with b. Measured on the real
+       catalogue for "búscame unos tenis Nike": 2,144 partial matches,
+       televisions and a gift box ranked as answers about trainers.
+       After: 19, all footwear. */
+    if (cs.searchTokens("búscame").join(",") !== "buscame") throw new Error("an accented word still splits into pieces");
+    if (cs.searchTokens("Niños").join(",") !== "ninos") throw new Error("ñ splits the word");
+    // ...and a short token may no longer wildcard its way across the shelf.
+    const tv = P("onn 32 in Class 720p HD Smart TV", "");
+    if (cs.scoreCatalogItem(tv, ["b"]) > 0) throw new Error('"b" matched a word merely beginning with b');
+    if (cs.scoreCatalogItem(tv, ["sm"]) > 0) throw new Error('a two-letter prefix still wildcards');
+    // An EXACT word of any length is still a match: "tv", "d3", "5k".
+    if (!(cs.scoreCatalogItem(tv, ["tv"]) > 0)) throw new Error('"tv" no longer matches the word TV');
+  });
+
+  check("the rare word outranks the common one", () => {
+    /* "sneakers nike" put a generic running shoe exactly level with a
+       Nike trainer -- each matched one of two words, so each scored
+       0.5. Hundreds of sneakers are in the catalogue and a few dozen
+       Nikes, so "nike" carried nearly all of the intent. Tokens are
+       weighted by how many items they match. */
+    const pool = [
+      ...Array.from({ length: 60 }, (_, i) => P(`Everyday Backpack model ${i}`, "")),
+      P("Nike Brasilia Backpack", ""),
+    ];
+    /* Deliberately NOT a category word: "sneakers" now carries a
+       footwear intent, and this check is about rarity weighting, not
+       about category filtering. */
+    const { items } = cs.rankCatalogMatches(pool, "backpack nike", {});
+    if (!/Nike/.test(items[0].title)) throw new Error(`the common word still wins: "${items[0].title}"`);
+    const w = cs.catalogTokenWeights(pool, ["backpack", "nike"]);
+    if (!(w[1] > w[0])) throw new Error("the rarer token is not weighted higher");
+  });
+
+check("a category query is answered by category, not by wording", () => {
+    /* TRACED AGAINST PRODUCTION. "María, búscame zapatos para niño"
+       ranked women's jeans first (the leaked "María" prefix-matched
+       "Mariah", and rarity weighting made that junk token the most
+       valuable thing in the query), then a dress shoe, then vitamin
+       gummies and T-shirts that matched nothing but "boys".
+
+       Worse, the real answer could not appear at all: "zapatos"
+       translates to "shoes" and no Foot Locker title contains that
+       word -- they read "Jordan Retro 4 - Boys' Grade School". */
+    const shoe = (title, retailer) => ({ title, retailer: retailer || "footlocker", price: 90, departments: ["kids"] });
+    const notShoe = (title) => ({ title, retailer: "target", price: 10, departments: ["pharmacy"] });
+    // categoryOf is injected here; in the page it is catalogItemCategory,
+    // which reads sizeCategoryFor -- the size picker's own rule.
+    const categoryOf = (it) => (it.retailer === "footlocker" || /shoe|sneaker/i.test(it.title) ? "footwear" : null);
+
+    const pool = [
+      notShoe("Juniors' Mariah High-Rise Baggy Wide-Leg Jeans"),
+      notShoe("One A Day Teen Multivitamin Gummies for Boys"),
+      notShoe("Short-Sleeve Graphic T-Shirt for Boys"),
+      shoe("Jordan Retro 4 - Boys' Grade School"),
+      shoe("New Balance 9060 - Boys' Grade School"),
+    ];
+    const res = cs.rankCatalogMatches(pool, "shoes boys", { categoryOf });
+    // 1. Cross-category noise is not a candidate at all.
+    for (const it of res.items) {
+      if (/Mariah|Gummies|T-Shirt/.test(it.title)) throw new Error(`cross-category noise came back: "${it.title}"`);
+    }
+    // 2. A title that never says "shoes" still answers a shoe query.
+    if (!res.items.some((i) => /Jordan Retro 4/.test(i.title))) {
+      throw new Error("Foot Locker's inventory is still invisible to a shoe query");
+    }
+    // ...and it counts as a FULL match, not a partial one.
+    if (res.exact < 2) throw new Error(`the category words were not credited to the item (exact ${res.exact})`);
+  });
+
+check("an item's own category is read three ways, and each one matters", () => {
+    /* The ranking checks above inject categoryOf, so this exercises the
+       REAL catalogItemCategory. In this sandbox sizeCategoryFor does
+       not exist -- that is deliberate, and it isolates the two rules
+       that do not need it. */
+    if (cs.catalogItemCategory({ title: "Jordan Retro 4", retailer: "footlocker", departments: ["shoes"] }) !== "footwear") {
+      throw new Error("a footwear DEPARTMENT no longer settles it");
+    }
+    if (cs.catalogItemCategory({ title: "Running Sneakers, Wide Width", retailer: "walmart", departments: ["clothing"] }) !== "footwear") {
+      throw new Error("a title that names footwear no longer settles it");
+    }
+    if (cs.catalogItemCategory({ title: "Graphic T-Shirt for Boys", retailer: "oldnavy", departments: ["kids"] }) !== null) {
+      throw new Error("a T-shirt reads as footwear");
+    }
+    /* And the boot caveat holds on the item side too, or every pair of
+       bootcut jeans becomes a candidate for a shoe query. */
+    if (cs.catalogItemCategory({ title: "725 High-Waist Stretch Bootcut Jeans", retailer: "macys", departments: ["women"] }) !== null) {
+      throw new Error("bootcut jeans read as footwear");
+    }
+  });
+
+    check("a query with no category intent is left alone", () => {
+    /* The filter must not fire on everything -- "vitamin d3" has no
+       category, so nothing is excluded and the old behaviour stands. */
+    const categoryOf = () => "footwear";
+    const pool = [P("Nature Made Vitamin D3 Softgels", ""), P("Something Else", "")];
+    const res = cs.rankCatalogMatches(pool, "vitamin d3", { categoryOf });
+    if (!res.items.length) throw new Error("a query with no category intent was filtered anyway");
+    if (cs.queryCategoryIntent("vitamin d3")) throw new Error("'vitamin d3' reads as a category query");
+    if (cs.queryCategoryIntent("zapatos") ) throw new Error("the intent is read from the Spanish, not the translated query");
+    if (cs.queryCategoryIntent("shoes") !== "footwear") throw new Error("'shoes' no longer names a category");
+  });
+
+    check("an empty query matches nothing at all", () => {
+    // Otherwise a stray submit would render the whole catalogue as "results".
+    for (const q of ["", "   ", "!!!"]) {
+      const res = cs.rankCatalogMatches([P("Cargo Pants")], q, {});
+      if (res.items.length) throw new Error(`"${q}" returned ${res.items.length} results`);
+    }
+  });
+
+  check("the feed is capped, and the cap keeps the best", () => {
+    const pool = [...Array.from({ length: 200 }, (_, i) => P(`Pants ${i}`)), P("Cargo Pants", "Nike")];
+    const res = cs.rankCatalogMatches(pool, "nike pants", {});
+    if (res.items.length !== cs.CATALOG_SEARCH_LIMIT) throw new Error(`cap is ${cs.CATALOG_SEARCH_LIMIT}, got ${res.items.length}`);
+    if (res.items[0].brand !== "Nike") throw new Error("the cap dropped the best match");
+  });
+}
+
+check("Aria reads the catalogue before she ever calls a store", () => {
+  /* THE BUG. runAssistantBrain fanned straight out to Apify on every
+     product question. With the account over its limit the shopper sat
+     through four timeouts, read "Tuve un problema buscando eso", and
+     the model -- handed no products -- said we had none. We had them. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const brainAt = src.indexOf("async function runAssistantBrain(text){");
+  const brain = src.slice(brainAt, src.indexOf("/* ONE PAYLOAD, TWO ENDPOINTS.", brainAt));
+  if (!brain) throw new Error("runAssistantBrain is gone");
+  if (/scrapeRetailer\s*\(/.test(brain)) throw new Error("Aria scrapes again on every question — billable, and dead when Apify is");
+  if (!/await catalogSearch\(searchQuery/.test(brain)) throw new Error("Aria no longer asks the catalogue");
+  if (!/addAssistantLiveOffer\(searchQuery\)/.test(brain)) throw new Error("there is no way to ask for a live search from the chat");
+  // The live fan-out still exists — it just waits to be asked.
+  const liveAt = src.indexOf("async function runAssistantLiveSearch(query){");
+  if (liveAt < 0) throw new Error("the chat's live search is gone entirely");
+  const live = src.slice(liveAt, src.indexOf("async function runAssistantBrain(text){", liveAt));
+  if (!/scrapeRetailer\s*\(/.test(live)) throw new Error("the chat's live search no longer scrapes");
+  /* Every store failing is our fault and must not be worded as an
+     answer about the product — same rule as the results page. */
+  if (!/failedStores\.length === CHAT_RETAILERS\.length/.test(live)) throw new Error("a partial failure now reads as total");
+  if (!/La búsqueda en vivo no está disponible en este momento/.test(live)) throw new Error("the honest wording is gone from the chat");
+});
+
+check("her own name is not part of the order", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fnAt = src.indexOf("function stripAriaVocative(raw){");
+  if (fnAt < 0) throw new Error("the vocative is back in the query");
+  const build = src.slice(src.indexOf("function buildChatSearchQuery(text, recipient){"), src.indexOf("const extra = [];"));
+  if (!/stripAriaVocative\(String\(text \|\| ''\)\)/.test(build)) throw new Error("the retail query still carries the name");
+  const ack = src.slice(src.indexOf("function chatAckEs(text){"), src.indexOf("const short = clampWords"));
+  if (!/stripAriaVocative\(text\)/.test(ack)) throw new Error("the status line still echoes the name back");
+  /* THE MISHEARD NAMES ARE ALSO REAL WORDS. "area rug" is a product and
+     "Maria Tash" is a jewellery house, so these are only stripped when
+     what follows settles it -- punctuation, or a request verb. Asserted
+     by RUNNING the function: this used to pin the regex's source text,
+     which broke the moment the pattern was rewritten to cover "María"
+     even though every behaviour it cared about still held. */
+  const strip = new Function(src.slice(src.indexOf("const ARIA_GREETED_VOCATIVE_RE"), src.indexOf("function buildChatSearchQuery"))
+    + ";return stripAriaVocative;")();
+  for (const [input, want] of [
+    ["Aria, búscame unos tenis", "búscame unos tenis"],
+    ["hey Aria zapatos", "zapatos"],
+    ["Area, busca zapatillas", "busca zapatillas"],
+    ["María, búscame zapatos para niño", "búscame zapatos para niño"],
+    ["Maria busca zapatos", "busca zapatos"],
+    ["area rug", "area rug"],
+    ["Maria Tash earrings", "Maria Tash earrings"],
+    ["Aria", "Aria"],
+  ]) {
+    const got = strip(input);
+    if (got !== want) throw new Error(`stripAriaVocative(${JSON.stringify(input)}) = ${JSON.stringify(got)}, wanted ${JSON.stringify(want)}`);
+  }
+});
+
+check("the live offer is refined before it is spent", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveChipsOnly()"));
+  if (!offer) throw new Error("the live-search offer is gone");
+  for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU."]) {
+    if (!offer.includes(copy)) throw new Error(`the agreed copy is gone: "${copy}"`);
+  }
+  if (!/data-live-refine/.test(offer)) throw new Error("there is no box to refine the query in");
+  if (!/value="\$\{escapeHtml\(current\)\}"/.test(offer)) throw new Error("the box is not prefilled with the shopper's query");
+  if (/readonly|disabled/i.test(offer)) throw new Error("the box is not editable");
+  /* 16px MINIMUM. Anything smaller and mobile Safari zooms the page in
+     on focus, stranding the shopper zoomed on a panel they were only
+     correcting a word in. */
+  if (!/text-\[16px\]/.test(offer)) throw new Error("the refine box is under 16px — iOS will zoom the page on focus");
+  if (!/liveRefineChipsHTML\(current\)/.test(offer)) throw new Error("the category chips are gone");
+  // The scan must go out with what is in the box, not the original words.
+  const runAt = src.indexOf("async function runLiveSearch(){");
+  const run = src.slice(runAt, runAt + 900);
+  if (!/const query = liveRefineValue\(\)\.trim\(\);/.test(run)) {
+    throw new Error("the live scan ignores the refined query — every chip and correction would be a lie");
+  }
+  // Yellow means a discount here, and this is not one.
+  if (/var\(--yellow/.test(offer)) throw new Error("the offer is wearing the discount colour");
+});
+
+check("a trouser cut is not a shoe", () => {
+  /* \bboot MATCHED "Bootcut". Bootcut is a trouser leg, and the
+     catalogue is full of them -- measured, 23 of the 148 items the
+     catalogue classified as footwear were trousers, every one of them
+     offered SHOE sizes by the PDP's picker. */
+  const sz = loadPageSizeSlice();
+  /* "Bootcut Corduroy" carries NO garment noun, so the precedence rule
+     cannot rescue it -- only the closing \\b and the lookahead can. */
+  if (sz.sizeCategoryFor("macys", "Bootcut Corduroy") !== "clothing") throw new Error("'Bootcut Corduroy' is sized as footwear");
+  if (sz.sizeCategoryFor("macys", "Boot-Cut Corduroy") !== "clothing") throw new Error("'Boot-Cut Corduroy' is sized as footwear");
+  for (const t of ["Regular Fit Boot Cut Jeans", "Women's Mid-Rise Bootcut Pants",
+                   "725 High-Waist Classic Stretch Bootcut Jeans", "Women's 725 High-Rise Kick Boot Jeans",
+                   "Green Boot-Cut Track Pants", "Premium Women's Wedgie Boot High-Rise Jeans"]) {
+    if (sz.sizeCategoryFor("macys", t) !== "clothing") throw new Error(`"${t}" is sized as footwear`);
+  }
+  /* And real boots still are shoes -- including the singular, which is
+     how SSENSE writes them, and which carries no garment word. */
+  for (const t of ["Ankle Boots", "Chelsea Boot", "Booties", "Dress Shoes", "Leather Sneakers"]) {
+    if (sz.sizeCategoryFor("macys", t) !== "shoe") throw new Error(`"${t}" stopped being footwear`);
+  }
+});
+
+check("searching never starts an Apify run on its own", () => {
+  /* THE COST LEAK AND THE OUTAGE, WHICH ARE THE SAME LINE. showResults()
+     used to fan out to every retailer on every submit: a bill per
+     search, and a blank page the moment Apify stopped answering. The
+     fan-out lives in runLiveSearch() now, which only a click reaches. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const show = src.slice(src.indexOf("async function showResults(query, opts = {})"), src.indexOf("async function runLiveSearch()"));
+  if (!show) throw new Error("showResults or runLiveSearch is gone");
+  if (/scrapeRetailer\s*\(/.test(show)) throw new Error("showResults scrapes again — every search is billable and dies with Apify");
+  if (!/await catalogSearch\(/.test(show)) throw new Error("showResults no longer asks the catalogue");
+  const liveFrom = src.indexOf("async function runLiveSearch()");
+  const live = src.slice(liveFrom, src.indexOf("// RULE: every product card on the site", liveFrom));
+  if (!/scrapeRetailer\s*\(/.test(live)) throw new Error("the live scan no longer scrapes anything");
+  if (!/onclick="runLiveSearch\(\)"/.test(src)) throw new Error("nothing in the page can start a live search");
+});
+
+check("the shopper is told the truth when live search cannot run", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveSearchOffer()"));
+  if (!offer) throw new Error("the live-search offer is gone");
+  for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU.", "La búsqueda en vivo no está disponible en este momento."]) {
+    if (!offer.includes(copy)) throw new Error(`the agreed copy is gone: "${copy}"`);
+  }
+  /* "Unavailable" is OUR failure and must not be worded as an answer
+     about the product -- and it must be reachable only when every store
+     failed, not when they all answered "nothing". */
+  /* SLICE FORWARDS. liveSearchOfferHTML() is declared ABOVE
+     runLiveSearch(), so slicing from the one to the other ran backwards
+     and handed this check an empty string -- which passed every regex
+     put to it while measuring nothing. End on something that genuinely
+     follows the function. */
+  const liveAt = src.indexOf("async function runLiveSearch()");
+  const live = src.slice(liveAt, src.indexOf("// RULE: every product card on the site", liveAt));
+  if (!live) throw new Error("runLiveSearch's end marker moved");
+  if (!/failures\.length === GENERAL_RETAILERS\.length \? 'unavailable' : 'done'/.test(live)) {
+    throw new Error("a partial failure now reads as 'live search is unavailable'");
+  }
+  // Yellow means a discount on this site. The offer is not one.
+  if (/var\(--yellow/.test(offer)) throw new Error("the live-search offer is wearing the discount colour");
+});
+
+check("every store that can appear in the feed can also be ticked", () => {
+  /* Measured: "pants" matched 46 Macy's products and 2 Walmart ones and
+     the page rendered 2, because the filter list was GENERAL_RETAILERS
+     -- the four scrapeable stores -- so activeSearchStores() silently
+     excluded every browse-only store the catalogue had just found. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const init = src.slice(src.indexOf("function initResultsFilters()"), src.indexOf("// Runs a real live search"));
+  if (!/CATALOG_RETAILERS\.map/.test(init)) throw new Error("the results filter is built from the live retailers again — browse-only stores get filtered out of their own results");
 });
 
 
