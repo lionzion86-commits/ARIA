@@ -34,6 +34,7 @@ import { inkCoverage } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
+import * as synonyms from "../lib/search-synonyms.js";
 import { CHARGE_PER_KG as chargePerKg } from "../../weight-data.js";
 import * as shippingStatus from "../lib/shipping-status.js";
 import * as support from "../lib/support.js";
@@ -5781,6 +5782,96 @@ check("every store that can appear in the feed can also be ticked", () => {
   const init = src.slice(src.indexOf("function initResultsFilters()"), src.indexOf("// Runs a real live search"));
   if (!/CATALOG_RETAILERS\.map/.test(init)) throw new Error("the results filter is built from the live retailers again — browse-only stores get filtered out of their own results");
 });
+
+
+/* ==================================================================
+   SEARCH SYNONYMS — ONE CONCEPT, MANY WORDS.
+
+   Danny's requirement (2026-09-24): "sneakers", "shoes", "zapatos" and
+   "zapatillas" must ALL return the same shoe results. The page mirrors
+   scripts/lib/search-synonyms.js (it cannot import); both directions
+   are pinned below.
+   ================================================================== */
+group("search synonyms: one concept, many words");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand) => ({ title, brand: brand || "", retailer: "ssense", price: 100 });
+
+  check("sneakers/shoes/zapatos/zapatillas/tenis return the identical items in the identical order", () => {
+    const pool = [
+      P("Nike Air Force 1 Sneakers", "Nike"),
+      P("Adidas Ultraboost Running Shoes", "Adidas"),
+      P("Brown Leather Dress Shoes", "BOSS"),
+      P("Black Chelsea Boots", "BOSS"),          // the pre-existing category layer already counts boots as footwear
+      P("Cotton T-Shirt", "Hanes"),              // control: not footwear
+    ];
+    const seen = [];
+    for (const q of ["sneakers", "shoes", "zapatos", "zapatillas", "tenis"]) {
+      const { items, exact } = cs.rankCatalogMatches(pool, q, {});
+      const titles = items.map((i) => i.title);
+      seen.push(JSON.stringify(titles));
+      eq(exact, 4, `"${q}" full-match count`);
+      if (!titles.includes("Nike Air Force 1 Sneakers")) throw new Error(`"${q}" missed the sneakers`);
+      if (!titles.includes("Adidas Ultraboost Running Shoes")) throw new Error(`"${q}" missed the shoes`);
+      if (titles.includes("Cotton T-Shirt")) throw new Error(`"${q}" leaked a non-footwear product`);
+    }
+    for (const sig of seen) eq(sig, seen[0], "identical result set and order");
+  });
+
+  check("the synonym miss works in both directions", () => {
+    /* The literal miss gets a second chance against the group: a query
+       for the Spanish word finds the English title and vice versa. */
+    const onlySneakers = P("White Leather Sneakers", "");
+    const onlyShoes = P("Trail Running Shoes", "");
+    if (cs.catalogTokenHits(cs.catalogWordsOf(onlySneakers), ["zapatos"]) !== 1)
+      throw new Error('"zapatos" did not find "Sneakers"');
+    if (cs.catalogTokenHits(cs.catalogWordsOf(onlyShoes), ["zapatillas"]) !== 1)
+      throw new Error('"zapatillas" did not find "Shoes"');
+    if (cs.catalogTokenHits(cs.catalogWordsOf(onlyShoes), ["sneakers"]) !== 1)
+      throw new Error('"sneakers" did not find "Shoes"');
+  });
+
+  check("other groups behave the same way", () => {
+    const pool = [
+      P("Lace Balconette Bra", "Victoria's Secret"),
+      P("Eau de Parfum 50ml", "Carolina Herrera"),
+      P("Leather Tote Bag", "Coach"),
+    ];
+    const sets = {};
+    for (const q of ["bra", "sosten", "sostén"]) {
+      sets[q] = cs.rankCatalogMatches(pool, q, {}).items.map((i) => i.title);
+    }
+    eq(JSON.stringify(sets["sosten"]), JSON.stringify(sets["bra"]), "sosten == bra");
+    eq(JSON.stringify(sets["sostén"]), JSON.stringify(sets["bra"]), "sostén == bra (accent)");
+    if (!sets["bra"].includes("Lace Balconette Bra")) throw new Error('"bra" missed the bra');
+    const perfume = cs.rankCatalogMatches(pool, "fragancia", {}).items.map((i) => i.title);
+    if (!perfume.includes("Eau de Parfum 50ml")) throw new Error('"fragancia" missed the perfume');
+  });
+
+  check("words outside every group are untouched", () => {
+    eq(cs.canonicalizeToken("nike"), "nike", "brand passes through");
+    eq(cs.synonymsOf("nike").length, 0, "brand has no synonyms");
+    eq(cs.canonicalizeToken("vitamina"), "vitamina", "non-group word passes through");
+  });
+
+  check("the page mirror agrees with the module for every word", () => {
+    const drift = [];
+    for (const group of synonyms.SEARCH_SYNONYM_GROUPS) {
+      const pageGroup = cs.SEARCH_SYNONYM_GROUPS.find((g) => g.concept === group.concept);
+      if (!pageGroup) { drift.push(`missing group "${group.concept}" on the page`); continue; }
+      for (const word of group.words) {
+        if (cs.canonicalizeToken(word) !== synonyms.canonicalizeToken(word))
+          drift.push(`canonicalizeToken("${word}"): page "${cs.canonicalizeToken(word)}" vs module "${synonyms.canonicalizeToken(word)}"`);
+        const a = JSON.stringify(cs.synonymsOf(word).sort());
+        const b = JSON.stringify(synonyms.synonymsOf(word).sort());
+        if (a !== b) drift.push(`synonymsOf("${word}"): page ${a} vs module ${b}`);
+      }
+    }
+    eq(cs.SEARCH_SYNONYM_GROUPS.length, synonyms.SEARCH_SYNONYM_GROUPS.length, "group count");
+    if (drift.length) throw new Error(drift.join("\n      "));
+  });
+}
 
 
 /* ==================================================================
