@@ -29,6 +29,7 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as retailers from "../lib/retailers.js";
 import * as deptMap from "../lib/department-map.js";
+import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
 import { inkCoverage } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
@@ -1138,7 +1139,7 @@ check("the same cover is drawn every time, and tiles do not collide", () => {
   const { coverSeed } = covers;
   eq(typeof coverSeed, "function", "coverSeed is exported from the page");
   eq(coverSeed("electronics"), coverSeed("electronics"), "the same key seeds the same cover");
-  const keys = ["electronics", "clothing", "men", "women", "kids", "home_goods", "pharmacy", "candy_chocolate", "sporting_goods", "beauty"];
+  const keys = ["electronics", "clothing", "men", "women", "kids", "home_goods", "candy_chocolate", "sporting_goods", "beauty"];
   const rotations = new Set(keys.map((k) => (coverSeed(k) % 25) - 12));
   if (rotations.size < 4) {
     throw new Error(`only ${rotations.size} distinct rotations across ${keys.length} categories — the set reads as identical tiles`);
@@ -6663,6 +6664,7 @@ check("below 360px the header CTA moves into the menu rather than off the screen
   }
 });
 
+
 check("Si sobra, es tuyo sits where it argues, and says it in Spanish", () => {
   /* ITS OWN CHECK, DELIBERATELY, and the reason is the bug that nearly
      shipped with it: the first version of these assertions lived inside
@@ -6745,6 +6747,146 @@ check("the new card is built from the same parts as its neighbours", () => {
   const card = why.slice(why.lastIndexOf('<div class="ariaWhyPromise">', at), why.indexOf("</div>", why.indexOf("</p>", at)));
   const colours = [...card.matchAll(/color:(#[0-9A-Fa-f]{3,6})/g)].map((m) => m[1]);
   eq([...new Set(colours)].sort().join(","), "#D7E0F4,#fff", `the card introduced a colour: ${colours.join()}`);
+});
+
+group("No vitamins, and no way back to them");
+
+/* ==================================================================
+   VITAMINS AND SUPPLEMENTS ARE OFF THE SITE (2026-09-24).
+
+   They need a DIGEMID import permit in Peru. We do not hold one, so
+   this is a liability rule, not a merchandising preference -- which is
+   why these checks pin the ABSENCE rather than the tidiness. A vitamin
+   that reappears is not an ugly tile, it is an order we cannot legally
+   fulfil.
+
+   The `pharmacy` bucket in the Walmart and Target caches was 100%
+   supplements: 48 products, every one a multivitamin, a mineral, a
+   collagen, a cleanse or a weight-loss pill. It is gone, and so is
+   every route that could put it back.
+   ================================================================== */
+
+const RESTRICTED = "pharmacy";
+
+check("no committed catalogue carries a pharmacy bucket", () => {
+  for (const file of ["department-cache.json", "macys-catalog.json",
+                      "ssense-catalog.json", "beauty-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    for (const [retailer, bucket] of Object.entries(data?.retailers || {})) {
+      const depts = Object.keys(bucket?.departments || {});
+      if (depts.includes(RESTRICTED)) {
+        throw new Error(`${file}: ${retailer} still carries a ${RESTRICTED} department`);
+      }
+    }
+  }
+});
+
+check("no supplement survives anywhere in the committed catalogues", () => {
+  /* THE BUCKET IS NOT THE RULE, THE PRODUCT IS. Deleting a department
+     named "pharmacy" would be cosmetic if a multivitamin sat in
+     home_goods -- so this reads every title in every file. It is written
+     against product names rather than departments for the same reason.
+
+     THE PATTERN IS DELIBERATELY NARROW. "tablets" and "capsules" are in
+     the weight estimator's supplement regex and are NOT here: an iPad is
+     a tablet. Matching them would fail this suite on electronics and
+     teach whoever hits it to loosen the rule, which is the opposite of
+     what it is for. Every word below names a supplement and nothing
+     else. Verified against the real files: two beauty products mention
+     "Vitamin C" and "Electrolytes" as INGREDIENTS -- a foundation and a
+     plumping serum -- and neither matches, because the words here are
+     the product, not what is in it. */
+  const SUPPLEMENT = /\b(multivitamins?|dietary supplements?|suplementos?|probiotics?|melatonin|biotin|elderberry|ashwagandha|glucosamine|prenatal vitamins?|vitamin d3|vitamin b12|fish oil|weight loss pills?|fat burner|parasite (?:cleanse|support)|intestinal cleanse)\b/i;
+  const found = [];
+  const walk = (node, where) => {
+    if (Array.isArray(node)) return node.forEach((n) => walk(n, where));
+    if (!node || typeof node !== "object") return;
+    const title = node.title || node.name || node.productTitle || node.productName;
+    if (typeof title === "string" && SUPPLEMENT.test(title)) found.push(`${where}: ${title.slice(0, 60)}`);
+    for (const v of Object.values(node)) walk(v, where);
+  };
+  for (const file of ["department-cache.json", "macys-catalog.json",
+                      "ssense-catalog.json", "beauty-catalog.json"]) {
+    walk(JSON.parse(readFileSync(root(file), "utf8")), file);
+  }
+  eq(found.join(" | "), "", `supplements are still in the catalogue data: ${found.slice(0, 3).join(" | ")}`);
+});
+
+check("the department is out of every map that could draw it", () => {
+  /* Four tables decide whether a department exists, is labelled, is
+     matched and is illustrated. One left behind is a half-removal: the
+     tile comes back the moment a bucket does. */
+  if (deptMap.DEPARTMENT_SPEC[RESTRICTED]) throw new Error("DEPARTMENT_SPEC still declares pharmacy — it would get a tile again");
+  if (deptMap.BUCKET_SPEC[RESTRICTED]) throw new Error("BUCKET_SPEC still maps the pharmacy bucket into a category");
+
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  for (const table of ["DEPARTMENT_META", "DEPARTMENT_SPEC", "BUCKET_SPEC", "CATEGORY_COVERS"]) {
+    const from = src.indexOf(`const ${table} = {`);
+    if (from < 0) throw new Error(`${table} is gone from index.html`);
+    const body = src.slice(from, src.indexOf("\n};", from));
+    if (/^\s*pharmacy\s*:/m.test(body)) throw new Error(`${table} still has a pharmacy row`);
+  }
+  if (/Salud y Farmacia/.test(src)) throw new Error("the Salud y Farmacia label is still in the page");
+});
+
+check("the cover file stays on disk and stays unwired", () => {
+  /* Danny's instruction exactly: leave the art, do not use it. Asserting
+     BOTH halves, because deleting the file would be a different decision
+     and wiring it back would be the bug this PR exists to prevent. */
+  if (!existsSync(root("assets/category/pharmacy.jpg"))) {
+    throw new Error("assets/category/pharmacy.jpg was deleted — it was meant to stay, just unused");
+  }
+  eq(Boolean(covers.CATEGORY_COVERS[RESTRICTED]), false, "the pharmacy cover is wired up again");
+});
+
+check("nothing points a scrape at the vitamins aisle any more", () => {
+  /* The quota rows are what spend Apify credit, and the browse URLs are
+     what a run would land on. Leaving either would refill the bucket on
+     the next refresh and bill us for the privilege. */
+  for (const [retailer, quotas] of Object.entries(CATALOG_QUOTAS)) {
+    for (const q of quotas) {
+      if (q.department === RESTRICTED || q.category === RESTRICTED) {
+        throw new Error(`${retailer} still has a ${RESTRICTED} quota — the next refresh re-scrapes vitamins`);
+      }
+      if (/\bvitamins?\b|\bsupplements?\b/i.test(q.query || "")) {
+        throw new Error(`${retailer} still queries "${q.query}"`);
+      }
+    }
+  }
+  const scrape = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (/pharmacy\s*:/.test(scrape)) throw new Error("apify-scrape-start still has a pharmacy browse URL");
+  if (/vitamins-supplements|\/health\/vitamins/.test(scrape)) {
+    throw new Error("apify-scrape-start still points at a vitamins aisle");
+  }
+});
+
+check("a pharmacy bucket that arrives anyway is dropped at the load boundary", () => {
+  /* THE PART THAT ACTUALLY PROTECTS THE SHOPPER, and the reason this is
+     not just four deleted table rows.
+
+     Ofertas is { anyCategory: true, onSaleOnly: true }, and
+     itemBelongsToDepartment() returns on onSaleOnly BEFORE it consults
+     BUCKET_SPEC. So a discounted multivitamin would have stayed in the
+     deals feed with every map entry removed. relatedPool() and
+     retailerItemsFor() walk the buckets directly too, which is search
+     and the brand panels. The gate has to be on the DATA, once, where
+     all of them read it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const gate = src.slice(src.indexOf("function withoutRestrictedDepartments("),
+                         src.indexOf("function loadDepartmentCache("));
+  if (!gate) throw new Error("withoutRestrictedDepartments is gone");
+  if (!/RESTRICTED_DEPARTMENTS\.has\(/.test(gate)) throw new Error("the gate no longer consults RESTRICTED_DEPARTMENTS");
+  if (!/const RESTRICTED_DEPARTMENTS = new Set\(\['pharmacy'\]\)/.test(src)) {
+    throw new Error("RESTRICTED_DEPARTMENTS no longer lists pharmacy");
+  }
+
+  /* It must run over EVERY part of the merge -- the scraped cache and
+     each catalogue file -- not just the first. */
+  const loader = src.slice(src.indexOf("function loadDepartmentCache("),
+                           src.indexOf("const DEPARTMENT_META"));
+  if (!/parts\.map\(withoutRestrictedDepartments\)/.test(loader)) {
+    throw new Error("the merge no longer strips restricted departments from every catalogue");
+  }
 });
 
 /* ------------------------------------------------------------------ */
