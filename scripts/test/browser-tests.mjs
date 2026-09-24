@@ -1579,8 +1579,22 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
     return bots.some((b) => (b.textContent || "").length > 0 && b.hasAttribute("aria-busy"))
       || window.__growth.some((x) => x[1] > 0);
   }, null, { timeout: 20000 }).catch(() => {});
-  const notesBefore = await page.evaluate(() =>
-    [...document.querySelectorAll("#assistantMessages .assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top)));
+  /* MEASURED INSIDE THE TRANSCRIPT, not against the viewport. The rule
+     is "nothing ABOVE the reply moved while it grew", and the panel is
+     `fixed` on a styled page -- so a note's offset from the top of
+     #assistantMessages is exactly that rule. Its viewport coordinate is
+     not: this harness blocks the CDN, so the panel sits in document
+     flow and every note's `top` also carries the height of the entire
+     page above it. Anything that makes a product card taller then reads
+     as a layout shift in the chat, which is what it did -- the brand
+     eyebrow moved these by 52px while changing nothing inside the
+     panel at all. */
+  const notesIn = () => page.evaluate(() => {
+    const wrap = document.getElementById("assistantMessages");
+    const base = wrap.getBoundingClientRect().top;
+    return [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top - base));
+  });
+  const notesBefore = await notesIn();
   await page.waitForFunction(() => {
     const wrap = document.getElementById("assistantMessages");
     const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
@@ -1604,7 +1618,8 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
          about. Counting answers, not boxes. */
       botBubbles: bots.filter((b) => (b.textContent || "").trim().length > 0).length,
       typingLeft: Boolean(document.getElementById("assistantTyping")),
-      notesAfter: [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top)),
+      notesAfter: (() => { const base = wrap.getBoundingClientRect().top;
+        return [...wrap.querySelectorAll(".assistantNote")].map((n) => Math.round(n.getBoundingClientRect().top - base)); })(),
       history: (typeof ariaChatHistory !== "undefined" ? ariaChatHistory : []).map((h) => h.role),
     };
   }, sentAt);
@@ -2759,6 +2774,60 @@ await check("a live search that works adds to the catalogue, never replaces it",
   await ctx.close();
 });
 
+await check("a real catalogue item reaches its card and its PDP with the designer on it", async () => {
+  /* THE CHECK THAT WAS MISSING, and the reason the bug shipped. The
+     eyebrow was verified by handing productCardHTML a hand-built
+     { brand: "EGONlab" } -- which tests the renderer and nothing else.
+     The data never got that far: normalizeLiveItem() returns a NEW
+     object from a hand-written field list, `brand` was not on it, and
+     every card and PDP reads the output of that. Measured then: 0 of
+     3,553 pooled items carried a brand.
+
+     So this drives a REAL item, out of the REAL pool, through the REAL
+     components -- the only shape of test that could have failed. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  const r = await page.evaluate(async () => {
+    const pool = await relatedPool();
+    const withBrand = pool.filter((i) => i.brand);
+    const lacoste = pool.find((i) => /Water-Repellent Printed Jacket/i.test(i.title || ""));
+    const read = (html, sel) => { const d = document.createElement("div"); d.innerHTML = html; const e = d.querySelector(sel); return e && e.textContent.trim(); };
+    const out = { poolSize: pool.length, withBrand: withBrand.length, lacosteBrand: lacoste && lacoste.brand };
+    if (lacoste) {
+      out.card = read(productCardHTML(lacoste, { open: "" }), '[style*="0.09em"]');
+      out.rail = read(railCardHTML(lacoste, "", ""), 'span[style*="0.09em"]');
+      showProduct(lacoste.retailer, lacoste.title, lacoste.price, lacoste.weightKg, lacoste.image || "",
+        lacoste.sizes || [], false, "clothing", "", [], null, { brand: lacoste.brand });
+      const el = document.getElementById("productViewBrand");
+      out.pdp = el.textContent;
+      /* THE CLASS, NOT THE COMPUTED STYLE. This harness blocks the CDN,
+         so `uppercase` is a class that does nothing here and
+         text-transform reads "none" however right the markup is. What
+         it LOOKS like is pinned in run-tests.mjs, by the class that
+         decides it; what is real without a stylesheet is that the
+         class is on the element. */
+      out.pdpUpper = el.classList.contains("uppercase");
+    }
+    /* An item from a store that carries no brand field must still get
+       NO eyebrow -- the element is not emitted, not emptied. */
+    const brandless = pool.find((i) => !i.brand);
+    out.brandlessHasEyebrow = brandless ? !!read(productCardHTML(brandless, { open: "" }), '[style*="0.09em"]') : null;
+    return out;
+  });
+
+  eq(r.withBrand > 1000, true, `only ${r.withBrand} of ${r.poolSize} pooled items carry a brand — normalization is dropping it`);
+  eq(r.lacosteBrand, "Lacoste", "the Lacoste jacket lost its designer in the pipeline");
+  eq(r.card, "Lacoste", `the listing card shows no designer (got ${JSON.stringify(r.card)})`);
+  eq(r.rail, "Lacoste", `the rail card shows no designer (got ${JSON.stringify(r.rail)})`);
+  eq(r.pdp, "Lacoste", `the PDP shows no designer (got ${JSON.stringify(r.pdp)})`);
+  eq(r.pdpUpper, true, "the PDP eyebrow is not small caps");
+  eq(r.brandlessHasEyebrow, false, "a store with no brand field still draws an empty eyebrow");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 /* ==================================================================
    VITAMINS ARE OFF THE SITE, AND THE GATE IS ON THE DATA.
 
