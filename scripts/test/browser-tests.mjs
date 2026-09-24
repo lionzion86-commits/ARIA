@@ -21,6 +21,7 @@
    every check: the page must boot without it.
    ============================================================ */
 import { chromium } from "playwright";
+import { deflateSync as zlibDeflate } from "node:zlib";
 import { createServer } from "node:http";
 
 const BASE = process.env.ARIA_BASE_URL || "http://127.0.0.1:8899";
@@ -80,8 +81,22 @@ await check("a Spanish query reaches the retailer in English", async () => {
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
   if (errors.length) throw new Error(errors.join(" | "));
+  /* THE TRIGGER MOVED, THE RULE DID NOT. doSearch() no longer scrapes --
+     the catalogue answers first and the live scan is a button now -- so
+     this drives the live scan explicitly. What is being pinned is
+     unchanged and still the important part: whatever reaches a retailer
+     reaches it in English. A test that simply stopped asserting this
+     because the trigger moved would have retired the rule. */
   await page.evaluate(() => { document.getElementById("searchInput").value = "celular"; doSearch(); });
-  await page.waitForTimeout(2500);
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  eq(sent.length, 0, "the catalogue pass sent a query to a retailer — searching is billable again");
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
   if (!sent.length) throw new Error("no retailer request was made");
   for (const body of sent) eq(body.query, "cell phone", `query sent to ${body.retailer}`);
   // …and the shopper still sees their own word, plus what we asked for.
@@ -101,8 +116,16 @@ await check("an English query is passed through untouched", async () => {
     "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
   });
   if (errors.length) throw new Error(errors.join(" | "));
+  // Same as above: the catalogue answers first, the live scan is asked for.
   await page.evaluate(() => { document.getElementById("searchInput").value = "The North Face jacket"; doSearch(); });
-  await page.waitForTimeout(2500);
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
   if (!sent.length) throw new Error("no retailer request was made");
   for (const body of sent) eq(body.query, "The North Face jacket", "query sent unchanged");
   eq(await page.evaluate(() => document.getElementById("prodSpec").textContent), "", "no translation note");
@@ -1354,6 +1377,98 @@ await check("Zapatos appears in Categorías and opens to priced footwear", async
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
+/* ============================================================
+   NO PRICE, NO BUY BUTTON.
+
+   Reported from the live site: a Target home_goods record cached with
+   price: null rendered "Precio no disponible" with a live blue
+   "Agregar al carrito" under it. Tapping it wrote priceUsd: 0 into the
+   cart and toasted "Agregado al carrito."
+
+   The money assertion is the third one: the cart must stay empty even
+   when the button is bypassed entirely, because a disabled button is a
+   courtesy and the funnel is the guarantee.
+   ============================================================ */
+await check("a priceless product offers no working buy button", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const r = await page.evaluate(async () => {
+    cart.length = 0;
+    showProduct("target", "Farmhouse Stripe Bedding Collection", null, 1.2, "", [], false, "", "", [], null);
+    await new Promise((res) => setTimeout(res, 300));
+    const btn = document.getElementById("addToCartBtn");
+    const note = document.getElementById("productNoPriceNote");
+    return {
+      price: document.getElementById("productViewPrice").textContent.trim(),
+      label: btn.textContent.trim(),
+      disabled: btn.disabled,
+      aria: btn.getAttribute("aria-disabled"),
+      noteShown: !note.hidden && (note.textContent || "").length > 20,
+    };
+  });
+  eq(r.price, "Precio no disponible", "the price line");
+  eq(r.disabled, true, "the buy button is still live next to a missing price");
+  eq(r.aria, "true", "the button is not disabled for assistive tech");
+  if (r.label === "Agregar al carrito") throw new Error("the dead button still promises to add to the cart");
+  eq(r.noteShown, true, "nothing tells the shopper why they cannot buy");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a $0 line cannot reach the cart, button or no button", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const r = await page.evaluate(async () => {
+    cart.length = 0;
+    showProduct("target", "Farmhouse Stripe Bedding Collection", null, 1.2, "", [], false, "", "", [], null);
+    await new Promise((res) => setTimeout(res, 250));
+    // 1. the handler the button would have called
+    addToCartFromProduct();
+    const afterHandler = cart.length;
+    // 2. the funnel itself, the way a console or a second rail reaches it
+    const nullSaid = addToCart({ retailer: "target", title: "priceless", priceUsd: null, weightKg: 1 });
+    const zeroSaid = addToCart({ retailer: "target", title: "zero", priceUsd: 0, weightKg: 1 });
+    const blankSaid = addToCart({ retailer: "walmart", title: "blank", priceUsd: "", weightKg: 1 });
+    return { afterHandler, cart: cart.length, nullSaid, zeroSaid, blankSaid };
+  });
+  eq(r.afterHandler, 0, "the product page added a priceless line anyway");
+  eq(r.cart, 0, "a priceless or $0 line reached the cart through the funnel");
+  eq(r.nullSaid, false, "addToCart claimed it accepted a null price");
+  eq(r.zeroSaid, false, "addToCart claimed it accepted a $0 price");
+  eq(r.blankSaid, false, "addToCart claimed it accepted an empty price");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a priced product still buys exactly as before", async () => {
+  /* The other half of failing closed: nothing about a real price may
+     have changed. This is the regression the guards could plausibly
+     cause, so it is asserted rather than assumed. */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const r = await page.evaluate(async () => {
+    cart.length = 0;
+    showProduct("target", "Something priced", 42.5, 1.2, "", [], false, "", "", [], null);
+    await new Promise((res) => setTimeout(res, 250));
+    const btn = document.getElementById("addToCartBtn");
+    const note = document.getElementById("productNoPriceNote");
+    const before = { label: btn.textContent.trim(), disabled: btn.disabled, noteHidden: note.hidden };
+    btn.click();
+    await new Promise((res) => setTimeout(res, 250));
+    return { ...before, cart: cart.length, price: cart[0]?.priceUsd, qty: cart[0]?.qty };
+  });
+  eq(r.label, "Agregar al carrito", "the live button's label");
+  eq(r.disabled, false, "a priced product's buy button is disabled");
+  eq(r.noteHidden, true, "the no-price note shows on a priced product");
+  eq(r.cart, 1, "a priced product no longer reaches the cart");
+  eq(r.price, 42.5, "the price that landed in the cart");
+  eq(r.qty, 1, "the quantity that landed in the cart");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 
 /* ==================================================================
    STREAMING THE CHAT — over a real socket, because a fake one proves
@@ -1698,6 +1813,293 @@ await check("the desktop home page never builds the rails", async () => {
 
 
 /* ==================================================================
+   THE LIGHTBOX, DRIVEN.
+
+   Sizing and positions are pinned in run-tests.mjs -- this harness
+   blocks the CDN and would be measuring an unstyled page. What only a
+   running page can answer: does each way out actually work, does the
+   page behind come back exactly where it was, and does the back gesture
+   close the overlay without carrying the shopper off the product.
+   ================================================================== */
+const LB_PHONE = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+/* A REAL PHOTOGRAPH, BECAUSE THE LIGHTBOX CORRECTLY REFUSES TO OPEN
+   WITHOUT ONE. openImageLightbox() bails when the product image is
+   hidden or has no src, and this harness stubs no retailer CDN -- so
+   the first run of these checks reported "the lightbox never opened",
+   which was the page being right about having no photo in it. A 320x180
+   landscape PNG, built here rather than committed: landscape is the
+   shape that used to overflow the frame. */
+function lbPhotoPNG() {
+  const W = 320, H = 180, px = Buffer.alloc(W * H * 3, 242);
+  for (let y = 20; y < 160; y++) for (let x = 40; x < 280; x++) { const i = (y * W + x) * 3; px[i] = 90; px[i + 1] = 120; px[i + 2] = 200; }
+  const raw = Buffer.alloc(H * (W * 3 + 1));
+  for (let y = 0; y < H; y++) { raw[y * (W * 3 + 1)] = 0; px.copy(raw, y * (W * 3 + 1) + 1, y * W * 3, (y + 1) * W * 3); }
+  const T = [];
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[n] = c >>> 0; }
+  const crc = (b) => { let c = 0xFFFFFFFF; for (const v of b) c = T[(c ^ v) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const chunk = (t, d) => { const l = Buffer.alloc(4); l.writeUInt32BE(d.length); const td = Buffer.concat([Buffer.from(t, "ascii"), d]); const cr = Buffer.alloc(4); cr.writeUInt32BE(crc(td)); return Buffer.concat([l, td, cr]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", zlibDeflate(raw)), chunk("IEND", Buffer.alloc(0))]);
+}
+const LB_PNG = lbPhotoPNG();
+
+/* Everything off this machine becomes that photograph; everything on it
+   is served as usual, with the functions stubbed the way every other
+   check stubs them. */
+const LB_ROUTES = {
+  "**/*": (route) => {
+    const url = route.request().url();
+    if (url.includes("127.0.0.1")) return route.continue();
+    return route.fulfill({ status: 200, contentType: "image/png", body: LB_PNG });
+  },
+  "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+};
+
+async function openLightbox(page) {
+  return page.evaluate(async () => {
+    goSales(); await new Promise((r) => setTimeout(r, 2400));
+    openSaleProduct(0); await new Promise((r) => setTimeout(r, 2000));
+    window.scrollTo(0, 420); await new Promise((r) => setTimeout(r, 300));
+    const before = window.scrollY;
+    openImageLightbox(); await new Promise((r) => setTimeout(r, 400));
+    return { before, open: !document.getElementById("imageLightbox").classList.contains("hidden") };
+  });
+}
+
+await check("every way out of the lightbox works, and puts the page back", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  eq(opened.open, true, "the lightbox never opened");
+  if (!opened.before) throw new Error("the page was not scrolled before opening — the restore proves nothing");
+
+  const ways = await page.evaluate(async (before) => {
+    const box = document.getElementById("imageLightbox");
+    const closed = () => box.classList.contains("hidden");
+    const reopen = async () => { if (closed()) { openImageLightbox(); await new Promise((r) => setTimeout(r, 350)); } };
+    /* RESTORED EXACTLY means three things: the overlay gone, the body
+       unpinned, and the shopper back on the same pixel they left. */
+    const restored = () => closed() && !document.body.style.position && Math.abs(window.scrollY - before) < 3;
+    const out = {};
+    const swipe = (y0, y1) => {
+      const im = document.getElementById("lightboxImg");
+      const mk = (t, yy) => new TouchEvent(t, { bubbles: true, cancelable: true,
+        touches: t === "touchend" ? [] : [new Touch({ identifier: 1, target: im, clientX: 196, clientY: yy })],
+        changedTouches: [new Touch({ identifier: 1, target: im, clientX: 196, clientY: yy })] });
+      im.dispatchEvent(mk("touchstart", y0)); im.dispatchEvent(mk("touchmove", (y0 + y1) / 2));
+      im.dispatchEvent(mk("touchmove", y1)); im.dispatchEvent(mk("touchend", y1));
+    };
+
+    await reopen(); document.querySelector("[data-lightbox-close]").click();
+    await new Promise((r) => setTimeout(r, 450)); out.close = restored();
+    await reopen(); box.click();
+    await new Promise((r) => setTimeout(r, 450)); out.backdrop = restored();
+    await reopen(); swipe(200, 520);
+    await new Promise((r) => setTimeout(r, 450)); out.swipeDown = restored();
+    await reopen(); document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    await new Promise((r) => setTimeout(r, 450)); out.escape = restored();
+
+    // ...and the two gestures that must NOT dismiss.
+    await reopen(); document.getElementById("lightboxImg").click();
+    await new Promise((r) => setTimeout(r, 250)); out.tapPhotoKeepsOpen = !closed();
+    swipe(520, 200);
+    await new Promise((r) => setTimeout(r, 300)); out.swipeUpKeepsOpen = !closed();
+    return out;
+  }, opened.before);
+
+  for (const way of ["close", "backdrop", "swipeDown", "escape"]) {
+    eq(ways[way], true, `${way} did not dismiss and restore the page behind`);
+  }
+  eq(ways.tapPhotoKeepsOpen, true, "tapping the photograph closed it");
+  eq(ways.swipeUpKeepsOpen, true, "swiping up closed it");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the back gesture closes the lightbox without leaving the product", async () => {
+  /* BOTH HALVES OF THE REPORTED BUG. The overlay has to go, and the
+     page behind must not be left pinned -- that lock outlived the
+     overlay and was the "frozen" in the report. */
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  await openLightbox(page);
+  const after = await page.evaluate(async () => {
+    const viewOf = () => [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join();
+    const before = viewOf();
+    history.back();
+    await new Promise((r) => setTimeout(r, 900));
+    return {
+      before, view: viewOf(),
+      closed: document.getElementById("imageLightbox").classList.contains("hidden"),
+      bodyPos: document.body.style.position,
+      bodyOverflow: document.body.style.overflow,
+    };
+  });
+  eq(after.closed, true, "the back gesture left the lightbox open");
+  eq(after.view, after.before, `the back gesture carried the shopper off the product: ${after.before} → ${after.view}`);
+  eq(after.bodyPos, "", "the page behind is still pinned");
+  eq(after.bodyOverflow, "", "the page behind is still locked");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("zoom never takes the way out with it", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  const z = await page.evaluate(async (before) => {
+    const box = document.getElementById("imageLightbox");
+    const dbl = () => {
+      const im = document.getElementById("lightboxImg");
+      const mk = (t) => new TouchEvent(t, { bubbles: true, cancelable: true,
+        touches: t === "touchend" ? [] : [new Touch({ identifier: 1, target: im, clientX: 196, clientY: 300 })],
+        changedTouches: [new Touch({ identifier: 1, target: im, clientX: 196, clientY: 300 })] });
+      im.dispatchEvent(mk("touchstart")); im.dispatchEvent(mk("touchend"));
+    };
+    const tapTwice = async () => { dbl(); await new Promise((r) => setTimeout(r, 60)); dbl(); await new Promise((r) => setTimeout(r, 320)); };
+    await tapTwice();
+    const zoomed = box.getAttribute("data-zoom") === "1";
+    /* WHAT "REACHABLE" CAN MEAN WITHOUT A STYLESHEET. This harness
+       blocks the CDN, so `fixed top-4 right-4 w-11 h-11` are classes
+       that do nothing and the button measures a few pixels wherever the
+       flow puts it -- asserting its size or corner here measures the
+       missing stylesheet, not the fix. Its size, its `fixed` and its
+       z-index are pinned in run-tests.mjs, by the rules that decide
+       them.
+
+       What IS real with no CSS: zooming must not detach the button from
+       the document or make it unclickable. So that is what is checked
+       -- it is still in the tree, still inside the overlay, and the
+       click below still lands. */
+    const btn = document.querySelector("[data-lightbox-close]");
+    const reachable = !!btn && box.contains(btn) && btn.isConnected;
+    await tapTwice();
+    const reset = box.getAttribute("data-zoom") !== "1";
+    await tapTwice();   // zoom again, then leave by the button
+    document.querySelector("[data-lightbox-close]").click();
+    await new Promise((r) => setTimeout(r, 450));
+    return { zoomed, reachable, reset,
+      closedWhileZoomed: box.classList.contains("hidden"),
+      zoomCleared: box.getAttribute("data-zoom") !== "1",
+      restored: !document.body.style.position && Math.abs(window.scrollY - before) < 3 };
+  }, opened.before);
+  eq(z.zoomed, true, "a double tap did not zoom");
+  eq(z.reachable, true, "zooming detached the close button from the overlay");
+  eq(z.reset, true, "a second double tap did not reset the zoom");
+  eq(z.closedWhileZoomed, true, "the close button did not work while zoomed");
+  eq(z.zoomCleared, true, "the zoom survived the close — it would reopen zoomed");
+  eq(z.restored, true, "closing from a zoom did not put the page back");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ============================================================
+   THE PINCH, WHICH IS A DIFFERENT ZOOM FROM THE ONE ABOVE.
+
+   The check above drives OUR zoom -- a transform we set on the photo.
+   This one drives the BROWSER'S, the one a shopper gets by pinching,
+   which iOS will not let a page disable. They are not the same
+   mechanism and the first fix here only ever handled the first: it
+   asserted the close button was `position:fixed` and called that safe.
+   Fixed is fixed to the LAYOUT viewport, and a pinch does not move the
+   layout viewport -- it shrinks the VISUAL one into a window onto it.
+   Measured at 393px before the fix:
+
+     pageScale 1   visual 393x852   button at 333,16   on screen
+     pageScale 2   visual 197x426   button at 333,16   OFF SCREEN
+     pageScale 3   visual 131x284   button at 333,16   OFF SCREEN
+
+   Emulation.setPageScaleFactor is how Chrome models a pinch, so it
+   moves the real visualViewport and fires the real events.
+
+   WHAT THIS CAN ASSERT WITH NO STYLESHEET. The harness blocks the CDN,
+   so the button's `absolute top-4 right-4 w-11 h-11` do nothing and its
+   measured box is meaningless here -- its geometry is pinned in
+   run-tests.mjs by the rules that decide it. What is real without CSS
+   is the arithmetic: the chrome layer's transform is computed from
+   window.visualViewport, and it must TRACK a scale change on its own,
+   through the listeners, with nobody calling sync by hand. That last
+   part is the difference between a close button that follows the pinch
+   and one that catches up after it.
+   ============================================================ */
+await check("the close button follows a pinch, not the layout viewport", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  eq(opened.open, true, "the lightbox never opened");
+
+  const cdp = await ctx.newCDPSession(page);
+  const readings = [];
+  for (const scale of [1, 2, 3]) {
+    await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: scale });
+    await page.waitForTimeout(260);   // deliberately NOT calling sync by hand
+    readings.push(await page.evaluate(() => {
+      const vv = window.visualViewport;
+      const el = document.getElementById("lightboxChrome");
+      if (!vv || !el) return { missing: true };
+      const s = vv.scale || 1;
+      const want = [vv.offsetLeft, vv.offsetTop, 1 / s];
+      /* NUMBERS, NOT THE STRING. The browser re-serializes what we set:
+         scale(0.3333333333333333) reads back as scale(0.333333), so a
+         string compare fails on a third of the zoom levels for a purely
+         cosmetic reason. Parse and compare with a tolerance. */
+      const nums = (el.style.transform.match(/-?[\d.]+/g) || []).map(Number);
+      const near = (a, b) => Math.abs(a - b) < 0.001;
+      return {
+        scale: +s.toFixed(2),
+        tracks: nums.length === 3 && want.every((w, i) => near(nums[i], w)),
+        got: el.style.transform,
+        want: `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / s})`,
+        // The layer carries its own pre-scale units, so the counter-scale
+        // lands it exactly on the visual viewport rather than inside it.
+        sized: near(parseFloat(el.style.width), vv.width * s) && near(parseFloat(el.style.height), vv.height * s),
+      };
+    }));
+  }
+  await cdp.send("Emulation.setPageScaleFactor", { pageScaleFactor: 1 });
+
+  for (const r of readings) {
+    eq(!!r.missing, false, "there is no chrome layer to park on the visual viewport");
+    eq(r.tracks, true, `at page scale ${r.scale} the chrome did not follow the pinch: got "${r.got}", wanted "${r.want}"`);
+    eq(r.sized, true, `at page scale ${r.scale} the chrome layer is not sized in its own pre-scale units`);
+  }
+  // It has to actually change, or "tracks" could be passing on a no-op.
+  eq(new Set(readings.map((r) => r.got)).size, readings.length, "the chrome's transform never changed across three zoom levels");
+
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a pinch takes our own zoom off, so the two cannot stack", async () => {
+  const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
+  await page.waitForTimeout(3000);
+  const opened = await openLightbox(page);
+  eq(opened.open, true, "the lightbox never opened");
+  const r = await page.evaluate(async () => {
+    const box = document.getElementById("imageLightbox");
+    setLightboxZoom(true);
+    const ourZoomWasOn = box.getAttribute("data-zoom") === "1";
+    /* Two fingers land on the overlay. Releasing a pinch returns the
+       PAGE to scale 1; if our transform were still on, the photo would
+       stay at 2.4 and read as "snapped back to zoomed-in". */
+    const im = document.getElementById("lightboxImg");
+    const t = (id, x) => new Touch({ identifier: id, target: im, clientX: x, clientY: 300 });
+    box.dispatchEvent(new TouchEvent("touchstart", { bubbles: true, cancelable: true,
+      touches: [t(1, 150), t(2, 250)], changedTouches: [t(1, 150), t(2, 250)] }));
+    await new Promise((r) => setTimeout(r, 120));
+    return { ourZoomWasOn, ourZoomNowOff: box.getAttribute("data-zoom") !== "1",
+             stillOpen: !box.classList.contains("hidden") };
+  });
+  eq(r.ourZoomWasOn, true, "our own zoom never turned on, so the check proves nothing");
+  eq(r.ourZoomNowOff, true, "pinching on top of our zoom stacks the two — releasing snaps back to zoomed-in");
+  eq(r.stillOpen, true, "a pinch closed the lightbox outright");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+
+/* ==================================================================
    "TAMBIÉN TE PUEDE INTERESAR", ON THE REAL CATALOGUE.
 
    The selection rules are run over made-up catalogues in run-tests.mjs,
@@ -1846,6 +2248,67 @@ await check("the mall photograph stays inside its section when the CDN is blocke
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
+/* ==================================================================
+   CATALOG-FIRST SEARCH, ON THE REAL CATALOGUES.
+
+   The bug: every search fanned out to Apify, so when the account hit
+   its limit "Nike" and "pantalones" both returned nothing. These drive
+   the real search bar against the real committed catalogues with Apify
+   answering 402 to everything -- the actual outage -- and assert the
+   shopper still gets products.
+
+   THE SCRAPE COUNTER IS THE POINT. A search that starts an Apify run is
+   both the cost leak and the outage; zero is the whole fix.
+   ================================================================== */
+/* SPECIFIC FIRST, CATCH-ALL LAST. openPage registers these in reverse
+   and Playwright gives precedence to the last route registered, so a
+   catch-all written first here would swallow the 402 and this would
+   test an empty response instead of a dead account. */
+const DEAD_APIFY = {
+  "**/.netlify/functions/apify-scrape-start**": (r) =>
+    r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "Monthly usage hard limit exceeded" }) }),
+  "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+};
+
+await check("every search answers from the catalogue, with Apify dead", async () => {
+  const { ctx, page, errors } = await openPage(DEAD_APIFY, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  let scrapes = 0;
+  page.on("request", (r) => { if (r.url().includes("apify-scrape-start")) scrapes++; });
+  await page.waitForTimeout(3000);   // let the catalogues land
+
+  const out = [];
+  for (const q of ["Nike", "Nike Air Force", "pantalones", "Vitamina D3"]) {
+    await page.evaluate((query) => { document.getElementById("searchInput").value = query; doSearch(); }, q);
+    await page.waitForFunction((query) => typeof catalogMatch !== "undefined" && catalogMatch !== null && liveScrapeQuery === query, q, { timeout: 15000 });
+    out.push(await page.evaluate(() => ({
+      cards: document.querySelectorAll("#liveResultsWrap > div").length,
+      exact: catalogMatch.exact,
+      offered: !!document.querySelector("[data-live-search]"),
+      topTitle: (searchRendered[0] && searchRendered[0].title) || "",
+    })));
+  }
+  const [nike, af, pants, vit] = out;
+  // All four return SOMETHING, instantly, which is the brief's acceptance test.
+  for (let i = 0; i < out.length; i++) {
+    eq(out[i].cards > 0, true, `query ${i} came back with an empty feed even though the catalogue has matches`);
+    eq(out[i].offered, true, `query ${i} did not offer the live search`);
+  }
+  /* AND THIS ASSERTION WAS WRONG BEFORE IT WAS RIGHT. It first read
+     `af.exact === 0`, from a throwaway script that walked
+     department-cache.json differently from the page and saw 456 of its
+     613 products. Foot Locker stocks three actual Air Force 1s, and the
+     page finds them. Pin what is true: the exact matches lead, and the
+     Nike partials come after rather than the feed stopping at three. */
+  eq(af.exact >= 3, true, `the Air Force 1s Foot Locker stocks are not matching in full (exact ${af.exact})`);
+  eq(/air force/i.test(af.topTitle), true, `an Air Force is not top of an "Air Force" search: "${af.topTitle}"`);
+  eq(af.cards > af.exact, true, "the Nike partials were dropped instead of ranked below the exact matches");
+  eq(nike.exact > 0, true, "no full matches for Nike");
+  eq(pants.exact > 0, true, "the Spanish query found no pants in the catalogue");
+  eq(vit.exact > 0, true, "Vitamina D3 found no full match — the pluralised translation regressed");
+  eq(scrapes, 0, `searching started ${scrapes} Apify runs — that is the cost leak and the outage`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 
 await check("only one Tiendas surface is photographic at a given width", async () => {
   /* The home page carries the store marks twice. On a phone the foot
@@ -1912,6 +2375,104 @@ await check("a department renders the catalogue on load without scraping anythin
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
+await check("the live offer is refined, and the scan goes out with the refinement", async () => {
+  const sent = [];
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) => {
+      sent.push(JSON.parse(r.request().postData() || "{}"));
+      return r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "limit" }) });
+    },
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+
+  const panel = await page.evaluate(() => {
+    const i = document.querySelector("[data-live-refine]");
+    return { prefilled: i && i.value, editable: !!i && !i.readOnly && !i.disabled,
+             chips: document.querySelectorAll("[data-live-chip]").length };
+  });
+  eq(panel.prefilled, "Nike Air Force", "the refine box is not prefilled with what the shopper typed");
+  eq(panel.editable, true, "the refine box is not editable");
+  eq(panel.chips > 0, true, "there are no category chips to refine with");
+
+  // A chip writes into the box, and writes itself back out.
+  const chip = await page.evaluate(() => {
+    const c = [...document.querySelectorAll("[data-live-chip]")].find((x) => x.dataset.liveChip === "shoes");
+    c.click();
+    const on = document.querySelector("[data-live-refine]").value;
+    c.click();
+    return { on, off: document.querySelector("[data-live-refine]").value };
+  });
+  eq(chip.on, "Nike Air Force shoes", "the chip did not write its term into the box");
+  eq(chip.off, "Nike Air Force", "the chip did not take its own term back out");
+
+  // Hand-edit, then run: the stores must be asked for the EDITED words.
+  await page.evaluate(() => {
+    const i = document.querySelector("[data-live-refine]");
+    i.value = "Nike Air Force 1 white";
+    i.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  eq([...new Set(sent.map((s) => s.query))].join("|"), "Nike Air Force 1 white",
+     "the live scan ignored the refined query");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("Aria answers from the catalogue with Apify dead, and offers the live scan", async () => {
+  let scrapes = 0;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) => {
+      scrapes++;
+      return r.fulfill({ status: 402, contentType: "application/json", body: JSON.stringify({ error: "limit" }) });
+    },
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ reply: "Aquí tienes algunas opciones." }) }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  await page.evaluate(() => { toggleAssistant(); runAssistantBrain("Aria, búscame unos tenis Nike"); });
+  await page.waitForFunction(() => document.querySelector("[data-assistant-live]") ||
+    document.querySelectorAll("#assistantMessages img").length > 0, null, { timeout: 20000 });
+  await page.waitForTimeout(800);
+
+  const r = await page.evaluate(() => ({
+    cards: document.querySelectorAll("#assistantMessages img").length,
+    offered: !!document.querySelector("[data-assistant-live]"),
+    /* Her own name must not come back in the line that reads the
+       request to the shopper. */
+    echoesName: [...document.querySelectorAll("#assistantMessages .assistantNote")]
+      .some((n) => /\baria\b/i.test(n.textContent || "")),
+  }));
+  eq(scrapes, 0, `answering a product question started ${scrapes} Apify runs`);
+  eq(r.cards > 0, true, "Aria showed no products even though the catalogue has Nike trainers");
+  eq(r.echoesName, false, "the status line reads her own name back as part of the request");
+  /* THE OFFER IS NOT ASSERTED HERE ANY MORE, and that is the category
+     work showing. "tenis Nike" used to find nothing that matched every
+     word, so the thin-results gate always opened; now it finds real
+     footwear, so withholding the offer is correct. The offer is proved
+     below, on a question the catalogue genuinely cannot answer. */
+
+  /* A question the catalogue cannot answer: THIS is when the offer is
+     owed, and it is the only time it should appear. */
+  await page.evaluate(() => runAssistantBrain("busco un didgeridoo de bambú"));
+  await page.waitForFunction(() => document.querySelector("[data-assistant-live]"), null, { timeout: 20000 });
+  eq(await page.evaluate(() => !!document.querySelector("[data-assistant-live]")), true,
+     "the chat never offers the live search, even with nothing to show");
+
+  // Tapping it is what spends the money, and the cards stay whatever happens.
+  const before = r.cards;
+  await page.evaluate(() => document.querySelector("[data-assistant-live]").click());
+  await page.waitForTimeout(3500);
+  eq(scrapes > 0, true, "tapping the offer did not start a live search");
+  eq(await page.evaluate(() => document.querySelectorAll("#assistantMessages img").length) >= before, true,
+     "the failed live search took the catalogue cards with it");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 
 await check("a broken catalogue is an honest, retryable page — and the retry works", async () => {
   /* loadDepartmentCache swallows failures into { retailers: {} } and
@@ -1952,6 +2513,74 @@ await check("a broken catalogue is an honest, retryable page — and the retry w
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
+await check("a shoe query reaches Foot Locker, whose titles never say shoes", async () => {
+  /* THE RULE THAT ONLY THE REAL PAGE CAN PROVE. In the pure slice
+     sizeCategoryFor does not exist, so the Foot Locker branch of
+     catalogItemCategory is unexercised there. Here it is loaded, and
+     the catalogues are the committed ones.
+
+     Before: "zapatos" -> "shoes" matched 30 items, every one of them
+     Walmart, because no Foot Locker title contains the word -- they
+     read "Jordan Retro 4 - Boys' Grade School". */
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  const r = await page.evaluate(async () => {
+    const pool = await relatedPool();
+    const shoes = rankCatalogMatches(pool, "shoes", { limit: 200 });
+    const kids = rankCatalogMatches(pool, "shoes boys", { limit: 40 });
+    const stores = new Set(shoes.items.map((i) => i.retailer));
+    return {
+      total: shoes.exact,
+      hasFootLocker: stores.has("footlocker"),
+      // Nothing outside the category may appear at all.
+      strays: kids.items.filter((i) => catalogItemCategory(i) !== "footwear").map((i) => i.title).slice(0, 3),
+      kidsTop: (kids.items[0] || {}).title || "",
+      // The trouser cuts must not be in here.
+      bootcuts: shoes.items.filter((i) => /boot[-\s]?(cut|leg)/i.test(i.title)).map((i) => i.title).slice(0, 3),
+    };
+  });
+  eq(r.hasFootLocker, true, "a shoe query still cannot reach Foot Locker's inventory");
+  eq(r.total > 100, true, `a shoe query matched only ${r.total} items`);
+  eq(r.strays.length, 0, `cross-category noise came back: ${JSON.stringify(r.strays)}`);
+  eq(r.bootcuts.length, 0, `bootcut trousers are being returned as shoes: ${JSON.stringify(r.bootcuts)}`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("a dead live search keeps the catalogue results on screen", async () => {
+  const { ctx, page, errors } = await openPage(DEAD_APIFY, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  const before = await page.evaluate(() => document.querySelectorAll("#liveResultsWrap > div").length);
+  eq(before > 0, true, "the catalogue pass returned nothing to protect");
+
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  const after = await page.evaluate(() => ({
+    state: liveSearchState,
+    cards: document.querySelectorAll("#liveResultsWrap > div").length,
+    text: (document.getElementById("searchLiveWrap").textContent || "").replace(/\s+/g, " ").trim(),
+    retry: !!document.querySelector("#searchLiveWrap button"),
+  }));
+  eq(after.state, "unavailable", "every store refused and the page did not say so");
+  eq(after.text.includes("La búsqueda en vivo no está disponible en este momento."), true,
+     `the honest message is gone: "${after.text.slice(0, 80)}"`);
+  /* THE "NEVER A DEAD-END PAGE" RULE, MEASURED. Not "some results are
+     left" -- the SAME number, because the live scan may only ever add. */
+  eq(after.cards, before, `the failure took ${before - after.cards} catalogue results down with it`);
+  eq(after.retry, true, "there is no way to try the live search again");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 
 /* ---- The trust cards --------------------------------------------- */
 
@@ -1984,6 +2613,41 @@ await check("the trust photos stay inside their cards with the CDN blocked", asy
     eq(c.bodyZ, "2", `${c.title}: the content is not above the scrim`);
     eq(c.contained, true, `${c.title}: the photo escaped its card`);
   }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+await check("a live search that works adds to the catalogue, never replaces it", async () => {
+  let runId = 0;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/apify-scrape-start**": (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ retailer: "walmart", runId: `run${++runId}` }) }),
+    "**/.netlify/functions/apify-scrape-status**": (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+        status: "SUCCEEDED",
+        items: [{ title: "Live-only Air Force sample", price: 110, image: "", weightKg: 0.9 }],
+      }) }),
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => { document.getElementById("searchInput").value = "Nike Air Force"; doSearch(); });
+  await page.waitForFunction(() => typeof catalogMatch !== "undefined" && catalogMatch !== null, null, { timeout: 15000 });
+  const before = await page.evaluate(() => searchResults.length);
+
+  /* DISPATCHED, NOT AIMED. This harness blocks the CDN, so there is no
+     grid and no stacking -- product cards sit on top of the button and
+     a real mouse click lands on a card. Where the control sits on a
+     styled page is a layout question, pinned in run-tests.mjs; what
+     this check is about is what the control DOES. */
+  await page.evaluate(() => document.querySelector("[data-live-search]").click());
+  await page.waitForFunction(() => liveSearchState !== "running", null, { timeout: 60000 });
+  const after = await page.evaluate(() => ({
+    state: liveSearchState,
+    total: searchResults.length,
+    hasLive: searchResults.some((p) => /Live-only Air Force sample/i.test(p.title || "")),
+  }));
+  eq(after.state, "done", "a successful live scan did not settle as done");
+  eq(after.hasLive, true, "the live result the stores returned is not in the feed");
+  eq(after.total > before, true, `the live scan replaced the catalogue instead of adding to it (${before} -> ${after.total})`);
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
