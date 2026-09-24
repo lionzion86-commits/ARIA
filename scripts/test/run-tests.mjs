@@ -7538,6 +7538,55 @@ group("store carousels: window-shopping rails");
     eq(c, d, "carouselMixItems parity");
   });
 
+  check("the rail opens on the biggest MEANINGFUL sales, then spreads the rest", () => {
+    // Danny's merchandising (2026-09-24): first cards are the deepest
+    // meaningful discounts — never full-price, never a meaningless
+    // markdown. Then non-sale, with remaining sales distributed.
+    const S = (title, price, regularPrice, extra = {}) =>
+      ({ title, image: title.replace(/\W/g, "") + ".jpg", price, regularPrice, onSale: true, ...extra });
+    const F = (title, i) => ({ title, image: `full${i}.jpg`, price: 50 + i });
+    const items = [
+      F("Full A", 1), F("Full B", 2), F("Full C", 3), F("Full D", 4),
+      F("Full E", 5), F("Full F", 6), F("Full G", 7), F("Full H", 8),
+      S("Bra 20% off", 40, 50),          // meaningful, shallow
+      S("Bra 50% off", 25, 50),          // meaningful, deepest
+      S("Bra 40% off", 30, 50),          // meaningful
+      S("Bra 45% off", 33, 60),          // meaningful
+      S("Socks 90% off", 4, 40),         // deep but trivial + cheap: never leads
+      S("Keychain 70% off", 3, 10),      // deep but trivial: never leads
+      S("Balm 60% off", 8, 20),          // below the $10 lead floor: never leads
+      S("NoPhoto 55% off", 22, 50, { image: "" }), // no photo: never leads
+    ];
+    const picks = carousel.carouselPickItems(items, 16);
+    const titles = picks.map((p) => p.title);
+    // Lead run: the three biggest MEANINGFUL sales, deepest first.
+    eq(titles[0], "Bra 50% off", "deepest meaningful sale opens the rail");
+    eq(titles[1], "Bra 45% off", "second deepest next");
+    eq(titles[2], "Bra 40% off", "third deepest next");
+    // The meaningless markdowns are on the rail but never in the lead run.
+    for (const t of ["Socks 90% off", "Keychain 70% off", "Balm 60% off", "NoPhoto 55% off"]) {
+      if (titles.slice(0, 3).includes(t)) throw new Error(`${t} led the rail`);
+      if (!titles.includes(t)) throw new Error(`${t} fell off the rail entirely`);
+    }
+    // "Bra 20% off" is a real sale but lost the lead slots: it must be
+    // spread through the non-sale run, not clumped right after the leads.
+    const idx20 = titles.indexOf("Bra 20% off");
+    if (idx20 < 6) throw new Error("leftover sale clumped behind the leads: " + titles.join(","));
+    // The page mirror answers identically on the same merchandising input.
+    const b = JSON.stringify(pc.carouselPickItems(items, 16).map((p) => p.title));
+    eq(JSON.stringify(titles), b, "sale merchandising parity");
+  });
+
+  check("a sub-5% markdown is not a sale and never leads", () => {
+    const items = [
+      { title: "Full", image: "f.jpg", price: 50 },
+      { title: "Tiny markdown", image: "t.jpg", price: 48.5, regularPrice: 50, onSale: true },
+    ];
+    const picks = carousel.carouselPickItems(items, 16);
+    eq(picks[0].title, "Full", "3% off does not jump the rail");
+    if (carousel.carouselIsSale(items[1])) throw new Error("3% off counted as a sale");
+  });
+
   check("every store landing renders the rail above the tiles", () => {
     const src = readFileSync(root("index.html"), "utf8");
     const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
