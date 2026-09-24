@@ -469,3 +469,39 @@ export function loadPageCarouselSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The carousel CARD, rendered in a sandbox. carouselCardHTML is the one
+   component behind every window-shopping rail (store landing, aisle
+   landing, feed); Danny's 2026-09-24 QA caught that sale items showed no
+   discount badge and no struck original on it. The card's dependencies
+   (openers, URL helpers, price formatters) are stubbed — the test pins the
+   discount logic, not the formatting. */
+export function loadPageCarouselCardSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("function carouselCardHTML(item, retailer){");
+  const to = html.indexOf("/* THE RAIL ITSELF", from);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html carousel-card markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = {
+    console,
+    productCardOpenExpr: () => "OPEN",
+    upgradeImageUrl: (s) => s,
+    safeUrl: (s) => s,
+    cardPhotoHTML: (src) => `<img src="${src}">`,
+    imageRetryUrl: (s) => s,
+    escapeHtml: (s) => String(s),
+    fmtDisplayPrice: (n) => "$" + n,
+    displayPriceUsd: (n) => n,
+    fmtUSD: (n) => "$" + n,
+    discountPct: (p) => Math.round((1 - p.price / p.originalPrice) * 100),
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { carouselCardHTML };",
+    sandbox,
+    { filename: "index.html#carousel-card" },
+  );
+  return sandbox.__exports;
+}

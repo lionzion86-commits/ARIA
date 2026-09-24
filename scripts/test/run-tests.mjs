@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice, loadPageCarouselCardSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -7574,6 +7574,39 @@ group("store carousels: window-shopping rails");
     if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
     const rail = src.slice(src.indexOf("function storeCarouselHTML("), src.indexOf("/* ============================================================\n   THE BROWSE TILE"));
     if (!/CAROUSEL_MIN_ITEMS/.test(rail)) throw new Error("the rail renders even for a 1-card stub");
+  });
+
+  check("sale items on the rail show the discount — badge and struck original", () => {
+    // Danny's 2026-09-24 QA: the sale-first order put the -78% corset first
+    // but the card showed only "$32.99" — an invisible discount hooks nobody.
+    const { carouselCardHTML } = loadPageCarouselCardSlice();
+    const sale = carouselCardHTML(
+      { title: "Blooming Rose Corset Top", price: 32.99, originalPrice: 150, onSale: true, image: "corset.jpg" },
+      null,
+    );
+    if (!sale.includes("-78%")) throw new Error("no -78% badge on the sale card");
+    if (!sale.includes("background:#F4C463")) throw new Error("the badge is not the site's one sale yellow");
+    if (!sale.includes("absolute top-3 left-3")) throw new Error("the badge is not pinned top-left of the photo");
+    if (!sale.includes("line-through")) throw new Error("no struck original price on the sale card");
+    if (!sale.includes("$150")) throw new Error("the struck price is not the original");
+
+    const regular = carouselCardHTML({ title: "Tease Perfume", price: 40, image: "tease.jpg" }, null);
+    if (/-\d+%/.test(regular)) throw new Error("a full-price card grew a discount badge");
+    if (regular.includes("line-through")) throw new Error("a full-price card grew a struck price");
+
+    // Fail closed: the sale definition is flag + original > price.
+    const noOriginal = carouselCardHTML({ title: "X", price: 30, onSale: true, image: "x.jpg" }, null);
+    if (/-\d+%/.test(noOriginal) || noOriginal.includes("line-through")) {
+      throw new Error("a sale-flagged item with no original price shows a discount");
+    }
+    const noFlag = carouselCardHTML({ title: "Y", price: 30, originalPrice: 60, image: "y.jpg" }, null);
+    if (/-\d+%/.test(noFlag) || noFlag.includes("line-through")) {
+      throw new Error("an item without the sale flag shows a discount");
+    }
+    const inverted = carouselCardHTML({ title: "Z", price: 60, originalPrice: 30, onSale: true, image: "z.jpg" }, null);
+    if (/-\d+%/.test(inverted) || inverted.includes("line-through")) {
+      throw new Error("an original below the price shows a discount");
+    }
   });
 
   check("the rail CSS is a touch scroller with snap points and edge bleed", () => {
