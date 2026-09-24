@@ -469,3 +469,26 @@ export function loadPageCarouselSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The auto catalogue mirror: the pure catalogue/merchandising functions
+   index.html carries line-for-line from scripts/lib/auto-catalog.js.
+   Pure — no DOM. */
+export function loadPageAutoCatalogSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("/* AUTO CATALOG MIRROR");
+  const to = html.indexOf("/* END OF THE AUTO CATALOG MIRROR */");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html auto catalogue markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { AUTO_CATALOG_CATEGORIES, AUTO_CATALOG_OTHER, autoCategoryOf," +
+      " autoPartKey, autoDiscountPct, buildAutoCatalogIndex, autoCatalogCategories," +
+      " saleFirstAutoParts, similarAutoParts, SIMILAR_AUTO_MAX, searchAutoCatalog };",
+    sandbox,
+    { filename: "index.html#auto-catalog" },
+  );
+  return sandbox.__exports;
+}

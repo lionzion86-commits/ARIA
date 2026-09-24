@@ -107,6 +107,11 @@
   .ariaCarouselCard{ scroll-snap-align:start; flex:0 0 auto; width:min(78vw,330px); }
   @media (min-width:640px){ .ariaCarouselCard{ width:280px; } }
   @media (min-width:1024px){ .ariaCarouselCard{ width:300px; } }
+  /* MEDIUM RAIL CARDS (Aria Auto similar parts, 2026-09-24) — Danny: not
+     tiny thumbnails, not the main picture either. ~218px on a 390px
+     phone: two cards on screen with a peek of the next. */
+  .ariaAutoRailCard{ scroll-snap-align:start; flex:0 0 auto; width:min(56vw,220px); }
+  @media (min-width:640px){ .ariaAutoRailCard{ width:200px; } }
   @media (prefers-reduced-motion: reduce){ .ariaCarousel{ scroll-snap-type:x proximity; } }
   /* Rail titles ink light on the VS plum, the way the subtitles do. A
      future dark theme adds its own .ariaCarouselTitle line here. */
@@ -1514,6 +1519,14 @@
       <h2 id="relatedRailTitle" class="text-[17px] sm:text-[20px] font-extrabold tracking-[-0.02em] mb-4" style="color:var(--navy)">También te puede interesar</h2>
       <div id="relatedRailRow" class="flex gap-3 overflow-x-auto pb-2 ariaRail"></div>
     </section>
+    <!-- AUTO SIMILAR PARTS (2026-09-24) — Danny's "keep looking" rail:
+         medium cards (not tiny, not the main picture), same part type
+         first, then the same brand, then the same category. Rendered by
+         renderAutoSimilarRail() instead of the retail related rail. -->
+    <section id="autoSimilarRail" aria-labelledby="autoSimilarRailTitle" hidden class="mt-10 sm:mt-14">
+      <h2 id="autoSimilarRailTitle" class="text-[17px] sm:text-[20px] font-extrabold tracking-[-0.02em] mb-4" style="color:var(--navy)">Repuestos similares</h2>
+      <div id="autoSimilarRailRow" class="ariaCarousel no-scrollbar" role="list"></div>
+    </section>
   </div>
 </div>
 
@@ -2064,6 +2077,15 @@
             class="w-full h-[52px] bg-white border rounded-2xl pl-4 pr-[110px] text-[14px] outline-none focus-ring" style="border-color:var(--line)">
           <button onclick="searchAutoParts()" class="absolute right-1.5 top-1.5 h-9 px-4 rounded-xl text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Buscar</button>
         </div>
+      </div>
+    </div>
+
+    <!-- BROWSE BY STORE — the catalogues behind the live search -->
+    <div class="mt-6">
+      <div class="rounded-3xl border p-5 sm:p-7" style="border-color:var(--line); background:#fff">
+        <div class="font-bold text-[15px] mb-1" style="color:var(--navy)">Explora el catálogo por tienda</div>
+        <p class="text-[12.5px] mb-4" style="color:#5B6478">Ofertas, accesorios y repuestos por categoría — o busca por marca y número de parte.</p>
+        <div id="autoStoreTiles" class="grid grid-cols-2 gap-3"></div>
       </div>
     </div>
 
@@ -5288,6 +5310,15 @@ function openRelatedProduct(idx){
 }
 
 async function renderRelatedRail(anchorIn){
+  /* Auto parts get the similar-parts rail (same part type, then brand,
+     then category) instead of the retail one, which has nothing useful
+     to say about a brake pad. The pending anchor is consumed here so it
+     cannot leak onto the next product opened. */
+  if (pendingAutoPart){
+    const autoAnchor = pendingAutoPart;
+    pendingAutoPart = null;
+    return renderAutoSimilarRail(autoAnchor);
+  }
   const section = document.getElementById('relatedRail');
   const row = document.getElementById('relatedRailRow');
   if (!section || !row) return;
@@ -6702,8 +6733,9 @@ function jumpToBrandLetter(letter){
   list.scrollTo({ top: Math.max(0, top - 4), behavior: 'smooth' });
 }
 
-async function openStore(retailer){
-  pushRoute({ view: 'storeView', retailer });
+async function openStore(retailer, opts){
+  const autoCategory = opts && opts.autoCategory;
+  pushRoute({ view: 'storeView', retailer, ...(autoCategory ? { autoCategory } : {}) });
   showPage('storeView');
   applyStoreTheme('storeView', retailer);
   await loadFxRate();
@@ -6722,6 +6754,18 @@ async function openStore(retailer){
      Gating this on `search` alone showed the holding message on a store
      with 431 real products behind it. */
   const meta = retailerFor(retailer);
+  /* Auto storefronts browse the parts catalogue, never the department
+     cache: sale-first rails, the Accesorios shelf, category tiles and
+     brand/part-number lookup. RockAuto is deliberately NOT in the
+     Tiendas registry (parts sources other than AutoZone never enter
+     the grid) — it resolves from the auto registry instead, so the
+     storefront still opens from Aria Auto. A source whose catalogue
+     pull has not landed yet gets the honest "conectando" panel, not
+     the retail holding copy. */
+  const autoMeta = meta || autoSourceMeta(retailer);
+  if (autoMeta && (autoMeta.kind === 'auto' || !meta)){
+    return renderAutoStorefront(retailer, autoMeta, autoCategory);
+  }
   if (meta && !(meta.search || meta.browse)){
     document.getElementById('storeViewSubtitle').textContent = 'Catálogo en preparación';
     document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
@@ -7024,7 +7068,7 @@ function routeSlug(route){
     case 'storeResultsView': return `${route.retailer || ''}:${route.q || ''}`;
     case 'productView': return route.name || '';
     case 'catalogView': return route.catKey || '';
-    case 'storeView': return route.retailer || '';
+    case 'storeView': return (route.retailer || '') + (route.autoCategory ? '|' + route.autoCategory : '');
     case 'salesView': return route.retailer || '1';
     default: return '1';
   }
@@ -7054,7 +7098,12 @@ function parseRoute(search){
     else if (view === 'storeResultsView'){ const [r, ...rest] = String(slug).split(':'); route.retailer = r; route.q = rest.join(':'); }
     else if (view === 'productView') route.name = slug;
     else if (view === 'catalogView'){ route.catKey = slug; route.kind = params.get('kind') || 'department'; route.retailerFilter = params.get('retailerFilter') || null; route.subKey = params.get('subKey') || null; }
-    else if (view === 'storeView') route.retailer = slug;
+    else if (view === 'storeView'){
+      const [r, ...rest] = String(slug).split('|');
+      route.retailer = r;
+      const autoCat = rest.join('|');
+      if (autoCat) route.autoCategory = autoCat;
+    }
     else if (view === 'salesView') route.retailer = slug === '1' ? null : slug;
     return route;
   }
@@ -7106,7 +7155,7 @@ async function applyRoute(route){
         ...(route.retailerFilter ? { retailerFilter: route.retailerFilter } : {}),
         ...(route.subKey ? { subKey: route.subKey } : {}),
       }); break;
-      case 'storeView': await openStore(route.retailer); break;
+      case 'storeView': await openStore(route.retailer, { autoCategory: route.autoCategory }); break;
       case 'storeResultsView': await openStoreResults(route.retailer, route.q); break;
       case 'salesView': goSales(route.retailer || undefined); break;
       case 'categoriesView': await openCategories(); break;
@@ -8814,6 +8863,10 @@ document.addEventListener('keydown', (e) => {
    thousands of lines further up is the temporal-dead-zone shape that has
    already taken this page down once. */
 let pendingAutoPartNumber = null;
+/* The similar-parts rail's anchor: part type, brand and raw part number
+   of the auto part whose detail view is open. Consumed by showProduct()
+   so it cannot leak onto the next product opened. */
+let pendingAutoPart = null;
 
 /* AN OPTIONS OBJECT, NOT A TWELFTH POSITIONAL ARGUMENT. Eleven
    positions is already more than anyone can read at a call site, and
@@ -11515,6 +11568,8 @@ function openAriaAuto(){
   // is shared, and the selector below never waits on it.
   loadAutoCache();
   initAutoSelector();
+  const tiles = document.getElementById('autoStoreTiles');
+  if (tiles) tiles.innerHTML = autoStoreTilesHTML();
 }
 
 let autoSelectorInitialized = false;
@@ -12206,6 +12261,619 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
 }
 
+/* AUTO CATALOG MIRROR — scripts/lib/auto-catalog.js, line for line.
+   A plain <script> cannot import, so the pure catalogue logic lives
+   twice; the test suite pins both copies. */
+/* ============================================================
+   AUTO CATALOG — the browsable parts catalogue behind the AutoZone
+   and RockAuto storefronts.
+
+   The cached pulls (auto-cache.json) are query-indexed: one entry per
+   (vehicle, search-term) with that query's results. A storefront needs
+   the opposite shape — one de-duplicated parts list per SOURCE, with
+   every part filed under a category — so this module flattens the
+   cache into exactly that, data-agnostically: whatever sources and
+   fields a future pull (RockAuto) brings get the same treatment.
+
+   It also holds the pure merchandising logic:
+   - SALE-FIRST ordering: anything marked down leads, biggest discount
+     first (the same sale-first brief as the retail carousels).
+   - SIMILAR PARTS: same part type first, then same brand, then the
+     same category — the ordering under every part's detail view.
+   - CATALOG LOOKUP: brand, part name and part number search over the
+     cached catalogue (live search stays the fallback).
+
+   index.html mirrors this module line for line (a plain <script>
+   cannot import) and the test suite pins both copies.
+   ============================================================ */
+
+/* Category filing. part_type values are whatever the source's actor
+   returned (English, e.g. "Brake Pads"); the label is what the
+   shopper reads. Accessories is a real slot even while the pulls
+   carry none yet — the storefront renders it as "Próximamente"
+   rather than pretending the shelf does not exist. */
+const AUTO_CATALOG_CATEGORIES = [
+  {
+    key: "brakes",
+    label: "Frenos",
+    types: [
+      "Brake Pads", "Brake Rotor", "Brake Shoes", "Disc Brake Kit",
+      "Brake Pad Wear Sensor", "Brake Fluid", "Brake Caliper Guide Pin Bolt",
+      "Brake Caliper Piston Tool", "Brake Caliper",
+    ],
+  },
+  {
+    key: "ignition",
+    label: "Encendido",
+    types: [
+      "Spark Plugs", "Spark Plug Boots & Wires", "Spark Plug Tube Seal",
+      "Spark Plug Wire Heat Sleave", "Spark Plug Socket", "Ignition Coil",
+      "Distributor Cap",
+    ],
+  },
+  {
+    key: "filters",
+    label: "Filtros y aceite",
+    types: [
+      "Oil Filter", "Motor Oil", "Oil Filter Wrenches",
+      "Oil Filter Housing & Cap", "Oil Drain Plug", "Coolant Filter",
+      "Cabin Air Filter", "Air Filter", "Fuel Filter",
+    ],
+  },
+  {
+    key: "wipers",
+    label: "Limpiaparabrisas",
+    types: [
+      "Windshield Wiper Blade", "Windshield Washer Fluid",
+      "Glass Cleaners & Treatment",
+    ],
+  },
+  {
+    key: "accessories",
+    label: "Accesorios",
+    types: [
+      "Air Freshener", "Keychain", "Key Chain", "Stickers", "Decals",
+      "Seat Cover", "Antenna Topper", "Antenna Cover",
+      "Steering Wheel Cover", "Floor Mat", "Trash Can", "Organizer",
+    ],
+  },
+];
+
+const AUTO_CATALOG_OTHER = { key: "other", label: "Otros repuestos" };
+
+function normType(t) {
+  return String(t || "").trim().toLowerCase();
+}
+
+/* File one part_type under its category. Unknown types land in
+   "Otros repuestos" rather than vanishing. */
+function autoCategoryOf(partType) {
+  const want = normType(partType);
+  if (!want) return AUTO_CATALOG_OTHER;
+  for (const cat of AUTO_CATALOG_CATEGORIES) {
+    if (cat.types.some((t) => normType(t) === want)) return { key: cat.key, label: cat.label };
+  }
+  return AUTO_CATALOG_OTHER;
+}
+
+function numOrNull(v) {
+  if (typeof v === "number" && Number.isFinite(v)) return v;
+  if (typeof v === "string") {
+    const n = parseFloat(v.replace(/[^0-9.]/g, ""));
+    if (Number.isFinite(n)) return n;
+  }
+  return null;
+}
+
+/* The catalogue's dedupe key: same source + same part number is the
+   same part, however many queries returned it. Parts without a number
+   fall back to the title — a weaker key, but better than printing the
+   same listing twice. */
+function autoPartKey(sourceKey, partNumber, title) {
+  const pn = String(partNumber || "").trim().toLowerCase();
+  const t = String(title || "").trim().toLowerCase();
+  return `${sourceKey}::${pn || t}`;
+}
+
+/* Discount off the list price, 0 when the pull carries no sale fields.
+   Sale-first ordering degrades to stable order on data without sales
+   instead of breaking — the 2026-09 pulls have no was_price yet. */
+function autoDiscountPct(raw) {
+  const price = numOrNull(raw && (raw.discounted_price ?? raw.price));
+  const was = numOrNull(raw && raw.was_price);
+  if (price == null || was == null || was <= price) return 0;
+  return Math.round(((was - price) / was) * 100);
+}
+
+function autoImageOf(raw) {
+  if (!raw) return "";
+  const cands = [raw.image, raw.imageUrl, raw.thumbnail];
+  if (Array.isArray(raw.images)) cands.push(...raw.images);
+  for (const c of cands) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return "";
+}
+
+/* One flat, de-duplicated parts list per source, straight out of the
+   query-indexed cache. Keeps the raw payload: the card builders and
+   the detail view read fitment, specs and part number from it. */
+function buildAutoCatalogIndex(partSearches) {
+  const index = {};
+  const seen = new Set();
+  for (const queries of Object.values(partSearches || {})) {
+    for (const [sourceKey, items] of Object.entries(queries || {})) {
+      if (!Array.isArray(items)) continue;
+      for (const raw of items) {
+        if (!raw) continue;
+        const partNumber = raw.part_number || raw.partNumber || "";
+        const title = raw.title || raw.productTitle || raw.name || "";
+        const key = autoPartKey(sourceKey, partNumber, title);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const partType = raw.part_type || raw.partType || "";
+        const price = numOrNull(raw.discounted_price ?? raw.price);
+        (index[sourceKey] = index[sourceKey] || []).push({
+          sourceKey,
+          key,
+          partNumber: String(partNumber || ""),
+          title,
+          brand: String(raw.brand || ""),
+          partType: String(partType || ""),
+          categoryKey: autoCategoryOf(partType).key,
+          price,
+          wasPrice: numOrNull(raw.was_price),
+          discountPct: autoDiscountPct(raw),
+          image: autoImageOf(raw),
+          raw,
+        });
+      }
+    }
+  }
+  return index;
+}
+
+/* The storefront's category tiles: only categories the source actually
+   carries, in catalogue order, "other" last. Accessories is added by
+   the page as a permanent tile even at zero — the slot matters. */
+function autoCatalogCategories(parts) {
+  const groups = new Map();
+  for (const p of parts || []) {
+    if (!p) continue;
+    if (!groups.has(p.categoryKey)) groups.set(p.categoryKey, []);
+    groups.get(p.categoryKey).push(p);
+  }
+  const order = new Map(AUTO_CATALOG_CATEGORIES.map((c, i) => [c.key, i]));
+  return [...groups.entries()]
+    .map(([key, items]) => {
+      const cat = AUTO_CATALOG_CATEGORIES.find((c) => c.key === key);
+      return { key, label: cat ? cat.label : AUTO_CATALOG_OTHER.label, items, count: items.length };
+    })
+    .sort((a, b) => (order.get(a.key) ?? 999) - (order.get(b.key) ?? 999));
+}
+
+/* SALE-FIRST: marked-down parts lead, biggest discount first; stable
+   otherwise. Data-agnostic — a pull with no sale fields keeps its own
+   order instead of erroring. */
+function saleFirstAutoParts(items) {
+  return (items || [])
+    .map((it, i) => [it, i])
+    .filter(([it]) => it && it.discountPct > 0)
+    .sort((a, b) => b[0].discountPct - a[0].discountPct || a[1] - b[1])
+    .map(([it]) => it);
+}
+
+function autoAnchorOf(a) {
+  return {
+    key: a && a.key ? String(a.key) : "",
+    partType: normType(a && a.partType),
+    brand: normType(a && a.brand),
+    categoryKey: normType(a && a.categoryKey),
+  };
+}
+
+/* SIMILAR PARTS, in the brief's order: same part type first, then the
+   same brand, then the same category, then everything else. Photos
+   lead inside each tier (a rail is for looking); order is otherwise
+   the catalogue's own, never shuffled. The anchor and duplicates are
+   out; the rail is capped (default 14, the brief's 12–16 band). */
+const SIMILAR_AUTO_MAX = 14;
+
+function similarAutoParts(anchorIn, pool, max) {
+  const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : SIMILAR_AUTO_MAX;
+  const anchor = autoAnchorOf(anchorIn);
+  const tiers = [[], [], [], []];
+  const seen = new Set();
+  if (anchor.key) seen.add(anchor.key);
+  for (const p of pool || []) {
+    if (!p || !p.key || seen.has(p.key)) continue;
+    seen.add(p.key);
+    const a = autoAnchorOf(p);
+    let tier = 3;
+    if (anchor.partType && a.partType === anchor.partType) tier = 0;
+    else if (anchor.brand && a.brand === anchor.brand) tier = 1;
+    else if (anchor.categoryKey && a.categoryKey === anchor.categoryKey) tier = 2;
+    tiers[tier].push(p);
+  }
+  const photoFirst = (list) => {
+    const withPhoto = [];
+    const without = [];
+    for (const p of list) (p.image ? withPhoto : without).push(p);
+    return withPhoto.concat(without);
+  };
+  return tiers.map(photoFirst).flat().slice(0, limit);
+}
+
+/* CATALOG LOOKUP: brand, part name, part number. A bare brand ("duralast")
+   pulls that brand's shelf; a part number ("D2076") jumps straight to
+   the part; anything else matches title / type / category words.
+   Ranked: number > brand > title > category. Empty query matches
+   nothing — the page, not this function, decides the fallback. */
+function searchAutoCatalog(parts, query) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return [];
+  const tokens = q.split(/\s+/).filter(Boolean);
+  const scored = [];
+  for (const p of parts || []) {
+    if (!p) continue;
+    const pn = normType(p.partNumber);
+    const brand = normType(p.brand);
+    const title = normType(p.title);
+    const type = normType(p.partType);
+    const catLabel = normType(
+      (AUTO_CATALOG_CATEGORIES.find((c) => c.key === p.categoryKey) || AUTO_CATALOG_OTHER).label
+    );
+    let score = 0;
+    if (pn && pn === q) score = 100;
+    else if (pn && pn.includes(q)) score = 60;
+    else if (brand && tokens.some((t) => t === brand)) score = 50;
+    else if (brand && brand.includes(q)) score = 40;
+    else if (tokens.length && tokens.every((t) => title.includes(t))) score = 30;
+    else if (tokens.some((t) => title.includes(t) || type.includes(t))) score = 20;
+    else if (catLabel && catLabel.includes(q)) score = 10;
+    if (score > 0) scored.push([p, score]);
+  }
+  return scored
+    .sort((a, b) => b[1] - a[1])
+    .map(([p]) => p);
+}
+
+/* END OF THE AUTO CATALOG MIRROR */
+
+/* ============================================================
+   AUTO STOREFRONT — browsable AutoZone / RockAuto catalogues.
+
+   kind:'auto' retailers never touch the department cache: their
+   catalogue is the flattened auto-cache index (the mirror above).
+   SALE-FIRST merchandising: marked-down parts lead every surface,
+   biggest discount first. The Accesorios shelf is a permanent tile
+   even while the pulls carry no accessories yet — the slot is the
+   promise, "Próximamente" is the honest state. The lookup box
+   searches the cached catalogue by brand, part name or part number;
+   live search (Aria Auto) stays the fallback when the catalogue
+   does not have it.
+   ============================================================ */
+
+/* Auto-registry lookup for storefront resolution. RockAuto lives only
+   here, never in the Tiendas registry — see the openStore branch. */
+function autoSourceMeta(key){
+  const found = (typeof visibleAutoSources === 'function' ? visibleAutoSources() : [])
+    .find((x) => x && (x.key === key || x.id === key));
+  return found || null;
+}
+
+let autoCatalogIndexCache = null;
+async function autoCatalogParts(sourceKey){
+  if (!autoCatalogIndexCache){
+    const cache = await loadAutoCache().catch(() => null);
+    autoCatalogIndexCache = buildAutoCatalogIndex(cache && cache.partSearches ? cache.partSearches : {});
+  }
+  return autoCatalogIndexCache[sourceKey] || [];
+}
+
+/* Catalogue order for browsing: sale-first, then the catalogue's own
+   order. Data-agnostic — with no sale fields this is just the feed. */
+function autoBrowseOrder(items){
+  const onSale = saleFirstAutoParts(items);
+  const onSaleKeys = new Set(onSale.map((p) => p.key));
+  return onSale.concat((items || []).filter((p) => p && !onSaleKeys.has(p.key)));
+}
+
+/* Display fields for a rail card: the marked-up price the shopper
+   actually pays, from the same normaliser the search cards use. */
+function autoRailDisplay(sourceKey, p){
+  const it = normalizeAutoPartItem(sourceKey, p.raw);
+  return { title: it.title, price: it.price, image: it.image || '', discountPct: p.discountPct || 0 };
+}
+
+/* MEDIUM CARD (Danny: not tiny, not the main picture). Rides in
+   .ariaAutoRailCard — ~218px on a 390px phone. Lazy images, discount
+   badge when the pull carries sale fields. */
+function autoMediumCardHTML(it, openExpr){
+  const price = Number(it.price);
+  const hasPrice = Number.isFinite(price) && price > 0;
+  const src = upgradeImageUrl(safeUrl(it.image || it.imageUrl || it.thumbnail) || '');
+  const saleBadge = it.discountPct > 0
+    ? `<span class="absolute left-2.5 top-2.5 text-[11px] font-extrabold px-2 py-1 rounded-full" style="background:#C0392B; color:#fff">-${it.discountPct}%</span>`
+    : '';
+  return `<div class="ariaAutoRailCard" role="listitem">
+    <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
+      onclick="${openExpr}" role="link" tabindex="0" aria-label="${escapeHtml(it.title || 'Ver repuesto')}"
+      onkeydown="if(event.key==='Enter'){${openExpr}}">
+      <div class="relative aspect-[4/3]" style="background:#fff">${saleBadge}${cardPhotoHTML(src, { alt: it.title || '', fallbackSrc: imageRetryUrl(src) })}</div>
+      <div class="p-3">
+        <div class="text-[12.5px] leading-snug" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.6em">${escapeHtml(it.title || '')}</div>
+        <div class="text-[14.5px] font-extrabold tabular mt-1" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Ver detalle'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* The medium rail itself. `cardHTML(it)` builds each card; this only
+   decides whether there is a rail at all — fewer than 4 cards is not
+   a rail, the surface keeps its other layout. */
+function autoMediumRailHTML({ id, title, items, cardHTML }){
+  const list = Array.isArray(items) ? items : [];
+  if (list.length < CAROUSEL_MIN_ITEMS) return '';
+  return `<section aria-label="${escapeHtml(title)}" class="mb-8">
+    <h2 class="ariaCarouselTitle text-[18px] font-extrabold tracking-[-0.02em] mb-3" style="color:var(--navy)">${escapeHtml(title)}</h2>
+    <div id="${escapeHtml(id)}" class="ariaCarousel no-scrollbar" role="list">
+      ${list.map((it) => cardHTML(it)).join('')}
+    </div>
+  </section>`;
+}
+
+function autoRailCardFor(sourceKey, p){
+  return autoMediumCardHTML(
+    autoRailDisplay(sourceKey, p),
+    `openAutoCatalogPart('${sourceKey}','${jsAttr(p.key)}')`);
+}
+
+/* A catalogue raw item -> the same card shape renderAutoPartBlock
+   builds, so the detail view, the freight math and the part-number
+   line all behave exactly like a live-search part. The click goes
+   through openAutoCatalogPart (fresh index lookup), never a stale
+   array position — a later live search resets autoPartsRendered and
+   must not be able to repoint a storefront card. */
+function autoDetailCard(sourceKey, raw){
+  const it = normalizeAutoPartItem(sourceKey, raw);
+  return {
+    retailer: sourceKey,
+    title: it.title,
+    price: it.price,
+    weightKg: partWeightForItem(it, raw.part_type || raw.partType || '', null),
+    image: it.image || '',
+    rating: it.rating != null ? it.rating : null,
+    axle: axleFromItem(it),
+    partNumber: partNumberLabel(raw),
+    partNumberRaw: raw.part_number || raw.partNumber || '',
+    partType: raw.part_type || raw.partType || '',
+    brand: raw.brand || '',
+  };
+}
+
+async function openAutoCatalogPart(sourceKey, key){
+  const parts = await autoCatalogParts(sourceKey);
+  const p = parts.find((x) => x.key === key);
+  if (!p){ showToast('No encontramos ese repuesto en el catálogo.'); return; }
+  const card = autoDetailCard(sourceKey, p.raw);
+  card.catalogKey = p.key;
+  pendingAutoPartNumber = card.partNumber || null;
+  const idx = autoPartsRendered.push(card) - 1;
+  openAutoPart(idx);
+}
+
+function autoCatalogGridHTML(sourceKey, parts){
+  return `<div class="${LISTING_GRID_CLASS}">` + parts.map((p) => {
+    const card = autoDetailCard(sourceKey, p.raw);
+    return productCardHTML(card, {
+      open: `openAutoCatalogPart('${sourceKey}','${jsAttr(p.key)}')`,
+      extraHTML: autoPartNumberHTML(card.partNumber),
+    });
+  }).join('') + `</div>`;
+}
+
+function autoCatalogFirstImage(items){
+  const hit = (items || []).find((p) => p && p.image);
+  return hit ? hit.image : '';
+}
+
+function topAutoBrands(parts, n){
+  const counts = new Map();
+  for (const p of parts || []){
+    const b = String(p.brand || '').trim();
+    if (!b) continue;
+    counts.set(b, (counts.get(b) || 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([b]) => b);
+}
+
+function autoStorefrontHTML(sourceKey, parts, meta){
+  const saleItems = saleFirstAutoParts(parts);
+  const saleRail = saleItems.length ? autoMediumRailHTML({
+    id: 'autoSaleRail', title: 'Ofertas en repuestos',
+    items: saleItems.slice(0, CAROUSEL_MAX),
+    cardHTML: (p) => autoRailCardFor(sourceKey, p),
+  }) : '';
+
+  const accessories = parts.filter((p) => p.categoryKey === 'accessories');
+  const accRail = autoMediumRailHTML({
+    id: 'autoAccRail', title: 'Accesorios',
+    items: accessories.slice(0, CAROUSEL_MAX),
+    cardHTML: (p) => autoRailCardFor(sourceKey, p),
+  });
+
+  /* The Accesorios tile is permanent and first — the impulse shelf
+     Danny asked for. At zero items it reads "Próximamente" and its
+     category view says so honestly, instead of the shelf not existing. */
+  const cats = autoCatalogCategories(parts);
+  const tiles = [browseTileHTML({
+    label: 'Accesorios', count: accessories.length ? String(accessories.length) : 'Próximamente',
+    image: autoCatalogFirstImage(accessories), pct: 0,
+    onclick: `openAutoCategory('${sourceKey}','accessories')`,
+  })].concat(cats.filter((c) => c.key !== 'accessories').map((c) => browseTileHTML({
+    label: c.label, count: String(c.count), image: autoCatalogFirstImage(c.items),
+    pct: parts.length ? Math.round((c.count / parts.length) * 100) : 0,
+    onclick: `openAutoCategory('${sourceKey}','${c.key}')`,
+  })));
+
+  const brands = topAutoBrands(parts, 8);
+  const brandChips = brands.map((b) =>
+    `<button onclick="autoCatalogBrandChip('${sourceKey}','${jsAttr(b)}')"
+      class="flex-shrink-0 h-9 px-4 rounded-full border text-[13px] font-bold focus-ring transition"
+      style="border-color:var(--line); color:var(--navy); background:#fff">${escapeHtml(b)}</button>`).join('');
+
+  return `
+    ${saleRail}
+    ${accRail}
+    <section aria-label="Buscar en el catálogo" class="mb-8">
+      <h2 class="ariaCarouselTitle text-[18px] font-extrabold tracking-[-0.02em] mb-3" style="color:var(--navy)">Busca por marca, pieza o N.° de parte</h2>
+      <div class="relative mb-3">
+        <input id="autoCatalogQuery" type="text" placeholder="Ej. Duralast, D2076, pastillas de freno"
+          onkeydown="if(event.key==='Enter')runAutoCatalogLookup('${sourceKey}')"
+          class="w-full h-[52px] bg-white border rounded-2xl pl-4 pr-[110px] text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+        <button onclick="runAutoCatalogLookup('${sourceKey}')" class="absolute right-1.5 top-1.5 h-9 px-4 rounded-xl text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Buscar</button>
+      </div>
+      ${brands.length ? `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1">${brandChips}</div>` : ''}
+      <div id="autoCatalogResults" class="mt-4"></div>
+    </section>
+    <section aria-label="Categorías" class="mb-8">
+      <h2 class="ariaCarouselTitle text-[18px] font-extrabold tracking-[-0.02em] mb-3" style="color:var(--navy)">Repuestos por categoría</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 gap-4">${tiles.join('')}</div>
+    </section>
+    <div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line); background:var(--sky)">
+      <div class="text-[13.5px] font-bold mb-1" style="color:var(--navy)">¿No está en el catálogo?</div>
+      <p class="text-[12.5px] leading-relaxed mb-3" style="color:#5B6478">Lo buscamos en vivo en ${escapeHtml(meta.label)} para tu vehículo.</p>
+      <button onclick="openAriaAuto()" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">Buscar en vivo en Aria Auto</button>
+    </div>`;
+}
+
+/* Honest empty state: a source whose catalogue pull has not landed yet
+   is "conectando", never an empty shop. */
+function autoCatalogEmptyHTML(meta){
+  return `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+    <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">${escapeHtml(meta.pendingNote || 'Conectando el catálogo')}</div>
+    <p class="text-[13px] leading-relaxed mb-4" style="color:#5B6478">
+      Todavía estamos sumando el catálogo de ${escapeHtml(meta.label)}. Mientras tanto, buscamos tu repuesto en vivo.
+    </p>
+    <button onclick="openAriaAuto()" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">Buscar en vivo en Aria Auto</button>
+  </div>`;
+}
+
+function autoCategoryLabel(categoryKey){
+  const cat = AUTO_CATALOG_CATEGORIES.find((c) => c.key === categoryKey);
+  return cat ? cat.label : AUTO_CATALOG_OTHER.label;
+}
+
+function autoCategoryViewHTML(sourceKey, meta, categoryKey, items){
+  const label = autoCategoryLabel(categoryKey);
+  const ordered = autoBrowseOrder(items);
+  const rail = autoMediumRailHTML({
+    id: 'autoCatRail', title: `Destacados en ${label}`,
+    items: ordered.slice(0, CAROUSEL_MAX),
+    cardHTML: (p) => autoRailCardFor(sourceKey, p),
+  });
+  const grid = ordered.length ? autoCatalogGridHTML(sourceKey, ordered) : `
+    <div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+      <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Próximamente</div>
+      <p class="text-[13px] leading-relaxed mb-4" style="color:#5B6478">
+        Todavía no tenemos ${label.toLowerCase()} de ${escapeHtml(meta.label)} en el catálogo. Lo buscamos en vivo por ti.
+      </p>
+      <button onclick="openAriaAuto()" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">Buscar en vivo en Aria Auto</button>
+    </div>`;
+  return `
+    <button onclick="openStore('${sourceKey}')" class="mb-4 text-[13px] font-bold focus-ring" style="color:var(--blue)">← ${escapeHtml(meta.label)}</button>
+    ${rail}
+    ${ordered.length ? `<div class="text-[13px] font-bold mb-3" style="color:var(--navy)">${ordered.length} en ${escapeHtml(label)}</div>` : ''}
+    ${grid}`;
+}
+
+async function renderAutoStorefront(retailerKey, meta, autoCategory){
+  document.getElementById('storeViewHero').innerHTML = autoSourceBadgeHTML(retailerKey, 44);
+  const sections = document.getElementById('storeViewSections');
+  const skeleton = `<div class="${LISTING_GRID_CLASS}">${'<div class="rounded-2xl border overflow-hidden" style="border-color:var(--line)"><div style="aspect-ratio:4/5; background:var(--line)"></div></div>'.repeat(4)}</div>`;
+  if (autoCategory){
+    document.getElementById('storeViewSubtitle').textContent = autoCategoryLabel(autoCategory);
+    sections.innerHTML = skeleton;
+    const parts = await autoCatalogParts(retailerKey);
+    sections.innerHTML = autoCategoryViewHTML(retailerKey, meta, autoCategory,
+      parts.filter((p) => p.categoryKey === autoCategory));
+    return;
+  }
+  document.getElementById('storeViewSubtitle').textContent = 'Catálogo de repuestos';
+  sections.innerHTML = skeleton;
+  const parts = await autoCatalogParts(retailerKey);
+  sections.innerHTML = parts.length ? autoStorefrontHTML(retailerKey, parts, meta) : autoCatalogEmptyHTML(meta);
+}
+
+function openAutoCategory(sourceKey, categoryKey){
+  pushRoute({ view: 'storeView', retailer: sourceKey, autoCategory: categoryKey });
+  return openStore(sourceKey, { autoCategory: categoryKey });
+}
+
+async function runAutoCatalogLookup(sourceKey){
+  const input = document.getElementById('autoCatalogQuery');
+  const wrap = document.getElementById('autoCatalogResults');
+  if (!wrap) return;
+  const q = input ? input.value.trim() : '';
+  if (!q){ wrap.innerHTML = ''; return; }
+  wrap.innerHTML = `<div class="text-[13px]" style="color:#8A93A8">Buscando en el catálogo…</div>`;
+  const parts = await autoCatalogParts(sourceKey);
+  const hits = searchAutoCatalog(parts, q).slice(0, 24);
+  wrap.innerHTML = hits.length
+    ? `<div class="text-[13px] font-bold mb-3" style="color:var(--navy)">${hits.length} resultado${hits.length === 1 ? '' : 's'} en el catálogo</div>`
+      + autoCatalogGridHTML(sourceKey, hits)
+    : `<div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">
+        <div class="text-[13.5px] font-bold mb-1" style="color:var(--navy)">Sin resultados en el catálogo para “${escapeHtml(q)}”</div>
+        <p class="text-[12.5px] leading-relaxed mb-3" style="color:#5B6478">Lo buscamos en vivo en Aria Auto.</p>
+        <button onclick="openAriaAuto()" class="h-10 px-4 rounded-full text-white text-[13px] font-bold focus-ring transition" style="background:var(--blue)">Buscar en vivo</button>
+      </div>`;
+}
+
+function autoCatalogBrandChip(sourceKey, brand){
+  const input = document.getElementById('autoCatalogQuery');
+  if (input) input.value = brand;
+  runAutoCatalogLookup(sourceKey);
+}
+
+/* SIMILAR PARTS under the part detail view (Danny's "keep looking"
+   rail): same part type first, then the same brand, then the same
+   category — deduped, capped, medium cards, lazy images. Replaces the
+   retail related rail on auto parts, which has nothing useful to say
+   about a brake pad. */
+async function renderAutoSimilarRail(anchor){
+  const section = document.getElementById('autoSimilarRail');
+  const row = document.getElementById('autoSimilarRailRow');
+  if (!section || !row) return;
+  section.hidden = true; row.innerHTML = '';
+  if (!anchor || !anchor.sourceKey) return;
+  const parts = await autoCatalogParts(anchor.sourceKey).catch(() => []);
+  /* The shopper may have moved on while the cache loaded. Drawing a
+     rail for the part they just left is worse than drawing none. */
+  const current = document.getElementById('productViewTitle')?.textContent || '';
+  if (current !== anchor.title) return;
+  const anchorKey = anchor.key || autoPartKey(anchor.sourceKey, anchor.partNumberRaw || '', anchor.title);
+  const picks = similarAutoParts({ partType: anchor.partType, brand: anchor.brand,
+    categoryKey: (parts.find((p) => p.key === anchorKey) || {}).categoryKey || '', key: anchorKey }, parts);
+  if (!picks.length) return;
+  row.innerHTML = picks.map((p) => autoRailCardFor(anchor.sourceKey, p)).join('');
+  section.hidden = false;
+}
+
+/* Aria Auto landing: the two store catalogues as doors, not just the
+   live search. A source still connecting says so on its tile. */
+function autoStoreTilesHTML(){
+  return visibleAutoSources().map((s) => `
+    <button onclick="openStore('${s.key}')"
+      class="text-left rounded-2xl border p-4 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.08)] w-full"
+      style="border-color:var(--line); background:#fff">
+      <div class="mb-2">${autoSourceBadgeHTML(s.key, 26)}</div>
+      <div class="font-extrabold text-[14px]" style="color:var(--navy)">${escapeHtml(s.label)}</div>
+      <div class="text-[12px]" style="color:#6B7487">${s.search ? 'Catálogo y búsqueda en vivo' : escapeHtml(s.pendingNote || 'Conectando el catálogo')}</div>
+    </button>`).join('');
+}
+
+
 /* Built from the registry, not hand-listed. A row with search:false is
    still SHOWN — as its own "conectando el catálogo" block — because a
    store the shopper can see us connecting is information, while a store
@@ -12577,6 +13245,8 @@ function openAutoPart(idx){
      about to cross-check the number, and losing it on the click is
      losing it at the moment it is wanted. */
   pendingAutoPartNumber = p.partNumber || null;
+  pendingAutoPart = { partType: p.partType || '', brand: p.brand || '', partNumber: p.partNumber || '',
+    partNumberRaw: p.partNumberRaw || '', sourceKey: p.retailer, title, key: p.catalogKey || '' };
   showProduct(p.retailer, title, p.price, p.weightKg, p.image || '', [], false, '',
     p.rating != null ? String(p.rating) : '');
 }
@@ -12862,6 +13532,9 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       rating: it.rating != null ? it.rating : null,
       axle,
       partNumber: partNumberLabel(it.raw),
+      partType: (it.raw && (it.raw.part_type || it.raw.partType)) || '',
+      brand: (it.raw && it.raw.brand) || '',
+      partNumberRaw: (it.raw && (it.raw.part_number || it.raw.partNumber)) || '',
     };
     const idx = autoPartsRendered.push(card) - 1;
     return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {

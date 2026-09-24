@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice, loadPageAutoCatalogSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -36,6 +36,7 @@ import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import * as synonyms from "../lib/search-synonyms.js";
 import * as carousel from "../lib/carousel.js";
+import * as autoCatalog from "../lib/auto-catalog.js";
 import { CHARGE_PER_KG as chargePerKg } from "../../weight-data.js";
 import * as shippingStatus from "../lib/shipping-status.js";
 import * as support from "../lib/support.js";
@@ -7589,6 +7590,218 @@ group("store carousels: window-shopping rails");
     }
     const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
     if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
+  });
+}
+
+/* ==================================================================
+   AUTO CATALOG — browsable AutoZone / RockAuto storefronts (2026-09-24).
+
+   Danny's basket-builder brief: the storefront leads with sales
+   (biggest discount first), features Accesorios as the impulse shelf,
+   browses by category, and looks parts up by brand / name / number.
+   Under every part's detail view: the similar-parts rail — same part
+   type first, then the same brand, then the same category — medium
+   cards, deduped, capped at 12–16, lazy images.
+   ================================================================== */
+group("auto catalog: browsable storefronts + similar-parts rail");
+
+{
+  const pa = loadPageAutoCatalogSlice();
+  const P = (over) => ({
+    sourceKey: "autozone", key: "", partNumber: "", title: "", brand: "",
+    partType: "", categoryKey: "", price: null, wasPrice: null,
+    discountPct: 0, image: "", raw: null, ...over,
+  });
+  const pads = (n, over) => P({ key: `pad${n}`, partNumber: `D207${n}`, title: `Duralast Ceramic Brake Pads D207${n}`,
+    brand: "Duralast", partType: "Brake Pads", categoryKey: "brakes", price: 40 + n, image: `pad${n}.jpg`, ...over });
+
+  check("the page mirror answers identically to the module", () => {
+    const items = [
+      pads(1), pads(2, { brand: "Bosch", partNumber: "BC2076", title: "Bosch QuietCast Brake Pads" }),
+      P({ key: "plug1", partNumber: "NGK1", title: "NGK Spark Plug", brand: "NGK", partType: "Spark Plugs", categoryKey: "ignition", price: 8, image: "s.jpg" }),
+      P({ key: "filt1", partNumber: "STP1", title: "STP Oil Filter", brand: "STP", partType: "Oil Filter", categoryKey: "filters", price: 12 }),
+    ];
+    for (const fn of ["autoCategoryOf", "autoPartKey", "autoDiscountPct", "autoCatalogCategories",
+                      "saleFirstAutoParts", "similarAutoParts", "searchAutoCatalog"]) {
+      const a = JSON.stringify(autoCatalog[fn](...fnArgs(fn, items)));
+      const b = JSON.stringify(pa[fn](...fnArgs(fn, items)));
+      eq(a, b, `${fn} parity`);
+    }
+    eq(pa.SIMILAR_AUTO_MAX, autoCatalog.SIMILAR_AUTO_MAX, "SIMILAR_AUTO_MAX parity");
+
+    function fnArgs(fn, items) {
+      if (fn === "autoCategoryOf") return ["Brake Pads"];
+      if (fn === "autoPartKey") return ["autozone", "D2076", "Duralast Pads"];
+      if (fn === "autoDiscountPct") return [{ price: 40, was_price: 50 }];
+      if (fn === "similarAutoParts") return [items[0], items, 14];
+      if (fn === "searchAutoCatalog") return [items, "duralast"];
+      return [items];
+    }
+  });
+
+  check("the catalogue index dedupes one part across many cached queries", () => {
+    const raw = { part_number: "D2076", productTitle: "Duralast Ceramic Brake Pads D2076", brand: "Duralast",
+      part_type: "Brake Pads", price: "$43.99", image: "p.jpg" };
+    const index = autoCatalog.buildAutoCatalogIndex({
+      "2026|toyota|camry|pastillas de freno": { autozone: [raw] },
+      "2026|toyota|camry|brake pads": { autozone: [{ ...raw }] },
+      "2026|honda|civic|frenos": { autozone: [{ ...raw, part_number: "D2077", productTitle: "Duralast Pads D2077" }] },
+    });
+    eq(index.autozone.length, 2, "same part number twice collapses to one");
+    eq(index.autozone[0].categoryKey, "brakes", "filed under brakes");
+    eq(index.autozone[0].partNumber, "D2076", "raw part number kept");
+  });
+
+  check("unknown part types file under Otros, never vanish", () => {
+    eq(autoCatalog.autoCategoryOf("Brake Pads").key, "brakes", "brakes");
+    eq(autoCatalog.autoCategoryOf("Brake Pads").label, "Frenos", "Spanish label");
+    eq(autoCatalog.autoCategoryOf("Spark Plugs").key, "ignition", "ignition");
+    eq(autoCatalog.autoCategoryOf("Flux Capacitor").key, "other", "unknown -> other");
+    eq(autoCatalog.autoCategoryOf("").key, "other", "empty -> other");
+  });
+
+  check("sale-first: biggest discount leads; no sale fields, no crash", () => {
+    const items = [
+      P({ key: "a", discountPct: 10 }), P({ key: "b", discountPct: 40 }),
+      P({ key: "c", discountPct: 25 }), P({ key: "d", discountPct: 0 }),
+    ];
+    const ordered = autoCatalog.saleFirstAutoParts(items);
+    eq(ordered.map((p) => p.key).join(","), "b,c,a", "discount desc, non-sale excluded");
+    eq(autoCatalog.saleFirstAutoParts([P({ key: "z" })]).length, 0, "no sale fields -> empty, not an error");
+    eq(autoCatalog.autoDiscountPct({ price: 43.99, was_price: 54.99 }), 20, "20% off");
+    eq(autoCatalog.autoDiscountPct({ price: "$43.99" }), 0, "price alone is not a sale");
+  });
+
+  check("similar parts: type first, then brand, then category — capped, deduped", () => {
+    const anchor = pads(0);
+    const sameTypeOtherBrand = pads(1, { brand: "Bosch", partNumber: "BC1", title: "Bosch Brake Pads", key: "t1" });
+    const sameBrandOtherType = P({ key: "b1", partNumber: "NGK9", title: "Duralast Spark Plug", brand: "Duralast",
+      partType: "Spark Plugs", categoryKey: "ignition", price: 9, image: "x.jpg" });
+    const sameCategoryOnly = P({ key: "c1", partNumber: "RTR1", title: "R1 Concepts Brake Rotor", brand: "R1 Concepts",
+      partType: "Brake Rotor", categoryKey: "brakes", price: 60, image: "r.jpg" });
+    const unrelated = P({ key: "u1", partNumber: "STP9", title: "STP Oil Filter", brand: "STP",
+      partType: "Oil Filter", categoryKey: "filters", price: 12, image: "f.jpg" });
+    const dup = { ...sameTypeOtherBrand };
+    const pool = [unrelated, sameBrandOtherType, sameCategoryOnly, sameTypeOtherBrand, dup, anchor];
+    const picks = autoCatalog.similarAutoParts(anchor, pool, 14);
+    const keys = picks.map((p) => p.key);
+    eq(keys.join(","), "t1,b1,c1,u1", "tier order: type > brand > category > rest");
+    if (keys.includes("pad0")) throw new Error("the anchor itself is on its own rail");
+    eq(new Set(keys).size, keys.length, "no duplicates");
+    // cap inside the brief's 12–16 band
+    if (autoCatalog.SIMILAR_AUTO_MAX < 12 || autoCatalog.SIMILAR_AUTO_MAX > 16) {
+      throw new Error(`SIMILAR_AUTO_MAX ${autoCatalog.SIMILAR_AUTO_MAX} outside the 12–16 band`);
+    }
+    const big = Array.from({ length: 40 }, (_, i) => pads(100 + i, { key: `x${i}` }));
+    eq(autoCatalog.similarAutoParts(anchor, big, 14).length, 14, "cap enforced");
+  });
+
+  check("photos lead inside a tier, order otherwise stable", () => {
+    const anchor = pads(0);
+    const noPhoto = pads(1, { key: "n1", image: "" });
+    const photo = pads(2, { key: "p1", image: "p.jpg" });
+    const picks = autoCatalog.similarAutoParts(anchor, [noPhoto, photo], 14);
+    eq(picks[0].key, "p1", "photo first inside the tier");
+  });
+
+  check("catalog lookup: brand pulls the shelf, number jumps to the part", () => {
+    const items = [
+      pads(1), pads(2),
+      P({ key: "plug1", partNumber: "NGK5464", title: "NGK Iridium Spark Plug", brand: "NGK", partType: "Spark Plugs", categoryKey: "ignition", price: 8 }),
+    ];
+    const brandHits = autoCatalog.searchAutoCatalog(items, "duralast");
+    eq(brandHits.length, 2, "a bare brand pulls that brand's shelf");
+    const numHits = autoCatalog.searchAutoCatalog(items, "D2071");
+    eq(numHits[0].key, "pad1", "part number ranks first");
+    const titleHits = autoCatalog.searchAutoCatalog(items, "iridium spark");
+    eq(titleHits[0].key, "plug1", "title tokens match");
+    eq(autoCatalog.searchAutoCatalog(items, "").length, 0, "empty query matches nothing");
+    eq(autoCatalog.searchAutoCatalog(items, "zzz-no-such-part").length, 0, "no phantom matches");
+  });
+
+  check("openStore routes auto retailers to the parts storefront", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+    if (!/autoMeta\.kind === 'auto'/.test(store)) throw new Error("openStore has no auto branch");
+    if (!/return renderAutoStorefront\(retailer, autoMeta, autoCategory\)/.test(store)) throw new Error("auto branch does not render the parts storefront");
+    const autoAt = store.indexOf("meta.kind === 'auto'");
+    const guardAt = store.indexOf("!(meta.search || meta.browse)");
+    if (autoAt > guardAt) throw new Error("the auto branch sits behind the retail holding guard");
+    if (!/openStore\(retailer, opts\)/.test(store)) throw new Error("openStore takes no opts");
+    if (!/autoCategory/.test(src.slice(src.indexOf("case 'storeView': await openStore"), src.indexOf("case 'storeView': await openStore") + 120))) {
+      throw new Error("route restore drops the auto category");
+    }
+  });
+
+  check("the storefront leads with sales and keeps the Accesorios shelf", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const html = src.slice(src.indexOf("function autoStorefrontHTML("), src.indexOf("function autoCatalogEmptyHTML("));
+    const saleAt = html.indexOf("autoSaleRail");
+    const accAt = html.indexOf("autoAccRail");
+    const tilesAt = html.indexOf("Repuestos por categor");
+    if (saleAt < 0) throw new Error("no sale rail on the auto storefront");
+    if (accAt < 0 || accAt < saleAt) throw new Error("the Accesorios rail is missing or leads ahead of sales");
+    if (tilesAt < 0 || tilesAt < accAt) throw new Error("category tiles do not follow the rails");
+    if (!/label: 'Accesorios'/.test(html)) throw new Error("no permanent Accesorios tile");
+    if (!/Próximamente/.test(html)) throw new Error("the empty Accesorios shelf is not honest");
+    if (!/autoCatalogQuery/.test(html)) throw new Error("no brand/part-number lookup box");
+    if (!/openAriaAuto\(\)/.test(html)) throw new Error("no live-search fallback");
+  });
+
+  check("the part detail swaps the retail rail for the similar-parts rail", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const render = src.slice(src.indexOf("async function renderRelatedRail("), src.indexOf("/* ONE STORE PER CARD IN THE OPENING RUN."));
+    if (!/if \(pendingAutoPart\)\{[\s\S]{0,200}return renderAutoSimilarRail\(autoAnchor\);/.test(render)) {
+      throw new Error("auto parts do not get the similar rail");
+    }
+    if (!/pendingAutoPart = null/.test(render)) throw new Error("the anchor is not consumed");
+    const rail = src.slice(src.indexOf("async function renderAutoSimilarRail("), src.indexOf("/* Aria Auto landing:"));
+    if (!/similarAutoParts\(/.test(rail)) throw new Error("the rail does not use the tiered similarity");
+    if (!/current !== anchor.title/.test(rail)) throw new Error("no stale-render guard");
+    const card = src.slice(src.indexOf("function autoMediumCardHTML("), src.indexOf("function autoMediumRailHTML("));
+    if (!/cardPhotoHTML\(src/.test(card)) throw new Error("medium cards do not reuse the lazy photo builder");
+    if (!/ariaAutoRailCard/.test(card)) throw new Error("medium cards carry no medium class");
+    const css = src.slice(0, src.indexOf("</style>"));
+    if (!/\.ariaAutoRailCard\{[^}]*width:min\(56vw,220px\)/.test(css)) throw new Error("medium card CSS missing or not medium");
+    if (!/id="autoSimilarRail"/.test(src)) throw new Error("no similar-rail section in the product view");
+  });
+
+  check("no timers in the new auto renderers — rails never autoplay", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const start = src.indexOf("AUTO STOREFRONT — browsable AutoZone");
+    const end = src.indexOf("/* Built from the registry, not hand-listed.");
+    const block = src.slice(start, end);
+    if (start < 0 || end < start) throw new Error("the auto storefront block moved");
+    if (/setInterval|setTimeout|requestAnimationFrame/.test(block)) throw new Error("a timer slipped into the auto rails");
+  });
+
+  check("rockauto lives only in the auto registry, never the Tiendas grid", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    // Product rule (pinned by the parts-sources test): RockAuto must not
+    // leak into the Tiendas registry — AutoZone is the one row in both.
+    const mirror = src.slice(src.indexOf("const RETAILERS = {"), src.indexOf("/* ============================================================\n   PER-STORE AMBIENT THEMES"));
+    if (/key: 'rockauto'/.test(mirror)) throw new Error("rockauto leaked into the Tiendas registry");
+    if (!/key: "rockauto"/.test(src)) throw new Error("rockauto missing from the auto registry");
+    // ...but its storefront still opens: openStore resolves the auto registry.
+    const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+    if (!/autoSourceMeta\(retailer\)/.test(store)) throw new Error("openStore cannot resolve auto-only sources");
+    if (!/renderAutoStorefront\(retailer, autoMeta, autoCategory\)/.test(store)) throw new Error("auto-only sources do not reach the parts storefront");
+  });
+
+  check("the auto category survives the route round-trip", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const slugFn = src.slice(src.indexOf("function routeSlug("), src.indexOf("function parseRoute("));
+    if (!/route\.autoCategory \? '\|' \+ route\.autoCategory/.test(slugFn)) throw new Error("the slug does not carry the auto category");
+    const parseFn = src.slice(src.indexOf("function parseRoute("), src.indexOf("/* Pushes a real history entry"));
+    if (!/split\('\|'\)/.test(parseFn)) throw new Error("parseRoute does not split the category back out");
+    if (!/route\.autoCategory = autoCat/.test(parseFn)) throw new Error("parseRoute drops the auto category");
+  });
+
+  check("the Aria Auto landing doors into both store catalogues", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    if (!/id="autoStoreTiles"/.test(src)) throw new Error("no store tiles container on the Aria Auto landing");
+    if (!/tiles\.innerHTML = autoStoreTilesHTML\(\)/.test(src)) throw new Error("openAriaAuto never renders the store tiles");
+    if (!/openStore\('\$\{s\.key\}'\)/.test(src)) throw new Error("store tiles do not open the storefronts");
   });
 }
 
