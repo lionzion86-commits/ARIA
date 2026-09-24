@@ -43,6 +43,50 @@
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
   .view{display:none}
   .view.active{display:block}
+  /* ============================================================
+     PER-STORE AMBIENT THEMES (2026-09-24) — pilot: Victoria's Secret.
+
+     A storefront with an ambient gets data-store-theme="<key>" on its
+     view container (see applyStoreTheme). The ambient paints the
+     full-bleed view; product cards and department tiles keep their own
+     light surfaces and float on top. Text the markup inks navy or zinc
+     is re-inked light, scoped to the theme, so every other store keeps
+     today's look untouched.
+
+     Extend by adding a row to STORE_THEMES and a
+     [data-store-theme="<key>"] block here. Themes are dark-only: the
+     overrides below assume light text over a dark ambient. */
+  [data-store-theme]{ min-height:72vh; }
+  /* VICTORIA'S SECRET — moody plum-charcoal with a soft pink glow:
+     the real store's lighting. A pink bloom on each upper side (so the
+     hero never sits in a dead spot) and a deep magenta pool low, over a
+     near-black plum base. */
+  [data-store-theme="victoriassecret"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(227,28,121,.32), rgba(227,28,121,0) 70%),
+      radial-gradient(620px 330px at 88% 4%, rgba(216,64,140,.24), rgba(216,64,140,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(133,27,80,.38), rgba(133,27,80,0) 72%),
+      linear-gradient(180deg, #22101B 0%, #180D16 52%, #120A12 100%);
+  }
+  /* Headings turn bridal-white, helper text turns soft rose — both hold
+     well past 7:1 against the base. */
+  [data-store-theme="victoriassecret"] h1{ color:#FDF3F7; }
+  [data-store-theme="victoriassecret"] #catalogSubtitle,
+  [data-store-theme="victoriassecret"] #storeViewSubtitle,
+  [data-store-theme="victoriassecret"] #storeResultsSubtitle{ color:#DFA9C0; }
+  /* The "Volver" back link is inked --blue inline; the theme lifts it to
+     a powder blue that holds contrast on plum. */
+  [data-store-theme="victoriassecret"] .themeBack{ color:#C9D6FF !important; }
+  /* Chip rows: inactive pills stay white and pop on the dark; the
+     pressed pill goes VS pink so the active filter reads as the brand
+     (white on #E31C79 holds 4.6:1). */
+  [data-store-theme="victoriassecret"] .themeChips [aria-pressed="true"]{
+    background:#E31C79 !important; border-color:#F06BA4 !important; color:#fff !important;
+  }
+  [data-store-theme="victoriassecret"] .themeChips .chipLabel{ color:#DFA9C0 !important; }
+  /* The sort select keeps its white surface; its hairline turns rose so
+     it does not look pasted on. */
+  [data-store-theme="victoriassecret"] #catalogSort{ border-color:#E8A9C4 !important; }
   /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
      used to sit on their brand-colour swatch, which made Foot Locker
      (all-black artwork on #000) read as a solid black rectangle and
@@ -1219,7 +1263,7 @@
 <div id="catalogView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
-    <button onclick="catalogGoBack()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+    <button onclick="catalogGoBack()" class="themeBack text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver
     </button>
@@ -1247,7 +1291,7 @@
 <div id="storeView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
-    <button onclick="goHome()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+    <button onclick="goHome()" class="themeBack text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver
     </button>
@@ -1268,7 +1312,7 @@
 <div id="storeResultsView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
-    <button onclick="storeResultsGoBack()" class="text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
+    <button onclick="storeResultsGoBack()" class="themeBack text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
       Volver a resultados
     </button>
@@ -3900,7 +3944,20 @@ function genderFromTitle(title){
 // Navy's does). An item from a NON-gendered bucket with no marker gets no
 // gender at all: it stays in Ropa rather than being guessed into all three
 // gendered pages at once.
+function brandOf(item){
+  return item?.brand || '';
+}
+
+/* PINK IS WOMENSWEAR, FULL STOP (2026-09-24). Victoria's Secret's PINK
+   line is young-womenswear; its pieces are never kidswear no matter what
+   the title says ("Baby Tee" is a fit, "Baby-Rib" a knit). Tested against
+   the brand field, never the title -- "pink" is also a colour, and a
+   girl's pink dress must stay a girl's pink dress.
+   Mirrors scripts/lib/department-map.js; change one, change the other. */
+const PINK_BRAND = /\bpink\b/i;
+
 function genderOfItem(item, bucketName){
+  if (PINK_BRAND.test(brandOf(item))) return 'women';
   return genderFromTitle(rawTitleOf(item)) || BUCKET_SPEC[bucketName]?.gender || null;
 }
 
@@ -4915,19 +4972,132 @@ function catalogWordsOf(item){
    typed enough to mean something. */
 const CATALOG_MIN_PREFIX = 3;
 
+/* ============================================================
+   SEARCH SYNONYMS — ONE CONCEPT, MANY WORDS.
+
+   Mirrors scripts/lib/search-synonyms.js line for line (this page is a
+   plain <script> and cannot import); the test suite asserts both
+   copies answer identically for every word.
+
+   Danny's requirement (2026-09-24): "sneakers", "shoes", "zapatos" and
+   "zapatillas" must ALL return the same shoe results. Token matching
+   is literal, so a query token that misses gets a second chance
+   against every word in its group (see catalogTokenHits), and
+   rankCatalogMatches canonicalises query tokens to the group concept
+   so the four queries score identically.
+   ============================================================ */
+const SEARCH_SYNONYM_GROUPS = [
+  {
+    concept: "shoes",
+    words: [
+      "shoe", "shoes",
+      "sneaker", "sneakers",
+      "trainer", "trainers",
+      "footwear",
+      /* Peruvian Spanish: zapatillas = trainers, zapatos = shoes,
+         tenis = the everyday word for trainers, calzado = footwear */
+      "zapatilla", "zapatillas",
+      "zapato", "zapatos",
+      "tenis",
+      "calzado", "calzados",
+    ],
+  },
+  {
+    concept: "bra",
+    words: ["bra", "bras", "brassiere", "brassieres", "sosten", "sostenes"],
+  },
+  {
+    concept: "perfume",
+    words: [
+      "perfume", "perfumes",
+      "fragrance", "fragrances",
+      "fragancia", "fragancias",
+      "colonia", "colonias", "cologne", "colognes",
+      "parfum",
+    ],
+  },
+  {
+    concept: "handbag",
+    words: [
+      "handbag", "handbags",
+      "purse", "purses",
+      "cartera", "carteras",
+      "bolso", "bolsos",
+    ],
+  },
+  {
+    concept: "underwear",
+    words: [
+      "underwear",
+      "panty", "panties", "pantys",
+      "brief", "briefs",
+      "thong", "thongs",
+      "calzon", "calzones",
+      "tanga", "tangas",
+    ],
+  },
+  {
+    concept: "dress",
+    words: ["dress", "dresses", "vestido", "vestidos", "gown", "gowns"],
+  },
+  {
+    concept: "watch",
+    words: ["watch", "watches", "reloj", "relojes"],
+  },
+];
+
+const SEARCH_WORD_TO_GROUP = new Map();
+for (const group of SEARCH_SYNONYM_GROUPS) {
+  for (const word of group.words) SEARCH_WORD_TO_GROUP.set(word, group);
+}
+
+/* The synonym group a word belongs to, or null. Lookup is on the
+   already-normalised token (lowercase, accent-free). */
+function synonymGroupOf(word) {
+  return SEARCH_WORD_TO_GROUP.get(String(word || "").toLowerCase()) || null;
+}
+
+/* Canonical token for a query word: the group's concept, or the word
+   itself when it belongs to no group. */
+function canonicalizeToken(word) {
+  const group = synonymGroupOf(word);
+  return group ? group.concept : word;
+}
+
+function canonicalizeTokens(tokens) {
+  return (tokens || []).map(canonicalizeToken);
+}
+
+/* Every word that means the same as `word`, not including `word`
+   itself. Empty when the word is in no group. */
+function synonymsOf(word) {
+  const group = synonymGroupOf(word);
+  if (!group) return [];
+  const w = String(word || "").toLowerCase();
+  return group.words.filter((x) => x !== w);
+}
+
+function catalogTokenHitsOne(words, t){
+  if (words.has(t)) return true;
+  for (const w of words){
+    if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) return true;
+    if (w.length >= 4 && t.length > w.length && t.startsWith(w)) return true;
+  }
+  return false;
+}
+
 function catalogTokenHits(words, toks){
   let n = 0;
   for (const t of toks){
-    if (words.has(t)) { n++; continue; }
-    let hit = false;
-    for (const w of words){
-      if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) { hit = true; break; }
-      if (w.length >= 4 && t.length > w.length && t.startsWith(w)) { hit = true; break; }
-    }
-    if (hit) n++;
+    if (catalogTokenHitsOne(words, t)) { n++; continue; }
+    /* SYNONYMS: one concept, many words. "sneakers" finds "Running
+       Shoes" and "zapatos" finds "Sneakers" — the literal miss gets a
+       second chance against every word in the token's group. */
+    if (synonymsOf(t).some((s) => catalogTokenHitsOne(words, s))) n++;
   }
   return n;
 }
+
 
 /* Coverage is the backbone; the two bonuses only order items that
    already matched. Matching every token outranks matching some, and a
@@ -5062,10 +5232,17 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
 
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
-  const toks = searchTokens(query);
+  /* SYNONYMS CANONICALISED UP FRONT, so "sneakers", "shoes",
+     "zapatos" and "zapatillas" do not merely overlap — they run the
+     identical token list, and return the identical items in the
+     identical order. */
+  const toks = canonicalizeTokens(searchTokens(query));
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
 
-  const intent = queryCategoryIntent(query);
+  /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
+     footwear exactly as much as "shoes" does, and the category filter
+     must agree for all four words. */
+  const intent = queryCategoryIntent(toks.join(' '));
   const rawCategoryOf = (opts && opts.categoryOf)
     || (typeof catalogItemCategory === 'function' ? catalogItemCategory : () => null);
   /* Memoised: the weighting pass and the scoring pass both ask, over
@@ -5536,6 +5713,7 @@ async function openCatalog(kind, key, opts = {}){
      one — lands in the same place. */
   if (kind === 'department' && key === 'sale'){ goSales(retailerFilter); return; }
   showPage('catalogView');
+  applyStoreTheme('catalogView', retailerFilter);
   await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   document.getElementById('catalogIcon').textContent = meta.icon;
@@ -5628,7 +5806,7 @@ function catalogStoreChipsHTML(){
       style="border-color:${active ? 'var(--navy)' : 'var(--line)'}; background:${active ? 'var(--navy)' : '#fff'}; color:${active ? '#fff' : 'var(--navy)'}">
       <span>${label}</span><span class="tabular font-semibold" style="opacity:.65">${count}</span>
     </button>`;
-  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+  return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
     ${chip(!retailerFilter, 'Todas las tiendas', total, 'setCatalogStore(null)')}
     ${Array.from(byRetailer.entries()).map(([r, items]) =>
       chip(retailerFilter === r, escapeHtml(LIVE_RETAILER_LABEL[r] || r), items.length, `setCatalogStore('${r}')`)).join('')}
@@ -5820,7 +5998,7 @@ function catalogAisleChipsHTML(grouped){
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
       <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
     </button>`;
-  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+  return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
     ${chip(false, '&#8592; Categorías', null, 'setCatalogSub(null)')}
     ${chip(active === SUB_ALL, 'Ver todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
     ${grouped.rows.map(r => chip(active === r.key, escapeHtml(r.label), r.count, `setCatalogSub('${jsAttr(r.key)}')`)).join('')}
@@ -5961,9 +6139,13 @@ function renderCatalogFeed(){
      is in English. */
   const typed = String(catalogState.searchTerm || '').trim();
   const term = typed.toLowerCase();
-  const tokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
-  const searched = tokens.length
-    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokens.every(w => t.includes(w)); })
+  const rawTokens = translateSearchQuery(typed).toLowerCase().split(/\s+/).filter(Boolean);
+  /* SYNONYMS, the same groups the catalogue search uses: each token
+     must hit, but it may hit as any word in its group — "zapatos"
+     narrows to the same shoes "sneakers" does. */
+  const tokenGroups = rawTokens.map((w) => { const g = synonymGroupOf(w); return g ? g.words : [w]; });
+  const searched = rawTokens.length
+    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokenGroups.every((g) => g.some((w) => t.includes(w))); })
     : feed;
   /* Budget last, so its chip counts are taken against everything the
      other filters left standing — a band promising 12 has to deliver 12
@@ -6443,6 +6625,7 @@ function jumpToBrandLetter(letter){
 async function openStore(retailer){
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
+  applyStoreTheme('storeView', retailer);
   await loadFxRate();
   document.getElementById('storeViewHero').innerHTML = retailerBadgeHTML(retailer, 44);
   document.getElementById('storeViewSubtitle').textContent = 'Cargando artículos…';
@@ -6569,6 +6752,7 @@ function storeResultsGoBack(){
 async function openStoreResults(retailer, query){
   pushRoute({ view: 'storeResultsView', retailer, q: query });
   showPage('storeResultsView');
+  applyStoreTheme('storeResultsView', retailer);
   await loadFxRate();
   storeResultsReturnQuery = query;
   document.getElementById('storeResultsHero').innerHTML = retailerBadgeHTML(retailer, 32);
@@ -8953,6 +9137,34 @@ const RETAILERS = {
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
 function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
+/* ============================================================
+   PER-STORE AMBIENT THEMES (2026-09-24) — pilot: Victoria's Secret.
+
+   A retailer listed here gets a moody, brand-lit backdrop on its
+   storefront views: storeView, catalogView and storeResultsView whenever
+   they are scoped to it (see applyStoreTheme). The CSS for each key
+   lives in the <style> block under [data-store-theme="<key>"].
+
+   No row = no theme = today's look, so extending this to the next store
+   is one row plus one CSS block. Themes are dark-only for now: the CSS
+   assumes light text over a dark ambient. */
+const STORE_THEMES = {
+  /* VICTORIA'S SECRET — moody plum-charcoal, soft pink glow. In Peru VS
+     reads as luxury, so its section is lit like the real store instead
+     of the white grid every other storefront still uses. */
+  victoriassecret: { glow: '#E31C79' },
+};
+function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
+/* Paint or clear the ambient on a view container. Wired into openStore /
+   openCatalog / openStoreResults, so back/forward route restores
+   (applyRoute) re-apply it through the same path — never show a themed
+   view without it. */
+function applyStoreTheme(viewId, retailer){
+  const el = document.getElementById(viewId);
+  if (!el) return;
+  if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', String(retailer).toLowerCase());
+  else el.removeAttribute('data-store-theme');
+}
 /* TIERS — how the Tiendas directory is GROUPED, and nothing else.
    MIRROR of scripts/lib/retailers.js; a parity test pins the two.
 
@@ -10704,8 +10916,8 @@ function budgetChipsHTML(items, activeKey, onclickFor){
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
       <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
     </button>`;
-  return `<div class="flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
-    <span class="text-[12px] font-bold self-center flex-shrink-0 pr-1" style="color:#6B7487">Presupuesto</span>
+  return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
+    <span class="chipLabel text-[12px] font-bold self-center flex-shrink-0 pr-1" style="color:#6B7487">Presupuesto</span>
     ${chip(!activeKey, 'Cualquiera', items.length, onclickFor(null))}
     ${live.map(b => chip(activeKey === b.key, b.label, counts.get(b.key), onclickFor(b.key))).join('')}
   </div>`;
@@ -10918,7 +11130,14 @@ const MOBILE_RAIL_DEALS = 20;
 // but there is no word boundary before them, so /\bmen'?s\b/ correctly
 // does NOT match inside "Women's". Without \b every women's item would
 // be misread as menswear.
-const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|ni[ñn][oa]s?)\b/i;
+const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|ni[ñn][oa]s?|newborn|new\s*born|baby\s*(boys?|girls?))\b/i;
+// "BABY" IS NOT ALWAYS AN INFANT (2026-09-24). In adult fashion "baby"
+// is a style word -- "baby tee", "baby-rib" knit, "baby doll" silhouette --
+// and "baby mama" is maternity slang. Three Victoria's Secret pieces (two
+// PINK, one Bumpsuit maternity) landed in Moda Ninos on the word alone.
+// A bare "baby" no longer marks kidswear; genuine infant goods still match
+// "newborn", "infant", "toddler", or an explicit "baby boy"/"baby girl".
+// Mirrors scripts/lib/department-map.js; change one, change the other.
 const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
 const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
 
