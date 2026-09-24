@@ -1147,14 +1147,24 @@ await check("the home page grid is departments only", async () => {
     };
   });
 
-  /* PINNED TO THE TAXONOMY, NOT TO A NUMBER. This read `eq(grid.cards,
-     11)` and went red the day Zapatos was added — which is a department
-     arriving, not the wall coming back. What must hold is that the grid
-     is exactly the departments the taxonomy declares: a brand sneaking
-     in would push the count ABOVE that, and a lost department below it,
-     and neither can hide behind a hand-updated literal. */
-  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
-  eq(grid.cards, departments, "home page tiles vs departments in the taxonomy");
+  /* PINNED TO A LIST, NOT TO A NUMBER — AND SINCE 2026-09-24 TO THE HOME
+     ROW'S LIST RATHER THAN THE WHOLE TAXONOMY. This read `eq(grid.cards,
+     11)` and went red the day Zapatos was added, so it was re-anchored
+     to Object.keys(DEPARTMENT_SPEC).length; that held right up until the
+     home row stopped being every department. It is the SHORTLIST now,
+     resolved through the same lookup the page uses, so a card cut from
+     the front door is not a failure and a card nobody asked for still
+     is.
+
+     The anti-wall guarantee did not move, it just lives on the other
+     grid: Categorías is still pinned to the taxonomy exactly, and that
+     is the page a brand wall would have to come back through. Here, a
+     brand cannot even be named — HOME_ROW_DEPARTMENTS is keys, and
+     homeRowTiles() resolves them against collectTiles(), which no longer
+     has a code path that builds a brand tile. */
+  const expected = await page.evaluate(() => homeRowTiles().map(t => t.label));
+  eq(grid.cards, expected.length, "home page tiles vs the home row's list");
+  eq(grid.names.join("|"), expected.join("|"), "the grid is not the home row's list, in its order");
   eq(grid.names.includes("Curvy"), true, `Curvy is not on the home page: ${grid.names.join()}`);
   if (grid.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on the home page: ${grid.names.join()}`);
@@ -1725,6 +1735,44 @@ await check("Aria Beauty is the first card the shop offers, on the phone and the
 
   const desktop = await first();
   eq(desktop.grid, "Aria Beauty", `the grid's first card at desktop width is "${desktop.grid}"`);
+});
+
+await check("Ofertas is not offered twice, and is still one tap away", async () => {
+  /* THE DUPLICATE IS THE BUG, NOT THE DEPARTMENT. The deals hero sits
+     directly above this row with its own carousel and its own "Ver
+     todo". A second Ofertas card six cards further down is the same
+     offer twice, and on a phone it costs real sideways scrolling.
+
+     So this asserts BOTH halves, because removing a card is only
+     defensible while every route into it survives. A version of this
+     change that deleted `sale` from DEPARTMENT_SPEC would pass the first
+     assertion and break the shop. */
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+  const r = await page.evaluate(() => {
+    const label = (el) => (el?.textContent || "").trim().split("\n")[0].trim();
+    const names = (id) => [...(document.getElementById(id)?.children || [])].map(label);
+    return {
+      gridNames: names("catGrid"),
+      railNames: names("mobileCatsRow"),
+      /* Still a department in every other sense. */
+      inTaxonomy: Object.keys(DEPARTMENT_SPEC).includes("sale"),
+      stillTiled: collectTiles().some(t => t.key === "sale"),
+      label: (DEPARTMENT_META.sale || {}).label,
+      /* And the hero above it still opens the real thing. */
+      heroOpensSale: /openCatalog\('department',\s*'sale'\)|openSales\(/.test(document.documentElement.innerHTML),
+    };
+  });
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+
+  eq(r.gridNames.includes("Ofertas"), false, `Ofertas is back in the grid: ${r.gridNames.join()}`);
+  eq(r.railNames.includes("Ofertas"), false, `Ofertas is back in the phone rail: ${r.railNames.join()}`);
+
+  eq(r.inTaxonomy, true, "`sale` was deleted from the taxonomy — that is a different and much larger change");
+  eq(r.stillTiled, true, "Ofertas can no longer be tiled at all, so Categorías lost it too");
+  eq(r.label, "Ofertas", "the Ofertas department lost its label");
+  eq(r.heroOpensSale, true, "nothing on the page opens the sale department any more");
+  await ctx.close();
 });
 
 await check("the phone's rails fill from the page's own data", async () => {

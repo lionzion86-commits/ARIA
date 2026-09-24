@@ -4597,7 +4597,16 @@ const HOME_ROW_DEPARTMENTS = [
   'home_goods',
   'curvy',
   'shoes',
-  'sale',
+  /* OFERTAS IS NOT LISTED HERE, AND THAT IS THE POINT (2026-09-24).
+     The deals hero sits directly above this row, with its own carousel
+     and its own "Ver todo". A second door to the same feed, six cards
+     further down, is the same offer twice -- and on a phone the row is
+     already asking for more sideways scrolling than it has earned.
+
+     The department still EXISTS in every other sense: `sale` is still
+     in DEPARTMENT_SPEC, still tiled on Categorías, still routed by
+     openCatalog('department','sale'), and still what the hero's own
+     "Ver todo" opens. Only the duplicate card is gone. */
 ];
 
 /* The home row's tiles: the shortlist above, in its order, minus any
