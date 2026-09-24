@@ -1098,7 +1098,8 @@
       </aside>
 
       <!-- RESULTS -->
-      <div>
+      <!-- min-w-0: this column is a grid item in the filters/results grid. Below lg the grid is a single implicit auto column, and grid items default to min-width:auto, so the refinement chip rail's ~755px of chips inside #searchLiveWrap forced the track to 795px and the whole page scrolled sideways at 393px viewports (results grid stretched to 389px tiles). min-w-0 lets the item shrink below its content minimum; the chip rail keeps its designed internal scroll via overflow-x-auto. -->
+      <div class="min-w-0">
         <div class="flex items-center gap-4 mb-5">
           <img id="prodImg" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">
           <div>
