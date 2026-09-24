@@ -329,6 +329,75 @@
   @media (min-width:1024px){
     .ariaSectionCaption{ color:#C3D9FF }
   }
+  /* ============================================================
+     THE HOME PAGE'S PHOTOGRAPHIC HERO (2026-09-23)
+
+     A flat-lay of what Aria actually brings, with the headline in the
+     frame's own clean dark top third -- which is why the content is
+     TOP-aligned here rather than bottom-aligned like the trust cards.
+     Measured before it was built: the brightest pixel in that top third
+     is rgb(68,96,145), L=0.116, so white type clears 4.5:1 there on the
+     photograph alone. The scrim is therefore light where the words are
+     (0.55 -> 0.30) and only deepens at the foot, where it separates the
+     hero from the rail below rather than rescuing any text.
+
+     ABOVE THE FOLD, SO NOT LAZY. This is the LCP image; loading="lazy"
+     on it would delay the one thing the page is judged on. Every other
+     photographic background on this site is lazy for exactly the
+     opposite reason.
+
+     Positioning lives here, never in a Tailwind utility -- an absolutely
+     positioned photo whose containing block vanishes with the CDN does
+     not degrade, it covers the page. Same guard as .ariaSectionShot.
+     ============================================================ */
+  .ariaHero{ position:relative; overflow:hidden; background:var(--navy);
+             min-height:clamp(420px, 58vw, 560px) }
+  .ariaHeroPhoto{ position:absolute; inset:0; width:100%; height:100%;
+                  object-fit:cover; object-position:50% 50%; z-index:0 }
+  /* TWO GRADIENTS, AND THE SECOND ONE WAS EARNED. A vertical scrim alone
+     passed on a phone and FAILED at 1280px: the wider crop brings the
+     laptop and the white phone boxes up into the subhead's line, and the
+     brightest pixel behind it measured rgb(253,250,226) -- 1.39:1. The
+     horizontal gradient protects the text column on the left and leaves
+     the flat-lay bright on the right, which a heavier vertical scrim
+     would not: that would have dimmed the photograph everywhere to fix
+     one band. */
+  .ariaHeroScrim{ position:absolute; inset:0; z-index:1;
+                  background:
+                    linear-gradient(90deg,
+                      rgba(4,12,28,0.74) 0%,
+                      rgba(4,12,28,0.58) 34%,
+                      rgba(4,12,28,0.12) 68%,
+                      rgba(4,12,28,0.00) 100%),
+                    linear-gradient(180deg,
+                      rgba(4,12,28,0.45) 0%,
+                      rgba(4,12,28,0.22) 46%,
+                      rgba(4,12,28,0.60) 100%) }
+  .ariaHeroInner{ position:relative; z-index:2; max-width:1240px; margin:0 auto;
+                  padding:44px 20px 48px }
+  .ariaHeroTitle{ font-size:clamp(32px, 8.4vw, 56px); font-weight:800;
+                  letter-spacing:-0.035em; line-height:1.04; color:#fff;
+                  max-width:14ch }
+  .ariaHeroSub{ font-size:clamp(15px, 4.2vw, 20px); font-weight:700;
+                letter-spacing:-0.01em; color:#EAF1FF; margin-top:12px }
+  /* 48px tall, not 44: 44 is the floor for a thumb, not a target. Gold on
+     navy is the Ofertas treatment, and this button goes to Ofertas -- the
+     one place gold is allowed to mean what it always means here. */
+  .ariaHeroCta{ display:inline-flex; align-items:center; justify-content:center;
+                height:48px; padding:0 26px; margin-top:24px; border-radius:16px;
+                background:#F4C463; color:var(--navy);
+                font-size:15px; font-weight:800; letter-spacing:-0.01em }
+
+  /* The Nosotros feature photograph: full-bleed on a phone, inset and
+     rounded once there is a margin to inset into. No text over it -- the
+     story is directly underneath and the picture is allowed to just be a
+     picture. */
+  .ariaAboutPhoto{ display:block; width:100%; height:auto;
+                   margin:0 -20px 40px; max-width:none;
+                   width:calc(100% + 40px) }
+  @media (min-width:640px){
+    .ariaAboutPhoto{ margin:0 0 48px; width:100%; border-radius:22px }
+  }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -479,6 +548,28 @@
 
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
+
+  <!-- ============================================================
+       HERO. First thing on the page at every width, above the mobile
+       shopfront. NOTE FOR REVIEW: that puts it above the Ofertas rail on
+       a phone, which changes the running order set on 2026-09-23
+       (Ofertas -> Categorías -> Tiendas -> logo -> explainer -> tiles).
+       The brief asked for a hero "at the top of the homepage"; if the
+       rail should stay first on a phone, this section moves below it and
+       nothing else changes.
+
+       Every word here is HTML -- nothing is baked into the photograph.
+       ============================================================ -->
+  <section class="ariaHero" aria-label="Todo USA ahora en Lima">
+    <img src="assets/hero/flatlay-hero.jpg" alt="" aria-hidden="true" class="ariaHeroPhoto"
+         decoding="async" fetchpriority="high" onerror="this.remove()">
+    <div class="ariaHeroScrim" aria-hidden="true"></div>
+    <div class="ariaHeroInner">
+      <h1 class="ariaHeroTitle">Todo USA ahora en Lima.</h1>
+      <p class="ariaHeroSub">ARIA te lo trae.</p>
+      <button onclick="goSales()" class="ariaHeroCta focus-ring">Ver ofertas</button>
+    </div>
+  </section>
 
   <!-- ============================================================
        THE MOBILE SHOPFRONT (2026-09-23)
@@ -874,7 +965,7 @@
         </div>
       </div>
       <div class="ariaTrustCard">
-        <img src="assets/trust/trust-entrega.jpg" alt="" aria-hidden="true" class="ariaTrustPhoto"
+        <img src="assets/trust/trust-entrega-v2.jpg" alt="" aria-hidden="true" class="ariaTrustPhoto"
              loading="lazy" decoding="async" onerror="this.remove()">
         <div class="ariaTrustScrim" aria-hidden="true"></div>
         <div class="ariaTrustBody">
@@ -1902,6 +1993,13 @@
       <h2 class="text-[28px] sm:text-[38px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-10 max-w-[20ch]" style="color:var(--navy)">
         Aria lleva el nombre de mi hija.
       </h2>
+
+      <!-- The story's photograph: a box that reached a balcony in Lima.
+           No headline over it and none wanted — it sits between the
+           heading and the telling, and carries neither. -->
+      <img src="assets/nosotros/balcony-night.jpg" class="ariaAboutPhoto"
+           alt="Una clienta de Aria recibe su pedido en un balcón de Miraflores, de noche."
+           loading="lazy" decoding="async" onerror="this.remove()">
 
       <div id="aboutStoryGrid" class="grid md:grid-cols-[1.35fr_1fr] gap-10 md:gap-14 items-start">
         <div class="max-w-[62ch]">

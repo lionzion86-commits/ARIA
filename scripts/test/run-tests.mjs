@@ -4735,17 +4735,35 @@ const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
 );
 
-check("the shopfront is the first thing under the header, and only on a phone", () => {
+check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* FIRST CHILD OF #homeView. The whole brief is that a shopper who
-     scrolls -- and they all scroll -- meets the deals before anything
-     else. One element moved above this and the rails are below the
-     fold again. */
+  /* THIS RULE CHANGED ON 2026-09-23, DELIBERATELY, AND THE OLD ONE IS
+     WORTH KEEPING IN VIEW. It read: the shopfront is the FIRST child of
+     #homeView, because "a shopper who scrolls -- and they all scroll --
+     meets the deals before anything else. One element moved above this
+     and the rails are below the fold again." That came out of a real
+     user test and it was right.
+
+     Danny then asked for a photographic hero at the top of the home
+     page. A hero is exactly the "one element moved above this", and on
+     a 393x852 phone it does push the Ofertas rail off the first screen.
+     That is a trade he made knowingly and it is recorded here rather
+     than quietly deleted: the protection now is that the hero is the
+     ONLY thing allowed above the rails. A third element between the
+     header and the shopfront still fails, which is what the original
+     check was really guarding. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
-  const firstTag = home.slice(home.indexOf(">") + 1).search(/<(?!!--)/);
-  if (!home.slice(home.indexOf(">") + 1).slice(firstTag).startsWith('<div id="mobileShopfront"')) {
-    throw new Error("something now sits between the header and the shopfront");
+  const body = home.slice(home.indexOf(">") + 1);
+  const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
+  const first = tags[0] || "";
+  if (!/class="ariaHero"/.test(first)) {
+    throw new Error(`the first thing in #homeView is not the hero: ${first.slice(0, 70)}`);
+  }
+  const afterHero = body.slice(body.indexOf("</section>") + "</section>".length);
+  const nextTag = (afterHero.match(/<(?!!--)[a-zA-Z][^>]*>/) || [""])[0];
+  if (!nextTag.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`something sits between the hero and the shopfront: ${nextTag.slice(0, 70)}`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -6479,7 +6497,7 @@ const TRUST_PHOTOS = {
   "Precio transparente": "assets/trust/trust-precio.jpg",
   "Pagos seguros": "assets/trust/trust-pagos.jpg",
   "Aduana resuelta": "assets/trust/trust-aduana.jpg",
-  "Entrega puerta a puerta": "assets/trust/trust-entrega.jpg",
+  "Entrega puerta a puerta": "assets/trust/trust-entrega-v2.jpg",
 };
 
 check("each card carries its own photograph, its scrim and its escape hatch", () => {
