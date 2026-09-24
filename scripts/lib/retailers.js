@@ -104,9 +104,13 @@ export const RETAILERS = {
      2026-09-22: SEPHORA IS BROWSABLE. beauty-catalog.json landed with
      80 Sephora products, so its row flips `browse: true` and drops the
      pending note, exactly as Macy's did — same distinction, same two
-     flags. Victoria's Secret and Bath & Body Works are NOT in that file
-     and stay pending; a store is only browsable when a catalogue
-     actually names it. */
+     flags. Bath & Body Works is NOT in that file and stays pending; a
+     store is only browsable when a catalogue actually names it.
+
+     2026-09-24: VICTORIA'S SECRET IS BROWSABLE. beauty-catalog.json
+     landed with 1,649 Victoria's Secret products, so its row flips
+     `browse: true` and drops the pending note — same distinction, same
+     two flags. */
   sephora: {
     key: "sephora",
     label: "Sephora",
@@ -135,7 +139,7 @@ export const RETAILERS = {
     kind: "general",
     catalog: "beauty",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
      the audience this shop is being launched for, and it is the eighth
