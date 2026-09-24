@@ -165,6 +165,10 @@ export const ES_EN_WORDS = {
   pijama: "pajamas",
   // footwear and bags
   zapatilla: "sneakers",
+  // "tenis" is the everyday Peruvian word for trainers; "zapatilla" was
+  // already here and "tenis" was not, so Aria found nothing for the term
+  // most of her shoppers actually use.
+  tenis: "sneakers",
   zapato: "shoes",
   calzado: "shoes",
   bota: "boots",

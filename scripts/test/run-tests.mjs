@@ -14,7 +14,7 @@
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageCatalogSearchSlice, loadPageSizeSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5151,6 +5151,243 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
   }
   if (!/showPage\('aboutView'\)/.test(why)) throw new Error("the story does not offer the full page");
 });
+/* ==================================================================
+   THE IMAGE LIGHTBOX — six ways out, and none of them coverable.
+   ================================================================== */
+group("The lightbox is not a trap");
+
+const lbSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const lbStyle = lbSrc.slice(lbSrc.indexOf("<style>"), lbSrc.indexOf("</style>"));
+const lbMarkup = lbSrc.slice(lbSrc.indexOf('<div id="imageLightbox"'), lbSrc.indexOf('<div id="toast"'));
+
+check("the photograph is contained on BOTH axes", () => {
+  /* THE BUG. `max-w-none` with `width:auto` caps only the HEIGHT, which
+     is not containment: measured at 393px, a 1600x900 photo rendered
+     1393px wide and hung 952px off the right-hand side. */
+  if (/max-w-none/.test(lbMarkup)) throw new Error("the lightbox image is back to an uncapped width");
+  const rule = lbStyle.slice(lbStyle.indexOf("#lightboxImg{"), lbStyle.indexOf("#imageLightbox[data-zoom"));
+  if (!rule) throw new Error("the lightbox image has no sizing rule");
+  for (const needed of ["max-width:100%", "max-height:100%", "object-fit:contain"]) {
+    if (!rule.includes(needed)) throw new Error(`the image is not contained: missing ${needed}`);
+  }
+  if (/max-width:\s*none/.test(rule)) throw new Error("the image's width cap was removed again");
+  // And the stage does not scroll unless we have deliberately zoomed.
+  const stage = lbStyle.slice(lbStyle.indexOf("#lightboxStage{"), lbStyle.indexOf("#lightboxImg{"));
+  if (!/overflow:hidden/.test(stage)) throw new Error("the stage scrolls at rest — the image can leave the frame");
+});
+
+check("the way out cannot be moved off screen", () => {
+  const btn = lbMarkup.slice(lbMarkup.indexOf("data-lightbox-close"));
+  const tag = lbMarkup.slice(lbMarkup.lastIndexOf("<button", lbMarkup.indexOf("data-lightbox-close")), lbMarkup.indexOf(">", lbMarkup.indexOf("data-lightbox-close")));
+  /* ABSOLUTE INSIDE A FIXED LAYER -- AND THIS TEST USED TO ASSERT THE
+     OPPOSITE. It read `fixed` and called the job done, which is exactly
+     the belief the second bug report killed: `fixed` anchors to the
+     LAYOUT viewport, and a pinch does not move the layout viewport, it
+     shrinks the VISUAL one into a window onto it. Measured at 393px:
+     page scale 2 leaves a 197px-wide window with the button still at
+     x=333, i.e. off screen, which is the whole complaint.
+
+     So the FIXED thing is now #lightboxChrome, which is parked on the
+     visual viewport by syncLightboxChrome(); the button is positioned
+     against THAT and so must be absolute. Asserting `fixed` here again
+     would restore the bug. */
+  if (!/\babsolute\b/.test(tag)) throw new Error("the close button is not positioned against the chrome layer");
+  if (/\bfixed\b/.test(tag)) throw new Error("the close button is fixed to the LAYOUT viewport again — a pinch will carry it off screen");
+  if (!/w-11 h-11/.test(tag)) throw new Error("the close button is under the 44px minimum");
+  // Above the image layer.
+  const z = Number((tag.match(/z-\[(\d+)\]/) || [])[1]);
+  const boxZ = Number((lbMarkup.match(/id="imageLightbox"[^>]*z-\[(\d+)\]/) || [])[1]);
+  if (!(z > boxZ)) throw new Error(`the close button (z ${z}) is not above the overlay (z ${boxZ})`);
+  if (!/aria-label="Cerrar"/.test(tag)) throw new Error("the close button is unlabelled");
+});
+
+check("six ways out, and the photo covers none of them", () => {
+  // backdrop, button, Escape, swipe, back gesture, double-tap reset
+  if (!/id="imageLightbox"[^>]*onclick="closeImageLightbox\(event\)"/.test(lbMarkup)) throw new Error("the backdrop no longer dismisses");
+  if (!/onclick="closeImageLightbox\(\)"/.test(lbMarkup)) throw new Error("the close button no longer dismisses");
+  const js = lbSrc.slice(lbSrc.indexOf("let lightboxScrollY = 0;"), lbSrc.indexOf("/* Handed from an auto card"));
+  if (!js) throw new Error("the lightbox's behaviour is gone");
+  if (!/e\.key === 'Escape'/.test(js)) throw new Error("Escape no longer dismisses");
+  if (!/SWIPE_CLOSE_PX/.test(js)) throw new Error("swipe-down no longer dismisses");
+  if (!/setLightboxZoom\(box\.getAttribute\('data-zoom'\) !== '1'\)/.test(js)) throw new Error("double-tap no longer toggles the zoom");
+
+  /* A TAP ON THE PHOTO IS NOT A DISMISSAL -- the shopper is looking at
+     it -- but a DOWNWARD SWIPE on it is, and only when not zoomed,
+     where the same gesture is how the photograph is panned. */
+  if (!/event\.target\.id === 'lightboxImg'\) return;/.test(js)) throw new Error("tapping the photo closes it");
+  if (!/!zoomed && dy > SWIPE_CLOSE_PX && Math\.abs\(dy\) > Math\.abs\(dx\)/.test(js)) {
+    throw new Error("a swipe closes in the wrong direction, or while zoomed");
+  }
+  // Two fingers is a pinch and none of our business.
+  if (!/e\.touches\.length === 1/.test(js)) throw new Error("a two-finger gesture is being read as a swipe");
+});
+
+check("zoom can never take the way out with it", () => {
+  /* NATIVE PINCH WAS THE MECHANISM. touch-action:pinch-zoom on the
+     stage let iOS zoom the layout viewport, which is what carried the
+     close button away. The zoom is a transform we set, so we always
+     know the state and can always reset it. */
+  const stage = lbStyle.slice(lbStyle.indexOf("#lightboxStage{"), lbStyle.indexOf("#lightboxImg{"));
+  if (/pinch-zoom/.test(stage)) throw new Error("the stage hands the pinch back to the browser");
+  if (!/touch-action:none/.test(stage)) throw new Error("the stage does not own its gestures");
+  if (!/#imageLightbox\[data-zoom="1"\] #lightboxImg\{ transform:scale/.test(lbStyle)) throw new Error("the zoom is not a transform we control");
+  const js = lbSrc.slice(lbSrc.indexOf("function setLightboxZoom("), lbSrc.indexOf("function lightboxHintText("));
+  if (!/box\.removeAttribute\('data-zoom'\)/.test(js)) throw new Error("the zoom cannot be reset");
+  // Closing always resets it, so it can never be reopened zoomed.
+  /* SLICED FORWARD FROM THE FUNCTION, not back to a marker that moved.
+     The popstate listeners were deliberately moved up beside the
+     router's (order is their whole mechanism), so an end marker of
+     "window.addEventListener('popstate'" now finds the EARLIER one and
+     produces a backwards, empty slice -- which read as "closing leaves
+     the zoom on" about code that removes it. */
+  const dismissAt = lbSrc.indexOf("function dismissLightbox(){");
+  const dismiss = lbSrc.slice(dismissAt, lbSrc.indexOf("document.addEventListener('keydown'", dismissAt));
+  if (!dismiss) throw new Error("dismissLightbox is gone");
+  if (!/removeAttribute\('data-zoom'\)/.test(dismiss)) throw new Error("closing leaves the zoom on");
+  const open = lbSrc.slice(lbSrc.indexOf("function openImageLightbox(){"), lbSrc.indexOf("function closeImageLightbox("));
+  if (!/setLightboxZoom\(false\)/.test(open)) throw new Error("it can reopen zoomed");
+});
+
+check("the page behind is pinned, and put back exactly", () => {
+  const lock = lbSrc.slice(lbSrc.indexOf("function lockPageBehind(){"), lbSrc.indexOf("function lightboxIsOpen(){"));
+  /* `body{overflow:hidden}` alone does not hold on iOS and loses where
+     the shopper was. The negative offset IS the scroll position, so the
+     restore is not a guess. */
+  if (!/b\.position = 'fixed'/.test(lock)) throw new Error("the page behind is not pinned");
+  if (!/b\.top = `-\$\{lightboxScrollY\}px`/.test(lock)) throw new Error("the lock does not record where the shopper was");
+  if (!/window\.scrollTo\(0, lightboxScrollY\)/.test(lock)) throw new Error("the scroll position is never restored");
+  // Idempotent in both directions: anything at all may call unlock.
+  if (!/if \(lightboxLocked\) return;/.test(lock)) throw new Error("locking twice would lose the scroll position");
+  if (!/if \(!lightboxLocked\) return;/.test(lock)) throw new Error("unlocking when nothing is locked is not safe");
+
+  /* THE HALF OF THE BUG THAT OUTLIVED THE OVERLAY: navigate away with
+     it open and the lock stayed on the body forever. */
+  if (!/window\.addEventListener\('popstate', \(\) => \{ if \(!lightboxIsOpen\(\)\) unlockPageBehind\(\); \}\);/.test(lbSrc)) {
+    throw new Error("a route change can leave the page behind permanently unscrollable");
+  }
+});
+
+check("the overlay is hidden by our own stylesheet, not by the CDN's", () => {
+  /* MEASURED WITH THE CDN BLOCKED: #imageLightbox computed to
+     display:block and occupied 49px of the document, because the only
+     thing hiding it was Tailwind's `hidden` -- a class from a
+     stylesheet fetched over the network. Any load where that request
+     fails rendered a dark panel across the shop. The page's own
+     stylesheet now decides the default. */
+  const rule = lbStyle.slice(lbStyle.indexOf("#imageLightbox{"), lbStyle.indexOf("#lightboxChrome{"));
+  if (!rule) throw new Error("the overlay has no rule of its own — it is back to trusting the CDN");
+  if (!/#imageLightbox\{ display:none \}/.test(rule)) throw new Error("the overlay is not hidden by default");
+  if (!/#imageLightbox:not\(\.hidden\)\{ display:flex \}/.test(rule)) throw new Error("the overlay can no longer open");
+  /* Keyed off the same class lightboxIsOpen() reads. Keying the CSS off
+     `.flex` and the JS off `.hidden` is two sources of truth. */
+  /* SLICE FORWARD FROM THE FUNCTION, not to the next "/* ====" -- that
+     marker's first occurrence is thousands of lines ABOVE this, so the
+     slice ran backwards and came back empty. A short bounded window is
+     enough for a three-line function. */
+  const openAt = lbSrc.indexOf("function lightboxIsOpen(){");
+  if (openAt < 0) throw new Error("lightboxIsOpen is gone");
+  if (!/!box\.classList\.contains\('hidden'\)/.test(lbSrc.slice(openAt, openAt + 400))) {
+    throw new Error("lightboxIsOpen no longer reads .hidden — the CSS and the JS now disagree about what open means");
+  }
+});
+
+check("the close button lives above the zoom layer, not inside it", () => {
+  /* STRUCTURAL, NOT COSMETIC. Whatever transform the photograph is
+     wearing must be unable to reach the chrome -- and the only way to
+     guarantee that is for the chrome not to be a descendant of the
+     thing being transformed. A z-index would not do it: a transformed
+     ancestor becomes the containing block for everything inside it. */
+  const stageAt  = lbMarkup.indexOf('id="lightboxStage"');
+  const chromeAt = lbMarkup.indexOf('id="lightboxChrome"');
+  const closeAt  = lbMarkup.indexOf("data-lightbox-close");
+  if (chromeAt < 0) throw new Error("the chrome layer is gone — the close button is back in the layout viewport");
+  if (!(closeAt > chromeAt)) throw new Error("the close button is outside the chrome layer");
+  // The stage is closed before the chrome opens: siblings, not nested.
+  const stageTag = lbMarkup.slice(stageAt);
+  const stageEnd = stageAt + stageTag.indexOf("</div>") + 6;
+  if (!(chromeAt > stageEnd)) throw new Error("the chrome layer is nested inside the zoom stage — the image transform will carry it");
+  // And the layer itself is the fixed one.
+  const rule = lbStyle.slice(lbStyle.indexOf("#lightboxChrome{"), lbStyle.indexOf("#lightboxChrome > *"));
+  if (!rule) throw new Error("the chrome layer has no rule of its own");
+  if (!/position:fixed/.test(rule)) throw new Error("the chrome layer is not fixed");
+  if (!/transform-origin:0 0/.test(rule)) throw new Error("the counter-scale would resolve from the centre, not the corner");
+  // It covers the screen, so it must not eat the backdrop tap.
+  if (!/pointer-events:none/.test(rule)) throw new Error("the chrome layer swallows the backdrop tap");
+  if (!/#lightboxChrome > \*\{ pointer-events:auto \}/.test(lbStyle)) throw new Error("nothing inside the chrome layer can be tapped");
+});
+
+check("the chrome is parked on the VISUAL viewport, at any zoom", () => {
+  const fn = lbSrc.slice(lbSrc.indexOf("function syncLightboxChrome(){"), lbSrc.indexOf("let lightboxChromeBound"));
+  if (!fn) throw new Error("nothing syncs the chrome to the visual viewport");
+  if (!/window\.visualViewport/.test(fn)) throw new Error("the chrome is not measured against the visual viewport");
+  /* THE TWO HALVES, AND NEITHER IS OPTIONAL. The translate follows a
+     pinched page being panned (measured: a real pinch to 2.5x left the
+     visual viewport at offset 118,240). The counter-scale is what keeps
+     44px a real 44px on glass instead of a box the zoom inflates. */
+  if (!/translate\(\$\{vv\.offsetLeft\}px, \$\{vv\.offsetTop\}px\)/.test(fn)) {
+    throw new Error("the chrome does not follow the visual viewport's offset — panning a pinched page loses it");
+  }
+  if (!/scale\(\$\{1 \/ s\}\)/.test(fn)) throw new Error("the chrome is not counter-scaled — the touch target changes size with the zoom");
+  if (!/vv\.width\s*\*\s*s/.test(fn) || !/vv\.height\s*\*\s*s/.test(fn)) {
+    throw new Error("the layer is not sized in its own pre-scale units, so the counter-scale shrinks it off the viewport");
+  }
+  if (!/if \(!vv\)/.test(fn)) throw new Error("a browser with no visualViewport is not handled");
+});
+
+check("the sync runs while the lightbox is open, and only then", () => {
+  const open = lbSrc.slice(lbSrc.indexOf("function openImageLightbox(){"), lbSrc.indexOf("/* Everything that dismisses ends up here."));
+  const dis  = lbSrc.slice(lbSrc.indexOf("function dismissLightbox(){"), lbSrc.indexOf("document.addEventListener('keydown'"));
+  if (!/bindLightboxChrome\(true\)/.test(open)) throw new Error("opening does not start tracking the visual viewport");
+  /* The page can already be pinched when the lightbox opens, so the
+     first sync cannot wait for the next resize event. */
+  if (!/syncLightboxChrome\(\)/.test(open)) throw new Error("opening onto an already-pinched page leaves the chrome misplaced");
+  if (!/bindLightboxChrome\(false\)/.test(dis)) throw new Error("closing leaves visualViewport listeners bound for good");
+  const bind = lbSrc.slice(lbSrc.indexOf("function bindLightboxChrome(on){"), lbSrc.indexOf("/* ZOOM IS OURS"));
+  for (const ev of ["'resize'", "'scroll'"]) {
+    if (!bind.includes(ev)) throw new Error(`the chrome does not track the visual viewport's ${ev}`);
+  }
+  if (!/lightboxChromeBound === on/.test(bind)) throw new Error("binding twice would leave a listener behind");
+});
+
+check("two zooms never stack", () => {
+  /* THE 'SNAPS BACK TO ZOOMED-IN' IN THE REPORT. iOS keeps pinch-zoom
+     as an accessibility gesture that page CSS cannot disable, so our
+     double-tap transform and the browser's page zoom are both live. Let
+     both be on and releasing the pinch returns the PAGE to scale 1 with
+     the photo still at 2.4 -- zoomed in, with no obvious way out. The
+     browser's is the one the shopper can always pinch back out of, so
+     a real two-finger gesture takes ours off. */
+  const g = lbSrc.slice(lbSrc.indexOf("(function bindLightboxGestures(){"), lbSrc.indexOf("/* Handed from an auto card"));
+  if (!g) throw new Error("the lightbox's gestures are gone");
+  const start = g.slice(g.indexOf("'touchstart'"), g.indexOf("'touchmove'"));
+  if (!/if \(!single\)\{/.test(start)) throw new Error("a two-finger gesture is no longer noticed");
+  if (!/setLightboxZoom\(false\)/.test(start)) throw new Error("pinching on top of our own zoom stacks the two");
+});
+
+check("the back gesture closes the lightbox and nothing else", () => {
+  /* ORDER IS THE WHOLE MECHANISM. popstate fires ON window, so window
+     IS the target -- and at the target, listeners run in REGISTRATION
+     order, capture flag or not. Registered after the router's, a
+     capture listener runs second and stopImmediatePropagation() is far
+     too late. Measured before this was fixed: tapping the X on a
+     product page landed the shopper on Ofertas. */
+  const ours = lbSrc.indexOf("if (lightboxPopPending){");
+  const router = lbSrc.indexOf("routeDepth = Math.max(0, routeDepth - 1);");
+  if (ours < 0) throw new Error("the lightbox no longer handles the back gesture");
+  if (!(ours < router)) throw new Error("the lightbox's popstate listener is registered after the router's — it will never run first");
+  if (!/e\.stopImmediatePropagation\(\);/.test(lbSrc.slice(ours, router))) throw new Error("the router still sees the lightbox's own pop");
+
+  /* AND ONE POP PER DISMISSAL. history.back() is asynchronous and the
+     close button sits INSIDE the overlay, so one tap ran
+     closeImageLightbox twice -- and the second call, with the flag not
+     yet cleared, popped a second entry. */
+  const close = lbSrc.slice(lbSrc.indexOf("function closeImageLightbox(event){"), lbSrc.indexOf("function dismissLightbox(){"));
+  if (!/if \(lightboxHistoryPushed && !lightboxPopPending\)/.test(close)) throw new Error("two handlers on one tap can pop two history entries");
+  if (!/lightboxHistoryPushed = false;\s*\n\s*lightboxPopPending = true;/.test(close)) {
+    throw new Error("the flag is not cleared before the asynchronous back()");
+  }
+  if (!/if \(!lightboxIsOpen\(\) && !lightboxHistoryPushed\) return;/.test(close)) throw new Error("a second dismissal is not a no-op");
+});
 
 
 /* ==================================================================
@@ -5318,6 +5555,352 @@ check("the cards are the Ofertas component, and they route back through showProd
 });
 
 
+group("Search answers from the catalogue first");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand, retailer) => ({ title, brand: brand || "", retailer: retailer || "macys", price: 20 });
+
+  check("a token matches a word, never a substring inside one", () => {
+    /* THE BUG THIS PINS. Scoring on haystack.includes(token) ranked
+       "Vanity Fair ... Contour Bra" above Nike trainers for "Nike Air
+       Force", because "air" is inside "Fair". Measured, and the reason
+       matching is on whole words now. */
+    const bra = P("Beauty Back Smoothing Full-Figure Contour Bra", "Vanity Fair Lingerie");
+    const shoe = P("Zoom Vomero 5 Sneakers", "Nike");
+    const toks = cs.searchTokens("nike air force");
+    if (cs.scoreCatalogItem(bra, toks) > 0) throw new Error('"air" matched inside "Fair" — substring matching is back');
+    if (!(cs.scoreCatalogItem(shoe, toks) > 0)) throw new Error("a Nike product no longer matches the word Nike");
+    /* Compare by title, not identity: ranked items are copies now, so
+       the match score can ride along with each one and survive the
+       feed's own sort. */
+    const { items } = cs.rankCatalogMatches([bra, shoe], "nike air force", {});
+    if (items[0].title !== shoe.title) throw new Error("the bra outranks the Nike trainers again");
+    if (!Number.isFinite(items[0].matchScore)) throw new Error("the match score is not carried on the item — any re-sort loses the ranking");
+  });
+
+  check("a pluralised translation still finds the singular title", () => {
+    /* translateQuery("Vitamina D3") returns "vitamins D3" -- the Spanish
+       layer pluralises -- while the catalogue says "Vitamin D3".
+       Measured before the fix: 0 full matches on 5 correct products, on
+       one of the four queries the brief names. */
+    const item = P("Nature Made Extra Strength Vitamin D3 5000 IU", "Nature Made");
+    const res = cs.rankCatalogMatches([item], "vitamins d3", {});
+    if (res.exact !== 1) throw new Error(`"vitamins d3" did not fully match "Vitamin D3" (exact ${res.exact})`);
+    // ...and the stem floor still keeps short tokens from matching everything.
+    if (cs.catalogTokenHits(new Set(["sneakers"]), ["a"]) !== 0) throw new Error('"a" matched a word that starts with it');
+    if (cs.catalogTokenHits(new Set(["de"]), ["desodorante"]) !== 0) throw new Error("a 2-letter word matched a long token");
+  });
+
+  check("matching every token outranks matching some, and a brand hit outranks a title hit", () => {
+    const toks = cs.searchTokens("nike shorts");
+    const both = P("Pro 3in Shorts", "Nike");
+    const brandOnly = P("Zoom Vomero 5 Sneakers", "Nike");
+    const titleOnly = P("Cargo Shorts With Stretch", "");
+    const s1 = cs.scoreCatalogItem(both, toks), s2 = cs.scoreCatalogItem(brandOnly, toks), s3 = cs.scoreCatalogItem(titleOnly, toks);
+    if (!(s1 > s2)) throw new Error("a full match does not outrank a brand-only match");
+    if (!(s2 > s3)) throw new Error("a brand hit does not outrank an incidental title word");
+
+    /* AND THE ORDERING THE BRAND BONUS WOULD OTHERWISE BREAK. Coverage
+       alone puts a brand-only partial (0.5 + 0.75 brand = 1.25) ABOVE a
+       product that matched every word (1.0). Something that answers the
+       whole question must never rank below something that answered half
+       of it loudly, which is what the full-match bonus is for. */
+    const everyWord = P("Nike Pro Shorts", "");            // both tokens, no brand field
+    const brandHalf = P("Zoom Vomero 5 Sneakers", "Nike"); // half the tokens, brand hit
+    if (!(cs.scoreCatalogItem(everyWord, toks) > cs.scoreCatalogItem(brandHalf, toks))) {
+      throw new Error("a brand-only partial match outranks a product that matched every word");
+    }
+  });
+
+  check("thin is counted in FULL matches, never in the total", () => {
+    /* The catalogue holds no Air Force and twelve Nikes. Twelve results
+       with zero full matches is exactly when the live offer has to be
+       loud, so the count that decides it cannot be the total. */
+    const pool = Array.from({ length: 12 }, (_, i) => P(`Nike thing ${i}`, "Nike"));
+    const res = cs.rankCatalogMatches(pool, "nike air force", {});
+    if (res.exact !== 0) throw new Error("something matched all of 'nike air force'");
+    if (res.partial !== 12) throw new Error(`expected 12 partial matches, got ${res.partial}`);
+    if (!cs.catalogResultsAreThin(res)) throw new Error("12 partial matches and 0 full ones did not read as thin");
+    const solid = cs.rankCatalogMatches(Array.from({ length: 4 }, (_, i) => P(`Cargo Pants ${i}`)), "pants", {});
+    if (cs.catalogResultsAreThin(solid)) throw new Error("4 full matches read as thin");
+  });
+
+  check("an accented word is one token, not two", () => {
+    /* THE BUG, AND IT IS THE SUBSTRING BUG WEARING A DIFFERENT HAT.
+       `[a-z0-9]+` treats "ú" as a separator, so "búscame" tokenised to
+       ["b","scame"] -- and a ONE-CHARACTER token was then allowed to
+       prefix-match every word starting with b. Measured on the real
+       catalogue for "búscame unos tenis Nike": 2,144 partial matches,
+       televisions and a gift box ranked as answers about trainers.
+       After: 19, all footwear. */
+    if (cs.searchTokens("búscame").join(",") !== "buscame") throw new Error("an accented word still splits into pieces");
+    if (cs.searchTokens("Niños").join(",") !== "ninos") throw new Error("ñ splits the word");
+    // ...and a short token may no longer wildcard its way across the shelf.
+    const tv = P("onn 32 in Class 720p HD Smart TV", "");
+    if (cs.scoreCatalogItem(tv, ["b"]) > 0) throw new Error('"b" matched a word merely beginning with b');
+    if (cs.scoreCatalogItem(tv, ["sm"]) > 0) throw new Error('a two-letter prefix still wildcards');
+    // An EXACT word of any length is still a match: "tv", "d3", "5k".
+    if (!(cs.scoreCatalogItem(tv, ["tv"]) > 0)) throw new Error('"tv" no longer matches the word TV');
+  });
+
+  check("the rare word outranks the common one", () => {
+    /* "sneakers nike" put a generic running shoe exactly level with a
+       Nike trainer -- each matched one of two words, so each scored
+       0.5. Hundreds of sneakers are in the catalogue and a few dozen
+       Nikes, so "nike" carried nearly all of the intent. Tokens are
+       weighted by how many items they match. */
+    const pool = [
+      ...Array.from({ length: 60 }, (_, i) => P(`Everyday Backpack model ${i}`, "")),
+      P("Nike Brasilia Backpack", ""),
+    ];
+    /* Deliberately NOT a category word: "sneakers" now carries a
+       footwear intent, and this check is about rarity weighting, not
+       about category filtering. */
+    const { items } = cs.rankCatalogMatches(pool, "backpack nike", {});
+    if (!/Nike/.test(items[0].title)) throw new Error(`the common word still wins: "${items[0].title}"`);
+    const w = cs.catalogTokenWeights(pool, ["backpack", "nike"]);
+    if (!(w[1] > w[0])) throw new Error("the rarer token is not weighted higher");
+  });
+
+check("a category query is answered by category, not by wording", () => {
+    /* TRACED AGAINST PRODUCTION. "María, búscame zapatos para niño"
+       ranked women's jeans first (the leaked "María" prefix-matched
+       "Mariah", and rarity weighting made that junk token the most
+       valuable thing in the query), then a dress shoe, then vitamin
+       gummies and T-shirts that matched nothing but "boys".
+
+       Worse, the real answer could not appear at all: "zapatos"
+       translates to "shoes" and no Foot Locker title contains that
+       word -- they read "Jordan Retro 4 - Boys' Grade School". */
+    const shoe = (title, retailer) => ({ title, retailer: retailer || "footlocker", price: 90, departments: ["kids"] });
+    const notShoe = (title) => ({ title, retailer: "target", price: 10, departments: ["pharmacy"] });
+    // categoryOf is injected here; in the page it is catalogItemCategory,
+    // which reads sizeCategoryFor -- the size picker's own rule.
+    const categoryOf = (it) => (it.retailer === "footlocker" || /shoe|sneaker/i.test(it.title) ? "footwear" : null);
+
+    const pool = [
+      notShoe("Juniors' Mariah High-Rise Baggy Wide-Leg Jeans"),
+      notShoe("One A Day Teen Multivitamin Gummies for Boys"),
+      notShoe("Short-Sleeve Graphic T-Shirt for Boys"),
+      shoe("Jordan Retro 4 - Boys' Grade School"),
+      shoe("New Balance 9060 - Boys' Grade School"),
+    ];
+    const res = cs.rankCatalogMatches(pool, "shoes boys", { categoryOf });
+    // 1. Cross-category noise is not a candidate at all.
+    for (const it of res.items) {
+      if (/Mariah|Gummies|T-Shirt/.test(it.title)) throw new Error(`cross-category noise came back: "${it.title}"`);
+    }
+    // 2. A title that never says "shoes" still answers a shoe query.
+    if (!res.items.some((i) => /Jordan Retro 4/.test(i.title))) {
+      throw new Error("Foot Locker's inventory is still invisible to a shoe query");
+    }
+    // ...and it counts as a FULL match, not a partial one.
+    if (res.exact < 2) throw new Error(`the category words were not credited to the item (exact ${res.exact})`);
+  });
+
+check("an item's own category is read three ways, and each one matters", () => {
+    /* The ranking checks above inject categoryOf, so this exercises the
+       REAL catalogItemCategory. In this sandbox sizeCategoryFor does
+       not exist -- that is deliberate, and it isolates the two rules
+       that do not need it. */
+    if (cs.catalogItemCategory({ title: "Jordan Retro 4", retailer: "footlocker", departments: ["shoes"] }) !== "footwear") {
+      throw new Error("a footwear DEPARTMENT no longer settles it");
+    }
+    if (cs.catalogItemCategory({ title: "Running Sneakers, Wide Width", retailer: "walmart", departments: ["clothing"] }) !== "footwear") {
+      throw new Error("a title that names footwear no longer settles it");
+    }
+    if (cs.catalogItemCategory({ title: "Graphic T-Shirt for Boys", retailer: "oldnavy", departments: ["kids"] }) !== null) {
+      throw new Error("a T-shirt reads as footwear");
+    }
+    /* And the boot caveat holds on the item side too, or every pair of
+       bootcut jeans becomes a candidate for a shoe query. */
+    if (cs.catalogItemCategory({ title: "725 High-Waist Stretch Bootcut Jeans", retailer: "macys", departments: ["women"] }) !== null) {
+      throw new Error("bootcut jeans read as footwear");
+    }
+  });
+
+    check("a query with no category intent is left alone", () => {
+    /* The filter must not fire on everything -- "vitamin d3" has no
+       category, so nothing is excluded and the old behaviour stands. */
+    const categoryOf = () => "footwear";
+    const pool = [P("Nature Made Vitamin D3 Softgels", ""), P("Something Else", "")];
+    const res = cs.rankCatalogMatches(pool, "vitamin d3", { categoryOf });
+    if (!res.items.length) throw new Error("a query with no category intent was filtered anyway");
+    if (cs.queryCategoryIntent("vitamin d3")) throw new Error("'vitamin d3' reads as a category query");
+    if (cs.queryCategoryIntent("zapatos") ) throw new Error("the intent is read from the Spanish, not the translated query");
+    if (cs.queryCategoryIntent("shoes") !== "footwear") throw new Error("'shoes' no longer names a category");
+  });
+
+    check("an empty query matches nothing at all", () => {
+    // Otherwise a stray submit would render the whole catalogue as "results".
+    for (const q of ["", "   ", "!!!"]) {
+      const res = cs.rankCatalogMatches([P("Cargo Pants")], q, {});
+      if (res.items.length) throw new Error(`"${q}" returned ${res.items.length} results`);
+    }
+  });
+
+  check("the feed is capped, and the cap keeps the best", () => {
+    const pool = [...Array.from({ length: 200 }, (_, i) => P(`Pants ${i}`)), P("Cargo Pants", "Nike")];
+    const res = cs.rankCatalogMatches(pool, "nike pants", {});
+    if (res.items.length !== cs.CATALOG_SEARCH_LIMIT) throw new Error(`cap is ${cs.CATALOG_SEARCH_LIMIT}, got ${res.items.length}`);
+    if (res.items[0].brand !== "Nike") throw new Error("the cap dropped the best match");
+  });
+}
+
+check("Aria reads the catalogue before she ever calls a store", () => {
+  /* THE BUG. runAssistantBrain fanned straight out to Apify on every
+     product question. With the account over its limit the shopper sat
+     through four timeouts, read "Tuve un problema buscando eso", and
+     the model -- handed no products -- said we had none. We had them. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const brainAt = src.indexOf("async function runAssistantBrain(text){");
+  const brain = src.slice(brainAt, src.indexOf("/* ONE PAYLOAD, TWO ENDPOINTS.", brainAt));
+  if (!brain) throw new Error("runAssistantBrain is gone");
+  if (/scrapeRetailer\s*\(/.test(brain)) throw new Error("Aria scrapes again on every question — billable, and dead when Apify is");
+  if (!/await catalogSearch\(searchQuery/.test(brain)) throw new Error("Aria no longer asks the catalogue");
+  if (!/addAssistantLiveOffer\(searchQuery\)/.test(brain)) throw new Error("there is no way to ask for a live search from the chat");
+  // The live fan-out still exists — it just waits to be asked.
+  const liveAt = src.indexOf("async function runAssistantLiveSearch(query){");
+  if (liveAt < 0) throw new Error("the chat's live search is gone entirely");
+  const live = src.slice(liveAt, src.indexOf("async function runAssistantBrain(text){", liveAt));
+  if (!/scrapeRetailer\s*\(/.test(live)) throw new Error("the chat's live search no longer scrapes");
+  /* Every store failing is our fault and must not be worded as an
+     answer about the product — same rule as the results page. */
+  if (!/failedStores\.length === CHAT_RETAILERS\.length/.test(live)) throw new Error("a partial failure now reads as total");
+  if (!/La búsqueda en vivo no está disponible en este momento/.test(live)) throw new Error("the honest wording is gone from the chat");
+});
+
+check("her own name is not part of the order", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fnAt = src.indexOf("function stripAriaVocative(raw){");
+  if (fnAt < 0) throw new Error("the vocative is back in the query");
+  const build = src.slice(src.indexOf("function buildChatSearchQuery(text, recipient){"), src.indexOf("const extra = [];"));
+  if (!/stripAriaVocative\(String\(text \|\| ''\)\)/.test(build)) throw new Error("the retail query still carries the name");
+  const ack = src.slice(src.indexOf("function chatAckEs(text){"), src.indexOf("const short = clampWords"));
+  if (!/stripAriaVocative\(text\)/.test(ack)) throw new Error("the status line still echoes the name back");
+  /* THE MISHEARD NAMES ARE ALSO REAL WORDS. "area rug" is a product and
+     "Maria Tash" is a jewellery house, so these are only stripped when
+     what follows settles it -- punctuation, or a request verb. Asserted
+     by RUNNING the function: this used to pin the regex's source text,
+     which broke the moment the pattern was rewritten to cover "María"
+     even though every behaviour it cared about still held. */
+  const strip = new Function(src.slice(src.indexOf("const ARIA_GREETED_VOCATIVE_RE"), src.indexOf("function buildChatSearchQuery"))
+    + ";return stripAriaVocative;")();
+  for (const [input, want] of [
+    ["Aria, búscame unos tenis", "búscame unos tenis"],
+    ["hey Aria zapatos", "zapatos"],
+    ["Area, busca zapatillas", "busca zapatillas"],
+    ["María, búscame zapatos para niño", "búscame zapatos para niño"],
+    ["Maria busca zapatos", "busca zapatos"],
+    ["area rug", "area rug"],
+    ["Maria Tash earrings", "Maria Tash earrings"],
+    ["Aria", "Aria"],
+  ]) {
+    const got = strip(input);
+    if (got !== want) throw new Error(`stripAriaVocative(${JSON.stringify(input)}) = ${JSON.stringify(got)}, wanted ${JSON.stringify(want)}`);
+  }
+});
+
+check("the live offer is refined before it is spent", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveChipsOnly()"));
+  if (!offer) throw new Error("the live-search offer is gone");
+  for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU."]) {
+    if (!offer.includes(copy)) throw new Error(`the agreed copy is gone: "${copy}"`);
+  }
+  if (!/data-live-refine/.test(offer)) throw new Error("there is no box to refine the query in");
+  if (!/value="\$\{escapeHtml\(current\)\}"/.test(offer)) throw new Error("the box is not prefilled with the shopper's query");
+  if (/readonly|disabled/i.test(offer)) throw new Error("the box is not editable");
+  /* 16px MINIMUM. Anything smaller and mobile Safari zooms the page in
+     on focus, stranding the shopper zoomed on a panel they were only
+     correcting a word in. */
+  if (!/text-\[16px\]/.test(offer)) throw new Error("the refine box is under 16px — iOS will zoom the page on focus");
+  if (!/liveRefineChipsHTML\(current\)/.test(offer)) throw new Error("the category chips are gone");
+  // The scan must go out with what is in the box, not the original words.
+  const runAt = src.indexOf("async function runLiveSearch(){");
+  const run = src.slice(runAt, runAt + 900);
+  if (!/const query = liveRefineValue\(\)\.trim\(\);/.test(run)) {
+    throw new Error("the live scan ignores the refined query — every chip and correction would be a lie");
+  }
+  // Yellow means a discount here, and this is not one.
+  if (/var\(--yellow/.test(offer)) throw new Error("the offer is wearing the discount colour");
+});
+
+check("a trouser cut is not a shoe", () => {
+  /* \bboot MATCHED "Bootcut". Bootcut is a trouser leg, and the
+     catalogue is full of them -- measured, 23 of the 148 items the
+     catalogue classified as footwear were trousers, every one of them
+     offered SHOE sizes by the PDP's picker. */
+  const sz = loadPageSizeSlice();
+  /* "Bootcut Corduroy" carries NO garment noun, so the precedence rule
+     cannot rescue it -- only the closing \\b and the lookahead can. */
+  if (sz.sizeCategoryFor("macys", "Bootcut Corduroy") !== "clothing") throw new Error("'Bootcut Corduroy' is sized as footwear");
+  if (sz.sizeCategoryFor("macys", "Boot-Cut Corduroy") !== "clothing") throw new Error("'Boot-Cut Corduroy' is sized as footwear");
+  for (const t of ["Regular Fit Boot Cut Jeans", "Women's Mid-Rise Bootcut Pants",
+                   "725 High-Waist Classic Stretch Bootcut Jeans", "Women's 725 High-Rise Kick Boot Jeans",
+                   "Green Boot-Cut Track Pants", "Premium Women's Wedgie Boot High-Rise Jeans"]) {
+    if (sz.sizeCategoryFor("macys", t) !== "clothing") throw new Error(`"${t}" is sized as footwear`);
+  }
+  /* And real boots still are shoes -- including the singular, which is
+     how SSENSE writes them, and which carries no garment word. */
+  for (const t of ["Ankle Boots", "Chelsea Boot", "Booties", "Dress Shoes", "Leather Sneakers"]) {
+    if (sz.sizeCategoryFor("macys", t) !== "shoe") throw new Error(`"${t}" stopped being footwear`);
+  }
+});
+
+check("searching never starts an Apify run on its own", () => {
+  /* THE COST LEAK AND THE OUTAGE, WHICH ARE THE SAME LINE. showResults()
+     used to fan out to every retailer on every submit: a bill per
+     search, and a blank page the moment Apify stopped answering. The
+     fan-out lives in runLiveSearch() now, which only a click reaches. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const show = src.slice(src.indexOf("async function showResults(query, opts = {})"), src.indexOf("async function runLiveSearch()"));
+  if (!show) throw new Error("showResults or runLiveSearch is gone");
+  if (/scrapeRetailer\s*\(/.test(show)) throw new Error("showResults scrapes again — every search is billable and dies with Apify");
+  if (!/await catalogSearch\(/.test(show)) throw new Error("showResults no longer asks the catalogue");
+  const liveFrom = src.indexOf("async function runLiveSearch()");
+  const live = src.slice(liveFrom, src.indexOf("// RULE: every product card on the site", liveFrom));
+  if (!/scrapeRetailer\s*\(/.test(live)) throw new Error("the live scan no longer scrapes anything");
+  if (!/onclick="runLiveSearch\(\)"/.test(src)) throw new Error("nothing in the page can start a live search");
+});
+
+check("the shopper is told the truth when live search cannot run", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const offer = src.slice(src.indexOf("function liveSearchOfferHTML()"), src.indexOf("function renderLiveSearchOffer()"));
+  if (!offer) throw new Error("the live-search offer is gone");
+  for (const copy of ["¿No lo encuentras aquí? Búscalo en vivo.", "Buscamos en este momento en tiendas de EE. UU.", "La búsqueda en vivo no está disponible en este momento."]) {
+    if (!offer.includes(copy)) throw new Error(`the agreed copy is gone: "${copy}"`);
+  }
+  /* "Unavailable" is OUR failure and must not be worded as an answer
+     about the product -- and it must be reachable only when every store
+     failed, not when they all answered "nothing". */
+  /* SLICE FORWARDS. liveSearchOfferHTML() is declared ABOVE
+     runLiveSearch(), so slicing from the one to the other ran backwards
+     and handed this check an empty string -- which passed every regex
+     put to it while measuring nothing. End on something that genuinely
+     follows the function. */
+  const liveAt = src.indexOf("async function runLiveSearch()");
+  const live = src.slice(liveAt, src.indexOf("// RULE: every product card on the site", liveAt));
+  if (!live) throw new Error("runLiveSearch's end marker moved");
+  if (!/failures\.length === GENERAL_RETAILERS\.length \? 'unavailable' : 'done'/.test(live)) {
+    throw new Error("a partial failure now reads as 'live search is unavailable'");
+  }
+  // Yellow means a discount on this site. The offer is not one.
+  if (/var\(--yellow/.test(offer)) throw new Error("the live-search offer is wearing the discount colour");
+});
+
+check("every store that can appear in the feed can also be ticked", () => {
+  /* Measured: "pants" matched 46 Macy's products and 2 Walmart ones and
+     the page rendered 2, because the filter list was GENERAL_RETAILERS
+     -- the four scrapeable stores -- so activeSearchStores() silently
+     excluded every browse-only store the catalogue had just found. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const init = src.slice(src.indexOf("function initResultsFilters()"), src.indexOf("// Runs a real live search"));
+  if (!/CATALOG_RETAILERS\.map/.test(init)) throw new Error("the results filter is built from the live retailers again — browse-only stores get filtered out of their own results");
+});
+
+
 /* ==================================================================
    THE FARFETCH TREATMENT.
 
@@ -5463,7 +6046,16 @@ check("'Explora más' is outlined, and the card's CTA is the same quiet shape", 
   const body = productCard.slice(productCard.indexOf("return `"));
   if (!/class="ariaExploraMas w-full focus-ring"/.test(body)) throw new Error("the card's CTA is not the quiet outlined shape");
   if (/background:var\(--blue\)/.test(body)) throw new Error("the card's CTA is a filled blue slab again");
-  if (!/>Comprar</.test(body)) throw new Error("the card lost its CTA entirely");
+  /* ASSERTED AS THE CONDITIONAL IT IS. This read `/>Comprar</` -- a
+     literal label -- while the comment right above it describes the
+     Comprar / Ver detalle distinction. The visual brief was written on
+     a base where that distinction did not exist yet, so its code
+     hardcoded "Comprar" and its test matched the hardcoding rather
+     than the rule it had just written down. Both labels, through the
+     price test, is what the comment means. */
+  if (!/>\$\{hasPrice \? 'Comprar' : 'Ver detalle'\}</.test(body)) {
+    throw new Error("the card's CTA no longer switches on whether there is a price — it can promise a purchase the product page cannot complete");
+  }
 });
 
 check("the image-quality gate survived the restyle", () => {
@@ -5479,6 +6071,77 @@ check("the image-quality gate survived the restyle", () => {
   if (!existsSync(root("scripts/image-price-scan.js"))) throw new Error("the scanner that sets imageReview is gone");
 });
 
+
+/* ------------------------------------------------------------------ */
+group("no price, no buy button");
+
+check("a priceless record is a real thing in the cache, not a hypothesis", () => {
+  /* REPORTED FROM THE LIVE SITE: "Farmhouse Stripe Bedding Collection",
+     a Target home_goods record cached with price: null, rendered
+     "Precio no disponible" beside a live "Agregar al carrito" button.
+     Tapping it wrote priceUsd: 0 into the cart.
+
+     This asserts the INPUT still exists, so the guards below are never
+     mistaken for dead code. If a future cache really has a price for
+     everything, this line is the one that says so out loud. */
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const priceless = [];
+  for (const [retailer, data] of Object.entries(cache.retailers || {})) {
+    for (const [dept, bucket] of Object.entries(data.departments || {})) {
+      for (const item of bucket.items || []) {
+        const n = Number(item.price);
+        if (!(Number.isFinite(n) && n > 0)) priceless.push(`${retailer}/${dept}`);
+      }
+    }
+  }
+  if (!priceless.length) throw new Error("no priceless records left — re-check whether these guards are still needed");
+  // Both flavours the scrapers produce: an explicit null and an empty string.
+  if (priceless.length < 10) throw new Error(`only ${priceless.length} priceless records — verify this is still the live shape`);
+});
+
+check("the guard is at the funnel, not only at the button", () => {
+  /* THREE LAYERS, ON PURPOSE. A disabled button is a courtesy — the
+     console, a stale page and a second entry point all route around it.
+     addToCart() is where every caller passes, which is why the weight
+     guard already lives there, and it is where the price guard belongs
+     too. The cross-sell rail was the proof: it passed `priceUsd:
+     it.price` straight through and never looked at it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+
+  const funnel = src.slice(src.indexOf("function addToCart(item){"), src.indexOf("function removeFromCartByKey("));
+  if (!/Number\.isFinite\(usd\) && usd > 0/.test(funnel)) throw new Error("addToCart no longer refuses a priceless line");
+  if (!/return false/.test(funnel)) throw new Error("addToCart no longer tells its caller it refused");
+  if (!/return true/.test(funnel)) throw new Error("addToCart no longer confirms the line landed");
+
+  const fromProduct = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("LIVE APIFY SCRAPING") >= 0 ? src.indexOf("LIVE APIFY SCRAPING") : src.length);
+  if (!/Number\.isFinite\(p\.totalUsd\) && p\.totalUsd > 0/.test(fromProduct)) throw new Error("the product page no longer checks its own price");
+  /* THE LINE THAT CAUSED IT. `priceUsd: Number.isFinite(...) ? ... : 0`
+     is how a priceless product became a $0 line; there must be no zero
+     fallback left anywhere near a cart line. */
+  if (/priceUsd:\s*Number\.isFinite\([^)]*\)\s*\?[^:]*:\s*0/.test(src)) {
+    throw new Error("a cart line can still fall back to priceUsd: 0");
+  }
+
+  // Both callers stop claiming a success that did not happen.
+  eq((src.match(/if \(!addToCart\(/g) || []).length, 2, "callers that check addToCart's answer");
+
+  // And the button's two states are set in one place.
+  if (!/function setProductBuyable\(/.test(src)) throw new Error("the buy button's states are no longer set in one place");
+  const buyable = src.slice(src.indexOf("function setProductBuyable("), src.indexOf("function addToCartFromProduct("));
+  for (const [what, re] of [["disabled", /btn\.disabled = !hasPrice/], ["relabelled", /btn\.textContent = hasPrice/], ["greyed", /btn\.style\.background/]]) {
+    if (!re.test(buyable)) throw new Error(`the disabled buy button is not ${what}`);
+  }
+});
+
+check("a card with no price does not say Comprar", () => {
+  // The card's button only ever navigates, so the fix is what it CLAIMS:
+  // "Comprar" over "Precio no disponible" is a promise the page it opens
+  // cannot keep. Browsing a priceless record stays possible.
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const card = src.slice(src.indexOf("function productCardHTML(p, opts){"), src.indexOf("function renderSalesGrid("));
+  if (!/hasPrice \? 'Comprar' : 'Ver detalle'/.test(card)) throw new Error("the card still promises a purchase without a price");
+  if (!/Precio no disponible/.test(card)) throw new Error("the card no longer says the price is missing");
+});
 
 /* ------------------------------------------------------------------ */
 group("The home page tells the story once");
