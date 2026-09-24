@@ -449,3 +449,23 @@ export function loadPageCurvySlice() {
   );
   return sandbox.__exports;
 }
+
+/* The carousel selection mirror: the pure pick/mix functions index.html
+   carries line-for-line from scripts/lib/carousel.js. Pure — no DOM. */
+export function loadPageCarouselSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const CAROUSEL_MAX = 16;");
+  const to = html.indexOf("/* END OF THE CAROUSEL SELECTION MIRROR */");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html carousel markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { CAROUSEL_MAX, CAROUSEL_MIN_ITEMS, carouselItemKey, carouselHasPhoto, carouselPickItems, carouselMixItems };",
+    sandbox,
+    { filename: "index.html#carousel" },
+  );
+  return sandbox.__exports;
+}
