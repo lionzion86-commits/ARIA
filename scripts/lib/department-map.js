@@ -104,13 +104,31 @@ export const BUCKET_SPEC = {
    Removing it does not leave those items homeless: a title with no gender
    marker falls back to the gender of the BUCKET it was scraped from
    (genderOfItem below), which for all 19 is women. */
-const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|babys?|baby|ni[ñn][oa]s?)\b/i;
+/* "BABY" IS NOT ALWAYS AN INFANT (2026-09-24). In adult fashion "baby"
+   is a style word — "baby tee" (a fitted short tee), "baby-rib" (a fine
+   knit), "baby doll" (a dress silhouette) — and "baby mama" is maternity
+   slang. Three Victoria's Secret pieces (two PINK, one Bumpsuit maternity)
+   landed in Moda Ninos on the word alone. A bare "baby" no longer marks
+   kidswear; genuine infant goods still match "newborn", "infant",
+   "toddler", or an explicit "baby boy"/"baby girl". */
+const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|ni[ñn][oa]s?|newborn|new\s*born|baby\s*(boys?|girls?))\b/i;
 const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
 const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
 
 export function titleOf(item) {
   return item?.title || item?.name || item?.productTitle || item?.productName || "";
 }
+
+function brandOf(item) {
+  return item?.brand || "";
+}
+
+/* PINK IS WOMENSWEAR, FULL STOP (2026-09-24). Victoria's Secret's PINK
+   line is young-womenswear; its pieces are never kidswear no matter what
+   the title says ("Baby Tee" is a fit, "Baby-Rib" a knit). Tested against
+   the brand field, never the title — "pink" is also a colour, and a
+   girl's pink dress must stay a girl's pink dress. */
+const PINK_BRAND = /\bpink\b/i;
 
 // Gender a title positively states, or null. Kids wins over men/women: a
 // "Boys' Men's-Style Shirt" is kidswear.
@@ -126,6 +144,7 @@ export function genderFromTitle(title) {
 // this is what keeps boys' items out of Moda Hombre when a retailer's
 // gender facet leaks (Old Navy's does).
 export function genderOfItem(item, bucketName) {
+  if (PINK_BRAND.test(brandOf(item))) return "women";
   const fromTitle = genderFromTitle(titleOf(item));
   const bucketGender = BUCKET_SPEC[bucketName]?.gender || null;
   if (fromTitle) return fromTitle;
