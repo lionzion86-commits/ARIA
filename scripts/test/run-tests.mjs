@@ -7587,6 +7587,21 @@ group("store carousels: window-shopping rails");
     if (!css.includes('[data-store-theme="victoriassecret"] .ariaCarouselTitle')) {
       throw new Error("the VS theme does not re-ink the rail title");
     }
+    // PINK-NOT-BLACK (2026-09-24): Danny — the VS ambient stays
+    // recognizably pink all the way down. The base gradient must end in
+    // a deep pink, never a near-black.
+    const vsTheme = css.slice(css.indexOf('[data-store-theme="victoriassecret"]{'), css.indexOf('[data-store-theme="victoriassecret"] h1'));
+    if (!/linear-gradient\(180deg,\s*#[0-9A-Fa-f]{6}\s*0%,\s*#[0-9A-Fa-f]{6}\s*52%,\s*#[0-9A-Fa-f]{6}\s*100%\)/.test(vsTheme)) {
+      throw new Error("the VS theme lost its three-stop pink base gradient");
+    }
+    const stops = vsTheme.match(/#[0-9A-Fa-f]{6}/g) || [];
+    const lum = (hex) => {
+      const n = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      return 0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2];
+    };
+    for (const s of stops) {
+      if (lum(s) < 0.03) throw new Error(`the VS base gradient stop ${s} is near-black — keep it pink`);
+    }
     const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
     if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
   });
