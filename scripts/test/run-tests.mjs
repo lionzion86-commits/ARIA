@@ -15,7 +15,8 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice } from "./_page-script.mjs";
+
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -6890,7 +6891,6 @@ check("the new card is built from the same parts as its neighbours", () => {
   const colours = [...card.matchAll(/color:(#[0-9A-Fa-f]{3,6})/g)].map((m) => m[1]);
   eq([...new Set(colours)].sort().join(","), "#D7E0F4,#fff", `the card introduced a colour: ${colours.join()}`);
 });
-
 group("No vitamins, and no way back to them");
 
 /* ==================================================================
@@ -7031,6 +7031,144 @@ check("a pharmacy bucket that arrives anyway is dropped at the load boundary", (
   }
 });
 
+
+group("Curvy promises only the sizes a store actually publishes");
+
+const curvy = loadPageCurvySlice();
+
+/* ==================================================================
+   CURVY (2026-09-24), and the one rule it cannot bend.
+
+   A shopper who wears a 2X is underserved everywhere in Peru. The way
+   to insult her is to fill a page with "Plus Size" in the product name
+   and let her find out at checkout. So the filter reads the retailer's
+   own size list and nothing else, and these checks pin that rather than
+   the tidiness of the section.
+   ================================================================== */
+
+check("curvy is a size filter over apparel, not a category a store scrapes into", () => {
+  const spec = deptMap.DEPARTMENT_SPEC.curvy;
+  if (!spec) throw new Error("curvy is not a department");
+  eq(spec.category, "apparel", "curvy is not scoped to apparel");
+  eq(spec.extendedSizesOnly, true, "curvy no longer filters on the size run");
+  /* It must NOT be a bucket: no retailer scrapes a "curvy" aisle, and
+     declaring one would make the page depend on a bucket name instead
+     of on the data. */
+  if (deptMap.BUCKET_SPEC.curvy) throw new Error("curvy became a scrape bucket — it is a filter, not an aisle");
+});
+
+check("curvy took the slot pharmacy left, and kept its own cover", () => {
+  eq(Boolean(covers.CATEGORY_COVERS.curvy), true, "curvy has no curated cover");
+  eq(covers.CATEGORY_COVERS.curvy, "assets/category/curvy.jpg", "the cover is not the approved file");
+  if (!existsSync(root("assets/category/curvy.jpg"))) throw new Error("assets/category/curvy.jpg is not committed");
+  if (deptMap.DEPARTMENT_SPEC.pharmacy) throw new Error("pharmacy is back — curvy was meant to replace it");
+});
+
+check("the name is Danny's, and the supporting line carries the search words", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const meta = src.slice(src.indexOf("const DEPARTMENT_META = {"), src.indexOf("\n};", src.indexOf("const DEPARTMENT_META = {")));
+  if (!/curvy:\s*\{\s*label:\s*'Curvy'/.test(meta)) throw new Error("the department is no longer labelled Curvy");
+  /* NEVER "Big & Tall", and never English beyond the one word Danny
+     chose. The supporting copy is where the Spanish lives. */
+  if (/big\s*&?\s*tall/i.test(src)) throw new Error('"Big & Tall" is on the page');
+  if (!/const CURVY_BLURB = 'Tallas grandes y extendidas'/.test(src)) {
+    throw new Error("the supporting line no longer says tallas grandes y extendidas");
+  }
+});
+
+check("a product name can never put an item in Curvy", () => {
+  /* THE WHOLE POINT. This is the shape of the bug the section exists to
+     avoid: marketing copy in a title is not a size the store will ship. */
+  const { hasExtendedSizes, extendedSizesOf } = curvy;
+  eq(hasExtendedSizes({ name: "Plus Size Curvy Tunic 3X 4X", availableSizes: ["s", "m", "l"] }), false,
+     "a title full of size words got in with no extended size published");
+  eq(hasExtendedSizes({ name: "Plus Size Tunic" }), false, "an item with NO size list at all got in");
+  eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "m", "l", "xl"] }), false,
+     "a standard run counted as extended");
+  eq(hasExtendedSizes({ name: "Plain Tee", availableSizes: ["s", "3x"] }), true, "a real 3X was rejected");
+  eq(extendedSizesOf({ availableSizes: ["xs", "s", "m", "l", "xl", "xxl", "3x"] }).join(","), "xxl,3x",
+     "the extended subset is wrong");
+  /* A malformed list must not throw and must not qualify. */
+  for (const bad of [undefined, null, "xxl", 3, {}, [1, 2], [null]]) {
+    eq(hasExtendedSizes({ availableSizes: bad }), false, `a ${typeof bad} size list qualified an item`);
+  }
+});
+
+check("the size run is printed biggest-last and deduped", () => {
+  const { sizeRunLabels } = curvy;
+  eq(sizeRunLabels({ availableSizes: ["xxxxl", "xxl", "l", "xxxl"] }).join(" "), "XXL XXXL XXXXL",
+     "the run is out of order");
+  eq(sizeRunLabels({ availableSizes: ["3X", "3x", "xxl"] }).join(" "), "XXL 3X", "the run repeats a size");
+  eq(sizeRunLabels({ availableSizes: ["s", "m"] }).join(" "), "", "a standard run printed a size chip");
+});
+
+check("kidswear never reaches Curvy", () => {
+  /* A child's XXL is not an extended adult size, and a boys' tee on this
+     page would be the exact insult the section undoes. Excluded through
+     genderOfItem — the site's existing rule — not a new word list. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function itemBelongsToDepartment("), src.indexOf("\n}", src.indexOf("function itemBelongsToDepartment(")));
+  if (!/extendedSizesOnly/.test(fn)) throw new Error("itemBelongsToDepartment no longer handles the size filter");
+  if (!/genderOfItem\(item, bucketName\) === 'kids'\) return false/.test(fn)) {
+    throw new Error("kidswear is no longer excluded from the size filter");
+  }
+});
+
+check("every item Curvy would show in the real catalogue has a published extended size", () => {
+  /* Driven over the committed data, not a fixture: whatever the page
+     would list today, every one of them must carry the size that put it
+     there. Also records the honest shape of the section -- one retailer,
+     because it is the only one that publishes sizes at all. */
+  const { hasExtendedSizes } = curvy;
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const eligible = [];
+  const sizedRetailers = new Set();
+  for (const [retailer, data] of Object.entries(cache.retailers || {})) {
+    for (const [bucket, entry] of Object.entries(data.departments || {})) {
+      for (const it of entry.items || []) {
+        if (Array.isArray(it.availableSizes) && it.availableSizes.length) sizedRetailers.add(retailer);
+        if (bucket === "kids") continue;
+        if (hasExtendedSizes(it)) eligible.push({ retailer, name: it.name || it.title || "" });
+      }
+    }
+  }
+  for (const e of eligible) {
+    if (!e.name) throw new Error(`${e.retailer} would list a nameless item in Curvy`);
+  }
+  /* THE FINDING THIS SECTION WAS BUILT AROUND, pinned so it is noticed
+     the day it changes: Old Navy is the only store publishing sizes. The
+     day a second one does, this fails and Curvy gets deeper — which is a
+     good failure, and the message says so. */
+  eq([...sizedRetailers].sort().join(","), "oldnavy",
+     "a second retailer now publishes size data — widen Curvy and update this");
+  if (!eligible.length) throw new Error("no item qualifies at all — the filter is reading the wrong field");
+});
+
+check("a thin section says so, in its own voice", () => {
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const notice = src.slice(src.indexOf("function curvyNoticeHTML("), src.indexOf("\n}", src.indexOf("function curvyNoticeHTML(")));
+  if (!/Pr[óo]ximamente/.test(notice)) throw new Error("the thin state lost its próximamente");
+  if (!/estamos cargando tallas/i.test(notice)) throw new Error("the thin state no longer says tallas are still loading");
+  if (!/No estimamos ni completamos tallas/.test(notice)) throw new Error("the notice no longer states the never-invent rule");
+  /* DIGNIFIED, NOT APOLOGETIC. Danny's word. A section for a shopper who
+     is underserved everywhere must not open by apologising to her. */
+  for (const grovel of [/lo sentimos/i, /disculpa/i, /desafortunadamente/i, /perd[óo]n/i, /lamentablemente/i]) {
+    if (grovel.test(notice)) throw new Error(`the notice apologises: ${grovel}`);
+  }
+  if (!/CURVY_THIN_THRESHOLD/.test(src)) throw new Error("the thin threshold is gone");
+});
+
+check("the size run only prints where a page asked for it", () => {
+  /* It is real data and it is honest everywhere, but on a page that is
+     not about sizes it is one more line of small type between the
+     photograph and the price. Curvy asks; nothing else does. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const fn = src.slice(src.indexOf("function sizeRunHTML("), src.indexOf("\n}", src.indexOf("function sizeRunHTML(")));
+  if (!/opts\.showSizeRun/.test(fn)) throw new Error("the size run renders whether or not a surface asked");
+  if (!/showSizeRun: catalogState\.key === 'curvy'/.test(src)) {
+    throw new Error("the catalogue feed no longer turns the size run on for Curvy");
+  }
+});
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

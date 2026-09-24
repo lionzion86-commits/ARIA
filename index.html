@@ -213,6 +213,7 @@
     #authArea{ display:none }
   }
   /* ============================================================
+
      PHOTOGRAPHIC SECTION BACKGROUNDS (2026-09-23)
 
      Tiendas was a white strip with eight logos on it. The logos are
@@ -411,6 +412,23 @@
      display:block lives here instead, so the stack survives the CDN.
      ============================================================ */
   .ariaPriceUsd, .ariaPricePen{ display:block }
+
+  /* ============================================================
+     THE BEAUTY DESTINATION'S BANNER (2026-09-24)
+
+     POSITIONING LIVES HERE, NOT IN A TAILWIND UTILITY, for the reason
+     the section photographs already learned the hard way: `relative` and
+     `overflow-hidden` as utilities vanish the moment the CDN does, and
+     an absolutely-positioned photo whose containing block just
+     disappeared does not degrade -- it covers the page.
+
+     It is decorative. The heading beside it already names the section,
+     so alt="" keeps a screen reader from reading the furniture. */
+  .ariaBeautyBanner{ position:relative; overflow:hidden; border-radius:18px;
+                     margin-bottom:20px; background:#F3E9E2;
+                     height:clamp(116px, 30vw, 188px) }
+  .ariaBeautyBanner > img{ position:absolute; inset:0; width:100%; height:100%;
+                           object-fit:cover; object-position:50% 42% }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -3214,7 +3232,6 @@ function normalizeCatalogueEnvelope(file){
    the memo, because a retry that replays the cached failure is a button
    that does nothing. */
 let departmentCacheFailed = false;
-
 /* ============================================================
    WHAT PERU WILL NOT LET US IMPORT (2026-09-24)
 
@@ -3303,11 +3320,16 @@ const DEPARTMENT_META = {
   candy_chocolate: { label: 'Dulces y Chocolates', icon: '🍫' },
   sporting_goods: { label: 'Deportes', icon: '🏀' },
   home_goods: { label: 'Hogar', icon: '🏠' },
+
+  /* "Curvy" is Danny's pick and it stays in English, alone. The
+     supporting line carries the words people actually search --
+     see CURVY_BLURB. Never "Big & Tall". */
+  curvy: { label: 'Curvy', icon: '👚' },
   men: { label: 'Moda Hombre', icon: '👔' },
   women: { label: 'Moda Mujer', icon: '👗' },
   kids: { label: 'Moda Niños', icon: '🧒' },
   sale: { label: 'Ofertas', icon: '🔥' },
-  beauty: { label: 'Belleza', icon: '💄' },
+  beauty: { label: 'Aria Beauty', icon: '💄' },
   shoes: { label: 'Zapatos', icon: '👟' },
 };
 const BRAND_META = {
@@ -3525,6 +3547,7 @@ const CATEGORY_COVERS = {
   beauty:          'assets/category/beauty.jpg',
   candy_chocolate: 'assets/category/candy_chocolate.jpg',
   clothing:        'assets/category/clothing.jpg',
+  curvy:           'assets/category/curvy.jpg',
   electronics:     'assets/category/electronics.jpg',
   home_goods:      'assets/category/home_goods.jpg',
   kids:            'assets/category/kids.jpg',
@@ -3743,6 +3766,11 @@ const DEPARTMENT_SPEC = {
   candy_chocolate: { category: 'grocery' },
   sporting_goods:  { category: 'sporting' },
   home_goods:      { category: 'home' },
+
+  /* CURVY TAKES THE SLOT PHARMACY LEFT. It is `extendedSizesOnly`, not a
+     category: the apparel is the same apparel, and what makes it this
+     department is the size run the retailer publishes for it. */
+  curvy:           { category: 'apparel', extendedSizesOnly: true },
   /* BEAUTY (2026-09-20). No retailer supplies a beauty bucket yet —
      Sephora and Victoria's Secret are real stores whose scrapers are
      still being wired up (see scripts/lib/retailers.js). A department no
@@ -3871,6 +3899,118 @@ function rawItemOnSale(item){
   return Math.round((1 - price / original) * 100) >= MIN_DISCOUNT_PCT;
 }
 
+
+/* ============================================================
+   CURVY — TALLAS GRANDES Y EXTENDIDAS (2026-09-24)
+
+   A shopper who wears a 2X is underserved everywhere in Peru. This
+   section is a destination for her, so the one thing it must never do is
+   promise a size that is not there. Everything below follows from that.
+
+   THE FILTER READS THE RETAILER'S OWN SIZE LIST AND NOTHING ELSE.
+   Not the title, not the category, not a guess. "Plus Size Tunic" in a
+   product name is marketing copy; availableSizes is what the store says
+   it will actually ship. A keyword rule would fill this page instantly
+   and every fourth card would be a lie the shopper only discovers at
+   checkout.
+
+   WHICH IS WHY THIS PAGE IS THIN, AND THAT IS THE HONEST OUTCOME.
+   Measured across every committed catalogue: Old Navy is the ONLY
+   retailer that publishes a size list at all. Walmart, Target, Foot
+   Locker, Macy's and SSENSE publish none -- see the note on `sizes` in
+   normalizeLiveItem, which found the same thing from the other
+   direction. So the eligible set is 11 distinct products, all Old Navy,
+   and curvyIsThin() says so on the page rather than dressing 11 items up
+   as a department.
+
+   KIDSWEAR IS EXCLUDED, and not by a word list: genderOfItem() is the
+   site's existing rule (a title naming a gender beats the bucket, kids
+   wins ties). A child's XXL is not an extended adult size, and putting
+   a boys' tee on this page would be the exact insult the section exists
+   to undo.
+
+   THE THRESHOLD DOES NOT CHANGE THE ANSWER, which is worth recording so
+   nobody re-litigates it: counted as "XXL and up" or as "only 1X-5X and
+   XXXL/XXXXL", the eligible set is the same 11 products. Every plain-XXL
+   item in the data also carries a larger size.
+   ============================================================ */
+const EXTENDED_SIZES = new Set([
+  'xxl', '2xl', 'xxxl', '3xl', 'xxxxl', '4xl', 'xxxxxl', '5xl',
+  '1x', '2x', '3x', '4x', '5x', '6x',
+]);
+
+/* The retailer's own list, or empty. Never derived from anything else. */
+function retailerSizesOf(item){
+  const raw = item?.availableSizes;
+  return Array.isArray(raw) ? raw.filter(s => typeof s === 'string' && s.trim()) : [];
+}
+
+function extendedSizesOf(item){
+  return retailerSizesOf(item).filter(s => EXTENDED_SIZES.has(s.trim().toLowerCase()));
+}
+
+function hasExtendedSizes(item){ return extendedSizesOf(item).length > 0; }
+
+/* Biggest first, and printed the way a label prints it: a shopper
+   scanning for "3X" should find it without translating our formatting. */
+const SIZE_RUN_ORDER = ['xxl', '2xl', '1x', '2x', 'xxxl', '3xl', '3x', 'xxxxl', '4xl', '4x', 'xxxxxl', '5xl', '5x', '6x'];
+function sizeRunLabels(item){
+  const seen = new Set();
+  return extendedSizesOf(item)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => (seen.has(s) ? false : (seen.add(s), true)))
+    .sort((a, b) => SIZE_RUN_ORDER.indexOf(a) - SIZE_RUN_ORDER.indexOf(b))
+    .map(s => s.toUpperCase());
+}
+
+/* The supporting line. "Curvy" alone is the name Danny chose; these are
+   the words a shopper actually types, and they carry both halves of the
+   department without the title reading like a size chart. */
+const CURVY_BLURB = 'Tallas grandes y extendidas';
+
+/* Below this the page says so. One grid's worth: fewer than this and
+   calling it a department would be the overstatement the section exists
+   to avoid. */
+const CURVY_THIN_THRESHOLD = 24;
+
+/* THE SIZE RUN IS THE SIZE CHART WE ACTUALLY HAVE.
+
+   The brief asks for the retailer's chart "where available", and today
+   it is not: Old Navy's listing scrape carries availableSizes but no
+   product URL, so there is nothing to link to that would not be a
+   guessed address. What we do have is the real run, from the store, and
+   printing it on the card is worth more than a link anyway -- she sees
+   that the 3X exists before she taps, not after. */
+function sizeRunHTML(p, opts){
+  if (!opts || !opts.showSizeRun) return '';
+  const run = sizeRunLabels({ availableSizes: p?.sizes ?? p?.availableSizes });
+  if (!run.length) return '';
+  return `<div class="flex flex-wrap items-center gap-1 mb-1.5">
+    <span class="text-[10.5px] font-semibold" style="color:#6B7487">Tallas:</span>
+    ${run.map(sz => `<span class="text-[10.5px] font-extrabold px-1.5 py-[2px] rounded-md"
+      style="background:#EEF3FF; color:#2B4A8F; border:1px solid #CFDDF8">${escapeHtml(sz)}</span>`).join('')}
+  </div>`;
+}
+
+/* The banner that heads Curvy. It states the rule the page is built on,
+   because "why is this page short" has an answer the shopper deserves
+   and it is not "we could not be bothered". Dignified, not apologetic:
+   no sorry, no asterisk, no "unfortunately". */
+function curvyNoticeHTML(count){
+  const thin = !Number.isFinite(count) || count < CURVY_THIN_THRESHOLD;
+  return `<div class="rounded-2xl px-4 py-3.5 mb-5" style="background:#F2F6FF; border:1px solid #CFDDF8">
+    <div class="text-[13.5px] font-extrabold" style="color:#1E3A73">${escapeHtml(CURVY_BLURB)}</div>
+    <div class="text-[12.5px] leading-snug mt-1" style="color:#3D4759">
+      Cada prenda aquí muestra las tallas que la tienda publica para ella. No estimamos ni completamos tallas:
+      si la tienda no dice que la tiene, no aparece en esta página.
+    </div>
+    ${thin ? `<div class="text-[12.5px] leading-snug mt-2 font-semibold" style="color:#1E3A73">
+      Próximamente — estamos cargando tallas. Hoy solo una de nuestras tiendas publica su lista de tallas;
+      a medida que las demás la publiquen, esta página crece.
+    </div>` : ''}
+  </div>`;
+}
+
 /* `retailer` is optional and only Zapatos reads it — Foot Locker's
    titles are model names, so the STORE is the signal there. */
 function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
@@ -3880,6 +4020,12 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.footwearOnly) return isFootwear(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* Curvy is a filter over apparel, the way Ofertas is a filter over
+     everything -- not a category a retailer scrapes into. */
+  if (dept.extendedSizesOnly){
+    if (genderOfItem(item, bucketName) === 'kids') return false;
+    return hasExtendedSizes(item);
+  }
   if (!dept.gender) return true;
   return genderOfItem(item, bucketName) === dept.gender;
 }
@@ -5323,7 +5469,9 @@ async function openCatalog(kind, key, opts = {}){
      for the same reason a beauty store does: it can invalidate a whole
      basket, so it belongs before the basket is built. */
   document.getElementById('catalogNotice').innerHTML =
-    (kind === 'department' && key === 'beauty') ? fragranceLimitNoticeHTML() : '';
+    (kind === 'department' && key === 'beauty') ? beautyBannerHTML() + fragranceLimitNoticeHTML()
+    : (kind === 'department' && key === 'curvy') ? curvyNoticeHTML(NaN)
+    : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
       (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
@@ -5767,6 +5915,15 @@ function renderCatalogFeed(){
         ? `${LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter} no tiene productos de esta categoría — te mostramos las ${storeCount} tiendas que sí.`
         : `${n} producto${n === 1 ? '' : 's'} de ${storeCount} tienda${storeCount === 1 ? '' : 's'} en un solo feed · el flete y los aranceles se calculan en el checkout`;
 
+  /* CURVY'S BANNER IS REDRAWN WITH THE REAL NUMBER. It is first painted
+     before the catalogue has loaded, when the honest answer to "how many"
+     is "we do not know yet" -- so it leads with the thin state and steps
+     back from it only if the count earns it. */
+  if (catalogState.kind === 'department' && catalogState.key === 'curvy'){
+    const notice = document.getElementById('catalogNotice');
+    if (notice) notice.innerHTML = curvyNoticeHTML(items.length);
+  }
+
   const budgetBand = budgetBandFor(catalogState.budget);
   sections.innerHTML = `
     ${catalogSearchBarHTML()}
@@ -5780,7 +5937,7 @@ function renderCatalogFeed(){
       </select>
     </div>
     <div id="catalogGrid" class="${LISTING_GRID_CLASS}">${
-      shown.map(it => listingCardHTML(it, it.retailer)).join('')}</div>
+      shown.map(it => listingCardHTML(it, it.retailer, { showSizeRun: catalogState.key === 'curvy' })).join('')}</div>
     ${catalogLoadMoreHTML(items.length, shown.length)}
     ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
     ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">
@@ -6383,9 +6540,13 @@ function productCardOpenExpr(p, retailer){
 }
 
 /** The standard card for any listed product, on any surface. */
-function listingCardHTML(p, retailer){
+function listingCardHTML(p, retailer, opts){
   const item = retailer && !p.retailer ? { ...p, retailer } : p;
-  return productCardHTML(item, { open: productCardOpenExpr(item, retailer) });
+  /* `opts` is how a surface asks for something extra without every other
+     surface getting it. Curvy asks for the size run; nothing else does,
+     because on a page that is not about sizes it is one more line of
+     small type between the photograph and the price. */
+  return productCardHTML(item, { ...(opts || {}), open: productCardOpenExpr(item, retailer) });
 }
 
 function catalogLoadMoreHTML(total, shownCount){
@@ -7290,7 +7451,7 @@ const LIVE_REFINE_CHIPS = [
   { label: 'Zapatos',     term: 'shoes' },
   { label: 'Ropa',        term: 'clothing' },
   { label: 'Electrónica', term: 'electronics' },
-  { label: 'Belleza',     term: 'beauty' },
+  { label: 'Aria Beauty', term: 'beauty' },
   { label: 'Hogar',       term: 'home' },
   { label: 'Deportes',    term: 'sports' },
 ];
@@ -9054,6 +9215,20 @@ function fragranceLimitChipHTML(p){
     style="background:#FFF4D6; color:#7A5B12; border:1px solid #E8C877">
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/></svg>
     Máx. ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío
+  </div>`;
+}
+
+/* The photograph that heads the Aria Beauty destination. The tile on the
+   home page is its own approved shot (assets/category/beauty.jpg) and is
+   untouched -- this is the destination's, composed wide with the silk
+   left empty, which is why it crops to a banner and that one does not.
+
+   onerror removes it rather than leaving a broken glyph above the
+   fragrance warning; the page reads correctly without it. */
+function beautyBannerHTML(){
+  return `<div class="ariaBeautyBanner">
+    <img src="assets/sections/beauty-banner.jpg" alt="" loading="lazy" decoding="async"
+      aria-hidden="true" onerror="this.closest('.ariaBeautyBanner').remove()">
   </div>`;
 }
 
@@ -14346,6 +14521,7 @@ function productCardHTML(p, opts){
         + ${escapeHtml(fmtPriceLabel(freight))} de flete (${p.weightEstimated === false ? '' : 'peso estimado '}${escapeHtml(String(weightKg))} kg × $${CHARGE_PER_KG_USD}/kg)
       </div>` : ''}
       ${fragranceLimitChipHTML(p)}
+      ${sizeRunHTML(p, opts)}
       <!-- THE CTA STOPPED BEING A SLAB.
 
            A full-width filled blue button was, measured on a 169px
