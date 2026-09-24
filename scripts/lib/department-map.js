@@ -27,6 +27,8 @@
 // assigned a gender — it stays in Ropa rather than being guessed into all
 // three gendered pages at once.
 
+import { isFootwear } from "./footwear.js";
+
 // A department = one product category, optionally narrowed to a gender.
 export const DEPARTMENT_SPEC = {
   electronics:     { category: "electronics" },
@@ -45,6 +47,18 @@ export const DEPARTMENT_SPEC = {
      means the tile appears by itself the moment the first beauty bucket
      lands, with no second change. */
   beauty:          { category: "beauty" },
+  /* ZAPATOS (2026-09-23). Not a category either, and for a different
+     reason than Ofertas: footwear is a KIND OF ITEM that lives inside
+     other people's buckets. Foot Locker files its shoes under men,
+     women and kids; Walmart's are in clothing and sporting_goods;
+     SSENSE's 450 pairs are all in one "men" bucket. No scrape declares
+     a footwear facet, so no bucket name can find them.
+
+     Answered per item instead — see scripts/lib/footwear.js for the
+     three signals and for the false positives each one had to learn to
+     refuse. A shoe stays in Moda Hombre too; departments overlap here
+     exactly as Ofertas overlaps everything. */
+  shoes:           { anyCategory: true, footwearOnly: true },
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
@@ -122,11 +136,17 @@ function isOnSale(item) {
   return Math.round((1 - price / original) * 100) >= 5; // same floor the rest of the site uses
 }
 
-// Does this item, found in this bucket, belong in this department?
-export function itemBelongsToDepartment(item, bucketName, deptKey) {
+/* Does this item, found in this bucket, belong in this department?
+
+   `retailer` is optional and only Zapatos reads it: Foot Locker's
+   titles are model names, so the STORE is the signal there. Every
+   existing caller that passes three arguments keeps working, and the
+   type and title signals answer without it. */
+export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
   const dept = DEPARTMENT_SPEC[deptKey];
   if (!dept) return false;
   if (dept.onSaleOnly) return isOnSale(item);
+  if (dept.footwearOnly) return isFootwear(item, retailer);
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
@@ -142,12 +162,12 @@ export function itemBelongsToDepartment(item, bucketName, deptKey) {
  * Deduped by title+price: Old Navy's synthetic "clothing" bucket is a
  * merge of its men/women/kids buckets, so the same item is reachable twice.
  */
-export function departmentItems(retailerBucket, deptKey) {
+export function departmentItems(retailerBucket, deptKey, retailer) {
   const out = [];
   const seen = new Set();
   for (const [bucketName, bucket] of Object.entries(retailerBucket?.departments || {})) {
     for (const item of bucket?.items || []) {
-      if (!itemBelongsToDepartment(item, bucketName, deptKey)) continue;
+      if (!itemBelongsToDepartment(item, bucketName, deptKey, retailer)) continue;
       const key = titleOf(item) + "::" + (item.price ?? item.effectivePrice ?? "");
       if (seen.has(key)) continue;
       seen.add(key);
@@ -160,5 +180,5 @@ export function departmentItems(retailerBucket, deptKey) {
 /** Retailers with something real to show in this department. */
 export function retailersForDepartment(cache, deptKey, candidates) {
   const retailers = candidates || Object.keys(cache?.retailers || {});
-  return retailers.filter((r) => departmentItems(cache?.retailers?.[r], deptKey).length > 0);
+  return retailers.filter((r) => departmentItems(cache?.retailers?.[r], deptKey, r).length > 0);
 }
