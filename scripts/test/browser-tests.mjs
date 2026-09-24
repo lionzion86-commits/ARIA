@@ -1759,8 +1759,6 @@ await check("Ofertas is not offered twice, and is still one tap away", async () 
       inTaxonomy: Object.keys(DEPARTMENT_SPEC).includes("sale"),
       stillTiled: collectTiles().some(t => t.key === "sale"),
       label: (DEPARTMENT_META.sale || {}).label,
-      /* And the hero above it still opens the real thing. */
-      heroOpensSale: /openCatalog\('department',\s*'sale'\)|openSales\(/.test(document.documentElement.innerHTML),
     };
   });
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
@@ -1771,7 +1769,38 @@ await check("Ofertas is not offered twice, and is still one tap away", async () 
   eq(r.inTaxonomy, true, "`sale` was deleted from the taxonomy — that is a different and much larger change");
   eq(r.stillTiled, true, "Ofertas can no longer be tiled at all, so Categorías lost it too");
   eq(r.label, "Ofertas", "the Ofertas department lost its label");
-  eq(r.heroOpensSale, true, "nothing on the page opens the sale department any more");
+
+  /* AND THE HERO ABOVE THE ROW STILL OPENS IT — CLICKED, NOT GREPPED.
+     My first version of this tested a regex against the rendered HTML
+     for `openCatalog('department','sale')`. That string does not exist:
+     the hero's "Ver todo" calls goSales(). The check passed anyway,
+     because documentElement.innerHTML carries the page's own inline
+     script and something in it matched — a green assertion measuring
+     nothing, which is worse than a red one. It only surfaced when a
+     later change shifted the source enough to stop matching.
+
+     So it presses the button and looks at where the page went. That
+     cannot pass by coincidence. */
+  const openedVia = await page.evaluate(() => {
+    const hero = document.getElementById("mobileDealsRow")?.closest("section, div");
+    const btn = [...(hero?.querySelectorAll("button") || [])]
+      .find(b => /ver todo/i.test(b.textContent || ""));
+    if (!btn) return { found: false };
+    /* VIEWS ARE TOGGLED BY `active`, NOT BY `hidden` — showPage() does
+       classList.toggle('active', ...). My first attempt asked for
+       `#salesView:not(.hidden)`, which matches whether or not the page
+       ever opened, so it reported success every time. Twice now this
+       check has been green while measuring nothing; the fix is to read
+       the class the code actually sets, and to record what was on screen
+       BEFORE the click so "it was already there" cannot pass either. */
+    const activeNow = () => document.querySelector(".view.active, [id$='View'].active")?.id || null;
+    const before = activeNow();
+    btn.click();
+    return { found: true, before, after: activeNow() };
+  });
+  eq(openedVia.found, true, "the deals hero has no \"Ver todo\" button to reach Ofertas by");
+  if (openedVia.before === "salesView") throw new Error("the sales view was already open before the click — this proves nothing");
+  eq(openedVia.after, "salesView", `"Ver todo" left the page on ${openedVia.after}, not the sales view`);
   await ctx.close();
 });
 
