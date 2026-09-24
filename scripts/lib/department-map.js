@@ -37,6 +37,11 @@ export const DEPARTMENT_SPEC = {
   candy_chocolate: { category: "grocery" },
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
+  /* CURVY TAKES THE SLOT PHARMACY LEFT (2026-09-24). Not a category a
+     retailer scrapes into -- a filter over apparel on the size run the
+     retailer itself publishes. See the long note in index.html beside
+     EXTENDED_SIZES for why it reads availableSizes and nothing else. */
+  curvy:           { category: "apparel", extendedSizesOnly: true },
   /* NO PHARMACY. Vitamins and supplements need a DIGEMID import permit
      that we do not hold, so the department is off the site entirely --
      see RESTRICTED_DEPARTMENTS in index.html, which drops the bucket at

@@ -289,8 +289,13 @@ await check("Categorías renders one full-width shopfront per row, departments o
      to "< 50" for the original reason -- a regression that puts the 192
      brands back would sail past a bound -- and now for a second one: if
      this ever reads 11 again, the restricted department is back. */
-  eq(r.count, 10, "Categorías tiles");
-  eq(r.counter, "10 categorías", "the counter above the grid");
+  /* Eleven again as of 2026-09-24: it went to ten when Salud y Farmacia
+     came off the site, and Curvy took that slot. The exact number stays
+     asserted -- a regression that puts the 192 brands back would sail
+     past a bound, and one that resurrects the pharmacy would read 12. */
+  eq(r.count, 11, "Categorías tiles");
+  eq(r.counter, "11 categorías", "the counter above the grid");
+  eq(r.names.includes("Curvy"), true, `Curvy is not on Categorías: ${r.names.join()}`);
   if (r.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on Categorías: ${r.names.join()}`);
   }
@@ -1147,12 +1152,14 @@ await check("the home page grid is departments only", async () => {
       names: [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
     };
   });
-  /* Ten departments — eleven until 2026-09-24, when Salud y Farmacia
-     came off the site (DIGEMID import permit we do not hold). The number
-     is asserted, not just "fewer than before": a regression that puts
-     brands back would sail past a `< 50` and the wall would be back at
-     the next export, and one that puts the pharmacy back would read 11. */
-  eq(grid.cards, 10, "home page tiles");
+  /* Eleven departments. It was eleven, went to ten on 2026-09-24 when
+     Salud y Farmacia came off the site (a DIGEMID import permit we do
+     not hold), and is eleven again because Curvy took that slot. The
+     number is asserted, not just "fewer than before": a regression that
+     puts brands back would sail past a `< 50` and the wall would be back
+     at the next export, and one that resurrects the pharmacy reads 12. */
+  eq(grid.cards, 11, "home page tiles");
+  eq(grid.names.includes("Curvy"), true, `Curvy is not on the home page: ${grid.names.join()}`);
   if (grid.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on the home page: ${grid.names.join()}`);
   }
@@ -2535,6 +2542,134 @@ await check("a pharmacy bucket in the cache reaches no surface of the site", asy
   });
   eq(searched.filter((t) => VITAMIN.test(t)).join(" | "), "", "searching for vitaminas surfaced one from the cache");
 
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ==================================================================
+   CURVY, DRIVEN THE WAY A SHOPPER DRIVES IT.
+
+   run-tests.mjs proves the rule in isolation. This proves the page: it
+   opens the real section over the real catalogue and asserts that every
+   card on it carries a size the store published, that the run is printed
+   where she can read it before tapping, and that the thin state is
+   honest rather than an empty grid.
+   ================================================================== */
+await check("Curvy lists only garments with a published extended size, and shows the run", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  const r = await page.evaluate(async () => {
+    openCatalog("department", "curvy");
+    await new Promise((res) => setTimeout(res, 2500));
+    const sections = document.getElementById("catalogSections");
+    const cache = await loadDepartmentCache();
+    const listed = [];
+    for (const [retailer, data] of Object.entries(cache.retailers)) {
+      for (const it of departmentItemsFor(data, "department", "curvy")) {
+        listed.push({ retailer, name: it.name || it.title || it.productName || "", sizes: it.availableSizes || null });
+      }
+    }
+    return {
+      title: (document.getElementById("catalogTitle") || {}).textContent,
+      notice: (document.getElementById("catalogNotice") || {}).textContent.replace(/\s+/g, " ").trim(),
+      listed,
+      retailers: [...new Set(listed.map((l) => l.retailer))],
+      /* NOT querySelectorAll('[onclick*="showProduct"]') -- a card wires
+         that handler three times (photo, title, Comprar), so counting
+         them says 54 for 18 products and the comparison below is
+         nonsense. The size-run chip is the honest unit. */
+      cards: sections.querySelectorAll('[onclick*="showProduct"]').length,
+      runsShown: (sections.innerHTML.match(/Tallas:/g) || []).length,
+      tileKeys: collectTiles().map((t) => t.key),
+      tileLabels: collectTiles().map((t) => t.label),
+    };
+  });
+
+  eq(r.title, "Curvy", "the destination is not titled Curvy");
+  eq(r.tileKeys.includes("curvy"), true, "there is no Curvy tile");
+  eq(r.tileKeys.includes("pharmacy"), false, "pharmacy is back in the slot Curvy took");
+
+  /* EVERY listed garment carries a size the retailer published. Not a
+     sample -- all of them, because one that does not is the promise this
+     section cannot break. */
+  const EXT = /^(xxl|2xl|xxxl|3xl|xxxxl|4xl|xxxxxl|5xl|[1-6]x)$/i;
+  if (!r.listed.length) throw new Error("Curvy listed nothing at all — the filter is reading the wrong field");
+  for (const it of r.listed) {
+    if (!Array.isArray(it.sizes) || !it.sizes.length) {
+      throw new Error(`"${it.name}" is on Curvy with no published size list at all`);
+    }
+    if (!it.sizes.some((sz) => EXT.test(String(sz).trim()))) {
+      throw new Error(`"${it.name}" is on Curvy with only ${it.sizes.join("/")}`);
+    }
+  }
+
+  /* The run is printed on every card, because two colourways of the same
+     shirt are told apart by nothing else -- one Poplin Shirt stops at
+     XXL and another goes to XXXXL. */
+  eq(r.runsShown, r.listed.length,
+     `${r.listed.length} garments listed but ${r.runsShown} size runs — a card is not saying what it fits`);
+  eq(r.cards, r.listed.length * 3, "a card no longer wires its three open handlers — recount the runs");
+
+  /* Thin today, and the page says so in its own voice. */
+  if (r.listed.length < 24 && !/Pr[óo]ximamente/.test(r.notice)) {
+    throw new Error("the section is thin and does not say so");
+  }
+  if (!/No estimamos ni completamos tallas/.test(r.notice)) {
+    throw new Error("the never-invent rule is not stated on the page");
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the Belleza destination leads with its photograph, then the fragrance limit", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+  const r = await page.evaluate(async () => {
+    openCatalog("department", "beauty");
+    await new Promise((res) => setTimeout(res, 2000));
+    const notice = document.getElementById("catalogNotice");
+    const banner = notice.querySelector(".ariaBeautyBanner");
+    const img = banner && banner.querySelector("img");
+    const cs = banner ? getComputedStyle(banner) : null;
+    return {
+      hasBanner: !!banner,
+      src: img && img.getAttribute("src"),
+      alt: img && img.getAttribute("alt"),
+      lazy: img && img.getAttribute("loading"),
+      /* THE CONTAINING BLOCK, not the class. This suite blocks Tailwind
+         on purpose; an absolutely-positioned photo whose positioned
+         ancestor came from a utility would escape and cover the page. */
+      position: cs && cs.position,
+      overflow: cs && cs.overflowX,
+      bannerFirst: banner && notice.firstElementChild === banner,
+      warningStillThere: /M[áa]ximo \d+ perfumes por env[íi]o/.test(notice.textContent),
+      /* MEASURED ON THE BANNER, NOT THE PAGE. This suite blocks Tailwind
+         on purpose, so the document already runs ~540px wide before this
+         element exists -- every unstyled logo renders at its natural
+         658px. A document-level assertion here would fail for a reason
+         that has nothing to do with the banner. What must be true is
+         that the 1920px photograph stays inside the box. */
+      bannerPastViewport: banner
+        ? Math.round(banner.getBoundingClientRect().right - document.documentElement.clientWidth) : null,
+      photoEscaped: banner && img
+        ? Math.round(img.getBoundingClientRect().width) > Math.round(banner.getBoundingClientRect().width) + 1 : null,
+    };
+  });
+  eq(r.hasBanner, true, "the Belleza banner is gone");
+  eq(r.src, "assets/sections/beauty-banner.jpg", "the banner points somewhere else");
+  eq(r.alt, "", "the banner is announced as well as drawn");
+  eq(r.lazy, "lazy", "the banner is not lazy-loaded");
+  eq(r.position, "relative", "the banner stops establishing a containing block without Tailwind");
+  eq(r.overflow, "hidden", "the banner no longer clips its photograph");
+  eq(r.bannerFirst, true, "the photograph is no longer the first thing on the page");
+  eq(r.warningStillThere, true, "the four-per-shipment warning was pushed out by the photograph");
+  eq(r.bannerPastViewport <= 0, true, `the banner runs ${r.bannerPastViewport}px past the viewport`);
+  eq(r.photoEscaped, false, "the 1920px photograph is wider than the box that is meant to clip it");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
