@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -35,6 +35,7 @@ import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import * as synonyms from "../lib/search-synonyms.js";
+import * as carousel from "../lib/carousel.js";
 import { CHARGE_PER_KG as chargePerKg } from "../../weight-data.js";
 import * as shippingStatus from "../lib/shipping-status.js";
 import * as support from "../lib/support.js";
@@ -7528,7 +7529,114 @@ check("the size run only prints where a page asked for it", () => {
     throw new Error("the catalogue feed no longer turns the size run on for Curvy");
   }
 });
+/* ==================================================================
+   STORE CAROUSELS — WINDOW-SHOPPING RAILS (2026-09-24).
+
+   Danny's redesign: every store landing and every category drill-down
+   leads with a swipeable product rail; the wordy tiles move below.
+   The page mirrors scripts/lib/carousel.js; both copies are pinned
+   below, plus the wiring that puts a rail on each surface.
+   ================================================================== */
+group("store carousels: window-shopping rails");
+
+{
+  const pc = loadPageCarouselSlice();
+  const P = (title, image, price) => ({ title, image: image || "", price: price == null ? 50 : price });
+
+  check("rails cap at 16, photos first, order otherwise stable", () => {
+    const items = Array.from({ length: 24 }, (_, i) =>
+      P("Item " + i, i % 3 === 0 ? "" : `img${i}.jpg`));
+    const picks = carousel.carouselPickItems(items, 16);
+    eq(picks.length, 16, "cap");
+    const photoCount = picks.filter((p) => p.image).length;
+    eq(photoCount, 16, "all 16 picks carry photos when 16+ exist");
+    // stable: photo items keep their relative feed order
+    const titles = picks.map((p) => p.title);
+    const photoTitles = items.filter((p) => p.image).map((p) => p.title).slice(0, 16);
+    eq(JSON.stringify(titles), JSON.stringify(photoTitles), "photo-first stable order");
+  });
+
+  check("the mix round-robins across departments and dedupes", () => {
+    const a = [P("A1", "a1.jpg"), P("A2", "a2.jpg"), P("A3", "a3.jpg")];
+    const b = [P("B1", "b1.jpg"), P("B2", "b2.jpg")];
+    const dup = [P("C1", "a1.jpg")]; // same photo as A1 — an Ofertas-style overlap
+    const mixed = carousel.carouselMixItems([["a", a], ["b", b], ["c", dup]], 16);
+    eq(mixed.length, 5, "dedupe drops the repeated photo");
+    const titles = mixed.map((p) => p.title);
+    if (titles[0] !== "A1" || titles[1] !== "B1") throw new Error("not round-robin: " + titles.join(","));
+    if (new Set(mixed.map((p) => p.image)).size !== mixed.length) throw new Error("duplicate photo on the rail");
+  });
+
+  check("the page mirror answers identically to the module", () => {
+    eq(pc.CAROUSEL_MAX, carousel.CAROUSEL_MAX, "CAROUSEL_MAX");
+    eq(pc.CAROUSEL_MIN_ITEMS, carousel.CAROUSEL_MIN_ITEMS, "CAROUSEL_MIN_ITEMS");
+    const items = Array.from({ length: 20 }, (_, i) => P("T" + i, i % 2 ? `p${i}.jpg` : ""));
+    const a = JSON.stringify(carousel.carouselPickItems(items, 16).map((p) => p.title));
+    const b = JSON.stringify(pc.carouselPickItems(items, 16).map((p) => p.title));
+    eq(a, b, "carouselPickItems parity");
+    const depts = [["x", items.slice(0, 8)], ["y", items.slice(8)]];
+    const c = JSON.stringify(carousel.carouselMixItems(depts, 16).map((p) => p.title));
+    const d = JSON.stringify(pc.carouselMixItems(depts, 16).map((p) => p.title));
+    eq(c, d, "carouselMixItems parity");
+  });
+
+  check("every store landing renders the rail above the tiles", () => {
+    const src = readFileSync(root("index.html"), "utf8");
+    const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
+    const railAt = store.indexOf("storeCarouselHTML({");
+    const tilesAt = store.indexOf("grid grid-cols-2 md:grid-cols-3 gap-4");
+    if (railAt < 0) throw new Error("openStore never renders a rail");
+    if (tilesAt < 0) throw new Error("openStore lost its department tiles");
+    if (railAt > tilesAt) throw new Error("the tiles still come before the rail on the store page");
+    if (!/carouselMixItems\(deptEntries/.test(store)) throw new Error("the store rail is not a cross-department mix");
+    if (!/id: 'storeRail'/.test(store)) throw new Error("store rail has no id");
+  });
+
+  check("the aisle landing and the feed both lead with the rail", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const aisle = src.slice(src.indexOf("function catalogAisleListHTML("), src.indexOf("function catalogAisleChipsHTML("));
+    const railAt = aisle.indexOf("storeCarouselHTML({");
+    const searchAt = aisle.indexOf("catalogSearchBarHTML()");
+    if (railAt < 0 || railAt > searchAt) throw new Error("the aisle landing does not lead with the rail");
+    if (!/catalogAisleListHTML\(grouped, storeLabel, all\)/.test(src)) throw new Error("the aisle landing is not fed the department's items");
+    const feed = src.slice(src.indexOf("sections.innerHTML = `\n    ${storeCarouselHTML("), src.indexOf("id=\"catalogGrid\""));
+    if (!feed || !/id: 'feedRail'/.test(feed)) throw new Error("the feed does not lead with the rail");
+  });
+
+  check("rail cards are image-forward, lazy, and open the product", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
+    if (!/loading="lazy"/.test(src.slice(src.indexOf("function cardPhotoHTML("), src.indexOf("function cardPhotoFallback(")))) {
+      throw new Error("cardPhotoHTML lost its lazy loading");
+    }
+    if (!/cardPhotoHTML\(src/.test(card)) throw new Error("the rail card does not reuse the shared photo builder");
+    if (!/productCardOpenExpr\(it, retailer\)/.test(card)) throw new Error("the rail card does not open the product like grid cards do");
+    if (!/fmtDisplayPrice\(price\)/.test(card)) throw new Error("the rail card shows no price");
+    if (/Comprar|flete|retailerBadgeHTML/.test(card)) throw new Error("the rail card carries grid-card chrome");
+    if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
+    const rail = src.slice(src.indexOf("function storeCarouselHTML("), src.indexOf("/* ============================================================\n   THE BROWSE TILE"));
+    if (!/CAROUSEL_MIN_ITEMS/.test(rail)) throw new Error("the rail renders even for a 1-card stub");
+  });
+
+  check("the rail CSS is a touch scroller with snap points and edge bleed", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const css = src.slice(0, src.indexOf("</style>"));
+    for (const rule of ["scroll-snap-type:x mandatory", "scroll-snap-align:start", "-webkit-overflow-scrolling:touch", "margin:0 -20px", "78vw"]) {
+      if (!css.includes(rule)) throw new Error(`carousel CSS missing: ${rule}`);
+    }
+    // The VS plum re-inks the rail title the way it re-inks subtitles —
+    // cards keep their white faces on the dark ambience.
+    if (!css.includes('[data-store-theme="victoriassecret"] .ariaCarouselTitle')) {
+      throw new Error("the VS theme does not re-ink the rail title");
+    }
+    const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
+    if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
+  });
+}
+
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);
+
+
