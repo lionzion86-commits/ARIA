@@ -399,9 +399,21 @@
   @media (min-width:640px){
     .ariaAboutPhoto{ margin:0 0 48px; width:100%; border-radius:22px }
   }
-
   /* ============================================================
-     THE BEAUTY DESTINATION'S BANNER (2026-09-24)
+     THE TWO-CURRENCY PRICE STACKS WITHOUT TAILWIND (2026-09-23)
+
+     The soles line under a dollar price was a <span class="block ...">,
+     and `block` is a Tailwind utility. With the CDN gone -- which is how
+     browser-tests.mjs runs on purpose, and how a real visitor sees the
+     page on a bad network -- the utility does not exist, the span stays
+     inline, and the two currencies run together as "$100S/ 341.00".
+     Not a near miss: an unreadable price at the moment of deciding.
+
+     display:block lives here instead, so the stack survives the CDN.
+     ============================================================ */
+  .ariaPriceUsd, .ariaPricePen{ display:block }
+
+     /* THE BEAUTY DESTINATION'S BANNER (2026-09-24)
 
      POSITIONING LIVES HERE, NOT IN A TAILWIND UTILITY, for the reason
      the section photographs already learned the hard way: `relative` and
@@ -888,11 +900,12 @@
   </div>
 
   <!-- HOW IT WORKS -->
-  <div id="homeSteps" class="border-t" style="border-color:var(--line); background:#fff">
-    <div class="max-w-[1000px] mx-auto px-5 py-16">
+  <div id="homeSteps" class="relative overflow-hidden" style="background:#0A1F44 url('assets/sections/como-funciona-shipment.jpg') center/cover no-repeat">
+    <div class="absolute inset-0" aria-hidden="true" style="background:linear-gradient(180deg, rgba(10,31,68,.78), rgba(10,31,68,.60))"></div>
+    <div class="relative max-w-[1000px] mx-auto px-5 py-16">
       <div class="max-w-[62ch] mb-10">
-        <div class="ariaKicker ariaKicker--onLight mb-3">Cómo funciona</div>
-        <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1]">Cómo funciona Aria</h2>
+        <div class="ariaKicker mb-3">Cómo funciona</div>
+        <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1]" style="color:#fff">Cómo funciona Aria</h2>
       </div>
       <div class="grid md:grid-cols-3 gap-5">
         <div class="ariaCard ariaCard--light">
@@ -1465,6 +1478,11 @@
           <div id="productThumbs" class="flex gap-2 mt-3 overflow-x-auto pb-1" hidden></div>
         </div>
         <div class="min-w-0">
+          <!-- Filled by showProduct() from the item's own brand, and left
+               EMPTY (not blank-but-present) when the store carries none,
+               so nothing reserves space above the title. -->
+          <div id="productViewBrand" class="text-[12px] font-bold uppercase leading-tight mb-1"
+            style="color:var(--navy); letter-spacing:0.09em"></div>
           <h1 id="productViewTitle" class="text-[20px] sm:text-[24px] font-extrabold tracking-[-0.02em] leading-snug mb-2"></h1>
           <!-- Auto parts only: the manufacturer part number, kept visible
                after the click-through so a buyer can cross-check fit from
@@ -3067,15 +3085,78 @@ function fmtPEN(usd){
   return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(round2(usd * fxRate));
 }
 
-// BUG FIX (live audit): dropped the "(≈ $X USD)" secondary reference —
-// PEN-only now, everywhere. Still falls back to USD-only display (never a
-// fabricated/zeroed PEN conversion) if the live rate never loaded; that's
-// a graceful-degradation case, not a reference price shown alongside a
-// real one.
+/* ============================================================
+   DOLLARS FIRST, SOLES UNDER THEM (2026-09-23)
+
+   THE RULE THIS REVERSES, stated in full because it was deliberate and
+   is now wrong: "soles are the primary currency everywhere on this site
+   -- the header says Perú · PEN and the cart, cards and checkout all
+   lead with S/." That was written to stop two currencies competing for
+   the same line, and it did. What it also did was hide the number the
+   shopper is actually comparing against: every price they are weighing
+   ours against -- the US store's own page, a friend's quote, a casillero
+   -- is quoted in dollars. A soles figure computed at OUR rate, shown
+   alone, cannot be checked against any of them.
+
+   So the dollar is primary and large, and the soles conversion sits
+   under it, small, CARRYING THE RATE IT WAS COMPUTED AT:
+
+       $100.00
+       S/ 341.00 · TC hoy 3.41
+
+   Naming the rate is the point of the line. A soles figure on its own is
+   an assertion; a soles figure with its rate beside it is arithmetic the
+   shopper can redo. It is also the venta rate -- what dollars actually
+   cost in soles -- so the number they check is the number we paid.
+
+   NO RATE, NO SOLES LINE. fxRate is null when the SUNAT call failed, and
+   an invented conversion is worse than none: the dollar price stands on
+   its own and nothing fabricated appears under it. */
+function fxRateLabel(){
+  return fxRate ? `TC hoy ${fxRate.toFixed(2)}` : '';
+}
+
+/** The small soles line that sits UNDER a dollar price. '' when no rate.
+
+    A <span class="block"> rather than a <div>: the deal and product
+    cards are <button>s built out of spans, and a div inside a span is
+    invalid markup that browsers merely tolerate. This renders correctly
+    in both. */
+function solesUnderHTML(usd, cls = 'text-[11.5px] tabular mt-0.5'){
+  if (!Number.isFinite(usd) || !fxRate) return '';
+  return `<span class="ariaPricePen ${cls}" style="color:#6B7487">${escapeHtml(fmtPEN(usd))} · ${escapeHtml(fxRateLabel())}</span>`;
+}
+
+/** The same small line for a figure that is ALREADY in soles. Used where
+    the soles amount is authoritative rather than derived -- the cart
+    subtotal carries a soles-denominated fee, so re-converting the dollar
+    total would print a figure a few céntimos off the one checkout
+    charges. Show the soles we actually computed. */
+function solesUnderPenHTML(pen, cls = 'text-[11.5px] tabular mt-0.5'){
+  if (!Number.isFinite(pen) || !fxRate) return '';
+  return `<span class="ariaPricePen ${cls}" style="color:#6B7487">${escapeHtml(fmtPEN_direct(pen))} · ${escapeHtml(fxRateLabel())}</span>`;
+}
+
+/* ONE PRICE, TWO CURRENCIES, ONE COMPONENT. Every surface that shows a
+   price calls this, so the dollar can never be primary in one place and
+   secondary in another -- which is exactly how the site ended up with
+   the rule above applied unevenly in the first place. */
+function priceBlockHTML(usd, opts = {}){
+  const usdCls = opts.usdClass || 'text-[15px] font-extrabold tabular';
+  const penCls = opts.penClass || 'text-[11.5px] tabular mt-0.5';
+  const usdColor = opts.usdColor || 'var(--navy)';
+  if (!Number.isFinite(usd)) return `<span class="ariaPriceUsd ${usdCls}" style="color:${usdColor}">N/D</span>`;
+  return `<span class="ariaPriceUsd ${usdCls}" style="color:${usdColor}">${escapeHtml(fmtUSD(usd))}</span>`
+       + solesUnderHTML(usd, penCls);
+}
+
+/* THE PRIMARY FIGURE IS NOW THE DOLLAR. This used to return soles and is
+   called from a dozen inline contexts, so it stays a plain string -- the
+   soles line is added beside it by priceBlockHTML or solesUnderHTML,
+   never smuggled into this return value. */
 function fmtPriceLabel(usd){
   if (!Number.isFinite(usd)) return 'N/D';
-  if (!fxRate) return fmtUSD(usd);
-  return fmtPEN(usd);
+  return fmtUSD(usd);
 }
 
 /* ============================================================
@@ -3878,6 +3959,18 @@ const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slide
 const NOT_FOOTWEAR = /\b(socks?|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
 const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 
+/* DEPORTES IS NOT A SHOE STORE (2026-09-24). Walmart and Target file
+   dress shoes in their sporting_goods scrape buckets — princess heels,
+   slingback pumps, wingtip dress shoes — and the bucket is the only
+   signal Deportes has, so they land beside the basketballs. Athletic
+   footwear stays; the dressy kind is refused per item, the same way
+   NOT_FOOTWEAR refuses socks from Zapatos.
+
+   "pumps" is plural-only on purpose: the Reebok Pump is a basketball
+   shoe. "taco" stays out for the reason the footwear note gives
+   (dinner, not a heel); "tacones"/"tacón" are unambiguous. */
+const NON_ATHLETIC_FOOTWEAR =
+  /\b(heels?|tacones?|tac[oó]n|pumps|stilettos?|slingbacks?|ballerinas?|bailarinas?|mary\s*janes?|princess|princesa|dress\s+shoes?|wedges?|cu[ñn]as?|bridal|wedding|novia|boda|evening\s+shoes?|costume|disfraz|peep[-\s]?toes?|mules?)\b/i;
 function isFootwearType(type){
   const t = String(type ?? '').toUpperCase();
   return t ? FOOTWEAR_TYPE.test(t) : false;
@@ -4059,6 +4152,11 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.footwearOnly) return isFootwear(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
+     the retailers' sporting_goods buckets carry them, and the bucket is
+     this department's only other signal. Gated on isFootwear so a
+     "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
+  if (deptKey === 'sporting_goods' && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(rawTitleOf(item))) return false;
   /* Curvy is a filter over apparel, the way Ofertas is a filter over
      everything -- not a category a retailer scrapes into. */
   if (dept.extendedSizesOnly){
@@ -4633,7 +4731,8 @@ function openMobileDeal(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 /* ============================================================
@@ -4662,10 +4761,14 @@ function railCardHTML(p, onclick, attr){
     </span>
     <span class="block px-3 pt-2.5 pb-3">
       <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</span>
+      ${brandEyebrowHTML(p.brand, { tag: 'span', cls: 'block text-[10px] mb-0.5' })}
       <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:var(--navy); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
-      <span class="flex items-baseline gap-1.5">
-        <span class="text-[15px] font-extrabold tabular" style="color:var(--navy)">${fmtDisplayPrice(p.price)}</span>
-        ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:#9AA3B5">${fmtPEN(displayPriceUsd(original))}</span>` : ''}
+      <span class="block">
+        <span class="flex items-baseline gap-1.5">
+          <span class="text-[15px] font-extrabold tabular" style="color:var(--navy)">${fmtDisplayPrice(p.price)}</span>
+          ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:#9AA3B5">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
+        </span>
+        ${solesUnderHTML(displayPriceUsd(p.price), 'text-[11px] tabular mt-0.5')}
       </span>
     </span>
   </button>`;
@@ -5093,7 +5196,8 @@ function openRelatedProduct(idx){
      opens that product's page, which renders its own rail". */
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 async function renderRelatedRail(anchorIn){
@@ -6572,7 +6676,37 @@ function productCardOpenExpr(p, retailer){
     + `'${jsAttr(p.image || '')}', ${escapeHtml(JSON.stringify(p.sizes || []))}, `
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
     + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
-    + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'})`;
+    + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'}, `
+    + `${escapeHtml(JSON.stringify({ brand: p.brand || '' }))})`;
+}
+
+/* ============================================================
+   THE DESIGNER'S NAME, ABOVE THE PRODUCT'S.
+
+   item.brand has been in the data all along and nothing rendered it:
+   the "Brown Curved Vent Blazer" at $1,790 -> $537 is EGONlab, and the
+   card said so nowhere. For a premium or a marked-down piece the label
+   IS the decision -- it is what a shopper searches to check the price
+   is real, and for a market still learning these houses it is the
+   whole education.
+
+   SMALL CAPS, NAVY, ABOVE THE TITLE, in the reference's manner: the
+   name is read first and takes almost no room, and the photograph is
+   still the loudest thing on the card.
+
+   HIDDEN WHEN THERE IS NONE, not blanked. Three of our nine stores
+   (Walmart, Target, Old Navy -- the scraped ones) carry no brand field
+   at all: 456 of 6,259 items. An empty eyebrow would leave a hole above
+   every one of their titles, so the element is not emitted.
+
+   TAG IS A PARAMETER because the rail's card is a <button>, and a
+   <div> inside a button is not valid content. Same rule, two tags. */
+function brandEyebrowHTML(brand, opts){
+  const name = String(brand || '').trim();
+  if (!name) return '';
+  const { tag = 'div', cls = 'text-[10.5px] mb-1' } = opts || {};
+  return `<${tag} class="${cls} font-bold uppercase leading-tight"`
+    + ` style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(name)}</${tag}>`;
 }
 
 /** The standard card for any listed product, on any surface. */
@@ -6753,7 +6887,8 @@ async function applyRoute(route){
           || (autoPartsRendered || []).find(it => it.title === route.name);
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
-          known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null);
+          known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
+          { brand: known.brand });
         else if (route.name) showResults(route.name, { fromHistory: true });
         else showPage('homeView');
         break;
@@ -7363,7 +7498,8 @@ function openSearchProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 /* Same product, different store. Retailers word titles differently, so
@@ -8029,8 +8165,39 @@ async function runLiveSearch(){
 // available sizes or (standardSizeOptions) a standard industry size scale
 // chosen by category/gender/kids detection from the title — never a
 // fabricated per-item list or free text.
-const APPAREL_SIZE_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|sneaker|\bshoe|\bboot|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b/i;
-const PRODUCT_SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+/* ============================================================
+   ONE LIST OF THE WORDS THAT MEAN "THIS HAS A SIZE".
+
+   THERE USED TO BE THREE, and that is what the bug was. The PDP's size
+   picker read APPAREL_SIZE_KEYWORDS, needsSizeSelection() read
+   APPAREL_KEYWORDS, and standardSizeOptions() read
+   PRODUCT_SHOE_KEYWORDS -- three overlapping copies, defined hundreds
+   of lines apart, and a word added to one silently missing from the
+   others. "Blazer" was in none of them.
+
+   They are defined HERE, above their first use, because two of the old
+   copies were declared before the list they should have been sharing
+   and could not have referenced it without a temporal dead zone. That
+   accident of ordering is most of why they were ever separate.
+
+   SPANISH TOO. A catalogue is English today, but the shopper is not,
+   and a title that arrives as "traje" or "blusa" is the same garment.
+   ============================================================ */
+/* \bboot USED TO MATCH "Bootcut". Bootcut is a trouser leg, not a
+   shoe, and the catalogue is full of them -- "Regular Fit Boot Cut
+   Jeans", "Women's Mid-Rise Bootcut Pants", "725 High-Waist Stretch
+   Bootcut Jeans". Every one was classified as footwear, which means
+   the size picker offered them SHOE sizes. 23 of the 148 items the
+   catalogue calls footwear were trousers.
+
+   The closing \b alone fixes the one-word spelling ("bootcut" has no
+   boundary after "boot"); the lookahead is for the two-word one, where
+   "Boot" really is a standalone word. Booties are footwear and keep
+   their own alternative. */
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b|\bloafers?\b|\bsandals?\b|\bslippers?\b|\bmules?\b|\bheels?\b|\bespadrilles?\b|\bclogs?\b|\bzapatos?\b|\bzapatillas?\b|\bbotas?\b|\bsandalias?\b|\bmocasines?\b/i;
+const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b|\bblazers?\b|\bsuits?\b|\btrousers?\b|\bchinos?\b|\bcardigans?\b|\bsweaters?\b|\bpullovers?\b|\bshirts?\b|\bblouses?\b|\bgowns?\b|\bparkas?\b|\banoraks?\b|\bvests?\b|\bwaistcoats?\b|\bjumpsuits?\b|\brompers?\b|\bleggings?\b|\btracksuits?\b|\bpolos?\b|\bturtlenecks?\b|\bbombers?\b|\bovershirts?\b|\bknitwear\b|\btank tops?\b|\bcrop tops?\b|\bcamisas?\b|\btrajes?\b|\bsu[eé]ter(?:es)?\b|\bchalecos?\b|\bblusas?\b|\bpantal[oó]n(?:es)?\b|\bfaldas?\b|\bvestidos?\b|\bchaquetas?\b|\babrigos?\b|\bcasacas?\b/i;
+const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
+
 const PRODUCT_KIDS_KEYWORDS = /\bkids?\b|toddler|infant|\bboys?'?\b|\bgirls?'?\b|grade school|pre-?school|\byouth\b|\bjunior\b/i;
 const PRODUCT_MENS_KEYWORDS = /\bmen'?s\b|\bmens\b/i;
 const PRODUCT_WOMENS_KEYWORDS = /\bwomen'?s\b|\bwomens\b/i;
@@ -8042,7 +8209,7 @@ const KIDS_CLOTHING_SIZES = ['2T','3T','4T','5T','4','5','6','6X','7','8','10','
 const KIDS_SHOE_SIZES = ['1C','2C','3C','4C','5C','6C','7C','8C','9C','10C','11C','12C','13C','1Y','2Y','3Y','4Y','5Y','6Y','7Y'];
 
 function standardSizeOptions(title, sizeCategory){
-  const isShoe = sizeCategory ? sizeCategory === 'shoe' : PRODUCT_SHOE_KEYWORDS.test(title);
+  const isShoe = sizeCategory ? sizeCategory === 'shoe' : SHOE_KEYWORDS.test(title);
   const isKids = PRODUCT_KIDS_KEYWORDS.test(title);
   if (isShoe && isKids) return KIDS_SHOE_SIZES;
   if (isShoe && PRODUCT_MENS_KEYWORDS.test(title)) return ADULT_SHOE_SIZES_MEN;
@@ -8439,12 +8606,31 @@ document.addEventListener('keydown', (e) => {
    already taken this page down once. */
 let pendingAutoPartNumber = null;
 
-function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg){
+/* AN OPTIONS OBJECT, NOT A TWELFTH POSITIONAL ARGUMENT. Eleven
+   positions is already more than anyone can read at a call site, and
+   the brand is the first thing here that only SOME callers have. The
+   alternative the file already uses for this -- a module-level
+   `pendingProductBrand` set immediately before the call -- works, and
+   its own comment explains the hazard: it has to be consumed here "so
+   it cannot leak onto the next product". A value passed with the call
+   cannot leak at all. Callers with no brand pass nothing and the
+   eyebrow is simply not drawn. */
+function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
+  /* The designer, above the product. textContent, never innerHTML: this
+     string comes from a retailer's catalogue. Emptied when there is no
+     brand so the previous product's label cannot survive onto this one
+     -- the same leak the part-number field guards against below. */
+  const brandEl = document.getElementById('productViewBrand');
+  if (brandEl){
+    const brand = String(opts?.brand || '').trim();
+    brandEl.textContent = brand;
+    brandEl.hidden = !brand;
+  }
   document.getElementById('productViewTitle').textContent = name || 'Producto sin título';
   /* Set by openAutoPart() immediately before this call, and consumed
      here so it cannot leak onto the next product a shopper opens. */
@@ -8477,9 +8663,14 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      addToCartFromProduct() and again in addToCart(), because a disabled
      button is a courtesy, not a guarantee: the console, a stale page
      and a second entry point all route around it. */
+  /* The product page's headline price: the dollar at 26px, the soles
+     conversion and its rate directly under it at 12.5px. See the
+     DOLLARS FIRST note beside solesUnderHTML for why this order. */
   const hasPrice = Number.isFinite(totalUsd) && totalUsd > 0;
   document.getElementById('productViewPrice').innerHTML = hasPrice
-    ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
+    ? fmtDisplayPrice(totalUsd)
+      + solesUnderHTML(displayPriceUsd(totalUsd), 'text-[12.5px] tabular mt-1 font-semibold')
+      + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
     : 'Precio no disponible';
   setProductBuyable(hasPrice);
 
@@ -8527,7 +8718,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     sizeSelect.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
       + rawSizes.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s.toUpperCase())}</option>`).join('');
     sizeNote.textContent = 'Tallas reales disponibles en la tienda.';
-  } else if (needsSize || (name && APPAREL_SIZE_KEYWORDS.test(name))){
+  } else if (needsSize || (name && APPAREL_KEYWORDS.test(name))){
     sizeWrap.hidden = false;
     sizeSelect.required = true;
     const options = standardSizeOptions(name || '', sizeCategory);
@@ -8551,7 +8742,12 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
 
      Not awaited: the details are already on screen and the rail fills
      underneath them when the cache is ready. */
-  renderRelatedRail({ retailer, title: name, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
+  /* The anchor is another hand-written field list, and the brand was
+     missing from it for the same reason it was missing from
+     normalizeLiveItem. Nothing renders the anchor today, so this is
+     not a visible bug -- it is the same omission, closed while the
+     class of it is in view. */
+  renderRelatedRail({ retailer, title: name, brand: opts && opts.brand, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
 }
 
 function goBack(){
@@ -8568,6 +8764,30 @@ function goBack(){
 // a concrete size already attached, and checkout.html reads the cart
 // itself instead of URL params. One path for every purchase, single item
 // or many.
+/* Is this thing sold in sizes? One question, one list -- asked here at
+   the moment of purchase as well as when the page is drawn, so the two
+   cannot disagree about the same product. */
+function apparelNeedsSize(retailer, title){
+  return needsSizeSelection(retailer, title) || APPAREL_KEYWORDS.test(String(title || ''));
+}
+
+/* The same standard picker showProduct() builds, reachable from the buy
+   path so a garment it failed to recognise can still be given a size
+   rather than refused outright. Same honest note: these are reference
+   sizes, not the store's own. */
+function revealStandardSizePicker(title, sizeCategory){
+  const wrap = document.getElementById('productSizeWrap');
+  const select = document.getElementById('productSizeSelect');
+  const note = document.getElementById('productSizeNote');
+  if (!wrap || !select) return;
+  wrap.hidden = false;
+  select.required = true;
+  const options = standardSizeOptions(title || '', sizeCategory);
+  select.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
+    + options.map(s => `<option value="${s}">${s}</option>`).join('');
+  if (note) note.textContent = 'No pudimos confirmar las tallas exactas de esta tienda para este producto — estas son tallas estándar de referencia.';
+  wrap.scrollIntoView({ block: 'center', behavior: 'smooth' });
+}
 /* The buy button's two states, in one place so they cannot drift apart.
 
    Greyed AND disabled AND relabelled: a button that merely looks dead
@@ -8599,7 +8819,28 @@ function addToCartFromProduct(){
   }
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
-  if (!sizeWrap.hidden && sizeSelect.required && !sizeSelect.value){
+
+  /* FAIL CLOSED ON A GARMENT WITH NO SIZE.
+
+     This used to read `!sizeWrap.hidden && ...` -- it only refused when
+     a picker was ALREADY on screen. So the one case that matters went
+     straight through: a garment the word list did not recognise got no
+     picker, and the order completed with no size on it at all. Measured
+     before the list was fixed, that was 906 SSENSE garments, including
+     a S/ 2,946 blazer.
+
+     The question asked is now "is this a garment?", not "is there a
+     picker?" -- so a word we still do not know cannot silently sell a
+     sizeless item. And rather than only refusing, the picker is BUILT
+     on the spot: the shopper gets the thing they were missing instead
+     of a dead end. */
+  const wantsSize = apparelNeedsSize(p.retailer, p.name);
+  if (wantsSize && sizeWrap.hidden){
+    revealStandardSizePicker(p.name, p.sizeCategory);
+    showToast('Elige una talla para este producto.');
+    return;
+  }
+  if ((wantsSize || (!sizeWrap.hidden && sizeSelect.required)) && !sizeSelect.value){
     showToast('Selecciona una talla antes de agregar al carrito.');
     return;
   }
@@ -8931,20 +9172,35 @@ function isBrowseOnlyRetailer(key){
 // match to catch. Target/Walmart sell everything, so those rely on the
 // title keyword match instead (see APPAREL_KEYWORDS below).
 const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
-/* \bboot USED TO MATCH "Bootcut". Bootcut is a trouser leg, not a
-   shoe, and the catalogue is full of them -- "Regular Fit Boot Cut
-   Jeans", "Women's Mid-Rise Bootcut Pants", "725 High-Waist Stretch
-   Bootcut Jeans". Every one was classified as footwear, which means
-   the size picker offered them SHOE sizes. 23 of the 148 items the
-   catalogue calls footwear were trousers.
+/* ============================================================
+   THE WORDS THAT MEAN "THIS HAS A SIZE".
 
-   The closing \b alone fixes the one-word spelling ("bootcut" has no
-   boundary after "boot"); the lookahead is for the two-word one, where
-   "Boot" really is a standalone word. Booties are footwear and keep
-   their own alternative. */
-const SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b/i;
-const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b/i;
-const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
+   REPORTED FROM A REAL FITTING (2026-09-23): a shopper checked whether
+   sizes come up, and on most of the designer catalogue they did not.
+   Measured against the committed catalogue at the time:
+
+     ssense   2,275 items   902 offered a size   906 garments did NOT
+     macys      710 items   418 offered a size   187 garments did NOT
+
+   Danny's own example is the proof: needsSizeSelection('ssense',
+   'Brown Curved Vent Blazer') returned false, so a $1,790 -> $537
+   blazer had no size picker at all. "Blazer" was not in this list, and
+   neither were shirt, polo, cardigan, sweater, trousers, loafers or a
+   dozen other things people buy by size.
+
+   Old Navy and Foot Locker were never affected because they match by
+   RETAILER (APPAREL_ONLY_RETAILERS) -- every item gets a size there.
+   Everywhere else it is the title or nothing, which is why the gap was
+   invisible on the two stores most likely to be spot-checked.
+
+   CONSERVATIVE ON PURPOSE. Words that are only sometimes a garment are
+   left out rather than guessed at: "trainer" (the catalogue really does
+   hold a "SKLZ Star Kick Sports Trainer", which is not footwear),
+   "pump" (bike and breast pumps), bare "top" (table top), "oxford" and
+   "derby" (a shirt and a shoe share both words, and sizeCategoryFor
+   would have to pick one). A missing size picker is a bad checkout; a
+   size picker on a toaster is a worse one.
+   ============================================================ */
 function needsSizeSelection(retailer, title){
   return APPAREL_ONLY_RETAILERS.has(retailer) || APPAREL_KEYWORDS.test(title || '');
 }
@@ -10845,7 +11101,23 @@ function normalizeLiveItem(item, hints){
   const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
   const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
-  return { title, price, image, images, rating, weightKg,
+  /* THE DESIGNER SURVIVES NORMALISATION.
+
+     The eyebrow was built, the data was in the catalogues, and not one
+     item ever showed it: this function returns a NEW object with a
+     hand-written field list, and `brand` was not on it. Everything that
+     draws a card or a product page reads the output of this, so the
+     name was dropped once here and lost everywhere. Measured: 0 of
+     3,553 pooled items carried a brand, including SSENSE's
+     "Beige Water-Repellent Printed Jacket", whose catalogue record says
+     Lacoste.
+
+     `designer` too, because that is what a fashion export is as likely
+     to call the field, and normalising both here is cheaper than every
+     caller guessing. */
+  const brand = String(item.brand || item.designer || '').trim();
+
+  return { title, brand, price, image, images, rating, weightKg,
     weightEstimated: weightDetail.estimated, weightSource: weightDetail.source,
     // Fail-closed signal: nothing may print a freight figure for this item.
     weightNeedsReview: weightDetail.needsReview,
@@ -12476,6 +12748,7 @@ function renderAutoComparison(query){
         </div>
         <div class="text-right flex-shrink-0">
           <div class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${escapeHtml(fmtPriceLabel(r.doorUsd))}</div>
+          ${solesUnderHTML(r.doorUsd, 'text-[10.5px] tabular')}
           <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}</div>
         </div>
       </div>`).join('')}</div>
@@ -12902,7 +13175,8 @@ function cartLineItemHTML(it){
       <div class="mb-1">${retailerBadgeHTML(it.retailer, 16)}</div>
       <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
       ${it.selectedSize ? `<div class="text-[11.5px] text-zinc-500 mt-0.5">Talla: ${escapeHtml(it.selectedSize)}</div>` : ''}
-      <div class="text-[13px] font-extrabold tabular mt-1" style="color:var(--navy)">${fmtPriceLabel(it.priceUsd)}</div>
+      <div class="text-[14px] font-extrabold tabular mt-1" style="color:var(--navy)">${fmtPriceLabel(it.priceUsd)}</div>
+      ${solesUnderHTML(it.priceUsd, 'text-[11px] tabular')}
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
       <button onclick="setCartQty('${jsAttr(key)}', ${it.qty - 1})" aria-label="Restar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">−</button>
@@ -13050,8 +13324,10 @@ function renderCartView(){
      PUBLIC charged rate is ever referenced; internal cost/margin never
      appear in customer-facing code. */
   const cartFreight = freightUsd(totals.weightKg);
-  document.getElementById('cartProductsSubtotal').innerHTML = fmtPriceLabel(totals.priceUsd);
-  document.getElementById('cartFreight').innerHTML = fmtPriceLabel(cartFreight);
+  document.getElementById('cartProductsSubtotal').innerHTML =
+    fmtPriceLabel(totals.priceUsd) + solesUnderHTML(totals.priceUsd, 'text-[11px] tabular');
+  document.getElementById('cartFreight').innerHTML =
+    fmtPriceLabel(cartFreight) + solesUnderHTML(cartFreight, 'text-[11px] tabular');
   document.getElementById('cartFreightMath').textContent =
     `${Math.round(totals.weightKg * 100) / 100} kg × $${CHARGE_PER_KG_USD}/kg`;
 
@@ -13076,10 +13352,17 @@ function renderCartView(){
   document.getElementById('cartSmallOrderFee').textContent = fmtPEN_direct(smallOrderFee);
   feeRow.hidden = !(smallOrderFee > 0);
 
+  /* DOLLARS FIRST HERE TOO, and the soles figure under it is the one
+     that was COMPUTED, not a re-conversion of the dollar total. The
+     small-order fee is denominated in soles, so the honest dollar
+     subtotal is products + freight + (fee ÷ rate) -- and printing
+     round2(subtotalUsd × rate) underneath could land a céntimo off what
+     checkout charges. solesUnderPenHTML takes the soles we already have. */
   const subtotalPen = orderBasePen == null ? null : round2(orderBasePen + smallOrderFee);
-  document.getElementById('cartSubtotal').innerHTML = subtotalPen == null
-    ? fmtPriceLabel(totals.priceUsd + cartFreight)
-    : fmtPEN_direct(subtotalPen);
+  const subtotalUsd = (totals.priceUsd + cartFreight)
+    + (fxRate && smallOrderFee ? smallOrderFee / fxRate : 0);
+  document.getElementById('cartSubtotal').innerHTML =
+    fmtPriceLabel(subtotalUsd) + (subtotalPen == null ? '' : solesUnderPenHTML(subtotalPen, 'text-[11.5px] tabular'));
   document.getElementById('cartCheckoutBtn').textContent = `Proceder al pago — ${cart.length} artículo${cart.length === 1 ? '' : 's'}`;
 
   renderCartWeightReview();
@@ -13189,18 +13472,24 @@ const CUSTOMS_CLOSING_LINE = 'Todo se paga aquí. Nada se paga al recibir.';
 
 function usd0(n){ return '$' + Math.round(n).toLocaleString('en-US'); }
 
-/* CURRENCY RULE (2026-09-18): soles are the primary currency everywhere on
-   this site — the header says "Perú · PEN" and the cart, cards and
-   checkout all lead with S/. This box used to lead with dollars
-   ($982 / $226 / $1,208) inside a cart quoting soles, which put two
-   primary currencies in one view and read as two different prices. USD
-   stays, but as the parenthetical it always should have been: the $200
-   threshold is a real USD customs figure, so the dollar amount is still
-   worth showing — just not first. Falls back to USD alone when no live FX
-   rate has loaded, rather than inventing a conversion. */
+/* CURRENCY RULE, REVERSED (2026-09-23). The 2026-09-18 rule read: "soles
+   are the primary currency everywhere on this site — the header says
+   Perú · PEN and the cart, cards and checkout all lead with S/", and this
+   box was rewritten to put its dollars in parentheses so that two
+   currencies would not compete for one line.
+
+   The competing-currencies problem was real; the resolution was backwards
+   for this box in particular. Every figure in it — the $200 threshold,
+   the declared value, the duty base — IS a US customs figure, denominated
+   in dollars by the authority that charges it. Showing those in soles
+   first meant converting a dollar rule into soles so the reader could
+   convert it back to check it against the rule.
+
+   Dollars lead here now, as they do on every other price on the site, and
+   the soles conversion follows in parentheses with the rate it used. */
 function penWithUsd(usdAmount){
   if (!fxRate) return usd0(usdAmount);
-  return `${fmtPEN(usdAmount)} (≈${usd0(usdAmount)})`;
+  return `${usd0(usdAmount)} (${fmtPEN(usdAmount)} · ${fxRateLabel()})`;
 }
 
 function renderCustomsDisclosure(usdSubtotal){
@@ -13338,7 +13627,8 @@ function openCrossSellProduct(idx){
   if (!it) return;
   showProduct(it.retailer, it.title, it.price, it.weightKg, it.image || '', it.sizes || [],
     needsSizeSelection(it.retailer, it.title), sizeCategoryFor(it.retailer, it.title),
-    it.rating != null ? String(it.rating) : '', it.images || [], it.catalogWeightKg ?? null);
+    it.rating != null ? String(it.rating) : '', it.images || [], it.catalogWeightKg ?? null,
+    { brand: it.brand });
 }
 
 function addCrossSellToCart(idx){
@@ -14381,7 +14671,8 @@ function openSaleProduct(idx){
   if (!p) return;
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null);
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
@@ -14497,6 +14788,7 @@ function productCardHTML(p, opts){
          grid rather than a column of inset text blocks. -->
     <div class="pt-3 pb-1 flex flex-col flex-1">
       <div class="mb-1.5">${retailerBadgeHTML(p.retailer, 16)}</div>
+      ${brandEyebrowHTML(p.brand, { cls: 'text-[10.5px] mb-1' })}
       <div class="text-[13px] leading-snug mb-2 cursor-pointer line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden" onclick="${open}">${escapeHtml(p.title)}</div>
       <!-- THE RATING CAME OFF THE STORE MARK'S ROW. Side by side they
            needed more than a two-across card has: measured at 393px the
@@ -14512,9 +14804,19 @@ function productCardHTML(p, opts){
         Number.isFinite(Number(p.reviewCount)) && Number(p.reviewCount) > 0
           ? ` <span style="color:#9AA3B5">(${Number(p.reviewCount).toLocaleString('es-PE')})</span>`
           : ''}</div>` : ''}
-      <div class="flex items-baseline flex-wrap gap-x-2 gap-y-0.5 mb-1.5 mt-auto">
-        <span class="text-[14px] font-bold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Precio no disponible'}</span>
-        ${hasOriginal ? `<span class="text-[12px] text-zinc-400 line-through tabular">${fmtPEN(displayPriceUsd(original))}</span>` : ''}
+      <div class="mb-1.5 mt-auto">
+        <div class="flex items-baseline flex-wrap gap-x-2 gap-y-0.5">
+          <!-- STILL 14px. "Dollars first" is about which CURRENCY leads,
+               not about the card shouting: "information whispers and
+               photography shouts" is a tested rule here and bumping this
+               to 15px broke it. The dollar is primary because it is bold
+               navy with the soles line small and grey beneath it, which
+               is a hierarchy the card can carry without competing with
+               the photograph. -->
+          <span class="text-[14px] font-bold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Precio no disponible'}</span>
+          ${hasOriginal ? `<span class="text-[12px] text-zinc-400 line-through tabular">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
+        </div>
+        ${hasPrice ? solesUnderHTML(displayPriceUsd(price), 'text-[11px] tabular mt-0.5') : ''}
       </div>
       ${hasPrice ? taxIncludedNoteHTML(price, 'text-[11px] -mt-1 mb-1') : ''}
       ${weightLabelHTML(p.title, 'text-[11.5px] mb-1 font-semibold')}
@@ -15577,13 +15879,14 @@ async function streamAssistantReply(payload, sink){
 function addAssistantProductCard(item, retailer){
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
-  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating); };
+  card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
   card.className = 'w-full flex items-center gap-3 rounded-xl border p-2.5 text-left focus-ring transition hover:bg-zinc-50';
   card.style.borderColor = 'var(--line)';
   card.innerHTML = `
     ${item.image ? `<img src="${escapeHtml(item.image)}" alt="" class="w-12 h-12 rounded-lg object-cover flex-shrink-0">` : `<div class="w-12 h-12 rounded-lg flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
+      ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
       <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price) : ''}${item.price != null && priceIncludesImportTax(item.price) ? ' · incl. impuestos' : ''}</div>
     </div>`;
