@@ -283,18 +283,12 @@ await check("Categorías renders one full-width shopfront per row, departments o
      this grid carried 11 departments and 193 brands, 204 tiles, on the
      one page whose whole job is to show what we sell. Brands live in
      "Busca por marca" inside each multi-brand store now. */
-  /* TEN, not eleven, since 2026-09-24: Salud y Farmacia is gone. It was
-     100% vitamins and supplements, which need a DIGEMID import permit we
-     do not hold. The number stays asserted exactly rather than loosened
-     to "< 50" for the original reason -- a regression that puts the 192
-     brands back would sail past a bound -- and now for a second one: if
-     this ever reads 11 again, the restricted department is back. */
-  /* Eleven again as of 2026-09-24: it went to ten when Salud y Farmacia
-     came off the site, and Curvy took that slot. The exact number stays
-     asserted -- a regression that puts the 192 brands back would sail
-     past a bound, and one that resurrects the pharmacy would read 12. */
-  eq(r.count, 11, "Categorías tiles");
-  eq(r.counter, "11 categorías", "the counter above the grid");
+
+  /* Pinned to the taxonomy for the same reason the home grid is: a
+     twelfth DEPARTMENT is not the brand wall returning. */
+  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
+  eq(r.count, departments, "Categorías tiles vs departments in the taxonomy");
+  eq(r.counter, `${departments} categorías`, "the counter above the grid");
   eq(r.names.includes("Curvy"), true, `Curvy is not on Categorías: ${r.names.join()}`);
   if (r.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on Categorías: ${r.names.join()}`);
@@ -1152,13 +1146,15 @@ await check("the home page grid is departments only", async () => {
       names: [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
     };
   });
-  /* Eleven departments. It was eleven, went to ten on 2026-09-24 when
-     Salud y Farmacia came off the site (a DIGEMID import permit we do
-     not hold), and is eleven again because Curvy took that slot. The
-     number is asserted, not just "fewer than before": a regression that
-     puts brands back would sail past a `< 50` and the wall would be back
-     at the next export, and one that resurrects the pharmacy reads 12. */
-  eq(grid.cards, 11, "home page tiles");
+
+  /* PINNED TO THE TAXONOMY, NOT TO A NUMBER. This read `eq(grid.cards,
+     11)` and went red the day Zapatos was added — which is a department
+     arriving, not the wall coming back. What must hold is that the grid
+     is exactly the departments the taxonomy declares: a brand sneaking
+     in would push the count ABOVE that, and a lost department below it,
+     and neither can hide behind a hand-updated literal. */
+  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
+  eq(grid.cards, departments, "home page tiles vs departments in the taxonomy");
   eq(grid.names.includes("Curvy"), true, `Curvy is not on the home page: ${grid.names.join()}`);
   if (grid.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on the home page: ${grid.names.join()}`);
@@ -1346,6 +1342,51 @@ await check("a brand row opens exactly what its card opened", async () => {
   await ctx.close();
 });
 
+/* ============================================================
+   ZAPATOS — the acceptance criteria, in a real browser.
+   ============================================================ */
+await check("Zapatos appears in Categorías and opens to priced footwear", async () => {
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (route) => route.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+  });
+  const grid = await page.evaluate(async () => {
+    await openCategories();
+    await new Promise((r) => setTimeout(r, 1800));
+    const g = document.getElementById("categoriesGrid");
+    const names = [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim());
+    const i = names.indexOf("Zapatos");
+    return {
+      tiles: g.children.length,
+      found: i >= 0,
+      sign: i >= 0 ? (g.children[i].textContent || "").replace(/\s+/g, " ").trim() : "",
+    };
+  });
+  eq(grid.found, true, "Zapatos is not in Categorías");
+  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
+  eq(grid.tiles, departments, "the Categorías grid vs the taxonomy");
+  /* The card carries name + count in the existing navy band, same as
+     every other department — that is the whole of acceptance item 4. */
+  if (!/^Zapatos \d+ productos · precio puerta a puerta/.test(grid.sign)) {
+    throw new Error(`the Zapatos card does not read like the others: "${grid.sign.slice(0, 70)}"`);
+  }
+
+  const opened = await page.evaluate(async () => {
+    await openCatalog("department", "shoes");
+    await new Promise((r) => setTimeout(r, 2200));
+    const text = document.getElementById("catalogSubtitle").textContent;
+    return {
+      title: document.getElementById("catalogTitle").textContent,
+      count: Number((text.match(/^(\d+)/) || [])[1]),
+      stores: Number((text.match(/de (\d+) tiendas/) || [])[1]),
+      overflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    };
+  });
+  eq(opened.title, "Zapatos", "the department page title");
+  if (!(opened.count >= 400)) throw new Error(`Zapatos opened with only ${opened.count} products`);
+  if (!(opened.stores >= 3)) throw new Error(`Zapatos draws from only ${opened.stores} store(s)`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 /* ============================================================
    NO PRICE, NO BUY BUTTON.
 
@@ -2179,6 +2220,44 @@ await check("the rail does not move on its own", async () => {
   await ctx.close();
 });
 
+/* ---- Tiendas, photographed --------------------------------------- */
+
+await check("the mall photograph stays inside its section when the CDN is blocked", async () => {
+  /* THIS IS THE CHECK THE WHOLE TREATMENT RESTS ON. .ariaSectionPhoto is
+     position:absolute, so it is laid out against the nearest positioned
+     ancestor. If that ancestor is positioned by a Tailwind `relative`
+     utility, then in exactly this environment — CDN blocked, which is how
+     this suite always runs — there is no positioned ancestor, the photo
+     resolves against the viewport, and a 1760px picture lies across the
+     entire page instead of behind a logo strip. It does not degrade; it
+     detonates. So the declaration lives in the inline stylesheet, and
+     this asserts the geometry rather than the stylesheet text. */
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(1200);
+  const geo = await page.evaluate(async () => {
+    const sec = document.querySelector('section[aria-label="Tiendas"]');
+    if (!sec) return { found: false };
+    const img = sec.querySelector("img.ariaSectionPhoto");
+    if (!img) return { found: true, hasImg: false };
+    img.loading = "eager";
+    if (!img.complete) await img.decode().catch(() => {});
+    const s = sec.getBoundingClientRect(), i = img.getBoundingClientRect();
+    return {
+      found: true, hasImg: true,
+      position: getComputedStyle(sec).position,
+      loaded: img.naturalWidth > 0,
+      contained: i.top >= s.top - 1 && i.left >= s.left - 1 && i.bottom <= s.bottom + 1 && i.right <= s.right + 1,
+      imgH: Math.round(i.height), secH: Math.round(s.height),
+    };
+  });
+  eq(geo.found, true, "the Tiendas section is gone");
+  eq(geo.hasImg, true, "the Tiendas section has no photo layer");
+  eq(geo.position, "relative", "the section no longer establishes a containing block without Tailwind");
+  eq(geo.loaded, true, "the photograph did not load");
+  eq(geo.contained, true, `the photo escaped its section (${geo.imgH}px tall inside a ${geo.secH}px section)`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 /* ==================================================================
    CATALOG-FIRST SEARCH, ON THE REAL CATALOGUES.
 
@@ -2249,6 +2328,71 @@ await check("every search answers from the catalogue, with Apify dead", async ()
   await ctx.close();
 });
 
+await check("only one Tiendas surface is photographic at a given width", async () => {
+  /* The home page carries the store marks twice. On a phone the foot
+     strip is a two-column grid ten rows tall, and this photograph is
+     4.29:1 — cropped into that shape it shows the middle eleventh of the
+     frame, which is a dark blur, and it is the same picture the rail
+     already showed. The strip therefore only takes the photo at lg. */
+  const read = async (viewport, isMobile) => {
+    const { ctx, page, errors } = await openPage({}, { viewport, isMobile, hasTouch: isMobile });
+    await page.waitForTimeout(900);
+    const r = await page.evaluate(() => {
+      const shown = (el) => !!el && getComputedStyle(el).display !== "none";
+      return {
+        rail: shown(document.querySelector('section[aria-label="Tiendas"] img.ariaSectionPhoto')),
+        strip: shown(document.querySelector(".ariaSectionShot--lg img.ariaSectionPhoto")),
+        stripBg: getComputedStyle(document.querySelector(".ariaSectionShot--lg")).backgroundColor,
+      };
+    });
+    if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+    await ctx.close();
+    return r;
+  };
+
+  const phone = await read({ width: 393, height: 852 }, true);
+  eq(phone.rail, true, "the phone's Tiendas rail lost its photograph");
+  eq(phone.strip, false, "the retailers strip keeps its photograph on a phone");
+  /* And with the photo gone it is the paper band it always was, rather
+     than navy with nothing on it. */
+  eq(phone.stripBg, "rgb(250, 250, 248)", "the retailers strip has no background of its own on a phone");
+
+  const laptop = await read({ width: 1280, height: 900 }, false);
+  eq(laptop.strip, true, "the retailers strip has no photograph on a laptop");
+  /* NOT asserted: that the rail is hidden at 1280. It hides via Tailwind's
+     lg:hidden, and Tailwind is blocked here by design — so in this suite
+     the rail is still in the layout at desktop width. run-tests.mjs pins
+     the two breakpoints to each other instead, off the source. */
+});
+
+/* ---- Zapatos, and the dead page it used to be --------------------- */
+
+await check("a department renders the catalogue on load without scraping anything", async () => {
+  /* THE BUG THIS PINS. Zapatos showed only "Buscamos 'shoes' en las
+     tiendas de EE. UU." and then nothing, while the catalogue held
+     hundreds of pairs: the department never asked our own data. Catalogue
+     first, live search only on a shopper's tap. */
+  const scraped = [];
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => { scraped.push(r.request().url().split("/").pop().split("?")[0]);
+      return r.fulfill({ status: 200, contentType: "application/json", body: "{}" }); },
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(2500);
+  scraped.length = 0;
+  await page.evaluate(() => openCatalog("department", "shoes"));
+  await page.waitForTimeout(3500);
+  const r = await page.evaluate(() => ({
+    title: document.getElementById("catalogTitle")?.textContent,
+    cards: document.querySelectorAll("#catalogGrid > *").length,
+    empty: !!document.querySelector('#catalogSections button[onclick^="retryCatalog"]'),
+  }));
+  eq(r.title, "Zapatos", "the department is not named Zapatos");
+  if (r.cards < 1) throw new Error("the department rendered no catalogue products on load");
+  eq(r.empty, false, "the empty state rendered although the catalogue loaded");
+  if (scraped.length) throw new Error("a live scrape fired on load: " + scraped.join(", "));
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("the live offer is refined, and the scan goes out with the refinement", async () => {
   const sent = [];
   const { ctx, page, errors } = await openPage({
@@ -2348,6 +2492,45 @@ await check("Aria answers from the catalogue with Apify dead, and offers the liv
   await ctx.close();
 });
 
+await check("a broken catalogue is an honest, retryable page — and the retry works", async () => {
+  /* loadDepartmentCache swallows failures into { retailers: {} } and
+     MEMOISES that, so the interesting half of this check is the second
+     half: a retry that only re-calls openCatalog replays the cached
+     failure and looks like a dead button. */
+  let down = true;
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+    "**/department-cache.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+    "**/macys-catalog.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+    "**/ssense-catalog.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+    "**/beauty-catalog.json": (r) => (down ? r.fulfill({ status: 503, body: "down" }) : r.continue()),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(2200);
+  await page.evaluate(() => openCatalog("department", "shoes"));
+  await page.waitForTimeout(2500);
+
+  const state = await page.evaluate(() => {
+    const sec = document.getElementById("catalogSections");
+    return {
+      bare: (sec?.innerHTML || "").trim() === "",
+      retry: !!sec?.querySelector('button[onclick^="retryCatalog"]'),
+      back: !!sec?.querySelector('button[onclick*="categoriesView"]'),
+      subtitle: document.getElementById("catalogSubtitle")?.textContent || "",
+    };
+  });
+  eq(state.bare, false, "the container is blank — still a dead page");
+  eq(state.retry, true, "a failed catalogue offers no retry");
+  eq(state.back, true, "a failed catalogue offers no way back to the categories");
+  if (/Sin resultados por ahora/.test(state.subtitle)) throw new Error("still the bare dead-end string");
+
+  down = false;
+  await page.click('#catalogSections button[onclick^="retryCatalog"]');
+  await page.waitForTimeout(3500);
+  const after = await page.evaluate(() => document.querySelectorAll("#catalogGrid > *").length);
+  if (after < 1) throw new Error("Reintentar did not recover — the memoised failure was replayed");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("a shoe query reaches Foot Locker, whose titles never say shoes", async () => {
   /* THE RULE THAT ONLY THE REAL PAGE CAN PROVE. In the pure slice
      sizeCategoryFor does not exist, so the Foot Locker branch of
@@ -2417,6 +2600,40 @@ await check("a dead live search keeps the catalogue results on screen", async ()
   await ctx.close();
 });
 
+/* ---- The trust cards --------------------------------------------- */
+
+await check("the trust photos stay inside their cards with the CDN blocked", async () => {
+  /* .ariaTrustPhoto is position:absolute. If the card were positioned by
+     a Tailwind `relative` utility then here — CDN blocked, which is how
+     this suite always runs — the photo would resolve against the viewport
+     and lie across the whole page. The geometry is asserted, not the CSS
+     text. The photos themselves may legitimately be absent; the card's
+     navy and its layering must hold either way. */
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(1500);
+  const cards = await page.evaluate(() => [...document.querySelectorAll(".ariaTrustCard")].map((c) => {
+    const b = c.getBoundingClientRect();
+    const img = c.querySelector("img.ariaTrustPhoto");
+    const body = c.querySelector(".ariaTrustBody");
+    const i = img && img.getBoundingClientRect();
+    return {
+      title: c.querySelector(".font-bold")?.textContent || "",
+      position: getComputedStyle(c).position,
+      bg: getComputedStyle(c).backgroundColor,
+      bodyZ: body ? getComputedStyle(body).zIndex : null,
+      contained: !i || (i.top >= b.top - 1 && i.bottom <= b.bottom + 1 && i.left >= b.left - 1 && i.right <= b.right + 1),
+    };
+  }));
+  eq(cards.length, 4, "expected four trust cards");
+  for (const c of cards) {
+    eq(c.position, "relative", `${c.title}: the card does not establish a containing block without Tailwind`);
+    eq(c.bg, "rgb(10, 31, 68)", `${c.title}: the card lost its navy base`);
+    eq(c.bodyZ, "2", `${c.title}: the content is not above the scrim`);
+    eq(c.contained, true, `${c.title}: the photo escaped its card`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("a live search that works adds to the catalogue, never replaces it", async () => {
   let runId = 0;
   const { ctx, page, errors } = await openPage({
