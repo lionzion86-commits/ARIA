@@ -283,8 +283,17 @@ await check("Categorías renders one full-width shopfront per row, departments o
      this grid carried 11 departments and 193 brands, 204 tiles, on the
      one page whose whole job is to show what we sell. Brands live in
      "Busca por marca" inside each multi-brand store now. */
-  eq(r.count, 11, "Categorías tiles");
-  eq(r.counter, "11 categorías", "the counter above the grid");
+  /* TEN, not eleven, since 2026-09-24: Salud y Farmacia is gone. It was
+     100% vitamins and supplements, which need a DIGEMID import permit we
+     do not hold. The number stays asserted exactly rather than loosened
+     to "< 50" for the original reason -- a regression that puts the 192
+     brands back would sail past a bound -- and now for a second one: if
+     this ever reads 11 again, the restricted department is back. */
+  eq(r.count, 10, "Categorías tiles");
+  eq(r.counter, "10 categorías", "the counter above the grid");
+  if (r.names.some((n) => /farmacia|salud/i.test(n))) {
+    throw new Error(`the restricted department is back on Categorías: ${r.names.join()}`);
+  }
   for (const brand of ["032c", "424", "Rick Owens", "Dries Van Noten", "Acne Studios", "Nike"]) {
     if (r.names.includes(brand)) throw new Error(`the brand wall is back on Categorías: ${brand}`);
   }
@@ -1138,10 +1147,15 @@ await check("the home page grid is departments only", async () => {
       names: [...g.children].map((c) => (c.textContent || "").trim().split("\n")[0].trim()),
     };
   });
-  /* Eleven departments. The number is asserted, not just "fewer than
-     before": a regression that puts brands back would sail past a
-     `< 50` and the wall would be back at the next export. */
-  eq(grid.cards, 11, "home page tiles");
+  /* Ten departments — eleven until 2026-09-24, when Salud y Farmacia
+     came off the site (DIGEMID import permit we do not hold). The number
+     is asserted, not just "fewer than before": a regression that puts
+     brands back would sail past a `< 50` and the wall would be back at
+     the next export, and one that puts the pharmacy back would read 11. */
+  eq(grid.cards, 10, "home page tiles");
+  if (grid.names.some((n) => /farmacia|salud/i.test(n))) {
+    throw new Error(`the restricted department is back on the home page: ${grid.names.join()}`);
+  }
   // And none of them is a brand. SSENSE's are the ones that were here.
   for (const brand of ["Rick Owens", "Driesvannoten", "Dries Van Noten", "Acne Studios", "Nike"]) {
     if (grid.names.includes(brand)) throw new Error(`the brand wall is back: ${brand} is on the home page grid`);
@@ -2187,7 +2201,15 @@ await check("every search answers from the catalogue, with Apify dead", async ()
   await page.waitForTimeout(3000);   // let the catalogues land
 
   const out = [];
-  for (const q of ["Nike", "Nike Air Force", "pantalones", "Vitamina D3"]) {
+  /* THE FOURTH QUERY USED TO BE "Vitamina D3", and it had to change when
+     vitamins came off the site -- there is no longer a supplement in the
+     catalogue for it to find, so the check would have failed for the one
+     reason that is not a regression. "toallas" replaces it because it
+     tests the same thing: typed PLURAL against a SINGULAR dictionary key
+     (`toalla`), translated to English before the catalogue is searched.
+     Walmart's home_goods bucket is kitchen and dish towels, so a real
+     match exists. */
+  for (const q of ["Nike", "Nike Air Force", "pantalones", "toallas"]) {
     await page.evaluate((query) => { document.getElementById("searchInput").value = query; doSearch(); }, q);
     await page.waitForFunction((query) => typeof catalogMatch !== "undefined" && catalogMatch !== null && liveScrapeQuery === query, q, { timeout: 15000 });
     out.push(await page.evaluate(() => ({
@@ -2197,7 +2219,7 @@ await check("every search answers from the catalogue, with Apify dead", async ()
       topTitle: (searchRendered[0] && searchRendered[0].title) || "",
     })));
   }
-  const [nike, af, pants, vit] = out;
+  const [nike, af, pants, towels] = out;
   // All four return SOMETHING, instantly, which is the brief's acceptance test.
   for (let i = 0; i < out.length; i++) {
     eq(out[i].cards > 0, true, `query ${i} came back with an empty feed even though the catalogue has matches`);
@@ -2214,7 +2236,7 @@ await check("every search answers from the catalogue, with Apify dead", async ()
   eq(af.cards > af.exact, true, "the Nike partials were dropped instead of ranked below the exact matches");
   eq(nike.exact > 0, true, "no full matches for Nike");
   eq(pants.exact > 0, true, "the Spanish query found no pants in the catalogue");
-  eq(vit.exact > 0, true, "Vitamina D3 found no full match — the pluralised translation regressed");
+  eq(towels.exact > 0, true, "toallas found no full match — the pluralised translation regressed");
   eq(scrapes, 0, `searching started ${scrapes} Apify runs — that is the cost leak and the outage`);
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
@@ -2420,6 +2442,99 @@ await check("a live search that works adds to the catalogue, never replaces it",
   eq(after.state, "done", "a successful live scan did not settle as done");
   eq(after.hasLive, true, "the live result the stores returned is not in the feed");
   eq(after.total > before, true, `the live scan replaced the catalogue instead of adding to it (${before} -> ${after.total})`);
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ==================================================================
+   VITAMINS ARE OFF THE SITE, AND THE GATE IS ON THE DATA.
+
+   run-tests.mjs proves the committed catalogues are clean and the maps
+   are empty. That is the state today. THIS proves the rule holds when
+   the state is wrong: it serves the page a department-cache.json with a
+   pharmacy bucket in it -- a stale CDN copy, a re-run scrape, a file
+   someone restores -- and asserts a shopper still cannot reach the
+   product from any surface.
+
+   Ofertas is the one that would have leaked. It is
+   { anyCategory: true, onSaleOnly: true }, and itemBelongsToDepartment()
+   returns on onSaleOnly before it ever looks at BUCKET_SPEC, so the
+   discounted multivitamin below would have sat in the deals feed with
+   every table row deleted.
+   ================================================================== */
+await check("a pharmacy bucket in the cache reaches no surface of the site", async () => {
+  const POISONED = {
+    generatedAt: "2026-09-24T00:00:00.000Z",
+    retailers: {
+      walmart: {
+        label: "Walmart",
+        departments: {
+          home_goods: { label: "Home Goods", items: [
+            { title: "Mainstays Kitchen Towel Set, 4 Pack", price: 9.99, regularPrice: 14.99,
+              image: "https://example.invalid/towel.jpg", url: "https://www.walmart.com/ip/1" },
+          ] },
+          /* On sale, so Ofertas would take it on discount alone. */
+          pharmacy: { label: "Pharmacy & Health", items: [
+            { title: "Nature Made Extra Strength Vitamin D3 5000 IU Softgels", price: 9.99, regularPrice: 19.99,
+              image: "https://example.invalid/d3.jpg", url: "https://www.walmart.com/ip/2" },
+            { title: "OLLY Women's Multivitamin Gummies - Berry - 90ct", price: 12.99, regularPrice: 24.99,
+              image: "https://example.invalid/olly.jpg", url: "https://www.walmart.com/ip/3" },
+          ] },
+        },
+      },
+    },
+  };
+  const { ctx, page, errors } = await openPage({
+    "**/.netlify/functions/**": (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }),
+    "**/department-cache.json": (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(POISONED) }),
+  }, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(3000);
+
+  const seen = await page.evaluate(async () => {
+    const cache = await loadDepartmentCache();
+    const walmart = cache.retailers.walmart;
+    const titlesIn = (items) => items.map((i) => i.title || i.name || "");
+    const pool = await relatedPool();
+    return {
+      // the bucket itself never survives the load boundary
+      buckets: Object.keys(walmart.departments || {}),
+      // the towel did, so this is not an empty-cache false pass
+      homeGoods: titlesIn(walmart.departments.home_goods?.items || []).length,
+      // every surface that walks the buckets directly
+      poolTitles: pool.map((i) => i.title),
+      everything: titlesIn(retailerItemsFor(walmart)),
+      ofertas: titlesIn(departmentItemsFor(walmart, "department", "sale")),
+      tiles: collectTiles().map((t) => t.key),
+      labels: collectTiles().map((t) => t.label),
+    };
+  });
+
+  /* THE PROBE NAMES THE TWO PRODUCTS IT INJECTED, and nothing looser.
+     A word-match on /vitamin|olly/ caught "H-olly-wood Blouson Jacket"
+     and a foundation whose name mentions Vitamin C as an INGREDIENT --
+     three false positives out of the real catalogue, which would have
+     failed this check for the one reason that is not a leak. What is
+     being proved is that these exact two rows never arrive. */
+  const POISON = POISONED.retailers.walmart.departments.pharmacy.items.map((i) => i.title);
+  const VITAMIN = new RegExp(POISON.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "i");
+  eq(seen.buckets.includes("pharmacy"), false, `the pharmacy bucket survived the load boundary: ${seen.buckets.join()}`);
+  eq(seen.homeGoods, 1, "the rest of the cache did not load — this check would pass on an empty page");
+  eq(seen.everything.filter((t) => VITAMIN.test(t)).join(" | "), "", "a supplement is still in the retailer's stock");
+  eq(seen.ofertas.filter((t) => VITAMIN.test(t)).join(" | "), "", "a discounted supplement reached the Ofertas feed");
+  eq(seen.poolTitles.filter((t) => VITAMIN.test(t)).join(" | "), "", "a supplement is in the pool that feeds search and the related rail");
+  eq(seen.tiles.includes("pharmacy"), false, "a pharmacy tile was drawn");
+  eq(seen.labels.some((l) => /farmacia|salud/i.test(l)), false, `a Salud y Farmacia tile was drawn: ${seen.labels.join()}`);
+
+  /* And the search bar itself, driven the way a shopper drives it. */
+  const searched = await page.evaluate(async () => {
+    document.getElementById("searchInput").value = "vitaminas";
+    doSearch();
+    await new Promise((r) => setTimeout(r, 2500));
+    return (typeof searchRendered !== "undefined" ? searchRendered : []).map((i) => i.title);
+  });
+  eq(searched.filter((t) => VITAMIN.test(t)).join(" | "), "", "searching for vitaminas surfaced one from the cache");
+
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });

@@ -66,7 +66,6 @@ const LABELS = {
   candy_chocolate: "Candy & Chocolate",
   sporting_goods: "Sporting Goods",
   home_goods: "Home Goods",
-  pharmacy: "Pharmacy & Health",
   men: "Men",
   women: "Women",
   kids: "Kids",

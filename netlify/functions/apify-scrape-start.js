@@ -49,7 +49,6 @@ export const DEPARTMENT_CONFIG = {
     candy_chocolate:  { categoryUrl: "https://www.walmart.com/browse/food/candy/976759_1096070" },
     sporting_goods:   { categoryUrl: "https://www.walmart.com/browse/sports/4125_4161" },
     home_goods:       { categoryUrl: "https://www.walmart.com/browse/home/kitchen-towels-dish-towels/4044_623679_8055732_5591719_7723882" },
-    pharmacy:         { categoryUrl: "https://www.walmart.com/browse/health/vitamins/976760_1005863" },
 
     // Walmart and Target are universal retailers, so they belong in Moda
     // Hombre / Mujer / Niños alongside Old Navy and Foot Locker — not
@@ -76,7 +75,6 @@ export const DEPARTMENT_CONFIG = {
     candy_chocolate:  { startUrl: "https://www.target.com/c/chocolate-candy-grocery/candy-bars/-/N-5xt0bZh20t5" },
     sporting_goods:   { startUrl: "https://www.target.com/c/sports-equipment-outdoors/-/N-5xt52" },
     home_goods:       { startUrl: "https://www.target.com/c/bedding-home-decor/-/N-5xtv4" },
-    pharmacy:         { startUrl: "https://www.target.com/c/vitamins-supplements-health/-/N-5xu07" },
 
     // Same reasoning as Walmart above. `men` reuses the REAL-TEST
     // CONFIRMED /c/men/ start URL (which "clothing" also points at).
