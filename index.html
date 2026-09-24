@@ -4018,8 +4018,8 @@ function rawItemOnSale(item){
    retailer that publishes a size list at all. Walmart, Target, Foot
    Locker, Macy's and SSENSE publish none -- see the note on `sizes` in
    normalizeLiveItem, which found the same thing from the other
-   direction. So the eligible set is 11 distinct products, all Old Navy,
-   and curvyIsThin() says so on the page rather than dressing 11 items up
+   direction. So the eligible set is 18 line items, all Old Navy (11 men's, 7 women's),
+   and curvyIsThin() says so on the page rather than dressing 18 items up
    as a department.
 
    KIDSWEAR IS EXCLUDED, and not by a word list: genderOfItem() is the
@@ -4101,7 +4101,7 @@ function curvyNoticeHTML(count){
     <div class="text-[13.5px] font-extrabold" style="color:#1E3A73">${escapeHtml(CURVY_BLURB)}</div>
     <div class="text-[12.5px] leading-snug mt-1" style="color:#3D4759">
       Cada prenda aquí muestra las tallas que la tienda publica para ella. No estimamos ni completamos tallas:
-      si la tienda no dice que la tiene, no aparece en esta página.
+      si la tienda no dice que la tiene, no aparece en esta página. La selección abre con las tallas de mujer.
     </div>
     ${thin ? `<div class="text-[12.5px] leading-snug mt-2 font-semibold" style="color:#1E3A73">
       Próximamente — estamos cargando tallas. Hoy solo una de nuestras tiendas publica su lista de tallas;
@@ -4132,6 +4132,18 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   }
   if (!dept.gender) return true;
   return genderOfItem(item, bucketName) === dept.gender;
+}
+
+/* CURVY LEADS WITH WOMEN -- Danny's merchandising rule (2026-09-24).
+   Peru's extended-size demand is women's; men's is the secondary mix.
+   The band is the primary sort key on the section and the price sort
+   runs inside each band, so the dropdown keeps governing price
+   direction. Unknown sits between: an ambiguous garment must not lead a
+   section that is a destination for her, and it is not men's either.
+   Kidswear never reaches this function -- the filter above excludes it. */
+function curvyBandOf(item, bucketName){
+  const g = genderOfItem(item, bucketName);
+  return g === 'women' ? 0 : g === 'men' ? 2 : 1;
 }
 
 // A confirmed "quarantined" image verdict means no image of this product
@@ -4208,7 +4220,14 @@ function departmentItemsFor(retailerData, kind, key, retailer){
       const dedupe = rawTitleOf(raw) + '::' + (raw.price ?? raw.effectivePrice ?? '');
       if (seen.has(dedupe)) continue;
       seen.add(dedupe);
-      out.push(raw);
+      /* CURVY'S GENDER BAND (2026-09-24, Danny's rule: women lead). The
+         bucket is only in hand here -- downstream the feed is flattened --
+         so the band travels on a copy of the item, and normalizeLiveItem
+         carries it through to the sort. A copy, not a mutation: the cached
+         raw objects are shared across departments. */
+      out.push(key === 'curvy' && raw && typeof raw === 'object'
+        ? { ...raw, curvyBand: curvyBandOf(raw, bucketName) }
+        : raw);
     }
   }
   return out;
@@ -6231,7 +6250,15 @@ function renderCatalogFeed(){
   const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
   // Best price first, the same default as search. An item with no price
   // can never be the cheapest, so it sorts last either way.
-  items.sort(byDoorToDoor(sortBy));
+  /* CURVY LEADS WITH WOMEN (Danny's rule, 2026-09-24): the gender band is
+     the primary key and the price sort runs inside each band, so the
+     dropdown still governs price direction. The Destacados rail reads
+     this same order -- it always agrees with the grid below it. */
+  const priceSort = byDoorToDoor(sortBy);
+  const isCurvy = catalogState.kind === 'department' && catalogState.key === 'curvy';
+  items.sort(isCurvy
+    ? (a, b) => ((a.curvyBand ?? 1) - (b.curvyBand ?? 1)) || priceSort(a, b)
+    : priceSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
@@ -11387,7 +11414,11 @@ function normalizeLiveItem(item, hints){
        does not split. */
     type: normalizeType(item.type ?? item.typeName ?? item.productType),
     catalogWeightKg,
-    sizes, onSale: hasRealDiscount, originalPrice };
+    sizes, onSale: hasRealDiscount, originalPrice,
+    /* Curvy's women-first band (see curvyBandOf): stamped in
+       departmentItemsFor, read by the feed sort. Absent on every other
+       department -- the sort treats a missing band as unknown/middle. */
+    ...(typeof item.curvyBand === 'number' ? { curvyBand: item.curvyBand } : null) };
 }
 
 function liveRetailerSkeleton(retailer){
