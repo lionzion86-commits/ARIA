@@ -469,3 +469,26 @@ export function loadPageCarouselSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The store-doorway mirror: storefrontTargetFor() index.html carries
+   line-for-line from scripts/lib/retailers.js. The slice starts at the
+   RETAILERS literal because the mirror reads retailerFor(); everything
+   between is data or uncalled function declarations (DOM touches live
+   inside function bodies only), so the slice evaluates cleanly. */
+export function loadPageStoreLinkSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const RETAILERS = {");
+  const to = html.indexOf("/* END OF THE STOREFRONT TARGET MIRROR */");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html store-link markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { storefrontTargetFor, retailerFor };",
+    sandbox,
+    { filename: "index.html#storelink" },
+  );
+  return sandbox.__exports;
+}

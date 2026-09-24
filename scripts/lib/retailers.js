@@ -518,6 +518,24 @@ export function isBeautyRetailer(key) {
   return retailerFor(key)?.catalog === "beauty";
 }
 
+/**
+ * THE PRODUCT PAGE'S DOORWAY INTO THE STORE (2026-09-24).
+ *
+ * A retailer key resolves to its storefront when — and only when — the
+ * store has something a shopper can actually walk through: a live
+ * scraper (`search`) or a cached catalogue (`browse`). Anything else —
+ * a pending connection, a retired row, an unknown key — resolves to
+ * null, and the product page hides the link rather than sending the
+ * shopper to a "connecting" holding page. A button to nowhere is worse
+ * than no button.
+ */
+export function storefrontTargetFor(key) {
+  const r = retailerFor(key);
+  if (!r || r.retired) return null;
+  if (!(r.search || r.browse)) return null;
+  return { key: r.key, label: r.label };
+}
+
 /* The flat maps the older call sites still want, derived from the rows
    above so they can never drift from them. */
 export const RETAILER_LABELS = Object.fromEntries(Object.values(RETAILERS).map((r) => [r.key, r.label]));

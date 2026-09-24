@@ -1439,6 +1439,12 @@
     </button>
     <div class="bg-white border rounded-3xl p-6 sm:p-8" style="border-color:var(--line)">
       <div id="productViewBadge" class="mb-4"></div>
+      <!-- THE STORE DOORWAY (2026-09-24): every product page links into
+           its store. Filled by showProduct(); stays hidden when the
+           retailer has no real storefront behind it. Rendered above the
+           product itself so it is visible during normal browsing, not
+           buried under the suggestions rail. -->
+      <div id="productViewStoreLink" class="mb-5" hidden></div>
       <!-- Spec §6 product imagery: the image column was a 220px square
            under object-cover, which both beheaded portrait catalog shots
            and gave the customer no way to actually look at the product.
@@ -8830,6 +8836,15 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
+  /* THE STORE DOORWAY (2026-09-24): every product page links into its
+     store. The container stays hidden when the retailer has no real
+     storefront behind it — see productStoreLinkHTML(). */
+  const storeLinkEl = document.getElementById('productViewStoreLink');
+  if (storeLinkEl){
+    const storeLinkHTML = productStoreLinkHTML(retailer);
+    storeLinkEl.innerHTML = storeLinkHTML;
+    storeLinkEl.hidden = !storeLinkHTML;
+  }
   /* The designer, above the product. textContent, never innerHTML: this
      string comes from a retailer's catalogue. Emptied when there is no
      brand so the previous product's label cannot survive onto this one
@@ -9401,6 +9416,46 @@ function isBrowseOnlyRetailer(key){
   const r = retailerFor(key);
   return Boolean(r && r.browse && !r.search);
 }
+
+/* ============================================================
+   THE STORE DOORWAY — MIRROR of storefrontTargetFor() in
+   scripts/lib/retailers.js (2026-09-24).
+
+   A retailer key becomes its storefront when — and only when — the
+   store has something a shopper can walk through: a live scraper
+   (search) or a cached catalogue (browse). Pending connections,
+   retired rows and unknown keys resolve to null, and the product
+   page hides the link instead of sending the shopper to a
+   "connecting" holding page.
+   ============================================================ */
+function storefrontTargetFor(key){
+  const r = retailerFor(key);
+  if (!r || r.retired) return null;
+  if (!(r.search || r.browse)) return null;
+  return { key: r.key, label: r.label };
+}
+/* END OF THE STOREFRONT TARGET MIRROR */
+
+/* THE STORE DOORWAY BUTTON (2026-09-24). Danny's rule: every product
+   page is a doorway into its store — an undecided shopper taps
+   through and keeps browsing the same genre instead of bouncing. It
+   renders directly under the store badge, above the product itself,
+   so it is visible during normal browsing rather than buried under
+   the "Tambien te puede interesar" rail. Empty string when there is
+   no real storefront, which is what hides the container. */
+function productStoreLinkHTML(retailer){
+  const target = storefrontTargetFor(retailer);
+  if (!target) return '';
+  return `<button type="button" onclick="openStore('${jsAttr(target.key)}')" `
+    + `class="w-full h-[52px] px-5 rounded-2xl inline-flex items-center justify-center gap-2.5 text-[14.5px] font-bold focus-ring transition bg-white hover:bg-[#F1F5FD] active:bg-[#E8EEFB]" `
+    + `style="border:2px solid var(--line); color:var(--navy)" `
+    + `aria-label="Ver la tienda de ${escapeHtml(target.label)}">`
+    + `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 10v10h16V10"/><path d="M3 6l1.5-3h15L21 6"/><path d="M3 6h18v4H3z"/><path d="M9 20v-6h6v6"/></svg>`
+    + `<span>Ver la tienda de <span class="underline underline-offset-2">${escapeHtml(target.label)}</span></span>`
+    + `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`
+    + `</button>`;
+}
+
 
 // Retailers whose entire catalog is apparel/footwear — used so a real
 // shoe like "Nike Kobe Air Force 1 Low" (Foot Locker) or "Rotation

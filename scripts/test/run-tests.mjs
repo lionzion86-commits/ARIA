@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice, loadPageStoreLinkSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -7589,6 +7589,80 @@ group("store carousels: window-shopping rails");
     }
     const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
     if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
+  });
+}
+
+/* ============================================================
+   THE STORE DOORWAY (2026-09-24).
+
+   Every product page links into its store: "Ver la tienda de
+   Victoria's Secret". The resolver is pure and mirrored —
+   scripts/lib/retailers.js is the source of truth, index.html carries
+   the copy — and the page hides the link (rather than linking to a
+   "connecting" holding page) when the retailer has no real storefront.
+   ============================================================ */
+group("product page: the store doorway");
+
+{
+  const cases = [
+    // [retailer key, expected storefront key or null]
+    ["victoriassecret", "victoriassecret"],
+    ["macys", "macys"],
+    ["target", "target"],
+    ["walmart", "walmart"],
+    ["sephora", "sephora"],
+    ["ulta", "ulta"],
+    ["yesstyle", "yesstyle"],
+    ["oldnavy", "oldnavy"],
+    ["footlocker", "footlocker"],
+    ["ssense", "ssense"],
+    ["autozone", "autozone"],
+    // No real storefront: pending connections, retired rows, unknown keys.
+    ["skims", null],
+    ["revolve", null],
+    ["dyson", null],
+    ["bathandbodyworks", null],
+    ["bestbuy", null],
+    ["nordstrom", null],
+    ["acme", null],
+    ["", null],
+  ];
+
+  check("storefrontTargetFor resolves every carried store to its storefront", () => {
+    for (const [key, expected] of cases) {
+      const got = retailers.storefrontTargetFor(key);
+      eq(got ? got.key : null, expected, `storefront for ${JSON.stringify(key)}`);
+      if (expected) eq(got.label, retailers.retailerFor(key).label, `label for ${key}`);
+    }
+  });
+
+  check("the page mirror resolves exactly like the module", () => {
+    const page = loadPageStoreLinkSlice();
+    for (const [key] of cases) {
+      const a = JSON.stringify(retailers.storefrontTargetFor(key));
+      const b = JSON.stringify(page.storefrontTargetFor(key));
+      eq(b, a, `page/module parity for ${JSON.stringify(key)}`);
+    }
+  });
+
+  check("showProduct fills the doorway and hides it when there is no storefront", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    if (!src.includes('id="productViewStoreLink"')) throw new Error("the product view has no store-link container");
+    const fn = src.slice(src.indexOf("function showProduct("), src.indexOf("function goBack(){"));
+    if (!/productStoreLinkHTML\(retailer\)/.test(fn)) throw new Error("showProduct never fills the store link");
+    if (!/storeLinkEl\.hidden = !storeLinkHTML/.test(fn)) throw new Error("showProduct does not hide the link when empty");
+    // The doorway opens the storefront through the same door every other
+    // store entry uses — not a raw URL the router would not recognise.
+    const render = src.slice(src.indexOf("function productStoreLinkHTML("), src.indexOf("// Retailers whose entire catalog is apparel/footwear"));
+    if (!/openStore\('\$\{jsAttr\(target\.key\)\}'\)/.test(render)) throw new Error("the doorway does not call openStore with the resolved key");
+    if (!/Ver la tienda de/.test(render)) throw new Error("the doorway carries no Spanish store label");
+  });
+
+  check("the suggestions rail is untouched by the doorway", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const fn = src.slice(src.indexOf("function showProduct("), src.indexOf("function goBack(){"));
+    if (!/renderRelatedRail\(\{ retailer, title: name/.test(fn)) throw new Error("showProduct no longer renders the related rail");
+    if (!src.includes('id="relatedRail"')) throw new Error("the related rail section is gone");
   });
 }
 
