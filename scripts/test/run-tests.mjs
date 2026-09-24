@@ -6493,6 +6493,59 @@ check("the empty state offers a way on, and never fires a scrape by itself", () 
 });
 
 /* ------------------------------------------------------------------ */
+group("A stylesheet comment that never opened");
+
+/* WHAT THIS CATCHES, AND WHY IT IS A GROUP OF ITS OWN.
+
+   The Belleza banner's rule shipped to main dead. Not deleted --
+   commented out by accident. Its explanatory comment opens with a
+   `/* ====` banner line, and when two branches both insert at that seam
+   git hands the opener down as SHARED CONTEXT above the hunk. A merge
+   resolved hunk-by-hunk keeps both bodies and drops that one line, and
+   the result looks completely normal: the prose is still indented like
+   a comment and still ends in `*(/)`.
+
+   What a CSS parser does with it is not normal. The unopened prose is
+   garbage, so it consumes forward looking for a block -- and swallows
+   the very rule underneath. `.ariaBeautyBanner` stopped applying:
+   measured on main, the banner computed `position: static` with its
+   box collapsed to 0px, while `.ariaBeautyBanner > img` (a separate
+   rule, still valid) stayed `position: absolute`. With no positioned
+   ancestor the photograph resolved against the viewport and rendered
+   393x852 at top 0 -- a full screen of silk laid over the page, above
+   the four-per-shipment warning it is supposed to sit beside.
+
+   The browser check caught it. It also took four minutes and a real
+   Chromium to say so. This says it in milliseconds, from the text, and
+   it generalises: any rule in this stylesheet can be deleted this way,
+   silently, by any future merge at any `/* ====` seam.
+
+   Brace balance does NOT catch this -- the orphaned prose has no braces
+   in it, so the stylesheet still balances perfectly. Comment delimiters
+   are their own invariant. */
+check("every comment in the page stylesheet was opened before it was closed", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const open = src.indexOf("<style>");
+  const css = src.slice(open + "<style>".length, src.indexOf("</style>", open));
+
+  let depth = 0, line = 1;
+  for (let i = 0; i < css.length; i++) {
+    if (css[i] === "\n") line++;
+    if (css.startsWith("/*", i)) { depth++; i++; continue; }
+    if (css.startsWith("*/", i)) {
+      depth--;
+      if (depth < 0) {
+        const before = css.slice(0, i).split("\n").slice(-6).join("\n");
+        throw new Error(
+          `a comment closes at line ${line} of <style> that was never opened -- ` +
+          `the rule under it is being eaten by the CSS parser. Context:\n${before}`);
+      }
+      i++;
+    }
+  }
+  if (depth > 0) throw new Error(`${depth} stylesheet comment(s) opened and never closed`);
+});
+
 group("The trust cards are photographs, not white boxes");
 
 const TRUST_PHOTOS = {
