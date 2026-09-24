@@ -77,3 +77,18 @@ front of the shop" — that judgement needs eyes.
    box, so filling it is right and letterboxing it would waste the crop.
 4. **No text in the image.** The category name is already on the navy
    sign underneath, in the site's own type, and it is translated.
+
+## `curvy` (2026-09-24)
+
+Curvy took the slot Salud y Farmacia left. Its cover is the size-run
+rail Danny approved on 2026-09-23 — three dresses on a brass rail, the
+hanger tags reading XL / 2X / 3X.
+
+**That is text in the image, and rule 4 says no.** It is here on
+purpose, and the exception is worth stating rather than leaving for
+someone to notice: the size run IS the subject of this photograph, the
+codes are the same in Spanish and English so nothing goes untranslated,
+and they are not the category name — which is the duplication rule 4
+exists to prevent. Danny approved this frame knowing what is on the
+tags. Do not read it as licence for the next one: a price, a badge or a
+Spanish word baked into a cover is still refused.

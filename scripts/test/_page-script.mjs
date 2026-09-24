@@ -419,3 +419,25 @@ export function loadPageSizeSlice() {
   );
   return sandbox.__exports;
 }
+
+/* Curvy's size rule, on its own. It is a Set and four small pure
+   functions, and the question it answers -- "will this store actually
+   ship a 3X?" -- is one you settle by running it over real size lists,
+   not by reading the pattern. */
+export function loadPageCurvySlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const EXTENDED_SIZES = new Set([");
+  const to = html.indexOf("const CURVY_BLURB =");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html curvy markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { EXTENDED_SIZES, retailerSizesOf, extendedSizesOf, hasExtendedSizes, sizeRunLabels };",
+    sandbox,
+    { filename: "index.html#curvy" },
+  );
+  return sandbox.__exports;
+}
