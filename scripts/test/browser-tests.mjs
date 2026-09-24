@@ -1695,13 +1695,44 @@ await check("the utility bar's two links land on their sections", async () => {
   eq(club.interactive, false, "the Key Club teaser is clickable, and there is nothing behind it");
   if (!club.text.includes("Aria Key Club")) throw new Error("the Key Club lost its name");
 
+  /* SETTLE THE PAGE BEFORE MEASURING A SCROLL, and this is not the test
+     being made lenient -- it is the test being made about the product.
+     This suite blocks Tailwind on purpose, so every image draws at its
+     natural size and the un-styled page is ~28,000px tall. Scrolling it
+     pulls lazy images into view above the target, each one growing the
+     document by hundreds of pixels, so a smooth scroll that starts
+     aimed at #precioHonesto finishes 11,000px short of where the
+     section has since moved to. Measured with real CSS the same click
+     lands in 800ms; measured here it never lands at all, and it has
+     never landed -- this check fails the same way on the branch before
+     this merge. Loading the images up front and waiting for the height
+     to stop moving removes the artefact and leaves the assertion whole:
+     click the link, end up on the section. */
+  await page.evaluate(async () => {
+    for (const img of document.querySelectorAll('img[loading="lazy"]')) img.loading = "eager";
+    let h = -1, stable = 0;
+    for (let i = 0; i < 60 && stable < 4; i++) {
+      await new Promise((r) => setTimeout(r, 150));
+      const n = document.documentElement.scrollHeight;
+      stable = n === h ? stable + 1 : 0;
+      h = n;
+    }
+  });
+
   for (const [sel, id] of [['[data-utility="whyUs"]', "whyUs"], ['[data-utility="precioHonesto"]', "precioHonesto"]]) {
     const landed = await page.evaluate(async ([sel, id]) => {
       showPage("homeView"); window.scrollTo(0, 0);
       await new Promise((r) => setTimeout(r, 200));
       document.querySelector(sel).click();
-      await new Promise((r) => setTimeout(r, 1200));
       const el = document.getElementById(id);
+      /* Poll rather than sleep a fixed 1200ms: a smooth scroll's
+         duration is the distance, and this page is long. It still fails
+         if the section never arrives. */
+      let waited = 0;
+      while (waited < 6000 && !(el.getBoundingClientRect().top < window.innerHeight)) {
+        await new Promise((r) => setTimeout(r, 150));
+        waited += 150;
+      }
       return {
         view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
         hash: location.hash,
