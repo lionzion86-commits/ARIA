@@ -87,6 +87,25 @@
   /* The sort select keeps its white surface; its hairline turns rose so
      it does not look pasted on. */
   [data-store-theme="victoriassecret"] #catalogSort{ border-color:#E8A9C4 !important; }
+  /* STORE CAROUSELS — WINDOW-SHOPPING RAILS (2026-09-24).
+     Danny: every store landing and every category drill-down leads with
+     a swipeable product rail; the wordy tiles move below. The rail is a
+     native horizontal scroller: touch swipe with mandatory snap points
+     (no JS, no library, works the moment the HTML lands), the
+     no-scrollbar treatment the chip rows already use, and negative
+     margins so the swipe runs edge to edge inside the px-5 view
+     container while the cards keep their 20px end padding.
+     Cards keep their own white surface on themed storefronts (see
+     STORE_THEMES) — only the rail title is re-inked per theme. */
+  .ariaCarousel{ display:flex; gap:12px; overflow-x:auto; scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+    margin:0 -20px; padding:6px 20px 14px; }
+  .ariaCarouselCard{ scroll-snap-align:start; flex:0 0 auto; width:158px; }
+  @media (min-width:640px){ .ariaCarouselCard{ width:188px; } }
+  @media (prefers-reduced-motion: reduce){ .ariaCarousel{ scroll-snap-type:x proximity; } }
+  /* Rail titles ink light on the VS plum, the way the subtitles do. A
+     future dark theme adds its own .ariaCarouselTitle line here. */
+  [data-store-theme="victoriassecret"] .ariaCarouselTitle{ color:#FDF3F7 !important; }
   /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
      used to sit on their brand-colour swatch, which made Foot Locker
      (all-black artwork on #000) read as a solid black rectangle and
@@ -5835,6 +5854,105 @@ function catalogSearchBarHTML(){
    space off the edges; contain would letterbox every tile and make the
    grid look like a spreadsheet. */
 /* ============================================================
+   STORE CAROUSELS — WINDOW SHOPPING, NOT TILE-PICKING (2026-09-24).
+
+   Danny's redesign: every store landing and every category drill-down
+   leads with a horizontal product rail — image-forward cards you swipe
+   through like window shopping — and the wordy category tiles move
+   BELOW it. The tiles stay; they just stop being the first screen.
+
+   SELECTION — MIRROR of scripts/lib/carousel.js. This page is a plain
+   <script> and cannot import; the test suite pins both copies.
+   ============================================================ */
+const CAROUSEL_MAX = 16;
+const CAROUSEL_MIN_ITEMS = 4;
+function carouselItemKey(it){
+  const img = it && (it.image || it.imageUrl || it.thumbnail);
+  if (typeof img === 'string' && img) return 'img:' + img;
+  const title = it && typeof it.title === 'string' ? it.title : '';
+  return 'title:' + title;
+}
+function carouselHasPhoto(it){
+  const img = it && (it.image || it.imageUrl || it.thumbnail);
+  return typeof img === 'string' && img.length > 0;
+}
+function carouselPickItems(items, max){
+  const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : CAROUSEL_MAX;
+  const seen = new Set();
+  const withPhoto = [];
+  const withoutPhoto = [];
+  for (const it of items || []){
+    if (!it) continue;
+    const key = carouselItemKey(it);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    (carouselHasPhoto(it) ? withPhoto : withoutPhoto).push(it);
+  }
+  return withPhoto.concat(withoutPhoto).slice(0, limit);
+}
+function carouselMixItems(deptEntries, max){
+  const lists = (deptEntries || [])
+    .map(([, items]) => (items || []).filter(Boolean))
+    .filter((l) => l.length > 0);
+  const mixed = [];
+  let i = 0;
+  let progressed = true;
+  while (progressed){
+    progressed = false;
+    for (const list of lists){
+      if (i < list.length){ mixed.push(list[i]); progressed = true; }
+    }
+    i += 1;
+  }
+  return carouselPickItems(mixed, max);
+}
+/* END OF THE CAROUSEL SELECTION MIRROR */
+
+/* ONE CARD ON THE RAIL. Image-forward and quiet: a photo, a two-line
+   title, a price — no store mark, no freight line, no buttons. Tapping
+   it opens the product exactly the way the grid cards do
+   (productCardOpenExpr), because a rail card that opened somewhere
+   different would be a second, worse product page.
+
+   THE SURFACE STAYS LIGHT. On a themed storefront (see STORE_THEMES —
+   Victoria's Secret's plum ambience) the rail floats over the dark and
+   the cards keep their white faces, the same rule the product grid and
+   the department tiles follow. A future dark theme re-inks
+   .ariaCarouselTitle alongside the subtitles; the cards need nothing. */
+function carouselCardHTML(item, retailer){
+  const it = retailer && !item.retailer ? { ...item, retailer } : item;
+  const open = productCardOpenExpr(it, retailer);
+  const price = Number(it.price);
+  const hasPrice = Number.isFinite(price) && price > 0;
+  const src = upgradeImageUrl(safeUrl(it.image || it.imageUrl || it.thumbnail) || '');
+  return `<div class="ariaCarouselCard" role="listitem">
+    <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
+      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(it.title || 'Ver producto')}"
+      onkeydown="if(event.key==='Enter'){${open}}">
+      <div class="aspect-[4/5]" style="background:#fff">${cardPhotoHTML(src, { alt: it.title || '', fallbackSrc: imageRetryUrl(src) })}</div>
+      <div class="p-3">
+        <div class="text-[12.5px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(it.title || '')}</div>
+        <div class="text-[14px] font-extrabold tabular mt-1" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Ver detalle'}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* THE RAIL ITSELF. `items` are already picked (carouselPickItems /
+   carouselMixItems); this only decides whether there is a rail at all
+   and wraps it. Fewer than CAROUSEL_MIN_ITEMS cards is not a rail — the
+   surface keeps its old layout rather than a broken-looking row. */
+function storeCarouselHTML({ id, title, items, retailer }){
+  const picks = carouselPickItems(items, CAROUSEL_MAX);
+  if (picks.length < CAROUSEL_MIN_ITEMS) return '';
+  return `<section aria-label="${escapeHtml(title)}" class="mb-8">
+    <h2 class="ariaCarouselTitle text-[17px] font-extrabold tracking-[-0.01em] mb-3" style="color:var(--navy)">${escapeHtml(title)}</h2>
+    <div id="${escapeHtml(id)}" class="ariaCarousel no-scrollbar" role="list">
+      ${picks.map((it) => carouselCardHTML(it, retailer)).join('')}
+    </div>
+  </section>`;
+}
+/* ============================================================
    THE BROWSE TILE — one component for every "pick a shelf" grid.
 
    There were two of these and they had drifted into opposite ends of
@@ -5908,9 +6026,13 @@ function catalogAisleCardHTML(row, total){
   });
 }
 
-function catalogAisleListHTML(grouped, storeLabel){
+function catalogAisleListHTML(grouped, storeLabel, items){
   const total = grouped.total;
+  /* The aisle landing is a category page too — rail first, tiles
+     below (2026-09-24). `items` is the department's full feed, passed
+     from renderCatalogFeed where it is in scope. */
   return `
+    ${storeCarouselHTML({ id: 'aisleRail', title: 'Destacados', items, retailer: null })}
     ${catalogSearchBarHTML()}
     ${catalogStoreChipsHTML()}
     <div class="grid grid-cols-2 gap-3 mb-4">
@@ -6065,7 +6187,7 @@ function renderCatalogFeed(){
      what they want and a list of aisles is in their way. */
   if (splittable && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
     subtitle.textContent = `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`;
-    sections.innerHTML = catalogAisleListHTML(grouped, storeLabel);
+    sections.innerHTML = catalogAisleListHTML(grouped, storeLabel, all);
     revealActiveChips(sections);
     return;
   }
@@ -6133,7 +6255,11 @@ function renderCatalogFeed(){
   }
 
   const budgetBand = budgetBandFor(catalogState.budget);
+  /* Every category drill-down leads with the rail (2026-09-24) — the
+     feed's own top items, so the rail always agrees with the grid
+     below it. Search, budget and sort all flow through `items`. */
   sections.innerHTML = `
+    ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items, retailer: null })}
     ${catalogSearchBarHTML()}
     ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
@@ -6676,6 +6802,14 @@ async function openStore(retailer){
     }
     return firstSeen;
   };
+  /* WINDOW-SHOPPING RAIL FIRST (2026-09-24) — Danny: the store opens on
+     products you swipe through, not on the wordy tiles. The tiles stay,
+     below the rail. The mix is round-robin across departments so one
+     big shelf (432 panties) does not eat the whole window. */
+  document.getElementById('storeViewSections').innerHTML += storeCarouselHTML({
+    id: 'storeRail', title: 'Destacados',
+    items: carouselMixItems(deptEntries, CAROUSEL_MAX), retailer,
+  });
   document.getElementById('storeViewSections').innerHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${
     deptEntries.map(([key, items]) => browseTileHTML({
       label: metaFor(DEPARTMENT_META, key).label,
