@@ -6043,6 +6043,35 @@ check("a retailer's own type outranks our keyword, both ways", () => {
      "socks from a shoe store are still not shoes");
 });
 
+check("Deportes refuses dress shoes but keeps athletic footwear", () => {
+  /* REPORTED FROM THE LIVE SITE (2026-09-24): Walmart's sporting_goods
+     bucket carries "LNMQLPDBS Princess Shoes Girls Heels..." and
+     "Purcolt Women's Mid Heel Slingback Pumps Dress Shoes..." — fashion
+     shoes beside the basketballs. The bucket is Deportes' only signal,
+     so the dressy kind is refused per item. Athletic footwear stays. */
+  const inDeportes = (title, retailer) =>
+    deptMap.itemBelongsToDepartment({ title }, "sporting_goods", "sporting_goods", retailer);
+  for (const dressShoe of [
+    "LNMQLPDBS Princess Shoes Girls Heels Princess Dress up Shoes",
+    "Purcolt Women's Mid Heel Slingback Pumps Dress Shoes Pointed Closed Toe",
+    "Josmo Boys Wingtip Oxford Lace Dress Shoes - Black, 10",
+    "Tacones altos de fiesta",
+  ]) {
+    if (inDeportes(dressShoe, "walmart")) throw new Error(`"${dressShoe}" is still in Deportes`);
+  }
+  for (const athletic of [
+    "Nike Air Zoom Running Shoes",
+    "Reebok Pump Omni Zone II Men's Basketball Shoes",
+    "adidas Women's Tennis Shoes",
+  ]) {
+    if (!inDeportes(athletic, "walmart")) throw new Error(`"${athletic}" was kicked out of Deportes`);
+  }
+  // Dress shoes are still shoes — Zapatos keeps them; this is only about Deportes.
+  if (!deptMap.itemBelongsToDepartment(
+    { title: "Purcolt Women's Mid Heel Slingback Pumps Dress Shoes" }, "sporting_goods", "shoes", "walmart"
+  )) throw new Error("the Deportes fix leaked into Zapatos");
+});
+
 check("Zapatos is a department with a name and a place in the taxonomy", () => {
   eq(deptMap.DEPARTMENT_SPEC.shoes.footwearOnly, true, "the shoes spec");
   eq(deptMap.DEPARTMENT_SPEC.shoes.anyCategory, true, "shoes must scan every bucket, not one named bucket");

@@ -3764,6 +3764,18 @@ const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slide
 const NOT_FOOTWEAR = /\b(socks?|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
 const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 
+/* DEPORTES IS NOT A SHOE STORE (2026-09-24). Walmart and Target file
+   dress shoes in their sporting_goods scrape buckets — princess heels,
+   slingback pumps, wingtip dress shoes — and the bucket is the only
+   signal Deportes has, so they land beside the basketballs. Athletic
+   footwear stays; the dressy kind is refused per item, the same way
+   NOT_FOOTWEAR refuses socks from Zapatos.
+
+   "pumps" is plural-only on purpose: the Reebok Pump is a basketball
+   shoe. "taco" stays out for the reason the footwear note gives
+   (dinner, not a heel); "tacones"/"tacón" are unambiguous. */
+const NON_ATHLETIC_FOOTWEAR =
+  /\b(heels?|tacones?|tac[oó]n|pumps|stilettos?|slingbacks?|ballerinas?|bailarinas?|mary\s*janes?|princess|princesa|dress\s+shoes?|wedges?|cu[ñn]as?|bridal|wedding|novia|boda|evening\s+shoes?|costume|disfraz|peep[-\s]?toes?|mules?)\b/i;
 function isFootwearType(type){
   const t = String(type ?? '').toUpperCase();
   return t ? FOOTWEAR_TYPE.test(t) : false;
@@ -3945,6 +3957,11 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.footwearOnly) return isFootwear(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
+     the retailers' sporting_goods buckets carry them, and the bucket is
+     this department's only other signal. Gated on isFootwear so a
+     "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
+  if (deptKey === 'sporting_goods' && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(rawTitleOf(item))) return false;
   /* Curvy is a filter over apparel, the way Ofertas is a filter over
      everything -- not a category a retailer scrapes into. */
   if (dept.extendedSizesOnly){
