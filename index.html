@@ -69,6 +69,59 @@
      halfway through one, and no scrollbar because a touch rail with a
      visible track reads as a desktop widget. Nothing here animates:
      the shopper swipes, the rail follows. */
+  /* ============================================================
+     THE LIGHTBOX'S SIZING, HAND-WRITTEN.
+
+     CONTAIN, NOT "tall enough". The image used to cap only its height
+     and leave `max-width:none`, which is not containment at all: a
+     landscape photo just grew sideways until it left the screen. Both
+     axes are capped now and object-fit finishes the job, so no part of
+     the photograph can render outside the frame at any aspect ratio.
+
+     TWO ZOOMS, AND ONLY ONE OF THEM IS OURS. A double tap toggles a
+     transform we set ourselves; the shopper's pinch drives the
+     browser's own page zoom, and iOS does not let a page opt out of
+     that one -- `touch-action` does not take it away, because it is an
+     accessibility gesture. So they are not alternatives, they are two
+     live mechanisms, and the rule is that at most one is on at a time:
+     a real two-finger gesture clears ours (bindLightboxGestures) so
+     they can never stack.
+
+     THE CHROME IS PINNED TO THE VISUAL VIEWPORT, NOT THE LAYOUT ONE.
+     `fixed` anchors to the layout viewport, which a pinch does not
+     move -- that is how the X ended up outside the window the shopper
+     was looking through. #lightboxChrome is parked on the visual
+     viewport by syncLightboxChrome() instead. The transform-origin and
+     the will-change are the load-bearing half of that: the origin makes
+     the translate/scale below resolve from the layer's own top-left,
+     and the hint is why it stays a layer rather than being recomputed
+     into `top`/`left` on every frame of a live gesture.
+
+     The stage only scrolls while zoomed, and never otherwise.
+     ============================================================ */
+  #lightboxStage{ overflow:hidden; touch-action:none; -webkit-overflow-scrolling:touch }
+  /* HIDDEN WITHOUT HELP FROM A CDN. The overlay was hidden only by
+     Tailwind's `hidden` class, which is a stylesheet fetched from
+     cdn.tailwindcss.com -- so on any load where that request fails, a
+     full-screen dark panel renders over the shop. Measured with the CDN
+     blocked: #imageLightbox computes to display:block and takes up real
+     space in the document. The class stays as the thing JS toggles;
+     this makes the DEFAULT closed, from the page's own stylesheet, so
+     a failed CDN can no longer decide whether an overlay is open.
+     Keyed off `.hidden` rather than `.flex` because lightboxIsOpen()
+     reads `.hidden`, and two sources of truth is how they drift. */
+  #imageLightbox{ display:none }
+  #imageLightbox:not(.hidden){ display:flex }
+  #lightboxChrome{ position:fixed; left:0; top:0; width:100%; height:100%;
+                   transform-origin:0 0; pointer-events:none;
+                   will-change:transform; z-index:70 }
+  #lightboxChrome > *{ pointer-events:auto }
+  #lightboxImg{ max-width:100%; max-height:100%; width:auto; height:auto;
+                object-fit:contain; transform-origin:center center;
+                transition:transform .18s ease; user-select:none; -webkit-user-drag:none }
+  #imageLightbox[data-zoom="1"] #lightboxStage{ overflow:auto; touch-action:pan-x pan-y }
+  #imageLightbox[data-zoom="1"] #lightboxImg{ transform:scale(2.4) }
+  @media (prefers-reduced-motion: reduce){ #lightboxImg{ transition:none } }
   /* "EXPLORA MÁS", THE REFERENCE'S SECTION FOOTER. An outlined button
      under the section rather than a coloured link beside its heading:
      it reads as the end of the run of products instead of as a second
@@ -853,6 +906,16 @@
         <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <div id="resultCount" class="text-[13px] text-zinc-500"></div>
           <select id="resultsSort" onchange="renderSearchResults()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
+            <!-- RELEVANCE FIRST, AND IT IS THE DEFAULT (2026-09-23).
+                 Best-price-first was right when every result came from a
+                 live query for the exact words typed: everything on
+                 screen was equally "the thing", so price was the only
+                 question left. The catalogue also returns PARTIAL
+                 matches, and sorting those by price alone put a $12
+                 setting spray above the Nike Air Force 1 someone had
+                 just asked for. Comparing prices is still one click
+                 away, which is what it is for. -->
+            <option value="relevance">Más relevante primero</option>
             <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
             <option value="priceDesc">Total a tu puerta: mayor a menor</option>
           </select>
@@ -870,6 +933,13 @@
              single grid, each card carrying its own store badge, with the
              store checkboxes acting as a filter over the feed. -->
         <div id="liveResultsWrap" class="mb-6 hidden grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 lg:gap-6"></div>
+
+        <!-- LIVE SEARCH, ON OFFER. The catalogue has already answered
+             above; this is the shopper's choice to have us go and look
+             in the US stores right now. Filled by
+             renderLiveSearchOffer(). It is never fired automatically —
+             that was the cost leak and the single point of failure. -->
+        <div id="searchLiveWrap" class="mb-4"></div>
 
         <!-- ON-DEMAND STORE SEARCH. Appears under a thin or empty feed:
              the offer to go and look in one store right now. Filled by
@@ -1129,6 +1199,9 @@
             <p id="productSizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
           </div>
           <button id="addToCartBtn" onclick="addToCartFromProduct()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Agregar al carrito</button>
+          <!-- Only ever shown when the price is missing, and the button
+               above is disabled in the same breath. See showProduct(). -->
+          <p id="productNoPriceNote" class="text-[12.5px] mt-2.5 leading-relaxed max-w-[42ch]" style="color:#8A6B1F" hidden></p>
         </div>
       </div>
     </div>
@@ -2517,14 +2590,80 @@
      surface: touch-action:pinch-zoom lets the browser's own native
      pinch/pan handle the gesture, which is smoother and more predictable
      than re-implementing it with touch events. -->
+<!-- ============================================================
+     THE LIGHTBOX, AND THE TRAP IT USED TO BE (2026-09-23)
+
+     REPRODUCED AT 393px ON A 1600x900 PRODUCT PHOTO. The image carried
+     `max-w-none` with `width:auto`, so only its HEIGHT was capped: it
+     rendered 1393px wide inside a 457px viewport and hung 952px off the
+     right-hand side, inside a container that scrolled sideways. The
+     close button was pinned to the container rather than the viewport,
+     so anything that moved the visible area -- a sideways scroll, and on
+     a real iPhone a pinch, which zooms the LAYOUT viewport and takes
+     `position:absolute` with it -- carried the one way out off screen.
+
+     AND THE PART THAT OUTLIVED THE LIGHTBOX. Opening it set
+     `body{overflow:hidden}` and only closing it put that back. Navigate
+     away with it open -- the iOS back swipe, or any route change -- and
+     the overlay went with the view while the lock stayed on the body:
+     the page behind was left permanently unscrollable. That is the
+     "frozen" in the report, and it survived the thing that caused it.
+
+     Six ways out now, and the image can never cover any of them:
+     the X, the backdrop, a swipe down, Escape, the back gesture, and a
+     double tap when zoomed.
+
+     AND THE VIEWPORT THE X IS PINNED TO (2026-09-23, second report).
+     `position:fixed` was not enough, and the first fix here said it
+     was. Fixed anchors to the LAYOUT viewport. A pinch does not touch
+     the layout viewport at all -- it shrinks the VISUAL one into a
+     window onto it -- so the X stayed exactly where it was in layout
+     coordinates while the window the shopper was looking through moved
+     off it. Measured at 393px with the page pinched:
+
+       pageScale 1   visual 393x852   X at 333,16   on screen
+       pageScale 2   visual 197x426   X at 333,16   OFF (333 > 197)
+       pageScale 3   visual 131x284   X at 333,16   OFF
+
+       which is the report exactly: the X "only becomes visible while
+       pinching out", because that is the visual viewport growing back
+       toward 393 until 333 falls inside it again.
+
+     So the chrome does not live in the layout viewport any more. It is
+     its own layer, a SIBLING of the zoom surface and never a child of
+     it, positioned and counter-scaled onto the visual viewport on every
+     visualViewport resize/scroll -- both of which fire continuously
+     DURING a pinch on iOS, so it tracks the gesture rather than
+     catching up after it. The counter-scale is what keeps 44px a real
+     44px on glass at every zoom level instead of a 44px box the zoom
+     makes bigger or smaller.
+
+     WHAT THE FIRST FIX GOT WRONG ABOUT PINCH. It assumed
+     `touch-action:none` took native pinch away and that our own
+     double-tap transform was therefore the only zoom in play. iOS keeps
+     pinch-zoom as an accessibility gesture that page CSS cannot
+     disable, so both zooms were live at once and they stacked: pinch
+     while our transform was on, release, and the page came back to
+     scale 1 with the photo still at 2.4 -- "snaps back to zoomed-in".
+     Only one zoom is allowed to be on now; a real two-finger gesture
+     hands it to the browser's.
+     ============================================================ -->
 <div id="imageLightbox" class="fixed inset-0 z-[60] hidden items-center justify-center" style="background:rgba(4,12,28,0.93)" onclick="closeImageLightbox(event)">
-  <button onclick="closeImageLightbox()" aria-label="Cerrar" class="absolute top-4 right-4 w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.14)">
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-  </button>
-  <div class="w-full h-full overflow-auto grid place-items-center p-4" style="touch-action:pinch-zoom">
-    <img id="lightboxImg" alt="" class="max-w-none" style="max-height:92vh;width:auto;object-fit:contain">
+  <div id="lightboxStage" class="w-full h-full grid place-items-center p-4">
+    <img id="lightboxImg" alt="" draggable="false">
   </div>
-  <div id="lightboxHint" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+  <!-- THE CHROME LAYER. Declared AFTER the stage so it paints above it,
+       and outside it so no transform applied to the photograph can ever
+       reach these. syncLightboxChrome() parks this rectangle on the
+       visual viewport; everything inside is positioned against THAT,
+       which is why the button below is absolute and not fixed. -->
+  <div id="lightboxChrome" data-lightbox-chrome>
+    <button onclick="closeImageLightbox()" aria-label="Cerrar" data-lightbox-close
+      class="absolute top-4 right-4 z-[70] w-11 h-11 rounded-full grid place-items-center focus-ring" style="background:rgba(255,255,255,0.22)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
+    <div id="lightboxHint" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none whitespace-nowrap" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+  </div>
 </div>
 
 <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 translate-y-24 opacity-0 transition-all duration-300 bg-[color:var(--navy)] text-white text-[13px] font-medium px-5 py-3 rounded-full z-50 text-center max-w-[90vw]"></div>
@@ -4065,6 +4204,14 @@ async function relatedPool(){
   for (const [retailer, bucket] of Object.entries(departmentCacheData?.retailers || {})){
     for (const [department, entry] of Object.entries(bucket?.departments || {})){
       for (const raw of entry?.items || []){
+        /* THE SAME RULE BROWSING USES. departmentItemsFor() drops a
+           product whose image verdict is "quarantined" -- no image of it
+           could be cleared of baked-in price text, so it is withheld
+           until a human looks. This pool feeds the related rail and now
+           the search results too, and neither may show what the
+           department grid withholds. No committed catalogue carries the
+           flag today, so this is a no-op now and a guard later. */
+        if (!notQuarantined(raw)) continue;
         const it = normalizeLiveItem(raw, { retailer, department });
         if (!it.title) continue;
         const key = retailer + '::' + it.title;
@@ -4076,6 +4223,307 @@ async function relatedPool(){
   }
   relatedPoolCache = [...byKey.values()];
   return relatedPoolCache;
+}
+
+/* ============================================================
+   CATALOG-FIRST SEARCH (2026-09-23)
+
+   WHAT IT REPLACED. Every search went straight to a live Apify fan-out
+   across the four `search: true` retailers and rendered whatever came
+   back. When Apify stopped answering, "Nike" and "pantalones" both
+   returned nothing -- not "we have none", but a blank page, because the
+   only thing search could see was a scrape.
+
+   Two separate faults, and the second is the expensive one:
+
+   1. THE CATALOGUE WAS NEVER CONSULTED. ~6,200 committed products, in
+      the page's memory before the shopper finishes typing, and search
+      did not look at them.
+   2. MOST OF THE CATALOGUE WAS NOT EVEN REACHABLE. Live search only ever
+      covered the four retailers that declare `search: true`. Macy's,
+      SSENSE, Sephora, Ulta and YesStyle are browse-only, so their
+      products could be reached by clicking through departments but
+      never by searching. Searching the catalogue is what puts them in
+      front of a shopper who types a word.
+
+   And a live scrape on EVERY keystroke-submit is a per-search bill for
+   an answer we usually already have.
+
+   SO: the catalogue answers first, always, for free, offline, and with
+   Apify at zero balance. The live scan becomes something the shopper
+   asks for when the catalogue did not have it.
+
+   MATCHING IS ON WORDS, NOT SUBSTRINGS. The first version of this
+   scored on `haystack.includes(token)`, which ranked a Vanity Fair bra
+   above Nike trainers for "Nike Air Force" -- "air" is inside "Fair".
+   Tokens match a whole word, or a word that starts with them ("vitamin"
+   finds "vitamins"), and nothing else.
+
+   PARTIAL MATCHES ARE RESULTS, NOT PADDING. Nothing in the catalogue is
+   an Air Force; twelve things are Nike. Showing those twelve, ranked, is
+   a better answer than an empty page -- and the offer to go and look
+   live is right underneath, which is where the shopper's actual question
+   gets answered. What decides whether that offer is shouted or
+   whispered is the count of items matching EVERY token, never the total.
+   ============================================================ */
+const CATALOG_SEARCH_LIMIT = 48;
+/* Fewer than this many full-token matches is "thin", and thin is what
+   makes the live offer the loudest thing on the page. */
+const CATALOG_THIN_EXACT = 3;
+
+/* ACCENTS ARE FOLDED, NOT SPLIT ON. `[a-z0-9]+` treats "ú" as a
+   separator, so "búscame" tokenised to ["b","scame"] -- and a
+   one-character token then prefix-matched every word in the catalogue
+   beginning with b. Measured on "búscame unos tenis Nike": 2,144
+   partial matches, with televisions and a gift box ranked as answers to
+   a question about trainers. Folding the accent first gives "buscame",
+   one token, matching nothing, which is the truth about it.
+
+   The catalogue's titles are English and the shopper writes Spanish, so
+   this has to happen on BOTH sides of the comparison -- hence
+   catalogWordsOf() runs the same function over the title. */
+function searchTokens(raw){
+  return String(raw || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .match(/[a-z0-9]+/g) || [];
+}
+
+/* Title and brand are the searchable surface. Not the description: the
+   catalogues do not carry one for every store, and a field that exists
+   for some products would silently rank those above the rest. */
+function catalogWordsOf(item){
+  return new Set(searchTokens((item?.title || '') + ' ' + (item?.brand || '')));
+}
+
+/* PREFIXES IN BOTH DIRECTIONS, AND WHY THE SECOND ONE IS NEEDED.
+
+   Matching a word that merely STARTS WITH the token covers "vitamin"
+   finding "vitamins". It does not cover the reverse, and the reverse is
+   what actually happens here: translateQuery("Vitamina D3") returns
+   "vitamins D3" -- the Spanish layer pluralises -- while every title in
+   the catalogue says "Vitamin D3". Measured before this: 0 full matches
+   for one of the four queries the brief names, on 5 products that are
+   plainly the right answer.
+
+   The 4-character floor on the stem is what keeps this from becoming
+   substring matching again: "a", "de" and "3" must never match a word
+   just because it starts with them. */
+/* A FLOOR ON BOTH DIRECTIONS OF THE PREFIX RULE, and the forward one
+   needed it as badly as the reverse. A token of one or two characters
+   that is allowed to match any longer word starting with it is not a
+   search, it is a wildcard: "b" matched a sixth of the catalogue. An
+   EXACT word match stays unrestricted, so "tv", "d3" and "5k" still
+   work -- it is only the prefix shortcut that needs the shopper to have
+   typed enough to mean something. */
+const CATALOG_MIN_PREFIX = 3;
+
+function catalogTokenHits(words, toks){
+  let n = 0;
+  for (const t of toks){
+    if (words.has(t)) { n++; continue; }
+    let hit = false;
+    for (const w of words){
+      if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) { hit = true; break; }
+      if (w.length >= 4 && t.length > w.length && t.startsWith(w)) { hit = true; break; }
+    }
+    if (hit) n++;
+  }
+  return n;
+}
+
+/* Coverage is the backbone; the two bonuses only order items that
+   already matched. Matching every token outranks matching some, and a
+   brand hit outranks an incidental word in a title -- someone typing
+   "Nike" wants the brand, not a title with "nike" buried in it. */
+/* THE RARE WORD IS THE ONE THAT MEANS SOMETHING.
+
+   Counting every token equally makes "sneakers nike" rank a generic
+   running shoe exactly level with a Nike trainer: each matched one of
+   two words, so each scored 0.5. But there are hundreds of sneakers in
+   the catalogue and a few dozen Nikes -- the shopper's "nike" carried
+   almost all of the intent and "sneakers" carried almost none of it.
+
+   So a token is worth 1/log2(2 + how many items it matches). A word
+   that hits forty items is worth roughly twice one that hits four
+   hundred, and the ranking follows what was actually being asked for.
+   This is why the ranking below is two passes: the weights cannot be
+   known until the whole pool has been read once.
+
+   `weights` is optional everywhere so a single item can still be scored
+   on its own, with every token equal, which is what the unit tests
+   pin. */
+/* ============================================================
+   WHAT THE SHOPPER ASKED FOR, NOT JUST WHICH WORDS THEY USED.
+
+   TRACED AGAINST PRODUCTION. "María, búscame zapatos para niño" ranked
+   a pair of women's jeans first:
+
+     0.51  [macys/women]  Juniors' Mariah High-Rise Baggy Wide-Leg …
+     0.49  [walmart]      Josmo Boys Wingtip Oxford Lace Dress Shoes
+     0.33  [target]       One A Day Teen Multivitamin Gummies for Boys
+     0.33  [oldnavy]      Short-Sleeve Graphic T-Shirt for Boys
+
+   Three faults stacked. The leaked "María" prefix-matched "Mariah";
+   rarity weighting then made that one junk token the most valuable
+   thing in the query; and everything else on the list matched nothing
+   but the word "boys" -- gummies and T-shirts answering a question
+   about shoes.
+
+   AND THE REAL SHOES WERE INVISIBLE. "zapatos" translates to "shoes",
+   and not one Foot Locker title contains that word: they read "Jordan
+   Retro 4 - Men's". Searching titles alone, the one store that sells
+   almost nothing but footwear could never answer a footwear query.
+
+   So a query that names a category is answered by CATEGORY, not by
+   coincidence of wording:
+
+     1. items outside the category are not candidates at all -- that is
+        the "never cross-category noise" rule, and it is what drops the
+        gummies and the jeans;
+     2. an item INSIDE it is credited with the category's words even
+        when its title never says them, which is what finally lets
+        "shoes" find a Jordan.
+
+   The category of an item is not a new list. It is sizeCategoryFor(),
+   the same rule the size picker uses -- which already knows Foot
+   Locker sells shoes whatever the title says (SHOE_DEFAULT_RETAILERS).
+   Read through a typeof guard so the pure slice, which does not
+   include it, degrades to the departments and stays testable.
+   ============================================================ */
+const CATALOG_CATEGORY_INTENT = [
+  /* Same boot caveat as SHOE_KEYWORDS: "bootcut" and "boot-leg" are
+     trouser cuts, so neither a query nor a title saying them is about
+     footwear. */
+  { key: 'footwear', re: /\b(?:shoes?|sneakers?|boots?(?![-\s]*(?:cut|leg)\b)|sandals?|slippers?|loafers?|heels?|mules?|espadrilles?|clogs?|footwear)\b/i },
+];
+/* The words an item of this category counts as carrying, so a title
+   that never says "shoes" can still answer "shoes". */
+const CATEGORY_IMPLIED_WORDS = { footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear'] };
+
+function queryCategoryIntent(query){
+  const q = String(query || '');
+  for (const c of CATALOG_CATEGORY_INTENT) if (c.re.test(q)) return c.key;
+  return null;
+}
+
+function catalogItemCategory(item){
+  const title = (item && item.title) || '';
+  const depts = (item && item.departments) || [];
+  // A catalogue that names a footwear department settles it outright.
+  if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
+  /* The title saying so settles it too, by the SAME words a query uses
+     to mean footwear -- so "Running Sneakers" is footwear whether it is
+     being asked for or being offered. */
+  if (queryCategoryIntent(title) === 'footwear') return 'footwear';
+  /* And last, the site's own rule, which is the only one that knows
+     Foot Locker sells shoes when the title never says it. Behind a
+     typeof guard because the pure slice does not include it. */
+  if (typeof sizeCategoryFor === 'function'
+      && sizeCategoryFor(item && item.retailer, title) === 'shoe') return 'footwear';
+  return null;
+}
+
+/* The item's own words, plus the ones its category implies. Used by the
+   weighting pass AND the scoring pass, so the two cannot disagree about
+   what an item says. */
+function catalogWordsWithCategory(item, intent, categoryOf){
+  const words = catalogWordsOf(item);
+  if (intent && categoryOf(item) === intent){
+    for (const w of CATEGORY_IMPLIED_WORDS[intent] || []) words.add(w);
+  }
+  return words;
+}
+
+function catalogTokenWeights(pool, toks, intent, categoryOf){
+  const df = toks.map(() => 0);
+  for (const item of pool || []){
+    if (!item || !item.title) continue;
+    const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+    toks.forEach((t, i) => { if (catalogTokenHits(words, [t])) df[i]++; });
+  }
+  return df.map(n => 1 / Math.log2(2 + n));
+}
+
+function scoreCatalogItem(item, toks, weights, wordsIn){
+  const words = wordsIn || catalogWordsOf(item);
+  const hits = catalogTokenHits(words, toks);
+  if (!hits) return 0;
+  let s;
+  if (weights && weights.length === toks.length){
+    let got = 0, all = 0;
+    toks.forEach((t, i) => { all += weights[i]; if (catalogTokenHits(words, [t])) got += weights[i]; });
+    s = all > 0 ? got / all : 0;
+  } else {
+    s = hits / toks.length;
+  }
+  if (hits === toks.length) s += 1;
+  const brandWords = new Set(searchTokens(item?.brand || ''));
+  if (toks.some(t => brandWords.has(t))) s += 0.75;
+  return s;
+}
+
+function rankCatalogMatches(pool, query, opts){
+  const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
+  const toks = searchTokens(query);
+  if (!toks.length) return { items: [], exact: 0, partial: 0 };
+
+  const intent = queryCategoryIntent(query);
+  const rawCategoryOf = (opts && opts.categoryOf)
+    || (typeof catalogItemCategory === 'function' ? catalogItemCategory : () => null);
+  /* Memoised: the weighting pass and the scoring pass both ask, over
+     every item in the pool, and the answer cannot change between them. */
+  const catCache = new Map();
+  const categoryOf = (item) => {
+    if (catCache.has(item)) return catCache.get(item);
+    const c = rawCategoryOf(item);
+    catCache.set(item, c);
+    return c;
+  };
+
+  const candidates = intent
+    ? (pool || []).filter(it => it && it.title && categoryOf(it) === intent)
+    : (pool || []);
+  const weights = catalogTokenWeights(candidates, toks, intent, categoryOf);
+  let exact = 0, partial = 0;
+  const scored = [];
+  for (const item of candidates){
+    if (!item || !item.title) continue;
+    const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+    const hits = catalogTokenHits(words, toks);
+    if (!hits) continue;
+    if (hits === toks.length) exact++; else partial++;
+    scored.push({ item, score: scoreCatalogItem(item, toks, weights, words) });
+  }
+  scored.sort((a, b) => b.score - a.score);
+  /* THE SCORE RIDES WITH THE ITEM. Ranking here and then handing the
+     feed a bare array loses the ordering the moment anything re-sorts,
+     which is exactly what happened: renderSearchResults() sorts by
+     door-to-door price, so a search for "Nike Air Force" led with an
+     "Airbrush Flawless Setting Spray" -- cheaper, and matching "air"
+     because "Airbrush" starts with it. Relevance has to survive as a
+     value on the item, not as the order of a list. */
+  return { items: scored.slice(0, limit).map(x => ({ ...x.item, matchScore: x.score })), exact, partial };
+}
+
+function catalogResultsAreThin(res){
+  return !res || res.exact < CATALOG_THIN_EXACT;
+}
+
+/* END OF THE PURE SLICE -- everything above is run directly by
+   scripts/test/_page-script.mjs. Below needs the catalogue. */
+
+/* THE TRANSLATION HAPPENS HERE, not in doSearch(). doSearch deliberately
+   keeps the shopper's own words on the page; every consumer that has to
+   MATCH something translates for itself (scrapeRetailer does, so does
+   the in-category bar). The catalogue's titles are English, so a
+   catalogue search that skipped this would return nothing for
+   "pantalones" -- which is most of the bug being fixed. */
+async function catalogSearch(query, opts){
+  const t = translateQuery(query);
+  const pool = await relatedPool();
+  const res = rankCatalogMatches(pool, t.query, opts);
+  return { ...res, asked: query, translated: t.query, changed: t.changed };
 }
 
 let relatedRendered = [];
@@ -5694,6 +6142,48 @@ async function applyRoute(route){
   requestAnimationFrame(() => window.scrollTo({ top: y, behavior: 'instant' }));
 }
 
+/* ==================================================================
+   THE LIGHTBOX GETS THE BACK GESTURE FIRST, AND THIS IS WHY IT IS
+   REGISTERED HERE RATHER THAN BESIDE THE REST OF THE LIGHTBOX CODE.
+
+   `popstate` fires ON `window`, so window IS the event's target -- and
+   at the target, listeners run in REGISTRATION ORDER, capture flag or
+   not. A `{capture:true}` listener added a thousand lines further down
+   therefore runs AFTER the router's, not before it, and
+   stopImmediatePropagation() comes far too late to matter. Measured:
+   tapping the X on a product page landed the shopper on Ofertas.
+
+   So it is registered immediately above the router's. Order is the
+   whole mechanism, which is the only reason this block lives out of
+   place; the functions it calls are declared with the lightbox and
+   hoisted.
+   ================================================================== */
+window.addEventListener('popstate', (e) => {
+  /* OUR OWN POP, from a dismissal that has already happened. Nothing
+     left to do but keep it away from the router. */
+  if (lightboxPopPending){
+    lightboxPopPending = false;
+    e.stopImmediatePropagation();
+    return;
+  }
+  /* THE SHOPPER'S BACK GESTURE, with the overlay still up: close it,
+     and only it. The entry being popped is a DUPLICATE of the route we
+     are already on, so there is nothing for the router to apply and its
+     depth bookkeeping is right to stay where it is. */
+  if (lightboxHistoryPushed){
+    lightboxHistoryPushed = false;
+    dismissLightbox();
+    e.stopImmediatePropagation();
+  }
+}, true);
+
+/* THE LAST-RESORT UNLOCK. If the overlay is ever gone while the body is
+   still pinned -- a route change from anywhere, a stray error mid-close
+   -- the page behind is left permanently unscrollable, which is the bug
+   as it was reported and the half of it that outlived the overlay.
+   Whatever route the app applies, it cannot leave that lock standing. */
+window.addEventListener('popstate', () => { if (!lightboxIsOpen()) unlockPageBehind(); });
+
 window.addEventListener('popstate', (event) => {
   routeDepth = Math.max(0, routeDepth - 1);
   applyRoute(event.state || parseRoute(location.search));
@@ -5963,6 +6453,10 @@ const ES_EN_WORDS = {
   pijama: "pajamas",
   // footwear and bags
   zapatilla: "sneakers",
+  // "tenis" is the everyday Peruvian word for trainers; "zapatilla" was
+  // already here and "tenis" was not, so Aria found nothing for the term
+  // most of her shoppers actually use.
+  tenis: "sneakers",
   zapato: "shoes",
   calzado: "shoes",
   bota: "boots",
@@ -6169,7 +6663,15 @@ function doSearch(which){
 function initResultsFilters(){
   // Checkboxes over one merged feed — there are no per-store blocks to
   // show or hide any more, and no store to pick before searching.
-  document.getElementById('filterStores').innerHTML = GENERAL_RETAILERS.map(r => `
+  /* EVERY STORE THAT CAN APPEAR IN THE FEED, not just the four that can
+     be scraped live. This list used to be GENERAL_RETAILERS, which was
+     harmless while search could only ever return those four -- and
+     became a silent filter the moment the catalogue started answering.
+     Measured: "pants" matched 46 Macy's products and 2 Walmart ones,
+     and the page rendered 2, because Macy's had no checkbox and
+     activeSearchStores() therefore excluded it. A store the shopper
+     cannot see, cannot tick, and is filtered by is not a filter. */
+  document.getElementById('filterStores').innerHTML = CATALOG_RETAILERS.map(r => `
     <label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="resultsStoreFilter accent-[#2F5FEE]" onchange="renderSearchResults()"> ${LIVE_RETAILER_LABEL[r]}</label>
   `).join('');
 }
@@ -6180,6 +6682,28 @@ function initResultsFilters(){
 // there is no fallback "sample product" shown when a query comes back
 // empty, since misrepresenting that as a match would be exactly the kind
 // of fake data this flow was rebuilt to remove.
+/* WHY THE EMPTY FEED NEEDS THREE SENTENCES AND NOT ONE.
+
+   "Sin resultados" used to be the only thing said here, and after the
+   live-first rewrite it was usually a lie about the wrong thing: the
+   stores had failed, not run out. Three different situations end up
+   with nothing on screen and they are not interchangeable —
+
+     the store filters hid everything   the shopper can undo it
+     the catalogue has nothing          a real answer, and live is offered
+     the live scan could not run        our fault, said as our fault
+
+   The live-scan case is handled by the offer card above the feed, so
+   this only has to tell the first two apart. */
+function emptySearchFeedHTML(){
+  const hidden = searchResults.length && !searchRendered.length;
+  if (hidden){
+    return `<div class="col-span-full text-[13px] text-zinc-500 py-6">Ningún resultado de las tiendas seleccionadas. Activa más tiendas en los filtros.</div>`;
+  }
+  const q = liveScrapeQuery ? `“${escapeHtml(liveScrapeQuery)}”` : 'eso';
+  return `<div class="col-span-full text-[13px] text-zinc-500 py-6">No tenemos ${q} en nuestro catálogo todavía.</div>`;
+}
+
 /* ============================================================
    CROSS-STORE SEARCH — one feed, every retailer
 
@@ -6265,11 +6789,13 @@ function renderSearchResults(){
   const wrap = document.getElementById('liveResultsWrap');
   if (!wrap) return;
   const active = activeSearchStores();
-  const sortBy = document.getElementById('resultsSort')?.value || 'priceAsc';
+  const sortBy = document.getElementById('resultsSort')?.value || 'relevance';
 
   let items = groupCrossStoreMatches(searchResults.filter(it => active.includes(it.retailer)));
-  // Best price first by default — the whole point of comparing.
-  items.sort(byDoorToDoor(sortBy));
+  /* Relevance first, price on request. A live result carries no score
+     -- it was fetched for these exact words, so it is by definition a
+     full match -- and sorts among the catalogue's best. */
+  items.sort(sortBy === 'relevance' ? byMatchScore : byDoorToDoor(sortBy));
   searchRendered = items;
 
   wrap.innerHTML = items.length
@@ -6277,17 +6803,169 @@ function renderSearchResults(){
         open: `openSearchProduct(${i})`,
         extraHTML: alsoAtHTML(p),
       })).join('')
-    : `<div class="col-span-full text-[13px] text-zinc-500 py-6">Ningún resultado de las tiendas seleccionadas. Activa más tiendas en los filtros.</div>`;
+    : emptySearchFeedHTML();
 
   const stores = new Set(items.map(p => p.retailer));
   document.getElementById('resultCount').textContent = items.length
     ? `${items.length} resultado${items.length === 1 ? '' : 's'} de ${stores.size} tienda${stores.size === 1 ? '' : 's'} · el flete y los aranceles se calculan en el checkout`
     : '';
 
+  /* The offer is drawn on every render, not once: its wording depends on
+     whether the scan is idle, out, back, or refused. */
+  renderLiveSearchOffer();
+
   /* Thin or empty: offer to go and look in a real store. Stores that DID
      answer are excluded — re-searching a store whose results are already
      on screen is not what the shopper is missing. */
   renderOnDemandUpsell('searchOnDemandWrap', liveScrapeQuery, items.length, [...stores]);
+}
+
+/* ============================================================
+   "¿NO LO ENCUENTRAS AQUÍ? BÚSCALO EN VIVO."
+
+   The one control that starts a live scan. It is a control and not an
+   automatic step because an Apify run costs money and the catalogue has
+   usually already answered -- and because when Apify is dead, a page
+   that depends on it shows the shopper nothing at all.
+
+   THE WHOLE CARD IS THE BUTTON, not a link at the end of a sentence:
+   this is read on a phone, with a thumb.
+
+   NOT YELLOW. Yellow on this site means a discount, and this is not one.
+   ============================================================ */
+/* REFINE, THEN GO. The live scan is the expensive path, so the shopper
+   gets to aim it before it runs rather than after: the box is prefilled
+   with what they typed and stays editable, and the chips write into that
+   same box. WHAT YOU SEE IS WHAT GETS SEARCHED -- a chip that set some
+   hidden scope would leave the shopper guessing why the results look the
+   way they do, and there would be nothing to correct.
+
+   The terms are English because that is what the retailers speak; the
+   labels are Spanish because that is who is reading. Same split as the
+   ES->EN layer, for the same reason. */
+const LIVE_REFINE_CHIPS = [
+  { label: 'Hombre',      term: "men's" },
+  { label: 'Mujer',       term: "women's" },
+  { label: 'Niños',       term: 'kids' },
+  { label: 'Zapatos',     term: 'shoes' },
+  { label: 'Ropa',        term: 'clothing' },
+  { label: 'Electrónica', term: 'electronics' },
+  { label: 'Belleza',     term: 'beauty' },
+  { label: 'Hogar',       term: 'home' },
+  { label: 'Deportes',    term: 'sports' },
+];
+
+/* A chip is ON when its term is already a whole word in the box -- read
+   back from the text rather than kept in a variable beside it, so typing
+   the word by hand lights the chip and deleting it puts the chip out.
+   One state, and it is the one on screen. */
+function liveRefineHasTerm(text, term){
+  const words = searchTokens(text);
+  const want = searchTokens(term);
+  return want.length > 0 && want.every(w => words.includes(w));
+}
+
+function liveRefineValue(){
+  const el = document.getElementById('liveRefineInput');
+  const typed = el ? el.value.trim() : '';
+  return typed || liveScrapeQuery || '';
+}
+
+function toggleLiveRefine(i){
+  const chip = LIVE_REFINE_CHIPS[i];
+  const el = document.getElementById('liveRefineInput');
+  if (!chip || !el) return;
+  if (liveRefineHasTerm(el.value, chip.term)){
+    // Remove exactly the chip's words, leaving everything else alone.
+    const drop = new Set(searchTokens(chip.term));
+    el.value = el.value.split(/\s+/).filter(w => !drop.has(w.toLowerCase())).join(' ').trim();
+  } else {
+    el.value = (el.value.trim() + ' ' + chip.term).trim();
+  }
+  renderLiveSearchOffer();
+  document.getElementById('liveRefineInput')?.focus();
+}
+
+function liveRefineChipsHTML(current){
+  return LIVE_REFINE_CHIPS.map((c, i) => {
+    const on = liveRefineHasTerm(current, c.term);
+    return `<button type="button" onclick="toggleLiveRefine(${i})" data-live-chip="${c.term}" aria-pressed="${on}"
+      class="flex-shrink-0 h-9 px-3.5 rounded-full text-[13px] font-semibold focus-ring whitespace-nowrap"
+      style="${on ? 'background:#fff; color:var(--navy)' : 'background:rgba(255,255,255,0.14); color:#fff'}">${escapeHtml(c.label)}</button>`;
+  }).join('');
+}
+
+function liveSearchOfferHTML(){
+  const query = liveScrapeQuery;
+  if (!query) return '';
+  const stores = GENERAL_RETAILERS.length;
+
+  if (liveSearchState === 'running'){
+    return `<div class="rounded-2xl p-5 flex items-center gap-3" style="background:var(--navy-soft,#EEF2FF)">
+      <span class="inline-block w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style="border-color:var(--navy); border-top-color:transparent"></span>
+      <div>
+        <div class="text-[14px] font-bold" style="color:var(--navy)">Buscando “${escapeHtml(liveSearchQueryUsed || query)}” en ${stores} tiendas de EE. UU.…</div>
+        <div class="text-[12.5px] mt-0.5" style="color:var(--navy)">Los resultados de nuestro catálogo siguen abajo mientras tanto.</div>
+      </div>
+    </div>`;
+  }
+
+  /* THE HONEST DEGRADATION. Not "no encontramos nada" -- we did not
+     manage to look. The catalogue results stay exactly where they are
+     and are pointed at, so the page is never a dead end. */
+  if (liveSearchState === 'unavailable'){
+    const note = liveSearchFailures.length ? ` (${liveSearchFailures.join(', ')})` : '';
+    return `<div class="rounded-2xl p-5" style="background:#FDF2F2; border:1px solid #F3C9C9">
+      <div class="text-[14px] font-bold" style="color:#8E2A2A">La búsqueda en vivo no está disponible en este momento.</div>
+      <div class="text-[12.5px] mt-1" style="color:#8E2A2A">No pudimos consultar las tiendas de EE. UU.${note}. Lo de abajo es lo que tenemos en nuestro catálogo.</div>
+      <button onclick="runLiveSearch()" class="mt-3 text-[13px] font-bold underline" style="color:#8E2A2A">Reintentar</button>
+    </div>`;
+  }
+
+  if (liveSearchState === 'done'){
+    if (liveSearchFound > 0) return '';   // the results themselves are the answer
+    return `<div class="rounded-2xl p-4 text-[13px]" style="background:#F6F7F9; color:#4B5563">
+      La búsqueda en vivo no encontró nada más para “${escapeHtml(liveSearchQueryUsed || query)}” en este momento.
+    </div>`;
+  }
+
+  /* The box keeps whatever the shopper has already typed into it across
+     re-renders (a chip tap re-renders this whole panel), and falls back
+     to the query that got them here. */
+  const current = liveRefineValue();
+  return `<div class="rounded-2xl p-5" style="background:var(--navy)">
+    <div class="text-[15px] font-bold text-white">¿No lo encuentras aquí? Búscalo en vivo.</div>
+    <div class="text-[13px] mt-1" style="color:rgba(255,255,255,0.82)">Buscamos en este momento en tiendas de EE. UU.</div>
+
+    <!-- 16px MINIMUM, DELIBERATELY. Mobile Safari zooms the whole page
+         in on focus for anything smaller, and the shopper is then left
+         zoomed on a panel they were only trying to correct a word in. -->
+    <label for="liveRefineInput" class="sr-only">Afina tu búsqueda antes de buscar en vivo</label>
+    <input id="liveRefineInput" type="search" value="${escapeHtml(current)}" data-live-refine
+      onkeydown="if(event.key==='Enter'){event.preventDefault();runLiveSearch();}"
+      oninput="renderLiveChipsOnly()"
+      class="mt-3.5 w-full h-11 rounded-xl px-3.5 text-[16px] focus-ring border-0"
+      style="background:#fff; color:var(--navy)" placeholder="¿Qué buscamos exactamente?">
+
+    <div id="liveRefineChips" class="mt-2.5 flex gap-2 overflow-x-auto ariaRail pb-0.5">${liveRefineChipsHTML(current)}</div>
+
+    <button onclick="runLiveSearch()" data-live-search
+      class="mt-3.5 w-full h-11 rounded-xl text-[14px] font-bold focus-ring"
+      style="background:#fff; color:var(--navy)">Buscar en vivo en ${stores} tiendas</button>
+  </div>`;
+}
+
+/* Typing must not redraw the box the shopper is typing in -- that loses
+   the caret mid-word. Only the chips are repainted. */
+function renderLiveChipsOnly(){
+  const row = document.getElementById('liveRefineChips');
+  const el = document.getElementById('liveRefineInput');
+  if (row && el) row.innerHTML = liveRefineChipsHTML(el.value);
+}
+
+function renderLiveSearchOffer(){
+  const wrap = document.getElementById('searchLiveWrap');
+  if (wrap) wrap.innerHTML = liveSearchOfferHTML();
 }
 
 /* ============================================================
@@ -6555,7 +7233,16 @@ function renderOnDemandUpsell(wrapId, query, resultCount, already = []){
    that may return different items in a different order. The last search
    is kept in memory and replayed on a history restore; a new search (or
    a different query) still goes out live. */
-let lastSearch = { query: null, items: [] };
+let lastSearch = { query: null, items: [], catalog: null };
+/* 'idle'        the catalogue has answered; the live scan is on offer
+   'running'     the shopper asked for it and it is out
+   'done'        it came back (with or without anything to add)
+   'unavailable' every store refused -- our fault, and said as our fault */
+let liveSearchState = 'idle';
+let catalogMatch = null;        // what the catalogue found, with its counts
+let liveSearchFailures = [];    // stores that did not answer, by label
+let liveSearchFound = 0;        // how many items the live scan actually added
+let liveSearchQueryUsed = '';   // the refined words the scan actually went out with
 
 async function showResults(query, opts = {}){
   pushRoute({ view: 'resultsView', q: query });
@@ -6567,6 +7254,11 @@ async function showResults(query, opts = {}){
     document.getElementById('prodName').textContent = query;
     document.getElementById('prodNameBig').textContent = query;
     liveScrapeQuery = query;
+    /* Coming back from a product page must not restore a scan that is
+       no longer running, nor re-offer one the shopper already ran. */
+    liveSearchState = lastSearch.liveState || 'idle';
+    catalogMatch = lastSearch.catalog || null;
+    liveSearchFailures = [];
     searchResults = lastSearch.items.slice();
     document.getElementById('liveResultsWrap').classList.remove('hidden');
     renderSearchResults();
@@ -6587,18 +7279,66 @@ async function showResults(query, opts = {}){
   document.getElementById('prodNameBig').textContent = query;
   document.getElementById('prodImg').removeAttribute('src');
   document.getElementById('prodImgBig').removeAttribute('src');
-  document.getElementById('storeCount').textContent = GENERAL_RETAILERS.length;
-  document.getElementById('resultCount').textContent = `Buscando en vivo en ${GENERAL_RETAILERS.length} tiendas…`;
+  document.getElementById('storeCount').textContent = CATALOG_RETAILERS.length;
+  document.getElementById('resultCount').textContent = 'Buscando en nuestro catálogo…';
 
   liveScrapeQuery = query;
+  liveSearchState = 'idle';
+  catalogMatch = null;
   searchResults = [];
   searchRendered = [];
   const wrap = document.getElementById('liveResultsWrap');
   wrap.classList.remove('hidden');
-  // One skeleton grid, not one per store: the feed is the unit now.
-  wrap.innerHTML = GENERAL_RETAILERS.map(r => `<div>${liveRetailerSkeleton(r)}</div>`).join('');
 
-  let heroSet = false;
+  /* THE CATALOGUE ANSWERS FIRST, AND NOTHING IS FETCHED TO DO IT.
+     loadDepartmentCache() is memoized and already resolved -- the
+     department tiles ask for it on DOMContentLoaded -- so by the time
+     anyone has finished typing, this is a read out of memory. No
+     network, no Apify, no cost, and it works at zero balance. */
+  const res = await catalogSearch(query);
+  /* Guard against a slow catalogue and a fast second search: if the
+     shopper has already asked for something else, this result is stale
+     and must not overwrite theirs. */
+  if (liveScrapeQuery !== query) return;
+  catalogMatch = res;
+  searchResults = res.items.slice();
+  const hero = res.items.find(p => p.image);
+  if (hero){
+    document.getElementById('prodImg').src = hero.image;
+    document.getElementById('prodImgBig').src = hero.image;
+  }
+  renderSearchResults();
+  lastSearch = { query, items: searchResults.slice(), catalog: catalogMatch, liveState: liveSearchState };
+}
+
+/* ============================================================
+   THE LIVE SCAN, NOW SOMETHING THE SHOPPER ASKS FOR.
+
+   This is the body showResults() used to run on every single search.
+   Nothing about the scan itself changed -- same retailers, same five
+   items each, same merge into the same feed. What changed is that it
+   only runs when a shopper presses the button, which is the whole cost
+   fix: an Apify run is no longer the price of typing a word.
+
+   IT ADDS, IT NEVER REPLACES. The catalogue matches stay in
+   searchResults and stay on screen throughout -- while this runs, if it
+   finds nothing, and if every store refuses. The brief's "never a
+   dead-end page" is that, structurally: there is no path here that can
+   empty the feed.
+   ============================================================ */
+async function runLiveSearch(){
+  /* THE REFINED QUERY WINS. What the shopper left in the box is what
+     gets scraped -- that box is the whole point of the panel, and
+     scraping the original words instead would make every chip and every
+     correction a lie. Falls back to the query that got them here when
+     the panel is not on screen (Escape key, programmatic call). */
+  const query = liveRefineValue().trim();
+  if (!query || liveSearchState === 'running') return;
+  liveSearchQueryUsed = query;
+  liveSearchState = 'running';
+  renderSearchResults();
+
+  let heroSet = !!document.getElementById('prodImg').getAttribute('src');
   const failures = [];
   await Promise.allSettled(GENERAL_RETAILERS.map(async (retailer) => {
     let items = [];
@@ -6626,18 +7366,17 @@ async function showResults(query, opts = {}){
     renderSearchResults();
   }));
 
+  /* WHAT "UNAVAILABLE" MEANS, EXACTLY. Every store failing is not the
+     same claim as every store answering "nothing". The first is our
+     problem -- Apify out of credit, a timeout, an actor disabled -- and
+     the shopper is owed that plainly rather than being told the product
+     does not exist. The second is a real answer about the product. They
+     get different words, and only the first is a fault. */
+  liveSearchState = failures.length === GENERAL_RETAILERS.length ? 'unavailable' : 'done';
+  liveSearchFailures = failures.map(f => LIVE_RETAILER_LABEL[f.retailer] || f.retailer);
+  liveSearchFound = searchResults.length - (catalogMatch?.items.length || 0);
   renderSearchResults();
-  lastSearch = { query, items: searchResults.slice() };
-  if (!searchResults.length){
-    document.getElementById('resultCount').textContent =
-      `Sin resultados en vivo para "${query}" en este momento — intenta con otra búsqueda.`;
-  }
-  // A store that failed is stated, not silently dropped: otherwise its
-  // absence reads as "nothing there", which is a different claim.
-  if (failures.length){
-    const note = failures.map(f => LIVE_RETAILER_LABEL[f.retailer] || f.retailer).join(', ');
-    document.getElementById('resultCount').textContent += ` · Sin respuesta de ${note} en este momento.`;
-  }
+  lastSearch = { query, items: searchResults.slice(), catalog: catalogMatch, liveState: liveSearchState };
 }
 
 // RULE: every product card on the site must route through showProduct(),
@@ -6793,32 +7532,268 @@ function productMagnifierMove(event){
   lens.style.backgroundPosition = `${-((x - offX) * ZOOM - size / 2)}px ${-((y - offY) * ZOOM - size / 2)}px`;
 }
 
+/* ==================================================================
+   THE LIGHTBOX: OPENING IT MUST NEVER COST THE SHOPPER THE PAGE.
+
+   The whole of this block exists because the overlay could be dismissed
+   in exactly one way that the image itself was able to cover, and
+   because the scroll lock it set outlived it.
+   ================================================================== */
+
+/* THE PAGE BEHIND, LOCKED AND PUT BACK EXACTLY.
+
+   `body{overflow:hidden}` alone does not hold on iOS -- Safari scrolls
+   the page under a fixed overlay anyway -- and it loses where the
+   shopper was. Pinning the body at a negative offset is what actually
+   freezes it, and it is also what makes the restore exact: the offset
+   IS the scroll position, so putting it back is not a guess.
+
+   It is idempotent in both directions on purpose. Anything at all may
+   call unlock -- a route change, a popstate, a second close -- and it
+   has to be safe to call when nothing is locked. */
+let lightboxScrollY = 0;
+let lightboxLocked = false;
+
+function lockPageBehind(){
+  if (lightboxLocked) return;
+  lightboxScrollY = window.scrollY || window.pageYOffset || 0;
+  const b = document.body.style;
+  b.position = 'fixed';
+  b.top = `-${lightboxScrollY}px`;
+  b.left = '0';
+  b.right = '0';
+  b.width = '100%';
+  b.overflow = 'hidden';
+  lightboxLocked = true;
+}
+
+function unlockPageBehind(){
+  if (!lightboxLocked) return;
+  const b = document.body.style;
+  b.position = ''; b.top = ''; b.left = ''; b.right = ''; b.width = ''; b.overflow = '';
+  lightboxLocked = false;
+  window.scrollTo(0, lightboxScrollY);
+}
+
+function lightboxIsOpen(){
+  const box = document.getElementById('imageLightbox');
+  return !!box && !box.classList.contains('hidden');
+}
+
+/* ============================================================
+   PARKING THE CHROME ON THE VISUAL VIEWPORT.
+
+   A pinch leaves the layout viewport alone and shrinks the VISUAL one
+   into a window onto it, so `position:fixed` -- which is fixed to the
+   layout viewport -- does not keep anything on screen. This puts the
+   chrome layer exactly over the window the shopper is actually looking
+   through, and counter-scales it so what is inside keeps its size on
+   glass instead of being magnified with the page.
+
+   THE ARITHMETIC, because it looks like it cancels out and does not.
+   visualViewport reports width/height in LAYOUT css pixels: at scale 2
+   a 393px-wide viewport reports 197. We want a layer that ends up
+   covering those 197 layout px, but whose own coordinate system is the
+   full 394 so that a 44px button inside it renders at 22 layout px --
+   which is 44 real pixels on glass once the page's own scale of 2 is
+   applied. Hence: size the layer vv.width * scale, then scale(1/scale)
+   it back down, and translate it by the visual viewport's offset so it
+   follows a pinched page being panned around.
+
+     scale 2, vv 197x426 @0,0  ->  layer 394x852, scaled 0.5  ->  197x426
+     button at right-4 inside  ->  intrinsic x 334, rendered x 167
+     167 + 22 = 189 <= 197     ->  on screen, and 22 * 2 = 44 on glass
+
+   Bound only while the overlay is open: these fire on every frame of a
+   pinch and on every keyboard show/hide, and there is no reason to run
+   them for a lightbox that is closed. ============================ */
+function syncLightboxChrome(){
+  const chrome = document.getElementById('lightboxChrome');
+  if (!chrome) return;
+  const vv = window.visualViewport;
+  /* No visualViewport (old Safari, jsdom): plain fixed is then the best
+     available answer, and it is the RIGHT one -- without the API there
+     is also no way for us to learn the page was pinched. */
+  if (!vv){ chrome.style.transform = ''; chrome.style.width = ''; chrome.style.height = ''; return; }
+  const s = vv.scale || 1;
+  chrome.style.width  = (vv.width  * s) + 'px';
+  chrome.style.height = (vv.height * s) + 'px';
+  chrome.style.transform = `translate(${vv.offsetLeft}px, ${vv.offsetTop}px) scale(${1 / s})`;
+}
+
+let lightboxChromeBound = false;
+function lightboxChromeRaf(){
+  /* Coalesced: a pinch fires these faster than we can usefully paint. */
+  if (lightboxChromeRaf.pending) return;
+  lightboxChromeRaf.pending = true;
+  requestAnimationFrame(() => { lightboxChromeRaf.pending = false; syncLightboxChrome(); });
+}
+function bindLightboxChrome(on){
+  const vv = window.visualViewport;
+  if (!vv || lightboxChromeBound === on) return;
+  const fn = on ? 'addEventListener' : 'removeEventListener';
+  vv[fn]('resize', lightboxChromeRaf);
+  vv[fn]('scroll', lightboxChromeRaf);
+  lightboxChromeBound = on;
+}
+
+/* ZOOM IS OURS, SO IT CAN ALWAYS BE UNDONE -- but it is not the only
+   zoom on the page. The shopper's pinch drives the browser's, which iOS
+   will not let us disable. Ours can always be reset (second tap, X,
+   close); theirs we simply stay out of the way of, and the chrome above
+   is what makes that survivable. */
+function setLightboxZoom(on){
+  const box = document.getElementById('imageLightbox');
+  if (!box) return;
+  if (on) box.setAttribute('data-zoom', '1');
+  else {
+    box.removeAttribute('data-zoom');
+    const stage = document.getElementById('lightboxStage');
+    if (stage) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+  }
+  const hint = document.getElementById('lightboxHint');
+  if (hint) hint.textContent = lightboxHintText(on);
+}
+
+function lightboxHintText(zoomed){
+  if (zoomed) return 'Toca dos veces para alejar';
+  return window.matchMedia('(hover: none)').matches
+    ? 'Toca dos veces para acercar · desliza hacia abajo para cerrar'
+    : 'Haz clic fuera para cerrar';
+}
+
+/* A PUSHED HISTORY ENTRY, SWALLOWED ON THE WAY BACK. The back gesture
+   has to close the overlay and nothing else -- not navigate the shopper
+   off the product they were looking at. So opening pushes a duplicate
+   of the CURRENT route (same URL, one extra flag) and the handler below
+   runs in the CAPTURE phase, ahead of the app's router, and stops the
+   event there. The router's depth and scroll bookkeeping never see it,
+   which is exactly what we want: the entry we popped was a duplicate,
+   so the route genuinely has not changed. */
+let lightboxHistoryPushed = false;   // our duplicate entry is on the stack
+let lightboxPopPending = false;      // ...and we have already asked to pop it
+
 function openImageLightbox(){
   const img = document.getElementById('productViewImg');
   if (!img || img.classList.contains('hidden') || !img.src) return;
   productMagnifierOff();
   const box = document.getElementById('imageLightbox');
   document.getElementById('lightboxImg').src = img.src;
-  document.getElementById('lightboxHint').textContent =
-    window.matchMedia('(hover: none)').matches ? 'Pellizca para acercar' : 'Haz clic fuera para cerrar';
+  setLightboxZoom(false);
   box.classList.remove('hidden');
   box.classList.add('flex');
-  document.body.style.overflow = 'hidden'; // no background scroll behind the overlay
+  lockPageBehind();
+  bindLightboxChrome(true);
+  syncLightboxChrome();   // the page may ALREADY be pinched when this opens
+  if (!lightboxHistoryPushed){
+    try {
+      history.pushState({ ...(history.state || {}), ariaLightbox: true }, '', location.href);
+      lightboxHistoryPushed = true;
+    } catch (e) { /* a browser that refuses the push still has five other ways out */ }
+  }
+  document.querySelector('[data-lightbox-close]')?.focus();
 }
 
+/* Everything that dismisses ends up here. `event` is present only when a
+   click did it, and the one click that must NOT close is one on the
+   photograph itself -- the shopper is looking at it. */
 function closeImageLightbox(event){
-  // Clicking the image itself must not close it — only the backdrop or
-  // the explicit close button.
   if (event && event.target && event.target.id === 'lightboxImg') return;
+  /* ONE DISMISSAL, HOWEVER MANY HANDLERS SAW THE TAP. The close button
+     sits inside the overlay, so a tap on it runs the button's onclick
+     AND bubbles into the backdrop's -- closeImageLightbox twice, from
+     one tap. That was harmless until this function started popping
+     history: history.back() is ASYNCHRONOUS, so the second call still
+     saw the flag set and popped a SECOND entry. Measured: tapping the X
+     on a product page landed the shopper on Ofertas. */
+  if (!lightboxIsOpen() && !lightboxHistoryPushed) return;
+  dismissLightbox();
+  /* Pop the entry we pushed, so the back gesture is not left pointing at
+     a lightbox that is already gone. The flag is cleared HERE, before
+     the asynchronous back(), and a separate one tells the popstate
+     handler that this pop is ours to swallow. */
+  if (lightboxHistoryPushed && !lightboxPopPending){
+    lightboxHistoryPushed = false;
+    lightboxPopPending = true;
+    try { history.back(); } catch (e) { lightboxPopPending = false; }
+  }
+}
+
+/* The UI half, with no history in it, so the popstate path and the
+   button path cannot disagree about what "closed" means. */
+function dismissLightbox(){
   const box = document.getElementById('imageLightbox');
-  box.classList.add('hidden');
-  box.classList.remove('flex');
-  document.body.style.overflow = '';
+  if (box){
+    box.classList.add('hidden');
+    box.classList.remove('flex');
+    box.removeAttribute('data-zoom');
+  }
+  const stage = document.getElementById('lightboxStage');
+  if (stage) { stage.scrollLeft = 0; stage.scrollTop = 0; }
+  bindLightboxChrome(false);
+  unlockPageBehind();
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !document.getElementById('imageLightbox')?.classList.contains('hidden')) closeImageLightbox();
+  if (e.key === 'Escape' && lightboxIsOpen()) closeImageLightbox();
 });
+
+/* SWIPE DOWN, AND DOUBLE TAP. Bound once, on the overlay, and only ever
+   acted on for a SINGLE finger: two fingers is a pinch and is none of
+   our business. A swipe is only a dismissal when it is mostly vertical
+   and mostly downward -- dragging a zoomed photo around must not throw
+   it away. */
+(function bindLightboxGestures(){
+  const box = document.getElementById('imageLightbox');
+  if (!box) return;
+  let startX = 0, startY = 0, moved = false, single = false, lastTap = 0;
+  const SWIPE_CLOSE_PX = 90;
+
+  box.addEventListener('touchstart', (e) => {
+    single = e.touches.length === 1;
+    if (!single){
+      /* TWO FINGERS: THE BROWSER'S ZOOM WINS, AND OURS GETS OUT OF THE
+         WAY. Leaving our transform on while the shopper pinches stacks
+         two zooms: they release, the page returns to scale 1, and the
+         photo is still at 2.4 -- which reads as the pinch "snapping
+         back to zoomed-in" with no way out. Theirs is the one they can
+         always pinch back out of, so it is the one that survives. */
+      setLightboxZoom(false);
+      return;
+    }
+    startX = e.touches[0].clientX; startY = e.touches[0].clientY; moved = false;
+  }, { passive: true });
+
+  box.addEventListener('touchmove', (e) => {
+    if (!single || e.touches.length !== 1) { single = false; return; }
+    if (Math.abs(e.touches[0].clientY - startY) > 8 || Math.abs(e.touches[0].clientX - startX) > 8) moved = true;
+  }, { passive: true });
+
+  box.addEventListener('touchend', (e) => {
+    const t = e.changedTouches && e.changedTouches[0];
+    if (!single || !t) { single = false; return; }
+    const dy = t.clientY - startY, dx = t.clientX - startX;
+
+    // A downward swipe closes — but never while zoomed, where the same
+    // gesture is how the shopper pans the photograph.
+    if (moved){
+      const zoomed = box.getAttribute('data-zoom') === '1';
+      if (!zoomed && dy > SWIPE_CLOSE_PX && Math.abs(dy) > Math.abs(dx)) closeImageLightbox();
+      return;
+    }
+
+    // Not a swipe: a tap. Two inside 300ms toggles the zoom, and the
+    // second tap is always able to put it back.
+    const now = Date.now();
+    if (now - lastTap < 300){
+      lastTap = 0;
+      setLightboxZoom(box.getAttribute('data-zoom') !== '1');
+      e.preventDefault();
+    } else {
+      lastTap = now;
+    }
+  }, { passive: false });
+})();
 
 /* Handed from an auto card to showProduct(), one product at a time, and
    consumed there so it cannot leak onto the next product opened. Declared
@@ -6845,9 +7820,31 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   }
   pendingAutoPartNumber = null;
   const statedWeight = contentLabelFor(name);
-  document.getElementById('productViewPrice').innerHTML = Number.isFinite(totalUsd) && totalUsd > 0
+  /* NO PRICE, NO BUY BUTTON (2026-09-23).
+
+     REPORTED FROM THE LIVE SITE: "Farmhouse Stripe Bedding Collection",
+     a Target home_goods record cached with price: null. The page said
+     "Precio no disponible" and the blue "Agregar al carrito" button sat
+     right underneath it, fully live. Tapping it wrote priceUsd: 0 into
+     the cart and toasted "Agregado al carrito." A shopper could carry a
+     priceless line to checkout.
+
+     BROWSING A PRICELESS RECORD IS FINE. Product pages are served from
+     the catalogue cache, not a live scrape (scraping costs money and
+     ~60s per retailer, so it only fires from search), and a cache with
+     some prices missing is normal. What is not fine is a live buy
+     button next to "Precio no disponible" — it promises a transaction
+     at a number nobody has.
+
+     So the page fails CLOSED and says so. The guard is repeated in
+     addToCartFromProduct() and again in addToCart(), because a disabled
+     button is a courtesy, not a guarantee: the console, a stale page
+     and a second entry point all route around it. */
+  const hasPrice = Number.isFinite(totalUsd) && totalUsd > 0;
+  document.getElementById('productViewPrice').innerHTML = hasPrice
     ? fmtDisplayPrice(totalUsd) + taxIncludedNoteHTML(totalUsd, 'text-[12px] mt-1 font-semibold')
     : 'Precio no disponible';
+  setProductBuyable(hasPrice);
 
   // Gallery = whatever the retailer really gave us, with the card's own
   // image guaranteed first. Callers that pass no list still work.
@@ -6934,19 +7931,49 @@ function goBack(){
 // a concrete size already attached, and checkout.html reads the cart
 // itself instead of URL params. One path for every purchase, single item
 // or many.
+/* The buy button's two states, in one place so they cannot drift apart.
+
+   Greyed AND disabled AND relabelled: a button that merely looks dead
+   is still tappable by a keyboard, and one that is merely disabled
+   still reads as "Agregar al carrito", which is a promise. */
+function setProductBuyable(hasPrice){
+  const btn = document.getElementById('addToCartBtn');
+  const note = document.getElementById('productNoPriceNote');
+  if (!btn) return;
+  btn.disabled = !hasPrice;
+  btn.setAttribute('aria-disabled', String(!hasPrice));
+  btn.textContent = hasPrice ? 'Agregar al carrito' : 'Precio por confirmar';
+  btn.style.background = hasPrice ? 'var(--blue)' : '#C8CDD8';
+  btn.style.color = hasPrice ? '#fff' : '#5B6478';
+  btn.style.cursor = hasPrice ? '' : 'not-allowed';
+  if (note){
+    note.hidden = hasPrice;
+    note.textContent = hasPrice ? '' : 'La tienda todavía no publica el precio de este producto. Te avisamos en cuanto lo tengamos — escríbenos y lo cotizamos por ti.';
+  }
+}
+
 function addToCartFromProduct(){
   if (!pendingProduct) return;
   const p = pendingProduct;
+  /* The disabled button is the courtesy; this is the rule. */
+  if (!(Number.isFinite(p.totalUsd) && p.totalUsd > 0)){
+    showToast('Este producto aún no tiene precio confirmado.');
+    return;
+  }
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
   if (!sizeWrap.hidden && sizeSelect.required && !sizeSelect.value){
     showToast('Selecciona una talla antes de agregar al carrito.');
     return;
   }
-  addToCart({
+  if (!addToCart({
     retailer: p.retailer,
     title: p.name,
-    priceUsd: Number.isFinite(p.totalUsd) ? p.totalUsd : 0,
+    /* Unconditional now: the guard above has already refused anything
+       that is not a real price, so there is no zero left to fall back
+       to. The old `Number.isFinite(...) ? ... : 0` is exactly how a
+       priceless product became a $0 line. */
+    priceUsd: p.totalUsd,
     // Never 0: a card built without a weight (an older cart, a payload
     // with no weight field) used to store 0 here, and checkout showed
     // "Peso del paquete 0.00 kg" with no freight line and no total.
@@ -6970,7 +7997,7 @@ function addToCartFromProduct(){
     ...(Number.isFinite(p.catalogWeightKg) && p.catalogWeightKg > 0 ? { specWeightKg: p.catalogWeightKg } : {}),
     image: p.imageUrl || '',
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
-  });
+  })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
 }
 
@@ -7267,7 +8294,18 @@ function isBrowseOnlyRetailer(key){
 // match to catch. Target/Walmart sell everything, so those rely on the
 // title keyword match instead (see APPAREL_KEYWORDS below).
 const APPAREL_ONLY_RETAILERS = new Set(['oldnavy', 'footlocker']);
-const SHOE_KEYWORDS = /sneaker|\bshoe|\bboot/i;
+/* \bboot USED TO MATCH "Bootcut". Bootcut is a trouser leg, not a
+   shoe, and the catalogue is full of them -- "Regular Fit Boot Cut
+   Jeans", "Women's Mid-Rise Bootcut Pants", "725 High-Waist Stretch
+   Bootcut Jeans". Every one was classified as footwear, which means
+   the size picker offered them SHOE sizes. 23 of the 148 items the
+   catalogue calls footwear were trousers.
+
+   The closing \b alone fixes the one-word spelling ("bootcut" has no
+   boundary after "boot"); the lookahead is for the two-word one, where
+   "Boot" really is a standalone word. Booties are footwear and keep
+   their own alternative. */
+const SHOE_KEYWORDS = /sneaker|\bshoe|\bboots?\b(?![-\s]*(?:cut|leg)\b)|\bbooties\b/i;
 const CLOTHING_KEYWORDS = /\bjeans?\b|denim|t-?shirt|\btee\b|hoodie|sweatshirt|\bjacket\b|\bcoat\b|underwear|\bboxer|\bbrief|\bpanty|panties|\bsocks?\b|\bpants?\b|\bshorts?\b|\bdress\b|\bskirt\b|\bjersey\b/i;
 const APPAREL_KEYWORDS = new RegExp(SHOE_KEYWORDS.source + '|' + CLOTHING_KEYWORDS.source, 'i');
 function needsSizeSelection(retailer, title){
@@ -7282,8 +8320,16 @@ function needsSizeSelection(retailer, title){
 const SHOE_DEFAULT_RETAILERS = new Set(['footlocker']);
 function sizeCategoryFor(retailer, title){
   const t = title || '';
-  if (SHOE_KEYWORDS.test(t)) return 'shoe';
+  /* A GARMENT WORD BEATS A LONE "BOOT", because boot is a trouser cut
+     as often as it is a shoe: "Wedgie Boot High-Rise Jeans", "Kick Boot
+     Jeans", "Sutton Boot-Leg Trousers". Checking shoes first classified
+     all of those as footwear and offered them shoe sizes. "Dress Shoes"
+     is unaffected -- its shoe signal is the noun "shoes", not "boot" --
+     and so is "Chelsea Boot", which carries no garment word at all. */
+  const bootish = /\bboot/i.test(t);
+  if (SHOE_KEYWORDS.test(t) && !(bootish && CLOTHING_KEYWORDS.test(t))) return 'shoe';
   if (CLOTHING_KEYWORDS.test(t)) return 'clothing';
+  if (SHOE_KEYWORDS.test(t)) return 'shoe';
   if (SHOE_DEFAULT_RETAILERS.has(retailer)) return 'shoe';
   return 'clothing';
 }
@@ -8822,6 +9868,15 @@ function budgetChipsHTML(items, activeKey, onclickFor){
 }
 
 /** Comparator for every "Mejor precio primero" / "mayor a menor" select. */
+/* Ties break on door-to-door price, so "most relevant" still answers
+   "and which of these equally-relevant ones is cheapest". */
+function byMatchScore(a, b){
+  const sa = Number.isFinite(a?.matchScore) ? a.matchScore : Infinity;
+  const sb = Number.isFinite(b?.matchScore) ? b.matchScore : Infinity;
+  if (sa !== sb) return sb - sa;
+  return byDoorToDoor('priceAsc')(a, b);
+}
+
 function byDoorToDoor(sortBy){
   return (a, b) => {
     const ta = doorToDoorUsd(a);
@@ -9218,6 +10273,14 @@ async function scrapeRetailer(retailer, query, maxItems, department){
   });
   const startData = await startRes.json();
   if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda');
+  /* FAIL FAST ON A SUCCESS THAT ISN'T ONE. A 200 carrying no runId --
+     a proxy's empty body, a half-deployed function -- used to be polled
+     as `?runId=undefined` until the two-minute deadline ran out, so a
+     broken backend cost the shopper 120 seconds of spinner before
+     admitting anything was wrong. There is nothing to poll without a
+     run, so say so now. (A cached on-demand hit answers with `items`
+     and no runId by design, and is handled by its own caller.) */
+  if (!startData.runId) throw new Error(startData.error || 'No se pudo iniciar la búsqueda');
 
   const deadline = Date.now() + LIVE_POLL_MAX_MS;
   while (Date.now() < deadline){
@@ -11110,6 +12173,22 @@ function addToCart(item){
   // Every entry point funnels through here (product page, cross-sell,
   // Aria Auto, chat), so this is where a missing weight is caught once
   // rather than at each caller.
+
+  /* AND A MISSING PRICE, FOR THE SAME REASON (2026-09-23).
+
+     A disabled button on the product page is a courtesy; this is the
+     guarantee. The cross-sell rail passes `priceUsd: it.price` with no
+     check of its own, and a catalogue record with price: null reaches
+     it exactly as it reaches the product page — so the rule lives at
+     the funnel, where every caller present and future passes through.
+
+     Returns false rather than throwing: a caller's job is to skip its
+     "Agregado al carrito" toast, not to handle an exception. */
+  const usd = Number(item.priceUsd);
+  if (!(Number.isFinite(usd) && usd > 0)){
+    showToast('Este producto aún no tiene precio confirmado.');
+    return false;
+  }
   const kg = Number(item.weightKg);
   if (!(Number.isFinite(kg) && kg > 0)) item = { ...item, weightKg: estimateRetailWeightKg(item.title || '') };
   /* SAY WHERE THAT NUMBER CAME FROM (2026-09-20).
@@ -11136,6 +12215,7 @@ function addToCart(item){
   saveCartLocal();
   syncCartToServer();
   renderCartBadge();
+  return true;
 }
 
 function removeFromCartByKey(key){
@@ -11613,8 +12693,13 @@ function openCrossSellProduct(idx){
 function addCrossSellToCart(idx){
   const it = crossSellItems[idx];
   if (!it) return;
-  addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
-    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' });
+  /* This rail passed `priceUsd: it.price` straight through and never
+     looked at it. A catalogue record with price: null reaches it the
+     same way it reaches the product page, so it was the second door
+     into a $0 line item. addToCart refuses and says so; all this has
+     to do is not claim a success that did not happen. */
+  if (!addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
+    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' })) return;
   showToast('Agregado al carrito.');
   renderCartView();
 }
@@ -12805,8 +13890,16 @@ function productCardHTML(p, opts){
            distinction, and whether this shop wants a buy affordance in
            its grid is Danny's call, not a side effect of a visual
            brief. -->
+      ${/* THE LABEL IS THE PROMISE, AND IT IS STILL CONDITIONAL. The
+            comment above says this button exists to say "Comprar" over
+            a price and "Ver detalle" over a card without one -- but the
+            code it arrived with hardcoded "Comprar", because the visual
+            brief was written on a base where the conditional did not
+            exist yet. Both halves are kept: main's quiet outlined
+            treatment, and this branch's rule that a card may never
+            offer a purchase the page behind it cannot complete. */''}
       <div class="mb-3"></div>
-      <button onclick="${open}" class="ariaExploraMas w-full focus-ring" style="min-height:40px; font-size:12.5px; padding:0 12px">Comprar</button>
+      <button onclick="${open}" class="ariaExploraMas w-full focus-ring" style="min-height:40px; font-size:12.5px; padding:0 12px">${hasPrice ? 'Comprar' : 'Ver detalle'}</button>
     </div>
   </div>`;
 }
@@ -13933,7 +15026,8 @@ function joinEs(list){
    the point: it proves she heard the actual request, not just that
    something was received. */
 function chatAckEs(text){
-  const phrase = String(text || '').trim()
+  // Her own name, out of the line that reads it back to the shopper.
+  const phrase = stripAriaVocative(text).trim()
     .replace(/^(?:hola|oye|ok|ya)[\s,]+/i, '')
     .replace(/^(?:me\s+)?(?:puedes\s+)?(?:b[uú]sca(?:me)?|busca(?:me)?|buscar|enc[uú]entra(?:me)?|encontrar|necesito|quiero|quisiera|estoy buscando|ando buscando|tienen|tienes|hay)\b[\s,:]*/i, '')
     .replace(/[¿?¡!.]+$/g, '')
@@ -14043,8 +15137,53 @@ function recipientLabelEs(recipient){
 /* Turns the recipient into words the US retailer's catalogue actually
    uses, so the search itself is narrowed rather than only the results.
    "zapatos para mi sobrino de 14 años" -> "shoes boys". */
+/* ============================================================
+   "ARIA, BÚSCAME UNOS TENIS" -- THE NAME IS NOT PART OF THE ORDER.
+
+   Addressing her by name went straight into the retail query and into
+   the status line, so the stores were asked for "aria tenis" and the
+   panel said Buscando aria tenis. Dictation makes it worse: iOS hears
+   "Aria" as "Area" often enough that it is worth matching.
+
+   "AREA" IS ALSO A REAL PRODUCT WORD, which is the whole difficulty --
+   "area rug" is a thing somebody will type. So the three cases are not
+   treated alike:
+
+     hey/hola/oye + name   always a vocative, whatever the name spelling
+     aria / arya           never a product word, so strip when leading
+     area                  ONLY with punctuation after it ("Area, busca…")
+
+   which leaves "area rug" alone and still catches the dictated case,
+   because dictation puts a comma there. Never strips to nothing: if the
+   name was the entire message it stays, and Aria answers a greeting. */
+const ARIA_GREETED_VOCATIVE_RE = /^\s*(?:hey|hi|hola|oye|ok|okay|oiga|escucha)\s*,?\s*(?:aria|arya|area|mar[ií]a)\b[\s,:!¡.\-]*/i;
+const ARIA_NAME_VOCATIVE_RE    = /^\s*(?:aria|arya)\b[\s,:!¡.\-]*/i;
+/* THE NAMES DICTATION HEARS INSTEAD OF "Aria": "Area", and now
+   "María" -- traced from production, where "María, búscame zapatos para
+   niño" reached the ranker with `maria` still in it, prefix-matched
+   "Mariah" jeans, and the rarity weighting then pushed that one junk
+   token to rank #1 on a shoe query.
+
+   BOTH ARE ALSO REAL WORDS, and "Maria Tash" is a jewellery house
+   somebody will type. So these two are only stripped when what follows
+   settles it: punctuation (which is what dictation inserts), or a
+   request verb. "María, búscame…" and "Maria busca…" go; "Maria Tash
+   earrings" stays whole. */
+const ARIA_HEARD_VOCATIVE_RE   = /^\s*(?:area|mar[ií]a)\b(?:\s*[,:!¡.\-]+\s*|\s+(?=(?:b[uú]sca|busca|buscar|enc[uú]entra|encontrar|nec[eé]sito|quiero|quisiera|mu[eé]strame|ens[eé][ñn]ame|dame|ay[uú]dame|tienes?|tienen|hay)\b))/i;
+
+function stripAriaVocative(raw){
+  const text = String(raw || '');
+  let out = text;
+  for (const re of [ARIA_GREETED_VOCATIVE_RE, ARIA_NAME_VOCATIVE_RE, ARIA_HEARD_VOCATIVE_RE]){
+    const next = out.replace(re, '');
+    if (next !== out){ out = next; break; }
+  }
+  out = out.trim();
+  return out || text.trim();
+}
+
 function buildChatSearchQuery(text, recipient){
-  const base = translateSearchQuery(String(text || ''))
+  const base = translateSearchQuery(stripAriaVocative(String(text || '')))
     // Drop the Spanish framing so only the product words remain; left in,
     // "para mi sobrino de 14 años" is noise the retailer matches badly.
     .replace(/\bpara\s+(mi|mis|el|la|un|una)?\s*/gi, ' ')
@@ -14052,6 +15191,13 @@ function buildChatSearchQuery(text, recipient){
     .replace(new RegExp(RECIPIENT_FEMALE_RE.source, 'gi'), ' ')
     .replace(AGE_YEARS_RE, ' ')
     .replace(AGE_MONTHS_RE, ' ')
+    /* THE ASKING WORDS, OUT. "búscame unos tenis" reached the catalogue
+       and the retailers intact, so two of its four tokens were a verb
+       and an article -- noise that matches nothing and dilutes every
+       score. chatAckEs already strips these to read the request back;
+       the query that goes looking needs the same treatment. */
+    .replace(/\b(?:b[uú]sca(?:me)?|buscar|enc[uú]entra(?:me)?|encontrar|nec[eé]sito|quiero|quisiera|mu[eé]strame|ens[eé][ñn]ame|dame|tienes?|tienen|hay|ver)\b/gi, ' ')
+    .replace(/\b(un|una|unos|unas|el|la|los|las|algun|alguna|algunos|algunas)\b/gi, ' ')
     .replace(/\b(de|del|mi|mis|que|tiene|a[ñn]os?)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -14105,6 +15251,85 @@ function productSuitsRecipient(title, recipient){
 
 const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion','liquidación','rebaja','rebajas','promocion','promoción'];
 
+/* ============================================================
+   "¿NO LO ENCUENTRAS AQUÍ? BÚSCALO EN VIVO." -- IN THE CHAT.
+
+   The same offer the results page makes, in the panel, for the same
+   reason: the catalogue has answered, and going out to the stores costs
+   money and time that only the shopper can decide to spend. One offer
+   per question, because two of these stacked in a transcript is noise.
+   ============================================================ */
+let assistantLiveOffered = '';
+
+function addAssistantLiveOffer(query){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap || !query || assistantLiveOffered === query) return;
+  assistantLiveOffered = query;
+  const el = document.createElement('div');
+  el.className = 'assistantNote my-2';
+  el.innerHTML = `<button type="button" data-assistant-live onclick="runAssistantLiveSearch(${JSON.stringify(query).replace(/"/g, '&quot;')})"
+      class="w-full text-left rounded-xl p-3 focus-ring" style="background:var(--navy)">
+      <div class="text-[13.5px] font-bold text-white">¿No lo encuentras aquí? Búscalo en vivo.</div>
+      <div class="text-[12px] mt-0.5" style="color:rgba(255,255,255,0.82)">Buscamos en este momento en tiendas de EE. UU.</div>
+    </button>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+/* The live fan-out, unchanged in what it does -- same stores, same
+   over-fetch, same recipient gate, same streaming of each store's finds
+   as that store answers. It is simply reached by a tap now instead of
+   by asking a question. */
+async function runAssistantLiveSearch(query){
+  const btn = document.querySelector('[data-assistant-live]');
+  if (btn){ btn.disabled = true; btn.style.opacity = '0.55'; }
+  showAssistantTyping();
+  setOrbState('thinking');
+  const pending = new Set(CHAT_RETAILERS);
+  const failedStores = [];
+  let added = 0;
+  const progressTimer = setTimeout(() => {
+    if (!pending.size) return;
+    const done = CHAT_RETAILERS.filter(r => !pending.has(r)).map(chatStoreLabel);
+    const left = Array.from(pending).map(chatStoreLabel);
+    setAssistantTypingLabel(done.length
+      ? `Ya revisé ${joinEs(done)}, buscando en ${joinEs(left)}…`
+      : `Buscando en ${joinEs(left)}…`);
+  }, CHAT_PROGRESS_AFTER_MS);
+
+  await Promise.allSettled(CHAT_RETAILERS.map(async (retailer) => {
+    let raw = [];
+    try {
+      raw = await scrapeRetailer(retailer, query, 6);
+    } catch (e) {
+      failedStores.push(retailer);
+      pending.delete(retailer);
+      return;
+    }
+    pending.delete(retailer);
+    await loadFxRate();
+    const normalized = raw.map(it => normalizeLiveItem(it, { retailer })).filter(it => it.title && it.price != null);
+    for (const it of normalized){
+      if (added >= CHAT_MAX_CARDS) break;
+      addAssistantProductCard(it, retailer);
+      added++;
+    }
+  }));
+  clearTimeout(progressTimer);
+  hideAssistantTyping();
+  setOrbState('idle');
+
+  /* THE CATALOGUE CARDS ABOVE STAY, whatever happens here -- this only
+     ever adds. And "every store failed" is our fault, said as our fault,
+     never as a claim about the product. */
+  if (failedStores.length === CHAT_RETAILERS.length){
+    addAssistantNote('La búsqueda en vivo no está disponible en este momento. Lo de arriba es lo que tenemos en catálogo.');
+  } else if (!added){
+    addAssistantNote('Busqué en vivo y no encontré nada más para eso.');
+  }
+  if (btn){ btn.remove(); }
+}
+
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
@@ -14127,6 +15352,7 @@ async function runAssistantBrain(text){
 
   const recipient = extractRecipient(text, ariaChatHistory);
   const searchQuery = buildChatSearchQuery(text, recipient);
+  assistantLiveOffered = '';   // a new question gets its own offer
   const willSearch = searchQuery.length >= 3 && !CHAT_NON_SHOPPING_RE.test(text);
 
   /* NO DEAD TIME (2026-09-19). The acknowledgment goes up BEFORE anything
@@ -14153,58 +15379,43 @@ async function runAssistantBrain(text){
        directly above three real iPhone cards. The results are fetched
        first and sent to the model as grounding, so the prose and the
        cards can no longer contradict each other. */
+    /* THE CATALOGUE ANSWERS HER TOO (2026-09-23).
+
+       This block used to fan straight out to Apify on every product
+       question, exactly as the search bar did, with the same two
+       consequences: a bill per question, and -- once the account hit its
+       limit -- the shopper sitting through four timeouts to be told
+       "Tuve un problema buscando eso" while the model, handed no
+       products, said we had none. We had them. Nobody looked.
+
+       So Aria reads the same shelf the search page reads: in memory,
+       instantly, free, and working with Apify at zero balance. The live
+       scan is still available and still useful for the thing we do not
+       stock -- it is just something the shopper asks for now, by the
+       same "¿No lo encuentras aquí?" affordance the results page uses.
+
+       GROUNDING IS UNCHANGED IN SPIRIT: retrieve before generate. What
+       changed is where the retrieval reads from. */
     if (willSearch){
-      const pending = new Set(CHAT_RETAILERS);
-      /* ONE progress note, only if the search is genuinely still running,
-         and only saying what is true at that exact moment — which stores
-         have answered and which have not. Never filler chatter. */
-      progressTimer = setTimeout(() => {
-        if (!pending.size) return;
-        const done = CHAT_RETAILERS.filter(r => !pending.has(r)).map(chatStoreLabel);
-        const left = Array.from(pending).map(chatStoreLabel);
-        setAssistantTypingLabel(done.length
-          ? `Ya revisé ${joinEs(done)}, buscando en ${joinEs(left)}…`
-          : `Buscando en ${joinEs(left)}…`);
-      }, CHAT_PROGRESS_AFTER_MS);
-
-      await Promise.allSettled(CHAT_RETAILERS.map(async (retailer) => {
-        let raw = [];
-        try {
-          raw = await scrapeRetailer(retailer, searchQuery, 6); // over-fetch: some get filtered out
-        } catch (e) {
-          failedStores.push(retailer);
-          pending.delete(retailer);
-          return;
-        }
-        pending.delete(retailer);
-        await loadFxRate(); // in flight since the top of this function; settle it before formatting any price
-        const normalized = raw.map(it => normalizeLiveItem(it, { retailer })).filter(it => it.title && it.price != null);
-        // HARD GATE: never show a product whose title signals the wrong
-        // gender for the recipient (see the RECIPIENT INTENT block above).
-        const suitable = normalized.filter(it => productSuitsRecipient(it.title, recipient));
-        rejectedForRecipient += normalized.length - suitable.length;
-        let addedHere = 0;
-        for (const it of suitable){
-          if (addedHere >= CHAT_MAX_PER_STORE || foundItems.length >= CHAT_MAX_CARDS) break;
-          // The same product from a second store is not a second option.
-          const key = crossStoreKey(it.title);
-          if (shownKeys.has(key)) continue;
-          shownKeys.add(key);
-          foundItems.push({ ...it, retailer });
-          /* STREAM: each store's finds land the moment THAT store answers,
-             not in one dump once the slowest one finishes. */
-          addAssistantProductCard(it, retailer);
-          addedHere++;
-        }
-      }));
-      clearTimeout(progressTimer);
-      // Say it plainly and fast. "Found nothing" and "every store errored"
-      // are different things and must never look the same.
-      if (failedStores.length === CHAT_RETAILERS.length){
-        addAssistantNote('Tuve un problema buscando eso, ¿intentamos de nuevo?');
+      const cat = await catalogSearch(searchQuery, { limit: CHAT_MAX_CARDS * 4 });
+      await loadFxRate();   // in flight since the top; settle before any price is formatted
+      for (const it of cat.items){
+        if (foundItems.length >= CHAT_MAX_CARDS) break;
+        // Same hard gate the live path used: never a product whose title
+        // signals the wrong gender for the person being shopped for.
+        if (!productSuitsRecipient(it.title, recipient)){ rejectedForRecipient++; continue; }
+        const key = crossStoreKey(it.title);
+        if (shownKeys.has(key)) continue;
+        shownKeys.add(key);
+        foundItems.push(it);
+        addAssistantProductCard(it, it.retailer);
       }
+      /* Offered when the shelf did not really answer -- nothing, or
+         nothing matching every word. Never fired on its own: an Apify
+         run is the shopper's to spend, here as much as on the results
+         page. */
+      if (!foundItems.length || catalogResultsAreThin(cat)) addAssistantLiveOffer(searchQuery);
     }
-
     /* ONE PAYLOAD, TWO ENDPOINTS. The streaming function and the
        buffered one take the identical body and build the identical Groq
        request (see _aria-chat-model.js), so which one answers cannot
