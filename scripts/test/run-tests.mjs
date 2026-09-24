@@ -843,6 +843,48 @@ check("index.html's registry mirror matches the module", () => {
   }
 });
 
+/* DANNY'S TIENDAS ORDER (2026-09-24). Victoria's Secret is one of the
+   first tiles — between Target and Walmart — and the two generalists
+   never sit side by side again (they sell the same things). The tile
+   order is the registry's insertion order, so this pins the order in
+   both the module and the index.html mirror. */
+function everydayOrder(){
+  return Object.keys(RETAILERS).filter(k => {
+    const r = RETAILERS[k];
+    return !r.retired && (r.tier || (r.kind === "auto" ? "auto" : "everyday")) === "everyday";
+  });
+}
+
+check("Victoria's Secret is one of the first Tiendas tiles", () => {
+  const order = everydayOrder();
+  const vs = order.indexOf("victoriassecret");
+  if (vs < 0) throw new Error("victoriassecret missing from the registry order");
+  if (vs > 2) throw new Error(`Victoria's Secret is tile #${vs + 1} in Tiendas, must be one of the first three`);
+});
+
+check("Target and Walmart are not adjacent in the Tiendas order", () => {
+  const order = everydayOrder();
+  const t = order.indexOf("target"), w = order.indexOf("walmart");
+  if (t < 0 || w < 0) throw new Error("target/walmart missing from the registry order");
+  if (Math.abs(t - w) === 1) throw new Error("Target and Walmart sit side by side in the Tiendas order");
+});
+
+check("index.html's Tiendas tile order matches the module's", () => {
+  /* The two registries are mirrors, but they drifted once before (the
+     beauty rows sit in a different relative order), so this pins only
+     Danny's directive rather than full positional identity: in the
+     page's own literal, Target < Victoria's Secret < Walmart. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const lit = html.slice(html.indexOf("const RETAILERS = {"));
+  const pos = k => {
+    const i = lit.indexOf(`key: '${k}'`);
+    if (i < 0) throw new Error(`${k} missing from the index.html mirror`);
+    return i;
+  };
+  if (!(pos("target") < pos("victoriassecret") && pos("victoriassecret") < pos("walmart")))
+    throw new Error("index.html does not render Target, Victoria's Secret, Walmart in that order");
+});
+
 check("adding a retailer needs no new scraper code", async () => {
   // The point of INPUT_SHAPES: a new store declares a spelling, not a function.
   const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");

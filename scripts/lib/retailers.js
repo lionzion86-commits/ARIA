@@ -47,21 +47,35 @@
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
-  walmart: {
-    key: "walmart",
-    label: "Walmart",
-    color: "#0071CE",
-    logo: "logos/walmart.svg",
-    tagline: "De todo, a buen precio",
-    kind: "general",
-    search: true,
-  },
   target: {
     key: "target",
     label: "Target",
     color: "#CC0000",
     logo: "logos/target.svg",
     tagline: "Ropa, hogar y belleza",
+    kind: "general",
+    search: true,
+  },
+  /* VICTORIA'S SECRET UP FRONT (2026-09-24, Danny): mirrors index.html —
+     the tile sits between Target and Walmart, one of the first tiles,
+     and the two generalists no longer sit side by side. */
+  victoriassecret: {
+    key: "victoriassecret",
+    label: "Victoria's Secret",
+    color: "#E31C79",
+    logo: "logos/victoriassecret.png",
+    tagline: "Lencería, brumas corporales y fragancias",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
+  walmart: {
+    key: "walmart",
+    label: "Walmart",
+    color: "#0071CE",
+    logo: "logos/walmart.svg",
+    tagline: "De todo, a buen precio",
     kind: "general",
     search: true,
   },
@@ -125,17 +139,6 @@ export const RETAILERS = {
        stale the first time the export changes. The data says the
        brands; the tagline says the department. */
     tagline: "Maquillaje, skincare y perfumes",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
-  victoriassecret: {
-    key: "victoriassecret",
-    label: "Victoria's Secret",
-    color: "#E31C79",
-    logo: "logos/victoriassecret.png",
-    tagline: "Lencería, brumas corporales y fragancias",
     kind: "general",
     catalog: "beauty",
     search: false,
