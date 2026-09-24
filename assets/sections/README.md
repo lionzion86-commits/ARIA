@@ -79,3 +79,7 @@ Reuse `.ariaSectionShot` / `.ariaSectionPhoto` / `.ariaSectionScrim` /
 looks similar. Keep the file under 200 KB (asserted). No text, badges,
 prices or numbers baked into the image — ever; those are the page's job,
 and a price inside a JPEG cannot be updated, translated, or made honest.
+
+## The beauty destination banner
+
+`beauty-banner.jpg` heads the beauty destination page. A section can have both a tile and a banner: the tile is `assets/category/beauty.jpg` and the banner is `beauty-banner.jpg` here, and they are different shots because they are different crops -- the tile is close and square-ish, the banner is wide with the silk left empty. It follows every rule above: positioning in the inline `<style>` (`.ariaBeautyBanner` carries its own `position:relative` and `overflow:hidden`, asserted by a browser check on computed values rather than the class name), decorative and survivable (`alt=""`, `aria-hidden`, an `onerror` that removes the element), lazy (below the fold of the page that opens it), and no text, badges or prices baked into the image.
