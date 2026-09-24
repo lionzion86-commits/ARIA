@@ -4558,6 +4558,57 @@ function deptTileHTML(t, kind){
   </button>`;
 }
 
+/* ============================================================
+   WHAT THE HOME ROW LEADS WITH, AND IN WHAT ORDER (2026-09-24)
+
+   Until now this row was whatever order DEPARTMENT_SPEC happened to
+   declare its keys in -- an implicit ordering, in a table written for a
+   different purpose, that nobody could change without editing the
+   taxonomy. Aria Beauty sat tenth because `beauty` was added tenth.
+
+   So the running order is its own list now, and it is a SHORTLIST of
+   keys, not a sort: the home row is an editorial choice about what the
+   shop leads with, and an editorial choice should be one readable line
+   someone can reorder.
+
+   NOTHING IS REMOVED FROM THE SITE BY LEAVING IT OUT HERE. Every
+   department still has its page, still appears on Categorías with its
+   own sort and store filter, and is one tap away through "Explora más"
+   directly under this row. This list decides what the FRONT DOOR shows,
+   and cutting a card from a front door is not the same as closing a
+   room.
+
+   A key here that no retailer carries still renders nothing -- the
+   existing rule in collectTiles() -- so this list can name a department
+   before its catalogue arrives, exactly as `beauty` did.
+   ============================================================ */
+const HOME_ROW_DEPARTMENTS = [
+  /* Aria Beauty leads. Danny's call, 2026-09-24: it is the highest-traffic
+     destination for the core shopper, so it is the first thing the row
+     offers rather than the tenth. */
+  'beauty',
+  'electronics',
+  'clothing',
+  'men',
+  'women',
+  'kids',
+  'candy_chocolate',
+  'sporting_goods',
+  'home_goods',
+  'curvy',
+  'shoes',
+  'sale',
+];
+
+/* The home row's tiles: the shortlist above, in its order, minus any
+   department the cache says nobody carries. Categorías keeps calling
+   collectTiles() directly, because that page's job is to show
+   everything. */
+function homeRowTiles(){
+  const byKey = Object.fromEntries(collectTiles().map(t => [t.key, t]));
+  return HOME_ROW_DEPARTMENTS.map(k => byKey[k]).filter(Boolean);
+}
+
 function initDepartmentTiles(){
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
@@ -4580,7 +4631,7 @@ function initDepartmentTiles(){
        So this grid is the eleven departments, and they carry the section
        on their own. If brands ever come back here they need a section
        and a cap, not a spread. */
-    const tiles = collectTiles().map(t => ({ t, kind: 'department' }));
+    const tiles = homeRowTiles().map(t => ({ t, kind: 'department' }));
     const catGrid = document.getElementById('catGrid');
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')

@@ -1688,6 +1688,45 @@ await check("a stream that dies keeps what the shopper is already reading", asyn
    ================================================================== */
 const PHONE = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
 
+await check("Aria Beauty is the first card the shop offers, on the phone and the desktop", async () => {
+  /* ASSERTED ON THE RENDERED PAGE, NOT ON THE LIST. run-tests.mjs
+     already pins HOME_ROW_DEPARTMENTS[0] === "beauty" from the text;
+     that is cheap and it is not the same claim. What a shopper meets is
+     the first CARD, and between the list and the card sit
+     homeRowTiles()'s lookup, the drop of any department nobody stocks,
+     and two separate renderers. A beauty catalogue that failed to load
+     would leave the list correct and the row still led by Electrónica.
+
+     BOTH SURFACES, because they are drawn by different functions from
+     one array -- deptTileHTML into #catGrid, mobileCatCardHTML into
+     #mobileCatsRow -- and "first" is a property of the array that either
+     renderer could drop. */
+  const first = async (ctxOpts) => {
+    const { ctx, page, errors } = await openPage({}, ctxOpts);
+    await page.waitForTimeout(4000);
+    const r = await page.evaluate(() => {
+      const label = (el) => (el?.textContent || "").trim().split("\n")[0].trim();
+      const rail = document.getElementById("mobileCatsRow");
+      return {
+        grid: label(document.getElementById("catGrid").children[0]),
+        rail: rail && rail.children.length ? label(rail.children[0]) : null,
+        listHead: HOME_ROW_DEPARTMENTS[0],
+      };
+    });
+    if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+    await ctx.close();
+    return r;
+  };
+
+  const phone = await first(PHONE);
+  eq(phone.listHead, "beauty", "the home row's list no longer starts with beauty");
+  eq(phone.grid, "Aria Beauty", `the grid's first card at 393px is "${phone.grid}"`);
+  eq(phone.rail, "Aria Beauty", `the phone rail's first card is "${phone.rail}"`);
+
+  const desktop = await first();
+  eq(desktop.grid, "Aria Beauty", `the grid's first card at desktop width is "${desktop.grid}"`);
+});
+
 await check("the phone's rails fill from the page's own data", async () => {
   const { ctx, page, errors } = await openPage({}, PHONE);
   await page.waitForTimeout(4000);

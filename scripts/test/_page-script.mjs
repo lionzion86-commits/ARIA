@@ -449,3 +449,26 @@ export function loadPageCurvySlice() {
   );
   return sandbox.__exports;
 }
+
+/* THE HOME ROW'S RUNNING ORDER, on its own. A plain array of keys, so
+   this loads the declaration and nothing else -- homeRowTiles() needs
+   the department cache and belongs to the browser suite. What the node
+   suite can settle from the text is the part that goes wrong silently:
+   a key here that no longer names a department renders nothing, and the
+   card just quietly stops appearing. */
+export function loadPageHomeRowSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const HOME_ROW_DEPARTMENTS = [");
+  const to = html.indexOf("function homeRowTiles(");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html home-row markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { HOME_ROW_DEPARTMENTS };",
+    sandbox,
+    { filename: "index.html#homeRow" },
+  );
+  return sandbox.__exports;
+}

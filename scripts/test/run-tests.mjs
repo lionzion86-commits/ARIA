@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageHomeRowSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -4660,13 +4660,24 @@ check("no grid anywhere can build a wall of brands", () => {
   if (/brand/i.test(tiles)) throw new Error("collectTiles can make a brand tile again");
   if (!/DEPARTMENT_SPEC/.test(tiles)) throw new Error("collectTiles lost the department taxonomy");
 
-  for (const [label, from, to] of [
-    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)"],
-    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan("],
+  /* THE HOME PAGE REACHES collectTiles THROUGH ONE HOP NOW (2026-09-24).
+     It calls homeRowTiles(), which is the editorial shortlist, and that
+     reads collectTiles(). So the builder each grid ends at is checked
+     rather than the literal call in the grid -- which keeps this exactly
+     as strong as it was: whatever the shortlist names, the tiles it
+     hands back are still made only from DEPARTMENT_SPEC, and the hop is
+     itself asserted below rather than assumed. */
+  const homeRow = src.slice(src.indexOf("function homeRowTiles("), src.indexOf("function initDepartmentTiles("));
+  if (!/collectTiles\(\)/.test(homeRow)) throw new Error("homeRowTiles no longer builds from collectTiles");
+  if (/brand/i.test(homeRow)) throw new Error("the home row's shortlist can name a brand");
+
+  for (const [label, from, to, builder] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/],
+    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan(", /collectTiles\(\)/],
   ]) {
     const grid = src.slice(src.indexOf(from), src.indexOf(to));
     if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
-    if (!/collectTiles\(\)/.test(grid)) throw new Error(`${label} lost its department tiles`);
+    if (!builder.test(grid)) throw new Error(`${label} lost its department tiles`);
   }
 
   // And the route a brand still travels is untouched.
@@ -6614,6 +6625,94 @@ check("every category cover named in the page is actually on disk", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("The home row leads with what the shop wants read first");
+
+/* WHY THIS GROUP EXISTS AT ALL. The running order used to be implicit --
+   whatever order DEPARTMENT_SPEC declared its keys in -- so there was
+   nothing to assert and no way to get it wrong except by editing the
+   taxonomy. Now it is an editorial list, which is better but introduces
+   exactly one new way to break the page silently, and that is what the
+   first check below is for. */
+
+check("Aria Beauty is the first card in the home row", () => {
+  /* Danny's call, 2026-09-24: Beauty is the highest-traffic destination
+     for the core shopper, so it leads. Asserted by POSITION, not merely
+     by presence -- "beauty is somewhere in the row" was true before this
+     change too, at position ten. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  if (HOME_ROW_DEPARTMENTS[0] !== "beauty") {
+    throw new Error(`the home row leads with "${HOME_ROW_DEPARTMENTS[0]}", not Aria Beauty`);
+  }
+});
+
+check("every key in the home row names a department that exists", () => {
+  /* THE SILENT FAILURE THIS EXISTS TO CATCH. homeRowTiles() looks each
+     key up and drops what it cannot find, which is the right behaviour
+     for a department no retailer stocks yet -- `beauty` sat in the
+     taxonomy for days before its catalogue landed. The cost is that a
+     TYPO behaves identically: 'shoez' renders nothing, throws nothing,
+     and the card is just gone. Nobody notices until someone asks where
+     Zapatos went.
+
+     So the list is checked against the taxonomy rather than against the
+     cache: naming a department early is allowed, naming one that does
+     not exist is not. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const known = new Set(Object.keys(deptMap.DEPARTMENT_SPEC));
+  const unknown = HOME_ROW_DEPARTMENTS.filter(k => !known.has(k));
+  if (unknown.length) {
+    throw new Error(
+      `the home row names ${unknown.map(k => JSON.stringify(k)).join(", ")}, which ` +
+      `${unknown.length === 1 ? "is not a department" : "are not departments"} — ` +
+      `it will render nothing and fail silently. Known: ${[...known].join(", ")}`);
+  }
+});
+
+check("no department is listed in the home row twice", () => {
+  /* A duplicate does not throw either: it renders the same card twice,
+     which on a phone rail reads as a glitch rather than a decision. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const seen = new Set(), dupes = [];
+  for (const k of HOME_ROW_DEPARTMENTS) (seen.has(k) ? dupes.push(k) : seen.add(k));
+  if (dupes.length) throw new Error(`the home row lists ${dupes.join(", ")} more than once`);
+});
+
+check("the grid and the phone rail are still built from one list", () => {
+  /* The rule this protects is older than this change and is written in
+     index.html as "from the SAME tiles -- never a second list". Two
+     lists is how the phone and the desktop end up disagreeing about
+     what the shop sells. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const init = forwardSlice(src, "function initDepartmentTiles(){", "\nwindow.addEventListener('DOMContentLoaded', initDepartmentTiles);", "initDepartmentTiles");
+  if (!/const tiles = homeRowTiles\(\)/.test(init)) {
+    throw new Error("the home row no longer reads its own list");
+  }
+  if (!/renderMobileCatsRail\(tiles\)/.test(init)) {
+    throw new Error("the phone rail no longer renders the same tiles the grid does");
+  }
+});
+
+check("Categorías still shows every department, whatever the home row drops", () => {
+  /* THE PROMISE THAT MAKES TRIMMING THE ROW SAFE. Leaving a department
+     out of the front door is only honest while the door to everything
+     else is still there and still complete. renderCategoriesGrid() must
+     keep reading collectTiles() directly -- the moment it reads the
+     shortlist instead, cutting a card from the home row quietly deletes
+     a section of the shop. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const cats = forwardSlice(src, "function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
+  if (!/collectTiles\(\)/.test(cats)) {
+    throw new Error("Categorías no longer builds from collectTiles() — it can no longer be the page that shows everything");
+  }
+  if (/HOME_ROW_DEPARTMENTS|homeRowTiles/.test(cats)) {
+    throw new Error("Categorías is filtering through the home row's shortlist — departments left off the front door would vanish from the site");
+  }
+  /* And the way back to it stays under the row. */
+  if (!/data-explora[^>]*>Explora más</.test(src)) {
+    throw new Error("the \"Explora más\" link out of the home row is gone");
+  }
+});
+
 group("A department is never a dead page");
 
 check("the catalogue knows the difference between broken and empty", () => {
