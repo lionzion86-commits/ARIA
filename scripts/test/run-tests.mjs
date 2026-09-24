@@ -843,11 +843,17 @@ check("index.html's registry mirror matches the module", () => {
   }
 });
 
-/* DANNY'S TIENDAS ORDER (2026-09-24). Victoria's Secret is one of the
-   first tiles — between Target and Walmart — and the two generalists
-   never sit side by side again (they sell the same things). The tile
-   order is the registry's insertion order, so this pins the order in
+/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised).
+   The Tiendas de siempre row leads with aspirational, brag-worthy brands
+   that catch a woman's eye; the mall feels exclusive, not downmarket.
+   Target and Walmart sit at the very back (thin catalogs there). The tile
+   order is the registry's insertion order, so this pins the full order in
    both the module and the index.html mirror. */
+const EXPECTED_EVERYDAY_ORDER = [
+  "victoriassecret", "sephora", "skims", "revolve", "ulta",
+  "bathandbodyworks", "yesstyle", "footlocker", "sunglasshut", "dyson",
+  "macys", "oldnavy", "target", "walmart",
+];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
     const r = RETAILERS[k];
@@ -855,25 +861,33 @@ function everydayOrder(){
   });
 }
 
-check("Victoria's Secret is one of the first Tiendas tiles", () => {
+check("Tiendas tiles follow Danny's exclusive-mall order", () => {
   const order = everydayOrder();
-  const vs = order.indexOf("victoriassecret");
-  if (vs < 0) throw new Error("victoriassecret missing from the registry order");
-  if (vs > 2) throw new Error(`Victoria's Secret is tile #${vs + 1} in Tiendas, must be one of the first three`);
+  const want = EXPECTED_EVERYDAY_ORDER.join(",");
+  const got = order.join(",");
+  if (got !== want) throw new Error(`Tiendas order is [${got}], want [${want}]`);
 });
 
-check("Target and Walmart are not adjacent in the Tiendas order", () => {
+check("Victoria's Secret is the first Tiendas tile", () => {
   const order = everydayOrder();
-  const t = order.indexOf("target"), w = order.indexOf("walmart");
-  if (t < 0 || w < 0) throw new Error("target/walmart missing from the registry order");
-  if (Math.abs(t - w) === 1) throw new Error("Target and Walmart sit side by side in the Tiendas order");
+  if (order[0] !== "victoriassecret")
+    throw new Error(`first Tiendas tile is ${order[0]}, want victoriassecret`);
+});
+
+check("Sephora is the second Tiendas tile", () => {
+  const order = everydayOrder();
+  if (order[1] !== "sephora")
+    throw new Error(`second Tiendas tile is ${order[1]}, want sephora`);
+});
+
+check("Target and Walmart are the last two Tiendas tiles", () => {
+  const order = everydayOrder();
+  const tail = order.slice(-2).join(",");
+  if (tail !== "target,walmart")
+    throw new Error(`last two Tiendas tiles are [${tail}], want target,walmart`);
 });
 
 check("index.html's Tiendas tile order matches the module's", () => {
-  /* The two registries are mirrors, but they drifted once before (the
-     beauty rows sit in a different relative order), so this pins only
-     Danny's directive rather than full positional identity: in the
-     page's own literal, Target < Victoria's Secret < Walmart. */
   const html = readFileSync(root("index.html"), "utf8");
   const lit = html.slice(html.indexOf("const RETAILERS = {"));
   const pos = k => {
@@ -881,8 +895,11 @@ check("index.html's Tiendas tile order matches the module's", () => {
     if (i < 0) throw new Error(`${k} missing from the index.html mirror`);
     return i;
   };
-  if (!(pos("target") < pos("victoriassecret") && pos("victoriassecret") < pos("walmart")))
-    throw new Error("index.html does not render Target, Victoria's Secret, Walmart in that order");
+  const positions = EXPECTED_EVERYDAY_ORDER.map(pos);
+  for (let i = 1; i < positions.length; i++) {
+    if (!(positions[i - 1] < positions[i]))
+      throw new Error(`index.html mirror order breaks at ${EXPECTED_EVERYDAY_ORDER[i]}`);
+  }
 });
 
 check("adding a retailer needs no new scraper code", async () => {

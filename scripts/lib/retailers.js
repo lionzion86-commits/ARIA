@@ -47,18 +47,11 @@
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
-  target: {
-    key: "target",
-    label: "Target",
-    color: "#CC0000",
-    logo: "logos/target.svg",
-    tagline: "Ropa, hogar y belleza",
-    kind: "general",
-    search: true,
-  },
-  /* VICTORIA'S SECRET UP FRONT (2026-09-24, Danny): mirrors index.html —
-     the tile sits between Target and Walmart, one of the first tiles,
-     and the two generalists no longer sit side by side. */
+/* EXCLUSIVE MALL ORDER (2026-09-24, Danny): the Tiendas de siempre row
+   leads with aspirational, brag-worthy brands that catch a woman's eye —
+   the mall feels exclusive, not downmarket. Target and Walmart sit at the
+   back (thin catalogs) and never adjacent. Tile order = registry
+   insertion order; mirrors index.html. */
   victoriassecret: {
     key: "victoriassecret",
     label: "Victoria's Secret",
@@ -69,33 +62,6 @@ export const RETAILERS = {
     catalog: "beauty",
     search: false,
     browse: true,
-  },
-  walmart: {
-    key: "walmart",
-    label: "Walmart",
-    color: "#0071CE",
-    logo: "logos/walmart.svg",
-    tagline: "De todo, a buen precio",
-    kind: "general",
-    search: true,
-  },
-  oldnavy: {
-    key: "oldnavy",
-    label: "Old Navy",
-    color: "#001E62",
-    logo: "logos/oldnavy.svg",
-    tagline: "Ropa casual para toda la familia",
-    kind: "general",
-    search: true,
-  },
-  footlocker: {
-    key: "footlocker",
-    label: "Foot Locker",
-    color: "#000000",
-    logo: "logos/footlocker.svg",
-    tagline: "Zapatillas y ropa deportiva",
-    kind: "general",
-    search: true,
   },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
@@ -139,109 +105,6 @@ export const RETAILERS = {
        stale the first time the export changes. The data says the
        brands; the tagline says the department. */
     tagline: "Maquillaje, skincare y perfumes",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
-  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
-     the audience this shop is being launched for, and it is the eighth
-     store — which is what makes the stores grid symmetric at 4x2 instead
-     of leaving a hole. Same status as the other two beauty stores: a
-     real row, quotas written, no verified actor yet. */
-  bathandbodyworks: {
-    key: "bathandbodyworks",
-    label: "Bath & Body Works",
-    color: "#0F4C81",
-    logo: "logos/bathandbodyworks.png",
-    tagline: "Cremas, jabones y velas aromáticas",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    pendingNote: "Conectando el catálogo",
-  },
-  /* ============================================================
-     MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
-
-     Macy's arrived as a file: an export of 960 women's-clothing best
-     sellers, not a live actor. That broke an assumption baked into this
-     registry since it was written — that `search` meant both "you can
-     browse this store" and "we can query it live". Those are different
-     capabilities and Macy's has exactly one of them, so they are two
-     flags now:
-
-       search  the live cross-store fan-out may call it. Needs a
-               RETAILER_CONFIG actor in apify-scrape-start.js. FALSE for
-               Macy's: calling an unconfigured retailer returns a failed
-               store card, which looks like a bug to a shopper.
-       browse  it has a real catalogue a shopper can walk through, from
-               whatever source. TRUE — macys-catalog.json, built by
-               scripts/build-macys-catalog.mjs.
-
-     A store with `browse` is NOT "conectando el catálogo": it has one.
-     That distinction is why storeCardHTML's pending state reads both
-     flags rather than just `search`.
-
-     Fulfilment is not a question here — Macy's ships to the Miami
-     warehouse like the rest, so nothing special is needed downstream. */
-  macys: {
-    key: "macys",
-    label: "Macy's",
-    color: "#E21A2C",
-    logo: "logos/macys.png",
-    tagline: "Moda mujer, marcas y vestidos",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
-  /* ============================================================
-     ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
-
-     77 Ulta products and 40 YesStyle products arrived in the same file
-     as Sephora's 80. Both are browse-without-scrape, same as Macy's and
-     SSENSE: a real catalogue, no actor, kept out of the live fan-out.
-
-     BOTH MARKS LANDED (2026-09-22). They shipped as wordmark pills on
-     our navy for a few hours, because a brand's name on a colour we
-     invented for them is worse than one on ours. Now they render their
-     own logos, and `color` has stopped being a placeholder: each value
-     below was SAMPLED FROM THE SUPPLIED ARTWORK rather than recalled,
-     which is the lesson the SSENSE tagline taught. Ulta's orange is
-     #F88038 across 229,142 pixels of its file. YesStyle's most common
-     ink is actually its near-black (#201818, the "STYLE" half), but a
-     near-black badge is indistinguishable from Sephora's and SSENSE's,
-     so the row takes the green (#50A838) that says whose mark it is.
-     Either way the colour is now only a fallback: it backs the wordmark
-     pill and the small text badge, neither of which renders while the
-     logo file resolves.
-
-     YESSTYLE'S FILE NEEDED CROPPING. The wordmark filled 7.4% of a
-     1000x667 canvas and the rest was white. Contain-fit sizes the
-     CANVAS, so it would have drawn a sliver exactly the way SSENSE did
-     -- see the coverage test in scripts/test/run-tests.mjs, which now
-     fails any logo under 35%. Cropped to 642x86, it is 89.6% mark.
-
-     YesStyle is Asian beauty specifically (Korean and Japanese houses —
-     Anua, BBIA, CLIO, Canmake). The tagline says so, because "YesStyle"
-     tells a shopper in Lima nothing and "coreana" tells them everything.
-     ============================================================ */
-  ulta: {
-    key: "ulta",
-    label: "Ulta Beauty",
-    color: "#F88038",
-    logo: "logos/ulta.png",
-    tagline: "Maquillaje, skincare y cuidado del cabello",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
-  yesstyle: {
-    key: "yesstyle",
-    label: "YesStyle",
-    color: "#50A838",
-    logo: "logos/yesstyle.png",
-    tagline: "Belleza coreana y japonesa",
     kind: "general",
     catalog: "beauty",
     search: false,
@@ -299,15 +162,83 @@ export const RETAILERS = {
     search: false,
     pendingNote: "Conectando el catálogo",
   },
-  dyson: {
-    key: "dyson",
-    label: "Dyson",
-    color: "#202020",
-    logo: "logos/dyson.png",
-    tagline: "Secadoras, aspiradoras y purificadores",
+  /* ============================================================
+     ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
+
+     77 Ulta products and 40 YesStyle products arrived in the same file
+     as Sephora's 80. Both are browse-without-scrape, same as Macy's and
+     SSENSE: a real catalogue, no actor, kept out of the live fan-out.
+
+     BOTH MARKS LANDED (2026-09-22). They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours. Now they render their
+     own logos, and `color` has stopped being a placeholder: each value
+     below was SAMPLED FROM THE SUPPLIED ARTWORK rather than recalled,
+     which is the lesson the SSENSE tagline taught. Ulta's orange is
+     #F88038 across 229,142 pixels of its file. YesStyle's most common
+     ink is actually its near-black (#201818, the "STYLE" half), but a
+     near-black badge is indistinguishable from Sephora's and SSENSE's,
+     so the row takes the green (#50A838) that says whose mark it is.
+     Either way the colour is now only a fallback: it backs the wordmark
+     pill and the small text badge, neither of which renders while the
+     logo file resolves.
+
+     YESSTYLE'S FILE NEEDED CROPPING. The wordmark filled 7.4% of a
+     1000x667 canvas and the rest was white. Contain-fit sizes the
+     CANVAS, so it would have drawn a sliver exactly the way SSENSE did
+     -- see the coverage test in scripts/test/run-tests.mjs, which now
+     fails any logo under 35%. Cropped to 642x86, it is 89.6% mark.
+
+     YesStyle is Asian beauty specifically (Korean and Japanese houses —
+     Anua, BBIA, CLIO, Canmake). The tagline says so, because "YesStyle"
+     tells a shopper in Lima nothing and "coreana" tells them everything.
+     ============================================================ */
+  ulta: {
+    key: "ulta",
+    label: "Ulta Beauty",
+    color: "#F88038",
+    logo: "logos/ulta.png",
+    tagline: "Maquillaje, skincare y cuidado del cabello",
     kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
+  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
+     the audience this shop is being launched for, and it is the eighth
+     store — which is what makes the stores grid symmetric at 4x2 instead
+     of leaving a hole. Same status as the other two beauty stores: a
+     real row, quotas written, no verified actor yet. */
+  bathandbodyworks: {
+    key: "bathandbodyworks",
+    label: "Bath & Body Works",
+    color: "#0F4C81",
+    logo: "logos/bathandbodyworks.png",
+    tagline: "Cremas, jabones y velas aromáticas",
+    kind: "general",
+    catalog: "beauty",
     search: false,
     pendingNote: "Conectando el catálogo",
+  },
+  yesstyle: {
+    key: "yesstyle",
+    label: "YesStyle",
+    color: "#50A838",
+    logo: "logos/yesstyle.png",
+    tagline: "Belleza coreana y japonesa",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
+  footlocker: {
+    key: "footlocker",
+    label: "Foot Locker",
+    color: "#000000",
+    logo: "logos/footlocker.svg",
+    tagline: "Zapatillas y ropa deportiva",
+    kind: "general",
+    search: true,
   },
   sunglasshut: {
     key: "sunglasshut",
@@ -318,6 +249,77 @@ export const RETAILERS = {
     kind: "general",
     search: false,
     pendingNote: "Conectando el catálogo",
+  },
+  dyson: {
+    key: "dyson",
+    label: "Dyson",
+    color: "#202020",
+    logo: "logos/dyson.png",
+    tagline: "Secadoras, aspiradoras y purificadores",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  /* ============================================================
+     MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
+
+     Macy's arrived as a file: an export of 960 women's-clothing best
+     sellers, not a live actor. That broke an assumption baked into this
+     registry since it was written — that `search` meant both "you can
+     browse this store" and "we can query it live". Those are different
+     capabilities and Macy's has exactly one of them, so they are two
+     flags now:
+
+       search  the live cross-store fan-out may call it. Needs a
+               RETAILER_CONFIG actor in apify-scrape-start.js. FALSE for
+               Macy's: calling an unconfigured retailer returns a failed
+               store card, which looks like a bug to a shopper.
+       browse  it has a real catalogue a shopper can walk through, from
+               whatever source. TRUE — macys-catalog.json, built by
+               scripts/build-macys-catalog.mjs.
+
+     A store with `browse` is NOT "conectando el catálogo": it has one.
+     That distinction is why storeCardHTML's pending state reads both
+     flags rather than just `search`.
+
+     Fulfilment is not a question here — Macy's ships to the Miami
+     warehouse like the rest, so nothing special is needed downstream. */
+  macys: {
+    key: "macys",
+    label: "Macy's",
+    color: "#E21A2C",
+    logo: "logos/macys.png",
+    tagline: "Moda mujer, marcas y vestidos",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  oldnavy: {
+    key: "oldnavy",
+    label: "Old Navy",
+    color: "#001E62",
+    logo: "logos/oldnavy.svg",
+    tagline: "Ropa casual para toda la familia",
+    kind: "general",
+    search: true,
+  },
+  target: {
+    key: "target",
+    label: "Target",
+    color: "#CC0000",
+    logo: "logos/target.svg",
+    tagline: "Ropa, hogar y belleza",
+    kind: "general",
+    search: true,
+  },
+  walmart: {
+    key: "walmart",
+    label: "Walmart",
+    color: "#0071CE",
+    logo: "logos/walmart.svg",
+    tagline: "De todo, a buen precio",
+    kind: "general",
+    search: true,
   },
   autozone: {
     key: "autozone",

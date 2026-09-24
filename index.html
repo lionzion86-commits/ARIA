@@ -9115,14 +9115,10 @@ function addToCartFromProduct(){
    returns a failed-store card that reads like a bug.
    ============================================================ */
 const RETAILERS = {
-  target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
-  /* VICTORIA'S SECRET UP FRONT (2026-09-24, Danny): the tile sits between
-     Target and Walmart — one of the first tiles, and the two generalists
-     no longer sit side by side. */
+/* EXCLUSIVE MALL ORDER (2026-09-24, Danny): aspirational brands first —
+   the mall feels exclusive, not downmarket. Target and Walmart at the back,
+   never adjacent. Mirrors scripts/lib/retailers.js. */
   victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
-  oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
-  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.svg', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
   /* SEPHORA IS BROWSABLE (2026-09-22). beauty-catalog.json landed with
      80 Sephora products, so this row flips `browse: true` and drops the
      pending note -- the same two-flag distinction Macy's introduced.
@@ -9138,48 +9134,6 @@ const RETAILERS = {
      same two names twice on one card and goes stale the first time the
      export changes. */
   sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
-     file. Browse-without-scrape, like Macy's and SSENSE.
-
-     BOTH MARKS LANDED the same day. They shipped as wordmark pills on
-     our navy for a few hours, because a brand's name on a colour we
-     invented for them is worse than one on ours — and `color` is no
-     longer a placeholder either: both values were SAMPLED FROM THE
-     SUPPLIED ARTWORK rather than recalled (Ulta's orange is #F88038
-     across 229,142 pixels of its file; YesStyle's most common ink is
-     its near-black, but a near-black badge is indistinguishable from
-     Sephora's and SSENSE's, so the row takes the green that says whose
-     mark it is). The colour only ever backs the wordmark pill and the
-     small text badge now, neither of which renders while the logo file
-     resolves.
-
-     YesStyle's file needed cropping — the wordmark filled 7.4% of its
-     canvas, which is the SSENSE sliver all over again. See the logo
-     coverage test. Mirrors scripts/lib/retailers.js. */
-  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
-  /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
-     it has a real catalogue (macys-catalog.json); `search: false` keeps
-     it out of the live fan-out, which has no actor for it. See the note
-     on the Macy's row in scripts/lib/retailers.js. */
-  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
-  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
-     bot protection returned zero products across three integrations.
-     Catalogue file ssense-catalog.json (2,426 men's products) is committed
-     at repo root and merged by loadDepartmentCache like Macy's.
-     The tagline leads with the BRANDS because "SSENSE" means nothing to a
-     shopper in Lima and "Gucci" means everything. */
-  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
-     bot protection returned zero products across three integrations.
-     Browsable from a file (ssense-catalog.json, 2,426 men's products,
-     192 brands); no actor, so it stays out of the live search fan-out.
-
-     THE TAGLINE NAMES NO BRAND, on purpose. It said "Gucci, Prada,
-     Balenciaga" when the row was written from the brief, and the
-     catalogue that arrived carries NEITHER Gucci NOR Prada. The real
-     names are read from the data by topBrandsFor(), so the card can
-     only ever promise a label the store is actually carrying. */
   /* ============================================================
      THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
 
@@ -9209,8 +9163,54 @@ const RETAILERS = {
      ============================================================ */
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
   revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
-  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
+     file. Browse-without-scrape, like Macy's and SSENSE.
+
+     BOTH MARKS LANDED the same day. They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours — and `color` is no
+     longer a placeholder either: both values were SAMPLED FROM THE
+     SUPPLIED ARTWORK rather than recalled (Ulta's orange is #F88038
+     across 229,142 pixels of its file; YesStyle's most common ink is
+     its near-black, but a near-black badge is indistinguishable from
+     Sephora's and SSENSE's, so the row takes the green that says whose
+     mark it is). The colour only ever backs the wordmark pill and the
+     small text badge now, neither of which renders while the logo file
+     resolves.
+
+     YesStyle's file needed cropping — the wordmark filled 7.4% of its
+     canvas, which is the SSENSE sliver all over again. See the logo
+     coverage test. Mirrors scripts/lib/retailers.js. */
+  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.svg', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
   sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
+     it has a real catalogue (macys-catalog.json); `search: false` keeps
+     it out of the live fan-out, which has no actor for it. See the note
+     on the Macy's row in scripts/lib/retailers.js. */
+  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
+     bot protection returned zero products across three integrations.
+     Catalogue file ssense-catalog.json (2,426 men's products) is committed
+     at repo root and merged by loadDepartmentCache like Macy's.
+     The tagline leads with the BRANDS because "SSENSE" means nothing to a
+     shopper in Lima and "Gucci" means everything. */
+  /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
+     bot protection returned zero products across three integrations.
+     Browsable from a file (ssense-catalog.json, 2,426 men's products,
+     192 brands); no actor, so it stays out of the live search fan-out.
+
+     THE TAGLINE NAMES NO BRAND, on purpose. It said "Gucci, Prada,
+     Balenciaga" when the row was written from the brief, and the
+     catalogue that arrived carries NEITHER Gucci NOR Prada. The real
+     names are read from the data by topBrandsFor(), so the card can
+     only ever promise a label the store is actually carrying. */
+  oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
+  target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
+  walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
      store in this tier with a catalogue behind it, and renderStoresGrid
