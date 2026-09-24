@@ -13,8 +13,9 @@
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
 import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageChatRoutingSlice, loadPageCatalogSearchSlice, loadPageSizeSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageChatRoutingSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageFootwearSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -28,6 +29,7 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as retailers from "../lib/retailers.js";
 import * as deptMap from "../lib/department-map.js";
+import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
 import { inkCoverage } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
@@ -46,6 +48,7 @@ import * as supplements from "../lib/supplement-weight.js";
 import * as chatModel from "../../netlify/functions/_aria-chat-model.js";
 import * as subcats from "../lib/subcategories.js";
 import * as brandIndex from "../lib/brand-index.js";
+import * as footwear from "../lib/footwear.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -1000,11 +1003,15 @@ check("every department has a curated photograph, and every one is on disk", () 
      field beside ten photographs. Naming the gap by key rather than
      tolerating it is what got the eleventh shot.
 
-     The empty string is the load-bearing part. A new department added
-     without a cover is NOT a failure — it gets the drawn brand field,
-     which is a deliberate treatment — but this line will change, and
-     whoever changes it has to decide on purpose whether that department
-     ships with a photograph or without one. */
+     The empty string was the load-bearing part, and it did its job
+     again: a new department added without a cover is NOT a failure — it
+     gets the drawn brand field, which is a deliberate treatment — but
+     this line changes, and whoever changes it has to decide on purpose.
+
+     It read "shoes" for half an hour on 2026-09-23, between Zapatos
+     shipping with 539 real pairs and its photograph arriving. Back to
+     "" now that shoes.jpg is on disk — twelve departments, twelve
+     photographs. */
   const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
   eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
 });
@@ -1132,7 +1139,7 @@ check("the same cover is drawn every time, and tiles do not collide", () => {
   const { coverSeed } = covers;
   eq(typeof coverSeed, "function", "coverSeed is exported from the page");
   eq(coverSeed("electronics"), coverSeed("electronics"), "the same key seeds the same cover");
-  const keys = ["electronics", "clothing", "men", "women", "kids", "home_goods", "pharmacy", "candy_chocolate", "sporting_goods", "beauty"];
+  const keys = ["electronics", "clothing", "men", "women", "kids", "home_goods", "candy_chocolate", "sporting_goods", "beauty"];
   const rotations = new Set(keys.map((k) => (coverSeed(k) % 25) - 12));
   if (rotations.size < 4) {
     throw new Error(`only ${rotations.size} distinct rotations across ${keys.length} categories — the set reads as identical tiles`);
@@ -4743,17 +4750,35 @@ const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
 );
 
-check("the shopfront is the first thing under the header, and only on a phone", () => {
+check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* FIRST CHILD OF #homeView. The whole brief is that a shopper who
-     scrolls -- and they all scroll -- meets the deals before anything
-     else. One element moved above this and the rails are below the
-     fold again. */
+  /* THIS RULE CHANGED ON 2026-09-23, DELIBERATELY, AND THE OLD ONE IS
+     WORTH KEEPING IN VIEW. It read: the shopfront is the FIRST child of
+     #homeView, because "a shopper who scrolls -- and they all scroll --
+     meets the deals before anything else. One element moved above this
+     and the rails are below the fold again." That came out of a real
+     user test and it was right.
+
+     Danny then asked for a photographic hero at the top of the home
+     page. A hero is exactly the "one element moved above this", and on
+     a 393x852 phone it does push the Ofertas rail off the first screen.
+     That is a trade he made knowingly and it is recorded here rather
+     than quietly deleted: the protection now is that the hero is the
+     ONLY thing allowed above the rails. A third element between the
+     header and the shopfront still fails, which is what the original
+     check was really guarding. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
-  const firstTag = home.slice(home.indexOf(">") + 1).search(/<(?!!--)/);
-  if (!home.slice(home.indexOf(">") + 1).slice(firstTag).startsWith('<div id="mobileShopfront"')) {
-    throw new Error("something now sits between the header and the shopfront");
+  const body = home.slice(home.indexOf(">") + 1);
+  const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
+  const first = tags[0] || "";
+  if (!/class="ariaHero"/.test(first)) {
+    throw new Error(`the first thing in #homeView is not the hero: ${first.slice(0, 70)}`);
+  }
+  const afterHero = body.slice(body.indexOf("</section>") + "</section>".length);
+  const nextTag = (afterHero.match(/<(?!!--)[a-zA-Z][^>]*>/) || [""])[0];
+  if (!nextTag.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`something sits between the hero and the shopfront: ${nextTag.slice(0, 70)}`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -6131,6 +6156,144 @@ check("the image-quality gate survived the restyle", () => {
 
 
 /* ------------------------------------------------------------------ */
+group("Zapatos: a department made of other people's buckets");
+
+const shoePage = loadPageFootwearSlice();
+
+function everyCatalogueItem() {
+  const rows = [];
+  for (const file of ["department-cache.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    for (const [retailer, bucket] of Object.entries(data.retailers || {})) {
+      for (const [, entry] of Object.entries(bucket.departments || {})) {
+        for (const item of (Array.isArray(entry) ? entry : entry.items) || []) rows.push({ retailer, item });
+      }
+    }
+  }
+  return rows;
+}
+
+check("the page's footwear detector and the module agree, item for item", () => {
+  // Compared over all 3,990 real items rather than over examples: the
+  // whole department is this one predicate, twice.
+  let checked = 0;
+  for (const { retailer, item } of everyCatalogueItem()) {
+    const a = shoePage.isFootwear(item, retailer);
+    const b = footwear.isFootwear(item, retailer);
+    if (a !== b) throw new Error(`drifted on ${retailer}: ${JSON.stringify(item).slice(0, 90)}`);
+    checked++;
+  }
+  if (checked < 3000) throw new Error(`only compared ${checked} items`);
+});
+
+check("Zapatos is populated, priced, and spread across real stores", () => {
+  /* ACCEPTANCE: "opens to real priced footwear; Foot Locker items show
+     here". Asserted as a floor per store, not an exact total, so a
+     re-scrape does not break the build — but a store falling to zero
+     does, because that is the signal a detector stopped working. */
+  const files = ["department-cache.json", "macys-catalog.json", "ssense-catalog.json"].map((f) =>
+    JSON.parse(readFileSync(root(f), "utf8")));
+  const counts = {};
+  let priced = 0, total = 0;
+  for (const data of files) {
+    for (const [retailer, bucket] of Object.entries(data.retailers || {})) {
+      const items = deptMap.departmentItems(bucket, "shoes", retailer);
+      if (!items.length) continue;
+      counts[retailer] = items.length;
+      for (const it of items) {
+        total++;
+        const n = Number(it.price);
+        if (Number.isFinite(n) && n > 0) priced++;
+      }
+    }
+  }
+  if (!counts.footlocker) throw new Error("Foot Locker, the anchor shoe store, has nothing in Zapatos");
+  for (const [store, floor] of [["footlocker", 50], ["ssense", 300], ["macys", 15], ["walmart", 3]]) {
+    if (!(counts[store] >= floor)) throw new Error(`${store} dropped to ${counts[store] || 0} shoes (floor ${floor})`);
+  }
+  if (total < 400) throw new Error(`Zapatos holds only ${total} pairs`);
+  // Priceless records exist site-wide (see the no-price guards); the
+  // department must still be overwhelmingly buyable.
+  if (priced / total < 0.98) throw new Error(`only ${priced}/${total} pairs carry a price`);
+});
+
+check("Foot Locker is found by its badge, not by its words", () => {
+  /* THE FINDING THAT SHAPED THIS. Foot Locker's titles are model names
+     — "New Balance 9060 - Men's", "ASICS GEL-1130 - Women's", "Nike KD
+     19". A keyword list catches 2 of its 65 products, so the brief's
+     title-keyword approach alone would have missed the anchor store
+     almost entirely. The STORE is the signal. */
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const titles = new Set();
+  for (const entry of Object.values(cache.retailers.footlocker.departments || {})) {
+    for (const item of entry.items || []) titles.add(deptMap.titleOf(item));
+  }
+  const byTitle = [...titles].filter((t) => footwear.isFootwearTitle(t));
+  if (byTitle.length > 10) throw new Error(`${byTitle.length}/${titles.size} Foot Locker titles now name footwear — the store rule may be redundant`);
+  if (!footwear.FOOTWEAR_RETAILERS.has("footlocker")) throw new Error("Foot Locker is no longer a footwear store");
+  // ...and every one of them lands anyway.
+  eq(deptMap.departmentItems(cache.retailers.footlocker, "shoes", "footlocker").length,
+     deptMap.departmentItems(cache.retailers.footlocker, "shoes", "footlocker").length, "sanity");
+  if (deptMap.departmentItems(cache.retailers.footlocker, "shoes", "footlocker").length < 50) {
+    throw new Error("the store rule is not reaching Foot Locker's catalogue");
+  }
+});
+
+check("the words that look like shoes and are not", () => {
+  /* Every one of these was a real hit on the real catalogue before it
+     was excluded — this is the regression net for the whole detector. */
+  for (const notShoe of [
+    "Wrangler Rustler Men's Regular Fit Boot Cut Cotton Jeans",
+    "Classic Fit Everyday Oxford Shirt",
+    "Men's Hanes Crew Socks with FreshIQ 8pk",
+    "NEWZILL Plantar Fasciitis Socks with Arch Support",
+    "SKLZ Star Kick Sports Trainer - Yellow",
+    "SKLZ Recoil 360 Resistance Trainer - Black",
+    "Taco Seasoning Mix, 1 oz",
+    "3-Tier Shoe Rack Organizer",
+    "Memory Foam Insoles for Running",
+  ]) {
+    if (footwear.isFootwearTitle(notShoe)) throw new Error(`"${notShoe}" was filed as footwear`);
+  }
+  // ...while the real thing still matches, in both languages.
+  for (const shoe of [
+    "Men's 5000 Athletic Running Sneakers, Wide Width Available",
+    "Josmo Boys Wingtip Oxford Lace Dress Shoes - Black, 10",
+    "Purcolt Women's Mid Heel Slingback Pumps Dress Shoes",
+    "Zapatillas de cuero para hombre",
+    "Botas de lluvia para niña",
+    "Sandalias planas de verano",
+    "Tacones altos de fiesta",
+  ]) {
+    if (!footwear.isFootwearTitle(shoe)) throw new Error(`"${shoe}" was not recognised as footwear`);
+  }
+});
+
+check("a retailer's own type outranks our keyword, both ways", () => {
+  /* "Oxford" is a shoe and a cloth. SSENSE's "Gray Oxford Single
+     Blazer" matched the keyword while SSENSE's own type field said
+     BLAZERS. The retailer was right. */
+  eq(footwear.isFootwear({ name: "Gray Oxford Single Blazer", type: "BLAZERS" }), false, "an oxford-cloth blazer");
+  eq(footwear.isFootwear({ name: "Green Oxford Nylon-TC Jacket", type: "JACKETS" }), false, "an oxford-cloth jacket");
+  eq(footwear.isFootwear({ name: "Black Suede Boat Shoes", type: "BOAT SHOES & MOCCASINS" }), true, "a typed shoe");
+  eq(footwear.isFootwear({ name: "Women's 327 Sneakers", type: "SHOE" }), true, "Macy's typed shoe");
+  // A typed garment stays out even from a footwear store.
+  eq(footwear.isFootwear({ productName: "Nike Club Fleece Hoodie", type: "HOODIES & ZIPUPS" }, "footlocker"), false,
+     "a typed hoodie escaped through the store rule");
+  // And an untyped garment at a footwear store is caught by its title.
+  eq(footwear.isFootwear({ productName: "Nike Everyday Crew Socks 3pk" }, "footlocker"), false,
+     "socks from a shoe store are still not shoes");
+});
+
+check("Zapatos is a department with a name and a place in the taxonomy", () => {
+  eq(deptMap.DEPARTMENT_SPEC.shoes.footwearOnly, true, "the shoes spec");
+  eq(deptMap.DEPARTMENT_SPEC.shoes.anyCategory, true, "shoes must scan every bucket, not one named bucket");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/shoes: \{ label: 'Zapatos'/.test(src)) throw new Error("the department has no Spanish name");
+  // The page's spec mirrors the module's.
+  const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
+  if (!/shoes:\s+\{ anyCategory: true, footwearOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no shoes");
+});
 group("no price, no buy button");
 
 check("a priceless record is a real thing in the cache, not a hypothesis", () => {
@@ -6358,6 +6521,317 @@ check("step 3 never makes us the buyer", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("Tiendas is a photograph of a street, not a white strip");
+
+/* A slice helper that REFUSES to run backwards. src.slice(indexOf(A),
+   indexOf(B)) returns "" when B sits earlier than A, and an empty string
+   satisfies every negative assertion below while measuring nothing. */
+function forwardSlice(src, a, b, what){
+  const i = src.indexOf(a);
+  if (i < 0) throw new Error(`${what}: cannot find the opening anchor ${JSON.stringify(a)}`);
+  const j = src.indexOf(b, i + a.length);
+  if (j < 0) throw new Error(`${what}: cannot find ${JSON.stringify(b)} after the opening anchor`);
+  return src.slice(i, j);
+}
+
+/* COMMENTS COME OUT BEFORE ANYTHING IS ASSERTED. The markup in this
+   area explains itself at length — which colours were rejected and at
+   what ratio, which class carries the breakpoint. A check reading the
+   raw slice therefore finds "#7FB8FF" inside a sentence saying never to
+   use it, and "ariaSectionShot--lg" inside a note pointing at it, and
+   passes on its own documentation. Two of these checks did exactly that
+   until a mutation run said so. Strip the prose, then read the code. */
+const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
+
+const HOME_SRC = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const SECTION_PHOTO = "assets/sections/tiendas-mall-row.jpg";
+
+check("the mall photograph is committed, and small enough to send to a phone", () => {
+  if (!existsSync(root(SECTION_PHOTO))) throw new Error(`${SECTION_PHOTO} is missing — the sections fall back to flat navy`);
+  const bytes = readFileSync(root(SECTION_PHOTO)).length;
+  /* 200 KB is the budget, and the shipped file is ~114 KB. The delivered
+     original was 443 KB at 2576x859 — a third of it a baked-in navy wash
+     that had to come off anyway. This asserts the compression step was
+     not quietly skipped the next time the picture is replaced. */
+  if (bytes > 200 * 1024) throw new Error(`${SECTION_PHOTO} is ${(bytes/1024).toFixed(0)} KB — over the 200 KB budget for a background nobody came to look at`);
+});
+
+check("both Tiendas surfaces carry the photo, the scrim and a way to lose the photo safely", () => {
+  const src = HOME_SRC();
+  const surfaces = {
+    "the phone's shopfront rail": stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
+    "the laptop's retailers strip": stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
+  };
+  for (const [name, html] of Object.entries(surfaces)){
+    if (!html.includes(SECTION_PHOTO)) throw new Error(`${name} does not reference the photograph`);
+    if (!/class="ariaSectionPhoto"/.test(html)) throw new Error(`${name} does not use the shared photo layer`);
+    if (!/class="ariaSectionScrim"/.test(html)) throw new Error(`${name} has no scrim — text straight onto a golden-hour sky`);
+    /* Below the fold, both of them: the page must not spend a phone's
+       first bytes on a picture behind a logo strip. */
+    if (!/loading="lazy"/.test(html)) throw new Error(`${name}'s photo is not lazy-loaded`);
+    /* A 404 must leave navy + scrim, not a broken-image glyph over the
+       heading. Same guard the explainer carries. */
+    if (!/onerror="this\.remove\(\)"/.test(html)) throw new Error(`${name} would render a broken image if the file went missing`);
+    /* Decorative: the heading already says "Tiendas en EE. UU." and a
+       screen reader repeating a mall row adds nothing. */
+    if (!/alt=""/.test(html) || !/aria-hidden="true"/.test(html)) throw new Error(`${name}'s photo is not marked decorative`);
+  }
+});
+
+check("the photo cannot escape when the Tailwind CDN does", () => {
+  /* THE TRAP THIS PINS. .ariaSectionPhoto is position:absolute. Its
+     containing block is the section, which is only positioned because
+     something says so — and if that something is a Tailwind `relative`
+     utility, then on the day the CDN is blocked (which is exactly how
+     the browser suite runs, deliberately) the containing block becomes
+     the viewport and a 1760px photograph lies across the whole page.
+     The declaration therefore lives in the inline stylesheet. */
+  const src = HOME_SRC();
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const shot = forwardSlice(css, ".ariaSectionShot{", "}", ".ariaSectionShot");
+  if (!/position:relative/.test(shot)) throw new Error(".ariaSectionShot no longer establishes a containing block in the inline CSS");
+  if (!/overflow:hidden/.test(shot)) throw new Error(".ariaSectionShot no longer clips the photo to the section");
+  if (!/background:var\(--navy\)/.test(shot)) throw new Error("the navy moved off the section — with no photo there is nothing behind the text");
+
+  for (const surface of [
+    stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
+    stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
+  ]){
+    /* The opening tag only. Without stripComments above, the strip's
+       slice begins with a comment and this lands on its prose instead. */
+    const tag = surface.slice(0, surface.indexOf(">") + 1);
+    if (/\brelative\b/.test(tag) || /\boverflow-hidden\b/.test(tag)){
+      throw new Error("a Tiendas surface positions itself with Tailwind utilities — those vanish with the CDN and the photo goes with them");
+    }
+    if (!/\bariaSectionShot\b/.test(tag)) throw new Error("a Tiendas surface is not using .ariaSectionShot");
+  }
+});
+
+check("exactly one Tiendas section is photographic at any width", () => {
+  /* Both surfaces exist on a phone: the shopfront rail and, far below
+     it, the retailers grid. The grid is ten rows tall at 393px, so a
+     4.29:1 photograph cropped into it shows the middle eleventh of the
+     frame — a dark blur, and the same picture twice on one page. The
+     strip therefore only takes the photograph at lg, which is precisely
+     where #mobileShopfront hides. If one of those two numbers is ever
+     changed without the other, a width exists that has two photographic
+     Tiendas sections, or none. */
+  const src = HOME_SRC();
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const shopfront = forwardSlice(src, 'id="mobileShopfront"', ">", "#mobileShopfront");
+  if (!/\blg:hidden\b/.test(shopfront)) throw new Error("#mobileShopfront no longer hides at lg — the breakpoint story below is stale");
+
+  if (!/@media \(max-width:1023\.98px\)/.test(css)) throw new Error("the strip's phone rule is gone or moved off Tailwind's lg breakpoint (1024px)");
+  const phoneRule = forwardSlice(css, "@media (max-width:1023.98px){", "@media (min-width:1024px)", "the phone rule");
+  if (!/\.ariaSectionShot--lg > \.ariaSectionPhoto/.test(phoneRule)) throw new Error("the retailers strip keeps its photo on a phone — that crop is the blur this rule exists to prevent");
+  if (!/display:none/.test(phoneRule)) throw new Error("the strip's phone rule no longer hides anything");
+  if (!/background:var\(--paper\)/.test(phoneRule)) throw new Error("with its photo hidden the strip has no background of its own left");
+
+  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
+  if (!/ariaSectionShot--lg/.test(strip)) throw new Error("the retailers strip is not opted into the lg-only treatment");
+  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
+  if (/ariaSectionShot--lg/.test(rail)) throw new Error("the phone's own rail went lg-only — now no width shows the photograph on a phone");
+});
+
+check("the type over the photograph was measured, not eyeballed", () => {
+  /* Every number here came off rendered pixels: the glyphs are hidden,
+     the brightest pixel actually behind each text run is sampled, and
+     the ratio is computed against it. The site's usual on-navy blue
+     (#7FB8FF) measured 3.73:1 over a lit shop window and #9FC5FF 4.35:1
+     — both under the 4.5 floor, both plausible-looking choices. */
+  const src = HOME_SRC();
+  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
+  const h2 = forwardSlice(rail, "<h2", "</h2>", "the rail heading");
+  if (!/color:#fff/.test(h2)) throw new Error("the Tiendas heading is no longer white over the photograph");
+  if (/var\(--navy\)/.test(h2)) throw new Error("the Tiendas heading is navy again — navy type on a navy scrim");
+  if (!/#C3D9FF/.test(rail)) throw new Error('"Ver todas" lost its measured colour');
+  for (const tooDark of ["#7FB8FF", "#9FC5FF", "var(--blue)"]){
+    if (rail.includes(tooDark)) throw new Error(`"Ver todas" is back to ${tooDark}, which measured under 4.5:1 over this photograph`);
+  }
+  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
+  if (/text-zinc-500/.test(strip)) throw new Error("the strip's caption is grey again — unreadable over the photo at lg");
+  if (!/ariaSectionCaption/.test(strip)) throw new Error("the strip's caption no longer switches colour with the breakpoint");
+
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const scrim = forwardSlice(css, ".ariaSectionScrim{", "}", ".ariaSectionScrim");
+  /* The top stop is the scrim's thinnest point and therefore the one
+     that decides legibility. 0.55 measured 4.39:1 against this asset's
+     brightest pixel; 0.60 cleared at 5.22:1; 0.66 ships for 6.50:1
+     because this type is 12.5-15px, not display size. */
+  const top = scrim.match(/rgba\(4,12,28,([\d.]+)\) 0%/);
+  if (!top) throw new Error("the scrim's top stop is gone — cannot tell what the text sits on any more");
+  if (Number(top[1]) < 0.6) throw new Error(`the scrim opens at ${top[1]}; anything under 0.60 measured below 4.5:1 on this photograph`);
+});
+
+check("every category cover named in the page is actually on disk", () => {
+  /* The covers and this photograph are the same kind of promise: a path
+     in the source that a file has to answer. A missing cover degrades to
+     the designed brand field and is survivable; a missing one that
+     nobody noticed for a week is not. */
+  const src = HOME_SRC();
+  const table = forwardSlice(src, "const CATEGORY_COVERS = {", "};", "CATEGORY_COVERS");
+  const paths = [...table.matchAll(/'([^']+\.(?:jpg|jpeg|png|webp))'/g)].map(m => m[1]);
+  if (paths.length < 11) throw new Error(`CATEGORY_COVERS lists only ${paths.length} covers — a department lost its photograph`);
+  const missing = paths.filter(p => !existsSync(root(p)));
+  if (missing.length) throw new Error(`covers named in the page but not committed: ${missing.join(", ")}`);
+});
+
+/* ------------------------------------------------------------------ */
+group("A department is never a dead page");
+
+check("the catalogue knows the difference between broken and empty", () => {
+  /* THE BUG. loadDepartmentCache catches every fetch failure into
+     { retailers: {} } AND memoises the merged promise. So a first load
+     that fails — offline, a 404 mid-deploy, bad JSON — looked exactly
+     like a department with no stock, and stayed that way for the life of
+     the page because the failed promise was the cached one. Zapatos
+     showed "Sin resultados por ahora." with 539 pairs in the file. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const loader = forwardSlice(src, "function loadDepartmentCache(){", "\nconst DEPARTMENT_META", "loadDepartmentCache");
+  if (!/departmentCacheFailed\s*=\s*loaded === 0/.test(loader)) {
+    throw new Error("nothing records whether the catalogue actually loaded");
+  }
+  /* A silent 503 is the case that started this: r.json() on a 503 body
+     throws, but a 200 carrying an error page would not, so the status is
+     checked rather than trusted. */
+  const okChecks = (loader.match(/if \(!r\.ok\) throw new Error/g) || []).length;
+  if (okChecks < 2) throw new Error(`only ${okChecks} fetch(es) check response.ok — a non-200 would be counted as a load`);
+});
+
+check("a retry can actually succeed", () => {
+  /* A retry that re-awaits the memoised promise replays the same failure
+     and reads as a dead button. Clearing the memo IS the fix, so this
+     asserts it rather than the button's existence. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const retry = forwardSlice(src, "function retryCatalog(kind, key, retailerFilter){", "}", "retryCatalog");
+  if (!/departmentCachePromise\s*=\s*null/.test(retry)) {
+    throw new Error("retryCatalog does not clear the memoised promise — the button would replay the cached failure");
+  }
+  if (!/openCatalog\(/.test(retry)) throw new Error("retryCatalog never re-opens the category");
+});
+
+check("the empty state offers a way on, and never fires a scrape by itself", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const feed = forwardSlice(src, "function renderCatalogFeed(){", "const filterHasStock", "renderCatalogFeed");
+  if (/subtitle\.textContent = 'Sin resultados por ahora\.'/.test(feed)) {
+    throw new Error("the bare dead-end string is back");
+  }
+  if (!/catalogEmptyStateHTML\(\)/.test(feed)) throw new Error("the empty branch no longer renders a state");
+  if (/sections\.innerHTML = ''/.test(feed)) throw new Error("the empty branch still blanks the container");
+
+  const state = forwardSlice(src, "function catalogEmptyStateHTML(){", "\nfunction retryCatalog", "catalogEmptyStateHTML");
+  if (!/retryCatalog\(/.test(state)) throw new Error("the empty state has no retry");
+  if (!/categoriesView/.test(state)) throw new Error("the empty state has no way back to the categories");
+  /* LIVE SEARCH IS A SHOPPER ACTION. It may be OFFERED here, but the
+     department must not start a scrape on its own — that is the
+     behaviour this whole area exists to reverse. */
+  if (!/showResults\(/.test(state)) throw new Error("the empty state does not offer a live search at all");
+  const opener = forwardSlice(src, "async function openCatalog(kind, key, opts = {}){", "renderCatalogFeed();", "openCatalog");
+  for (const scrape of ["startOnDemand", "runLiveSearch", "scrapeRetailer"]) {
+    if (new RegExp("\\b" + scrape + "\\s*\\(").test(opener)) {
+      throw new Error(`openCatalog calls ${scrape}() — the department is scraping on load again`);
+    }
+  }
+});
+
+/* ------------------------------------------------------------------ */
+group("The trust cards are photographs, not white boxes");
+
+const TRUST_PHOTOS = {
+  "Precio transparente": "assets/trust/trust-precio.jpg",
+  "Pagos seguros": "assets/trust/trust-pagos.jpg",
+  "Aduana resuelta": "assets/trust/trust-aduana.jpg",
+  "Entrega puerta a puerta": "assets/trust/trust-entrega-v2.jpg",
+};
+
+check("each card carries its own photograph, its scrim and its escape hatch", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const strip = forwardSlice(src, "<!-- FEATURE STRIP -->", "</div>\n  </div>", "the feature strip");
+  const cards = strip.split('<div class="ariaTrustCard">').slice(1);
+  if (cards.length !== 4) throw new Error(`expected 4 photographic trust cards, found ${cards.length}`);
+
+  for (const [title, path] of Object.entries(TRUST_PHOTOS)) {
+    const card = cards.find(c => c.includes(`>${title}</div>`));
+    if (!card) throw new Error(`no trust card titled "${title}"`);
+    if (!card.includes(path)) throw new Error(`"${title}" does not point at ${path}`);
+    if (!/class="ariaTrustScrim"/.test(card)) throw new Error(`"${title}" has no scrim`);
+    if (!/loading="lazy"/.test(card)) throw new Error(`"${title}" loads its photo eagerly — the strip is below the fold`);
+    if (!/onerror="this\.remove\(\)"/.test(card)) throw new Error(`"${title}" would show a broken image if its file is missing`);
+    if (!/alt=""/.test(card) || !/aria-hidden="true"/.test(card)) throw new Error(`"${title}"'s photo is not marked decorative`);
+    /* THE COPY AND THE ROUNDEL ARE UNTOUCHED — only the colour of the
+       type changes, because it now sits on a photograph. */
+    if (!/width="64" height="64"/.test(card)) throw new Error(`"${title}" lost its icon chip`);
+    if (!/color:#fff/.test(card)) throw new Error(`"${title}"'s title is not white over the photo`);
+    if (/text-zinc-500/.test(card)) throw new Error(`"${title}"'s description is still grey — unreadable on a photo`);
+  }
+});
+
+check("the trust photo cannot escape its card when the CDN is gone", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
+  const card = forwardSlice(css, ".ariaTrustCard{", "}", ".ariaTrustCard");
+  if (!/position:relative/.test(card)) throw new Error(".ariaTrustCard no longer establishes a containing block in the inline CSS");
+  if (!/overflow:hidden/.test(card)) throw new Error(".ariaTrustCard no longer clips its photo");
+  if (!/background:var\(--navy\)/.test(card)) throw new Error("the navy left the card — a missing photo would leave white type on white");
+
+  /* THE SCRIM'S FLOOR BEHIND THE TYPE. Content is bottom-anchored, so
+     the stop that matters is the one nearest the bottom. Measured
+     against a pure white pixel — the worst case any photograph can
+     present — 0.55 is 4.39:1 and fails; 0.60 clears at 5.22:1. */
+  const scrim = forwardSlice(css, ".ariaTrustScrim{", "}", ".ariaTrustScrim");
+  const stops = [...scrim.matchAll(/rgba\(4,12,28,([\d.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 2) throw new Error("the scrim is no longer a gradient");
+  if (Math.max(...stops) < 0.72) throw new Error(`the scrim's heaviest stop is ${Math.max(...stops)} — the type sits there and needs at least 0.72`);
+  if (Math.min(...stops) > 0.4) throw new Error("the scrim is a flat wash — that is the muddy version the photos exist to avoid");
+});
+
+check("a trust card never borrows a category cover", () => {
+  /* WHY THIS EXISTS. Before the real photographs arrived I rendered the
+     trust strip with four CATEGORY covers dropped in, purely to show the
+     treatment, and sent the picture. It was labelled a stand-in and it
+     still read as the build — soap, a couch and gym gear under
+     "Pagos seguros" and "Aduana resuelta".
+
+     The photographs are right now, but "right now" is not a guarantee.
+     The two sets live one directory apart and are the same shape and
+     size, so a copy in the wrong direction is a plausible slip and an
+     invisible one: nothing about assets/trust/trust-pagos.jpg being a
+     picture of face cream would fail a build. This compares the bytes. */
+  const hash = (p) => createHash("sha1").update(readFileSync(root(p))).digest("hex");
+  const covers = new Map();
+  for (const f of readdirSync(root("assets/category"))) {
+    if (!/\.(jpe?g|png|webp)$/i.test(f)) continue;
+    covers.set(hash(`assets/category/${f}`), f);
+  }
+  if (!covers.size) throw new Error("no category covers found to compare against — this check is not looking at anything");
+
+  for (const [title, path] of Object.entries(TRUST_PHOTOS)) {
+    if (!existsSync(root(path))) continue;   // absence is the other check's business
+    const borrowed = covers.get(hash(path));
+    if (borrowed) {
+      throw new Error(`"${title}" is the category cover ${borrowed} — the trust cards get their own photographs`);
+    }
+  }
+});
+
+check("all four trust photographs are committed, and small enough to send to a phone", () => {
+  /* This check was written while the four files were still missing, and
+     only asserted that the strip was never HALF photographed. The files
+     landed; it asserts the whole set now. A half-photographed strip is
+     still the one state nobody chose, so that stays covered by the
+     count being exactly four. */
+  const missing = Object.entries(TRUST_PHOTOS).filter(([, p]) => !existsSync(root(p)));
+  if (missing.length) {
+    throw new Error(`trust photos named in the page but not committed: ${missing.map(([t]) => t).join(", ")}`);
+  }
+  /* 200 KB each, same budget as the Tiendas mall row. The four arrived
+     at 1920x1280 and 1.5 MB the set; they ship at 1200x800 and 390 KB.
+     This asserts nobody quietly re-adds a full-size original. */
+  for (const [title, path] of Object.entries(TRUST_PHOTOS)) {
+    const kb = readFileSync(root(path)).length / 1024;
+    if (kb > 200) throw new Error(`${title} is ${kb.toFixed(0)} KB — over the 200 KB budget for a background`);
+  }
+});
 group("The header fits the phone it is read on");
 
 function fwd(src, a, b, what){
@@ -6430,6 +6904,231 @@ check("below 360px the header CTA moves into the menu rather than off the screen
   if (!/id="authAreaMobile"/.test(src)) throw new Error("#authAreaMobile is gone — hiding the header CTA would now lose it");
   if (!/getElementById\('authAreaMobile'\)\.innerHTML/.test(src)) {
     throw new Error("nothing fills #authAreaMobile any more — the relocated CTA would be an empty div");
+  }
+});
+
+
+check("Si sobra, es tuyo sits where it argues, and says it in Spanish", () => {
+  /* ITS OWN CHECK, DELIBERATELY, and the reason is the bug that nearly
+     shipped with it: the first version of these assertions lived inside
+     "the explainer is photography and type" and silently never ran. A
+     mutation that put the word "cashback" on the card passed the whole
+     suite. An assertion wedged into someone else's test inherits their
+     slice, their variables and their early exits; this one reads the
+     file and answers for itself. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  if (!why) throw new Error("the explainer section is gone");
+  if (!/Si sobra, es tuyo/.test(why)) throw new Error("the saldo promise card is gone");
+
+  /* THE ORDER IS THE ARGUMENT: here is the final price, and here is what
+     happens when the real one comes in lower. Pinned by position, not
+     merely by presence. */
+  const order = ["Precio final, sin sorpresas", "Si sobra, es tuyo", "Seguimiento de tu pedido"]
+    .map((t) => why.indexOf(t));
+  if (order.some((i) => i < 0) || order[0] > order[1] || order[1] > order[2]) {
+    throw new Error("the saldo card is no longer between the final price and the tracking promise");
+  }
+
+  const at = why.indexOf("Si sobra, es tuyo");
+  const cardBody = why.slice(at, why.indexOf("</div>", why.indexOf("</p>", at)));
+
+  /* SPANISH ONLY, and this card is where an English word is most
+     tempting: "cashback", "refund" and "wallet" each say it in one. */
+  for (const english of [/cashback/i, /refund/i, /wallet/i, /\bcredit\b/i, /\bbalance\b/i]) {
+    if (english.test(cardBody)) throw new Error(`the card slipped into English: ${english}`);
+  }
+
+  /* And the copy is the approved copy, not a paraphrase of it. */
+  for (const phrase of ["Estimamos impuestos y flete antes de comprar",
+                        "la diferencia vuelve a tu cuenta como saldo Aria",
+                        "la diferencia la pagamos nosotros"]) {
+    if (!cardBody.includes(phrase)) throw new Error(`the approved copy changed: "${phrase}" is gone`);
+  }
+});
+
+check("the saldo promise is one the product actually keeps", () => {
+  /* THE POINT OF THIS CHECK, and it is the same rule that took the Peru
+     price-comparison card off this section: a promise on the home page
+     is a claim, and a claim needs something behind it.
+
+     "saldo Aria" is not a coined phrase here — it is the wallet balance
+     checkout already applies to an order. If that machinery is ever
+     ripped out, this card has to go with it, and this fails first. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const co = readFileSync(root("checkout.html"), "utf8").replace(/\r\n/g, "\n");
+  if (!/saldo Aria/.test(src)) throw new Error("the page no longer mentions saldo Aria at all");
+  if (!/walletAppliedPen|saldo/.test(co)) {
+    throw new Error("checkout no longer applies a saldo — the home page is promising a balance that does not exist");
+  }
+  /* And the policy is stated in the one place it was already stated,
+     so the card is a restatement rather than a second, drifting rule. */
+  if (!/la diferencia vuelve a ti como saldo Aria/.test(src)) {
+    throw new Error("the freight half of this promise is gone from Precio Honesto — the two statements have drifted");
+  }
+});
+
+check("the new card is built from the same parts as its neighbours", () => {
+  /* NO NEW VISUAL LANGUAGE was the brief's word. The card must be the
+     same glass shell and the same two type ramps as the five beside it
+     -- asserted against a SIBLING rather than against a hardcoded class
+     list, so restyling the section restyles this too instead of leaving
+     one card behind. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  const classesOf = (title) => {
+    const at = why.indexOf(title);
+    const h3 = why.lastIndexOf("<h3 ", at), p = why.indexOf("<p ", at);
+    return [why.slice(h3, at).match(/class="([^"]+)"/)[1], why.slice(p, why.indexOf(">", p)).match(/class="([^"]+)"/)[1]];
+  };
+  const mine = classesOf("Si sobra, es tuyo");
+  const sibling = classesOf("Precio final, sin sorpresas");
+  eq(mine[0], sibling[0], "the headline does not match its neighbours");
+  eq(mine[1], sibling[1], "the body text does not match its neighbours");
+  /* No colour of its own, in either half. */
+  const at = why.indexOf("Si sobra, es tuyo");
+  const card = why.slice(why.lastIndexOf('<div class="ariaWhyPromise">', at), why.indexOf("</div>", why.indexOf("</p>", at)));
+  const colours = [...card.matchAll(/color:(#[0-9A-Fa-f]{3,6})/g)].map((m) => m[1]);
+  eq([...new Set(colours)].sort().join(","), "#D7E0F4,#fff", `the card introduced a colour: ${colours.join()}`);
+});
+
+group("No vitamins, and no way back to them");
+
+/* ==================================================================
+   VITAMINS AND SUPPLEMENTS ARE OFF THE SITE (2026-09-24).
+
+   They need a DIGEMID import permit in Peru. We do not hold one, so
+   this is a liability rule, not a merchandising preference -- which is
+   why these checks pin the ABSENCE rather than the tidiness. A vitamin
+   that reappears is not an ugly tile, it is an order we cannot legally
+   fulfil.
+
+   The `pharmacy` bucket in the Walmart and Target caches was 100%
+   supplements: 48 products, every one a multivitamin, a mineral, a
+   collagen, a cleanse or a weight-loss pill. It is gone, and so is
+   every route that could put it back.
+   ================================================================== */
+
+const RESTRICTED = "pharmacy";
+
+check("no committed catalogue carries a pharmacy bucket", () => {
+  for (const file of ["department-cache.json", "macys-catalog.json",
+                      "ssense-catalog.json", "beauty-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    for (const [retailer, bucket] of Object.entries(data?.retailers || {})) {
+      const depts = Object.keys(bucket?.departments || {});
+      if (depts.includes(RESTRICTED)) {
+        throw new Error(`${file}: ${retailer} still carries a ${RESTRICTED} department`);
+      }
+    }
+  }
+});
+
+check("no supplement survives anywhere in the committed catalogues", () => {
+  /* THE BUCKET IS NOT THE RULE, THE PRODUCT IS. Deleting a department
+     named "pharmacy" would be cosmetic if a multivitamin sat in
+     home_goods -- so this reads every title in every file. It is written
+     against product names rather than departments for the same reason.
+
+     THE PATTERN IS DELIBERATELY NARROW. "tablets" and "capsules" are in
+     the weight estimator's supplement regex and are NOT here: an iPad is
+     a tablet. Matching them would fail this suite on electronics and
+     teach whoever hits it to loosen the rule, which is the opposite of
+     what it is for. Every word below names a supplement and nothing
+     else. Verified against the real files: two beauty products mention
+     "Vitamin C" and "Electrolytes" as INGREDIENTS -- a foundation and a
+     plumping serum -- and neither matches, because the words here are
+     the product, not what is in it. */
+  const SUPPLEMENT = /\b(multivitamins?|dietary supplements?|suplementos?|probiotics?|melatonin|biotin|elderberry|ashwagandha|glucosamine|prenatal vitamins?|vitamin d3|vitamin b12|fish oil|weight loss pills?|fat burner|parasite (?:cleanse|support)|intestinal cleanse)\b/i;
+  const found = [];
+  const walk = (node, where) => {
+    if (Array.isArray(node)) return node.forEach((n) => walk(n, where));
+    if (!node || typeof node !== "object") return;
+    const title = node.title || node.name || node.productTitle || node.productName;
+    if (typeof title === "string" && SUPPLEMENT.test(title)) found.push(`${where}: ${title.slice(0, 60)}`);
+    for (const v of Object.values(node)) walk(v, where);
+  };
+  for (const file of ["department-cache.json", "macys-catalog.json",
+                      "ssense-catalog.json", "beauty-catalog.json"]) {
+    walk(JSON.parse(readFileSync(root(file), "utf8")), file);
+  }
+  eq(found.join(" | "), "", `supplements are still in the catalogue data: ${found.slice(0, 3).join(" | ")}`);
+});
+
+check("the department is out of every map that could draw it", () => {
+  /* Four tables decide whether a department exists, is labelled, is
+     matched and is illustrated. One left behind is a half-removal: the
+     tile comes back the moment a bucket does. */
+  if (deptMap.DEPARTMENT_SPEC[RESTRICTED]) throw new Error("DEPARTMENT_SPEC still declares pharmacy — it would get a tile again");
+  if (deptMap.BUCKET_SPEC[RESTRICTED]) throw new Error("BUCKET_SPEC still maps the pharmacy bucket into a category");
+
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  for (const table of ["DEPARTMENT_META", "DEPARTMENT_SPEC", "BUCKET_SPEC", "CATEGORY_COVERS"]) {
+    const from = src.indexOf(`const ${table} = {`);
+    if (from < 0) throw new Error(`${table} is gone from index.html`);
+    const body = src.slice(from, src.indexOf("\n};", from));
+    if (/^\s*pharmacy\s*:/m.test(body)) throw new Error(`${table} still has a pharmacy row`);
+  }
+  if (/Salud y Farmacia/.test(src)) throw new Error("the Salud y Farmacia label is still in the page");
+});
+
+check("the cover file stays on disk and stays unwired", () => {
+  /* Danny's instruction exactly: leave the art, do not use it. Asserting
+     BOTH halves, because deleting the file would be a different decision
+     and wiring it back would be the bug this PR exists to prevent. */
+  if (!existsSync(root("assets/category/pharmacy.jpg"))) {
+    throw new Error("assets/category/pharmacy.jpg was deleted — it was meant to stay, just unused");
+  }
+  eq(Boolean(covers.CATEGORY_COVERS[RESTRICTED]), false, "the pharmacy cover is wired up again");
+});
+
+check("nothing points a scrape at the vitamins aisle any more", () => {
+  /* The quota rows are what spend Apify credit, and the browse URLs are
+     what a run would land on. Leaving either would refill the bucket on
+     the next refresh and bill us for the privilege. */
+  for (const [retailer, quotas] of Object.entries(CATALOG_QUOTAS)) {
+    for (const q of quotas) {
+      if (q.department === RESTRICTED || q.category === RESTRICTED) {
+        throw new Error(`${retailer} still has a ${RESTRICTED} quota — the next refresh re-scrapes vitamins`);
+      }
+      if (/\bvitamins?\b|\bsupplements?\b/i.test(q.query || "")) {
+        throw new Error(`${retailer} still queries "${q.query}"`);
+      }
+    }
+  }
+  const scrape = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (/pharmacy\s*:/.test(scrape)) throw new Error("apify-scrape-start still has a pharmacy browse URL");
+  if (/vitamins-supplements|\/health\/vitamins/.test(scrape)) {
+    throw new Error("apify-scrape-start still points at a vitamins aisle");
+  }
+});
+
+check("a pharmacy bucket that arrives anyway is dropped at the load boundary", () => {
+  /* THE PART THAT ACTUALLY PROTECTS THE SHOPPER, and the reason this is
+     not just four deleted table rows.
+
+     Ofertas is { anyCategory: true, onSaleOnly: true }, and
+     itemBelongsToDepartment() returns on onSaleOnly BEFORE it consults
+     BUCKET_SPEC. So a discounted multivitamin would have stayed in the
+     deals feed with every map entry removed. relatedPool() and
+     retailerItemsFor() walk the buckets directly too, which is search
+     and the brand panels. The gate has to be on the DATA, once, where
+     all of them read it. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  const gate = src.slice(src.indexOf("function withoutRestrictedDepartments("),
+                         src.indexOf("function loadDepartmentCache("));
+  if (!gate) throw new Error("withoutRestrictedDepartments is gone");
+  if (!/RESTRICTED_DEPARTMENTS\.has\(/.test(gate)) throw new Error("the gate no longer consults RESTRICTED_DEPARTMENTS");
+  if (!/const RESTRICTED_DEPARTMENTS = new Set\(\['pharmacy'\]\)/.test(src)) {
+    throw new Error("RESTRICTED_DEPARTMENTS no longer lists pharmacy");
+  }
+
+  /* It must run over EVERY part of the merge -- the scraped cache and
+     each catalogue file -- not just the first. */
+  const loader = src.slice(src.indexOf("function loadDepartmentCache("),
+                           src.indexOf("const DEPARTMENT_META"));
+  if (!/parts\.map\(withoutRestrictedDepartments\)/.test(loader)) {
+    throw new Error("the merge no longer strips restricted departments from every catalogue");
   }
 });
 
