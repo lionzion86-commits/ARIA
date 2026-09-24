@@ -6677,6 +6677,73 @@ check("no department is listed in the home row twice", () => {
   if (dupes.length) throw new Error(`the home row lists ${dupes.join(", ")} more than once`);
 });
 
+check("the home row is the shortlist, and every department it drops is still on Categorías", () => {
+  /* THE SHORTLIST IS PINNED BY NAME, deliberately, where most lists here
+     are pinned to a rule. This one is editorial -- it is what the shop
+     leads with -- so there is no rule to derive it from, and the thing
+     worth protecting is that changing it is a DECISION rather than a
+     side effect of some other edit. Change the row, change this line,
+     and the diff says who decided what.
+
+     The second half is the one that matters. Cutting a card from the
+     front door is only honest while the door to everything else is
+     complete: every department left out here must still be tiled on
+     Categorías. That is asserted against the taxonomy rather than
+     against a list of names, so a department added tomorrow is covered
+     without anyone remembering to add it. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const expected = ["beauty", "curvy", "women", "men", "shoes"];
+  if (HOME_ROW_DEPARTMENTS.join() !== expected.join()) {
+    throw new Error(
+      `the home row is [${HOME_ROW_DEPARTMENTS.join(", ")}], expected [${expected.join(", ")}] — ` +
+      `if this was deliberate, update this check in the same commit`);
+  }
+
+  /* Everything cut is still a department, so it still tiles on
+     Categorías, which builds from the taxonomy and not from this list
+     (asserted separately above).
+
+     READ FROM index.html, NOT FROM THE LIB. My first version of this
+     derived the dropped set from deptMap.DEPARTMENT_SPEC and then
+     checked each key was in deptMap.DEPARTMENT_SPEC — a tautology that
+     could not fail. The claim worth making is a CROSS-CHECK: the row
+     shrank, and the page's own taxonomy did not shrink with it. So the
+     keys come out of index.html's declaration and are compared against
+     the lib's, which is the pair that has to stay in step. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const specBlock = forwardSlice(src, "const DEPARTMENT_SPEC = {", "\nconst BUCKET_SPEC = {", "DEPARTMENT_SPEC");
+  const pageKeys = [...specBlock.matchAll(/^\s{2}([a-z_]+):\s*\{/gm)].map(m => m[1]);
+  if (pageKeys.length < 10) throw new Error(`only found ${pageKeys.length} departments in index.html — the slice is wrong`);
+
+  const dropped = pageKeys.filter(k => !HOME_ROW_DEPARTMENTS.includes(k));
+  if (!dropped.length) throw new Error("nothing was trimmed — this check is measuring nothing");
+
+  for (const key of dropped) {
+    if (!deptMap.DEPARTMENT_SPEC[key]) {
+      throw new Error(
+        `"${key}" is off the home row and missing from scripts/lib/department-map.js — ` +
+        `the two taxonomies have drifted, and a department cut from the front door ` +
+        `is the one place that drift would go unnoticed`);
+    }
+  }
+  for (const key of HOME_ROW_DEPARTMENTS) {
+    if (!pageKeys.includes(key)) {
+      throw new Error(`the home row leads with "${key}", which index.html's DEPARTMENT_SPEC does not declare`);
+    }
+  }
+
+  /* Ropa is the cut that needs its reason recorded next to it, because
+     it is the BIGGEST department and cutting it looks like a mistake
+     until you know it is the union of the three gendered ones. */
+  for (const gendered of ["men", "women"]) {
+    if (!HOME_ROW_DEPARTMENTS.includes(gendered)) {
+      throw new Error(
+        `Ropa is cut from the row because Moda Hombre/Mujer/Niños hold the same stock — ` +
+        `with "${gendered}" also cut, that inventory has no card at all`);
+    }
+  }
+});
+
 check("the grid and the phone rail are still built from one list", () => {
   /* The rule this protects is older than this change and is written in
      index.html as "from the SAME tiles -- never a second list". Two
