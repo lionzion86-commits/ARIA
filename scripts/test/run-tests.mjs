@@ -1617,18 +1617,24 @@ check("the beauty stores say exactly which of them has a catalogue", () => {
      stopped being interchangeable: "sells beauty" and "we can show you
      its products" are different claims and the registry has to make
      them separately. */
-  for (const key of ["victoriassecret", "bathandbodyworks"]) {
+  for (const key of ["bathandbodyworks"]) {
     const r = RETAILERS[key];
     if (!r) throw new Error(`${key} left the registry`);
     eq(r.search, false, `${key} is still pending`);
     eq(r.browse, undefined, `${key} has no catalogue file`);
     eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
   }
-  const sephora = RETAILERS.sephora;
-  if (!sephora) throw new Error("sephora left the registry");
-  eq(sephora.search, false, "Sephora still has no actor");
-  eq(sephora.browse, true, "Sephora has a catalogue now");
-  eq(sephora.pendingNote, undefined, "a store with a catalogue is not 'conectando'");
+  /* Victoria's Secret joined Sephora on 2026-09-24 — 1,649 products in
+     beauty-catalog.json. Both are browse-only: a catalogue and no
+     actor. Bath & Body Works is the one still pending, which is why the
+     loop above still exists rather than being deleted. */
+  for (const key of ["sephora", "victoriassecret"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`${key} left the registry`);
+    eq(r.search, false, `${key} still has no actor`);
+    eq(r.browse, true, `${key} has a catalogue now`);
+    eq(r.pendingNote, undefined, `a store with a catalogue is not 'conectando'`);
+  }
 });
 
 check("the store count in the Tiendas heading is computed, not remembered", () => {
@@ -2527,7 +2533,12 @@ check("a browsable store is not treated as one still being connected", () => {
   // A store with no catalogue at all is still pending. (Sephora used to
   // be this example and stopped being one when beauty-catalog.json
   // landed — which is the distinction working, not a regression.)
-  eq(retailers.isBrowseOnlyRetailer("victoriassecret"), false, "Victoria's Secret has no catalogue yet");
+  /* Bath & Body Works is the pending example now. Sephora stopped being
+     one when beauty-catalog.json landed, and Victoria's Secret stopped
+     being one when its 1,649 products joined that file — the
+     distinction working, not a regression. */
+  eq(retailers.isBrowseOnlyRetailer("bathandbodyworks"), false, "Bath & Body Works has no catalogue yet");
+  eq(retailers.isBrowseOnlyRetailer("victoriassecret"), true, "Victoria's Secret has a catalogue now");
 
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   // Both the card and the chip must read BOTH flags, or Macy's is muted.
@@ -3935,8 +3946,12 @@ check("the bare-array envelope is reshaped, so the products are visible at all",
   eq(JSON.stringify(normalizeCatalogueEnvelope({})), '{"retailers":{}}');
 });
 
-check("the catalogue itself is whole: 197 products, no missing photo, no missing weight", () => {
-  eq(beautyItems.length, 197, "product count");
+check("the catalogue itself is whole: 1,846 products, no missing photo, no missing weight", () => {
+  /* 197 until 2026-09-24, when Victoria's Secret's 1,649 landed. Pinned
+     rather than derived, deliberately: this check exists to catch a
+     truncated or half-written catalogue file, and `expected = actual`
+     catches nothing. */
+  eq(beautyItems.length, 1846, "product count");
   const noImage = beautyItems.filter((i) => !i.image);
   eq(noImage.length, 0, "every product has a photo (the aisle tiles need one)");
   const noWeight = beautyItems.filter((i) => !(Number(i.specWeightKg) > 0));
@@ -3944,32 +3959,59 @@ check("the catalogue itself is whole: 197 products, no missing photo, no missing
   /* A DEAL MUST BE A REAL MARKDOWN. onSale with no higher originalPrice
      is the "trivial deal" bug Ofertas already has a gate for; this
      checks the data never asks it to. */
+  /* A MARKDOWN IS NOT ALWAYS SPELLED `originalPrice`. This read that one
+     field and would have called all 646 of Victoria's Secret's
+     discounts fake. They are real and they carry `regularPrice` —
+     $22.95 -> $11.00 on the body mists, 52% off. isOnSale() in
+     department-map.js has always read four spellings; this reads the
+     same four, because a test that knows fewer field names than the
+     code it guards reports the DATA as broken when the TEST is. */
+  const originalOf = (i) => Number(i.regularPrice ?? i.wasPrice ?? i.was_price ?? i.originalPrice);
   const onSale = beautyItems.filter((i) => i.onSale);
-  eq(onSale.length, 44, "discounted products");
+  eq(onSale.length, 690, "discounted products");
   for (const i of onSale) {
-    if (!(Number(i.originalPrice) > Number(i.price))) {
+    if (!(originalOf(i) > Number(i.price))) {
       throw new Error(`${i.name} is flagged onSale with no markdown`);
     }
   }
 });
 
 check("beauty splits into aisles, and the leftovers are declared rather than buried", () => {
+  /* THIS IS RED ON PURPOSE AS OF 2026-09-24 AND THE NUMBERS BELOW SAY WHY.
+
+     Victoria's Secret's 1,649 products landed in beauty-catalog.json,
+     and 1,381 of them are lingerie, bras, sleepwear and clothing —
+     type values "Ropa interior" (432), "Sostenes" (402), "Ropa" (219),
+     "Lencería" (189), "Pijamas" (139). No beauty aisle claims any of
+     them, so the typed share fell from 81% to 13%, under
+     SPLIT_MIN_TYPED_SHARE (0.60), and shouldSplit() now returns false.
+
+     The consequence is the exact thing this check was written to stop:
+     the Belleza destination renders 1,846 products as ONE WALL.
+
+     I have not made it green, because every way of doing that is a
+     decision about the shop rather than about the test:
+       a) give Belleza lingerie/sleepwear aisles — Belleza then becomes
+          mostly not beauty, and needs Spanish aisle names chosen;
+       b) file Victoria's Secret's apparel outside beauty, leaving its
+          ~268 fragrance and body-care products here;
+       c) lower SPLIT_MIN_TYPED_SHARE — which would ship the wall.
+     (c) is the one option that is clearly wrong. Danny picks between
+     (a) and (b). */
   const grouped = subcats.groupBySubcategory(beautyItems);
-  eq(subcats.shouldSplit(grouped), true, "197 products must not render as one wall");
+  const share = (grouped.typed / grouped.total * 100).toFixed(0);
+  eq(subcats.shouldSplit(grouped), true,
+    `${grouped.total} products render as one wall: only ${grouped.typed} (${share}%) fall in an aisle, ` +
+    `under the ${subcats.SPLIT_MIN_TYPED_SHARE * 100}% floor. Unplaced types: ` +
+    subcats.unmappedTypes(beautyItems).slice(0, 6).map((u) => `${u.type} x${u.count ?? "?"}`).join(", "));
+
   const byKey = Object.fromEntries(grouped.rows.map((r) => [r.key, r.count]));
   eq(byKey.face, 64, "Rostro");
   eq(byKey.eyes, 35, "Ojos");
   eq(byKey.lips, 25, "Labios");
   eq(byKey.skincare, 25, "Cuidado de la piel");
-  eq(byKey.fragrance, 11, "Fragancia");
-  /* THE 37 THE EXPORT CALLS "Belleza" — a lip gloss, an undereye patch,
-     a pencil sharpener and a gift set all wear it, so no aisle claims
-     them. They are in "Ver todo" and the card says how many, which is
-     the difference between a remainder and a disappearance. */
-  eq(grouped.untyped, 37, "unplaced products");
-  eq(grouped.typed + grouped.untyped, 197, "nothing is lost either way");
-  eq(subcats.unmappedTypes(beautyItems).map((u) => u.type).join(), "BELLEZA",
-    "only the export's own catch-all is unplaced");
+  eq(byKey.fragrance, 93, "Fragancia");
+  eq(grouped.typed + grouped.untyped, 1846, "nothing is lost either way");
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   if (!/grouped\.untyped > 0/.test(src)) throw new Error("the Ver todo card no longer says where the remainder is");
 });
@@ -4083,7 +4125,7 @@ check("every beauty markdown reaches Ofertas, tier and file notwithstanding", ()
   /* The universal-sales rule: Ofertas aggregates every store regardless
      of tier or of whether it is scraped or filed. These three are
      browse-only, so fileBackedDeals() is their only route in. */
-  for (const key of ["sephora", "ulta", "yesstyle"]) {
+  for (const key of ["sephora", "ulta", "yesstyle", "victoriassecret"]) {
     eq(retailers.isBrowseOnlyRetailer(key), true, `${key} must be read by fileBackedDeals`);
     if (!retailers.browsableRetailers().includes(key)) throw new Error(`${key} is not in CATALOG_RETAILERS`);
   }
@@ -4095,7 +4137,7 @@ check("every beauty markdown reaches Ofertas, tier and file notwithstanding", ()
      is still in the Belleza category and in the store, it is just not
      something to call an oferta. */
   const onSale = beautyItems.filter((i) => deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
-  eq(onSale.length, 43, "beauty markdowns worth featuring");
+  eq(onSale.length, 689, "beauty markdowns worth featuring");
   const thin = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
   eq(thin.length, 1, "exactly one markdown is below the floor");
   if (Math.round((1 - thin[0].price / thin[0].originalPrice) * 100) >= 5) {
@@ -4222,7 +4264,7 @@ check("a deal with no photo is not featured, and a missing photo is branded", ()
   /* MEASURED BEFORE GATING, because a gate that empties a feed is worse
      than the tiles it removes. Every committed product carries an
      image, so this can only ever act on the live deals cache. */
-  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 197]]) {
+  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 1846]]) {
     const cat = JSON.parse(readFileSync(root(file), "utf8"));
     const items = Object.values(cat.retailers).flatMap((r) =>
       Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
