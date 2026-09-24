@@ -351,3 +351,49 @@ export function loadPageRelatedSlice() {
     sandbox, { filename: "index.html#related" });
   return sandbox.__exports;
 }
+
+/* The whole-catalogue search, on its own. Ranking is arithmetic over a
+   pool, so it is RUN against made-up catalogues rather than grepped
+   for: "instantly, every time, with or without Apify credit" is a claim
+   about what comes out of a function, and the two bugs this slice
+   caught -- a bra outranking Nike trainers because "air" is inside
+   "Fair", and a pluralising translator missing "Vitamin D3" -- were
+   both invisible in the source and obvious in the output. */
+export function loadPageCatalogSearchSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const CATALOG_SEARCH_LIMIT = 48;");
+  const to = html.indexOf("/* END OF THE PURE SLICE");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html catalog-search markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT };",
+    sandbox,
+    { filename: "index.html#catalog-search" },
+  );
+  return sandbox.__exports;
+}
+
+/* The size-selection rule, on its own: a pair of regexes and two small
+   functions, and the question they answer -- "is this a shoe?" -- is
+   settled by running them over titles, not by reading the pattern. */
+export function loadPageSizeSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const APPAREL_ONLY_RETAILERS = new Set(");
+  const to = html.indexOf("let liveScrapeQuery = '';");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html size-selection markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { needsSizeSelection, sizeCategoryFor, SHOE_KEYWORDS, CLOTHING_KEYWORDS };",
+    sandbox,
+    { filename: "index.html#sizes" },
+  );
+  return sandbox.__exports;
+}
