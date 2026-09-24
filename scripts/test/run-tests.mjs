@@ -6190,6 +6190,90 @@ check("below 360px the header CTA moves into the menu rather than off the screen
   }
 });
 
+check("Si sobra, es tuyo sits where it argues, and says it in Spanish", () => {
+  /* ITS OWN CHECK, DELIBERATELY, and the reason is the bug that nearly
+     shipped with it: the first version of these assertions lived inside
+     "the explainer is photography and type" and silently never ran. A
+     mutation that put the word "cashback" on the card passed the whole
+     suite. An assertion wedged into someone else's test inherits their
+     slice, their variables and their early exits; this one reads the
+     file and answers for itself. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  if (!why) throw new Error("the explainer section is gone");
+  if (!/Si sobra, es tuyo/.test(why)) throw new Error("the saldo promise card is gone");
+
+  /* THE ORDER IS THE ARGUMENT: here is the final price, and here is what
+     happens when the real one comes in lower. Pinned by position, not
+     merely by presence. */
+  const order = ["Precio final, sin sorpresas", "Si sobra, es tuyo", "Seguimiento de tu pedido"]
+    .map((t) => why.indexOf(t));
+  if (order.some((i) => i < 0) || order[0] > order[1] || order[1] > order[2]) {
+    throw new Error("the saldo card is no longer between the final price and the tracking promise");
+  }
+
+  const at = why.indexOf("Si sobra, es tuyo");
+  const cardBody = why.slice(at, why.indexOf("</div>", why.indexOf("</p>", at)));
+
+  /* SPANISH ONLY, and this card is where an English word is most
+     tempting: "cashback", "refund" and "wallet" each say it in one. */
+  for (const english of [/cashback/i, /refund/i, /wallet/i, /\bcredit\b/i, /\bbalance\b/i]) {
+    if (english.test(cardBody)) throw new Error(`the card slipped into English: ${english}`);
+  }
+
+  /* And the copy is the approved copy, not a paraphrase of it. */
+  for (const phrase of ["Estimamos impuestos y flete antes de comprar",
+                        "la diferencia vuelve a tu cuenta como saldo Aria",
+                        "la diferencia la pagamos nosotros"]) {
+    if (!cardBody.includes(phrase)) throw new Error(`the approved copy changed: "${phrase}" is gone`);
+  }
+});
+
+check("the saldo promise is one the product actually keeps", () => {
+  /* THE POINT OF THIS CHECK, and it is the same rule that took the Peru
+     price-comparison card off this section: a promise on the home page
+     is a claim, and a claim needs something behind it.
+
+     "saldo Aria" is not a coined phrase here — it is the wallet balance
+     checkout already applies to an order. If that machinery is ever
+     ripped out, this card has to go with it, and this fails first. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const co = readFileSync(root("checkout.html"), "utf8").replace(/\r\n/g, "\n");
+  if (!/saldo Aria/.test(src)) throw new Error("the page no longer mentions saldo Aria at all");
+  if (!/walletAppliedPen|saldo/.test(co)) {
+    throw new Error("checkout no longer applies a saldo — the home page is promising a balance that does not exist");
+  }
+  /* And the policy is stated in the one place it was already stated,
+     so the card is a restatement rather than a second, drifting rule. */
+  if (!/la diferencia vuelve a ti como saldo Aria/.test(src)) {
+    throw new Error("the freight half of this promise is gone from Precio Honesto — the two statements have drifted");
+  }
+});
+
+check("the new card is built from the same parts as its neighbours", () => {
+  /* NO NEW VISUAL LANGUAGE was the brief's word. The card must be the
+     same glass shell and the same two type ramps as the five beside it
+     -- asserted against a SIBLING rather than against a hardcoded class
+     list, so restyling the section restyles this too instead of leaving
+     one card behind. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const why = src.slice(src.indexOf('id="whyUs"'), src.indexOf('id="cats"'));
+  const classesOf = (title) => {
+    const at = why.indexOf(title);
+    const h3 = why.lastIndexOf("<h3 ", at), p = why.indexOf("<p ", at);
+    return [why.slice(h3, at).match(/class="([^"]+)"/)[1], why.slice(p, why.indexOf(">", p)).match(/class="([^"]+)"/)[1]];
+  };
+  const mine = classesOf("Si sobra, es tuyo");
+  const sibling = classesOf("Precio final, sin sorpresas");
+  eq(mine[0], sibling[0], "the headline does not match its neighbours");
+  eq(mine[1], sibling[1], "the body text does not match its neighbours");
+  /* No colour of its own, in either half. */
+  const at = why.indexOf("Si sobra, es tuyo");
+  const card = why.slice(why.lastIndexOf('<div class="ariaWhyPromise">', at), why.indexOf("</div>", why.indexOf("</p>", at)));
+  const colours = [...card.matchAll(/color:(#[0-9A-Fa-f]{3,6})/g)].map((m) => m[1]);
+  eq([...new Set(colours)].sort().join(","), "#D7E0F4,#fff", `the card introduced a colour: ${colours.join()}`);
+});
+
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
