@@ -10,6 +10,11 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
+  /* The soles line under a dollar figure stacks without Tailwind: with
+     the CDN gone a `block` utility does not exist and the two currencies
+     run together as "$113.00S/ 385.33". See the same note in index.html. */
+  .ariaPricePen{ display:block }
+
   :root{
     --navy:#0A1F44;
     --blue:#2F5FEE;
@@ -770,16 +775,64 @@
     </div>`;
   }
 
-  // BUG FIX (2026-09-17): the nav says "Perú · PEN" but every number on
-  // this page used to lead with USD, with PEN only ever shown as a small
-  // "≈" afterthought next to the final total — a real misread risk (off
-  // by the ~3.8x USD/PEN rate). PEN is now the primary figure everywhere
-  // on this page, same as the rest of the site (see fmtPriceLabel() in
-  // index.html); falls back to USD-only (never a fabricated/zeroed
-  // conversion) if the live SUNAT rate hasn't loaded yet.
+  /* DOLLARS FIRST, SOLES UNDER THEM (2026-09-23).
+
+     THE HISTORY, because this line has now moved twice and the reasons
+     matter. It began as USD with PEN as a small "≈" afterthought beside
+     the total only — a real misread risk at a ~3.8x rate. On 2026-09-17
+     that was reversed: PEN became primary everywhere on this page.
+
+     It reverses again here, deliberately and site-wide (see the note by
+     solesUnderHTML in index.html). The dollar is the figure the shopper
+     can check against the US store's own page; the soles figure is what
+     we charge, and it now travels WITH THE RATE IT WAS COMPUTED AT so it
+     can be checked too.
+
+     What has not changed, and must not: the rate is venta, the soles
+     figure is never fabricated, and with no live rate the page degrades
+     to dollars alone rather than inventing a conversion. */
   function fmtPrimary(usdAmount){
-    if (!fxRates) return usd.format(usdAmount);
-    return pen.format(round2(usdAmount * fxRates.venta));
+    return usd.format(usdAmount);
+  }
+
+  function fxLabel(){
+    return fxRates ? `TC hoy ${fxRates.venta.toFixed(2)}` : '';
+  }
+
+  /** The small soles line under a dollar figure. '' with no live rate. */
+  function solesUnder(usdAmount){
+    if (!fxRates || !Number.isFinite(usdAmount)) return '';
+    return `<span class="ariaPricePen text-[11px] tabular font-normal" style="color:#6B7487">${
+      pen.format(round2(usdAmount * fxRates.venta))} · ${fxLabel()}</span>`;
+  }
+
+  /** Same line for a figure ALREADY in soles — the order total and the
+      charged amount are computed in soles (the small-order fee and the
+      saldo are soles-denominated), so re-converting the dollar figure
+      could print a céntimo off what the card is actually charged. */
+  function solesUnderPen(penAmount){
+    if (!fxRates || !Number.isFinite(penAmount)) return '';
+    return `<span class="ariaPricePen text-[11px] tabular font-normal" style="color:#6B7487">${
+      pen.format(penAmount)} · ${fxLabel()}</span>`;
+  }
+
+  /* THE PAY BUTTON NAMES BOTH, ON ONE LINE. Everywhere else the soles
+     figure sits under the dollar in small grey type; on the button it
+     does not, because this is the commitment moment and the card is
+     charged in SOLES. "Pagar $123.45" alone would be a button that does
+     not say what leaves the account. Dollars still lead, per the rule,
+     but the charged soles amount is never a line the eye can skip. */
+  function payLabel(usdAmount, penAmount){
+    const d = fmtPrimary(usdAmount);
+    return (fxRates && Number.isFinite(penAmount)) ? `Pagar ${d} · ${pen.format(penAmount)}` : `Pagar ${d}`;
+  }
+
+  /** A summary line: dollars on top, soles under. */
+  function setMoney(el, usdAmount, suffix = ''){
+    el.innerHTML = fmtPrimary(usdAmount) + escapeSuffix(suffix) + solesUnder(usdAmount);
+  }
+  function escapeSuffix(s){
+    return String(s || '').replace(/[&<>"]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[c]));
   }
 
   /* The small-order fee is quoted in SOLES — it is a Peru-side handling
@@ -846,7 +899,7 @@
     document.getElementById('sumTaxLabel').textContent = TAX_ESTIMATE_LABEL;
     document.getElementById('sumTaxNote').textContent = TAX_ESTIMATE_NOTE;
     if (!(taxUsd > 0)){ sumTaxRow.hidden = true; return; }
-    sumTax.textContent = fmtPrimary(taxUsd);
+    setMoney(sumTax, taxUsd);
     sumTaxRow.hidden = false;
   }
 
@@ -902,7 +955,7 @@
     const smallOrderFee = currentSmallOrderFeePen();
     renderSmallOrderRow(smallOrderFee);
     sumWeight.textContent = kg.toFixed(2) + ' kg';
-    sumValor.textContent = fmtPrimary(valor);
+    setMoney(sumValor, valor);
 
     /* A freight line that reads "—" and a total that reads S/ 0.00 are not
        honest placeholders: they look like a quote of nothing. While the
@@ -917,10 +970,9 @@
     if (loading || !latestQuote){
       const q = latestQuote || provisional;
       if (q){
-        sumFlete.textContent = fmtPrimary(q.flete_usd) + ' (estimado)';
-        sumTotal.textContent = (fxRates
-          ? pen.format(round2(totals.totalUsd * fxRates.venta + smallOrderFee))
-          : fmtPrimary(totals.totalUsd)) + ' (estimado)';
+        setMoney(sumFlete, q.flete_usd, ' (estimado)');
+        sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + ' (estimado)'
+          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee)) : '');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -934,7 +986,7 @@
     /* The tax row is rendered from Aria's own estimate above, for both
        the provisional and the settled case, so it never changes when the
        live quote lands — only the freight does. */
-    sumFlete.textContent = fmtPrimary(latestQuote.flete_usd) + (latestQuote.source === 'fallback' ? ' (estimado)' : '');
+    setMoney(sumFlete, latestQuote.flete_usd, latestQuote.source === 'fallback' ? ' (estimado)' : '');
 
     // Saldo comes off the top of what the card pays. Without a live FX
     // rate the total is in USD and a soles balance cannot be applied
@@ -959,7 +1011,7 @@
        fragrances is a contract limit, not a guideline. */
     if (fragranceState.overLimit){
       sumWalletRow.hidden = true;
-      sumTotal.textContent = fxRates ? pen.format(orderTotalPen) : fmtPrimary(totals.totalUsd);
+      sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
       payBtn.disabled = true;
       payBtn.textContent = `Máximo ${MAX_FRAGRANCES_PER_SHIPMENT} perfumes por envío`;
       return;
@@ -973,9 +1025,13 @@
         : 'Se aplica todo tu saldo a este pedido';
       sumWalletRow.hidden = false;
       const chargedPen = round2(orderTotalPen - applied);
-      sumTotal.textContent = pen.format(chargedPen);
+      /* Saldo comes off in soles, so the dollar figure shown is the
+         charged soles converted back — the soles line under it is the
+         authoritative one. */
+      const chargedUsd = fxRates ? chargedPen / fxRates.venta : totals.totalUsd;
+      sumTotal.innerHTML = fmtPrimary(chargedUsd) + solesUnderPen(chargedPen);
       payBtn.disabled = false;
-      payBtn.textContent = 'Pagar ' + pen.format(chargedPen);
+      payBtn.textContent = payLabel(chargedUsd, chargedPen);
       return;
     }
     sumWalletRow.hidden = true;
@@ -984,10 +1040,9 @@
        printing it here quoted the customer a figure with the tax row
        missing from it — and only in the degraded no-FX path, which is
        exactly where a wrong number survives longest. */
-    const totalLabel = fxRates ? pen.format(orderTotalPen) : fmtPrimary(totals.totalUsd);
-    sumTotal.textContent = totalLabel;
+    sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + (fxRates ? solesUnderPen(orderTotalPen) : '');
     payBtn.disabled = false;
-    payBtn.textContent = 'Pagar ' + totalLabel;
+    payBtn.textContent = payLabel(totals.totalUsd, fxRates ? orderTotalPen : null);
   }
 
   function requestQuote(){
@@ -1275,7 +1330,7 @@
     } catch (err) {
       showToast(err.message || 'No pudimos procesar tu pedido — intenta de nuevo.');
       payBtn.disabled = false;
-      payBtn.textContent = 'Pagar ' + fmtPrimary(latestQuote.total_usd);
+      payBtn.textContent = payLabel(latestQuote.total_usd, fxRates ? round2(latestQuote.total_usd * fxRates.venta) : null);
     }
   });
 </script>
