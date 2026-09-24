@@ -78,7 +78,7 @@ export const RETAILERS = {
     key: "footlocker",
     label: "Foot Locker",
     color: "#000000",
-    logo: "logos/footlocker.svg",
+    logo: "logos/footlocker.png",
     tagline: "Zapatillas y ropa deportiva",
     kind: "general",
     search: true,
@@ -320,7 +320,7 @@ export const RETAILERS = {
     key: "autozone",
     label: "AutoZone",
     color: "#1C8A4B",
-    logo: "logos/autozone.svg",
+    logo: "logos/autozone.png",
     tagline: "Repuestos y autopartes — vía Aria Auto",
     // Aria Auto's part-search source, not a general storefront: it is
     // deliberately excluded from the general search fan-out.

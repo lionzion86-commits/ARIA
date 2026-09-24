@@ -36,7 +36,7 @@ export const AUTO_SOURCES = {
     key: "autozone",
     label: "AutoZone",
     color: "#1C8A4B",
-    logo: "logos/autozone.svg",
+    logo: "logos/autozone.png",
     search: true,
     /* Whether this source publishes a per-vehicle compatibility list at
        all. `partial` is the honest answer for AutoZone today: the actor
@@ -72,8 +72,8 @@ export const AUTO_SOURCES = {
   rockauto: {
     key: "rockauto",
     label: "RockAuto",
-    color: "#C8102E",
-    logo: null,
+    color: "#303090",
+    logo: "logos/rockauto.png",
     search: false,
     fitmentData: "yes",
     pendingNote: "Conectando el catálogo",

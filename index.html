@@ -9118,7 +9118,7 @@ const RETAILERS = {
   walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
-  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.svg', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
+  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
   /* SEPHORA IS BROWSABLE (2026-09-22). beauty-catalog.json landed with
      80 Sephora products, so this row flips `browse: true` and drops the
      pending note -- the same two-flag distinction Macy's introduced.
@@ -9216,7 +9216,7 @@ const RETAILERS = {
   fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
   miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
   goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
-  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
+  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: null, kind: 'general', search: false, retired: true },
@@ -12036,7 +12036,7 @@ const AUTO_SOURCES = {
     key: "autozone",
     label: "AutoZone",
     color: "#1C8A4B",
-    logo: "logos/autozone.svg",
+    logo: "logos/autozone.png",
     search: true,
     /* Whether this source publishes a per-vehicle compatibility list at
        all. `partial` is the honest answer for AutoZone today: the actor
@@ -12065,8 +12065,8 @@ const AUTO_SOURCES = {
   rockauto: {
     key: "rockauto",
     label: "RockAuto",
-    color: "#C8102E",
-    logo: null,
+    color: "#303090",
+    logo: "logos/rockauto.png",
     search: false,
     fitmentData: "yes",
     pendingNote: "Conectando el catálogo",
