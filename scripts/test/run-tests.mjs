@@ -7579,7 +7579,7 @@ group("store carousels: window-shopping rails");
   check("the rail CSS is a touch scroller with snap points and edge bleed", () => {
     const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
     const css = src.slice(0, src.indexOf("</style>"));
-    for (const rule of ["scroll-snap-type:x mandatory", "scroll-snap-align:start", "-webkit-overflow-scrolling:touch", "margin:0 -20px"]) {
+    for (const rule of ["scroll-snap-type:x mandatory", "scroll-snap-align:start", "-webkit-overflow-scrolling:touch", "margin:0 -20px", "78vw"]) {
       if (!css.includes(rule)) throw new Error(`carousel CSS missing: ${rule}`);
     }
     // The VS plum re-inks the rail title the way it re-inks subtitles —
