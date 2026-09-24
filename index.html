@@ -5181,12 +5181,25 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
 
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
+  query = expandBrandAliases(query);
   /* SYNONYMS CANONICALISED UP FRONT, so "sneakers", "shoes",
      "zapatos" and "zapatillas" do not merely overlap — they run the
      identical token list, and return the identical items in the
      identical order. */
   const toks = canonicalizeTokens(searchTokens(query));
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
+
+  /* A store's name is answered by that store's stock (see the note on
+     retailerIntentFor). Applied before the category filter so "target
+     shoes" still means Target's shoes. The pool guard matters: "dyson"
+     and "fendi" are retailer rows with no catalogue behind them, and
+     without it their names would return nothing instead of the
+     Dyson/Fendi products other stores carry. */
+  const intentKey = retailerIntentFor(toks.join(' '), opts && opts.retailers);
+  const retailerKey = intentKey && (pool || []).some(it => it && it.retailer === intentKey) ? intentKey : null;
+  const retailerToks = retailerKey ? new Set(retailerNameTokens(opts.retailers, retailerKey)) : null;
+  let candidates = (pool || []);
+  if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
 
   /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
      footwear exactly as much as "shoes" does, and the category filter
@@ -5204,15 +5217,16 @@ function rankCatalogMatches(pool, query, opts){
     return c;
   };
 
-  const candidates = intent
-    ? (pool || []).filter(it => it && it.title && categoryOf(it) === intent)
-    : (pool || []);
+  if (intent) candidates = candidates.filter(it => it && it.title && categoryOf(it) === intent);
   const weights = catalogTokenWeights(candidates, toks, intent, categoryOf);
   let exact = 0, partial = 0;
   const scored = [];
   for (const item of candidates){
     if (!item || !item.title) continue;
     const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+    /* The store's own name counts as one of its products' words -- see
+       retailerNameTokens below. */
+    if (retailerToks) for (const t of retailerToks) words.add(t);
     const hits = catalogTokenHits(words, toks);
     if (!hits) continue;
     if (hits === toks.length) exact++; else partial++;
@@ -5227,6 +5241,72 @@ function rankCatalogMatches(pool, query, opts){
      because "Airbrush" starts with it. Relevance has to survive as a
      value on the item, not as the order of a list. */
   return { items: scored.slice(0, limit).map(x => ({ ...x.item, matchScore: x.score })), exact, partial };
+}
+
+/* ============================================================
+   BRAND ALIASES AND RETAILER NAMES ARE SEARCHABLE (2026-09-24).
+
+   WHAT ALE FOUND. Searching "Victoria's Secret" in the search bar
+   returned nothing on her phone -- and the audit that followed showed
+   why a shopper could reasonably believe brands were broken: the five
+   general stores whose products carry other brands' names (Sephora,
+   Ulta, Target, Walmart, Old Navy) answered to nothing, because
+   catalogWordsOf reads title + brand and a store's own name appears in
+   neither. "VS" answered with 11 stray titles instead of the brand.
+
+   Two rules, both conservative:
+
+   1. BRAND_ALIASES. A query that IS an alias expands to the brand it
+      names -- "vs" becomes "Victoria's Secret". Only the whole query:
+      "vs pink" is left alone, so this can only ever widen a query that
+      named nothing else.
+
+   2. RETAILER INTENT. A query that CONTAINS a store's whole name is
+      answered by that store's stock -- "sephora" returns Sephora's
+      products, "old navy" Old Navy's, "target shoes" Target's shoes.
+      The comparison is on significant tokens (the apostrophe-s in
+      "Macy's" and "Victoria's Secret" is noise, so it is dropped on
+      both sides), and the name must be wholly present: "beauty" keeps
+      meaning the category instead of collapsing to Ulta Beauty, whose
+      label merely contains the word. A name with no catalogue behind
+      it (Dyson, Fendi) never fires, so those keep finding the brand's
+      products at the stores that carry them.
+   ============================================================ */
+const BRAND_ALIASES = {
+  'vs': "Victoria's Secret",
+};
+
+function expandBrandAliases(query){
+  const q = String(query || '').trim().toLowerCase();
+  return BRAND_ALIASES[q] || query;
+}
+
+function retailerIntentFor(query, retailers){
+  const sig = (toks) => toks.filter(t => t.length > 1);
+  const qt = sig(searchTokens(query));
+  if (!qt.length || !retailers) return null;
+  /* The query CONTAINS the whole store name -- "target shoes" is
+     Target's shoes, "old navy dress" Old Navy's. A subset the other
+     way ("beauty" in "Ulta Beauty") never fires. Longest name wins. */
+  let best = null;
+  for (const r of retailers){
+    for (const name of [r.key, r.label]){
+      const nt = sig(searchTokens(name || ''));
+      if (!nt.length) continue;
+      if (nt.every(t => qt.includes(t)) && (!best || nt.length > best.nt.length)) best = { key: r.key, nt };
+    }
+  }
+  return best ? best.key : null;
+}
+
+/* Every word a store answers to: its key plus the significant tokens
+   of its label. Added to each of its products' searchable words, so
+   the products carry the store's name the way they already carry the
+   brand's. */
+function retailerNameTokens(retailers, key){
+  const r = (retailers || []).find(x => x && x.key === key);
+  if (!r) return [key];
+  return [...new Set([key, ...searchTokens(r.label || '').filter(t => t.length > 1)])];
 }
 
 function catalogResultsAreThin(res){
@@ -5245,7 +5325,7 @@ function catalogResultsAreThin(res){
 async function catalogSearch(query, opts){
   const t = translateQuery(query);
   const pool = await relatedPool();
-  const res = rankCatalogMatches(pool, t.query, opts);
+  const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
   return { ...res, asked: query, translated: t.query, changed: t.changed };
 }
 
@@ -6605,6 +6685,23 @@ async function openStore(retailer){
   const data = await loadDepartmentCache();
   departmentCacheData = data;
   const retailerData = data.retailers[retailer];
+  /* A carried store with NO catalogue data is not an empty store: the
+     tab loaded before the catalogue published, or the fetch failed.
+     Say so, and offer the retry that busts the memoised load -- this
+     is the other half of Ale's report (the store page that showed
+     "No hay artículos" for 1,649 real products). */
+  if (!retailerData){
+    const label = escapeHtml((meta && meta.label) || retailer);
+    document.getElementById('storeViewSubtitle').textContent = 'Actualizando el catálogo…';
+    document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+      <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Estamos actualizando el catálogo de ${label}</div>
+      <div class="text-[13px] leading-relaxed mb-4" style="color:#5B6478">
+        Tus artículos están en camino. Vuelve a cargar la tienda para verlos.
+      </div>
+      <button onclick="retryStore('${retailer}')" class="rounded-xl px-5 py-2.5 text-[14px] font-bold" style="background:var(--navy); color:#fff">Reintentar</button>
+    </div>`;
+    return;
+  }
   // Taxonomy-driven, same as the tiles: this store lists every department
   // it actually carries stock for, which is no longer the same thing as
   // "has a bucket of that name". Walmart now shows Moda Hombre and Ofertas
@@ -6698,6 +6795,17 @@ let storeResultsReturnQuery = '';
 function storeResultsGoBack(){
   showResults(storeResultsReturnQuery);
 }
+/* Busts the memoised catalogue load and re-opens the store: the
+   tab that loaded before a catalogue published gets a second chance
+   without a full page reload. */
+function retryStore(retailer){
+  departmentCachePromise = null;
+  departmentCacheData = null;
+  departmentCacheFailed = false;
+  relatedPoolCache = null;
+  openStore(retailer);
+}
+
 async function openStoreResults(retailer, query){
   pushRoute({ view: 'storeResultsView', retailer, q: query });
   showPage('storeResultsView');
