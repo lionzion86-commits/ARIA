@@ -299,7 +299,7 @@
      reason — with the CDN blocked the utility is gone and the wordmark
      falls back to whatever the browser does, which is not a decision
      anyone made. */
-  .ariaWordmark{ font-size:clamp(16px, 4.4vw, 22px) }
+  .ariaWordmark{ font-size:clamp(16px, 4.4vw, 22px) } /* 2026-09-25: mark removed — the wordmark carries the brand via weight+tracking, size floor unchanged for the 320px header budget */
   /* BELOW 360px THE HEADER CTA MOVES INTO THE MENU. Scaling type and
      shaving padding got 393 and 360 clean but left 320 five pixels
      over, and the next shave would have been the third in a row — at
@@ -423,7 +423,9 @@
      1280x482, showing a comfortable 62% of the frame). Below lg this
      strip is the paper band it always was, down to the caption's colour.
      The breakpoint is lg because that is where #mobileShopfront hides --
-     the two are the same switch and must not drift apart. */
+     the two are the same switch and must not drift apart. (The desktop
+     shopfront's Tiendas rail is not photographic, so at lg the photo
+     still appears exactly once.) */
   @media (max-width:1023.98px){
     .ariaSectionShot--lg{ background:var(--paper) }
     .ariaSectionShot--lg > .ariaSectionPhoto,
@@ -573,6 +575,17 @@
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* DESKTOP SHOPFRONT (2026-09-25). The phone's three rails at laptop
+     scale: the same cards the same renderers write, in a wider stance,
+     so a 1280px window shows five or six deals instead of two. The
+     selectors outrank the cards' Tailwind widths (id + attribute beats
+     a utility class), and there is no photograph in these sections, so
+     nothing here depends on the CDN. */
+  #desktopDealsRow [data-mobile-deal]{ width:208px }
+  #desktopDealsRow [data-mobile-deal] > span:first-child{ height:208px }
+  #desktopDealsRow [data-mobile-deal-all]{ width:180px }
+  #desktopCatsRow [data-mobile-cat]{ width:200px }
+  #desktopCatsRow [data-mobile-cat] > span:first-child{ height:140px }
   /* The brand directory's scroller. NOT a Tailwind utility on purpose:
      the page is built to boot with the CDN blocked, and an unbounded
      192-row list inside a store page is the one place where losing the
@@ -778,11 +791,8 @@
      that is visibly alive, next to copy that says how long it will be. */
   /* THE ORB MUST NOT SIT ON THE PAGE (2026-09-20).
 
-     The swim loop already keeps the orb in a side gutter when the layout
-     has one, and slides it out to a thin tab when it would cover the
-     content column. What was left was the bottom-right corner on narrow
-     screens: the orb docks there, and the last line of a page ran
-     underneath it.
+     The orb is docked in the bottom-right corner on every screen
+     (2026-09-25), and the last line of a page ran underneath it.
 
      Every view reserves that corner now. It costs a screenful of nothing
      at the end of a scroll and it means no card, no button and no line of
@@ -794,7 +804,6 @@
   :root{ --orb-safe-b: env(safe-area-inset-bottom, 0px); --orb-safe-r: env(safe-area-inset-right, 0px) }
   :root{ --orb-dock-safe: 104px }
   .view{ padding-bottom: var(--orb-dock-safe) }
-  @media (min-width:1024px){ .view{ padding-bottom: 32px } }
 
   .ariaSpinner{ width:15px; height:15px; border-radius:50%; display:inline-block;
     border:2px solid rgba(47,95,238,0.25); border-top-color:var(--blue); animation:ariaSpin .7s linear infinite }
@@ -863,56 +872,18 @@
 </div>
 
 <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b" style="border-color:var(--line)">
-    <!-- THE ™ AND THE MARK ARE BOTH HERE, and that is the whole
-         resolution. PR #10 added the trademark to a wordmark that had
-         no mark beside it, and left a note: "Drop a real, solid, square
-         mark in here and put the <img> back." This branch is that --
-         assets/aria-mark.png, described below -- so the two changes are
-         the same intention arriving twice, not a disagreement. Kept:
-         their ™ (in the wordmark and in the accessible name) and our
-         mark, sizing and phone gap. items-center rather than their
-         items-baseline, because baseline was chosen for text alone and
-         there is an image to centre against now. -->
+    <!-- THE WORDMARK STANDS ALONE (2026-09-25 — Danny, Chromebook
+         review: the triangle mark "looks like a watermark tattoo"). No
+         mark image anywhere in the header; the text wordmark carries
+         the brand. items-center keeps the two spans centred on the row. -->
   <!-- gap-3 ON A PHONE. The nav between these two groups is `hidden
        lg:flex`, so below lg the row is just the logo and the actions and
        a 24px gap between them is 24px of a 393px screen spent on
        nothing. It goes back to 6 exactly where the nav reappears. -->
   <div class="max-w-[1240px] mx-auto px-3 sm:px-5 h-[68px] flex items-center justify-between gap-3 lg:gap-6">
-    <!-- THE MARK IS BACK, AND THE ASSET IS WHY IT COULD COME BACK.
-
-         It was pulled on 2026-09-19 with a note naming three faults in
-         aria-mark-transparent.png, all three measured again here and all
-         three real: 658x439 (not square), ink filling 259x305 of that
-         canvas, and a hard 1-bit alpha with no antialiasing anywhere.
-         object-contain fits the CANVAS, so at a 30px box the artwork
-         drew about 12px wide with jagged edges -- the watermark the note
-         described. The same failure as logos/ssense.png before it.
-
-         assets/aria-mark.png is that file repaired, not redrawn: cropped
-         to its own ink, padded square, and resampled to 160px so the
-         edges carry real antialiasing. NOT ONE PIXEL WAS RECOLOURED --
-         the navy-to-blue gradient in the artwork is the brand's, and
-         10,649 distinct colours came through untouched. Ink now fills
-         100% of the canvas height instead of 27% of its width.
-
-         It is decorative here: the button already carries the name in
-         its aria-label and the wordmark beside it, so alt="" keeps a
-         screen reader from saying "Aria" three times. -->
-    <button onclick="goHome()" class="flex items-center gap-[9px] flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop™ — inicio">
-      <!-- THE MARK IS THE PART THAT GIVES BELOW 380px, for the same
-           reason the Key Club tag above it does, and it is measured:
-           with the mark in, the header's right cluster runs 3px past a
-           360px viewport and the page wiggles sideways again -- the
-           exact fault #27 fixed. The mark costs 26px of art and 9px of
-           gap; the wordmark beside it already carries the brand, and
-           the mark is alt="" decorative, so nothing is lost by standing
-           it down on the narrowest phones. 380 is #27's geometry with
-           room to spare (375px of content at 380px) and it is the
-           breakpoint this header already uses. -->
-      <img src="assets/aria-mark.png" alt="" width="30" height="30" decoding="async"
-        class="hidden min-[380px]:block w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] object-contain flex-shrink-0">
-      <span class="ariaWordmark font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
-      <span class="ariaWordmark font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">&#8482;</span></span>
+    <button onclick="goHome()" class="flex items-center gap-2 flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop™ — inicio">
+      <span class="ariaWordmark font-extrabold tracking-[0.12em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
+      <span class="ariaWordmark font-extrabold tracking-[0.12em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">&#8482;</span></span>
     </button>
     <nav class="hidden lg:flex items-center justify-center gap-4 xl:gap-5 text-[13.5px] flex-1">
       <a href="#" data-nav="howView" onclick="showPage('howView');return false;" class="ariaNavLink">Cómo funciona</a>
@@ -937,9 +908,15 @@
            below) — never a dead button again. #authArea is re-rendered on
            login/logout/page-load; the two static buttons here are just
            the logged-out default markup. -->
+      <!-- AUTH PAIR, REDESIGNED 2026-09-25 (Danny, Chromebook review):
+           the ghost "Entrar" next to the solid "Crear cuenta" read cheap
+           and sat off-centre. Both are solid pills now, same height, same
+           padding, same weight, vertically centred: Entrar in navy,
+           Crear cuenta in the brand gold the hero CTA already speaks.
+           Entrar is visible on mobile too (PR #78's fix, folded in). -->
       <div id="authArea" class="flex items-center gap-2 sm:gap-2.5">
-        <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-        <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+        <button onclick="openAuthModal('login')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Entrar</button>
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>
       </div>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -1016,7 +993,9 @@
        lg:hidden, NOT md:hidden, deliberately: the nav is
        `hidden lg:flex`, so everything below 1024px is behind the
        hamburger — tablets included. The shopfront appears exactly where
-       the menu takes over. Desktop is untouched above it.
+       the menu takes over. At lg and up this block hides and
+       #desktopShopfront (just below) takes over with the same three
+       rails in Danny's desktop order: Ofertas -> Tiendas -> Categorias.
        ============================================================ -->
   <div id="mobileShopfront" class="lg:hidden">
 
@@ -1037,6 +1016,74 @@
       <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
+
+
+    <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[26px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- STORE RAIL: SEPHORA. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="Sephora" data-store-rail="sephora" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[26px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- STORE RAIL: MACY'S. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="Macy's" data-store-rail="macys" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[26px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- STORE RAIL: FOOT LOCKER. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[26px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+        <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- STORE RAIL: SSENSE. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="SSENSE" data-store-rail="ssense" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[26px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+        <button onclick="openStore('ssense')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- STORE RAIL: DICK'S SPORTING GOODS. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[13px] font-extrabold text-white px-3 py-1.5 rounded-lg leading-none"
+            style="background:#D22630">Dick's Sporting Goods</span>
+        <button onclick="openStore('dicks')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
     <!-- CATEGORÍAS -->
     <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -1046,25 +1093,126 @@
       <div id="mobileCatsRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
 
-    <!-- TIENDAS. The photograph is the argument -- these are real shops
-         in a real American street, and the rail under it is their marks.
-         The chips themselves are untouched: white cards over a dusk-lit
-         row is the whole picture. See .ariaSectionPhoto for the stack
-         and the scrim's arithmetic. -->
-    <section aria-label="Tiendas" class="ariaSectionShot border-b" style="border-color:var(--line)">
-      <img src="assets/sections/tiendas-mall-row.jpg" alt="" aria-hidden="true" class="ariaSectionPhoto"
-           loading="lazy" decoding="async" onerror="this.remove()">
-      <div class="ariaSectionScrim" aria-hidden="true"></div>
-      <div class="ariaSectionLayer flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:#fff">Tiendas en EE.&nbsp;UU.</h2>
-        <!-- #C3D9FF, NOT the site's usual #7FB8FF-on-navy. Measured against
-             the brightest pixel that actually renders behind this link --
-             rgb(82,83,88), a lit shop window through the scrim -- #7FB8FF
-             is 3.73:1 and #9FC5FF is 4.35:1. Both fail the 4.5 floor. This
-             is the same light blue the explainer's kicker uses, at 5.37:1. -->
-        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#C3D9FF">Ver todas →</button>
+  </div>
+
+  <!-- ============================================================
+       THE DESKTOP SHOPFRONT (2026-09-25).
+
+       Danny's Chromebook verdict: on a laptop the home page opened on
+       a hero and a search box with no way to browse -- the
+       Ofertas/Categorias/Tiendas rails only existed below lg. The
+       desktop gets its own shopfront now, in the order he gave it:
+       Ofertas -> Tiendas -> Categorias. The phone keeps its own order
+       (Ofertas -> Categorias -> Tiendas); #mobileShopfront is untouched.
+
+       Same data, same cards, same renderers as the phone: the three
+       render functions below write both rows. The Tiendas section here
+       is deliberately NOT photographic -- the foot strip owns the
+       photograph at lg (see .ariaSectionShot--lg), and two mall photos
+       on one page is the duplication that rule was written to prevent.
+       ============================================================ -->
+  <div id="desktopShopfront" class="hidden lg:block">
+
+    <!-- OFERTAS: the same navy band as the phone, at laptop scale. -->
+    <section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <div class="flex items-baseline gap-2 min-w-0">
+            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+            <span aria-hidden="true" class="text-[18px] leading-none">&#x1F525;</span>
+          </div>
+          <button onclick="goSales()" class="flex items-center gap-1 text-[14px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
+            Ver todo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-      <div id="mobileStoresRow" class="ariaSectionLayer flex gap-2.5 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
+
+    <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[30px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: SEPHORA (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="Sephora" data-store-rail="sephora" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[30px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: MACY'S (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="Macy's" data-store-rail="macys" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[30px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: FOOT LOCKER (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[30px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: SSENSE (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="SSENSE" data-store-rail="ssense" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[30px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('ssense')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: DICK'S SPORTING GOODS (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[13px] font-extrabold text-white px-3 py-1.5 rounded-lg leading-none"
+            style="background:#D22630">Dick's Sporting Goods</span>
+          <button onclick="openStore('dicks')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+
+    <!-- CATEGORIAS -->
+    <section aria-label="Categorías" style="background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
+          <button onclick="openCategories()" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas &#8594;</button>
+        </div>
+        <div id="desktopCatsRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
     </section>
   </div>
 
@@ -1078,25 +1226,25 @@
       </g>
       <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
     </svg>
-    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 text-center">
-      <span class="relative inline-block mb-6"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
-      <h1 class="text-[38px] sm:text-[50px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
+      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
+      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
         Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
       </h1>
-      <p class="text-[15px] leading-relaxed mt-4 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
         Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de EE. UU., y te mostramos un solo total ya puesto en tu puerta.
       </p>
 
-      <div class="mt-8 relative max-w-[560px] mx-auto">
+      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
         <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
           style="border-color:var(--line)">
         <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
 
-      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px] lg:hidden">
         <span style="color:#8FA3D6">Prueba con:</span>
         <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
         <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
@@ -1127,6 +1275,12 @@
        follows the logo it belongs to, and the tiles come after it, so
        the run is: what is on sale -> what we sell -> who sells it ->
        who we are -> browse it properly. Nothing above this changed.
+
+       DESKTOP ORDER (2026-09-25, Danny): the laptop now opens on its
+       own shopfront -- #desktopShopfront, right after the hero --
+       reading Ofertas -> Tiendas -> Categorias, then the (slimmed)
+       search hero, then the explainer below. The phone's order is
+       unchanged.
        ============================================================ -->
   <!-- WHY SHOP WITH US -->
   <!-- ============================================================
@@ -1487,37 +1641,6 @@
       </div>
     </div>
   </div>
-
-  <!-- RETAILERS STRIP. On a LAPTOP this is the Tiendas section -- the
-       shopfront rail above is lg:hidden -- so it takes the photograph
-       there and only there. On a phone it stays the paper band it was,
-       because this grid is ten rows tall on a 393px screen and a wide
-       photograph cropped into that shape is a blur, not a mall. The
-       arithmetic is in .ariaSectionShot--lg. -->
-  <div class="ariaSectionShot ariaSectionShot--lg border-t" style="border-color:var(--line)">
-    <img src="assets/sections/tiendas-mall-row.jpg" alt="" aria-hidden="true" class="ariaSectionPhoto"
-         loading="lazy" decoding="async" onerror="this.remove()">
-    <div class="ariaSectionScrim" aria-hidden="true"></div>
-    <div class="ariaSectionLayer max-w-[1240px] mx-auto px-5 py-10 text-center">
-      <!-- RULE: only list retailers actually wired up in LIVE_RETAILERS/
-           apify-scrape-start.js — this list was previously full of
-           retailers we don't (or no longer) search live (Costco,
-           Nordstrom, Victoria's Secret, Bath & Body Works, Coach, Michael
-           Kors, Kate Spade), which misrepresented site capability. Update
-           this alongside LIVE_RETAILERS if a retailer is added/removed. -->
-      <!-- THE 4x2 STORES ROW (2026-09-20). Four hand-written text pills
-           lived here and named four of the eight stores; the list was
-           already wrong twice before (it once named stores we never
-           searched). It is rendered from the RETAILERS registry now, at
-           four per row and two rows, so adding a ninth store is a row in
-           the registry and nothing here. Real marks at one size, and the
-           stores still being onboarded carry their badge rather than
-           being quietly left out. -->
-      <div class="ariaSectionCaption text-[12.5px] mb-6">Comparamos precios en tiendas de EE. UU.</div>
-      <div id="homeStoresRow" class="grid grid-cols-2 sm:grid-cols-4 gap-3 max-w-[760px] mx-auto"></div>
-    </div>
-  </div>
-
 
 </div>
 
@@ -2003,6 +2126,7 @@
      data as the homepage tiles, never a separate/fake catalog. -->
 <div id="categoriesView" class="view">
   <!-- Navy hero band, same language as the Precio Honesto section. -->
+
   <section class="ariaNavyBand relative overflow-hidden">
     <div class="ariaGoldHair"></div>
     <div class="max-w-[1240px] mx-auto px-5 py-14 sm:py-16">
@@ -2337,6 +2461,82 @@
       <div id="storesGrid" class="grid grid-cols-2 lg:grid-cols-4 gap-4"></div>
       <div class="mt-8 text-[13px]" style="color:#6B7487">¿Buscas algo de una tienda que no está en la lista? Escríbenos por el chat y la conseguimos.</div>
     </div>
+  </section>
+
+  <!-- STORE RAILS ON THE DIRECTORY (2026-09-25, Danny): the tiles above stay
+       the directory; below them each store gets its window display, so the
+       page browses like the mall instead of linking out to it. -->
+  <section style="background:#fff" aria-label="Vitrinas por tienda">
+    <div class="max-w-[1120px] mx-auto px-5 pt-14 sm:pt-16">
+      <div class="ariaKicker ariaKicker--onLight mb-3">Por tienda</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
+      <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
+    </div>
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[28px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('victoriassecret')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Sephora" data-store-rail="sephora" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[28px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('sephora')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Macy's" data-store-rail="macys" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[28px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('macys')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[28px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('footlocker')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="SSENSE" data-store-rail="ssense" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[28px] w-auto max-w-[150px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          <button onclick="openStore('ssense')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="text-[13px] font-extrabold text-white px-3 py-1.5 rounded-lg leading-none"
+            style="background:#D22630">Dick's Sporting Goods</span>
+          <button onclick="openStore('dicks')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
   </section>
 
   <section class="ariaNavyBand relative overflow-hidden">
@@ -3293,8 +3493,7 @@
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-2">
-        <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
-        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA<span style="font-size:0.6em;vertical-align:super">™</span></span>
+        <span class="text-[16px] font-bold tracking-[0.12em]" style="font-family:'Rajdhani',sans-serif">ARIA<span style="font-size:0.6em;vertical-align:super">™</span></span>
         <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
       </div>
       <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
@@ -3501,9 +3700,10 @@
   animation: ariaBubbleIn 0.35s ease-out;
 }
 </style>
-<!-- Position is driven by the swim loop (ariaOrbSwim below): fixed at the
-     origin, moved with a transform, starting at the bottom-right corner it
-     used to sit in. The trail lives in #ariaOrbTrail, behind it. -->
+<!-- Position is driven by the swim loop below: the orb is docked in the
+     bottom-right corner on every screen (2026-09-25), moved with a
+     transform, with a small bounded float so it reads alive. The trail
+     lives in #ariaOrbTrail, behind it. -->
 <div id="ariaOrbTrail" aria-hidden="true" class="fixed inset-0 z-30 pointer-events-none overflow-hidden"></div>
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
   class="fixed left-0 top-0 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring">
@@ -5604,7 +5804,7 @@ window.addEventListener('DOMContentLoaded', initDepartmentTiles);
 
 
 /* ============================================================
-   THE PHONE'S THREE RAILS.
+   THE HOME PAGE'S THREE RAILS -- ON THE PHONE AND ON THE DESKTOP.
 
    ONE SOURCE EACH, AND ALL THREE ARE SOURCES THAT ALREADY EXIST:
    Ofertas reads saleItemsCache — literally what renderSalesGrid()
@@ -6365,24 +6565,32 @@ function spreadDealsByStore(sorted, lead){
    feed defaults to cheapest door-to-door and this rail is answering a
    different question. */
 function renderMobileDealsRail(){
-  const row = document.getElementById('mobileDealsRow');
-  if (!row) return;
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
     .sort((a, b) => discountPct(b) - discountPct(a));
   const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
-  if (!deals.length){
-    /* An empty rail is worse than none. The same honest line the Ofertas
-       page itself shows on a cold cache, not a row of grey boxes. */
-    row.innerHTML = `<div class="text-[12.5px] leading-relaxed pb-1" style="color:#AFBBD6">
-      Estamos actualizando las ofertas. Mientras tanto, busca cualquier producto arriba — el buscador funciona con normalidad.
-    </div>`;
-    return;
-  }
-  row.innerHTML = deals.map(mobileDealCardHTML).join('')
-    + `<button onclick="goSales()" data-mobile-deal-all
+  /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
+     shopfront's rail show the same deals in the same order, so a tap
+     opens the right card on either: openMobileDeal indexes the shared
+     mobileDealsRendered array. The empty-state line points at the
+     search box, which sits above the rail on a phone and below it on
+     a laptop. */
+  for (const [rowId, dir] of [['mobileDealsRow', 'arriba'], ['desktopDealsRow', 'abajo']]){
+    const row = document.getElementById(rowId);
+    if (!row) continue;
+    if (!deals.length){
+      /* An empty rail is worse than none. The same honest line the Ofertas
+         page itself shows on a cold cache, not a row of grey boxes. */
+      row.innerHTML = `<div class="text-[12.5px] leading-relaxed pb-1" style="color:#AFBBD6">
+        Estamos actualizando las ofertas. Mientras tanto, busca cualquier producto 
+        ${dir} — el buscador funciona con normalidad.
+      </div>`;
+      continue;
+    }
+    row.innerHTML = deals.map(mobileDealCardHTML).join('')
+      + `<button onclick="goSales()" data-mobile-deal-all
         class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3"
         style="background:rgba(255,255,255,0.08); border:1px solid rgba(244,196,99,0.45)">
         <span class="block">
@@ -6390,21 +6598,144 @@ function renderMobileDealsRail(){
           <span class="block text-[11.5px] mt-1" style="color:#AFBBD6">${saleItemsCache.length.toLocaleString('es-PE')} ofertas</span>
         </span>
       </button>`;
+  }
 }
 
-/* The same chip the home page's store grid renders, in a rail. Reused
-   rather than restyled so a store's mark, its colour and its honest
-   "próximamente" treatment cannot differ between the two. */
-function renderMobileStoresRail(){
-  const row = document.getElementById('mobileStoresRow');
-  if (!row) return;
-  row.innerHTML = activeRetailers()
-    /* `grid` so the shared chip -- which carries no width of its own,
-       because in the home grid its cell gives it one -- stretches to the
-       rail's 118px instead of shrinking to fit its logo. A rail whose
-       tiles are each a different width reads as broken, not as a shelf. */
-    .map(r => `<div class="flex-shrink-0 w-[118px] grid">${homeStoreChipHTML(r)}</div>`)
-    .join('');
+/* ============================================================
+   STORE RAILS -- THE MALL, NOT THE DIRECTORY (2026-09-25, Danny).
+
+   "I'm not clicking in between stores. I'm just browsing." Each rail
+   is one store's window display: the store's mark, its own sale +
+   featured picks, and a "Ver tienda" that opens the full store.
+
+   CURATION, in the order Danny gave it. The Ofertas rail stays the
+   mall's central sale rack -- cross-store, biggest discounts, mixed
+   stores (see renderMobileDealsRail). A store rail shows THAT STORE's
+   picks: its sale items first by discount, then featured non-sale
+   picks to fill the shelf. Items already leading the Ofertas rail are
+   deprioritised, not excluded -- the window and the sale rack can
+   share a jacket, but the rail must never read as a copy of the feed.
+
+   HONEST LABELS ONLY. There is no sales-rank data yet, so nothing is
+   ever called "más vendido". A markdown carries its -% badge (drawn
+   by the shared card); anything else is just the product.
+
+   LAZY. Headers are static markup; cards paint when the row nears
+   the viewport, through one IntersectionObserver. No timers, no
+   autoplay -- the rails never move on their own.
+   ============================================================ */
+/* The six window displays, in mall order: aspirational first, the way
+   the RETAILERS registry itself is ordered. */
+const STORE_RAIL_STORES = ['victoriassecret', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks'];
+
+let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
+
+function openStoreRailProduct(key, idx){
+  const p = (storeRailsRendered[key] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
+}
+
+/* STORE_RAIL_PICKS:SLICE-START
+   Pure: a store key, that store's sale items, the catalogue pool and
+   the Ofertas rail's keys in, an ordered shelf out. Self-contained on
+   purpose -- the test suite runs this slice in a vm without the page.
+   (Keep it that way: no calls to page functions.) */
+const STORE_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
+const STORE_RAIL_TOTAL = 12; // shelf length; fewer without apology
+function storeRailPicks(key, saleItems, pool, ofertasKeys){
+  const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
+  const pct = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
+  const seen = new Set();
+  const sale = (Array.isArray(saleItems) ? saleItems : [])
+    .filter(p => p && p.retailer === key && p.image
+      && Number.isFinite(Number(p.price)) && Number(p.price) > 0
+      && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
+    .filter(p => { const k = itemKey(p); if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => {
+      /* The window is not the sale rack: a markdown the Ofertas rail
+         already leads on yields to one it does not, discount deciding
+         within each group. */
+      const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
+      const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
+      return (ao - bo) || (pct(b) - pct(a));
+    });
+  const picks = sale.slice(0, STORE_RAIL_SALE);
+  const picked = new Set(picks.map(itemKey));
+  /* Featured fill: real products with a price and a photo. Never
+     priceless, never imageless, never a sale item twice. */
+  if (picks.length < STORE_RAIL_TOTAL && Array.isArray(pool)){
+    for (const it of pool){
+      if (picks.length >= STORE_RAIL_TOTAL) break;
+      if (!it || it.retailer !== key) continue;
+      const k = itemKey(it);
+      if (picked.has(k) || seen.has(k)) continue;
+      const price = Number(it.price);
+      if (!Number.isFinite(price) || price <= 0 || !it.image) continue;
+      if (it.onSale && Number(it.originalPrice) > price) continue;
+      picked.add(k);
+      picks.push(it);
+    }
+  }
+  return picks;
+}
+/* STORE_RAIL_PICKS:SLICE-END */
+
+/* The trailing card: the rail's "Ver más" door. Every rail ends on
+   one -- "Ver todo en Victoria's Secret →" -- and it opens the same
+   full store page (with its departments) as the header's "Ver tienda"
+   link. Two doors, one destination. */
+function storeRailMoreHTML(key){
+  const label = (typeof retailerFor === 'function' && retailerFor(key) && retailerFor(key).label) || 'la tienda';
+  return `<button onclick="openStore('${jsAttr(key)}')" data-store-rail-more="${escapeHtml(key)}"
+    class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3"
+    style="background:var(--paper); border:1px solid var(--line)">
+    <span class="block">
+      <span class="block text-[11.5px]" style="color:#6B7487">Ver todo en</span>
+      <span class="block text-[13px] font-extrabold mt-0.5 leading-snug" style="color:var(--navy)">${escapeHtml(label)} &#8594;</span>
+    </span>
+  </button>`;
+}
+
+let storeRailsStarted = false;
+
+function initStoreRails(){
+  if (storeRailsStarted) return;
+  const rows = [...document.querySelectorAll('[data-store-rail-row]')];
+  if (!rows.length) return;
+  storeRailsStarted = true;
+  /* Ofertas paints before this runs (see initMobileShopfront), so the
+     deprioritisation keys are real by the time the shelves fill. */
+  const dealsRendered = (typeof mobileDealsRendered !== 'undefined' && Array.isArray(mobileDealsRendered))
+    ? mobileDealsRendered : [];
+  const ofertasKeys = new Set(dealsRendered.map(p => `${p.retailer || ''}::${p.title || ''}`));
+  relatedPool().then(pool => {
+    for (const key of STORE_RAIL_STORES){
+      storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
+    }
+    const paint = (row) => {
+      const key = row.getAttribute('data-store-rail-row');
+      const picks = storeRailsRendered[key] || [];
+      /* An empty shelf is worse than none: the section hides instead
+         of showing a store with nothing in its window. */
+      if (!picks.length){ const s = row.closest('section'); if (s) s.hidden = true; return; }
+      row.innerHTML = picks.map((p, i) => railCardHTML(p,
+        `openStoreRailProduct('${jsAttr(key)}',${i})`,
+        `data-store-rail-card="${escapeHtml(key)}" data-idx="${i}"`)).join('')
+        + storeRailMoreHTML(key);
+    };
+    if ('IntersectionObserver' in window){
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); } });
+      }, { rootMargin: '600px 0px' });
+      rows.forEach(r => io.observe(r));
+    } else {
+      rows.forEach(paint);
+    }
+  }).catch(() => { /* a failed pool leaves headers standing, cards absent */ });
 }
 
 /* Department cards at rail scale, wearing the same curated covers as
@@ -6428,9 +6759,11 @@ function mobileCatCardHTML(t, kind){
 }
 
 function renderMobileCatsRail(tiles){
-  const row = document.getElementById('mobileCatsRow');
-  if (!row) return;
-  row.innerHTML = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('');
+  const html = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('');
+  const phone = document.getElementById('mobileCatsRow');
+  if (phone) phone.innerHTML = html;
+  const desk = document.getElementById('desktopCatsRow');
+  if (desk) desk.innerHTML = html;
 }
 
 /* OFERTAS LOADS FIRST, per the brief, and it is the one rail that needs
@@ -6439,22 +6772,26 @@ function renderMobileCatsRail(tiles){
    means the rail shows exactly what the page behind it will show. The
    department cache it reads is memoized and already on its way.
 
-   Only on the phone. On a desktop the rails are display:none and this
-   would be a fetch and a hundred product photos for nothing -- but a
-   desktop window dragged narrow, or a tablet turned on its side, crosses
-   `lg` and reveals them. So the same query that hides them is watched,
-   and the rails fill the first time they are actually on screen. Once
-   filled they stay filled; re-crossing the breakpoint does not re-fetch. */
+   AT EVERY WIDTH (2026-09-25). The rails used to be phone-only, so this
+   waited for the `lg` query to match before fetching anything. The
+   desktop has its own shopfront now -- same data, same cards, wider
+   stance -- so the sales scan and the rail fills run on first paint no
+   matter the width. The breakpoint query is still watched: a window
+   dragged across `lg` swaps which block is visible, and both are
+   already filled. Once filled they stay filled; re-crossing does not
+   re-fetch. */
 const MOBILE_SHOPFRONT_MQ = '(max-width: 1023px)';
 let mobileShopfrontStarted = false;
 
 function initMobileShopfront(){
   if (mobileShopfrontStarted) return;
   if (!document.getElementById('mobileDealsRow')) return;
-  if (!window.matchMedia(MOBILE_SHOPFRONT_MQ).matches) return;
   mobileShopfrontStarted = true;
-  renderMobileStoresRail();
-  runSalesScan().then(renderMobileDealsRail).catch(() => renderMobileDealsRail());
+  /* OFERTAS FIRST, then the store rails: the rails deprioritise what
+     Ofertas already leads on, so they need its keys. */
+  runSalesScan()
+    .then(() => { renderMobileDealsRail(); initStoreRails(); })
+    .catch(() => { renderMobileDealsRail(); initStoreRails(); });
 }
 window.addEventListener('DOMContentLoaded', () => {
   initMobileShopfront();
@@ -7620,29 +7957,6 @@ function paintStoreBrandLines(cache){
   }
 }
 
-/* The compact mark used in the homepage row: the same real logo or
-   wordmark as the full card, in the same kind of contain-fit zone, with
-   the same honest muting for a store still being connected.
-
-   96x42 is storeCardHTML's 130x56 scaled down to the 62px chip, and it is
-   the same sqrt(5.26) = 2.29 aspect, so a square mark and Walmart's
-   wordmark cover the same area here too. Sizing this one on height alone
-   is what left Sephora a 19px sliver in the homepage row. */
-function homeStoreChipHTML(r){
-  const pending = !(r.search || r.browse);
-  const mark = r.logo
-    ? `<img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}"
-         style="width:100%; max-height:42px; max-width:96px; object-fit:contain"
-         onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
-    : `<span class="text-[11.5px] font-extrabold text-white px-2 py-1 rounded-md text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
-  const action = r.kind === 'auto' ? `openAriaAuto('${jsAttr(r.key)}')` : `openStore('${jsAttr(r.key)}')`;
-  return `<button onclick="${action}" class="relative h-[62px] rounded-xl border bg-white grid place-items-center px-3 focus-ring transition hover:shadow-[0_8px_18px_rgba(10,31,68,0.08)]"
-    style="border-color:var(--line); ${pending && !r.logo ? 'filter:grayscale(1); opacity:.6' : ''}" title="${escapeHtml(r.label)}${pending ? ' — ' + escapeHtml(r.pendingNote || 'Próximamente') : ''}">
-    ${mark}
-    ${pending ? `<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full" style="background:var(--amber)"></span>` : ''}
-  </button>`;
-}
-
 /* CÓMO FUNCIONA: real logos, and a count that cannot become a lie.
 
    Step 1 showed three pills reading "Target", "Walmart", "+2" and step 2
@@ -7717,12 +8031,6 @@ function renderStoresGrid(){
      #storesGrid in the markup for why this is not a literal. */
   const listed = activeRetailers().length;
   for (const el of document.querySelectorAll('[data-store-count]')) el.textContent = spanishCount(listed);
-
-  /* The home rail stays ONE row, ungrouped: it is a glance, not a
-     directory, and a heading in a horizontal chip strip reads as a
-     broken card. */
-  const row = document.getElementById('homeStoresRow');
-  if (row) row.innerHTML = activeRetailers().map(homeStoreChipHTML).join('');
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
 
@@ -14522,16 +14830,28 @@ async function loadWalletBalance(){
 function renderAuthUI(){
   const label = currentUser ? escapeHtml(currentUser) : '';
   const initial = currentUser ? escapeHtml(currentUser[0].toUpperCase()) : '';
+  /* ADMIN PATH (2026-09-25): Danny is logged in as admin but the UI gave
+     him no way to reach /admin.html — he felt like a regular user. The
+     link renders only when the session's email is on ADMIN_EMAILS (the
+     same isAdmin the server reports and admin.html's gate trusts); it is
+     absent from the DOM for everyone else, not merely hidden. */
+  const adminLinkDesktop = currentUserIsAdmin
+    ? `<a href="/admin.html" class="inline-flex items-center justify-center h-7 px-3 rounded-full text-[12px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">⚙️ Panel de control</a>`
+    : '';
+  const adminLinkMobile = currentUserIsAdmin
+    ? `<a href="/admin.html" onclick="closeMobileMenu();" class="w-full h-11 mb-2.5 inline-flex items-center justify-center gap-2 rounded-full text-[13.5px] font-bold focus-ring transition" style="background:#F4C463;color:var(--navy)">⚙️ Panel de control</a>`
+    : '';
   const loggedInHTML = `
     <div id="accountArea" class="hidden sm:flex items-center gap-2.5 text-[13px] font-semibold" style="color:var(--navy)" title="${label}">
       <span class="w-7 h-7 rounded-full grid place-items-center text-white text-[12px] font-extrabold flex-shrink-0" style="background:var(--blue)">${initial}</span>
       <span class="max-w-[140px] truncate">${label}</span>
       ${walletChipHTML('desktop')}
+      ${adminLinkDesktop}
     </div>
     <button onclick="logout()" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const loggedOutHTML = `
-    <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-    <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>`;
+    <button onclick="openAuthModal('login')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Entrar</button>
+    <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>`;
   document.getElementById('authArea').innerHTML = currentUser ? loggedInHTML : loggedOutHTML;
 
   const mobileLoggedInHTML = `
@@ -14540,11 +14860,12 @@ function renderAuthUI(){
       <span class="text-[13.5px] font-semibold truncate" style="color:var(--navy)">${label}</span>
       ${walletChipHTML('mobile')}
     </div>
+    ${adminLinkMobile}
     <button onclick="logout();closeMobileMenu();" class="w-full h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const mobileLoggedOutHTML = `
     <div class="flex items-center gap-2.5">
-      <button onclick="openAuthModal('login');closeMobileMenu();" class="flex-1 h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-      <button onclick="openAuthModal('signup');closeMobileMenu();" class="flex-1 h-11 rounded-full text-[13.5px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+      <button onclick="openAuthModal('login');closeMobileMenu();" class="flex-1 h-11 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold text-white focus-ring transition" style="background:var(--navy)">Entrar</button>
+      <button onclick="openAuthModal('signup');closeMobileMenu();" class="flex-1 h-11 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold focus-ring transition" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>
     </div>`;
   document.getElementById('authAreaMobile').innerHTML = currentUser ? mobileLoggedInHTML : mobileLoggedOutHTML;
 }
@@ -16646,6 +16967,12 @@ function setOrbState(state){
 /* ============================================================
    ORB MOTION — "she swims, she doesn't sit"
 
+   2026-09-25 OVERRIDE (Danny, Chromebook review): the swim is retired —
+   she is docked bottom-right on every screen now, see orbLane(). The
+   lane/gutter/drift notes below are the history of how she got here,
+   kept because they explain the machinery that remains: the anchor,
+   the bounded float, the reserved corner.
+
    The orb used to pulse in a corner: alive, but static, which reads as a
    logo rather than a presence. It now drifts slowly around the rim of the
    screen, trailing light, pausing and changing its mind the way something
@@ -16792,28 +17119,28 @@ function orbAnchor(){
   return { size: s, x, y };
 }
 
-function orbLane(){
-  const topSafe = ORB_TOP_SAFE;
-  const bottom = window.innerHeight - ORB_MARGIN;
-  const col = orbContentColumn();
-  const leftGutter = col ? col.left - ORB_CONTENT_GAP - ORB_MARGIN : window.innerWidth;
-  const rightGutter = col ? window.innerWidth - ORB_MARGIN - (col.right + ORB_CONTENT_GAP) : window.innerWidth;
-  const onRight = rightGutter >= leftGutter;
-  const gutter = Math.max(leftGutter, rightGutter);
-  const size = Math.min(ORB_SIZE, Math.floor(gutter));
+/* ALWAYS DOCKED, EVERY SCREEN (2026-09-25 — Danny, Chromebook review).
 
-  /* A phone never gets a lane, whatever the measured gutter says — see
-     ORB_ANCHOR_MAX_VW. This check comes FIRST precisely because the
-     gutter measurement is what used to let a handset roam. */
-  if (window.innerWidth < ORB_ANCHOR_MAX_VW || size < ORB_LANE_MIN || bottom - topSafe < size + 20){
-    const a = orbAnchor();
-    return { mode: 'dock', size: a.size, minX: a.x, maxX: a.x, minY: a.y, maxY: a.y };
-  }
-  const x = onRight
-    ? Math.min(window.innerWidth - size - ORB_MARGIN, (col ? col.right + ORB_CONTENT_GAP : ORB_MARGIN) + Math.max(0, (gutter - size) / 2))
-    : Math.max(ORB_MARGIN, ORB_MARGIN + Math.max(0, (gutter - size) / 2));
-  return { mode: 'lane', size, minX: x, maxX: x, minY: topSafe, maxY: Math.max(topSafe, bottom - size) };
+   The lane drift is retired. On a wide screen the orb started at the top
+   of its lane while the "¡Hola! Soy Aria" bubble sat fixed at the
+   bottom-right, and the orb's visible travel down to meet it read as
+   broken. The brief is now: the launcher lives in the bottom-right
+   corner on every viewport, always, and the bubble opens right next to
+   it — no cross-screen travel, ever.
+
+   She keeps her alive language — the breathing, the glow, the small
+   bounded float in the corner. What goes is only the journey.
+   orbAnchor() is the single source of home. */
+function orbLane(){
+  const a = orbAnchor();
+  return { mode: 'dock', size: a.size, minX: a.x, maxX: a.x, minY: a.y, maxY: a.y };
 }
+
+/* RETIRED WITH THE LANE (2026-09-25). orbContentColumn fed the gutter
+   math above; nothing calls it now. Kept, not deleted: it is cheap,
+   correct, and deleting working geometry nobody asked to delete is how
+   regressions are born. orbCoversContent below is still pinned by a
+   browser test, so the selector list stays too. */
 
 function orbBounds(){
   const lane = orbLane();
@@ -17054,9 +17381,10 @@ function startOrbSwim(){
   if (!btn || !trailWrap) return;
   orbSwim.started = true;
 
-  // Progress 0 is the top of the lane and 0.5 the bottom corner she has
-  // always come to rest in. A first visit starts at the top and drifts
-  // down once; any later navigation in the same session opens parked.
+  // The drift is retired (2026-09-25): progress 0 and 0.5 are the same
+  // docked corner now, so the orb opens parked on every visit and never
+  // travels. The rest of this function — anchor, float, trail, resize
+  // reclamp — is unchanged.
   const laneStart = orbLane();
   orbReserveSpace(laneStart);
   orbSwim.rested = orbHasDriftedThisSession();
@@ -18461,3 +18789,4 @@ initRouter();
 </script>
 </body>
 </html>
+

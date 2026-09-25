@@ -1831,15 +1831,14 @@ await check("the phone's rails fill from the page's own data", async () => {
   const rails = await page.evaluate(() => ({
     deals: document.querySelectorAll("#mobileDealsRow [data-mobile-deal]").length,
     tail: document.querySelectorAll("#mobileDealsRow [data-mobile-deal-all]").length,
-    stores: document.getElementById("mobileStoresRow").children.length,
-    registry: activeRetailers().length,
+    stores: document.querySelectorAll('#mobileShopfront [data-store-rail]').length,
     cats: document.querySelectorAll("#mobileCatsRow [data-mobile-cat]").length,
     grid: document.getElementById("catGrid").children.length,
     cap: MOBILE_RAIL_DEALS,
   }));
   eq(rails.deals, rails.cap, "the deals rail holds its cap");
   eq(rails.tail, 1, "the deals rail has exactly one 'Ver todo' tail");
-  eq(rails.stores, rails.registry, "the stores rail carries every active store");
+  eq(rails.stores, 6, "the phone is not showing the six store rails");
   /* THE SAME TILES THE GRID DREW. A department added to DEPARTMENT_SPEC
      -- Zapatos, and whatever follows -- has to appear in both or in
      neither; a literal here would go stale the day one lands. */
@@ -1942,7 +1941,9 @@ await check("nothing in the shopfront moves on its own", async () => {
   const { ctx, page, errors } = await openPage({}, PHONE);
   await page.waitForTimeout(4000);
   const drift = await page.evaluate(async () => {
-    const ids = ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"];
+    const ids = ["mobileDealsRow", "mobileCatsRow",
+      "mStoreRail-victoriassecret", "mStoreRail-sephora", "mStoreRail-macys",
+      "mStoreRail-footlocker", "mStoreRail-ssense", "mStoreRail-dicks"];
     const before = ids.map((i) => document.getElementById(i).scrollLeft);
     const y = window.scrollY;
     await new Promise((r) => setTimeout(r, 5000));
@@ -1955,20 +1956,25 @@ await check("nothing in the shopfront moves on its own", async () => {
   await ctx.close();
 });
 
-await check("the desktop home page never builds the rails", async () => {
-  /* Not a style question: initMobileShopfront's guard is what stops a
-     laptop fetching the sales cache and twenty product photos for three
-     sections it will never show. */
+await check("the desktop home page builds the desktop rails", async () => {
+  /* 2026-09-25: the laptop has its own shopfront -- Ofertas, the six
+     store rails, Categorias -- filled on first paint like the phone's.
+     The phone's rows stay in the DOM too (CSS hides them); the
+     renderers write both. */
   const { ctx, page, errors } = await openPage();
   await page.waitForTimeout(4000);
   const state = await page.evaluate(() => ({
-    deals: document.getElementById("mobileDealsRow").children.length,
-    stores: document.getElementById("mobileStoresRow").children.length,
+    deals: document.getElementById("desktopDealsRow").children.length,
+    rails: document.querySelectorAll("#desktopShopfront [data-store-rail]").length,
+    cats: document.getElementById("desktopCatsRow").children.length,
+    order: [...document.querySelectorAll("#desktopShopfront > section")].map(s => s.getAttribute("aria-label")).join(" > "),
     started: mobileShopfrontStarted,
   }));
-  eq(state.started, false, "the desktop ran the phone's shopfront");
-  eq(state.deals, 0, "the desktop built the deals rail");
-  eq(state.stores, 0, "the desktop built the stores rail");
+  eq(state.started, true, "the desktop never ran the shopfront init");
+  eq(state.deals > 0, true, "the desktop deals rail is empty");
+  eq(state.rails, 6, "the desktop is not showing the six store rails");
+  eq(state.cats > 0, true, "the desktop cats rail is empty");
+  eq(state.order, "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categor\u00edas", "the desktop shopfront order");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
@@ -1984,22 +1990,19 @@ await check("the desktop home page never builds the rails", async () => {
    land on the right section, and are the promises in that section the
    ones the array holds.
    ================================================================== */
-await check("the header's mark loads, and it is a square file", async () => {
-  /* A PATH CAN BE WRONG IN A WAY NO STATIC READ CATCHES. naturalWidth
-     is 0 for a 404, a corrupt file, or a name that differs by a letter
-     — and the header would just quietly show nothing. */
+await check("the header wordmark is text-only \u2014 no mark image", async () => {
+  /* 2026-09-25 (Danny, Chromebook review): the triangle mark is gone
+     from the header — "looks like a watermark tattoo". The wordmark is
+     text now; this pins that no mark image comes back. */
   const { ctx, page, errors } = await openPage();
   await page.waitForTimeout(1500);
-  const img = await page.evaluate(() => {
-    const el = document.querySelector('header img[src*="aria-mark"]');
-    if (!el) return null;
-    return { w: el.naturalWidth, h: el.naturalHeight, complete: el.complete, src: el.getAttribute("src"), alt: el.getAttribute("alt") };
+  const r = await page.evaluate(() => {
+    const mark = document.querySelector('header img[src*="aria-mark"]');
+    const words = [...document.querySelectorAll('header .ariaWordmark')].map((el) => el.textContent.trim());
+    return { mark: !!mark, words };
   });
-  if (!img) throw new Error("the header has no mark");
-  eq(img.complete, true, "the mark never finished loading");
-  if (!img.w) throw new Error(`the mark decoded to 0px — ${img.src} is missing or corrupt`);
-  eq(img.w, img.h, "the mark is not square");
-  eq(img.alt, "", "the mark is announced as well as drawn");
+  if (r.mark) throw new Error("the triangle mark is back in the header");
+  if (!r.words.join(" ").includes("Aria")) throw new Error("the header wordmark is gone");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
