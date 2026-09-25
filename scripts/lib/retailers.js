@@ -200,6 +200,34 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor, the Macy's
+     pattern: browse: true, search: false. Their 251 sports products
+     (skate, surf, fitness, swim) live inside Deportes per Danny — these
+     rows are what put the right name ("Dick's Sporting Goods", not the
+     raw "dicks" key) on the product-card badge and make the stores
+     browsable on Tiendas. No logo file yet, so both render the wordmark
+     pill on their brand colour, which the registry documents as a real
+     fallback rather than a broken state. Colours are brand-red /
+     near-black chosen from the brands' public identity, not sampled
+     from artwork — replace with sampled values if logo files land. */
+  dicks: {
+    key: "dicks",
+    label: "Dick's Sporting Goods",
+    color: "#D22630",
+    tagline: "Skate, surf y fitness",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  pacsun: {
+    key: "pacsun",
+    label: "PacSun",
+    color: "#111111",
+    tagline: "Moda surf y skate",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
      Both are real rows: they appear on Tiendas, they carry their own
