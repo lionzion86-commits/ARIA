@@ -59,16 +59,16 @@ export function normalizeType(raw) {
    gender-neutral — a DRESS is a dress in Moda Mujer and in Moda Niños. */
 export const SUBCATEGORY_SPEC = [
   { key: "dresses",      label: "Vestidos y faldas",     types: ["DRESS", "SKIRT", "GOWN"] },
-  { key: "tops",         label: "Tops y blusas",         types: ["TOP", "BLOUSE", "SHIRT", "TSHIRT", "T_SHIRT", "POLO", "HENLEY", "TANK_TOP"] },
+  { key: "tops",         label: "Tops y blusas",         types: ["TOP", "BLOUSE", "SHIRT", "TSHIRT", "T_SHIRT", "POLO", "HENLEY", "TANK_TOP", "MENSSHIRTSTOPS", "WOMENSSHIRTSTOPS", "BOYSSHIRTSTOPS"] },
   { key: "knitwear",     label: "Chompas y sudaderas",   types: ["SWEATER", "SWEATSHIRT", "HOODIE", "CARDIGAN",
-                 "CREWNECK", "V_NECK", "TURTLENECK", "SHAWLNECK", "HOODIES_ZIPUPS", "KNIT"] },
+                 "CREWNECK", "V_NECK", "TURTLENECK", "SHAWLNECK", "HOODIES_ZIPUPS", "KNIT", "HEAVY_KNIT_FLEECE"] },
   { key: "jeans",        label: "Jeans",                 types: ["JEANS", "DENIM"] },
-  { key: "pants",        label: "Pantalones y shorts",   types: ["PANTS", "SHORTS", "TROUSERS", "LEGGINGS",
+  { key: "pants",        label: "Pantalones y shorts",   types: ["PANTS", "SHORTS", "MENSSHORTS", "TROUSERS", "LEGGINGS",
                  "CARGO_PANTS", "SWEATPANTS", "LEATHER_PANTS", "CHINOS"] },
   { key: "outerwear",    label: "Casacas y abrigos",     types: ["JACKET", "COAT", "BLAZER", "VEST",
                  "LEATHER_JACKETS", "BOMBER", "WAISTCOAT", "PARKA", "PUFFER"] },
   { key: "sets",         label: "Conjuntos y trajes",    types: ["SUIT", "OUTFIT", "JUMPSUIT", "ROMPER"] },
-  { key: "swim",         label: "Ropa de baño",          types: ["SWIMSUIT", "SWIMWEAR", "BIKINI"] },
+  { key: "swim",         label: "Ropa de baño",          types: ["SWIMSUIT", "SWIMWEAR", "BIKINI", "MENSSWIMSUITS", "WOMENSSWIMSUITS", "BOYSSWIMSUITS", "GIRLSSWIMSUITS", "SWIM_TRUNKS", "BOARDSHORTS"] },
   { key: "shoes",        label: "Zapatos",               types: ["SHOE", "SHOES", "BOOT", "SANDAL", "SNEAKER",
                  "SLIPPERS_LOAFERS", "LACE_UPS_OXFORDS", "BOAT_SHOES_MOCCASINS",
                  "MONKSTRAP", "ESPADRILLE", "LOAFER", "OXFORD"] },
@@ -81,6 +81,17 @@ export const SUBCATEGORY_SPEC = [
   { key: "lingerie",     label: "Ropa interior y pijamas",
     types: ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR", "ROBE", "SOCKS", "HOSIERY",
             "PYJAMAS_LOUNGEWEAR", "PYJAMA", "LOUNGEWEAR", "BOXER"] },
+
+  /* ---- DEPORTES (2026-09-25) ---------------------------------------
+     Skate + surf live INSIDE Deportes per Danny — no separate section.
+     A third floor on the same table: no Dick's or PacSun export sends
+     DRESS, and no apparel or beauty export sends WETSUITS, so the
+     vocabularies do not overlap and the split needed no new code.
+     Editorial order again — skate leads, because boards are what the
+     shopper came to this floor for. */
+  { key: "skate",        label: "Skate",               types: ["SKATEBOARDSLONGBOARDS", "SKATEBOARD", "SKATEBOARDS", "SKATEDECK", "LONGBOARD", "LONGBOARDS", "SKATETRUCKS", "TRUCKS", "SKATEWHEELS", "WHEELS", "BEARINGS"] },
+  { key: "surf",         label: "Surf",                types: ["WETSUITS", "WETSUIT", "RASHGUARDS", "RASHGUARD", "SNORKELINGGEAREQUIPMENT", "SNORKEL", "SNORKELING", "SURF", "SURFBOARD", "LEASH", "FINS", "FIN", "WAX"] },
+  { key: "fitness",      label: "Fitness",             types: ["EXERCISEMATS", "YOGAMAT", "BOXINGMMAKICKBOXINGGLOVES", "BOXINGGLOVES", "HANDWRAPS", "WORKOUTGLOVESWRAPS", "WRISTBANDS", "HEADPROTECTIVEGEAR", "BIKEHELMETS", "PROTECTIVEEQUIPMENT", "DUMBBELL", "RESISTANCEBAND", "KETTLEBELL"] },
 
   /* ---- BEAUTY (2026-09-22) -------------------------------------
      The same mechanism, a different floor. These rows only ever fire
