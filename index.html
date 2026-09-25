@@ -624,6 +624,27 @@
   .ariaStepIcon svg{ stroke:#F4C463; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round }
   .ariaStepCaption{ font-size:13px; font-weight:800; letter-spacing:-0.01em; color:var(--navy) }
   .ariaStepSub{ font-size:11.5px; color:#6B7487; margin-top:2px }
+  /* PHOTOGRAPHIC REDESIGN OF CÓMO FUNCIONA (2026-09-25).
+
+     Danny's verdict on the info pages: flat and generic — white cards,
+     no photography. Every step now has a real photo (self-hosted under
+     assets/como-funciona/, no hotlinking); the art panels that were
+     search-bar mocks, price tables and clip-art icons sit under or
+     beside the photo instead of being the art themselves. Navy + gold
+     system throughout; no gray pills; mobile-first (Danny QAs on
+     iPhone). All Spanish copy and all dynamic hooks (#howStoreChips,
+     .howStoreLogo) are untouched. */
+  .comoHero{ background:#0A1F44 url('assets/como-funciona/hero-cargo.jpg') center/cover no-repeat }
+  .comoHero::before{ content:''; position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(10,31,68,0.95) 0%, rgba(10,31,68,0.82) 45%, rgba(10,31,68,0.38) 100%) }
+  .comoHero > .ariaGoldHair, .comoHero > div{ position:relative; z-index:1 }
+  @media (max-width:639px){ .comoHero::before{ background:linear-gradient(180deg, rgba(10,31,68,0.93) 0%, rgba(10,31,68,0.80) 60%, rgba(10,31,68,0.64) 100%) } }
+  .comoPhoto{ display:block; border-radius:20px; overflow:hidden; border:1px solid var(--line);
+    box-shadow:0 14px 34px rgba(10,31,68,0.14); aspect-ratio:16/10; background:#0A1F44 }
+  .comoPhoto img{ width:100%; height:100%; object-fit:cover; display:block }
+  .comoCaption{ margin-top:12px; text-align:center }
+  .comoCaption strong{ display:block; font-size:13px; font-weight:800; letter-spacing:-0.01em; color:var(--navy) }
+  .comoCaption span{ display:block; font-size:11.5px; color:#6B7487; margin-top:2px }
   /* The on-demand search spinner. A 30-90 second wait needs something
      that is visibly alive, next to copy that says how long it will be. */
   /* THE ORB MUST NOT SIT ON THE PAGE (2026-09-20).
@@ -1741,8 +1762,9 @@
 
 <!-- ============ HOW IT WORKS VIEW ============ -->
 <div id="howView" class="view">
-  <!-- Navy hero band, same language as the Precio Honesto section. -->
-  <section class="ariaNavyBand relative overflow-hidden">
+  <!-- Photo hero (2026-09-25): full-bleed cargo-plane image with a navy
+       gradient overlay; the same headline sits in white/gold over it. -->
+  <section class="comoHero relative overflow-hidden">
     <div class="ariaGoldHair"></div>
     <div class="max-w-[1080px] mx-auto px-5 py-14 sm:py-16">
       <div class="max-w-[62ch]">
@@ -1781,7 +1803,11 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Busca cualquier producto</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Escribe lo que quieres comprar, desde electrónica hasta ropa, artículos para el hogar o dulces. Buscamos en varias tiendas de Estados Unidos a la vez.</div>
         </div>
-        <div class="ariaStepArt">
+        <div>
+          <figure class="comoPhoto">
+            <img src="assets/como-funciona/paso1-phone.webp" alt="Mujer buscando productos en su celular en una tienda de Estados Unidos" loading="lazy">
+          </figure>
+          <div class="mt-4">
           <div class="relative">
             <div class="h-12 rounded-xl bg-white border flex items-center px-4 text-[13px] text-zinc-400 gap-2.5" style="border-color:var(--line)">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
@@ -1793,6 +1819,7 @@
                store was added or paused. Filled by renderHowStoreChips()
                from the same registry the rest of the site reads. -->
           <div id="howStoreChips" class="flex items-center gap-4 mt-3 min-h-[22px]"></div>
+          </div>
         </div>
         </div>
       </div>
@@ -1805,7 +1832,11 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Compara el precio total real</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Te mostramos el costo completo antes de pagar: producto, envío internacional, aranceles e impuestos de aduana, todo sumado en soles. El flete y los aranceles se calculan en el checkout, y nada aparece después, al momento de recibir tu pedido.</div>
         </div>
-        <div class="md:order-1 ariaStepArt" style="padding:0; overflow:hidden">
+        <div class="md:order-1">
+          <figure class="comoPhoto">
+            <img src="assets/como-funciona/paso2-tiendas.jpg" alt="Entrada de una tienda departamental en Estados Unidos con compradores" loading="lazy">
+          </figure>
+          <div class="mt-4 rounded-[20px] border overflow-hidden" style="border-color:var(--line)">
           <div class="px-4 py-2.5 text-[10.5px] font-bold uppercase tracking-wide text-zinc-400 border-b flex justify-between" style="border-color:var(--line); background:#FBFBFA">
             <span>Tienda</span><span>Total a Perú</span>
           </div>
@@ -1825,6 +1856,7 @@
               <span class="howStoreLogo" data-retailer="walmart"></span>
             </div>
             <span class="text-[13px] tabular text-zinc-500">S/ 4,820</span>
+          </div>
           </div>
         </div>
         </div>
@@ -1852,16 +1884,11 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Compra directa</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Eliges el producto y lo compras aquí mismo, directo de la tienda oficial en EE. UU. — con su garantía real y su política de devolución. Sin intermediarios, sin revendedores, sin que tu plata pase por manos ajenas.</div>
         </div>
-        <div class="ariaStepArt">
-          <div class="ariaStepFigure">
-            <div class="ariaStepIcon">
-              <svg width="36" height="36" viewBox="0 0 24 24"><path d="M9 11V7a3 3 0 0 1 6 0v4"/><path d="M4.5 9h15l-1.2 10.2a2 2 0 0 1-2 1.8H7.7a2 2 0 0 1-2-1.8Z"/><path d="m9.6 14.4 1.8 1.8 3.4-3.4"/></svg>
-            </div>
-            <div>
-              <div class="ariaStepCaption">Directo de la tienda oficial</div>
-              <div class="ariaStepSub">Garantía y devolución reales</div>
-            </div>
-          </div>
+        <div>
+          <figure class="comoPhoto">
+            <img src="assets/como-funciona/paso3-checkout.webp" alt="Persona pagando su compra en línea con tarjeta de crédito desde una laptop" loading="lazy">
+          </figure>
+          <figcaption class="comoCaption"><strong>Directo de la tienda oficial</strong><span>Garantía y devolución reales</span></figcaption>
         </div>
         </div>
       </div>
@@ -1874,16 +1901,11 @@
           <div class="font-bold text-[20px] mb-2.5 tracking-[-0.01em]">Consolidamos en Miami</div>
           <div class="text-[14.5px] text-zinc-600 leading-relaxed max-w-[46ch]">Tu compra llega primero a nuestro almacén en Miami, donde se prepara para el envío internacional hacia Perú.</div>
         </div>
-        <div class="md:order-1 ariaStepArt">
-          <div class="ariaStepFigure">
-            <div class="ariaStepIcon">
-              <svg width="36" height="36" viewBox="0 0 24 24"><path d="M3 20V9.5l9-5.5 9 5.5V20"/><path d="M3 20h18"/><path d="M9 20v-5.5h6V20"/><path d="M7.5 11.5h2M14.5 11.5h2"/></svg>
-            </div>
-            <div>
-              <div class="ariaStepCaption">Almacén Aria</div>
-              <div class="ariaStepSub">Miami, Estados Unidos</div>
-            </div>
-          </div>
+        <div class="md:order-1">
+          <figure class="comoPhoto">
+            <img src="assets/como-funciona/paso4-miami.jpg" alt="Estanterías con cajas en un almacén de logística en Miami" loading="lazy">
+          </figure>
+          <figcaption class="comoCaption"><strong>Almacén Aria</strong><span>Miami, Estados Unidos</span></figcaption>
         </div>
         </div>
       </div>
@@ -1935,16 +1957,11 @@
              two lines of text, in a style nothing else on the site used.
              Same plate and same line grammar as every other step now, and
              it shows the delivery rather than a generic cube. -->
-        <div class="md:order-1 ariaStepArt">
-          <div class="ariaStepFigure">
-            <div class="ariaStepIcon">
-              <svg width="36" height="36" viewBox="0 0 24 24"><path d="M3 20.5V10l6-4.5 6 4.5v10.5"/><path d="M2 20.5h20"/><path d="M6.5 20.5v-4.5h5v4.5"/><rect x="15.5" y="13.5" width="5.5" height="4.5" rx="0.8"/><path d="M16.6 13.5v-1.2a1.15 1.15 0 0 1 2.3 0v1.2"/></svg>
-            </div>
-            <div>
-              <div class="ariaStepCaption">Entrega puerta a puerta</div>
-              <div class="ariaStepSub">Lima y todo el Perú</div>
-            </div>
-          </div>
+        <div class="md:order-1">
+          <figure class="comoPhoto">
+            <img src="assets/como-funciona/paso5-entrega.jpg" alt="Repartidor entregando un paquete en la puerta de una casa" loading="lazy">
+          </figure>
+          <figcaption class="comoCaption"><strong>Entrega puerta a puerta</strong><span>Lima y todo el Perú</span></figcaption>
         </div>
         </div>
       </div>
