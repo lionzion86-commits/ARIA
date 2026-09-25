@@ -1120,6 +1120,18 @@
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
+    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
+         that is not one of the six featured rails, as one swipeable logo strip.
+         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
+         newly registered store appears here with no markup change. -->
+    <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
+      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
+        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas las tiendas &#8594;</button>
+      </div>
+      <div id="mOtherStoresRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
+
     <!-- CATEGORÍAS -->
     <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -1265,6 +1277,18 @@
       </div>
     </section>
 
+
+    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
+         mall directory between the six featured rails and Categorías. -->
+    <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
+          <button onclick="showPage('storesView')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas las tiendas &#8594;</button>
+        </div>
+        <div id="dOtherStoresRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 
     <!-- CATEGORIAS -->
     <section aria-label="Categorías" style="background:#fff">
@@ -8121,6 +8145,60 @@ function renderStoresGrid(){
   for (const el of document.querySelectorAll('[data-store-count]')) el.textContent = spanishCount(listed);
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
+
+/* ============================================================
+   "TODAS LAS OTRAS TIENDAS" — the rest of the mall directory as one logo
+   strip between the six featured rails and Categorías (2026-09-25, Danny's
+   iPhone review: shoppers should meet the other sixteen stores before the
+   categories, with a way into the full 22-store Tiendas directory).
+
+   Painted from the RETAILERS registry minus STORE_RAIL_STORES, so a newly
+   registered store (e.g. Lane Bryant, once its registry row lands) appears
+   here with no markup change. Ordering: shoppable first (search/browse
+   live), then connecting-soon, then Aria Auto — registry order inside
+   each band.
+
+   Tiles reuse the Tiendas treatments: a real logo file contain-fit on a
+   white plate, or the store's wordmark on its own brand colour when there
+   is no file; a 404ing logo is swapped in place for the text fallback by
+   storeLogoFallback — never a broken image. */
+function otherStoresStripOrder(){
+  const featured = new Set(STORE_RAIL_STORES);
+  const band = r => r.kind === 'auto' ? 2 : (r.search || r.browse) ? 0 : 1;
+  return activeRetailers()
+    .filter(r => !featured.has(r.key))
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => (band(a.r) - band(b.r)) || (a.i - b.i))
+    .map(x => x.r);
+}
+function otherStoreTileHTML(r){
+  const action = r.kind === 'auto' ? `openAriaAuto('${jsAttr(r.key)}')` : `openStore('${jsAttr(r.key)}')`;
+  /* The mark gets the same ZONE treatment as the Tiendas card (see the
+     "every store mark fills its zone" test): width:100% so small files grow
+     into the plate, max-height/max-width caps, contain-fit, never a fixed
+     height. A store's logo is their art -- it is never stretched. */
+  const plate = r.logo
+    ? `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 bg-white border rounded-2xl" style="border-color:var(--line)">
+         <img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}" loading="lazy" decoding="async"
+              style="width:100%; max-height:34px; max-width:75%; object-fit:contain"
+              onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+       </span>`
+    : `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 rounded-2xl text-white text-[13px] font-extrabold text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
+  return `<button type="button" onclick="${action}" aria-label="${escapeHtml(r.label)}"
+      class="flex-shrink-0 w-[104px] md:w-[128px] focus-ring rounded-2xl">
+    ${plate}
+    <span class="block mt-1.5 text-[11px] font-bold text-center truncate" style="color:var(--navy)">${escapeHtml(r.label)}</span>
+  </button>`;
+}
+function renderOtherStoresStrip(){
+  const html = otherStoresStripOrder().map(otherStoreTileHTML).join('');
+  for (const id of ['mOtherStoresRow', 'dOtherStoresRow']){
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+}
+window.addEventListener('DOMContentLoaded', renderOtherStoresStrip);
+
 
 /* ============================================================
    "VER POR MARCA" — the store's own A-Z brand directory.

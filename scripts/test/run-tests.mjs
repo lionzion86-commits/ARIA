@@ -1662,8 +1662,10 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
   /* Two when the homepage chip row existed (card + chip); one since the
-     store rails superseded it on 2026-09-25. */
-  if (imgs.length !== 1) throw new Error(`expected 1 store-mark <img> tag, found ${imgs.length}`);
+     store rails superseded it on 2026-09-25; two again since the "Todas
+     las otras tiendas" strip (2026-09-25) paints the same registry with
+     its own tiles -- every store-mark template obeys the zone rules. */
+  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -5033,7 +5035,7 @@ check("nothing but the hero comes before the shopfront, and it is phone-only", (
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, then the store rails, then Categorías", () => {
+check("Ofertas, then the store rails, then Todas las otras tiendas, then Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5045,22 +5047,30 @@ check("Ofertas, then the store rails, then Categorías", () => {
      stores. I'm just browsing." The Tiendas chips rail is gone from the
      home page -- each store gets its own window display, and the two
      breakpoints finally share one scroll order: deals, the six store
-     rails in mall order, then departments.) */
+     rails in mall order, then departments.)
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the six rails and Categorías -- the rest of the mall
+     directory as one logo strip, with a way into the full 22-store
+     Tiendas directory.) */
   const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["mobileDealsRow", "mobileCatsRow",
+  const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
-check("the desktop shopfront reads Ofertas, then the store rails, then Categorías", () => {
+check("the desktop shopfront reads Ofertas, then the store rails, then Todas las otras tiendas, then Categorías", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
      scroll order now -- deals, the six store rails in mall order,
-     departments. The Tiendas chips rail is superseded by the rails. */
+     departments. The Tiendas chips rail is superseded by the rails.
+
+     2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the six rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
     shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
@@ -5069,14 +5079,33 @@ check("the desktop shopfront reads Ofertas, then the store rails, then Categorí
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["desktopDealsRow", "desktopCatsRow",
+  const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
+});
+
+check("Todas las otras tiendas carries the rest of the directory, not the six", () => {
+  /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the six rails
+     and Categorías shows every active retailer that is NOT a featured
+     rail store, painted from the RETAILERS registry (never hardcoded),
+     with a way into the full Tiendas directory. */
+  const html = shopfrontSrc;
+  for (const id of ["mOtherStoresRow", "dOtherStoresRow"]) {
+    eq((html.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+  // The way into the full directory: both headers point at storesView.
+  const ways = [...html.matchAll(/onclick="showPage\('storesView'\)"[^>]*>Ver todas las tiendas/g)];
+  if (ways.length < 2) throw new Error(`expected a "Ver todas las tiendas" way in on both surfaces, found ${ways.length}`);
+  // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
+  const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
+  if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the six featured rail stores");
+  if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
 check("a rail scrolls sideways and snaps, and the page does not", () => {
