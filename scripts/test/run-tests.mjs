@@ -7705,7 +7705,9 @@ group("store carousels: window-shopping rails");
     const railAt = aisle.indexOf("storeCarouselHTML({");
     const searchAt = aisle.indexOf("catalogSearchBarHTML()");
     if (railAt < 0 || railAt > searchAt) throw new Error("the aisle landing does not lead with the rail");
-    if (!/catalogAisleListHTML\(grouped, storeLabel, all\)/.test(src)) throw new Error("the aisle landing is not fed the department's items");
+    /* Curvy feeds the landing its gender-filtered feed (2026-09-25): the aisle tiles must describe what the
+       Mujeres/Hombres toggle is showing, so `gendered` is the department's items here, not a subset. */
+    if (!/catalogAisleListHTML\(grouped, storeLabel, (all|gendered)\)/.test(src)) throw new Error("the aisle landing is not fed the department's items");
     const feed = src.slice(src.indexOf("sections.innerHTML = `\n    ${storeCarouselHTML("), src.indexOf("id=\"catalogGrid\""));
     if (!feed || !/id: 'feedRail'/.test(feed)) throw new Error("the feed does not lead with the rail");
   });

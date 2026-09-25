@@ -4172,6 +4172,30 @@ function curvyBandOf(item, bucketName){
   return g === 'women' ? 0 : g === 'men' ? 2 : 1;
 }
 
+/* CURVY'S RAIL LEADS WITH UNDERWEAR (2026-09-25, Danny's iPhone QA).
+   Bras and panties are what shoppers come to Curvy for -- they are the
+   hero category, not an afterthought -- so the Destacados rail opens
+   with the lingerie aisle, bras and panties interleaved so both hero
+   categories show (a pure price sort would drown the bras in panties),
+   then the rest of women's, then everything else. Photo preference,
+   dedupe and the 16-card cap still apply downstream in
+   carouselPickItems; this only sets the priority. */
+function curvyRailOrder(items){
+  const bras = [], panties = [], restWomen = [], rest = [];
+  for (const it of items || []){
+    if (subcategoryOfItem(it) === 'lingerie'){
+      (normalizeType(it.type) === 'BRAS' ? bras : panties).push(it);
+    } else if ((it.curvyBand ?? 1) === 0) restWomen.push(it);
+    else rest.push(it);
+  }
+  const lingerie = [];
+  for (let i = 0; i < Math.max(bras.length, panties.length); i++){
+    if (i < bras.length) lingerie.push(bras[i]);
+    if (i < panties.length) lingerie.push(panties[i]);
+  }
+  return lingerie.concat(restWomen, rest);
+}
+
 // A confirmed "quarantined" image verdict means no image of this product
 // could be cleared of price text, so it is withheld until a human reviews
 // it (see image-quarantine.json). "pending" items stay listed — they just
@@ -5549,7 +5573,7 @@ function normalizeType(raw){
 }
 
 const SUBCATEGORY_SPEC = [
-  { key: 'dresses',      label: 'Vestidos y faldas',     types: ['DRESS', 'SKIRT', 'GOWN'] },
+  { key: 'dresses',      label: 'Vestidos y faldas',     types: ['DRESS', 'DRESSES', 'SKIRT', 'GOWN'] },
   { key: 'tops',         label: 'Tops y blusas',         types: ['TOP', 'BLOUSE', 'SHIRT', 'TSHIRT', 'T_SHIRT', 'POLO', 'HENLEY', 'TANK_TOP'] },
   { key: 'knitwear',     label: 'Chompas y sudaderas',   types: ['SWEATER', 'SWEATSHIRT', 'HOODIE', 'CARDIGAN',
                  'CREWNECK', 'V_NECK', 'TURTLENECK', 'SHAWLNECK', 'HOODIES_ZIPUPS', 'KNIT'] },
@@ -5570,8 +5594,11 @@ const SUBCATEGORY_SPEC = [
      placed where it stops being the thing you scroll past to reach a
      dress. */
   { key: 'lingerie',     label: 'Ropa interior y pijamas',
-    types: ['BRA', 'PANTY', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY',
+    types: ['BRA', 'BRAS', 'PANTY', 'PANTIES', 'UNDERWEAR', 'LINGERIE', 'SHAPEWEAR', 'SLEEPWEAR', 'ROBE', 'SOCKS', 'HOSIERY',
             'PYJAMAS_LOUNGEWEAR', 'PYJAMA', 'LOUNGEWEAR', 'BOXER'] },
+    /* BRAS/PANTIES are Lane Bryant's own type spellings (2026-09-25):
+       the plural-stripping in subcategoryForType turns BRAS into BRA
+       but PANTIES into PANTIE, so both are listed to the letter. */
 
   /* ---- BELLEZA (2026-09-22) ---------------------------------------
      Same mechanism, different floor. One table serves both verticals
@@ -5758,18 +5785,35 @@ async function openCatalog(kind, key, opts = {}){
   // Every carrying store is read even when a filter is on: the chip row
   // has to carry honest counts for the stores you are NOT looking at, or
   // the filter has quietly become a gate again.
-  const byRetailer = new Map();
+  let byRetailer = new Map();
   for (const retailer of CATALOG_RETAILERS){
     const items = departmentItemsFor(data.retailers[retailer], kind, key, retailer)
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
   }
+  /* CURVY'S CATALOGUE-ONLY SOURCE (2026-09-25, Danny's iPhone QA).
+     Lane Bryant has no store tile -- Curvy remains a department, per
+     Danny -- so it is absent from RETAILERS and the loop above never
+     reads it. But its 169 extended-size items (70 panties, 51 bras)
+     ARE the section: without this merge the page only ever showed Old
+     Navy's extended-size leftovers. Merged first so aisle cover photos
+     and the rail read women's items before anything else; the
+     women-first band sort still governs the grid order. */
+  if (kind === 'department' && key === 'curvy' && data.retailers['lanebryant']){
+    const lbItems = departmentItemsFor(data.retailers['lanebryant'], kind, key, 'lanebryant')
+      .map(raw => normalizeLiveItem(raw, { retailer: 'lanebryant', department: 'curvy' }))
+      .filter(it => it.title);
+    if (lbItems.length) byRetailer = new Map([['lanebryant', lbItems], ...byRetailer]);
+  }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
   // A new category is a new question: the budget does not follow you into
   // it, for the same reason the search term does not.
-  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+  /* CURVY DEFAULTS TO MUJERES (2026-09-25, Danny's iPhone QA): the
+     section is a women's destination; Hombres is one tap away. */
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE,
+    curvyGender: (kind === 'department' && key === 'curvy') ? 'women' : null };
   renderCatalogFeed();
 }
 
@@ -5806,6 +5850,28 @@ function setCatalogBudget(key){
   catalogState.budget = key || null;
   catalogState.pageSize = LISTING_PAGE_SIZE;   // a new question, a first page
   renderCatalogFeed();
+}
+
+/* CURVY'S MUJERES/HOMBRES TOGGLE (2026-09-25, Danny's iPhone QA). The
+   section is a women's destination -- it opens on Mujeres, and one tap
+   switches the whole page (aisle tiles, rail, grid) to Hombres. A
+   refinement of the feed already on screen, so it re-renders in place
+   like the budget chips rather than pushing a route. */
+function setCurvyGender(g){
+  if (!catalogState || catalogState.key !== 'curvy') return;
+  catalogState.curvyGender = (g === 'men') ? 'men' : 'women';
+  catalogState.pageSize = LISTING_PAGE_SIZE;   // a new question, a first page
+  renderCatalogFeed();
+}
+function curvyGenderChipsHTML(active){
+  const chip = (g, label) => {
+    const on = active === g;
+    return `<button onclick="setCurvyGender('${g}')" aria-pressed="${on}" role="radio" aria-checked="${on}"
+      class="h-10 px-5 rounded-full border text-[13.5px] font-extrabold focus-ring transition flex-shrink-0"
+      style="border-color:${on ? 'var(--navy)' : 'var(--line)'}; background:${on ? 'var(--navy)' : '#fff'}; color:${on ? '#fff' : 'var(--navy)'}">${label}</button>`;
+  };
+  return `<div class="flex gap-2 mb-4" role="radiogroup" aria-label="Ver tallas de">
+    ${chip('women', 'Mujeres')}${chip('men', 'Hombres')}</div>`;
 }
 
 /* "Ver todo" is a REAL destination, not the absence of a choice: it
@@ -6222,11 +6288,25 @@ function renderCatalogFeed(){
   const all = [];
   for (const retailer of active) for (const it of byRetailer.get(retailer)) all.push({ ...it, retailer });
 
+  /* CURVY'S MUJERES/HOMBRES TOGGLE (2026-09-25, Danny's iPhone QA).
+     The section is a women's destination with men's as the secondary
+     mix, so it opens on Mujeres and the shopper picks Hombres with one
+     tap. Applied BEFORE the aisles are grouped, so the aisle tiles and
+     their counts always describe the feed the toggle is showing -- a
+     tile promising 40 and delivering 12 would be the gate the chip row
+     was built not to be. Unknown-gender items ride with Mujeres: they
+     are unisex basics, not menswear. */
+  const curvyDept = catalogState.kind === 'department' && catalogState.key === 'curvy';
+  const curvyGender = curvyDept ? (catalogState.curvyGender || 'women') : null;
+  const gendered = !curvyDept ? all : curvyGender === 'men'
+    ? all.filter(it => (it.curvyBand ?? 1) === 2)
+    : all.filter(it => (it.curvyBand ?? 1) !== 2);
+
   /* ---- AISLES ------------------------------------------------------
      Computed from the ACTIVE feed, so the counts match what a tap will
      actually show — an aisle promising 228 and delivering 12 because a
      store filter is on is worse than no aisle at all. */
-  const grouped = groupBySubcategory(all);
+  const grouped = groupBySubcategory(gendered);
   const splittable = shouldSplit(grouped);
   const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
 
@@ -6237,7 +6317,7 @@ function renderCatalogFeed(){
      what they want and a list of aisles is in their way. */
   if (splittable && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
     subtitle.textContent = `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`;
-    sections.innerHTML = catalogAisleListHTML(grouped, storeLabel, all);
+    sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + catalogAisleListHTML(grouped, storeLabel, gendered);
     revealActiveChips(sections);
     return;
   }
@@ -6246,7 +6326,7 @@ function renderCatalogFeed(){
      yields nothing rather than everything — a stale URL must not
      silently show the flat list it was meant to replace. */
   const aisleKey = catalogState.subKey && catalogState.subKey !== SUB_ALL ? catalogState.subKey : null;
-  const feed = aisleKey ? itemsInSubcategory(all, aisleKey) : all;
+  const feed = aisleKey ? itemsInSubcategory(gendered, aisleKey) : gendered;
 
   /* An in-category search narrows the cached feed first — instant and
      free. When that comes back thin, the on-demand card at the bottom
@@ -6317,7 +6397,8 @@ function renderCatalogFeed(){
      feed's own top items, so the rail always agrees with the grid
      below it. Search, budget and sort all flow through `items`. */
   sections.innerHTML = `
-    ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items, retailer: null })}
+    ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null })}
+    ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
     ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
@@ -9351,6 +9432,10 @@ function isBeautyRetailer(key){ return retailerFor(key)?.catalog === 'beauty'; }
    excluded — and so is any store whose scraper is still pending. */
 const LIVE_RETAILERS = activeRetailers().filter(r => r.search).map(r => r.key);
 const LIVE_RETAILER_LABEL = Object.fromEntries(Object.values(RETAILERS).map(r => [r.key, r.label]));
+/* Lane Bryant is catalogue-only (no store tile, per Danny: Curvy stays
+   a department), but its items surface inside Curvy, so the in-page
+   store filter chip needs a real label. */
+LIVE_RETAILER_LABEL.lanebryant = 'Lane Bryant';
 
 // Brand colours, used for the wordmark-pill fallback (see
 // retailerTextBadgeHTML below) whenever a store has no logo file or its

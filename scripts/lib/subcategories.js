@@ -58,7 +58,7 @@ export function normalizeType(raw) {
    tokens. Gendered departments share this table because the tokens are
    gender-neutral — a DRESS is a dress in Moda Mujer and in Moda Niños. */
 export const SUBCATEGORY_SPEC = [
-  { key: "dresses",      label: "Vestidos y faldas",     types: ["DRESS", "SKIRT", "GOWN"] },
+  { key: "dresses",      label: "Vestidos y faldas",     types: ["DRESS", "DRESSES", "SKIRT", "GOWN"] },
   { key: "tops",         label: "Tops y blusas",         types: ["TOP", "BLOUSE", "SHIRT", "TSHIRT", "T_SHIRT", "POLO", "HENLEY", "TANK_TOP"] },
   { key: "knitwear",     label: "Chompas y sudaderas",   types: ["SWEATER", "SWEATSHIRT", "HOODIE", "CARDIGAN",
                  "CREWNECK", "V_NECK", "TURTLENECK", "SHAWLNECK", "HOODIES_ZIPUPS", "KNIT"] },
@@ -79,7 +79,7 @@ export const SUBCATEGORY_SPEC = [
      placed where it stops being the thing you scroll past to reach a
      dress. */
   { key: "lingerie",     label: "Ropa interior y pijamas",
-    types: ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR", "ROBE", "SOCKS", "HOSIERY",
+    types: ["BRA", "BRAS", "PANTY", "PANTIES", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR", "ROBE", "SOCKS", "HOSIERY",
             "PYJAMAS_LOUNGEWEAR", "PYJAMA", "LOUNGEWEAR", "BOXER"] },
 
   /* ---- BEAUTY (2026-09-22) -------------------------------------
