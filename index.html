@@ -3678,6 +3678,24 @@ function categoryCoverFor(key){
   return assertCuratedCover(key, CATEGORY_COVERS[key]);
 }
 
+/* CACHE STAMP (2026-09-25). sporting_goods.jpg was replaced in place
+   (dumbbells -> boards+waves) and phones/CDN kept serving the stale
+   bytes at the bare URL -- the homepage tile showed the old shot while
+   the file on disk was already new. Every cover <img> on the site goes
+   through here, so one stamp covers the home rail, the Categorias grid
+   and anywhere else a cover renders. Bump COVER_CACHE_STAMP any time a
+   cover file is replaced again.
+
+   The stamp lives HERE and not in CATEGORY_COVERS: the test pins
+   "filenames are the department keys verbatim" and asserts the map
+   holds bare on-disk paths, so the map stays clean and only rendered
+   URLs carry the stamp. */
+const COVER_CACHE_STAMP = 'v=20260925b';
+function coverImgSrc(key){
+  const p = categoryCoverFor(key);
+  return p ? `${p}?${COVER_CACHE_STAMP}` : p;
+}
+
 /* ============================================================
    THE BRAND FIELD — the cover a category gets when no curated
    photograph exists.
@@ -3819,7 +3837,7 @@ function categoryCoverFallback(img){
 
 /** The art for one category's window: curated photo if there is one, else the designed cover. */
 function categoryCoverArtHTML(t){
-  const curated = categoryCoverFor(t.key);
+  const curated = coverImgSrc(t.key);
   const inner = curated
     ? `<img src="${escapeHtml(curated)}" alt="${escapeHtml(t.label || '')}" loading="lazy"
              class="w-full h-full" style="object-fit:cover; object-position:center"
@@ -5454,7 +5472,7 @@ function renderMobileStoresRail(){
    new department (Zapatos, and whatever follows) appears here with no
    second change. */
 function mobileCatCardHTML(t, kind){
-  const cover = categoryCoverFor(t.key);
+  const cover = coverImgSrc(t.key);
   const art = cover
     ? `<img src="${escapeHtml(cover)}" alt="" loading="lazy" decoding="async"
          style="width:100%; height:100%; object-fit:cover; object-position:center">`

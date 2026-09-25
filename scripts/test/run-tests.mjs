@@ -5020,7 +5020,12 @@ check("the rails' images are lazy, and its covers are the curated ones", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
     shopfrontSrc.indexOf("function renderMobileCatsRail("),
   );
-  if (!/categoryCoverFor\(t\.key\)/.test(card)) throw new Error("the rail stopped using the photographic covers");
+  /* RE-POINTED AT coverImgSrc, not loosened (2026-09-25). The rail still
+     renders the curated photographic covers -- coverImgSrc is
+     categoryCoverFor plus the cache stamp, defined beside it. What is
+     asserted is unchanged: photographic covers, lazy loading, and the
+     icon fallback for a department with no photograph. */
+  if (!/coverImgSrc\(t\.key\)/.test(card)) throw new Error("the rail stopped using the photographic covers");
   if (!/loading="lazy"/.test(card)) throw new Error("the third rail's photos load before the deals");
   /* The gradient fallback is still there for a department with no
      photograph -- an emoji on grey beats a broken image box. */
