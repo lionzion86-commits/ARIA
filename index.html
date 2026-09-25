@@ -850,20 +850,15 @@
       <button onclick="goHomeSection('precioHonesto')" data-utility="precioHonesto"
         class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Precio honesto</button>
     </nav>
-    <span class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0" data-key-club>
+    <!-- KEY CLUB IS JOINABLE NOW (2026-09-25): the page exists, so the
+         teaser is a real link to keyclubView and the Próximamente tag is
+         gone with it. "Únete gratis" on the page opens signup. -->
+    <button onclick="showPage('keyclubView')" class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0 focus-ring rounded" data-key-club aria-label="Aria Key Club — ver los beneficios">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <circle cx="8" cy="8" r="4.2"/><path d="M11 11 20 20"/><path d="M17.5 17.5 15.5 19.5"/><path d="M20 20l-1.6 1.6"/>
       </svg>
       <span class="font-extrabold tracking-[0.02em] whitespace-nowrap" style="color:#F4C463">Aria Key Club</span>
-      <!-- THE TAG IS THE PART THAT GIVES ON A SMALL PHONE. Below 380px
-           -- iPhone SE, the 360px Androids -- the bar cannot hold both
-           halves and the word on one line, and a utility bar that wraps
-           is a second header. The gold key and the name still read as a
-           teaser without it, and it is back at every width a current
-           iPhone actually reports (390, 393, 402, 430). -->
-      <span class="hidden min-[380px]:inline-flex items-center font-bold whitespace-nowrap rounded-full px-1.5 py-[3px] text-[9px] sm:text-[9.5px] uppercase tracking-[0.03em] sm:tracking-[0.06em]"
-        style="background:rgba(244,196,99,0.16); color:#F4C463; border:1px solid rgba(244,196,99,0.35)">Próximamente</span>
-    </span>
+    </button>
   </div>
 </div>
 
@@ -961,6 +956,7 @@
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en EE. UU.</a>
     <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
     <a href="#" onclick="showPage('returnsView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Devoluciones</a>
+    <a href="#" onclick="showPage('keyclubView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Aria Key Club</a>
     <div id="authAreaMobile" class="p-5"></div>
   </nav>
 </header>
@@ -3126,6 +3122,153 @@
   </div>
 </div>
 
+<div id="keyclubView" class="view">
+
+  <!-- ============ KEY CLUB HERO ============ -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-14 sm:py-20">
+      <div class="max-w-[62ch]">
+        <div class="ariaKicker mb-4">Membresía Aria</div>
+        <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
+          Aria <span style="color:#F4C463">Key Club</span>
+        </h1>
+        <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
+          Tu llave para que cada compra te devuelva dinero. Gratis al lanzamiento: cashback en cada pedido, acceso anticipado a las ofertas y envío exprés a precio de miembro.
+        </p>
+        <button onclick="openAuthModal('signup')" class="ariaHeroCta focus-ring transition">Únete gratis</button>
+        <p class="mt-4 text-[12.5px]" style="color:#7E8DB0">Sin tarjeta. Sin compromiso. Tu cuenta Aria es tu membresía.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ BENEFITS ============ -->
+  <section style="background:var(--paper)">
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="ariaKicker ariaKicker--onLight mb-3">Los beneficios</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-10 max-w-[24ch]" style="color:var(--navy)">
+        Cuatro razones para tener la llave.
+      </h2>
+      <div class="grid sm:grid-cols-2 gap-5">
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4.2"/><path d="M11 11 20 20"/><path d="M17.5 17.5 15.5 19.5"/><path d="M20 20l-1.6 1.6"/></svg>
+          </div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Gratis al lanzamiento</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5h.01M17.5 14.5h.01"/></svg>
+          </div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">$5 de vuelta por cada $100</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">5% de cashback en cada compra, directo a tu saldo Aria. Dinero de verdad, no puntos raros.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+          </div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Entra primero a las ofertas</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Black Friday, Cyber Monday y las ventas grandes del año: los miembros compran antes que todos.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 19V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg>
+          </div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Exprés a precio de miembro</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW CASHBACK WORKS ============ -->
+  <section style="background:#fff">
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="ariaKicker ariaKicker--onLight mb-3">Así funciona</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-10 max-w-[24ch]" style="color:var(--navy)">
+        Tu cashback en tres pasos.
+      </h2>
+      <div class="grid sm:grid-cols-3 gap-5">
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon text-[18px] font-extrabold" style="color:#B8860B" aria-hidden="true">1</div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Compra como siempre</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Haz tu pedido normal en ariashop.pe. Cada compra suma.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon text-[18px] font-extrabold" style="color:#B8860B" aria-hidden="true">2</div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">$5 vuelven a tu saldo</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Por cada $100 en compras, $5 regresan a tu saldo Aria.</p>
+        </article>
+        <article class="ariaCard ariaCard--light">
+          <div class="ariaCardIcon text-[18px] font-extrabold" style="color:#B8860B" aria-hidden="true">3</div>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Úsalo en tu próxima compra</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Tu saldo se descuenta al pagar. Compras, ganas, repites.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EARLY ACCESS ============ -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="max-w-[62ch]">
+        <div class="ariaKicker mb-3">Acceso anticipado</div>
+        <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-4" style="color:#fff">
+          Las ventas grandes se acercan.
+        </h2>
+        <p class="text-[15px] sm:text-[16.5px] leading-relaxed mb-2" style="color:#AFBBD6">
+          Black Friday, Cyber Monday y las fechas que todo el Perú espera: los miembros del Key Club entran primero. Muy pronto.
+        </p>
+        <button onclick="openAuthModal('signup')" class="ariaHeroCta focus-ring transition">Únete gratis</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FAQ ============ -->
+  <section style="background:var(--paper)">
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="max-w-[72ch]">
+        <div class="ariaKicker ariaKicker--onLight mb-3">Preguntas</div>
+        <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-8" style="color:var(--navy)">
+          Lo que todos preguntan.
+        </h2>
+        <div class="border-t" style="border-color:var(--line)">
+          <div class="py-6 border-b" style="border-color:var(--line)">
+            <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿Es gratis?</h3>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Sí. Al lanzamiento, unirse al Key Club no cuesta nada.</p>
+          </div>
+          <div class="py-6 border-b" style="border-color:var(--line)">
+            <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿Cómo recibo mi cashback?</h3>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Como saldo Aria en tu cuenta: $5 por cada $100 en compras. Lo ves en tu cuenta y se descuenta solo cuando pagas tu próximo pedido.</p>
+          </div>
+          <div class="py-6 border-b" style="border-color:var(--line)">
+            <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿Cuándo empieza?</h3>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Muy pronto. Crea tu cuenta hoy y serás de los primeros en entrar.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FINAL CTA ============ -->
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20 text-center">
+      <div class="ariaKicker mb-3">Aria Key Club</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-4" style="color:#fff">
+        Pide tu llave.
+      </h2>
+      <p class="text-[15px] sm:text-[16.5px] leading-relaxed max-w-[52ch] mx-auto" style="color:#AFBBD6">
+        Gratis al lanzamiento. Cashback en cada compra, primero en las ofertas, exprés a $6.
+      </p>
+      <button onclick="openAuthModal('signup')" class="ariaHeroCta focus-ring transition">Únete gratis</button>
+    </div>
+  </section>
+
+</div>
+
 <!-- ============ SITE FOOTER ============ -->
 <!-- Global — a sibling after every view div (not nested inside homeView
      like before), so it renders on every page, including checkout.html
@@ -3153,6 +3296,7 @@
         <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="font-semibold hover:text-[color:var(--navy)] transition" style="color:var(--navy)">Precio Honesto</a>
         <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
         <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
+        <a href="#" onclick="showPage('keyclubView');return false;" class="hover:text-[color:var(--navy)] transition">Aria Key Club</a>
         <a href="#" onclick="showPage('termsView');return false;" class="hover:text-[color:var(--navy)] transition">Términos</a>
         <a data-support="general" href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
         <button onclick="toggleAssistant()" class="hover:text-[color:var(--navy)] transition">¿Preguntas? Chatea con nosotros</button>
@@ -7975,7 +8119,7 @@ function catalogShowMore(){
 }
 
 
-const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','termsView','adminView'];
+const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','keyclubView','termsView','adminView'];
 
 /* ============================================================
    ROUTING / BROWSER HISTORY
@@ -8258,7 +8402,7 @@ function initRouter(){
 // product, department, store, ofertas) pushes its own route from its own
 // entry function, where the query/product/department is known. Routing
 // these here beats editing two dozen onclick attributes.
-const STATIC_ROUTE_VIEWS = new Set(['howView', 'storesView', 'aboutView', 'returnsView', 'termsView', 'adminView']);
+const STATIC_ROUTE_VIEWS = new Set(['howView', 'storesView', 'aboutView', 'returnsView', 'keyclubView', 'termsView', 'adminView']);
 
 /* Gold marks the section you are actually in — one link at a time, and
    only ever one. Called from showPage() so every entry point (nav click,

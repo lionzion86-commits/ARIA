@@ -5298,7 +5298,7 @@ check("the utility bar sits above the header and pushes nothing down", () => {
   eq((utilityBar.match(/whitespace-nowrap/g) || []).length >= 3, true, "something in the bar can wrap to a second line");
 });
 
-check("the bar's two links, and a Key Club that does not pretend to be one", () => {
+check("the bar's two links, and a Key Club that goes somewhere", () => {
   /* BOTH LINKS GO THROUGH goHomeSection, which is the router the nav
      already uses for a section of the home page — not a bare #hash that
      would break when the shopper is on another view. */
@@ -5311,26 +5311,29 @@ check("the bar's two links, and a Key Club that does not pretend to be one", () 
     if (!hdrSrc.includes(`id="${id}"`)) throw new Error(`the bar links to #${id}, which is not on the page`);
   }
 
-  /* A TEASER IS NOT A BUTTON. There is nothing behind the Key Club yet,
-     and a tappable thing that does nothing is worse than a thing that
-     plainly says "Próximamente". */
+  /* JOINABLE SINCE 2026-09-25. The Key Club page exists, so the teaser
+     is a real link to keyclubView — a tappable thing that does nothing
+     would be worse, but a link to a real page is the honest version.
+     No more "Próximamente": "Únete gratis" on the page opens signup. */
   /* FROM THE OPENING TAG, not from the attribute. Slicing at
      "data-key-club" starts the slice INSIDE the tag, so the element's
      own name is not in it -- and a check for "<button" could never fire
      however the teaser was rewritten. */
   const clubAt = utilityBar.indexOf("data-key-club");
   const club = clubAt < 0 ? "" : utilityBar.slice(utilityBar.lastIndexOf("<", clubAt), utilityBar.indexOf("</div>", clubAt));
-  if (!club) throw new Error("the Key Club teaser is gone");
-  if (/^<(?!span\b)/.test(club)) throw new Error(`the Key Club teaser is a ${club.slice(1, club.indexOf(" "))}, not a plain span`);
-  if (/<button|<a /.test(club)) throw new Error("the Key Club teaser became clickable");
-  if (/onclick=/.test(club)) throw new Error("the Key Club teaser has a click handler");
+  if (!club) throw new Error("the Key Club link is gone");
+  if (!/^<button\b/.test(club)) throw new Error(`the Key Club is a <${club.slice(1, club.indexOf(">")).split(" ")[0]}>, not a button`);
+  if (!/onclick="showPage\('keyclubView'\)"/.test(club)) throw new Error("the Key Club does not open keyclubView");
   if (!/Aria Key Club/.test(club)) throw new Error("the Key Club lost its name");
-  if (!/Próximamente/.test(club)) throw new Error("the Key Club no longer says it is coming");
+  if (/Próximamente/.test(club)) throw new Error("the Key Club still says it is coming");
   // Gold, which on this site is the orb-and-logo colour — and the key is
   // drawn, never an emoji standing in for an icon.
   if (!/#F4C463/.test(club)) throw new Error("the Key Club lost its gold");
   if (!/<svg/.test(club)) throw new Error("the key is not drawn");
   if (/[\u{1F300}-\u{1FAFF}]/u.test(club)) throw new Error("an emoji is standing in for the key");
+  // And the page behind the link exists, registered as a view.
+  if (!hdrSrc.includes('id="keyclubView"')) throw new Error("keyclubView does not exist");
+  if (!/keyclubView/.test(hdrSrc.slice(hdrSrc.indexOf("const ALL_VIEWS"), hdrSrc.indexOf("const ALL_VIEWS") + 400))) throw new Error("keyclubView is not registered in ALL_VIEWS");
 });
 
 check("a section jumped to does not land under the sticky header", () => {

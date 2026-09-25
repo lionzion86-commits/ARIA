@@ -2019,11 +2019,12 @@ await check("the utility bar's two links land on their sections", async () => {
   const club = await page.evaluate(() => {
     const el = document.querySelector("[data-key-club]");
     return { tag: el.tagName, text: el.textContent.replace(/\s+/g, " ").trim(),
-             interactive: !!el.closest("button, a") || !!el.querySelector("button, a") || typeof el.onclick === "function" };
+             goesToKeyClub: typeof el.onclick === "function" && (el.getAttribute("onclick") || "").includes("keyclubView") };
   });
-  eq(club.tag, "SPAN", "the Key Club teaser is not a plain span");
-  eq(club.interactive, false, "the Key Club teaser is clickable, and there is nothing behind it");
+  eq(club.tag, "BUTTON", "the Key Club is not a button");
+  eq(club.goesToKeyClub, true, "the Key Club does not open keyclubView");
   if (!club.text.includes("Aria Key Club")) throw new Error("the Key Club lost its name");
+  if (club.text.includes("Próximamente")) throw new Error("the Key Club still says it is coming");
 
   /* SETTLE THE PAGE BEFORE MEASURING A SCROLL, and this is not the test
      being made lenient -- it is the test being made about the product.
