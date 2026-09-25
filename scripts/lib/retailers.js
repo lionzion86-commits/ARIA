@@ -258,6 +258,25 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* COSTCO (2026-09-24) — Danny's call: warehouse club, mass/value like
+     Target/Walmart, so it sits at the back of the Tiendas row — near them,
+     never adjacent (see the order test below). Real logo (logos/costco.png,
+     840px; red sampled from the artwork: #E01030). No catalogue yet, so the
+     honest-pending state: `search: false` with `pendingNote`, same as
+     Skims/Revolve/Fendi. The day costco-catalog.json is committed at repo
+     root, flip `browse: true` and add it to CATALOGUE_FILES in
+     loadDepartmentCache's index.html mirror — one line each, and the store
+     lights up everywhere downstream. */
+  costco: {
+    key: "costco",
+    label: "Costco",
+    color: "#E01030",
+    logo: "logos/costco.png",
+    tagline: "Electrónica, hogar y más, a precio de club",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
   /* ============================================================
      ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
 

@@ -9244,6 +9244,15 @@ const RETAILERS = {
      it out of the live fan-out, which has no actor for it. See the note
      on the Macy's row in scripts/lib/retailers.js. */
   macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+  /* COSTCO (2026-09-24) — Danny's call: warehouse club, mass/value like
+     Target/Walmart, so it sits at the back of the Tiendas row — near them,
+     never adjacent. Real logo (logos/costco.png, 840px, red sampled from
+     the artwork: #E01030). No catalogue yet: `search: false` with
+     `pendingNote` is the honest-pending state, same as Skims/Revolve/Fendi.
+     The day costco-catalog.json is committed at repo root, flip
+     `browse: true` and add it to CATALOGUE_FILES in loadDepartmentCache —
+     one line each, and the store lights up everywhere downstream. */
+  costco:          { key: 'costco',          label: 'Costco',            color: '#E01030', logo: 'logos/costco.png',      tagline: 'Electrónica, hogar y más, a precio de club',     kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
   /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
      bot protection returned zero products across three integrations.
      Catalogue file ssense-catalog.json (2,426 men's products) is committed

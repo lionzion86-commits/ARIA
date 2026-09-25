@@ -852,7 +852,7 @@ check("index.html's registry mirror matches the module", () => {
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
   "bathandbodyworks", "yesstyle", "footlocker", "sunglasshut", "dyson",
-  "macys", "oldnavy", "target", "walmart",
+  "macys", "costco", "oldnavy", "target", "walmart",
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
