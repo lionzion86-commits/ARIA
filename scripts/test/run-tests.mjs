@@ -851,7 +851,8 @@ check("index.html's registry mirror matches the module", () => {
    both the module and the index.html mirror. */
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
-  "bathandbodyworks", "yesstyle", "footlocker", "sunglasshut", "dyson",
+  "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
+  "sunglasshut", "dyson",
   "macys", "oldnavy", "target", "walmart",
 ];
 function everydayOrder(){
@@ -3547,23 +3548,34 @@ check("the order is editorial, and lingerie is last", () => {
      aisles by size would put lingerie second and rebuild the problem, so
      the order is declared, and this is what stops anyone "improving" it
      into a count sort. */
-  /* ONE TABLE, TWO FLOORS (2026-09-22). The beauty aisles were appended
-     when beauty-catalog.json landed, so "last in the array" is no
-     longer the same question as "last on the womenswear floor". The
-     rule was always per-department: lingerie last among the apparel
-     aisles, fragancia last among the beauty ones. Both are asserted,
-     because both are the same fix. */
+  /* ONE TABLE, THREE FLOORS (2026-09-22, 2026-09-25). The beauty aisles
+     were appended when beauty-catalog.json landed, and the sports aisles
+     when Dick's + PacSun landed inside Deportes — so "last in the array"
+     is no longer the same question as "last on the womenswear floor".
+     The rule was always per-department: lingerie last among the apparel
+     aisles, fragancia last among the beauty ones, and the sports floor
+     walked skate -> surf -> fitness. All three are asserted, because all
+     three are the same fix. */
   const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
   const BEAUTY_AISLES = ["face", "lips", "eyes", "skincare", "nails", "fragrance"];
-  const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k));
+  const SPORTS_AISLES = ["skate", "surf", "fitness", "sportswear"];
+  const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k) && !SPORTS_AISLES.includes(k));
+  const sports = keys.filter((k) => SPORTS_AISLES.includes(k));
   const beauty = keys.filter((k) => BEAUTY_AISLES.includes(k));
   eq(apparel[0], "dresses", "dresses lead");
   eq(apparel[apparel.length - 1], "lingerie", "lingerie is last on the apparel floor");
+  /* Ropa deportiva walks the sports floor too (2026-09-25): PacSun's
+     surf/skate streetwear is not a fashion aisle, so it sits with the
+     sports aisles, after fitness. */
+  eq(sports.join(), "skate,surf,fitness,sportswear", "the sports floor is walked skate -> surf -> fitness -> sportswear");
   eq(beauty[beauty.length - 1], "fragrance", "fragancia is last on the beauty floor");
-  // The two blocks do not interleave: an apparel aisle after a beauty
+  // The three blocks do not interleave: an apparel aisle after a beauty
   // one would put "Rostro" in the middle of a womenswear department the
-  // day some store reports both.
+  // day some store reports both, and a surf aisle in the middle of the
+  // beauty floor would do the same to Deportes.
   eq(keys.slice(0, apparel.length).join(), apparel.join(), "the apparel block is contiguous and first");
+  eq(keys.slice(apparel.length, apparel.length + sports.length).join(), sports.join(), "the sports block is contiguous and second");
+  eq(keys.slice(apparel.length + sports.length).join(), beauty.join(), "the beauty block is contiguous and last");
   // The grouping the brief asked for, exactly.
   const lingerie = subcats.SUBCATEGORY_SPEC.find((r) => r.key === "lingerie").types;
   for (const t of ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR"]) {
@@ -5008,7 +5020,12 @@ check("the rails' images are lazy, and its covers are the curated ones", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
     shopfrontSrc.indexOf("function renderMobileCatsRail("),
   );
-  if (!/categoryCoverFor\(t\.key\)/.test(card)) throw new Error("the rail stopped using the photographic covers");
+  /* RE-POINTED AT coverImgSrc, not loosened (2026-09-25). The rail still
+     renders the curated photographic covers -- coverImgSrc is
+     categoryCoverFor plus the cache stamp, defined beside it. What is
+     asserted is unchanged: photographic covers, lazy loading, and the
+     icon fallback for a department with no photograph. */
+  if (!/coverImgSrc\(t\.key\)/.test(card)) throw new Error("the rail stopped using the photographic covers");
   if (!/loading="lazy"/.test(card)) throw new Error("the third rail's photos load before the deals");
   /* The gradient fallback is still there for a department with no
      photograph -- an emoji on grey beats a broken image box. */
