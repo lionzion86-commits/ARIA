@@ -5026,8 +5026,11 @@ async function relatedPool(){
            department grid withholds. No committed catalogue carries the
            flag today, so this is a no-op now and a guard later. */
         if (!notQuarantined(raw)) continue;
-        const it = normalizeLiveItem(raw, { retailer, department });
-        if (!it.title) continue;
+        /* One malformed record must never take down the whole search:
+           skip the poison item and keep the rest of the catalogue. */
+        let it = null;
+        try { it = normalizeLiveItem(raw, { retailer, department }); } catch { continue; }
+        if (!it || !it.title) continue;
         const key = retailer + '::' + it.title;
         const had = byKey.get(key);
         if (had){ if (!had.departments.includes(department)) had.departments.push(department); continue; }
@@ -7382,6 +7385,41 @@ function pushRoute(route){
 
 /* Re-renders a view from a history entry. Never pushes — this is the
    back button's path, and pushing here is how SPAs trap people. */
+/* Resolve a product by its exact title against the live catalogue.
+   Used when a product route is restored without the in-memory item it came
+   from (fresh load, restored tab, shared link). Title-only URLs cannot
+   identify a product any other way — retailer and product id are not in
+   the route — so this is the last honest chance before admitting the
+   product is unavailable. Never fakes a search out of the product name:
+   that is the doorway that showed Danny a pants title with no image and
+   no results after he tapped a shoe. */
+async function findCatalogProductByTitle(title){
+  const want = String(title || '').trim().toLowerCase();
+  if (!want) return null;
+  const pool = await relatedPool().catch(() => []);
+  return pool.find(it => String(it.title || '').trim().toLowerCase() === want) || null;
+}
+
+/* Honest empty state for a product route the catalogue cannot resolve.
+   Shows the product page shell with a plain-language explanation instead
+   of substituting a different product or an empty search page. */
+function showProductUnavailable(name){
+  showPage('productView');
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set('productViewBadge', el => { el.innerHTML = ''; });
+  set('productViewBrand', el => { el.textContent = ''; el.hidden = true; });
+  set('productViewTitle', el => { el.textContent = name || 'Producto'; });
+  set('productViewPrice', el => { el.innerHTML = ''; });
+  setProductBuyable(false);
+  set('productViewImg', el => { el.removeAttribute('src'); el.classList.add('hidden'); });
+  set('productViewImgFallback', el => { el.classList.remove('hidden'); });
+  set('productViewMeta', el => {
+    el.innerHTML = '<div class="text-[13px]" style="color:#5B6478">Este producto ya no está disponible en nuestro catálogo. Prueba buscar algo similar con la barra de búsqueda.</div>';
+  });
+  set('productSizeWrap', el => { el.hidden = true; });
+  set('relatedRail', el => { el.hidden = true; });
+}
+
 async function applyRoute(route){
   isRestoringRoute = true;
   try {
@@ -7389,7 +7427,10 @@ async function applyRoute(route){
       case 'resultsView': await showResults(route.q || '', { fromHistory: true }); break;
       case 'productView': {
         // Restore from the list we came back to when we still have it;
-        // otherwise show what the URL carries rather than a blank page.
+        // otherwise resolve the product against the catalogue by exact
+        // title — never fake a search out of the product name, which is
+        // the doorway that once showed a pants title with no image and
+        // no results after a shoe was tapped.
         const known = (searchResults || []).find(it => it.title === route.name)
           || (salesRendered || []).find(it => it.title === route.name)
           || (autoPartsRendered || []).find(it => it.title === route.name);
@@ -7397,7 +7438,14 @@ async function applyRoute(route){
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
           known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
           { brand: known.brand });
-        else if (route.name) showResults(route.name, { fromHistory: true });
+        else if (route.name) {
+          const found = await findCatalogProductByTitle(route.name).catch(() => null);
+          if (found) showProduct(found.retailer, found.title, found.price, found.weightKg, found.image || '',
+            found.sizes || [], needsSizeSelection(found.retailer, found.title), sizeCategoryFor(found.retailer, found.title),
+            found.rating != null ? String(found.rating) : '', found.images || [], found.catalogWeightKg ?? null,
+            { brand: found.brand });
+          else showProductUnavailable(route.name);
+        }
         else showPage('homeView');
         break;
       }
@@ -8525,6 +8573,11 @@ let liveSearchFailures = [];    // stores that did not answer, by label
 let liveSearchFound = 0;        // how many items the live scan actually added
 let liveSearchQueryUsed = '';   // the refined words the scan actually went out with
 
+/* Retry entry point for a failed catalogue search. The failed query is
+   kept in module state so the retry button needs no inline quoting. */
+let lastFailedQuery = null;
+function retryFailedSearch(){ if (lastFailedQuery) showResults(lastFailedQuery); }
+
 async function showResults(query, opts = {}){
   pushRoute({ view: 'resultsView', q: query });
   showPage('resultsView');
@@ -8576,7 +8629,22 @@ async function showResults(query, opts = {}){
      department tiles ask for it on DOMContentLoaded -- so by the time
      anyone has finished typing, this is a read out of memory. No
      network, no Apify, no cost, and it works at zero balance. */
-  const res = await catalogSearch(query);
+  /* A catalogue failure must never leave the page showing a bare title
+     with no image and no results and no explanation — that is the broken
+     doorway Danny reported. Say plainly that the catalogue failed and
+     offer a retry. */
+  let res = null;
+  try {
+    res = await catalogSearch(query);
+  } catch (err) {
+    console.warn('[search] catalogSearch failed:', err);
+    lastFailedQuery = query;
+    document.getElementById('resultCount').innerHTML =
+      'No pudimos cargar el catálogo para esta búsqueda. ' +
+      '<button type="button" class="underline font-bold" onclick="retryFailedSearch()">Reintentar</button>';
+    return;
+  }
+  lastFailedQuery = null;
   /* Guard against a slow catalogue and a fast second search: if the
      shopper has already asked for something else, this result is stale
      and must not overwrite theirs. */
@@ -17258,6 +17326,44 @@ if (SpeechRecognitionAPI) {
       }, MAX_SESSION_MS);
     };
 
+/* SPOKEN PUNCTUATION -> REAL PUNCTUATION (client mirror).
+   Speech-to-text hears Danny dictate his punctuation, so the transcript
+   arrives full of the words "comma", "period", "exclamation point" —
+   and the model echoes them, and then Aria's voice says them out loud
+   ("of course we do comma why" — the 2026-09-24 report). This converts
+   the dictated words into the marks they mean before the transcript is
+   shown or sent. The recognition is es-PE but Danny dictates in
+   English, so both languages are covered. Mirror of
+   sanitizeSpokenPunctuation in netlify/functions/_aria-chat-model.js —
+   keep the two rule lists identical. */
+function spokenPunctuationToMarks(text){
+  let t = String(text || '');
+  if (!t) return t;
+  const rules = [
+    [/(exclamation\s+points?|signos?\s+de\s+exclamaci[oó]n)/gi, '!'],
+    [/(question\s+marks?|signos?\s+de\s+(interrogaci[oó]n|pregunta))/gi, '?'],
+    [/(punto\s+y\s+coma|semicolons?)/gi, ';'],
+    [/(dos\s+puntos|colons?)/gi, ':'],
+    [/(periods?|puntos?(?!\s+de\b))/gi, '.'],
+    [/(commas?|(?<!en\s)comas?)/gi, ','],
+    [/(new\s+paragraphs?|nuevos?\s+p[aá]rrafos?)/gi, '\n'],
+    [/(new\s+lines?|nuevas?\s+l[ií]neas?)/gi, '\n'],
+    [/(at\s+signs?|arrobas?)/gi, '@'],
+    [/(hyphens?|dashes|guiones?)/gi, '-'],
+  ];
+  t = ' ' + t + ' ';
+  for (const [re, sym] of rules) {
+    // The lookahead keeps the trailing space unconsumed so "comma comma"
+    // converts both, not just the first.
+    t = t.replace(new RegExp(' (' + re.source + ')(?= )', re.flags), ' ' + sym + ' ');
+  }
+  return t
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\s*([,.!?;:])/g, '$1')
+    .trim();
+}
+
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
   const transcript = result[0].transcript;
@@ -17280,16 +17386,23 @@ recognition.onresult = (e) => {
 
   if (result.isFinal) {
     lastTranscriptLength = 0;
-    addAssistantMessage('user', transcript);
+    /* Dictated punctuation arrives as words ("comma", "punto") — convert
+       to the real marks before the message is shown or sent, so the chat
+       bubble, the search and the model all see "shoes, red ones" instead
+       of "shoes comma red ones". Mirror of sanitizeSpokenPunctuation in
+       netlify/functions/_aria-chat-model.js (this page is a plain
+       <script> and cannot import). */
+    const cleanTranscript = spokenPunctuationToMarks(transcript);
+    addAssistantMessage('user', cleanTranscript);
     document.getElementById('assistantInput').value = '';
 
-    if (isGoodbye(transcript)) {
+    if (isGoodbye(cleanTranscript)) {
       continuousMode = false;
-      setTimeout(() => runAssistantBrain(transcript), 350);
+      setTimeout(() => runAssistantBrain(cleanTranscript), 350);
       return;
     }
 
-    setTimeout(() => runAssistantBrain(transcript), 350);
+    setTimeout(() => runAssistantBrain(cleanTranscript), 350);
   }
 };
 
