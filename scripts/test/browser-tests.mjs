@@ -1955,20 +1955,24 @@ await check("nothing in the shopfront moves on its own", async () => {
   await ctx.close();
 });
 
-await check("the desktop home page never builds the rails", async () => {
-  /* Not a style question: initMobileShopfront's guard is what stops a
-     laptop fetching the sales cache and twenty product photos for three
-     sections it will never show. */
+await check("the desktop home page builds the desktop rails", async () => {
+  /* 2026-09-25: the laptop has its own shopfront -- Ofertas, Tiendas,
+     Categorias -- filled on first paint like the phone's. The phone's
+     rows stay in the DOM too (CSS hides them); the renderers write both. */
   const { ctx, page, errors } = await openPage();
   await page.waitForTimeout(4000);
   const state = await page.evaluate(() => ({
-    deals: document.getElementById("mobileDealsRow").children.length,
-    stores: document.getElementById("mobileStoresRow").children.length,
+    deals: document.getElementById("desktopDealsRow").children.length,
+    stores: document.getElementById("desktopStoresRow").children.length,
+    cats: document.getElementById("desktopCatsRow").children.length,
+    order: [...document.querySelectorAll("#desktopShopfront > section")].map(s => s.getAttribute("aria-label")).join(" > "),
     started: mobileShopfrontStarted,
   }));
-  eq(state.started, false, "the desktop ran the phone's shopfront");
-  eq(state.deals, 0, "the desktop built the deals rail");
-  eq(state.stores, 0, "the desktop built the stores rail");
+  eq(state.started, true, "the desktop never ran the shopfront init");
+  eq(state.deals > 0, true, "the desktop deals rail is empty");
+  eq(state.stores > 0, true, "the desktop stores rail is empty");
+  eq(state.cats > 0, true, "the desktop cats rail is empty");
+  eq(state.order, "Ofertas > Tiendas > Categor\u00edas", "the desktop shopfront order");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
