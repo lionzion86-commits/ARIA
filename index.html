@@ -139,6 +139,27 @@
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  /* TÉRMINOS Y CONDICIONES — visual dignity upgrade (2026-09-25).
+     Legal page, not marketing: visuals only, the copy is untouched.
+     Slim navy header band reusing the interior-page system (.ariaNavyBand
+     + .ariaGoldHair) shared with Tiendas/Nosotros/Cómo funciona, with a
+     very dim self-hosted navy texture behind the title; the body reads
+     as a dignified document — generous spacing, a short gold rule under
+     each section title, comfortable measure. Mobile-first, everything
+     scoped to #termsView so no other page can be affected. */
+  #termsView .terms-texture{ position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; opacity:.16; pointer-events:none }
+  #termsView .terms-section{ margin-bottom:2.5rem }
+  #termsView .terms-section:last-child{ margin-bottom:0 }
+  #termsView .terms-section h2{ position:relative; font-size:17px; font-weight:800;
+    letter-spacing:-0.01em; color:var(--navy); margin-bottom:.6rem; padding-bottom:.6rem }
+  #termsView .terms-section h2::after{ content:""; position:absolute; left:0; bottom:0;
+    width:32px; height:2px; background:#F4C463; border-radius:2px }
+  #termsView .terms-section p{ font-size:15px; line-height:1.75; color:#3f4652; max-width:62ch }
+  @media (min-width:640px){
+    #termsView .terms-section{ margin-bottom:3rem }
+    #termsView .terms-section h2{ font-size:18px }
+  }
   /* The phone's rails. Snap so a swipe lands on a card rather than
      halfway through one, and no scrollbar because a touch rail with a
      visible track reads as a desktop widget. Nothing here animates:
@@ -2669,31 +2690,37 @@
      that would need real legal drafting once the entity is registered;
      same honest "en trámite" framing as the footer and Nosotros page. -->
 <div id="termsView" class="view">
-  <div class="max-w-[860px] mx-auto px-5 py-14">
-    <h1 class="text-[32px] font-extrabold tracking-[-0.03em] mb-3">Términos y condiciones</h1>
-    <p class="text-[15px] text-zinc-600 leading-relaxed max-w-[62ch] mb-10">
-      Así funciona el servicio, en términos simples. Los términos legales formales se completarán junto con el registro de la entidad — mientras tanto, esto es exactamente lo que hacemos y lo que puedes esperar.
-    </p>
+  <section class="ariaNavyBand relative overflow-hidden">
+    <img src="assets/terminos/header-texture.jpg" alt="" aria-hidden="true" class="terms-texture" />
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[860px] mx-auto px-5 py-10 sm:py-12">
+      <h1 class="text-[32px] sm:text-[36px] font-extrabold tracking-[-0.03em] mb-3" style="color:#fff">Términos y condiciones</h1>
+      <p class="text-[15px] leading-relaxed max-w-[62ch]" style="color:#AFBBD6">
+        Así funciona el servicio, en términos simples. Los términos legales formales se completarán junto con el registro de la entidad — mientras tanto, esto es exactamente lo que hacemos y lo que puedes esperar.
+      </p>
+    </div>
+  </section>
 
-    <div class="space-y-8 text-[14px] text-zinc-600 leading-relaxed">
-      <div>
-        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Qué es Aria</h2>
+  <div class="max-w-[860px] mx-auto px-5 py-10 sm:py-12">
+    <div class="terms-doc">
+      <div class="terms-section">
+        <h2>Qué es Aria</h2>
         <p>Aria compara precios en vivo en tiendas oficiales de Estados Unidos y compra directamente en tu nombre — nunca a través de un revendedor externo. Consolidamos tu pedido en nuestro almacén de Miami y lo entregamos en Perú.</p>
       </div>
-      <div>
-        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Precios y pagos</h2>
+      <div class="terms-section">
+        <h2>Precios y pagos</h2>
         <p>El precio que ves incluye el costo del producto más nuestro margen de servicio, mostrado en soles usando el tipo de cambio real del día (fuente: SUNAT). El envío y, si corresponde, los aranceles e impuestos de aduana de Perú se calculan y se muestran antes de pagar, nunca después.</p>
       </div>
-      <div>
-        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Devoluciones y reembolsos</h2>
+      <div class="terms-section">
+        <h2>Devoluciones y reembolsos</h2>
         <p>Nuestra política completa de devoluciones — plazos, quién cubre el costo del retorno según el caso, y cómo se procesa tu reembolso — está en la página <a href="#" onclick="showPage('returnsView');return false;" class="font-semibold" style="color:var(--blue)">Devoluciones</a>.</p>
       </div>
-      <div>
-        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Entidad legal</h2>
+      <div class="terms-section">
+        <h2>Entidad legal</h2>
         <p>Entidad legal en trámite de registro — RUC y datos legales completos próximamente. Estos términos se actualizarán con el detalle formal correspondiente una vez completado el registro.</p>
       </div>
-      <div>
-        <h2 class="font-bold text-[16px] mb-2" style="color:var(--navy)">Contacto</h2>
+      <div class="terms-section">
+        <h2>Contacto</h2>
         <!-- The chat is offered BESIDE a working address here, not instead
              of one, so it stays: a shopper who prefers to type at a bot
              may, and a shopper who wants a person has one. That is the
