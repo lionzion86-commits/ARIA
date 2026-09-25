@@ -643,15 +643,16 @@ await check("the three beauty stores render their real logo, unfiltered", async 
     }
     if (v.objectFit && v.objectFit !== "contain") throw new Error(`${key} is ${v.objectFit}, not contain`);
     if (!(v.naturalWidth > 0)) throw new Error(`${key} has the right src but the image did not decode`);
-    /* THE PENDING BADGE IS PER STORE, NOT PER CATEGORY (2026-09-22).
-       Sephora's 80 products landed in beauty-catalog.json, so its card
-       must NOT say "conectando" any more; Victoria's Secret and Bath &
-       Body Works are not in that file and still must. The three stopped
-       being interchangeable, and that is the badge telling the truth
-       rather than a regression. */
-    eq(v.stillPending, key !== "sephora",
-      key === "sephora" ? "Sephora has a catalogue and must not read as pending"
-                        : `${key} stopped saying its catalogue is being connected`);
+    /* THE PENDING BADGE IS PER STORE, NOT PER CATEGORY (2026-09-22;
+       Victoria's Secret joined 2026-09-24). Sephora's 80 products
+       landed in beauty-catalog.json and then Victoria's Secret's 1,649
+       did, so neither card says "conectando" any more; Bath & Body
+       Works is not in that file and still must. The three stopped being
+       interchangeable, and that is the badge telling the truth rather
+       than a regression. */
+    eq(v.stillPending, key === "bathandbodyworks",
+      key === "bathandbodyworks" ? "Bath & Body Works has no catalogue and must still read as pending"
+                                 : `${key} has a catalogue and must not read as pending`);
     eq(v.hasWordmarkPill, false, `${key} still renders the wordmark fallback`);
   }
   /* And the grid is the registry, not a hand-written list. It was "the
@@ -1553,19 +1554,43 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
   await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(900);
-  await page.evaluate(() => {
-    window.__growth = [];
+  /* THE GREETING IS NOT THIS TURN, AND IT IS NO LONGER EMPTY.
+
+     Opening the panel fires its own request and puts Aria's hello up as
+     an ordinary bot bubble. These checks used to identify the reply as
+     "the last sky-coloured bubble", which worked only by accident: the
+     greeting came back from this mock with no `reply` and rendered a
+     BLANK bubble, so it never looked like an answer and never reached
+     the end of the list first. The page now falls back to a written
+     greeting instead of drawing an empty box -- and the accident went
+     with it: "wait until the last bot bubble is non-empty and not busy"
+     was satisfied by the greeting alone, so the reply was read while it
+     was still streaming, and the greeting was counted as a second
+     answer.
+
+     So the turn is fenced instead. Wait for the greeting, mark
+     everything already on screen, and measure only what arrives after.
+     That is what these checks were always about, and it no longer
+     depends on one of the bubbles being broken. */
+  await page.evaluate(() => toggleAssistant());
+  await page.waitForFunction(() => {
     const wrap = document.getElementById("assistantMessages");
+    return [...wrap.children].some((el) => el.style.background === "var(--sky)" && (el.textContent || "").trim().length > 0);
+  }, null, { timeout: 15000 });
+  await page.evaluate(() => {
+    const wrap = document.getElementById("assistantMessages");
+    for (const el of wrap.children) el.setAttribute("data-pre-turn", "");
+    window.__growth = [];
+    window.__turnBots = () => [...wrap.children].filter((el) => el.style.background === "var(--sky)" && !el.hasAttribute("data-pre-turn"));
     new MutationObserver(() => {
-      const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+      const bots = window.__turnBots();
       const last = bots[bots.length - 1];
       const len = last ? (last.textContent || "").length : 0;
       const prev = window.__growth[window.__growth.length - 1];
       if (!prev || prev[1] !== len) window.__growth.push([Math.round(performance.now()), len, bots.length]);
     }).observe(wrap, { childList: true, subtree: true, characterData: true });
-    toggleAssistant();
   });
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(200);
   await page.fill("#assistantInput", question);
   const sentAt = await page.evaluate(() => { const t = performance.now(); sendAssistantText(); return t; });
   /* THE ANCHOR IS READ ONCE THE REPLY HAS STARTED, not before it. The
@@ -1574,8 +1599,7 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
      send would count that as a shift. What must not move is everything
      already on screen while the bubble GROWS. */
   await page.waitForFunction(() => {
-    const wrap = document.getElementById("assistantMessages");
-    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const bots = window.__turnBots();
     return bots.some((b) => (b.textContent || "").length > 0 && b.hasAttribute("aria-busy"))
       || window.__growth.some((x) => x[1] > 0);
   }, null, { timeout: 20000 }).catch(() => {});
@@ -1596,26 +1620,23 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
   });
   const notesBefore = await notesIn();
   await page.waitForFunction(() => {
-    const wrap = document.getElementById("assistantMessages");
-    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const bots = window.__turnBots();
     const last = bots[bots.length - 1];
     return last && (last.textContent || "").length > 0 && !last.hasAttribute("aria-busy");
   }, null, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(500);
   const out = await page.evaluate((sentAt) => {
     const wrap = document.getElementById("assistantMessages");
-    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const bots = window.__turnBots();
     const last = bots[bots.length - 1];
     const g = window.__growth.filter((x) => x[1] > 0);
     return {
       firstTokenMs: g.length ? Math.round(g[0][0] - sentAt) : null,
       steps: g.length,
       text: last ? last.textContent : "",
-      /* NON-EMPTY ONLY. toggleAssistant() greets through a different
-         endpoint, and against this mock that greeting comes back with
-         no reply and renders an EMPTY bubble — a real (pre-existing)
-         rough edge in the greeting path, and not what these checks are
-         about. Counting answers, not boxes. */
+      /* THIS TURN'S ANSWERS. The greeting is fenced off above, so this
+         counts what the question produced — which is the whole point of
+         "answered once, not twice". */
       botBubbles: bots.filter((b) => (b.textContent || "").trim().length > 0).length,
       typingLeft: Boolean(document.getElementById("assistantTyping")),
       notesAfter: (() => { const base = wrap.getBoundingClientRect().top;
@@ -1877,6 +1898,98 @@ await check("the desktop home page never builds the rails", async () => {
 
 
 /* ==================================================================
+   THE ASSISTANT ON A PHONE, IN A REAL BROWSER.
+
+   The stylesheet is blocked here, so the sheet's geometry and its type
+   sizes are pinned in run-tests.mjs instead. What only a running page
+   can answer is whether the thing WORKS: whether a chip lands where its
+   label says, whether the sheet re-measures when the visual viewport
+   shrinks the way an iOS keyboard shrinks it, and whether the launcher
+   gets out from under the sheet it would otherwise sit on.
+   ================================================================== */
+const PHONE_CHAT = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+/** The assistant open on a phone, with a greeting that actually answers. */
+async function openChatOnPhone() {
+  const ctx = await browser.newContext(PHONE_CHAT);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
+  await page.route("**/.netlify/functions/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.route("**/.netlify/functions/aria-chat", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "¡Hola! Soy Aria 👋" }) }));
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => toggleAssistant());
+  await page.waitForTimeout(900);
+  return { ctx, page, errors };
+}
+
+await check("the phone's chat opens as a sheet, expands, and dismisses in one tap", async () => {
+  /* WHAT THIS CAN AND CANNOT SEE. Tailwind is blocked here on purpose,
+     so the panel is an UNSTYLED div in normal flow: measuring its edges
+     would report the body's 8px margin, not the sheet. Its geometry --
+     full width, bottom-anchored, 62vh peeking, 92vh expanded -- is
+     pinned by the rules that decide it, in run-tests.mjs.
+
+     What only a running page can answer is the STATE MACHINE: which
+     height it opened at, whether the handle really moves between the
+     two, whether one tap closes it, and whether the launcher is told to
+     get out of the way. None of that needs a stylesheet. */
+  const { ctx, page, errors } = await openChatOnPhone();
+  const opened = await page.evaluate(() => ({
+    sheet: document.getElementById("assistantPanel").getAttribute("data-sheet"),
+    chatOpen: document.body.hasAttribute("data-chat-open"),
+    chips: [...document.querySelectorAll("#assistantQuickRow [data-quick-reply]")].map((c) => c.textContent.trim()),
+    handleAria: document.getElementById("assistantSheetHandle").getAttribute("aria-expanded"),
+    /* The custom properties ARE inline styles written by JS, so they are
+       visible with no stylesheet at all — and they are the numbers the
+       sheet is actually sized from. */
+    peek: document.getElementById("assistantPanel").style.getPropertyValue("--ariaSheetPeek"),
+    full: document.getElementById("assistantPanel").style.getPropertyValue("--ariaSheetFull"),
+    vh: window.innerHeight,
+  }));
+  eq(opened.sheet, "peek", "the sheet did not open at its peek height");
+  eq(opened.chatOpen, true, "the launcher was never told to move out of the sheet's way");
+  eq(opened.handleAria, "false", "the handle does not announce that it is at the peek height");
+  if (opened.chips.length < 2) throw new Error("the sheet opened with no quick replies");
+  /* NOT A TAKEOVER, read off the number the sheet is sized from: the
+     peek has to leave a real part of the page above it, which is the
+     whole difference between a sheet and a full-screen chat. */
+  const peekPx = parseInt(opened.peek, 10), fullPx = parseInt(opened.full, 10);
+  if (!(peekPx > 0 && peekPx <= opened.vh * 0.7)) throw new Error(`the peek height is ${opened.peek} of ${opened.vh}px — that is a takeover`);
+  if (!(fullPx > peekPx)) throw new Error("expanded is not taller than peeking");
+
+  const grown = await page.evaluate(async () => {
+    toggleAssistantSheet();
+    await new Promise((r) => setTimeout(r, 300));
+    const mid = {
+      sheet: document.getElementById("assistantPanel").getAttribute("data-sheet"),
+      aria: document.getElementById("assistantSheetHandle").getAttribute("aria-expanded"),
+    };
+    toggleAssistantSheet();
+    await new Promise((r) => setTimeout(r, 300));
+    return { mid, back: document.getElementById("assistantPanel").getAttribute("data-sheet") };
+  });
+  eq(grown.mid.sheet, "expanded", "the handle did not expand the sheet");
+  eq(grown.mid.aria, "true", "the handle does not announce that it expanded");
+  eq(grown.back, "peek", "the sheet did not come back to its peek height");
+
+  const closed = await page.evaluate(async () => {
+    document.querySelector('#assistantPanel button[aria-label="Cerrar la conversación"]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    return {
+      hidden: document.getElementById("assistantPanel").classList.contains("hidden"),
+      chatOpen: document.body.hasAttribute("data-chat-open"),
+    };
+  });
+  eq(closed.hidden, true, "one tap did not dismiss the sheet");
+  eq(closed.chatOpen, false, "the launcher was never let back");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+/* ==================================================================
    THE LIGHTBOX, DRIVEN.
 
    Sizing and positions are pinned in run-tests.mjs -- this harness
@@ -1981,6 +2094,73 @@ await check("every way out of the lightbox works, and puts the page back", async
   await ctx.close();
 });
 
+await check("an iOS keyboard lifts the sheet by exactly its own height", async () => {
+  /* THE TRAP, REPRODUCED. iOS does not shrink the LAYOUT viewport for
+     the keyboard — window.innerHeight is unchanged — it shrinks the
+     VISUAL one. So the keyboard is faked exactly that way, and what is
+     checked is the number the sheet lifts itself by, which is an inline
+     custom property and therefore readable with no stylesheet. A sheet
+     that ignored the difference would report 0 here and, styled, would
+     be sitting behind the keyboard with its input out of reach. */
+  const { ctx, page, errors } = await openChatOnPhone();
+  const KB = 336;
+  const read = () => page.evaluate(() => {
+    const p = document.getElementById("assistantPanel");
+    return {
+      inset: p.style.getPropertyValue("--ariaSheetInset"),
+      peek: p.style.getPropertyValue("--ariaSheetPeek"),
+      layout: window.innerHeight,
+      visual: Math.round(window.visualViewport.height),
+    };
+  });
+  const before = await read();
+  eq(before.inset, "0px", "the sheet starts lifted off the bottom edge");
+
+  const up = await page.evaluate(async (kb) => {
+    const vv = window.visualViewport;
+    /* NORMALISE THE UNITS FIRST, because this page is unstyled here and
+       so it overflows sideways, and a mobile browser answers that by
+       zooming the LAYOUT viewport out to fit: innerWidth 1572 against a
+       visual 393, innerHeight 3408 against a visual 852. The page
+       refuses to read a keyboard out of that on purpose (the widths
+       disagreeing is exactly how it knows), so a keyboard faked on top
+       of it would be ignored and this check would be measuring the
+       guard rather than the lift. Both viewports are put in the same
+       units, and THEN the keyboard is applied. */
+    Object.defineProperty(vv, "width", { configurable: true, get: () => window.innerWidth });
+    const real = window.innerHeight;
+    Object.defineProperty(vv, "height", { configurable: true, get: () => real - kb });
+    Object.defineProperty(vv, "offsetTop", { configurable: true, get: () => 0 });
+    vv.dispatchEvent(new Event("resize"));
+    await new Promise((r) => setTimeout(r, 300));
+    const p = document.getElementById("assistantPanel");
+    return {
+      inset: p.style.getPropertyValue("--ariaSheetInset"),
+      peek: p.style.getPropertyValue("--ariaSheetPeek"),
+      layout: window.innerHeight,
+      visual: Math.round(vv.height),
+    };
+  }, KB);
+  eq(up.layout, before.layout, "the layout viewport moved — that is not how iOS does it");
+  eq(up.inset, `${KB}px`, "the sheet was not lifted by the keyboard");
+  /* WITH THE KEYBOARD UP THERE IS NOTHING TO PEEK AT, so the sheet takes
+     what is left of the visible area rather than 62% of it — 62% of a
+     keyboard-shrunk viewport is a letterbox with two lines in it. */
+  eq(up.peek, `${up.visual}px`, "the sheet letterboxed itself under the keyboard");
+
+  const down = await page.evaluate(async () => {
+    const vv = window.visualViewport;
+    delete vv.width; delete vv.height; delete vv.offsetTop;
+    vv.dispatchEvent(new Event("resize"));
+    await new Promise((r) => setTimeout(r, 300));
+    const p = document.getElementById("assistantPanel");
+    return { inset: p.style.getPropertyValue("--ariaSheetInset"), peek: p.style.getPropertyValue("--ariaSheetPeek") };
+  });
+  eq(down.inset, "0px", "the sheet stayed lifted after the keyboard closed");
+  eq(down.peek, before.peek, "the sheet did not return to its peek height");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("the back gesture closes the lightbox without leaving the product", async () => {
   /* BOTH HALVES OF THE REPORTED BUG. The overlay has to go, and the
      page behind must not be left pinned -- that lock outlived the
@@ -2008,6 +2188,37 @@ await check("the back gesture closes the lightbox without leaving the product", 
   await ctx.close();
 });
 
+await check("'¿Qué hay en oferta?' lands the shopper on the Ofertas feed", async () => {
+  /* THE BRIEF'S ACCEPTANCE LINE, end to end: tap the chip, land on
+     Ofertas, see it. The sheet has to get out of the way for the last
+     of those — a bottom sheet over most of a phone is still up when
+     goSales() swaps the view underneath it. */
+  const { ctx, page, errors } = await openChatOnPhone();
+  const label = await page.evaluate(() => {
+    const c = document.querySelector("#assistantQuickRow [data-quick-reply]");
+    return { text: c.textContent.trim(), sends: c.getAttribute("data-quick-reply") };
+  });
+  eq(label.text, label.sends, "the chip's label is not the message it sends");
+  eq(label.text, "¿Qué hay en oferta?", "the first chip");
+
+  const landed = await page.evaluate(async () => {
+    document.querySelector('[data-quick-reply="¿Qué hay en oferta?"]').click();
+    await new Promise((r) => setTimeout(r, 3000));
+    return {
+      view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+      sheetUp: !document.getElementById("assistantPanel").classList.contains("hidden"),
+      feed: document.querySelectorAll("#salesGrid > *").length,
+      said: [...document.getElementById("assistantMessages").children].map((e) => (e.textContent || "").trim()).filter(Boolean),
+    };
+  });
+  eq(landed.view, "salesView", "the chip did not open Ofertas");
+  eq(landed.sheetUp, false, "the sheet stayed up over the feed the shopper asked for");
+  if (!landed.feed) throw new Error("the shopper landed on an empty Ofertas");
+  // The chip's own words are what went into the conversation.
+  if (!landed.said.includes("¿Qué hay en oferta?")) throw new Error("the chip sent something other than its label");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("zoom never takes the way out with it", async () => {
   const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
   await page.waitForTimeout(3000);
@@ -2058,6 +2269,32 @@ await check("zoom never takes the way out with it", async () => {
   await ctx.close();
 });
 
+await check("the desktop chat is never sized as a sheet", async () => {
+  /* Also stylesheet-free: syncAssistantSheet() REMOVES the three custom
+     properties above the breakpoint, so a laptop keeps the panel's own
+     Tailwind geometry and nothing of the phone's. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(2000);
+  const st = await page.evaluate(() => {
+    toggleAssistant();
+    const p = document.getElementById("assistantPanel");
+    return {
+      mobile: isMobileChat(),
+      peek: p.style.getPropertyValue("--ariaSheetPeek"),
+      inset: p.style.getPropertyValue("--ariaSheetInset"),
+      chips: document.querySelectorAll("#assistantQuickRow [data-quick-reply]").length,
+      focused: document.activeElement && document.activeElement.id,
+    };
+  });
+  eq(st.mobile, false, "a 1280px window is being treated as a phone");
+  eq(st.peek, "", "the desktop panel is being sized as a sheet");
+  eq(st.inset, "", "the desktop panel is being lifted like a sheet");
+  if (st.chips < 2) throw new Error("the desktop lost its quick replies");
+  // And a laptop, where there is no keyboard to throw up, still focuses.
+  eq(st.focused, "assistantInput", "the desktop stopped focusing the field on open");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 /* ============================================================
    THE PINCH, WHICH IS A DIFFERENT ZOOM FROM THE ONE ABOVE.
 
