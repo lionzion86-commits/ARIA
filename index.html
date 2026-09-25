@@ -10047,7 +10047,13 @@ function contentLabelFor(title){
 
 function weightLabelHTML(title, cls){
   const label = contentLabelFor(title);
-  return label ? `<div class="${cls}" style="color:#7A8296">${escapeHtml(label)}</div>` : '';
+  if (label) return `<div class="${cls}" style="color:#7A8296">${escapeHtml(label)}</div>`;
+  /* Fallback: the cart freights on estimateRetailWeightKg, so the card must
+     never go blank — transparency means the weight line always shows. */
+  const kg = estimateRetailWeightKg(title);
+  if (!(kg > 0)) return '';
+  const metric = kg >= 1 ? `${Math.round(kg * 100) / 100} kg` : `${Math.round(kg * 1000)} g`;
+  return `<div class="${cls}" style="color:#7A8296">~${metric} est.</div>`;
 }
 
 /* ACTUAL SCALE WEIGHT ONLY (2026-09-20). A dimensional-weight helper and

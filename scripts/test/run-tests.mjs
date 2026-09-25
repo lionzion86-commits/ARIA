@@ -7738,6 +7738,8 @@ group("store carousels: window-shopping rails");
     if (!/fmtPriceLabel\(taxed\)/.test(card)) throw new Error("the rail card does not lead with the USD price");
     if (!/solesUnderHTML\(taxed/.test(card)) throw new Error("the rail card shows no soles (venta) reference");
     if (!/weightLabelHTML\(title/.test(card)) throw new Error("the rail card shows no estimated shipping weight");
+    const wl = src.slice(src.indexOf("function weightLabelHTML("), src.indexOf("function weightLabelHTML(") + 900);
+    if (!/estimateRetailWeightKg\(title\)/.test(wl)) throw new Error("the weight line can go blank when the title lookup misses");
     if (!/brandEyebrowHTML\(it\.brand/.test(card)) throw new Error("the rail card shows no brand");
     if (/Comprar|flete|retailerBadgeHTML/.test(card)) throw new Error("the rail card carries grid-card chrome");
     if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
