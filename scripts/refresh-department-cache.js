@@ -20,7 +20,7 @@ import fs from "node:fs/promises";
 import { estimateWeightDetail } from "./lib/sales-sources.js";
 import { DEPARTMENT_CONFIG, BRAND_CONFIG } from "../netlify/functions/apify-scrape-start.js";
 import { spendDecision, budgetFromEnv, tierFor } from "./lib/refresh-tiers.js";
-import { quotasFor, targetDepth, plannedRuns, ITEMS_PER_QUOTA, MIN_HONEST_STOREFRONT, isHonestStorefront } from "./lib/catalog-quotas.js";
+import { quotasFor, targetDepth, plannedRuns, ITEMS_PER_QUOTA, MIN_HONEST_STOREFRONT, isHonestStorefront, departmentItemsFor, brandItemsFor } from "./lib/catalog-quotas.js";
 import { retailerFor } from "./lib/retailers.js";
 import { specWeightKg } from "../netlify/functions/_weight-resolve.js";
 
@@ -36,8 +36,7 @@ const FETCH_TIMEOUT_MS = 60000;
    — and this is the per-run ceiling those quotas fill to. More rows per
    run is the cheapest depth there is: one run returning 60 costs the
    same as one returning 24. */
-const ITEMS_PER_DEPARTMENT = ITEMS_PER_QUOTA;
-const ITEMS_PER_BRAND = 24;
+const ITEMS_PER_DEPARTMENT = ITEMS_PER_QUOTA; // default; fetchDepartment/fetchBrand use the per-retailer overrides below
 const RUN_TIMEOUT_MS = 120000;
 const POLL_INTERVAL_MS = 3000;
 const CONCURRENCY = 3;
@@ -234,12 +233,12 @@ async function pollRun(runId) {
   throw new Error("run timed out");
 }
 
-async function fetchDepartment(retailer, department, maxItems = ITEMS_PER_DEPARTMENT) {
+async function fetchDepartment(retailer, department, maxItems = departmentItemsFor(retailer)) {
   const runId = await startRun(retailer, { department }, maxItems);
   return pollRun(runId);
 }
 
-async function fetchBrand(retailer, brand, maxItems = ITEMS_PER_BRAND) {
+async function fetchBrand(retailer, brand, maxItems = brandItemsFor(retailer)) {
   const runId = await startRun(retailer, { brand }, maxItems);
   return pollRun(runId);
 }
@@ -349,8 +348,8 @@ async function main() {
   if (hasOldNavyKids) {
     try {
       const [boys, girls] = await Promise.all([
-        fetchDepartment("oldnavy", "kids", Math.ceil(ITEMS_PER_DEPARTMENT / 2)),
-        fetchDepartment("oldnavy", "kids_girls", Math.floor(ITEMS_PER_DEPARTMENT / 2)),
+        fetchDepartment("oldnavy", "kids", Math.ceil(departmentItemsFor("oldnavy") / 2)),
+        fetchDepartment("oldnavy", "kids_girls", Math.floor(departmentItemsFor("oldnavy") / 2)),
       ]);
       const merged = [];
       const max = Math.max(boys.length, girls.length);

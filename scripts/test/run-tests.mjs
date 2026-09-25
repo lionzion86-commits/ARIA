@@ -4866,10 +4866,12 @@ check("a brand list can be counted off a store's own stock", () => {
 });
 
 check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
-  /* Foot Locker's 24 shoes live in `brands.nike` and its department
-     items name no brand at all, so a purely derived list would drop
-     Nike and break a link that exists today. The page's merge is what
-     stops that, so the page's merge is what is read here. */
+  /* Foot Locker's shoes live in explicit `brands.*` buckets and the
+     page's merge must keep preferring those over derived ones.
+     (2026-09-25 deep pull: nine brand buckets now, and every item
+     carries its brand — so the derived list is no longer empty and the
+     old "nike-only / no-brand" assertions are retired. What still
+     matters is the merge order, asserted above.) */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const merge = src.slice(src.indexOf("function retailerBrandBuckets("), src.indexOf("function departmentItemsFor("));
   if (!/Object\.entries\(retailerData\.brands \|\| \{\}\)/.test(merge)) throw new Error("the explicit buckets are no longer read");
@@ -4879,11 +4881,9 @@ check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
   if (!/Array\.isArray\(bucket\?\.items\) && bucket\.items\.length/.test(merge)) throw new Error("an empty brands bucket can shadow the real list again");
 
   const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8")).retailers.footlocker;
-  eq(Object.keys(cache.brands).join(), "nike", "Foot Locker's brand bucket");
-  if (!cache.brands.nike.items.length) throw new Error("Foot Locker's Nike bucket is empty");
-  // And its items really do carry no brand, which is why the bucket matters.
-  const derived = brandIndex.brandBucketsFromItems(Object.values(cache.departments).flatMap((d) => d.items || []));
-  eq(Object.keys(derived).length, 0, "Foot Locker's items now name their brand — the fallback may be enough");
+  eq(Object.keys(cache.brands).sort().join(), "adidas,asics,converse,jordan,newbalance,nike,puma,reebok,vans", "Foot Locker's brand buckets");
+  for (const k of Object.keys(cache.brands))
+    if (!cache.brands[k].items.length) throw new Error(`Foot Locker's ${k} bucket is empty`);
 });
 
 check("no grid anywhere can build a wall of brands", () => {
