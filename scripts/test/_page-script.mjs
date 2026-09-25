@@ -430,7 +430,7 @@ export function loadPageCatalogSearchSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     html.slice(from, to) +
-      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT, SEARCH_SYNONYM_GROUPS, synonymGroupOf, synonymsOf, canonicalizeToken, canonicalizeTokens };",
+      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT, SEARCH_SYNONYM_GROUPS, synonymGroupOf, synonymsOf, canonicalizeToken, canonicalizeTokens, expandBrandAliases, retailerIntentFor, retailerNameTokens, BRAND_ALIASES };",
     sandbox,
     { filename: "index.html#catalog-search" },
   );

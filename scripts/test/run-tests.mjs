@@ -6287,6 +6287,143 @@ group("search synonyms: one concept, many words");
 
 
 /* ==================================================================
+   BRAND AND RETAILER NAMES ARE SEARCHABLE (2026-09-24).
+
+   WHAT ALE FOUND. Searching "Victoria's Secret" in the search bar
+   returned nothing on her phone -- and the audit showed five carried
+   stores (Sephora, Ulta, Target, Walmart, Old Navy) answered to nothing
+   at all, because catalogWordsOf reads title + brand and a store's own
+   name appears in neither. "VS" matched 11 stray titles instead of the
+   brand. The store page she was on had the same root cause from the
+   other side: a tab opened before the catalogue published has no data
+   for the new store, and openStore read that as "this shop is empty".
+   ================================================================== */
+group("Brand and retailer names are searchable");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand, retailer) => ({ title, brand: brand || "", retailer: retailer || "ssense", price: 100 });
+
+  check("an alias expands to the brand it names", () => {
+    eq(cs.expandBrandAliases("VS"), "Victoria's Secret", "VS expands");
+    eq(cs.expandBrandAliases("vs"), "Victoria's Secret", "lowercase expands");
+    eq(cs.expandBrandAliases("vs pink"), "vs pink", "a longer query is left alone");
+    eq(cs.expandBrandAliases("nike"), "nike", "non-aliases pass through");
+  });
+
+  check("a store's name resolves to that store, and a mere subset does not", () => {
+    const RETS = [
+      { key: "sephora", label: "Sephora" },
+      { key: "ulta", label: "Ulta Beauty" },
+      { key: "oldnavy", label: "Old Navy" },
+      { key: "macys", label: "Macy's" },
+      { key: "victoriassecret", label: "Victoria's Secret" },
+      { key: "target", label: "Target" },
+    ];
+    eq(cs.retailerIntentFor("Sephora", RETS), "sephora", "Sephora");
+    eq(cs.retailerIntentFor("old navy", RETS), "oldnavy", "Old Navy by whole name");
+    eq(cs.retailerIntentFor("Macy's", RETS), "macys", "apostrophe-s is noise");
+    eq(cs.retailerIntentFor("Victoria's Secret", RETS), "victoriassecret", "apostrophe-s both sides");
+    eq(cs.retailerIntentFor("beauty", RETS), null, "beauty is a category, not Ulta Beauty");
+    eq(cs.retailerIntentFor("target shoes", RETS), "target", "store + category composes");
+    eq(cs.retailerIntentFor("nike shoes", RETS), null, "no store named Nike");
+  });
+
+  check("a store-name search returns that store's products", () => {
+    const RETS = [
+      { key: "sephora", label: "Sephora" },
+      { key: "target", label: "Target" },
+    ];
+    const pool = [
+      P("Rare Beauty Blush", "Rare Beauty", "sephora"),
+      P("Nike Air Force 1", "Nike", "target"),
+    ];
+    for (const q of ["Sephora", "sephora"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, { retailers: RETS });
+      if (items.length !== 1 || items[0].retailer !== "sephora")
+        throw new Error(`${q} returned ${items.map(i => i.retailer).join(",")}`);
+    }
+  });
+
+  check("VS returns Victoria's Secret products, not stray titles", () => {
+    const RETS = [{ key: "victoriassecret", label: "Victoria's Secret" }];
+    const pool = [
+      P("Victoria's Secret Bombshell Bra", "Victoria's Secret", "victoriassecret"),
+      P("PINK Cotton Thong", "PINK", "victoriassecret"),
+      P("Savage X Fenty Bra", "Savage X Fenty", "macys"),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "VS", { retailers: RETS });
+    if (!items.length) throw new Error("VS returned nothing");
+    if (items.some(it => it.retailer !== "victoriassecret"))
+      throw new Error("VS leaked another store: " + items.map(i => i.retailer).join(","));
+  });
+
+  check("store intent composes with category intent", () => {
+    const RETS = [
+      { key: "target", label: "Target" },
+      { key: "walmart", label: "Walmart" },
+    ];
+    const pool = [
+      P("Nike Running Shoes", "Nike", "target"),
+      P("Cotton T-Shirt", "Hanes", "target"),
+      P("Adidas Running Shoes", "Adidas", "walmart"),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "target shoes", { retailers: RETS });
+    if (items.length !== 1 || items[0].retailer !== "target")
+      throw new Error("target shoes returned " + items.map(i => i.title).join("; "));
+  });
+
+  check("every carried store is findable through search", () => {
+    const html = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const RETS = [];
+    for (const m of html.matchAll(/^\s*\w+:\s*\{\s*key:\s*'(\w+)',[^}\n]*?label:\s*(?:"([^"]+)"|'([^']+)')/gm)) {
+      if (/retired:\s*true/.test(m[0])) continue;
+      RETS.push({ key: m[1], label: m[2] || m[3] });
+    }
+    if (!RETS.length) throw new Error("no retailer rows parsed");
+    const files = ["department-cache.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"];
+    const pool = [];
+    for (const f of files) {
+      const data = JSON.parse(readFileSync(root(f), "utf8"));
+      const buckets = data.retailers || {};
+      for (const [rk, bucket] of Object.entries(buckets)) {
+        for (const entry of Object.values(bucket.departments || {})) {
+          const items = Array.isArray(entry) ? entry : entry.items || [];
+          for (const it of items) {
+            const title = it.title || it.name || it.productTitle || it.productName;
+            if (title) pool.push({ title, brand: it.brand || "", retailer: rk });
+          }
+        }
+      }
+    }
+    const missing = [];
+    for (const r of RETS) {
+      const stocked = pool.some(it => it.retailer === r.key);
+      if (!stocked) continue;
+      for (const q of [r.label, r.key]) {
+        const { items } = cs.rankCatalogMatches(pool, q, { retailers: RETS });
+        const own = items.filter(it => it.retailer === r.key).length;
+        if (!items.length || !own) missing.push(`${r.key} via "${q}": ${items.length} items, ${own} own`);
+      }
+    }
+    if (missing.length) throw new Error("unfindable stores:\n      " + missing.join("\n      "));
+  });
+
+  check("a store with no catalogue data gets a retry, not a ghost town", () => {
+    /* THE OTHER HALF OF ALE'S REPORT. openStore read a missing
+       retailerData as "this shop is empty". The page must now offer the
+       retry that busts the memoised catalogue load instead. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const open = src.slice(src.indexOf("async function openStore(retailer){"), src.indexOf("async function openStoreResults"));
+    if (!/if\s*\(!retailerData\)/.test(open)) throw new Error("openStore has no missing-data branch");
+    if (!/retryStore\(/.test(open)) throw new Error("the missing-data branch offers no retry");
+    if (!/function retryStore\(retailer\)/.test(src)) throw new Error("retryStore is not defined");
+    if (!/departmentCachePromise = null/.test(src.slice(src.indexOf("function retryStore")))) throw new Error("retryStore does not bust the memoised load");
+  });
+}
+
+
+/* ==================================================================
    THE FARFETCH TREATMENT.
 
    The thesis of the reference is that the luxury look is not a palette:
