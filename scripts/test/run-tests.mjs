@@ -976,9 +976,9 @@ check("the doorway is one obvious tap: logo, name, and a store CTA", () => {
     throw new Error("the doorway does not open with the product's resolved store key");
   if (!/retailerBadgeHTML\(retailer, 36\)/.test(fn))
     throw new Error("the doorway does not show the store logo");
-  if (!/Ver la tienda/.test(fn)) throw new Error("the doorway carries no Spanish store CTA");
+  if (!/Ir a la tienda/.test(fn)) throw new Error("the doorway carries no Spanish store CTA");
   if (!/Abrir Aria Auto/.test(fn)) throw new Error("the doorway has no Aria Auto CTA for auto retailers");
-  if (!/Vendido por/.test(fn)) throw new Error("the doorway does not name the store as the seller");
+  if (!/\$\{escapeHtml\(label\)\}/.test(fn)) throw new Error("the doorway does not name the store");
   // Unknown keys keep the plain badge: no dead button.
   if (!/if \(!door\) return retailerBadgeHTML\(retailer\);/.test(fn))
     throw new Error("the doorway has no plain-badge fallback for unknown stores");

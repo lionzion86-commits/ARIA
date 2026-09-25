@@ -9593,13 +9593,12 @@ function storeDoorwayHTML(retailer){
   const door = storeDoorFor(retailer);
   if (!door) return retailerBadgeHTML(retailer);
   const label = LIVE_RETAILER_LABEL[door.key] || retailer || 'Tienda';
-  const cta = door.action === 'auto' ? 'Abrir Aria Auto' : 'Ver la tienda';
+  const cta = door.action === 'auto' ? 'Abrir Aria Auto' : 'Ir a la tienda';
   return `<button type="button" onclick="openStoreDoor('${jsAttr(door.key)}')"`
     + ` class="w-full text-left bg-white border rounded-2xl pl-4 pr-3 py-3 flex items-center gap-3 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)] active:scale-[0.99]"`
     + ` style="border-color:var(--line)" aria-label="${cta}: ${escapeHtml(label)}">`
     + retailerBadgeHTML(retailer, 36)
     + `<span class="flex-1 min-w-0">`
-    + `<span class="block text-[10.5px] font-extrabold uppercase tracking-[0.16em]" style="color:var(--amber)">Vendido por</span>`
     + `<span class="block text-[15px] font-extrabold truncate" style="color:var(--navy)">${escapeHtml(label)}</span>`
     + `</span>`
     + `<span class="inline-flex items-center gap-1 text-[13px] font-extrabold whitespace-nowrap" style="color:var(--blue)">${cta}`
