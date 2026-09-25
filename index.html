@@ -15091,9 +15091,13 @@ async function loadOrderCapStatus(){
 /* The happy path, in order. `exception` and `cancelled` are off it: they
    can be reached from anywhere and they are where a shipment stops. */
 const SHIPPING_FLOW = [
+  "purchased_usa",
+  "retailer_shipped",
+  "miami_received",
   "created",
   "in_transit",
   "in_customs",
+  "lince_available",
   "out_for_delivery",
   "delivered",
 ];
@@ -15107,9 +15111,13 @@ const SHIPPING_STATUSES = [...SHIPPING_FLOW, "exception", "cancelled"];
    `note` is the one-line explanation the tracking view shows underneath,
    because "En aduana" on its own reads as a problem when it is routine. */
 const SHIPPING_STATUS_ES = {
+  purchased_usa:    { label: "Comprado en EE.UU.",  note: "Lo compramos en la tienda americana." },
+  retailer_shipped: { label: "Tienda lo envió",     note: "La tienda lo envió a nuestro almacén en Miami." },
+  miami_received:   { label: "Recibido en Miami",   note: "Llegó a nuestro almacén en Miami." },
   created:          { label: "Pedido registrado",   note: "Lo estamos preparando para enviar desde Miami." },
   in_transit:       { label: "En camino",           note: "Tu paquete salió de Miami rumbo a Lima." },
   in_customs:       { label: "En aduana",           note: "Trámite normal de importación. No tienes que hacer nada." },
+  lince_available:  { label: "Disponible en Lince", note: "Listo para recoger en Av. José Leal 1436, Lince." },
   out_for_delivery: { label: "En reparto",          note: "Sale hoy hacia tu dirección." },
   delivered:        { label: "Entregado",           note: "Tu pedido llegó. Nada más que pagar." },
   exception:        { label: "Con novedad",         note: "Hubo un inconveniente y ya lo estamos revisando. Te escribimos." },
@@ -15141,7 +15149,7 @@ function flowIndex(status) {
  */
 function canTransition(from, to) {
   if (!isShippingStatus(to)) return false;
-  if (from == null || from === "") return to === "created";
+  if (from == null || from === "") return to === SHIPPING_FLOW[0];
   if (!isShippingStatus(from)) return false;
   if (isTerminalStatus(from)) return false;
   if (to === "exception" || to === "cancelled") return true;

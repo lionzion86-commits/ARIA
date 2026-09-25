@@ -1932,9 +1932,9 @@ check("an unknown courier is refused", () => {
 
 group("A. shipping: normalized statuses");
 
-check("the vocabulary is exactly the five plus two", () => {
-  eq(shippingStatus.SHIPPING_FLOW.join(" "), "created in_transit in_customs out_for_delivery delivered");
-  eq(shippingStatus.SHIPPING_STATUSES.length, 7);
+check("the vocabulary is exactly the nine plus two", () => {
+  eq(shippingStatus.SHIPPING_FLOW.join(" "), "purchased_usa retailer_shipped miami_received created in_transit in_customs lince_available out_for_delivery delivered");
+  eq(shippingStatus.SHIPPING_STATUSES.length, 11);
   for (const s of ["exception", "cancelled"]) {
     if (!shippingStatus.SHIPPING_STATUSES.includes(s)) throw new Error(`${s} is missing`);
   }
@@ -1955,8 +1955,15 @@ check("index.html mirrors the vocabulary word for word", () => {
 
 check("a parcel never walks backwards on a customer's screen", () => {
   const { canTransition } = shippingStatus;
-  eq(canTransition(null, "created"), true);
+  eq(canTransition(null, "purchased_usa"), true, "a fresh shipment starts at the first step");
+  eq(canTransition(null, "created"), false, "created is no longer the first step");
+  eq(canTransition("purchased_usa", "retailer_shipped"), true);
+  eq(canTransition("retailer_shipped", "purchased_usa"), false, "a re-sent old event must not walk a parcel backwards");
+  eq(canTransition("miami_received", "created"), true);
   eq(canTransition("created", "in_transit"), true);
+  eq(canTransition("in_customs", "lince_available"), true, "the Lince anchor sits on the happy path");
+  eq(canTransition("lince_available", "in_customs"), false);
+  eq(canTransition("lince_available", "out_for_delivery"), true);
   eq(canTransition("in_transit", "delivered"), true, "skipping ahead is real: some parcels clear customs unseen");
   eq(canTransition("delivered", "in_transit"), false, "a re-sent old event must not un-deliver a parcel");
   eq(canTransition("cancelled", "in_transit"), false);
@@ -2148,7 +2155,7 @@ check("tracking was recorded through every normalized state", () => {
   eq(e2e.steps.map((s) => s.status).join(","), shippingStatus.SHIPPING_FLOW.join(","));
   eq(e2e.tracked.found, true);
   eq(e2e.tracked.status, "delivered");
-  eq(e2e.tracked.events.length, 5);
+  eq(e2e.tracked.events.length, shippingStatus.SHIPPING_FLOW.length, "one event per normalized state");
   for (const ev of e2e.tracked.events) {
     if (!shippingStatus.SHIPPING_STATUSES.includes(ev.status)) throw new Error(`jargon leaked: ${ev.status}`);
   }
@@ -2163,9 +2170,9 @@ check("delivery was confirmed, with a real audit trail", () => {
 check("the customer sees the whole journey and none of the plumbing", () => {
   const view = shippingService.publicTrackingView(e2e.ship);
   eq(view.label, "Entregado");
-  eq(view.history.length, 5, "the full journey, in Aria's words");
+  eq(view.history.length, 9, "the full journey, in Aria's words");
   eq(view.history.map((h) => h.label).join(" → "),
-     "Pedido registrado → En camino → En aduana → En reparto → Entregado");
+     "Comprado en EE.UU. → Tienda lo envió → Recibido en Miami → Pedido registrado → En camino → En aduana → Disponible en Lince → En reparto → Entregado");
   const json = JSON.stringify(view);
   for (const secret of ["avi", "AVI", String(e2e.quote.costUsd), "ops@ariashop.pe"]) {
     if (json.includes(secret)) throw new Error(`the customer view leaks "${secret}"`);
@@ -3220,7 +3227,11 @@ check("only the verified webhook can move an order to paid", () => {
      ledger that could not name a payment state would be useless. The
      rule being protected is "nothing else may DECIDE that an order is
      paid", and a report cannot. */
-  const allowed = new Set(["_payments-model.js", "_payments.js", "_ledger.js"]);
+  /* admin-pipeline.js is on this list for the same reason: its response
+     row carries paymentStatus as a READ (order.paymentStatus ?? null) so
+     the Tubería tab can paint the payment pill. It writes no order
+     record and decides nothing about payment. */
+  const allowed = new Set(["_payments-model.js", "_payments.js", "_ledger.js", "admin-pipeline.js"]);
   const dir = root("netlify/functions");
   const offenders = [];
   const walk = (d, prefix = "") => {
