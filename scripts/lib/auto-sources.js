@@ -13,11 +13,11 @@
    to confirm a fit rather than guess at one, and when both confirm it,
    the shopper picks on door-to-door price.
 
-   THESE ARE NOT TIENDAS. Aria Auto's sources live here, not in
-   scripts/lib/retailers.js, and they do not appear in the Tiendas grid —
-   that grid stays at its symmetric eight. AutoZone is the one row that
-   exists in both, because it was there first and a historical order can
-   still name it.
+   THESE ARE TIENDAS TOO (since 2026-09-24, Danny). Aria Auto's sources
+   live here AND as kind:'auto' rows in scripts/lib/retailers.js, rendering
+   as tiles under the Tiendas "Repuestos" tier — each tile opens its own
+   storefront view. They never appear in the everyday/luxury tiers; the
+   Tiendas grid is tier-scoped, not a single wall.
 
    ------------------------------------------------------------
    ADDING A PARTS SOURCE
@@ -36,7 +36,7 @@ export const AUTO_SOURCES = {
     key: "autozone",
     label: "AutoZone",
     color: "#1C8A4B",
-    logo: "logos/autozone.svg",
+    logo: "logos/autozone.png",
     search: true,
     /* Whether this source publishes a per-vehicle compatibility list at
        all. `partial` is the honest answer for AutoZone today: the actor
@@ -69,15 +69,21 @@ export const AUTO_SOURCES = {
      shopper as "RockAuto has no parts for your car" — a lie, and exactly
      the kind this section is being fixed to stop telling. Step 2 and
      step 3 of ADDING A PARTS SOURCE above are the whole remaining task. */
+  /* ROCKAUTO (2026-09-20, per the brief; live 2026-09-24). Deep catalogue,
+     competitive prices, a real YMM selector, and a site that does not fight
+     scrapers. Went live as Aria Auto's second source with a verified
+     2,490-row cache (1,013 unique parts, 97% imaged) served from
+     auto-cache.json — the part-number and brand indexes are consulted
+     before any paid live scrape, so `search: true` is cache-backed, not a
+     guessed actor. */
   rockauto: {
     key: "rockauto",
     label: "RockAuto",
-    color: "#C8102E",
-    logo: null,
-    search: false,
+    color: "#303090",
+    logo: "logos/rockauto.png",
+    search: true,
     fitmentData: "yes",
-    pendingNote: "Conectando el catálogo",
-    note: "Selector año/marca/modelo propio y listas de compatibilidad por pieza.",
+    note: "Catálogo profundo con fotos y listas de compatibilidad por pieza.",
   },
   /* ADVANCE AUTO PARTS — conditional per the brief: probe it, onboard it
      only if the scrape comes back clean, and skip it silently otherwise
