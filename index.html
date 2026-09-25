@@ -139,6 +139,16 @@
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  /* STORE RAIL BANDS (2026-09-25, Danny's iPhone QA): the six store rails
+     sit on the mall's evening navy instead of white-on-white, so the page
+     feels full and each rail reads as a lit storefront window. White cards
+     pop against the navy. Each band carries a thin per-store brand accent
+     so the six don't read as identical wallpaper; the logo rides on a white
+     plaque for contrast, with the store name in big legible letters beside
+     it (icon-only marks like Sephora's are unreadable at rail size without
+     the name). */
+  .storeRailPlaque{ background:#fff; border-radius:10px; padding:5px 10px; box-shadow:0 2px 10px rgba(0,0,0,0.28); display:inline-flex; align-items:center; flex-shrink:0 }
+  .storeRailAccent{ height:3px }
   /* TÉRMINOS Y CONDICIONES — visual dignity upgrade (2026-09-25).
      Legal page, not marketing: visuals only, the copy is untouched.
      Slim navy header band reusing the interior-page system (.ariaNavyBand
@@ -1020,66 +1030,92 @@
 
     <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[26px] w-auto max-w-[150px] object-contain"
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
+        </span>
+        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
       <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- STORE RAIL: SEPHORA. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Sephora" data-store-rail="sephora" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[26px] w-auto max-w-[150px] object-contain"
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
+        </span>
+        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
       <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- STORE RAIL: MACY'S. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Macy's" data-store-rail="macys" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[26px] w-auto max-w-[150px] object-contain"
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
+        </span>
+        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
       <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- STORE RAIL: FOOT LOCKER. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[26px] w-auto max-w-[150px] object-contain"
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-        <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Foot Locker</span>
+        </span>
+        <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
       <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- STORE RAIL: SSENSE. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="SSENSE" data-store-rail="ssense" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
-           class="h-[26px] w-auto max-w-[150px] object-contain"
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-        <button onclick="openStore('ssense')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+        </span>
+        <button onclick="openStore('ssense')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
       <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- STORE RAIL: DICK'S SPORTING GOODS. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[13px] font-extrabold text-white px-3 py-1.5 rounded-lg leading-none"
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
             style="background:#D22630">Dick's Sporting Goods</span>
-        <button onclick="openStore('dicks')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+        <button onclick="openStore('dicks')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
@@ -1132,72 +1168,98 @@
     </section>
 
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[30px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- STORE RAIL: SEPHORA (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Sephora" data-store-rail="sephora" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[30px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
+        </span>
+          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- STORE RAIL: MACY'S (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Macy's" data-store-rail="macys" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[30px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
+        </span>
+          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- STORE RAIL: FOOT LOCKER (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[30px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Foot Locker</span>
+        </span>
+          <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- STORE RAIL: SSENSE (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="SSENSE" data-store-rail="ssense" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
-           class="h-[30px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('ssense')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+        </span>
+          <button onclick="openStore('ssense')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- STORE RAIL: DICK'S SPORTING GOODS (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[13px] font-extrabold text-white px-3 py-1.5 rounded-lg leading-none"
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
             style="background:#D22630">Dick's Sporting Goods</span>
-          <button onclick="openStore('dicks')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          <button onclick="openStore('dicks')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
@@ -2472,67 +2534,93 @@
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
     </div>
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[28px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('victoriassecret')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
-    <section aria-label="Sephora" data-store-rail="sephora" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[28px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('sephora')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
+        </span>
+          <button onclick="openStore('sephora')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
-    <section aria-label="Macy's" data-store-rail="macys" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[28px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('macys')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
+        </span>
+          <button onclick="openStore('macys')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[28px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('footlocker')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Foot Locker</span>
+        </span>
+          <button onclick="openStore('footlocker')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
-    <section aria-label="SSENSE" data-store-rail="ssense" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
-           class="h-[28px] w-auto max-w-[150px] object-contain"
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          <button onclick="openStore('ssense')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+        </span>
+          <button onclick="openStore('ssense')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="border-b" style="border-color:var(--line); background:#fff">
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="text-[13px] font-extrabold text-white px-3 py-1.5 rounded-lg leading-none"
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
             style="background:#D22630">Dick's Sporting Goods</span>
-          <button onclick="openStore('dicks')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver tienda &#8594;</button>
+          <button onclick="openStore('dicks')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
