@@ -310,6 +310,44 @@ export function loadPageBrandSlice() {
   return sandbox.__exports;
 }
 
+/* ============================================================
+   THE CHAT'S ROUTING TABLES.
+
+   Three literals decide where a quick-reply chip's text goes:
+   ARIA_QUICK_REPLIES (what the chips say, which IS what they send),
+   SALE_KEYWORDS (the local shortcut straight to the Ofertas feed) and
+   CHAT_NON_SHOPPING_RE (what keeps a question out of a live
+   multi-retailer PRODUCT search that runs for half a minute).
+
+   Loaded rather than string-matched so the tests can RUN them: a chip
+   that would drop a shopper into a thirty-second search for the words
+   "Rastrear mi pedido" is not something a grep for the chip's label
+   would ever notice.
+   ============================================================ */
+const CHAT_ROUTE_START = "const ARIA_QUICK_REPLIES = [";
+const CHAT_ROUTE_END = "async function runAssistantBrain(";
+
+export function loadPageChatRoutingSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const qFrom = html.indexOf(CHAT_ROUTE_START);
+  const kFrom = html.indexOf("const SALE_KEYWORDS = [");
+  const kTo = html.indexOf(CHAT_ROUTE_END);
+  const nFrom = html.indexOf("const CHAT_NON_SHOPPING_RE = ");
+  if (qFrom < 0 || kFrom < 0 || kTo < 0 || nFrom < 0 || kTo <= kFrom) {
+    throw new Error("index.html chat-routing markers moved — update scripts/test/_page-script.mjs");
+  }
+  const src = [
+    html.slice(qFrom, html.indexOf("];", qFrom) + 2),
+    html.slice(kFrom, kTo),
+    html.slice(nFrom, html.indexOf("\n", nFrom)),
+  ].join("\n");
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    src + "\n;globalThis.__exports = { ARIA_QUICK_REPLIES, SALE_KEYWORDS, CHAT_NON_SHOPPING_RE };",
+    sandbox, { filename: "index.html#chat-routing" });
+  return sandbox.__exports;
+}
 /* The footwear detector. Pure string work over an item, so it loads
    without the cache the department read needs around it. */
 const SHOE_START = "const FOOTWEAR_TYPE =";
