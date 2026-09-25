@@ -5602,6 +5602,20 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
     throw new Error("dark type on the photograph — unreadable");
   }
 
+  /* THE TEASER LINK IS TAPPABLE (2026-09-25, Danny's iPhone QA): the scrim's
+     z-index:1 sat above the z-index:auto content and swallowed every tap on
+     "Lee la historia completa ->". The scrim must never intercept pointer
+     events, and the content must ride above it. */
+  if (!/\.ariaStoryScrim\{[^}]*pointer-events\s*:\s*none/.test(hdrSrc)) {
+    throw new Error("the story scrim can intercept taps - the teaser link is dead");
+  }
+  if (!/\.ariaStoryTeaser\{[^}]*z-index\s*:\s*2/.test(hdrSrc)) {
+    throw new Error("the teaser content is not above the scrim - the link may not receive taps");
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) {
+    throw new Error("the teaser link no longer opens the full story");
+  }
+
   /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
      one section down: "a promise written down twice is a promise that
      will eventually say two different things." This is a third surface

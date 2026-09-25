@@ -282,7 +282,7 @@
      white type does the work against the dark night photo. The standard
      scrim stays exactly as it is -- its contrast math is documented
      above and still stands for #whyUs. */
-  .ariaStoryScrim{ position:absolute; inset:0; z-index:1;
+  .ariaStoryScrim{ position:absolute; inset:0; z-index:1; pointer-events:none;
                    background:linear-gradient(180deg,
                      rgba(4,12,28,0.32) 0%,
                      rgba(4,12,28,0.42) 45%,
@@ -295,7 +295,15 @@
      type, never from darkening the scrim. (Manrope tops out at 800 in our
      font bundle, so the headline keeps font-extrabold and gets its pop
      from size + shadow instead of a 900 weight.) */
-  .ariaStoryTeaser{ text-shadow:0 2px 12px rgba(0,0,0,.65), 0 0 2px rgba(0,0,0,.8) }
+  .ariaStoryTeaser{ position:relative; z-index:2;
+                   text-shadow:0 2px 12px rgba(0,0,0,.65), 0 0 2px rgba(0,0,0,.8) }
+  /* CLICK FIX (2026-09-25, Danny's iPhone QA): the scrim's z-index:1 sat above the
+     z-index:auto content and swallowed every tap on 'Lee la historia completa ->'.
+     The scrim is pointer-events:none now and the content rides at z-index:2. */
+  /* BODY BRIGHTNESS NUDGE (2026-09-25): the body paragraph read a touch dark next
+     to the headline -- the inherited dark halo was doing it. Soften the halo on
+     the paragraph only; headline, kicker, quote and photo stay exactly as they are. */
+  .ariaStoryTeaser p{ text-shadow:0 1px 8px rgba(0,0,0,.45) }
   .ariaStoryTeaser .ariaKicker{ font-size:12.5px;
      text-shadow:0 0 14px rgba(244,196,99,.55), 0 1px 6px rgba(0,0,0,.7) }
 #whyUs > .relative{ position:relative; z-index:2 }
