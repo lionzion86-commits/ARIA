@@ -49,7 +49,7 @@
    post-hoc adjustment against a customer here.
    ============================================================ */
 import { categoryWeightKg } from "../../scripts/lib/sales-sources.js";
-import { titleWeight, weightSanity, freightQuotable, GENERIC_FALLBACK_KG } from "../../scripts/lib/item-weight.js";
+import { titleWeight, weightSanity, freightQuotable, candleWeightKg, GENERIC_FALLBACK_KG } from "../../scripts/lib/item-weight.js";
 import { beautyWeightDetail, fragranceLimitState } from "../../scripts/lib/beauty-weight.js";
 // The PUBLIC charged rate only — the internal courier cost never travels
 // with anything a browser can reach, and this module answers checkout.
@@ -226,6 +226,12 @@ export function resolveItemWeight(item) {
   // volume, not the parcel's weight. See beauty-weight.js.
   const beauty = beautyWeightDetail(title, hints);
   if (beauty) return banded(beauty.kg, "beauty", `peso estimado de belleza (${beauty.key})`);
+
+  // CANDLES BEFORE THE TITLE PARSE (2026-09-25): "22 oz" on a candle is
+  // wax weight, not parcel weight — the glass jar is another half kilo.
+  // candleWeightKg beats the stated-weight path or checkout underquotes.
+  const candle = candleWeightKg(title);
+  if (candle) return banded(candle, "candle", "peso estimado de vela (cera + vidrio)");
 
   // A weight the retailer wrote in the title is a stated fact, not a
   // guess — it beats any category table. The carousel truncates titles on

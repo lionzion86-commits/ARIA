@@ -10038,6 +10038,10 @@ function fragranceLimitNoticeHTML(){
    lines above a freight figure built on 0.35 kg. A cosmetic states its
    volume instead, in ml, which is what the retailer meant. */
 function contentLabelFor(title){
+  /* Candles: the card must quote the parcel weight (1.3 kg), never the wax
+     weight the title states ("22 oz" = 623 g). Returning null lets the
+     weight line fall back to the same freight estimate the cart charges. */
+  if (candleWeightKg(title) != null) return null;
   if (beautyWeightDetail(title, {})){
     const ml = titleVolumeMl(title);
     return ml ? `${Math.round(ml)} ml` : null;
@@ -11107,6 +11111,38 @@ function ballWeightKg(title) {
   return withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
 }
 
+/* CANDLES: THE WAX-WEIGHT TRAP (2026-09-25). A candle title states the WAX
+   weight — "Yankee Candle Large Jar 22 oz" — but the parcel ships the glass
+   jar too, roughly another half kilo. Reading 22 oz as the shipped weight
+   underquotes freight on every big candle, so candleWeightKg is consulted
+   BEFORE the titleWeight stated-weight path in every estimator chain.
+   Figures are shippable weights with the +10% already baked in (large jar
+   measured 1.14 kg product / 1.19 kg packaged -> 1.3 kg): no buffer here;
+   multi-packs multiply the single-unit figure. Mirrors item-weight.js. */
+const CANDLE_GATE_RE = /\bcandles?\b|\bwicks?\b|\bwax\b|\bvotives?\b|\btea\s*lights?\b/i;
+/* Accessories that are not the candle: a holder ships empty, a warmer
+   ships a hot plate. These must return null, never a candle weight. */
+const CANDLE_IMPOSTOR_RE = /\bcandles?\s+(?:holder|sleeve|shade|topper|warmer|lamp)s?\b|\bwax\s+warmer\b|\bsnuffers?\b/i;
+const CANDLE_SPECS = [
+  { match: /\bflameless\b|\bled\s+candles?\b/i, kg: 0.3 },
+  { match: /\bwax\s*(?:melt|tart)s?\b/i, kg: 0.25 },
+  { match: /\bvotives?\b|\btea\s*lights?\b/i, kg: 0.15 },
+  { match: /\b3[\s-]*wick\b/i, kg: 1.3 },
+  { match: /\blarge\b|\b22\s*oz\b/i, kg: 1.3 },
+  { match: /\bmedium\b|\b14\.5\s*oz\b/i, kg: 1.05 },
+  { match: /\bsmall\b|\b3\.7\s*oz\b/i, kg: 0.45 },
+  { match: /\bpillars?\b/i, kg: 0.55 },
+];
+
+function candleWeightKg(title) {
+  const t = String(title || "");
+  if (!CANDLE_GATE_RE.test(t)) return null;
+  if (CANDLE_IMPOSTOR_RE.test(t)) return null;
+  const hit = CANDLE_SPECS.find((b) => b.match.test(t));
+  if (!hit) return null;
+  return Math.round(hit.kg * titlePackCount(t) * 100) / 100;
+}
+
 function bulkyWeightKg(text){
   const t = String(text || '');
   const goal = goalWeightKg(t);
@@ -11386,7 +11422,11 @@ function catalogWeightDetail(item, title){
 function estimateRetailWeightDetail(text, hints){
   const t = text || '';
   const beauty = beautyWeightDetail(t, hints || {});
-  const stated = beauty ? null : titleWeight(t);
+  /* CANDLES BEFORE THE TITLE PARSE (2026-09-25): "22 oz" on a candle is wax
+     weight, not parcel weight — the glass jar is another half kilo.
+     candleWeightKg beats the stated-weight path or freight is underquoted. */
+  const candle = candleWeightKg(t);
+  const stated = beauty || candle ? null : titleWeight(t);
   const classified = !beauty && !stated && (bulkyWeightKg(t) != null
     || bookWeightKg(t) != null
     || supplementWeightKg(t, hints || {}) != null
@@ -11397,6 +11437,7 @@ function estimateRetailWeightDetail(text, hints){
 
   // The raw estimate, before the band is applied, is what the band judges.
   const raw = beauty ? beauty.kg
+    : candle != null ? candle
     : stated ? stated.kg
     : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? supplementWeightKg(t, hints || {}) ?? footwearWeightKg(t) ?? ballWeightKg(t)
         ?? (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))
@@ -11406,7 +11447,7 @@ function estimateRetailWeightDetail(text, hints){
     : GENERIC_FALLBACK_KG;
 
   const check = weightSanity(t, raw);
-  const source = beauty ? 'beauty' : stated ? 'title' : classified ? 'category' : 'fallback';
+  const source = beauty ? 'beauty' : candle != null ? 'candle' : stated ? 'title' : classified ? 'category' : 'fallback';
   /* THREE STATES. out-of-band fails closed (no freight figure is
      rendered anywhere and it is kept out of Ofertas); a gap is quotable
      on the generic estimate but never promoted as a deal; a beauty

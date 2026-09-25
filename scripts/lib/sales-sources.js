@@ -38,7 +38,7 @@ export const MIN_DISCOUNT_PCT = 5;
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
   titleWeight, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
-  GENERIC_FALLBACK_KG,
+  candleWeightKg, GENERIC_FALLBACK_KG,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 import { supplementWeightKg } from "./supplement-weight.js";
@@ -197,7 +197,7 @@ export function estimateWeightKg(title, hints = {}) {
  * The same chain, with its reasoning attached — and with the sanity
  * bounds applied at the end, so nothing implausible leaves this function.
  *
- * { kg, source: "title"|"category"|"fallback", flagged, bound, reason }
+ * { kg, source: "title"|"category"|"candle"|"fallback", flagged, bound, reason }
  *
  * `flagged` means the chain produced a weight the bounds rejected: the
  * floor is used instead (never under-quote) and the caller is expected to
@@ -212,8 +212,13 @@ export function estimateWeightDetail(title, hints = {}) {
      the box, which are most of the parcel. Everywhere else a weight the
      retailer wrote in the title is still a fact that beats any table. */
   const beauty = beautyWeightDetail(title, hints);
-  const stated = beauty ? null : titleWeight(title);
+  /* CANDLES BEFORE THE TITLE PARSE (2026-09-25): "22 oz" on a candle is
+     wax weight, not parcel weight — the glass jar is another half kilo.
+     candleWeightKg beats the stated-weight path or freight is underquoted. */
+  const candle = candleWeightKg(title);
+  const stated = beauty || candle ? null : titleWeight(title);
   const raw = beauty ? { kg: beauty.kg, source: "beauty", beautyKey: beauty.key }
+    : candle != null ? { kg: candle, source: "candle" }
     : stated ? { kg: stated.kg, source: "title" }
     : (() => {
         const category = categoryWeightKg(title, hints);
