@@ -195,7 +195,7 @@ export const RETAILERS = {
     key: "footlocker",
     label: "Foot Locker",
     color: "#000000",
-    logo: "logos/footlocker.svg",
+    logo: "logos/footlocker.png",
     tagline: "Zapatillas y ropa deportiva",
     kind: "general",
     search: true,

@@ -2550,24 +2550,24 @@ check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
   if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
 });
 
-check("the parts sources never enter the Tiendas grid", () => {
+check("the parts sources live only in the Repuestos tier", () => {
   /* WHAT THIS RULE IS ACTUALLY FOR. It was written as "the grid stays at
-     its symmetric eight", which is how it was phrased at the time, but
-     the rule being protected is narrower and it is about PARTS SOURCES:
-     RockAuto and Advance Auto live inside Aria Auto as places we buy
-     car parts, and must never appear as storefront tiles a shopper can
-     walk into. AutoZone predates the split and is Aria Auto's own
-     source, so it is the one row in both.
-
-     The count was a proxy for that, and it stopped being a good one the
-     moment a real ninth STORE arrived: Macy's (2026-09-22), added on
-     Danny's explicit instruction. Asserting 8 forever would have blocked
-     every future store the shop signs, which is the opposite of what
-     anyone wanted. So the rule is asserted directly. */
-  const tiendas = Object.keys(RETAILERS).filter((k) => !RETAILERS[k].retired);
-  for (const key of Object.keys(autoSources.AUTO_SOURCES)) {
-    if (key === "autozone") continue;   // predates the split, and Aria Auto's own source
-    if (tiendas.includes(key)) throw new Error(`${key} leaked into the Tiendas grid`);
+     its symmetric eight", then as "parts sources never enter the Tiendas
+     grid". Danny overruled the second phrasing on 2026-09-24: Aria Auto
+     launched with RockAuto and AutoZone as real Tiendas tiles, each with
+     its own storefront view. The rule being protected was never "no auto
+     tiles" — it is that parts sources must not pollute the general store
+     grid. They render ONLY under the Repuestos tier, never in
+     everyday/luxury. */
+  for (const r of retailers.activeRetailers()) {
+    if (r.kind !== "auto") continue;
+    if (retailers.tierOf(r) !== "auto")
+      throw new Error(`${r.key} is an auto source outside the Repuestos tier`);
+  }
+  for (const r of retailers.activeRetailers()) {
+    if (r.kind === "auto") continue;
+    if (retailers.tierOf(r) === "auto")
+      throw new Error(`${r.key} is not an auto source but sits in Repuestos`);
   }
   // And the grid is the registry, never a hand-written list.
   const src = readFileSync(root("index.html"), "utf8");
@@ -2611,11 +2611,16 @@ check("a browsable store is not treated as one still being connected", () => {
   if (!/const CATALOG_RETAILERS = /.test(src)) throw new Error("index.html has no browsable-retailer list");
 });
 
-check("a source with no verified actor is not queried", () => {
+check("every queried auto source has verified backing", () => {
   // Same rule as the beauty stores: a guessed actor returns an empty run,
-  // which reads as "this store has nothing for your car" — a lie.
-  eq(autoSources.AUTO_SOURCES.rockauto.search, false);
-  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
+  // which reads as "this store has nothing for your car" — a lie. RockAuto
+  // went live 2026-09-24 with a verified 2,490-row cache (1,013 unique
+  // parts) served from auto-cache.json, so its `search: true` is
+  // cache-backed, not a guessed actor. A source with neither a verified
+  // actor nor a verified cache must stay out of the fan-out.
+  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone,rockauto");
+  eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto is still unprobed");
+  eq(autoSources.AUTO_SOURCES.oreilly.search, false, "O'Reilly stays out");
 });
 
 check("index.html mirrors the source registry", () => {
