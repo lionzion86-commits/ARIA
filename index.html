@@ -511,6 +511,87 @@
      height turns a panel into a second wall. See storeBrandPanelHTML. */
   .brandList{ max-height:62vh; overflow-y:auto; overscroll-behavior:contain; position:relative }
   @media (min-width:768px){ .brandList{ max-height:520px } }
+  /* ============================================================
+     THE CHAT, ON A PHONE (2026-09-23).
+
+     HAND-WRITTEN, NOT TAILWIND, for the same reason .brandList and
+     .ariaRail are: the page is built to boot with the CDN blocked, and
+     the one thing that must not degrade is the sheet's geometry -- a
+     chat that loses its height on a phone becomes a full-screen
+     takeover you cannot see past, which is exactly what the brief says
+     it must never be.
+
+     ONE BREAKPOINT FOR THE WHOLE MOBILE CHAT, and it is the same 1024px
+     the orb docks at and the shopfront appears at. Below it the nav is
+     behind the hamburger, the orb is corner-parked, and the chat is a
+     sheet. Three behaviours, one line in the sand.
+
+     A SHEET, NOT A TAKEOVER. It is bottom-anchored and sized so the
+     page stays visible above it: the shopper can read a price while
+     asking about it. Two heights -- a peek and an expanded -- toggled by
+     the grab handle, and dismissed in one tap by the header's X.
+
+     THE CUSTOM PROPERTIES ARE SET FROM visualViewport, not guessed. On
+     iOS the keyboard does not resize the layout viewport, so a sheet
+     pinned to bottom:0 ends up UNDER the keyboard with its input out of
+     reach. --ariaSheetInset is how far the keyboard has pushed the
+     visible area up; the fallbacks are what a browser without
+     visualViewport gets, which is the geometry we had before. */
+  /* 13px is what the bubbles have always been on a laptop; the media
+     query BELOW is what raises them to 16 on a phone. Declared as a class
+     rather than left as a Tailwind text-[13px] utility so the two cannot
+     fight over which one wins the cascade -- and declared HERE, before
+     the query, because at equal specificity the last rule wins and a base
+     written underneath its own override silently defeats it. */
+  .ariaChatMsg{ font-size:13px }
+  /* A sheet whose column scrolls past its end must not start scrolling
+     the page behind it: that is how a shopper loses the conversation. */
+  #assistantMessages{ overscroll-behavior:contain }
+  @media (max-width: 1023px){
+    #assistantPanel{
+      left:0; right:0; bottom:var(--ariaSheetInset, 0px); top:auto;
+      width:100%; max-width:none;
+      height:var(--ariaSheetPeek, 62vh); max-height:none;
+      border-radius:22px 22px 0 0;
+      border-left:0; border-right:0; border-bottom:0;
+      box-shadow:0 -12px 40px rgba(10,31,68,0.28);
+      transition:height .22s ease;
+    }
+    #assistantPanel[data-sheet="expanded"]{ height:var(--ariaSheetFull, 92vh) }
+    /* Someone who asked for less motion gets the height change instantly
+       rather than as a slide. */
+    @media (prefers-reduced-motion: reduce){ #assistantPanel{ transition:none } }
+    /* iOS Safari ZOOMS THE PAGE when a focused field is under 16px, and
+       it does not zoom back out. That is the keyboard trap: the header
+       scrolls off, the sheet is wider than the screen, and the shopper
+       is stuck. 16px is not a preference here, it is the fix. */
+    #assistantInput{ font-size:16px }
+    .ariaChatMsg{ font-size:16px }
+    .ariaQuickChip{ font-size:14.5px }
+    /* The launcher is hidden while the sheet is up: a fixed orb in the
+       bottom-right corner would sit squarely on the sheet's own input
+       row. The sheet carries its own close button instead. */
+    body[data-chat-open] #assistantBtn,
+    body[data-chat-open] #ariaOrbTrail{ display:none }
+  }
+  /* The grab handle and the sheet's close button are a phone affordance;
+     on a desktop the panel is a floating card that needs neither. */
+  .ariaSheetHandle{ display:none }
+  @media (max-width: 1023px){ .ariaSheetHandle{ display:block } }
+  /* The quick replies. A rail, like the shopfront's, so a longer list
+     stays one line the thumb can push along instead of wrapping into a
+     block that eats the conversation. */
+  .ariaQuickRail{ display:flex; gap:8px; overflow-x:auto; scrollbar-width:none;
+                  -webkit-overflow-scrolling:touch; scroll-snap-type:x proximity }
+  .ariaQuickRail::-webkit-scrollbar{ display:none }
+  .ariaQuickRail > *{ scroll-snap-align:start }
+  /* 44px is Apple's minimum tap target and the brief asks for large
+     ones, so that is the floor for a chip and for the mic. */
+  .ariaQuickChip{ flex:0 0 auto; min-height:44px; display:inline-flex; align-items:center;
+                  padding:0 16px; border-radius:999px; font-size:13px; font-weight:700;
+                  line-height:1.15; white-space:nowrap; color:var(--navy);
+                  background:var(--sky); border:1px solid rgba(10,31,68,0.10) }
+  .ariaQuickChip:active{ background:#DCE7FB }
   .ariaCard{ border-radius:24px; padding:28px; height:100%; display:flex; flex-direction:column;
              background:rgba(255,255,255,0.05); border:1px solid rgba(244,196,99,0.22) }
   .ariaCardIcon{ width:48px; height:48px; border-radius:16px; display:grid; place-items:center; margin-bottom:24px;
@@ -2849,26 +2930,59 @@
   <div>Tu asistente personal de compras. ¿Qué estás buscando hoy? Pregúntame lo que quieras.</div>
 </div>
 
-<div id="assistantPanel" class="hidden fixed bottom-24 right-5 z-40 w-[92vw] max-w-[380px] h-[520px] max-h-[72vh] rounded-2xl border bg-white flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(10,31,68,0.25)]" style="border-color:var(--line)">
+<div id="assistantPanel" data-sheet="peek" class="hidden fixed bottom-24 right-5 z-40 w-[92vw] max-w-[380px] h-[520px] max-h-[72vh] rounded-2xl border bg-white flex flex-col overflow-hidden shadow-[0_20px_60px_rgba(10,31,68,0.25)]" style="border-color:var(--line)">
+  <!-- THE GRAB HANDLE. A sheet that can grow has to say so, and the bar
+       is the shape every phone user already reads as "pull me". It is a
+       real button, not a decorative div, so it answers a tap and a
+       keyboard alike; aria-expanded is what tells a screen reader which
+       of the two heights it is at. -->
+  <button type="button" class="ariaSheetHandle w-full pt-2.5 pb-1.5 flex-shrink-0 focus-ring"
+    onclick="toggleAssistantSheet()" id="assistantSheetHandle"
+    aria-expanded="false" aria-controls="assistantPanel" aria-label="Ampliar la conversación"
+    style="background:var(--navy)">
+    <span class="block mx-auto w-10 h-1 rounded-full" style="background:rgba(255,255,255,0.38)"></span>
+  </button>
   <div class="px-4 py-3.5 border-b flex items-center gap-2.5 flex-shrink-0" style="border-color:var(--line); background:var(--navy)">
     <div class="w-8 h-8 rounded-full grid place-items-center flex-shrink-0" style="background:rgba(255,255,255,0.15)">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </div>
-    <div>
+    <div class="min-w-0 flex-1">
       <div class="text-white font-bold text-[13.5px] leading-tight">Asistente Aria</div>
       <div id="assistantStatus" class="text-[11.5px] leading-tight" style="color:#B9C6E6">Aquí para ayudarte a encontrar algo</div>
     </div>
+    <!-- ONE-TAP DISMISS, in the sheet itself. The launcher used to be the
+         close button, and a launcher parked in the bottom-right corner
+         is underneath a bottom sheet -- so the X lives where the thumb
+         looks for it, at the top of the thing it closes. 44px, Apple's
+         minimum, not the 24px the icon draws. -->
+    <button type="button" onclick="hideAssistant()" data-assistant-close aria-label="Cerrar la conversación"
+      class="w-11 h-11 -mr-1.5 rounded-full grid place-items-center flex-shrink-0 focus-ring"
+      style="color:#fff">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+    </button>
   </div>
 
   <div id="assistantMessages" class="flex-1 overflow-y-auto px-4 py-4 space-y-3 no-scrollbar"></div>
 
+  <!-- QUICK REPLIES, ABOVE THE INPUT AND ALWAYS. They sit between the
+       conversation and the field, which is where a thumb already is and
+       where the keyboard cannot push them off. Rendered by
+       renderAssistantQuickReplies() from one list, so a chip's text is
+       literally the message it sends -- there is no second routing table
+       that could send something other than what the chip says. -->
+  <div id="assistantQuickRow" class="ariaQuickRail border-t px-3 py-2.5 flex-shrink-0" style="border-color:var(--line); background:#fff"></div>
+
   <div class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
-    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleContinuousMode()" aria-label="Hablar" class="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+    <!-- VOICE IS THE FIRST THING IN THE ROW AND THE LOUDEST. It was a
+         40px grey outline, which is under Apple's 44px minimum and read
+         as secondary; it is navy-filled and 48px now. Speaking is how
+         most of this shop's customers will actually ask. -->
+    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleContinuousMode()" aria-label="Hablar con Aria" title="Hablar con Aria" aria-pressed="false" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--navy); color:#fff">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </button>
-    <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" class="flex-1 h-10 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
-    <button onclick="sendAssistantText()" aria-label="Enviar" class="w-10 h-10 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-7-7 14-2-5-5-2Z"/></svg>
+    <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="flex-1 h-12 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
+    <button onclick="sendAssistantText()" aria-label="Enviar" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-7-7 14-2-5-5-2Z"/></svg>
     </button>
   </div>
 </div>
@@ -16085,11 +16199,207 @@ function startOrbSwim(){
   requestAnimationFrame(orbStep);
 }
 
+/* ==================================================================
+   THE CHAT ON A PHONE (2026-09-23).
+
+   Mobile is the store and the assistant is the on-ramp, so the panel
+   that was a small floating card in the corner of a laptop becomes a
+   bottom sheet: anchored to the bottom edge, full width, and only as
+   tall as it needs to be so the shopper can still see the price they
+   are asking about. Peek and expanded, a grab handle between them, and
+   one tap on the header's X to dismiss.
+
+   SAME BREAKPOINT AS EVERYTHING ELSE MOBILE. 1024px is where the nav
+   goes behind the hamburger, where the orb corner-parks, and where the
+   shopfront's rails appear. The chat joins them rather than inventing a
+   fourth line.
+   ================================================================== */
+const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)';
+
+/* What Aria says when the greeting endpoint gives us nothing usable. */
+const ARIA_GREETING_FALLBACK = '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas.';
+
+function isMobileChat(){
+  return !!(window.matchMedia && window.matchMedia(ARIA_CHAT_MOBILE_MQ).matches);
+}
+
+/* THE KEYBOARD TRAP, AND WHY visualViewport IS THE ONLY HONEST ANSWER.
+
+   iOS Safari does not resize the layout viewport when the keyboard
+   comes up -- window.innerHeight is unchanged, so a sheet pinned to
+   bottom:0 is pinned to a bottom that is now behind the keyboard, with
+   its input and its send button out of reach. The VISUAL viewport is
+   the part you can actually see, and the gap between the two is exactly
+   how far the keyboard has eaten.
+
+   So the sheet is lifted by that gap and sized against the visible
+   height. A browser with no visualViewport (and every desktop) falls
+   through to the CSS fallbacks, which are the geometry we had before. */
+function syncAssistantSheet(){
+  const panel = document.getElementById('assistantPanel');
+  if (!panel) return;
+  if (!isMobileChat()){
+    panel.style.removeProperty('--ariaSheetInset');
+    panel.style.removeProperty('--ariaSheetPeek');
+    panel.style.removeProperty('--ariaSheetFull');
+    return;
+  }
+  const vv = window.visualViewport;
+
+  /* THE LAYOUT VIEWPORT IS NOT ALWAYS MEASURED IN THE SAME PIXELS THE
+     SHEET IS DRAWN IN, and subtracting one from the other without
+     checking is how this went wrong the first time.
+
+     When a page overflows sideways, a mobile browser zooms the LAYOUT
+     viewport out to fit it: innerWidth/innerHeight become far larger
+     than what you can actually see. Measured on this very page with its
+     stylesheet blocked -- innerHeight 3408, visualViewport.height 852 --
+     the naive subtraction reports 2,556px of "keyboard" and throws the
+     sheet a screen and a half off the bottom of the phone. A pinch-zoom
+     does the same thing in reverse, and chasing one would drag the sheet
+     around while the shopper is trying to read.
+
+     THE WIDTHS AGREEING IS WHAT SAYS THE TWO VIEWPORTS ARE IN THE SAME
+     UNITS. A keyboard changes the visible HEIGHT and nothing else; a
+     zoomed or shrunk-to-fit layout viewport changes both. So the lift is
+     only ever taken when the widths match, and the CSS fallbacks carry
+     the sheet in every other case -- which is a sheet in the wrong place
+     by a few pixels rather than one off the screen entirely. */
+  const sameUnits = !!vv && Math.abs(window.innerWidth - vv.width) <= 1;
+  const visible = sameUnits ? vv.height : window.innerHeight;
+  const inset = sameUnits ? Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop))) : 0;
+  panel.style.setProperty('--ariaSheetInset', inset + 'px');
+  /* PEEK LEAVES THE PAGE READABLE. 62% is the same fraction .brandList
+     uses for its scroller, and it keeps a full product card visible
+     above the sheet on a 393x852 phone -- which is the whole point of a
+     sheet over a takeover.
+
+     With the keyboard up there is nothing to peek at anyway, so the
+     sheet takes what is left of the visible area rather than 62% of it:
+     62% of a keyboard-shrunk viewport is a letterbox. */
+  const peek = inset > 0 ? visible : Math.round(visible * 0.62);
+  panel.style.setProperty('--ariaSheetPeek', peek + 'px');
+  panel.style.setProperty('--ariaSheetFull', Math.round(visible * 0.92) + 'px');
+}
+
+/* Peek <-> expanded. Not a drag: a drag on a scrolling column fights the
+   conversation underneath it, and a tap target the size of the handle is
+   something a thumb can hit without aiming. */
+function toggleAssistantSheet(){
+  const panel = document.getElementById('assistantPanel');
+  const handle = document.getElementById('assistantSheetHandle');
+  if (!panel) return;
+  const expanded = panel.getAttribute('data-sheet') === 'expanded';
+  panel.setAttribute('data-sheet', expanded ? 'peek' : 'expanded');
+  if (handle){
+    handle.setAttribute('aria-expanded', expanded ? 'false' : 'true');
+    handle.setAttribute('aria-label', expanded ? 'Ampliar la conversación' : 'Reducir la conversación');
+  }
+  const wrap = document.getElementById('assistantMessages');
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
+}
+
+/* ==================================================================
+   THE QUICK REPLIES.
+
+   A CHIP'S LABEL IS THE MESSAGE IT SENDS. There is no second table
+   mapping a chip to an action, because that is how a button comes to do
+   something other than what it says: the text goes through
+   sendAssistantQuickReply -> runAssistantBrain, the same path a typed
+   message takes, and the brain decides. "¿Qué hay en oferta?" lands on
+   the Ofertas feed because runAssistantBrain's own SALE_KEYWORDS see
+   "oferta" in it -- the routing the chat already had.
+
+   EVERY ONE OF THESE IS A QUESTION THE ASSISTANT CAN ACTUALLY ANSWER.
+   Three of the four match CHAT_NON_SHOPPING_RE, which is what stops
+   them being sent to a live multi-store PRODUCT search that would run
+   for half a minute and come back with nothing. A chip that did that
+   would be worse than no chip.
+   ================================================================== */
+const ARIA_QUICK_REPLIES = [
+  '¿Qué hay en oferta?',
+  'Rastrear mi pedido',
+  '¿Cuánto cuesta el envío?',
+  '¿Cómo funciona Aria?',
+];
+
+function renderAssistantQuickReplies(){
+  const row = document.getElementById('assistantQuickRow');
+  if (!row) return;
+  row.innerHTML = ARIA_QUICK_REPLIES.map(q =>
+    `<button type="button" class="ariaQuickChip focus-ring" data-quick-reply="${escapeHtml(q)}"
+       onclick="sendAssistantQuickReply(this.getAttribute('data-quick-reply'))">${escapeHtml(q)}</button>`).join('');
+}
+
+function sendAssistantQuickReply(text){
+  if (!text || assistantThinking) return;
+  addAssistantMessage('user', text);
+  setTimeout(() => runAssistantBrain(text), 350);
+}
+
+/* Landing somewhere means seeing it. A bottom sheet covering most of a
+   phone is still up when goSales() swaps the view underneath it, so the
+   shopper "arrives" at Ofertas and looks at the chat. On a laptop the
+   panel is a small corner card beside the feed, so it stays. */
+function dismissAssistantForNavigation(){
+  if (assistantOpen && isMobileChat()) toggleAssistant();
+}
+
+/* CLOSING IS NOT TOGGLING. The X was wired to toggleAssistant(), which
+   is right only while the flag and the panel agree -- and a control
+   whose job is "close" should never be able to OPEN the thing, however
+   they got out of step. This sets the state rather than flipping it, so
+   tapping it twice, or tapping it on an already-closed panel, is a
+   no-op instead of a surprise. Escape lands here too. */
+function hideAssistant(){
+  if (!assistantOpen && document.getElementById('assistantPanel')?.classList.contains('hidden')) return;
+  assistantOpen = false;
+  document.getElementById('assistantPanel')?.classList.add('hidden');
+  document.getElementById('assistantIconSpark')?.classList.remove('hidden');
+  document.getElementById('assistantIconClose')?.classList.add('hidden');
+  /* AND THE LAUNCHER COMES BACK. This flag is what hides the orb while
+     the sheet is up; a close path that forgot it left the shopper with
+     no sheet AND no way to reopen one. Missing it here was caught by
+     the sheet's own browser check, which is why closing is asserted on
+     the body attribute and not just on the panel. */
+  document.body.removeAttribute('data-chat-open');
+  hideGreetBubble();
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && assistantOpen) hideAssistant();
+});
+
 function toggleAssistant(){
+  // ONE CLOSE PATH. Closing from here goes through hideAssistant() so
+  // the two can never drift apart again.
+  if (assistantOpen){ hideAssistant(); return; }
   assistantOpen = !assistantOpen;
   document.getElementById('assistantPanel').classList.toggle('hidden', !assistantOpen);
   document.getElementById('assistantIconSpark').classList.toggle('hidden', assistantOpen);
   document.getElementById('assistantIconClose').classList.toggle('hidden', !assistantOpen);
+
+  /* The phone's sheet. The flag on <body> is what hides the launcher
+     while the sheet is up -- a fixed orb in the bottom-right corner is
+     underneath a bottom sheet, sitting on its input row. */
+  document.body.toggleAttribute('data-chat-open', assistantOpen);
+  if (assistantOpen){
+    /* Always opens at the peek height, whatever it was left at. A sheet
+       that reopens expanded because of something you did ten minutes ago
+       has hidden the page you were looking at. */
+    const panel = document.getElementById('assistantPanel');
+    panel.setAttribute('data-sheet', 'peek');
+    const handle = document.getElementById('assistantSheetHandle');
+    if (handle){ handle.setAttribute('aria-expanded', 'false'); handle.setAttribute('aria-label', 'Ampliar la conversación'); }
+    renderAssistantQuickReplies();
+    syncAssistantSheet();
+    /* THE INPUT IS NOT FOCUSED ON A PHONE, deliberately. Focusing it
+       throws the keyboard up over the products the sheet was sized to
+       leave visible, before the shopper has decided to type at all --
+       and the quick replies, which are the fastest way in, would be the
+       first thing covered. A tap on the field is one tap. */
+    if (!isMobileChat()) document.getElementById('assistantInput')?.focus();
+  }
 hideGreetBubble();
 if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
   if (!continuousMode) { continuousMode = true; }
@@ -16100,13 +16410,38 @@ if (assistantOpen && document.getElementById('assistantMessages').children.lengt
   })
   .then(res => res.json())
   .then(data => {
-    addAssistantMessage('bot', data.reply, data.audio);
+    /* AN EMPTY GREETING IS AN EMPTY BLUE BOX. A 200 carrying no `reply`
+       -- a degraded endpoint, a missing key, a cold function -- used to
+       be passed straight to addAssistantMessage, which drew a sky-blue
+       bubble with nothing in it. On a phone that box is the FIRST thing
+       a shopper sees of the assistant, so the greeting falls back to the
+       same written line the network failure already falls back to.
+       Flagged during the streaming work as "one line to fix"; this is
+       the line, and it is here because a broken first impression of the
+       on-ramp is exactly what this brief is about. */
+    const greeting = typeof data?.reply === 'string' ? data.reply.trim() : '';
+    if (greeting) addAssistantMessage('bot', greeting, data.audio);
+    else addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
   })
   .catch(() => {
-    addAssistantMessage('bot', '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas.');
+    addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
   });
 }
 }
+
+/* The sheet re-measures whenever the visible area changes: the keyboard
+   opening or closing, a rotation, a desktop window dragged across the
+   breakpoint. On iOS the keyboard arrives as a visualViewport SCROLL as
+   often as a resize, so both are listened to. */
+(function bindAssistantSheetViewport(){
+  const on = () => { if (assistantOpen) syncAssistantSheet(); };
+  window.addEventListener('resize', on, { passive: true });
+  window.addEventListener('orientationchange', on, { passive: true });
+  if (window.visualViewport){
+    window.visualViewport.addEventListener('resize', on, { passive: true });
+    window.visualViewport.addEventListener('scroll', on, { passive: true });
+  }
+})();
 
 function hideGreetBubble(){
   const bubble = document.getElementById('assistantGreetBubble');
@@ -16131,11 +16466,11 @@ function addAssistantMessage(role, text, audioBase64){
   const wrap = document.getElementById('assistantMessages');
   const bubble = document.createElement('div');
   if (role === 'bot') {
-    bubble.className = 'max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed';
+    bubble.className = 'ariaChatMsg max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 leading-relaxed';
     bubble.style.background = 'var(--sky)'; bubble.style.color = 'var(--navy)';
     bubble.textContent = text;
   } else {
-    bubble.className = 'max-w-[85%] ml-auto rounded-2xl rounded-br-sm px-3.5 py-2.5 text-[13px] leading-relaxed text-white';
+    bubble.className = 'ariaChatMsg max-w-[85%] ml-auto rounded-2xl rounded-br-sm px-3.5 py-2.5 leading-relaxed text-white';
     bubble.style.background = 'var(--blue)';
     bubble.textContent = text;
   }
@@ -16212,7 +16547,7 @@ function beginAssistantReply(){
   const wrap = document.getElementById('assistantMessages');
   if (!wrap) return null;
   const bubble = document.createElement('div');
-  bubble.className = 'max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed';
+  bubble.className = 'ariaChatMsg max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 leading-relaxed';
   bubble.style.background = 'var(--sky)';
   bubble.style.color = 'var(--navy)';
   /* Announced once, when it settles. aria-live="polite" on a node that
@@ -16451,7 +16786,7 @@ const CHAT_MAX_PER_STORE = 2;
 const CHAT_PROGRESS_AFTER_MS = 5000;
 // Turns that are plainly not product requests: asking these about shipping
 // or customs should not spend four scrapes, or claim to be "buscando" them.
-const CHAT_NON_SHOPPING_RE = /\b(env[ií]os?|demora|tarda|aduana|arancel(es)?|impuestos?|flete|pagar?|pagos?|tarjeta|yape|plin|devoluci[oó]n|devoluciones|garant[ií]a|reembolso|rastre[oa]|seguimiento|c[oó]mo funciona|qui[eé]nes son|d[oó]nde est[aá]n)\b/i;
+const CHAT_NON_SHOPPING_RE = /\b(env[ií]os?|demora|tarda|aduana|arancel(es)?|impuestos?|flete|pagar?|pagos?|tarjeta|yape|plin|devoluci[oó]n|devoluciones|garant[ií]a|reembolso|rastre(?:o|a|ar|ando)|seguimiento|c[oó]mo funciona|qui[eé]nes son|d[oó]nde est[aá]n)\b/i;
 
 function chatStoreLabel(retailer){ return LIVE_RETAILER_LABEL[retailer] || retailer; }
 function joinEs(list){
@@ -16782,6 +17117,7 @@ async function runAssistantBrain(text){
   if (SALE_KEYWORDS.some(k => lowerText.includes(k))) {
     addAssistantMessage('bot', '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy 🔥');
     goSales();
+    dismissAssistantForNavigation();
     assistantThinking = false;
     if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
     return;
@@ -16958,14 +17294,36 @@ function clearSilenceTimer(){
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
 }
 
+/* ==================================================================
+   THE MIC HAS TWO LOOKS, AND ONE PLACE THAT DECIDES THEM.
+
+   It had five. "Idle" was written as `style.background = ''` in
+   stopContinuousMode, in recognition.onstart's two timeouts, and in
+   recognition.onend -- so the button's resting appearance was an empty
+   string repeated five times, and the brief's "big and obvious" filled
+   button, set once in the markup, was wiped by whichever of them ran
+   first. (It was: the panel opens, nothing is listening, and the idle
+   writer put it back to a transparent square.)
+
+   Idle is navy-filled; listening is the brand blue with the status line
+   reading "Escuchando…". aria-pressed is what tells a screen reader
+   which of the two it is, since colour alone says nothing.
+   ================================================================== */
+function setAssistantMicState(listening){
+  const micBtn = document.getElementById('assistantMicBtn');
+  if (!micBtn) return;
+  micBtn.style.background = listening ? 'var(--blue)' : 'var(--navy)';
+  micBtn.style.color = '#fff';
+  micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+}
+
 function stopContinuousMode(){
   continuousMode = false;
   clearSilenceTimer();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
-  const micBtn = document.getElementById('assistantMicBtn');
-  if (micBtn) { micBtn.style.background = ''; micBtn.style.color = 'var(--navy)'; }
+  setAssistantMicState(false);
 }
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -16977,8 +17335,7 @@ if (SpeechRecognitionAPI) {
 
   recognition.onstart = () => {
   document.getElementById('assistantStatus').textContent = 'Escuchando…';
-  document.getElementById('assistantMicBtn').style.background = 'var(--blue)';
-  document.getElementById('assistantMicBtn').style.color = '#fff';
+  setAssistantMicState(true);
   lastTranscriptLength = 0;
   clearSilenceTimer();
   // start the silence countdown fresh — it only fires if no speech
@@ -16987,8 +17344,7 @@ if (SpeechRecognitionAPI) {
         intentionalStop = true;
         if (recognition) { try { recognition.stop(); } catch(e) {} }
         document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-        document.getElementById('assistantMicBtn').style.background = '';
-        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+        setAssistantMicState(false);
       }, SILENCE_TIMEOUT_MS);
   if (maxSessionTimer) clearTimeout(maxSessionTimer);
       maxSessionTimer = setTimeout(() => {
@@ -16996,8 +17352,7 @@ if (SpeechRecognitionAPI) {
         intentionalStop = true;
         if (recognition) { try { recognition.stop(); } catch(e) {} }
         document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-        document.getElementById('assistantMicBtn').style.background = '';
-        document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+        setAssistantMicState(false);
         showToast('Sesión de voz finalizada por inactividad prolongada.');
       }, MAX_SESSION_MS);
     };
@@ -17051,8 +17406,7 @@ recognition.onresult = (e) => {
   }
 
   document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-  document.getElementById('assistantMicBtn').style.background = '';
-  document.getElementById('assistantMicBtn').style.color = 'var(--navy)';
+  setAssistantMicState(false);
 
   if (continuousMode && !assistantThinking) {
     setTimeout(() => {
