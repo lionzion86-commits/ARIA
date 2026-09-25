@@ -142,16 +142,18 @@ export const BRAND_CONFIG = {
     // plan's fallback rule, same as Walmart's no-brand-mode case.
   },
   footlocker: {
-    // browseByBrand mode is actor-confirmed; "Nike" real-test confirmed
-    // 2026-09-17. The rest use the same mode — counts are verified
-    // empirically per run (empty result = wrong brand string, not a
-    // broken mode).
+    // browseByBrand mode is actor-confirmed; the brand strings are the
+    // actor's own case-sensitive enum (revealed by its input validation
+    // 2026-09-25 — "Adidas"/"Puma" are REJECTED, "adidas"/"PUMA" accepted).
     nike: { brand: "Nike" },
     jordan: { brand: "Jordan" },
-    adidas: { brand: "Adidas" },
-    puma: { brand: "Puma" },
+    adidas: { brand: "adidas" },
+    puma: { brand: "PUMA" },
     newbalance: { brand: "New Balance" },
     reebok: { brand: "Reebok" },
+    asics: { brand: "ASICS" },
+    converse: { brand: "Converse" },
+    vans: { brand: "Vans" },
   },
   // walmart: no dedicated brand-mode confirmed on this actor — brand
   // search there stays a plain keyword search using the brand name itself.
