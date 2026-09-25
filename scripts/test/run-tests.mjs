@@ -30,7 +30,7 @@ import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retaile
 import * as retailers from "../lib/retailers.js";
 import * as deptMap from "../lib/department-map.js";
 import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
-import { inkCoverage } from "./_png.mjs";
+import { inkCoverage, pngShape } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
@@ -5227,6 +5227,192 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
   if (/[\u{1F300}-\u{1FAFF}]/u.test(badge)) throw new Error("an emoji is standing in for a product photo");
 });
 
+
+/* ==================================================================
+   THE MOBILE HEADER: THE MARK, THE UTILITY BAR, AND WHERE ITS TWO
+   LINKS LAND.
+
+   Almost all of this is geometry the browser suite cannot see, because
+   it boots with the Tailwind CDN blocked on purpose. Pinned here by the
+   rules that decide it.
+   ================================================================== */
+group("The mobile header");
+
+const hdrSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const hdrStyle = hdrSrc.slice(hdrSrc.indexOf("<style>"), hdrSrc.indexOf("</style>"));
+const utilityBar = hdrSrc.slice(hdrSrc.indexOf('<div id="utilityBar"'), hdrSrc.indexOf('<header class="sticky'));
+const headerEl = hdrSrc.slice(hdrSrc.indexOf('<header class="sticky'), hdrSrc.indexOf("</header>"));
+
+check("the brand mark stands down on the phones it would overflow", () => {
+  /* MEASURED, NOT GUESSED. This branch adds 26px of mark and a 9px gap
+     to a header that #27 had already shaved to fit; with the mark shown
+     at every width the right-hand cluster ran 3px past a 360px viewport
+     and the sideways wiggle #27 removed was back. The mark is alt=""
+     decorative and the wordmark beside it still carries the brand, so
+     the mark is what gives -- at the same 380px this header already
+     uses for the Key Club tag. */
+  const mark = headerEl.slice(headerEl.indexOf('<img src="assets/aria-mark.png"'));
+  const tag = mark.slice(0, mark.indexOf(">") + 1);
+  if (!/hidden min-\[380px\]:block/.test(tag)) {
+    throw new Error("the mark no longer stands down below 380px — the header overflows a 360px phone again");
+  }
+});
+
+check("the brand mark is in the header, and the asset is one that can carry it", () => {
+  if (!/<img src="assets\/aria-mark\.png"/.test(headerEl)) throw new Error("the header has no brand mark");
+  /* DECORATIVE, NOT A THIRD NAME. The button already carries "Aria Shop
+     — inicio" in its aria-label and the wordmark beside it, so alt text
+     here would have a screen reader say the name three times. */
+  if (!/<img src="assets\/aria-mark\.png" alt=""/.test(headerEl)) throw new Error("the mark is announced as well as drawn");
+  if (!/goHome\(\)/.test(headerEl)) throw new Error("the mark no longer goes home");
+
+  /* THE THREE FAULTS THAT GOT THE OLD ONE PULLED, asserted against the
+     new file rather than trusted: square, ink filling its canvas, and
+     edges that are actually antialiased. A mark that fails any of them
+     draws as the watermark the 2026-09-19 note described. */
+  const { width, height, alpha } = pngShape(root("assets/aria-mark.png"));
+  eq(width, height, "the mark is not square — object-contain will float it off the baseline");
+  if (width < 96) throw new Error(`the mark is ${width}px — too small for a 30px box at 3x DPR`);
+  if (!(alpha.ink / (width * height) > 0.12)) {
+    throw new Error(`ink is ${(alpha.ink / (width * height) * 100).toFixed(1)}% of the canvas — object-contain fits the CANVAS, so it will draw tiny`);
+  }
+  if (!(alpha.soft > 100)) throw new Error("the mark has no antialiased edge — it will look jagged at 30px");
+});
+
+check("the utility bar sits above the header and pushes nothing down", () => {
+  if (!utilityBar) throw new Error("there is no utility bar");
+
+  /* ABOVE THE HEADER, IN THE SOURCE. The header is what is sticky; the
+     bar must come before it and must not be sticky itself, or it costs
+     a phone 33px of screen for the whole session. */
+  if (hdrSrc.indexOf('<div id="utilityBar"') > hdrSrc.indexOf('<header class="sticky')) {
+    throw new Error("the utility bar is below the header");
+  }
+  if (/sticky|fixed/.test(utilityBar.slice(0, utilityBar.indexOf(">")))) {
+    throw new Error("the utility bar is stuck to the top — it would eat the screen permanently");
+  }
+  if (!/<header class="sticky top-0/.test(hdrSrc)) throw new Error("the header stopped being the sticky one");
+
+  // One line, and a fixed height it cannot grow past.
+  if (!/h-\[32px\]/.test(utilityBar)) throw new Error("the bar has no fixed single-line height");
+  eq((utilityBar.match(/whitespace-nowrap/g) || []).length >= 3, true, "something in the bar can wrap to a second line");
+});
+
+check("the bar's two links, and a Key Club that does not pretend to be one", () => {
+  /* BOTH LINKS GO THROUGH goHomeSection, which is the router the nav
+     already uses for a section of the home page — not a bare #hash that
+     would break when the shopper is on another view. */
+  if (!/onclick="goHomeSection\('whyUs'\)"/.test(utilityBar)) throw new Error("'Quiénes somos' does not go to the Por qué Aria section");
+  if (!/onclick="goHomeSection\('precioHonesto'\)"/.test(utilityBar)) throw new Error("'Precio honesto' does not go to the guarantee");
+  if (!/>Quiénes somos</.test(utilityBar)) throw new Error("the first link is not 'Quiénes somos'");
+  if (!/>Precio honesto</.test(utilityBar)) throw new Error("the second link is not 'Precio honesto'");
+  // And both targets exist to be landed on.
+  for (const id of ["whyUs", "precioHonesto"]) {
+    if (!hdrSrc.includes(`id="${id}"`)) throw new Error(`the bar links to #${id}, which is not on the page`);
+  }
+
+  /* A TEASER IS NOT A BUTTON. There is nothing behind the Key Club yet,
+     and a tappable thing that does nothing is worse than a thing that
+     plainly says "Próximamente". */
+  /* FROM THE OPENING TAG, not from the attribute. Slicing at
+     "data-key-club" starts the slice INSIDE the tag, so the element's
+     own name is not in it -- and a check for "<button" could never fire
+     however the teaser was rewritten. */
+  const clubAt = utilityBar.indexOf("data-key-club");
+  const club = clubAt < 0 ? "" : utilityBar.slice(utilityBar.lastIndexOf("<", clubAt), utilityBar.indexOf("</div>", clubAt));
+  if (!club) throw new Error("the Key Club teaser is gone");
+  if (/^<(?!span\b)/.test(club)) throw new Error(`the Key Club teaser is a ${club.slice(1, club.indexOf(" "))}, not a plain span`);
+  if (/<button|<a /.test(club)) throw new Error("the Key Club teaser became clickable");
+  if (/onclick=/.test(club)) throw new Error("the Key Club teaser has a click handler");
+  if (!/Aria Key Club/.test(club)) throw new Error("the Key Club lost its name");
+  if (!/Próximamente/.test(club)) throw new Error("the Key Club no longer says it is coming");
+  // Gold, which on this site is the orb-and-logo colour — and the key is
+  // drawn, never an emoji standing in for an icon.
+  if (!/#F4C463/.test(club)) throw new Error("the Key Club lost its gold");
+  if (!/<svg/.test(club)) throw new Error("the key is not drawn");
+  if (/[\u{1F300}-\u{1FAFF}]/u.test(club)) throw new Error("an emoji is standing in for the key");
+});
+
+check("a section jumped to does not land under the sticky header", () => {
+  /* scrollIntoView({block:'start'}) puts the target's top edge at
+     viewport 0, and 69px of opaque header is sitting exactly there. Every
+     anchor on this site landed with its heading hidden behind the logo
+     until this one declaration — the nav's own "Precio Honesto" link
+     included. */
+  const m = hdrStyle.match(/html\{ scroll-padding-top:(\d+)px \}/);
+  if (!m) throw new Error("nothing clears the sticky header for an anchor");
+  const pad = Number(m[1]);
+  /* READ OFF THE HEADER, NOT THE FIRST THING THAT LOOKS LIKE ONE. The
+     first version of this regex matched the utility bar's h-[32px] and
+     happily compared an 84px scroll-padding against it -- green, and
+     measuring nothing. The header's row is the one inside <header>. */
+  const headerH = Number((headerEl.match(/h-\[(\d+)px\] flex items-center justify-between/) || [])[1]);
+  if (!headerH) throw new Error("could not read the header's height");
+  if (pad < headerH) throw new Error(`scroll-padding is ${pad}px under a ${headerH}px header — headings still land behind it`);
+});
+
+check("'Por qué Aria' leads with the reasons and carries the story", () => {
+  const why = hdrSrc.slice(hdrSrc.indexOf('<div id="whyUs"'), hdrSrc.indexOf("<!-- HOW IT WORKS -->"));
+  if (!why) throw new Error("the Por qué Aria section is gone");
+  if (!/>Por qué Aria</.test(why)) throw new Error("the section lost its name");
+
+  /* REASONS FIRST, STORY LAST — AND THE MIDDLE TERM MOVED (2026-09-23).
+
+     This read promises-band -> "ariaCard ariaCard--light" -> story, all
+     three inside #whyUs, because #whyUs was a PAPER section. It since
+     became a photograph under a navy scrim: the light cards are
+     .ariaWhyPromise glass now, and the two blocks this branch added were
+     written for the paper — merging them back where they were left "La
+     historia" as navy type on a dark scrim, an unreadable paragraph.
+
+     So they moved one section down, to #whyUsStory, which keeps the
+     paper they were designed against. The order that MATTERS is intact:
+     what you get, the guarantee behind it, then who is promising it. */
+  const reasonsAt = why.indexOf("ariaWhyPromise");
+  const promisesAt = why.indexOf('id="whyUsPromises"');
+  const storyAt = why.indexOf(">La historia<");
+  if (reasonsAt < 0) throw new Error("the reasons are not in the section");
+  if (promisesAt < 0) throw new Error("the promises are not in the section");
+  if (storyAt < 0) throw new Error("the story is not in the section");
+  if (!(reasonsAt < promisesAt && promisesAt < storyAt)) {
+    throw new Error("the run is no longer reasons -> guarantee -> story");
+  }
+
+  /* AND THE STORY IS ON PAPER, which is the one thing a naive merge got
+     wrong. Navy headings and #3D4759 body over the explainer's scrim is
+     the failure this assertion exists to catch. */
+  const storyAtIdx = why.indexOf('id="whyUsStory"');
+  if (storyAtIdx < 0) throw new Error("#whyUsStory is gone — the story is back inside the photograph");
+  if (storyAtIdx < why.indexOf("ariaWhyPhoto")) throw new Error("the story section sits above the photograph");
+  if (!/background:var\(--paper\)/.test(why.slice(storyAtIdx, storyAtIdx + 400))) {
+    throw new Error("#whyUsStory lost its paper background — navy type on a dark scrim");
+  }
+
+  /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
+     one section down: "a promise written down twice is a promise that
+     will eventually say two different things." This is a third surface
+     for them, so it is a third READER of the array. */
+  const render = hdrSrc.slice(hdrSrc.indexOf("function renderWhyUsPromises(){"), hdrSrc.indexOf("function renderHonestPricingBanners(){"));
+  if (!/PRECIO_HONESTO_CARDS\.map/.test(render)) throw new Error("the promises are not read from PRECIO_HONESTO_CARDS");
+  if (!/escapeHtml\(c\.title\)/.test(render) || !/escapeHtml\(c\.body\)/.test(render)) throw new Error("a promise is injected unescaped");
+  // The four promises the brief names are the ones in that array.
+  const arr = hdrSrc.slice(hdrSrc.indexOf("const PRECIO_HONESTO_CARDS = ["), hdrSrc.indexOf("function precioHonestoCardHTML"));
+  for (const t of ["Flete honesto, siempre", "Nada que pagar al recibir", "Lo que ves es lo que pagas"]) {
+    if (!arr.includes(t)) throw new Error(`the promise "${t}" is no longer in the array the section renders`);
+  }
+  // And the section does not retype any of them.
+  if (/Flete honesto, siempre/.test(why)) throw new Error("a promise was copied into the section's markup");
+
+  /* THE STORY IS #aboutView's, WORD FOR WORD. The full page is still the
+     canonical telling; this is its opening, so the two cannot come to
+     say different things about where the name came from. */
+  const about = hdrSrc.slice(hdrSrc.indexOf('<div id="aboutView"'), hdrSrc.indexOf('<div id="returnsView"'));
+  for (const line of ["Aria lleva el nombre de mi hija.", "que el precio que ves sea el precio que pagas."]) {
+    if (!why.includes(line)) throw new Error(`the section's story is missing: ${line}`);
+    if (!about.includes(line)) throw new Error(`#aboutView no longer says: ${line} — the two have drifted`);
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) throw new Error("the story does not offer the full page");
+});
 
 /* ==================================================================
    THE ASSISTANT ON A PHONE.
