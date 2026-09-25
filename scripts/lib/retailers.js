@@ -320,10 +320,20 @@ export const RETAILERS = {
     key: "autozone",
     label: "AutoZone",
     color: "#1C8A4B",
-    logo: "logos/autozone.svg",
+    logo: "logos/autozone.png",
     tagline: "Repuestos y autopartes — vía Aria Auto",
     // Aria Auto's part-search source, not a general storefront: it is
     // deliberately excluded from the general search fan-out.
+    kind: "auto",
+    search: true,
+  },
+  rockauto: {
+    key: "rockauto",
+    label: "RockAuto",
+    color: "#303090",
+    logo: "logos/rockauto.png",
+    tagline: "Catálogo profundo de repuestos — vía Aria Auto",
+    // Aria Auto's second part-search source; same exclusion as AutoZone.
     kind: "auto",
     search: true,
   },
