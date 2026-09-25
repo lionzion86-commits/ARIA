@@ -354,6 +354,40 @@ export function ballWeightKg(title) {
   return withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
 }
 
+/* CANDLES: THE WAX-WEIGHT TRAP (2026-09-25). A candle title states the WAX
+   weight — "Yankee Candle Large Jar 22 oz" — but the parcel ships the glass
+   jar too, roughly another half kilo. Reading 22 oz as the shipped weight
+   underquotes freight on every big candle, so candleWeightKg is consulted
+   BEFORE the titleWeight stated-weight path in every estimator chain
+   (estimateWeightDetail, estimateRetailWeightDetail, resolveItemWeight).
+
+   Figures are shippable weights with the +10% already baked in (large jar
+   measured 1.14 kg product / 1.19 kg packaged -> 1.3 kg), so no buffer is
+   applied here; multi-packs multiply the single-unit figure. */
+export const CANDLE_GATE_RE = /\bcandles?\b|\bwicks?\b|\bwax\b|\bvotives?\b|\btea\s*lights?\b/i;
+/* Accessories that are not the candle: a holder ships empty, a warmer
+   ships a hot plate. These must return null, never a candle weight. */
+export const CANDLE_IMPOSTOR_RE = /\bcandles?\s+(?:holder|sleeve|shade|topper|warmer|lamp)s?\b|\bwax\s+warmer\b|\bsnuffers?\b/i;
+export const CANDLE_SPECS = [
+  { match: /\bflameless\b|\bled\s+candles?\b/i, kg: 0.3 },
+  { match: /\bwax\s*(?:melt|tart)s?\b/i, kg: 0.25 },
+  { match: /\bvotives?\b|\btea\s*lights?\b/i, kg: 0.15 },
+  { match: /\b3[\s-]*wick\b/i, kg: 1.3 },
+  { match: /\blarge\b|\b22\s*oz\b/i, kg: 1.3 },
+  { match: /\bmedium\b|\b14\.5\s*oz\b/i, kg: 1.05 },
+  { match: /\bsmall\b|\b3\.7\s*oz\b/i, kg: 0.45 },
+  { match: /\bpillars?\b/i, kg: 0.55 },
+];
+
+export function candleWeightKg(title) {
+  const t = String(title || "");
+  if (!CANDLE_GATE_RE.test(t)) return null;
+  if (CANDLE_IMPOSTOR_RE.test(t)) return null;
+  const hit = CANDLE_SPECS.find((b) => b.match.test(t));
+  if (!hit) return null;
+  return Math.round(hit.kg * titlePackCount(t) * 100) / 100;
+}
+
 export function bulkyWeightKg(text) {
   const t = String(text || "");
   const goal = goalWeightKg(t);

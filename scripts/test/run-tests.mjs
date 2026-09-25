@@ -260,6 +260,42 @@ check("balls quote real mass times count", () => {
   eq(itemWeight.ballWeightKg("Titleist Golf Balls (12 pack)"), 0.7);
 });
 
+check("candles quote parcel weight, never the wax weight", () => {
+  // The wax-weight trap: "22 oz" is wax, the glass jar ships too.
+  eq(itemWeight.candleWeightKg("Yankee Candle Large Jar Candle 22 oz"), 1.3);
+  if (itemWeight.candleWeightKg("Yankee Candle Large Jar Candle 22 oz") === 0.62)
+    throw new Error("the wax-weight trap fired: 22 oz read as the parcel weight");
+  eq(itemWeight.candleWeightKg("Bath & Body Works 3-Wick Scented Candle 14.5 oz"), 1.3);
+  eq(itemWeight.candleWeightKg("Yankee Candle Medium Jar 14.5 oz"), 1.05);
+  eq(itemWeight.candleWeightKg("Yankee Candle Small Jar 3.7 oz"), 0.45);
+  eq(itemWeight.candleWeightKg("Chesapeake Bay Pillar Candle"), 0.55);
+  eq(itemWeight.candleWeightKg("Scented Wax Melts"), 0.25);
+  eq(itemWeight.candleWeightKg("Votive Candles Set of 12"), 0.15);
+  eq(itemWeight.candleWeightKg("Flameless LED Candles"), 0.3);
+  eq(itemWeight.candleWeightKg("Yankee Candle Large Jar 3 Pack"), 3.9);
+  // Accessories are not the candle.
+  eq(itemWeight.candleWeightKg("Glass Candle Holder"), null);
+  eq(itemWeight.candleWeightKg("Candle Warmer"), null);
+  eq(itemWeight.candleWeightKg("Wax Warmer"), null);
+  eq(itemWeight.candleWeightKg("Wick Snuffer"), null);
+  // No candle words, no match — a 22 oz bottle is not a candle.
+  eq(itemWeight.candleWeightKg("Hydro Flask 22 oz Water Bottle"), null);
+  // The estimator chain puts the candle figure ahead of the stated wax weight.
+  const d = estimateWeightDetail("Yankee Candle Large Jar Candle 22 oz");
+  eq(d.kg, 1.3, "estimate chain");
+  eq(d.source, "candle", "estimate chain source");
+  if (d.reviewKind === "gap") throw new Error("a real candle row must not be flagged as a gap");
+  // The checkout resolver agrees — the cart charges freight on 1.3 kg, not 0.62.
+  const r = resolveItemWeight({ title: "Yankee Candle Large Jar Candle 22 oz", price: 25 });
+  eq(r.weightKg, 1.3, "checkout resolver");
+  eq(r.source, "candle", "checkout resolver source");
+  // Page mirror parity on a handful of candle titles.
+  for (const t of ["Yankee Candle Large Jar Candle 22 oz", "Bath & Body Works 3-Wick Scented Candle 14.5 oz",
+                   "Chesapeake Bay Pillar Candle", "Votive Candles Set of 12", "Glass Candle Holder"]) {
+    eq(page.candleWeightKg(t), itemWeight.candleWeightKg(t), "page mirror: " + t);
+  }
+});
+
 check("a retailer's published DIMENSIONS are no longer a weight source", () => {
   const r = resolveItemWeight({ title: "Anker Soundcore Speaker", dimensions: "25 x 22 x 12 cm" });
   if (r.source === "spec") throw new Error("dimensions still resolving as a spec weight");
@@ -8060,7 +8096,12 @@ group("store carousels: window-shopping rails");
     }
     if (!/cardPhotoHTML\(src/.test(card)) throw new Error("the rail card does not reuse the shared photo builder");
     if (!/productCardOpenExpr\(it, retailer\)/.test(card)) throw new Error("the rail card does not open the product like grid cards do");
-    if (!/fmtDisplayPrice\(price\)/.test(card)) throw new Error("the rail card shows no price");
+    if (!/fmtPriceLabel\(taxed\)/.test(card)) throw new Error("the rail card does not lead with the USD price");
+    if (!/solesUnderHTML\(taxed/.test(card)) throw new Error("the rail card shows no soles (venta) reference");
+    if (!/weightLabelHTML\(title/.test(card)) throw new Error("the rail card shows no estimated shipping weight");
+    const wl = src.slice(src.indexOf("function weightLabelHTML("), src.indexOf("function weightLabelHTML(") + 900);
+    if (!/estimateRetailWeightKg\(title\)/.test(wl)) throw new Error("the weight line can go blank when the title lookup misses");
+    if (!/brandEyebrowHTML\(it\.brand/.test(card)) throw new Error("the rail card shows no brand");
     if (/Comprar|flete|retailerBadgeHTML/.test(card)) throw new Error("the rail card carries grid-card chrome");
     if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
     const rail = src.slice(src.indexOf("function storeCarouselHTML("), src.indexOf("/* ============================================================\n   THE BROWSE TILE"));
