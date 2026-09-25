@@ -3558,13 +3558,16 @@ check("the order is editorial, and lingerie is last", () => {
      three are the same fix. */
   const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
   const BEAUTY_AISLES = ["face", "lips", "eyes", "skincare", "nails", "fragrance"];
-  const SPORTS_AISLES = ["skate", "surf", "fitness"];
+  const SPORTS_AISLES = ["skate", "surf", "fitness", "sportswear"];
   const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k) && !SPORTS_AISLES.includes(k));
   const sports = keys.filter((k) => SPORTS_AISLES.includes(k));
   const beauty = keys.filter((k) => BEAUTY_AISLES.includes(k));
   eq(apparel[0], "dresses", "dresses lead");
   eq(apparel[apparel.length - 1], "lingerie", "lingerie is last on the apparel floor");
-  eq(sports.join(), "skate,surf,fitness", "the sports floor is walked skate -> surf -> fitness");
+  /* Ropa deportiva walks the sports floor too (2026-09-25): PacSun's
+     surf/skate streetwear is not a fashion aisle, so it sits with the
+     sports aisles, after fitness. */
+  eq(sports.join(), "skate,surf,fitness,sportswear", "the sports floor is walked skate -> surf -> fitness -> sportswear");
   eq(beauty[beauty.length - 1], "fragrance", "fragancia is last on the beauty floor");
   // The three blocks do not interleave: an apparel aisle after a beauty
   // one would put "Rostro" in the middle of a womenswear department the

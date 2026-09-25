@@ -4474,6 +4474,12 @@ function upgradeImageUrl(url){
   }
   // YesStyle CloudFront: .../Assets/49/215/M_p0114021549.jpg -> L_...
   if (/cloudfront\.net\/Assets\//i.test(u)) return u.replace(/\/M_([^/]+)$/, '/L_$1');
+  /* Dick's Scene7 (2026-09-25): the export's $UTPMain$ /
+     $UTPGridPDPWithPixel$ presets are stale on most items -- Scene7
+     answers 403 "Unable to find image" and the card falls back to
+     "Foto en camino". The color-suffixed asset IDs are live; strip the
+     preset and render at a real size instead of the 125px default. */
+  if (/dks\.scene7\.com/i.test(u)) return u.replace(/\?\$[^$]*\$/, '?wid=600&hei=600');
   return u;
 }
 
@@ -5587,6 +5593,11 @@ const SUBCATEGORY_SPEC = [
   { key: 'skate',        label: 'Skate',               types: ['SKATEBOARDSLONGBOARDS', 'SKATEBOARD', 'SKATEBOARDS', 'SKATEDECK', 'LONGBOARD', 'LONGBOARDS', 'SKATETRUCKS', 'TRUCKS', 'SKATEWHEELS', 'WHEELS', 'BEARINGS'] },
   { key: 'surf',         label: 'Surf',                types: ['WETSUITS', 'WETSUIT', 'RASHGUARDS', 'RASHGUARD', 'SNORKELINGGEAREQUIPMENT', 'SNORKEL', 'SNORKELING', 'SURF', 'SURFBOARD', 'LEASH', 'FINS', 'FIN', 'WAX'] },
   { key: 'fitness',      label: 'Fitness',             types: ['EXERCISEMATS', 'YOGAMAT', 'BOXINGMMAKICKBOXINGGLOVES', 'BOXINGGLOVES', 'HANDWRAPS', 'WORKOUTGLOVESWRAPS', 'WRISTBANDS', 'HEADPROTECTIVEGEAR', 'BIKEHELMETS', 'PROTECTIVEEQUIPMENT', 'DUMBBELL', 'RESISTANCEBAND', 'KETTLEBELL'] },
+  /* ROPA DEPORTIVA (2026-09-25, Danny's rule) -- mirror of
+     scripts/lib/subcategories.js. PacSun's surf/skate streetwear filed
+     under the fashion aisles inside DEPORTES and read as a clothing
+     store; in Deportes, apparel is one sports aisle. */
+  { key: 'sportswear',   label: 'Ropa deportiva',      types: ['SPORTSWEAR', 'ATHLETICAPPAREL', 'ACTIVEWEAR'] },
 
   /* ---- BELLEZA (2026-09-22) ---------------------------------------
      Same mechanism, different floor. One table serves both verticals
@@ -5657,7 +5668,7 @@ function groupBySubcategory(items){
     typed += 1;
     bucket.set(key, (bucket.get(key) || 0) + 1);
     if (!face.has(key)){
-      const img = item?.image || (Array.isArray(item?.images) ? item.images[0] : null);
+      const img = item?.image || item?.thumbnail || (Array.isArray(item?.images) ? item.images[0] : null);
       if (typeof img === 'string' && img) face.set(key, img);
     }
   }
@@ -6214,6 +6225,84 @@ function retryCatalog(kind, key, retailerFilter){
   openCatalog(kind, key, retailerFilter ? { retailerFilter } : {});
 }
 
+/* ============================================================
+   DEPORTES LEADS WITH PERU (2026-09-25, Danny's standing rule).
+
+   Peru does not play pickleball. The US catalogue does, and a
+   price-led sort put a pickleball bag at the front of Deportes --
+   the first thing a Peruvian shopper saw, for a sport nobody there
+   plays. So Deportes is merchandised, not price-sorted: a
+   Peru-priority band is the primary sort key and the price dropdown
+   runs inside each band, the same pattern as Curvy's women-first
+   band (see the sort in renderCatalogFeed).
+
+   THE ORDER, set by Danny:
+     0  skate -- boards, decks, wheels (regular + downhill), trucks,
+        bearings. Big sellers in Peru; Lima has a real skate scene.
+     1  boxing / MMA -- gloves, hand wraps, sparring gear, headgear.
+     2  fishing -- coastal country. Saltwater/shore fishing only;
+        the pull brief excludes bass/fly/trout/ice and deep-sea
+        trolling gear (see pull notes, not this function).
+     3  soccer.
+     4  basketball -- fairly big in Peru, stays in the lead group.
+     5  braces & pads -- knee braces, ankle braces, shoulder pads,
+        protective gear.
+     6  everything else.
+     7  DEMOTED TO THE BACK -- baseball, American football,
+        pickleball, golf, lacrosse. They stay in the catalogue
+        (searchable, buyable) but never lead. They do not sell
+        in Peru.
+
+   Classification is two-layer because the sources differ: Dick's
+   items carry clean type tokens (SKATEBOARDSLONGBOARDS,
+   BOXINGMMAKICKBOXINGGLOVES, ...); Target/Walmart scraped items
+   carry no type at all, so those fall back to title keywords.
+   Soccer is checked before the demoted "football" keyword, because
+   a US retailer means American football when it writes "football".
+   Future pulls inherit this automatically -- a new sport shows up
+   in band 6 until someone deliberately places it, which is the
+   safe default, and the demoted list is explicit so a future
+   "pickleball is huge in Lima now" conversation has one place
+   to change it.
+   ============================================================ */
+const PERU_SPORT_TOKENS = [
+  /* [band, ...token fragments] -- fragments match inside the
+     retailer's own concatenated token (SKATEBOARDSLONGBOARDS). */
+  [0, ['SKATEBOARD', 'SKATEDECK', 'LONGBOARD', 'SKATETRUCK', 'TRUCKS', 'SKATEWHEEL', 'WHEELS', 'BEARING']],
+  [1, ['BOXING', 'MMA', 'KICKBOXING', 'MUAYTHAI', 'HANDWRAP', 'SPARRING', 'HEADGEAR']],
+  [2, ['FISH', 'TACKLE', 'LURE', 'REEL']],
+  [3, ['SOCCER', 'FUTBOL']],
+  [4, ['BASKETBALL']],
+  [5, ['BRACE', 'KNEEPAD', 'ELBOWPAD', 'SHOULDERPAD', 'SHINGUARD', 'PROTECTIVE']],
+  [7, ['BASEBALL', 'PICKLEBALL', 'GOLF', 'LACROSSE', 'FOOTBALL']],
+];
+const PERU_SPORT_TITLES = [
+  /* [band, ...title keywords] -- checked in band order, so soccer
+     wins over the demoted "football" keyword below it. */
+  [0, ['skateboard', 'longboard', 'skate deck']],
+  [1, ['boxing', 'mma', 'kickboxing', 'muay thai', 'hand wrap', 'handwrap', 'sparring']],
+  [2, ['fishing', 'lure', 'tackle']],
+  [3, ['soccer', 'futbol', 'f\u00fatbol']],
+  [4, ['basketball']],
+  [5, ['brace', 'knee pad', 'elbow pad', 'shoulder pad', 'ankle', 'shin guard', 'protective']],
+  [7, ['pickleball', 'baseball', 'golf', 'lacrosse', 'football']],
+];
+function peruSportRank(item){
+  const tok = String(item?.type || '').toUpperCase();
+  if (tok){
+    for (const [band, frags] of PERU_SPORT_TOKENS){
+      if (frags.some(f => tok.includes(f))) return band;
+    }
+  }
+  const title = String(item?.title || '').toLowerCase();
+  if (title){
+    for (const [band, words] of PERU_SPORT_TITLES){
+      if (words.some(w => title.includes(w))) return band;
+    }
+  }
+  return 6;
+}
+
 function renderCatalogFeed(){
   const { retailerFilter, byRetailer } = catalogState;
   const sections = document.getElementById('catalogSections');
@@ -6236,6 +6325,13 @@ function renderCatalogFeed(){
 
   const all = [];
   for (const retailer of active) for (const it of byRetailer.get(retailer)) all.push({ ...it, retailer });
+  /* DEPORTES LEADS WITH PERU (see peruSportRank). The aisle landing's
+     Destacados rail is drawn from this array before any other sort
+     runs, so the rank has to be on it here -- a stable sort keeps each
+     band in catalogue order. */
+  if (catalogState.kind === 'department' && catalogState.key === 'sporting_goods'){
+    all.sort((a, b) => peruSportRank(a) - peruSportRank(b));
+  }
 
   /* ---- AISLES ------------------------------------------------------
      Computed from the ACTIVE feed, so the counts match what a tap will
@@ -6297,9 +6393,12 @@ function renderCatalogFeed(){
      this same order -- it always agrees with the grid below it. */
   const priceSort = byDoorToDoor(sortBy);
   const isCurvy = catalogState.kind === 'department' && catalogState.key === 'curvy';
+  const isSports = catalogState.kind === 'department' && catalogState.key === 'sporting_goods';
   items.sort(isCurvy
     ? (a, b) => ((a.curvyBand ?? 1) - (b.curvyBand ?? 1)) || priceSort(a, b)
-    : priceSort);
+    : isSports
+      ? (a, b) => (peruSportRank(a) - peruSportRank(b)) || priceSort(a, b)
+      : priceSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;

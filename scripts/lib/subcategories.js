@@ -92,6 +92,14 @@ export const SUBCATEGORY_SPEC = [
   { key: "skate",        label: "Skate",               types: ["SKATEBOARDSLONGBOARDS", "SKATEBOARD", "SKATEBOARDS", "SKATEDECK", "LONGBOARD", "LONGBOARDS", "SKATETRUCKS", "TRUCKS", "SKATEWHEELS", "WHEELS", "BEARINGS"] },
   { key: "surf",         label: "Surf",                types: ["WETSUITS", "WETSUIT", "RASHGUARDS", "RASHGUARD", "SNORKELINGGEAREQUIPMENT", "SNORKEL", "SNORKELING", "SURF", "SURFBOARD", "LEASH", "FINS", "FIN", "WAX"] },
   { key: "fitness",      label: "Fitness",             types: ["EXERCISEMATS", "YOGAMAT", "BOXINGMMAKICKBOXINGGLOVES", "BOXINGGLOVES", "HANDWRAPS", "WORKOUTGLOVESWRAPS", "WRISTBANDS", "HEADPROTECTIVEGEAR", "BIKEHELMETS", "PROTECTIVEEQUIPMENT", "DUMBBELL", "RESISTANCEBAND", "KETTLEBELL"] },
+  /* ROPA DEPORTIVA (2026-09-25, Danny's rule). PacSun's rows are surf/
+     skate streetwear, and their export types (TOPS, DENIM, HEAVYKNIT)
+     used to file them under the fashion aisles -- "Tops y blusas",
+     "Chompas y sudaderas", "Jeans" -- inside DEPORTES, where they read
+     as a clothing store. In Deportes, apparel is one sports aisle.
+     The feed is re-typed at import (see pacsun-catalog.json), so this
+     row only ever fires here: no other export sends SPORTSWEAR. */
+  { key: "sportswear",   label: "Ropa deportiva",      types: ["SPORTSWEAR", "ATHLETICAPPAREL", "ACTIVEWEAR"] },
 
   /* ---- BEAUTY (2026-09-22) -------------------------------------
      The same mechanism, a different floor. These rows only ever fire
@@ -194,7 +202,7 @@ export function groupBySubcategory(items) {
     typed += 1;
     bucket.set(key, (bucket.get(key) || 0) + 1);
     if (!face.has(key)) {
-      const img = item?.image || (Array.isArray(item?.images) ? item.images[0] : null);
+      const img = item?.image || item?.thumbnail || (Array.isArray(item?.images) ? item.images[0] : null);
       if (typeof img === "string" && img) face.set(key, img);
     }
   }
