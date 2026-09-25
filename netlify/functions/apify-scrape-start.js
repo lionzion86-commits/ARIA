@@ -412,8 +412,15 @@ export async function handler(event) {
        cheapest depth there is — one run returning 60 costs the same as
        one returning 24 — and 24 is what made an eight-product
        storefront. Still a hard cap: an unbounded maxItems is an
-       unbounded bill. */
-    const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), 60);
+       unbounded bill.
+       2026-09-25: two ceilings. On-demand shopper searches keep 60 (the
+       abuse guard — a visitor can trigger these). Config-driven catalog
+       browses (a real department/brand entry) get 200, because the
+       refresh scripts declare their own per-retailer depth and the
+       function was silently truncating it. */
+    const isOnDemandCall = onDemand === true && !hasDepartment && !hasBrand;
+    const maxItemsCap = isOnDemandCall ? 60 : 200;
+    const cappedMaxItems = Math.min(Math.max(Number(maxItems) || DEFAULT_MAX_ITEMS, 1), maxItemsCap);
 
     /* ON-DEMAND STORE SEARCH (2026-09-20).
 
@@ -431,7 +438,7 @@ export async function handler(event) {
        2. THE SPEND CAP. Two runs in flight per user. The lease is
           released when the run finishes (or expires on its own if the
           browser is closed mid-poll — see LEASE_TTL_MS). */
-    const isOnDemand = onDemand === true && !hasDepartment && !hasBrand;
+    const isOnDemand = isOnDemandCall;
     let userKey = null;
     if (isOnDemand) {
       const cached = await readOndemandCache(retailer, query);
