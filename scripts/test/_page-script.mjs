@@ -589,3 +589,29 @@ export function loadPageHomeRowSlice() {
   );
   return sandbox.__exports;
 }
+
+/* THE STORE RAILS' CURATION, on its own. storeRailPicks is written
+   self-contained (no page functions) precisely so this slice can run
+   it in a vm: sale-first, Ofertas-deprioritised, featured fill. */
+export function loadPageStoreRailSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("STORE_RAIL_PICKS:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("STORE_RAIL_PICKS:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html store-rail markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks };",
+    sandbox,
+    { filename: "index.html#storeRail" },
+  );
+  return sandbox.__exports;
+}

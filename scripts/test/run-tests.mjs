@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -924,6 +924,24 @@ check("Target and Walmart are the last two Tiendas tiles", () => {
     throw new Error(`last two Tiendas tiles are [${tail}], want target,walmart`);
 });
 
+check("the Tiendas directory keeps its tiles and gains the six rails below them", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: the directory stays the directory
+     -- tiles on top -- and each store gets its window display below it,
+     so the page browses instead of only linking out. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const view = html.slice(html.indexOf('<div id="storesView"'), html.indexOf('<!-- ============ ARIA AUTO VIEW ============ -->'));
+  if (!view) throw new Error("there is no storesView");
+  if (!/id="storesGrid"/.test(view)) throw new Error("the Tiendas directory grid is gone");
+  const gridAt = view.indexOf('id="storesGrid"');
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+    const id = `id="tStoreRail-${key}"`;
+    const at = view.indexOf(id);
+    if (at < 0) throw new Error(`the Tiendas view has no ${key} rail`);
+    if (!(gridAt < at)) throw new Error(`the ${key} rail sits above the directory it should follow`);
+    if (!new RegExp(`openStore\\('${key}'\\)`).test(view)) throw new Error(`${key}'s Tiendas rail has no way into its store`);
+  }
+});
+
 check("index.html's Tiendas tile order matches the module's", () => {
   const html = readFileSync(root("index.html"), "utf8");
   const lit = html.slice(html.indexOf("const RETAILERS = {"));
@@ -1618,7 +1636,9 @@ check("a real logo is never greyed out, however pending the store", () => {
      with them would ship Victoria's Secret's pink and Bath & Body
      Works' blue as grey — a retailer's mark is not ours to recolour. */
   const src = readFileSync(root("index.html"), "utf8");
-  for (const fn of ["function storeCardHTML(", "function homeStoreChipHTML("]) {
+  /* The homepage chip row is gone (2026-09-25, store rails superseded
+     it), so the store card is the only mark renderer left to check. */
+  for (const fn of ["function storeCardHTML("]) {
     const from = src.indexOf(fn);
     if (from < 0) throw new Error(`${fn} is gone`);
     // Comments first: the note explaining why the filter is gone names
@@ -1641,7 +1661,9 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      1200x631 banner and a square file share a tile without either being
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
-  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
+  /* Two when the homepage chip row existed (card + chip); one since the
+     store rails superseded it on 2026-09-25. */
+  if (imgs.length !== 1) throw new Error(`expected 1 store-mark <img> tag, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -2646,9 +2668,11 @@ check("a browsable store is not treated as one still being connected", () => {
   eq(retailers.isBrowseOnlyRetailer("victoriassecret"), true, "Victoria's Secret has a catalogue now");
 
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  // Both the card and the chip must read BOTH flags, or Macy's is muted.
-  // Scoped to those two functions: "pending" is a common local name.
-  for (const fn of ["storeCardHTML", "homeStoreChipHTML"]) {
+  // The store card must read BOTH flags, or Macy's is muted. (The
+  // homepage chip row that shared this check is gone since 2026-09-25,
+  // superseded by the store rails.) Scoped to the function: "pending"
+  // is a common local name.
+  for (const fn of ["storeCardHTML"]) {
     const at = src.indexOf(`function ${fn}(`);
     if (at < 0) throw new Error(`${fn} is gone`);
     const body = src.slice(at, at + 600);
@@ -3509,6 +3533,7 @@ check("every admin endpoint gates on a session AND the allowlist", () => {
      It is only a check paired with getSessionEmail(event), which reads
      the httpOnly cookie server-side. */
   for (const f of ["admin-dashboard.js", "admin-orders-list.js", "admin-orders-update.js",
+                   "admin-orders-delete.js",
                    "admin-settings.js", "admin-shipping.js", "admin-wallet-credit.js"]) {
     const src = stripComments(readFileSync(root(`netlify/functions/${f}`), "utf8"));
     if (!/getSessionEmail\(event\)/.test(src)) throw new Error(`${f} does not read the session`);
@@ -4841,10 +4866,12 @@ check("a brand list can be counted off a store's own stock", () => {
 });
 
 check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
-  /* Foot Locker's 24 shoes live in `brands.nike` and its department
-     items name no brand at all, so a purely derived list would drop
-     Nike and break a link that exists today. The page's merge is what
-     stops that, so the page's merge is what is read here. */
+  /* Foot Locker's shoes live in explicit `brands.*` buckets and the
+     page's merge must keep preferring those over derived ones.
+     (2026-09-25 deep pull: nine brand buckets now, and every item
+     carries its brand — so the derived list is no longer empty and the
+     old "nike-only / no-brand" assertions are retired. What still
+     matters is the merge order, asserted above.) */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const merge = src.slice(src.indexOf("function retailerBrandBuckets("), src.indexOf("function departmentItemsFor("));
   if (!/Object\.entries\(retailerData\.brands \|\| \{\}\)/.test(merge)) throw new Error("the explicit buckets are no longer read");
@@ -4854,11 +4881,9 @@ check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
   if (!/Array\.isArray\(bucket\?\.items\) && bucket\.items\.length/.test(merge)) throw new Error("an empty brands bucket can shadow the real list again");
 
   const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8")).retailers.footlocker;
-  eq(Object.keys(cache.brands).join(), "nike", "Foot Locker's brand bucket");
-  if (!cache.brands.nike.items.length) throw new Error("Foot Locker's Nike bucket is empty");
-  // And its items really do carry no brand, which is why the bucket matters.
-  const derived = brandIndex.brandBucketsFromItems(Object.values(cache.departments).flatMap((d) => d.items || []));
-  eq(Object.keys(derived).length, 0, "Foot Locker's items now name their brand — the fallback may be enough");
+  eq(Object.keys(cache.brands).sort().join(), "adidas,asics,converse,jordan,newbalance,nike,puma,reebok,vans", "Foot Locker's brand buckets");
+  for (const k of Object.keys(cache.brands))
+    if (!cache.brands[k].items.length) throw new Error(`Foot Locker's ${k} bucket is empty`);
 });
 
 check("no grid anywhere can build a wall of brands", () => {
@@ -4965,7 +4990,7 @@ group("The mobile shopfront");
 const shopfrontSrc = readFileSync(root("index.html"), "utf8");
 const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="mobileShopfront"'),
-  shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+  shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
 check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
@@ -5008,7 +5033,7 @@ check("nothing but the hero comes before the shopfront, and it is phone-only", (
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, then Categorías, then Tiendas", () => {
+check("Ofertas, then the store rails, then Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5016,14 +5041,41 @@ check("Ofertas, then Categorías, then Tiendas", () => {
      where you go when the deals did not have it; stores last, for the
      shopper who already knows where they want to shop.
 
-     (The written brief numbered Tiendas second. He was asked which, and
-     chose the spoken one — this is that decision, not a drift from it.) */
+     (2026-09-25, DANNY'S MALL VISION: "I'm not clicking in between
+     stores. I'm just browsing." The Tiendas chips rail is gone from the
+     home page -- each store gets its own window display, and the two
+     breakpoints finally share one scroll order: deals, the six store
+     rails in mall order, then departments.) */
   const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Categorías > Tiendas", "the shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
+  const railIds = ["mobileDealsRow", "mobileCatsRow",
+    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)];
+  for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+});
+
+check("the desktop shopfront reads Ofertas, then the store rails, then Categorías", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
+     scroll order now -- deals, the six store rails in mall order,
+     departments. The Tiendas chips rail is superseded by the rails. */
+  const desk = shopfrontSrc.slice(
+    shopfrontSrc.indexOf('<div id="desktopShopfront"'),
+    shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+  );
+  if (!desk) throw new Error("there is no desktop shopfront");
+  const open = desk.slice(0, desk.indexOf(">") + 1);
+  if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
+  const order = [...desk.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the desktop shopfront's scroll order");
+  // Each section owns exactly one rail, and the rails are the ids the
+  // renderers write into.
+  const railIds = ["desktopDealsRow", "desktopCatsRow",
+    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `dStoreRail-${k}`)];
+  for (const id of railIds) {
+    eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
@@ -5038,7 +5090,8 @@ check("a rail scrolls sideways and snaps, and the page does not", () => {
   if (!/scroll-snap-align:\s*start/.test(rail)) throw new Error("the cards have nothing to snap to");
   if (!/scrollbar-width:\s*none/.test(rail)) throw new Error("the rail grew a desktop scrollbar");
 
-  for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
+  for (const id of ["mobileDealsRow", "mobileCatsRow",
+      ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)]) {
     const tag = shopfront.slice(shopfront.indexOf(`id="${id}"`));
     const cls = tag.slice(0, tag.indexOf(">"));
     if (!/\bariaRail\b/.test(cls)) throw new Error(`${id} is not a rail`);
@@ -5067,7 +5120,7 @@ check("nothing in the shopfront moves on its own", () => {
 check("the deals rail is the Ofertas feed, sorted by discount, never a second list", () => {
   const js = shopfrontSrc.slice(
     shopfrontSrc.indexOf("function renderMobileDealsRail("),
-    shopfrontSrc.indexOf("function renderMobileStoresRail("),
+    shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
 
   /* saleItemsCache IS what renderSalesGrid() paints. Reading anything
@@ -5144,20 +5197,82 @@ check("the opening five deals come from five different stores, and nothing is lo
   eq(spreadDealsByStore([], MOBILE_RAIL_LEAD).length, 0, "an empty feed broke the spread");
 });
 
-check("the other two rails reuse what the page already draws", () => {
-  const stores = shopfrontSrc.slice(
-    shopfrontSrc.indexOf("function renderMobileStoresRail("),
+check("a store rail curates its own shelf: sale first, Ofertas deprioritised, featured fill", () => {
+  const { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks } = loadPageStoreRailSlice();
+  eq(STORE_RAIL_SALE, 8, "the sale lead changed size");
+  eq(STORE_RAIL_TOTAL, 12, "the shelf changed length");
+  const sale = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice, image: "img" });
+  const feat = (retailer, title, price) => ({ retailer, title, price, image: "img" });
+
+  /* Sale items lead, deepest discount first. */
+  const items = [
+    sale("macys", "coat", 50, 100),   // -50%
+    sale("macys", "dress", 20, 100),  // -80%
+    sale("sephora", "serum", 30, 60), // other store, must not leak in
+  ];
+  const picks = storeRailPicks("macys", items, [], new Set());
+  eq(picks.map(p => p.title).join(), "dress,coat", "the rail is not sale-first by discount");
+
+  /* What Ofertas already leads on yields to what it does not -- the
+     window is not a copy of the sale rack. */
+  const withOfertas = storeRailPicks("macys", items, [],
+    new Set(["macys::dress"]));
+  eq(withOfertas.map(p => p.title).join(), "coat,dress", "an Ofertas item still leads the store's own rail");
+
+  /* Featured fill: priced and photographed non-sale items complete the
+     shelf; priceless, imageless and duplicate records never do. */
+  const pool = [
+    feat("macys", "bag", 40),
+    { retailer: "macys", title: "ghost", price: 0, image: "img" },
+    { retailer: "macys", title: "nophoto", price: 25 },
+    feat("macys", "coat", 50), // same title as the sale pick: not twice
+    feat("sephora", "other", 10),
+  ];
+  const filled = storeRailPicks("macys", [sale("macys", "dress", 20, 100), sale("macys", "coat", 50, 100)], pool, new Set());
+  eq(filled.map(p => p.title).join(), "dress,coat,bag", "the featured fill let something through it should not have");
+  eq(filled.length <= STORE_RAIL_TOTAL, true, "the shelf overran its length");
+
+  /* Fail closed: nothing to show is an empty shelf, not a crash. */
+  eq(storeRailPicks("macys", [], [], new Set()).length, 0, "an empty store broke the curation");
+});
+
+check("the store rails reuse the page's own cards, feeds and registry", () => {
+  const railAnchor = shopfrontSrc.indexOf("STORE RAILS -- THE MALL, NOT THE DIRECTORY");
+  const rails = shopfrontSrc.slice(
+    shopfrontSrc.lastIndexOf("/*", railAnchor),
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
-  /* The same chip as the home page's store grid. Restyled instead of
-     reused, a store's mark, its colour and its honest "próximamente"
-     dot could differ between the rail and the grid below it. */
-  if (!/homeStoreChipHTML\(r\)/.test(stores)) throw new Error("the stores rail has grown its own chip");
-  if (!/activeRetailers\(\)/.test(stores)) throw new Error("the stores rail is not reading the registry");
-  /* The chip carries no width of its own -- in the home grid its cell
-     supplies one -- so the rail's wrapper has to stretch it, or the
-     tiles come out at three different widths. */
-  if (!/w-\[118px\] grid/.test(stores)) throw new Error("the store tiles are no longer a uniform width");
+  if (!rails) throw new Error("the store rails' code is gone");
+  /* The six window displays, in mall order: aspirational first, the way
+     the RETAILERS registry is ordered. */
+  const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
+  if (!m) throw new Error("STORE_RAIL_STORES is gone");
+  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,sephora,macys,footlocker,ssense,dicks",
+    "the store rails are not the six agreed stores in mall order");
+  /* The same card every other rail draws -- a second card component is
+     how the rails drift apart. */
+  if (!/railCardHTML\(p,/.test(rails)) throw new Error("a store rail grew its own card");
+  /* Sale items come from the Ofertas feed's own cache, featured picks
+     from the catalogue pool the related rail reads -- never a private
+     list a store rail could quietly diverge on. */
+  if (!/saleItemsCache/.test(rails)) throw new Error("a store rail is not reading the deals feed");
+  if (!/relatedPool\(\)/.test(rails)) throw new Error("a store rail is not reading the catalogue pool");
+  /* HONEST LABELS. There is no sales-rank data yet, so "más vendido"
+     anywhere in here would be invented. Markdowns carry their -% badge
+     from the shared card; nothing else claims a rank. Comments are
+     stripped first -- the rule is discussed in a comment above the
+     code, and the check is about labels, not prose. */
+  const railsCode = rails.replace(/\/\*[\s\S]*?\*\//g, "");
+  if (/m.s vendido|mas vendido|best.?seller/i.test(railsCode)) throw new Error("a store rail claims a bestseller rank");
+  /* Every rail ends at its store: the header and the trailing card both
+     open the same full store page. */
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+    if (!new RegExp(`openStore\\('${key}'\\)`).test(shopfrontSrc)) throw new Error(`${key}'s rail has no way into its store`);
+  }
+  /* Lazy, and never self-moving: the ban the shopfront check enforces
+     covers this code too, but the observer is the point -- cards paint
+     when the row nears the viewport. */
+  if (!/IntersectionObserver/.test(rails)) throw new Error("the store rails lost their lazy paint");
 
   const cats = shopfrontSrc.slice(
     shopfrontSrc.indexOf("function initDepartmentTiles("),
@@ -5167,6 +5282,35 @@ check("the other two rails reuse what the page already draws", () => {
      makes a new department -- Zapatos, and whatever follows it --
      appear in the rail with no second change anywhere. */
   if (!/renderMobileCatsRail\(tiles\)/.test(cats)) throw new Error("the categories rail is not fed the grid's own tiles");
+});
+
+check("every store rail ends on a 'Ver todo en …' end-card into the same store", () => {
+  /* 2026-09-25, DANNY: each rail gets two doors into the store -- the
+     header's "Ver tienda" link and a trailing "Ver más" end-card
+     ("Ver todo en Victoria's Secret →"). Both open the same full store
+     page with its departments. */
+  const more = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function storeRailMoreHTML("),
+    shopfrontSrc.indexOf("let storeRailsStarted"),
+  );
+  if (!more) throw new Error("storeRailMoreHTML is gone");
+  /* Danny's copy: "Ver todo en {store} →", not a second "Ver tienda". */
+  if (!/Ver todo en/.test(more)) throw new Error("the end-card lost Danny's 'Ver todo en' copy");
+  if (!/&#8594;/.test(more)) throw new Error("the end-card lost its arrow");
+  /* Same destination as the header link: the store's full page. */
+  if (!/openStore\('\$\{jsAttr\(key\)\}'\)/.test(more)) throw new Error("the end-card no longer opens its own store");
+  /* The painter actually appends it after the cards -- a function that
+     exists but is never called is a door painted on a wall. */
+  const paint = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function initStoreRails("),
+    shopfrontSrc.indexOf("function mobileCatCardHTML("),
+  );
+  if (!/\+ storeRailMoreHTML\(key\)/.test(paint)) throw new Error("the rails no longer end on the more-card");
+  /* And the headers still carry the first door, for all six stores. */
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+    if (!new RegExp(`openStore\\('${key}'\\)[^]*?Ver tienda`).test(shopfrontSrc))
+      throw new Error(`${key}'s rail header lost its 'Ver tienda' door`);
+  }
 });
 
 check("the rails' images are lazy, and its covers are the curated ones", () => {
@@ -5186,15 +5330,17 @@ check("the rails' images are lazy, and its covers are the curated ones", () => {
   if (!/t\.icon/.test(card)) throw new Error("a department with no cover now renders nothing");
 });
 
-check("the shopfront fills itself when a window is dragged across lg", () => {
+check("the shopfront fills on first paint at any width", () => {
+  /* 2026-09-25: the laptop has its own shopfront now, so the old
+     phone-only guard (wait for the lg query to match before fetching)
+     is gone -- the sales scan runs on first paint at every width. What
+     is pinned: filled once, and the resize listener still exists for
+     the narrow-then-wide case. */
   const init = shopfrontSrc.slice(
     shopfrontSrc.indexOf("const MOBILE_SHOPFRONT_MQ"),
     shopfrontSrc.indexOf("window.addEventListener('DOMContentLoaded', renderPrecioHonestoCards)"),
   );
-  // One query, used by both the guard and the listener, so the point at
-  // which the rails appear and the point at which they fill cannot drift.
-  eq((init.match(/MOBILE_SHOPFRONT_MQ/g) || []).length, 3, "the breakpoint is read from one place");
-  eq(shopfrontSrc.includes("(max-width: 1023px)"), true, "the shopfront's breakpoint moved off lg");
+  if (/if \(!window\.matchMedia\(MOBILE_SHOPFRONT_MQ\)\.matches\) return;/.test(init)) throw new Error("the phone-only guard is back -- the desktop would never fill its rails");
   if (!/addEventListener\('change', initMobileShopfront\)/.test(init)) throw new Error("a resize no longer fills the rails");
   if (!/mq\.addListener/.test(init)) throw new Error("older iOS Safari never fills the rails on rotation");
   // Filled once, not on every crossing: a drag across the breakpoint
@@ -7294,14 +7440,20 @@ check("the explainer follows the logo, and the category tiles follow the explain
   };
   const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
   const cats   = at('id="mobileCatsRow"', "the Categorías rail");
-  const stores = at('id="mobileStoresRow"', "the Tiendas rail");
+  const rails  = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]
+    .map(k => at(`id="mStoreRail-${k}"`, `the ${k} rail`));
   const logo   = at('src="aria-full-logo.png"', "the ARIA logo");
   const why    = at('id="whyUs"', "the Por qué Aria explainer");
   const tiles  = at('id="cats"', "the Comprar por categoría tiles");
 
-  // Unchanged, and the brief says so explicitly.
-  if (!(deals < cats && cats < stores)) throw new Error("the three rails are no longer Ofertas -> Categorías -> Tiendas");
-  if (!(stores < logo)) throw new Error("the rails no longer come before the logo");
+  // 2026-09-25, DANNY'S MALL VISION: Ofertas, the six store rails in
+  // mall order, then Categorías -- one scroll order on both breakpoints.
+  if (!(deals < rails[0])) throw new Error("the store rails no longer follow Ofertas");
+  for (let i = 1; i < rails.length; i++) {
+    if (!(rails[i - 1] < rails[i])) throw new Error("the store rails are out of mall order");
+  }
+  if (!(rails[rails.length - 1] < cats)) throw new Error("Categorías no longer follows the store rails");
+  if (!(cats < logo)) throw new Error("the rails no longer come before the logo");
   // The move itself.
   if (!(logo < why)) throw new Error("the explainer no longer follows the ARIA logo it belongs to");
   if (!(why < tiles)) throw new Error("the category tiles interrupt the brand story again");
@@ -7408,111 +7560,91 @@ check("the mall photograph is committed, and small enough to send to a phone", (
   if (bytes > 200 * 1024) throw new Error(`${SECTION_PHOTO} is ${(bytes/1024).toFixed(0)} KB — over the 200 KB budget for a background nobody came to look at`);
 });
 
-check("both Tiendas surfaces carry the photo, the scrim and a way to lose the photo safely", () => {
+check("the old homepage store-tile strip is gone, and nothing still points at it", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: the six store rails ARE the
+     homepage's store browsing now. The old tile rows -- the shopfront's
+     mobileStoresRow/desktopStoresRow and the bottom RETAILERS STRIP
+     (homeStoresRow) -- are superseded, and the strip's "directory at the
+     bottom" duplicated the Tiendas page. All of it is out of the
+     markup, and no script may still reach for it. */
   const src = HOME_SRC();
-  const surfaces = {
-    "the phone's shopfront rail": stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
-    "the laptop's retailers strip": stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
+  for (const dead of ["homeStoresRow", "RETAILERS STRIP", "mobileStoresRow", "desktopStoresRow", "homeStoreChipHTML", "renderMobileStoresRail"]){
+    if (src.includes(dead)) throw new Error(`obsolete ${dead} is still in index.html`);
+  }
+  /* The strip was also the last photographic Tiendas surface. With it
+     gone, no markup may reference the mall photograph or the photo
+     layer: a second picture per width was the duplication the lg-only
+     rule existed to prevent, and now there are zero. */
+  const markup = stripHtmlComments(src);
+  if (markup.includes("tiendas-mall-row.jpg")) throw new Error("the mall photograph is still referenced by markup");
+  if (/class="ariaSectionPhoto"/.test(markup)) throw new Error("a section still takes the photographic layer");
+});
+
+check("every store rail keeps its branded header, on all three surfaces", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: each rail is a window display, and
+     a window display without the store's name above it is just a shelf.
+     Five rails carry the real logo; Dick's carries its brand-red wordmark.
+     The headers are static markup -- they paint with the page, not with
+     the lazy cards -- so a shopper always knows whose window they're at. */
+  const src = HOME_SRC();
+  const brands = {
+    victoriassecret: /<img[^>]*src="logos\/victoriassecret\.png"[^>]*data-retailer="victoriassecret"/,
+    sephora: /<img[^>]*src="logos\/sephora\.png"[^>]*data-retailer="sephora"/,
+    macys: /<img[^>]*src="logos\/macys\.png"[^>]*data-retailer="macys"/,
+    footlocker: /<img[^>]*src="logos\/footlocker\.png"[^>]*data-retailer="footlocker"/,
+    ssense: /<img[^>]*src="logos\/ssense\.png"[^>]*data-retailer="ssense"/,
+    dicks: /<span[^>]*style="background:#D22630"[^>]*>Dick's Sporting Goods<\/span>/,
   };
-  for (const [name, html] of Object.entries(surfaces)){
-    if (!html.includes(SECTION_PHOTO)) throw new Error(`${name} does not reference the photograph`);
-    if (!/class="ariaSectionPhoto"/.test(html)) throw new Error(`${name} does not use the shared photo layer`);
-    if (!/class="ariaSectionScrim"/.test(html)) throw new Error(`${name} has no scrim — text straight onto a golden-hour sky`);
-    /* Below the fold, both of them: the page must not spend a phone's
-       first bytes on a picture behind a logo strip. */
-    if (!/loading="lazy"/.test(html)) throw new Error(`${name}'s photo is not lazy-loaded`);
-    /* A 404 must leave navy + scrim, not a broken-image glyph over the
-       heading. Same guard the explainer carries. */
-    if (!/onerror="this\.remove\(\)"/.test(html)) throw new Error(`${name} would render a broken image if the file went missing`);
-    /* Decorative: the heading already says "Tiendas en EE. UU." and a
-       screen reader repeating a mall row adds nothing. */
-    if (!/alt=""/.test(html) || !/aria-hidden="true"/.test(html)) throw new Error(`${name}'s photo is not marked decorative`);
-  }
-});
-
-check("the photo cannot escape when the Tailwind CDN does", () => {
-  /* THE TRAP THIS PINS. .ariaSectionPhoto is position:absolute. Its
-     containing block is the section, which is only positioned because
-     something says so — and if that something is a Tailwind `relative`
-     utility, then on the day the CDN is blocked (which is exactly how
-     the browser suite runs, deliberately) the containing block becomes
-     the viewport and a 1760px photograph lies across the whole page.
-     The declaration therefore lives in the inline stylesheet. */
-  const src = HOME_SRC();
-  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
-  const shot = forwardSlice(css, ".ariaSectionShot{", "}", ".ariaSectionShot");
-  if (!/position:relative/.test(shot)) throw new Error(".ariaSectionShot no longer establishes a containing block in the inline CSS");
-  if (!/overflow:hidden/.test(shot)) throw new Error(".ariaSectionShot no longer clips the photo to the section");
-  if (!/background:var\(--navy\)/.test(shot)) throw new Error("the navy moved off the section — with no photo there is nothing behind the text");
-
-  for (const surface of [
-    stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
-    stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
-  ]){
-    /* The opening tag only. Without stripComments above, the strip's
-       slice begins with a comment and this lands on its prose instead. */
-    const tag = surface.slice(0, surface.indexOf(">") + 1);
-    if (/\brelative\b/.test(tag) || /\boverflow-hidden\b/.test(tag)){
-      throw new Error("a Tiendas surface positions itself with Tailwind utilities — those vanish with the CDN and the photo goes with them");
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
+    for (const [key, mark] of Object.entries(brands)){
+      const sec = stripHtmlComments(src).match(
+        new RegExp(`<section[^>]*data-store-rail="${key}"[\\s\\S]*?id="${prefix}-${key}"`));
+      if (!sec) throw new Error(`no ${prefix}-${key} rail section`);
+      if (!mark.test(sec[0])) throw new Error(`${prefix}-${key} lost its branded header`);
+      if (!new RegExp(`onclick="openStore\\('${key}'\\)"[^>]*>Ver tienda`).test(sec[0]))
+        throw new Error(`${prefix}-${key} lost its "Ver tienda" way in`);
     }
-    if (!/\bariaSectionShot\b/.test(tag)) throw new Error("a Tiendas surface is not using .ariaSectionShot");
   }
 });
 
-check("exactly one Tiendas section is photographic at any width", () => {
-  /* Both surfaces exist on a phone: the shopfront rail and, far below
-     it, the retailers grid. The grid is ten rows tall at 393px, so a
-     4.29:1 photograph cropped into it shows the middle eleventh of the
-     frame — a dark blur, and the same picture twice on one page. The
-     strip therefore only takes the photograph at lg, which is precisely
-     where #mobileShopfront hides. If one of those two numbers is ever
-     changed without the other, a width exists that has two photographic
-     Tiendas sections, or none. */
+check("the six rails stand in mall order on all three surfaces", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
+     phone's shopfront, the laptop's shopfront, and the Tiendas page's
+     vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
+     mall stops feeling like one mall. */
   const src = HOME_SRC();
-  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
-  const shopfront = forwardSlice(src, 'id="mobileShopfront"', ">", "#mobileShopfront");
-  if (!/\blg:hidden\b/.test(shopfront)) throw new Error("#mobileShopfront no longer hides at lg — the breakpoint story below is stale");
-
-  if (!/@media \(max-width:1023\.98px\)/.test(css)) throw new Error("the strip's phone rule is gone or moved off Tailwind's lg breakpoint (1024px)");
-  const phoneRule = forwardSlice(css, "@media (max-width:1023.98px){", "@media (min-width:1024px)", "the phone rule");
-  if (!/\.ariaSectionShot--lg > \.ariaSectionPhoto/.test(phoneRule)) throw new Error("the retailers strip keeps its photo on a phone — that crop is the blur this rule exists to prevent");
-  if (!/display:none/.test(phoneRule)) throw new Error("the strip's phone rule no longer hides anything");
-  if (!/background:var\(--paper\)/.test(phoneRule)) throw new Error("with its photo hidden the strip has no background of its own left");
-
-  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
-  if (!/ariaSectionShot--lg/.test(strip)) throw new Error("the retailers strip is not opted into the lg-only treatment");
-  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
-  if (/ariaSectionShot--lg/.test(rail)) throw new Error("the phone's own rail went lg-only — now no width shows the photograph on a phone");
+  const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"];
+  for (const [name, prefix, from, to] of [
+    ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
+    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)"'],
+    ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
+  ]){
+    const seg = stripHtmlComments(forwardSlice(src, from, to, name));
+    const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
+    eq(found.join(","), want.join(","), `${name} does not carry the six rails in mall order`);
+  }
 });
 
-check("the type over the photograph was measured, not eyeballed", () => {
-  /* Every number here came off rendered pixels: the glyphs are hidden,
-     the brightest pixel actually behind each text run is sampled, and
-     the ratio is computed against it. The site's usual on-navy blue
-     (#7FB8FF) measured 3.73:1 over a lit shop window and #9FC5FF 4.35:1
-     — both under the 4.5 floor, both plausible-looking choices. */
+check("the store rails paint lazily below the fold", () => {
+  /* The six rails sit below Ofertas: eighteen product rows must not
+     cost a phone its first paint. Headers are static markup -- the
+     shopper always sees whose window it is -- and the cards paint
+     through one shared IntersectionObserver that starts early enough
+     to feel instant (600px of root margin). */
   const src = HOME_SRC();
-  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
-  const h2 = forwardSlice(rail, "<h2", "</h2>", "the rail heading");
-  if (!/color:#fff/.test(h2)) throw new Error("the Tiendas heading is no longer white over the photograph");
-  if (/var\(--navy\)/.test(h2)) throw new Error("the Tiendas heading is navy again — navy type on a navy scrim");
-  if (!/#C3D9FF/.test(rail)) throw new Error('"Ver todas" lost its measured colour');
-  for (const tooDark of ["#7FB8FF", "#9FC5FF", "var(--blue)"]){
-    if (rail.includes(tooDark)) throw new Error(`"Ver todas" is back to ${tooDark}, which measured under 4.5:1 over this photograph`);
+  const init = forwardSlice(src, "function initStoreRails(){", "function ", "initStoreRails");
+  if (!/new IntersectionObserver/.test(init)) throw new Error("the rails no longer paint through an IntersectionObserver");
+  if (!/rootMargin:\s*["']600px/.test(init)) throw new Error("the rails' observer lost its 600px head start");
+  if (!/\[data-store-rail-row\]/.test(init)) throw new Error("the observer is not watching the rail rows");
+  /* Headers static, rows empty: if the cards were server-rendered into
+     the markup, the observer would be theatre. */
+  const markup = stripHtmlComments(src);
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]){
+      const row = new RegExp(`<div id="${prefix}-${key}"[^>]*></div>`);
+      if (!row.test(markup)) throw new Error(`${prefix}-${key} is not an empty row waiting for the observer`);
+    }
   }
-  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
-  if (/text-zinc-500/.test(strip)) throw new Error("the strip's caption is grey again — unreadable over the photo at lg");
-  if (!/ariaSectionCaption/.test(strip)) throw new Error("the strip's caption no longer switches colour with the breakpoint");
-
-  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
-  const scrim = forwardSlice(css, ".ariaSectionScrim{", "}", ".ariaSectionScrim");
-  /* The top stop is the scrim's thinnest point and therefore the one
-     that decides legibility. 0.55 measured 4.39:1 against this asset's
-     brightest pixel; 0.60 cleared at 5.22:1; 0.66 ships for 6.50:1
-     because this type is 12.5-15px, not display size. */
-  const top = scrim.match(/rgba\(4,12,28,([\d.]+)\) 0%/);
-  if (!top) throw new Error("the scrim's top stop is gone — cannot tell what the text sits on any more");
-  if (Number(top[1]) < 0.6) throw new Error(`the scrim opens at ${top[1]}; anything under 0.60 measured below 4.5:1 on this photograph`);
 });
 
 check("every category cover named in the page is actually on disk", () => {

@@ -1831,15 +1831,14 @@ await check("the phone's rails fill from the page's own data", async () => {
   const rails = await page.evaluate(() => ({
     deals: document.querySelectorAll("#mobileDealsRow [data-mobile-deal]").length,
     tail: document.querySelectorAll("#mobileDealsRow [data-mobile-deal-all]").length,
-    stores: document.getElementById("mobileStoresRow").children.length,
-    registry: activeRetailers().length,
+    stores: document.querySelectorAll('#mobileShopfront [data-store-rail]').length,
     cats: document.querySelectorAll("#mobileCatsRow [data-mobile-cat]").length,
     grid: document.getElementById("catGrid").children.length,
     cap: MOBILE_RAIL_DEALS,
   }));
   eq(rails.deals, rails.cap, "the deals rail holds its cap");
   eq(rails.tail, 1, "the deals rail has exactly one 'Ver todo' tail");
-  eq(rails.stores, rails.registry, "the stores rail carries every active store");
+  eq(rails.stores, 6, "the phone is not showing the six store rails");
   /* THE SAME TILES THE GRID DREW. A department added to DEPARTMENT_SPEC
      -- Zapatos, and whatever follows -- has to appear in both or in
      neither; a literal here would go stale the day one lands. */
@@ -1942,7 +1941,9 @@ await check("nothing in the shopfront moves on its own", async () => {
   const { ctx, page, errors } = await openPage({}, PHONE);
   await page.waitForTimeout(4000);
   const drift = await page.evaluate(async () => {
-    const ids = ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"];
+    const ids = ["mobileDealsRow", "mobileCatsRow",
+      "mStoreRail-victoriassecret", "mStoreRail-sephora", "mStoreRail-macys",
+      "mStoreRail-footlocker", "mStoreRail-ssense", "mStoreRail-dicks"];
     const before = ids.map((i) => document.getElementById(i).scrollLeft);
     const y = window.scrollY;
     await new Promise((r) => setTimeout(r, 5000));
@@ -1955,20 +1956,25 @@ await check("nothing in the shopfront moves on its own", async () => {
   await ctx.close();
 });
 
-await check("the desktop home page never builds the rails", async () => {
-  /* Not a style question: initMobileShopfront's guard is what stops a
-     laptop fetching the sales cache and twenty product photos for three
-     sections it will never show. */
+await check("the desktop home page builds the desktop rails", async () => {
+  /* 2026-09-25: the laptop has its own shopfront -- Ofertas, the six
+     store rails, Categorias -- filled on first paint like the phone's.
+     The phone's rows stay in the DOM too (CSS hides them); the
+     renderers write both. */
   const { ctx, page, errors } = await openPage();
   await page.waitForTimeout(4000);
   const state = await page.evaluate(() => ({
-    deals: document.getElementById("mobileDealsRow").children.length,
-    stores: document.getElementById("mobileStoresRow").children.length,
+    deals: document.getElementById("desktopDealsRow").children.length,
+    rails: document.querySelectorAll("#desktopShopfront [data-store-rail]").length,
+    cats: document.getElementById("desktopCatsRow").children.length,
+    order: [...document.querySelectorAll("#desktopShopfront > section")].map(s => s.getAttribute("aria-label")).join(" > "),
     started: mobileShopfrontStarted,
   }));
-  eq(state.started, false, "the desktop ran the phone's shopfront");
-  eq(state.deals, 0, "the desktop built the deals rail");
-  eq(state.stores, 0, "the desktop built the stores rail");
+  eq(state.started, true, "the desktop never ran the shopfront init");
+  eq(state.deals > 0, true, "the desktop deals rail is empty");
+  eq(state.rails, 6, "the desktop is not showing the six store rails");
+  eq(state.cats > 0, true, "the desktop cats rail is empty");
+  eq(state.order, "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categor\u00edas", "the desktop shopfront order");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
