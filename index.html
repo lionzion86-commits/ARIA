@@ -299,7 +299,7 @@
      reason — with the CDN blocked the utility is gone and the wordmark
      falls back to whatever the browser does, which is not a decision
      anyone made. */
-  .ariaWordmark{ font-size:clamp(16px, 4.4vw, 22px) }
+  .ariaWordmark{ font-size:clamp(16px, 4.4vw, 22px) } /* 2026-09-25: mark removed — the wordmark carries the brand via weight+tracking, size floor unchanged for the 320px header budget */
   /* BELOW 360px THE HEADER CTA MOVES INTO THE MENU. Scaling type and
      shaving padding got 393 and 360 clean but left 320 five pixels
      over, and the next shave would have been the third in a row — at
@@ -791,11 +791,8 @@
      that is visibly alive, next to copy that says how long it will be. */
   /* THE ORB MUST NOT SIT ON THE PAGE (2026-09-20).
 
-     The swim loop already keeps the orb in a side gutter when the layout
-     has one, and slides it out to a thin tab when it would cover the
-     content column. What was left was the bottom-right corner on narrow
-     screens: the orb docks there, and the last line of a page ran
-     underneath it.
+     The orb is docked in the bottom-right corner on every screen
+     (2026-09-25), and the last line of a page ran underneath it.
 
      Every view reserves that corner now. It costs a screenful of nothing
      at the end of a scroll and it means no card, no button and no line of
@@ -807,7 +804,6 @@
   :root{ --orb-safe-b: env(safe-area-inset-bottom, 0px); --orb-safe-r: env(safe-area-inset-right, 0px) }
   :root{ --orb-dock-safe: 104px }
   .view{ padding-bottom: var(--orb-dock-safe) }
-  @media (min-width:1024px){ .view{ padding-bottom: 32px } }
 
   .ariaSpinner{ width:15px; height:15px; border-radius:50%; display:inline-block;
     border:2px solid rgba(47,95,238,0.25); border-top-color:var(--blue); animation:ariaSpin .7s linear infinite }
@@ -881,56 +877,18 @@
 </div>
 
 <header class="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b" style="border-color:var(--line)">
-    <!-- THE ™ AND THE MARK ARE BOTH HERE, and that is the whole
-         resolution. PR #10 added the trademark to a wordmark that had
-         no mark beside it, and left a note: "Drop a real, solid, square
-         mark in here and put the <img> back." This branch is that --
-         assets/aria-mark.png, described below -- so the two changes are
-         the same intention arriving twice, not a disagreement. Kept:
-         their ™ (in the wordmark and in the accessible name) and our
-         mark, sizing and phone gap. items-center rather than their
-         items-baseline, because baseline was chosen for text alone and
-         there is an image to centre against now. -->
+    <!-- THE WORDMARK STANDS ALONE (2026-09-25 — Danny, Chromebook
+         review: the triangle mark "looks like a watermark tattoo"). No
+         mark image anywhere in the header; the text wordmark carries
+         the brand. items-center keeps the two spans centred on the row. -->
   <!-- gap-3 ON A PHONE. The nav between these two groups is `hidden
        lg:flex`, so below lg the row is just the logo and the actions and
        a 24px gap between them is 24px of a 393px screen spent on
        nothing. It goes back to 6 exactly where the nav reappears. -->
   <div class="max-w-[1240px] mx-auto px-3 sm:px-5 h-[68px] flex items-center justify-between gap-3 lg:gap-6">
-    <!-- THE MARK IS BACK, AND THE ASSET IS WHY IT COULD COME BACK.
-
-         It was pulled on 2026-09-19 with a note naming three faults in
-         aria-mark-transparent.png, all three measured again here and all
-         three real: 658x439 (not square), ink filling 259x305 of that
-         canvas, and a hard 1-bit alpha with no antialiasing anywhere.
-         object-contain fits the CANVAS, so at a 30px box the artwork
-         drew about 12px wide with jagged edges -- the watermark the note
-         described. The same failure as logos/ssense.png before it.
-
-         assets/aria-mark.png is that file repaired, not redrawn: cropped
-         to its own ink, padded square, and resampled to 160px so the
-         edges carry real antialiasing. NOT ONE PIXEL WAS RECOLOURED --
-         the navy-to-blue gradient in the artwork is the brand's, and
-         10,649 distinct colours came through untouched. Ink now fills
-         100% of the canvas height instead of 27% of its width.
-
-         It is decorative here: the button already carries the name in
-         its aria-label and the wordmark beside it, so alt="" keeps a
-         screen reader from saying "Aria" three times. -->
-    <button onclick="goHome()" class="flex items-center gap-[9px] flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop™ — inicio">
-      <!-- THE MARK IS THE PART THAT GIVES BELOW 380px, for the same
-           reason the Key Club tag above it does, and it is measured:
-           with the mark in, the header's right cluster runs 3px past a
-           360px viewport and the page wiggles sideways again -- the
-           exact fault #27 fixed. The mark costs 26px of art and 9px of
-           gap; the wordmark beside it already carries the brand, and
-           the mark is alt="" decorative, so nothing is lost by standing
-           it down on the narrowest phones. 380 is #27's geometry with
-           room to spare (375px of content at 380px) and it is the
-           breakpoint this header already uses. -->
-      <img src="assets/aria-mark.png" alt="" width="30" height="30" decoding="async"
-        class="hidden min-[380px]:block w-[26px] h-[26px] sm:w-[30px] sm:h-[30px] object-contain flex-shrink-0">
-      <span class="ariaWordmark font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
-      <span class="ariaWordmark font-bold tracking-[0.10em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">&#8482;</span></span>
+    <button onclick="goHome()" class="flex items-center gap-2 flex-shrink-0 focus-ring rounded-lg" aria-label="Aria Shop™ — inicio">
+      <span class="ariaWordmark font-extrabold tracking-[0.12em] leading-none uppercase" style="color:var(--navy); font-family:'Rajdhani',sans-serif">Aria</span>
+      <span class="ariaWordmark font-extrabold tracking-[0.12em] leading-none uppercase" style="color:var(--amber); font-family:'Rajdhani',sans-serif">Shop<span style="font-size:0.55em;vertical-align:super">&#8482;</span></span>
     </button>
     <nav class="hidden lg:flex items-center justify-center gap-4 xl:gap-5 text-[13.5px] flex-1">
       <a href="#" data-nav="howView" onclick="showPage('howView');return false;" class="ariaNavLink">Cómo funciona</a>
@@ -955,9 +913,15 @@
            below) — never a dead button again. #authArea is re-rendered on
            login/logout/page-load; the two static buttons here are just
            the logged-out default markup. -->
+      <!-- AUTH PAIR, REDESIGNED 2026-09-25 (Danny, Chromebook review):
+           the ghost "Entrar" next to the solid "Crear cuenta" read cheap
+           and sat off-centre. Both are solid pills now, same height, same
+           padding, same weight, vertically centred: Entrar in navy,
+           Crear cuenta in the brand gold the hero CTA already speaks.
+           Entrar is visible on mobile too (PR #78's fix, folded in). -->
       <div id="authArea" class="flex items-center gap-2 sm:gap-2.5">
-        <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-        <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+        <button onclick="openAuthModal('login')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Entrar</button>
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>
       </div>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
         <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
@@ -3380,8 +3344,7 @@
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div class="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-2">
-        <img src="aria-mark-transparent.png" alt="Aria" class="w-6 h-6 object-contain">
-        <span class="text-[15px] font-semibold tracking-[0.1em]" style="font-family:'Rajdhani',sans-serif">ARIA<span style="font-size:0.6em;vertical-align:super">™</span></span>
+        <span class="text-[16px] font-bold tracking-[0.12em]" style="font-family:'Rajdhani',sans-serif">ARIA<span style="font-size:0.6em;vertical-align:super">™</span></span>
         <span class="text-[12px] text-zinc-400 ml-1">© 2026</span>
       </div>
       <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[12.5px] text-zinc-500">
@@ -3587,9 +3550,10 @@
   animation: ariaBubbleIn 0.35s ease-out;
 }
 </style>
-<!-- Position is driven by the swim loop (ariaOrbSwim below): fixed at the
-     origin, moved with a transform, starting at the bottom-right corner it
-     used to sit in. The trail lives in #ariaOrbTrail, behind it. -->
+<!-- Position is driven by the swim loop below: the orb is docked in the
+     bottom-right corner on every screen (2026-09-25), moved with a
+     transform, with a small bounded float so it reads alive. The trail
+     lives in #ariaOrbTrail, behind it. -->
 <div id="ariaOrbTrail" aria-hidden="true" class="fixed inset-0 z-30 pointer-events-none overflow-hidden"></div>
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
   class="fixed left-0 top-0 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring">
@@ -14716,16 +14680,28 @@ async function loadWalletBalance(){
 function renderAuthUI(){
   const label = currentUser ? escapeHtml(currentUser) : '';
   const initial = currentUser ? escapeHtml(currentUser[0].toUpperCase()) : '';
+  /* ADMIN PATH (2026-09-25): Danny is logged in as admin but the UI gave
+     him no way to reach /admin.html — he felt like a regular user. The
+     link renders only when the session's email is on ADMIN_EMAILS (the
+     same isAdmin the server reports and admin.html's gate trusts); it is
+     absent from the DOM for everyone else, not merely hidden. */
+  const adminLinkDesktop = currentUserIsAdmin
+    ? `<a href="/admin.html" class="inline-flex items-center justify-center h-7 px-3 rounded-full text-[12px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">⚙️ Panel de control</a>`
+    : '';
+  const adminLinkMobile = currentUserIsAdmin
+    ? `<a href="/admin.html" onclick="closeMobileMenu();" class="w-full h-11 mb-2.5 inline-flex items-center justify-center gap-2 rounded-full text-[13.5px] font-bold focus-ring transition" style="background:#F4C463;color:var(--navy)">⚙️ Panel de control</a>`
+    : '';
   const loggedInHTML = `
     <div id="accountArea" class="hidden sm:flex items-center gap-2.5 text-[13px] font-semibold" style="color:var(--navy)" title="${label}">
       <span class="w-7 h-7 rounded-full grid place-items-center text-white text-[12px] font-extrabold flex-shrink-0" style="background:var(--blue)">${initial}</span>
       <span class="max-w-[140px] truncate">${label}</span>
       ${walletChipHTML('desktop')}
+      ${adminLinkDesktop}
     </div>
     <button onclick="logout()" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const loggedOutHTML = `
-    <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-    <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>`;
+    <button onclick="openAuthModal('login')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold text-white focus-ring transition hover:brightness-110" style="background:var(--navy)">Entrar</button>
+    <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>`;
   document.getElementById('authArea').innerHTML = currentUser ? loggedInHTML : loggedOutHTML;
 
   const mobileLoggedInHTML = `
@@ -14734,11 +14710,12 @@ function renderAuthUI(){
       <span class="text-[13.5px] font-semibold truncate" style="color:var(--navy)">${label}</span>
       ${walletChipHTML('mobile')}
     </div>
+    ${adminLinkMobile}
     <button onclick="logout();closeMobileMenu();" class="w-full h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const mobileLoggedOutHTML = `
     <div class="flex items-center gap-2.5">
-      <button onclick="openAuthModal('login');closeMobileMenu();" class="flex-1 h-11 rounded-full text-[13.5px] font-semibold border focus-ring transition" style="border-color:var(--line); color:var(--navy)">Entrar</button>
-      <button onclick="openAuthModal('signup');closeMobileMenu();" class="flex-1 h-11 rounded-full text-[13.5px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
+      <button onclick="openAuthModal('login');closeMobileMenu();" class="flex-1 h-11 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold text-white focus-ring transition" style="background:var(--navy)">Entrar</button>
+      <button onclick="openAuthModal('signup');closeMobileMenu();" class="flex-1 h-11 inline-flex items-center justify-center rounded-full text-[13.5px] font-bold focus-ring transition" style="background:#F4C463;color:var(--navy)">Crear cuenta</button>
     </div>`;
   document.getElementById('authAreaMobile').innerHTML = currentUser ? mobileLoggedInHTML : mobileLoggedOutHTML;
 }
@@ -16840,6 +16817,12 @@ function setOrbState(state){
 /* ============================================================
    ORB MOTION — "she swims, she doesn't sit"
 
+   2026-09-25 OVERRIDE (Danny, Chromebook review): the swim is retired —
+   she is docked bottom-right on every screen now, see orbLane(). The
+   lane/gutter/drift notes below are the history of how she got here,
+   kept because they explain the machinery that remains: the anchor,
+   the bounded float, the reserved corner.
+
    The orb used to pulse in a corner: alive, but static, which reads as a
    logo rather than a presence. It now drifts slowly around the rim of the
    screen, trailing light, pausing and changing its mind the way something
@@ -16986,28 +16969,28 @@ function orbAnchor(){
   return { size: s, x, y };
 }
 
-function orbLane(){
-  const topSafe = ORB_TOP_SAFE;
-  const bottom = window.innerHeight - ORB_MARGIN;
-  const col = orbContentColumn();
-  const leftGutter = col ? col.left - ORB_CONTENT_GAP - ORB_MARGIN : window.innerWidth;
-  const rightGutter = col ? window.innerWidth - ORB_MARGIN - (col.right + ORB_CONTENT_GAP) : window.innerWidth;
-  const onRight = rightGutter >= leftGutter;
-  const gutter = Math.max(leftGutter, rightGutter);
-  const size = Math.min(ORB_SIZE, Math.floor(gutter));
+/* ALWAYS DOCKED, EVERY SCREEN (2026-09-25 — Danny, Chromebook review).
 
-  /* A phone never gets a lane, whatever the measured gutter says — see
-     ORB_ANCHOR_MAX_VW. This check comes FIRST precisely because the
-     gutter measurement is what used to let a handset roam. */
-  if (window.innerWidth < ORB_ANCHOR_MAX_VW || size < ORB_LANE_MIN || bottom - topSafe < size + 20){
-    const a = orbAnchor();
-    return { mode: 'dock', size: a.size, minX: a.x, maxX: a.x, minY: a.y, maxY: a.y };
-  }
-  const x = onRight
-    ? Math.min(window.innerWidth - size - ORB_MARGIN, (col ? col.right + ORB_CONTENT_GAP : ORB_MARGIN) + Math.max(0, (gutter - size) / 2))
-    : Math.max(ORB_MARGIN, ORB_MARGIN + Math.max(0, (gutter - size) / 2));
-  return { mode: 'lane', size, minX: x, maxX: x, minY: topSafe, maxY: Math.max(topSafe, bottom - size) };
+   The lane drift is retired. On a wide screen the orb started at the top
+   of its lane while the "¡Hola! Soy Aria" bubble sat fixed at the
+   bottom-right, and the orb's visible travel down to meet it read as
+   broken. The brief is now: the launcher lives in the bottom-right
+   corner on every viewport, always, and the bubble opens right next to
+   it — no cross-screen travel, ever.
+
+   She keeps her alive language — the breathing, the glow, the small
+   bounded float in the corner. What goes is only the journey.
+   orbAnchor() is the single source of home. */
+function orbLane(){
+  const a = orbAnchor();
+  return { mode: 'dock', size: a.size, minX: a.x, maxX: a.x, minY: a.y, maxY: a.y };
 }
+
+/* RETIRED WITH THE LANE (2026-09-25). orbContentColumn fed the gutter
+   math above; nothing calls it now. Kept, not deleted: it is cheap,
+   correct, and deleting working geometry nobody asked to delete is how
+   regressions are born. orbCoversContent below is still pinned by a
+   browser test, so the selector list stays too. */
 
 function orbBounds(){
   const lane = orbLane();
@@ -17248,9 +17231,10 @@ function startOrbSwim(){
   if (!btn || !trailWrap) return;
   orbSwim.started = true;
 
-  // Progress 0 is the top of the lane and 0.5 the bottom corner she has
-  // always come to rest in. A first visit starts at the top and drifts
-  // down once; any later navigation in the same session opens parked.
+  // The drift is retired (2026-09-25): progress 0 and 0.5 are the same
+  // docked corner now, so the orb opens parked on every visit and never
+  // travels. The rest of this function — anchor, float, trail, resize
+  // reclamp — is unchanged.
   const laneStart = orbLane();
   orbReserveSpace(laneStart);
   orbSwim.rested = orbHasDriftedThisSession();
@@ -18655,4 +18639,4 @@ initRouter();
 </script>
 </body>
 </html>
-
+

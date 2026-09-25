@@ -1990,22 +1990,19 @@ await check("the desktop home page builds the desktop rails", async () => {
    land on the right section, and are the promises in that section the
    ones the array holds.
    ================================================================== */
-await check("the header's mark loads, and it is a square file", async () => {
-  /* A PATH CAN BE WRONG IN A WAY NO STATIC READ CATCHES. naturalWidth
-     is 0 for a 404, a corrupt file, or a name that differs by a letter
-     — and the header would just quietly show nothing. */
+await check("the header wordmark is text-only \u2014 no mark image", async () => {
+  /* 2026-09-25 (Danny, Chromebook review): the triangle mark is gone
+     from the header — "looks like a watermark tattoo". The wordmark is
+     text now; this pins that no mark image comes back. */
   const { ctx, page, errors } = await openPage();
   await page.waitForTimeout(1500);
-  const img = await page.evaluate(() => {
-    const el = document.querySelector('header img[src*="aria-mark"]');
-    if (!el) return null;
-    return { w: el.naturalWidth, h: el.naturalHeight, complete: el.complete, src: el.getAttribute("src"), alt: el.getAttribute("alt") };
+  const r = await page.evaluate(() => {
+    const mark = document.querySelector('header img[src*="aria-mark"]');
+    const words = [...document.querySelectorAll('header .ariaWordmark')].map((el) => el.textContent.trim());
+    return { mark: !!mark, words };
   });
-  if (!img) throw new Error("the header has no mark");
-  eq(img.complete, true, "the mark never finished loading");
-  if (!img.w) throw new Error(`the mark decoded to 0px — ${img.src} is missing or corrupt`);
-  eq(img.w, img.h, "the mark is not square");
-  eq(img.alt, "", "the mark is announced as well as drawn");
+  if (r.mark) throw new Error("the triangle mark is back in the header");
+  if (!r.words.join(" ").includes("Aria")) throw new Error("the header wordmark is gone");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });

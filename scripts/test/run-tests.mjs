@@ -5389,40 +5389,76 @@ const hdrStyle = hdrSrc.slice(hdrSrc.indexOf("<style>"), hdrSrc.indexOf("</style
 const utilityBar = hdrSrc.slice(hdrSrc.indexOf('<div id="utilityBar"'), hdrSrc.indexOf('<header class="sticky'));
 const headerEl = hdrSrc.slice(hdrSrc.indexOf('<header class="sticky'), hdrSrc.indexOf("</header>"));
 
-check("the brand mark stands down on the phones it would overflow", () => {
-  /* MEASURED, NOT GUESSED. This branch adds 26px of mark and a 9px gap
-     to a header that #27 had already shaved to fit; with the mark shown
-     at every width the right-hand cluster ran 3px past a 360px viewport
-     and the sideways wiggle #27 removed was back. The mark is alt=""
-     decorative and the wordmark beside it still carries the brand, so
-     the mark is what gives -- at the same 380px this header already
-     uses for the Key Club tag. */
-  const mark = headerEl.slice(headerEl.indexOf('<img src="assets/aria-mark.png"'));
-  const tag = mark.slice(0, mark.indexOf(">") + 1);
-  if (!/hidden min-\[380px\]:block/.test(tag)) {
-    throw new Error("the mark no longer stands down below 380px — the header overflows a 360px phone again");
-  }
+check("the header carries no mark image \u2014 the wordmark stands alone", () => {
+  /* 2026-09-25 (Danny, Chromebook review): the triangle mark is gone
+     from the header \u2014 "looks like a watermark tattoo". The text
+     wordmark carries the brand now, so no aria-mark image may appear
+     anywhere in the header. */
+  if (/aria-mark/.test(headerEl)) throw new Error("the triangle mark is back in the header");
+  if (!/ariaWordmark/.test(headerEl)) throw new Error("the header wordmark is gone");
+  if (!/>Aria<\/span>/.test(headerEl)) throw new Error("the header no longer says Aria");
 });
 
-check("the brand mark is in the header, and the asset is one that can carry it", () => {
-  if (!/<img src="assets\/aria-mark\.png"/.test(headerEl)) throw new Error("the header has no brand mark");
-  /* DECORATIVE, NOT A THIRD NAME. The button already carries "Aria Shop
-     — inicio" in its aria-label and the wordmark beside it, so alt text
-     here would have a screen reader say the name three times. */
-  if (!/<img src="assets\/aria-mark\.png" alt=""/.test(headerEl)) throw new Error("the mark is announced as well as drawn");
-  if (!/goHome\(\)/.test(headerEl)) throw new Error("the mark no longer goes home");
-
-  /* THE THREE FAULTS THAT GOT THE OLD ONE PULLED, asserted against the
-     new file rather than trusted: square, ink filling its canvas, and
-     edges that are actually antialiased. A mark that fails any of them
-     draws as the watermark the 2026-09-19 note described. */
-  const { width, height, alpha } = pngShape(root("assets/aria-mark.png"));
-  eq(width, height, "the mark is not square — object-contain will float it off the baseline");
-  if (width < 96) throw new Error(`the mark is ${width}px — too small for a 30px box at 3x DPR`);
-  if (!(alpha.ink / (width * height) > 0.12)) {
-    throw new Error(`ink is ${(alpha.ink / (width * height) * 100).toFixed(1)}% of the canvas — object-contain fits the CANVAS, so it will draw tiny`);
+check("the wordmark is strengthened text, gold SHOP kept", () => {
+  /* With the mark gone the wordmark does all the work: extra-bold,
+     wider tracking, and the gold SHOP Danny approved. */
+  if (!/ariaWordmark[^"]*font-extrabold[^"]*tracking-\[0\.12em\]/.test(headerEl)) {
+    throw new Error("the wordmark was not strengthened (extrabold, wider tracking)");
   }
-  if (!(alpha.soft > 100)) throw new Error("the mark has no antialiased edge — it will look jagged at 30px");
+  if (!/color:var\(--amber\)[^>]*>Shop/.test(headerEl)) throw new Error("SHOP lost its gold");
+  if (!/&#8482;/.test(headerEl)) throw new Error("the \u2122 is gone from the wordmark");
+});
+
+check("the footer carries no mark image either", () => {
+  /* Same removal, for consistency: the footer's mark went with the header's. */
+  const footerEl = hdrSrc.slice(hdrSrc.indexOf('<footer'), hdrSrc.indexOf('</footer>'));
+  if (/aria-mark/.test(footerEl)) throw new Error("the triangle mark is still in the footer");
+  if (!/ARIA/.test(footerEl)) throw new Error("the footer wordmark is gone");
+});
+
+check("the auth pair are matching solid pills, Entrar visible on mobile", () => {
+  /* 2026-09-25 (Danny, Chromebook review): the ghost "Entrar" next to
+     the solid "Crear cuenta" read cheap and sat off-centre. Both are
+     solid pills now \u2014 navy Entrar, gold Crear cuenta \u2014 same height,
+     same weight, vertically centred, and Entrar is visible on mobile.
+     Three copies: the static header markup plus the desktop and mobile
+     templates in renderAuthUI(). */
+  if (/openAuthModal\('login'\)" class="[^"]*hidden sm:inline-flex/.test(hdrSrc)) {
+    throw new Error("Entrar is still hidden on mobile");
+  }
+  if (/border-color:var\(--line\); color:var\(--navy\)">Entrar/.test(hdrSrc)) {
+    throw new Error("the ghost Entrar is back");
+  }
+  const navyEntrar = (hdrSrc.match(/openAuthModal\('login'\)[^>]*background:var\(--navy\)/g) || []).length;
+  const goldSignup = (hdrSrc.match(/openAuthModal\('signup'\)[^>]*background:#F4C463/g) || []).length;
+  if (navyEntrar !== 3) throw new Error(`Entrar is not the navy solid pill in all three copies (found ${navyEntrar}, want 3)`);
+  if (goldSignup !== 3) throw new Error(`Crear cuenta is not the gold solid pill in all three copies (found ${goldSignup}, want 3)`);
+});
+
+check("the admin panel link renders for admins only", () => {
+  /* 2026-09-25: Danny is logged in as admin but the UI gave him no path
+     to /admin.html. The link is conditional on currentUserIsAdmin \u2014
+     the same isAdmin the server reports and admin.html's gate trusts
+     \u2014 in both the desktop account area and the mobile menu, and
+     absent from the DOM for everyone else. */
+  const guarded = [...hdrSrc.matchAll(/currentUserIsAdmin\s*\?\s*`<a href="\/admin\.html"/g)];
+  if (guarded.length !== 2) {
+    throw new Error(`the admin link is not guarded by currentUserIsAdmin in both account templates (found ${guarded.length}, want 2)`);
+  }
+  const total = (hdrSrc.match(/href="\/admin\.html"/g) || []).length;
+  if (total !== 2) throw new Error(`an unguarded /admin.html link exists (found ${total} links, want exactly the 2 guarded ones)`);
+  if (!/Panel de control/.test(hdrSrc)) throw new Error("the admin link label is gone");
+});
+
+check("the orb is docked on every screen \u2014 the lane drift is retired", () => {
+  /* 2026-09-25 (Danny, Chromebook review): the lane drift parked the orb
+     at the top of the screen while its greeting sat bottom-right, and
+     the travel between them read as broken. orbLane() now returns the
+     docked corner unconditionally. */
+  const body = hdrSrc.slice(hdrSrc.indexOf("function orbLane(){"), hdrSrc.indexOf("/* RETIRED WITH THE LANE"));
+  if (!body) throw new Error("orbLane is gone");
+  if (!/mode: 'dock'/.test(body)) throw new Error("orbLane no longer docks");
+  if (/'lane'/.test(body)) throw new Error("the lane drift is back in orbLane");
 });
 
 check("the utility bar sits above the header and pushes nothing down", () => {
