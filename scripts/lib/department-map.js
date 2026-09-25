@@ -28,6 +28,7 @@
 // three gendered pages at once.
 
 import { isFootwear } from "./footwear.js";
+import { isToyGradeSkate } from "./toys.js";
 
 // A department = one product category, optionally narrowed to a gender.
 export const DEPARTMENT_SPEC = {
@@ -70,6 +71,15 @@ export const DEPARTMENT_SPEC = {
      refuse. A shoe stays in Moda Hombre too; departments overlap here
      exactly as Ofertas overlaps everything. */
   shoes:           { anyCategory: true, footwearOnly: true },
+  /* JUGUETES (2026-09-25, Danny's QA). Not a category either, for the
+     same reason as Zapatos: toy-grade product is a KIND OF ITEM that
+     lives inside other people's buckets. Dick's files its character
+     skateboards under sporting_goods. Answered per item — see
+     scripts/lib/toys.js for the three signals and the false positives
+     it refuses (helmets, pad packs). A kiddie board stays in Deportes
+     too, demoted out of the front; departments overlap here exactly as
+     Ofertas overlaps everything. */
+  toys:            { anyCategory: true, toyOnly: true },
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
@@ -191,6 +201,7 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
   if (!dept) return false;
   if (dept.onSaleOnly) return isOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
+  if (dept.toyOnly) return isToyGradeSkate(item);
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;

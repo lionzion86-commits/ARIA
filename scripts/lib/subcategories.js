@@ -90,6 +90,12 @@ export const SUBCATEGORY_SPEC = [
      Editorial order again — skate leads, because boards are what the
      shopper came to this floor for. */
   { key: "skate",        label: "Skate",               types: ["SKATEBOARDSLONGBOARDS", "SKATEBOARD", "SKATEBOARDS", "SKATEDECK", "LONGBOARD", "LONGBOARDS", "SKATETRUCKS", "TRUCKS", "SKATEWHEELS", "WHEELS", "BEARINGS"] },
+  /* SKATE PARA NIÑOS (2026-09-25, Danny's QA). The toy-grade character
+     boards (Barbie, Hot Wheels, Sakar…) are re-typed to TOYSKATEBOARD at
+     the load boundary, so they file here and ONLY here inside Deportes —
+     never in the main Skate aisle, never at the front. The same items
+     also dual-list into the Juguetes department. */
+  { key: "kids_skate",   label: "Skate para niños",    types: ["TOYSKATEBOARD"] },
   { key: "surf",         label: "Surf",                types: ["WETSUITS", "WETSUIT", "RASHGUARDS", "RASHGUARD", "SNORKELINGGEAREQUIPMENT", "SNORKEL", "SNORKELING", "SURF", "SURFBOARD", "LEASH", "FINS", "FIN", "WAX"] },
   { key: "fitness",      label: "Fitness",             types: ["EXERCISEMATS", "YOGAMAT", "BOXINGMMAKICKBOXINGGLOVES", "BOXINGGLOVES", "HANDWRAPS", "WORKOUTGLOVESWRAPS", "WRISTBANDS", "HEADPROTECTIVEGEAR", "BIKEHELMETS", "PROTECTIVEEQUIPMENT", "DUMBBELL", "RESISTANCEBAND", "KETTLEBELL"] },
   /* ROPA DEPORTIVA (2026-09-25, Danny's rule). PacSun's rows are surf/
