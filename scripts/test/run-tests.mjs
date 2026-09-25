@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -840,6 +840,65 @@ check("index.html's registry mirror matches the module", () => {
   for (const r of Object.values(RETAILERS)) {
     if (!html.includes(`key: '${r.key}'`)) throw new Error(`${r.key} missing from the index.html mirror`);
     if (!html.includes(r.color)) throw new Error(`${r.key}'s colour ${r.color} missing from the index.html mirror`);
+  }
+});
+
+/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised).
+   The Tiendas de siempre row leads with aspirational, brag-worthy brands
+   that catch a woman's eye; the mall feels exclusive, not downmarket.
+   Target and Walmart sit at the very back (thin catalogs there). The tile
+   order is the registry's insertion order, so this pins the full order in
+   both the module and the index.html mirror. */
+const EXPECTED_EVERYDAY_ORDER = [
+  "victoriassecret", "sephora", "skims", "revolve", "ulta",
+  "bathandbodyworks", "yesstyle", "footlocker", "sunglasshut", "dyson",
+  "macys", "oldnavy", "target", "walmart",
+];
+function everydayOrder(){
+  return Object.keys(RETAILERS).filter(k => {
+    const r = RETAILERS[k];
+    return !r.retired && (r.tier || (r.kind === "auto" ? "auto" : "everyday")) === "everyday";
+  });
+}
+
+check("Tiendas tiles follow Danny's exclusive-mall order", () => {
+  const order = everydayOrder();
+  const want = EXPECTED_EVERYDAY_ORDER.join(",");
+  const got = order.join(",");
+  if (got !== want) throw new Error(`Tiendas order is [${got}], want [${want}]`);
+});
+
+check("Victoria's Secret is the first Tiendas tile", () => {
+  const order = everydayOrder();
+  if (order[0] !== "victoriassecret")
+    throw new Error(`first Tiendas tile is ${order[0]}, want victoriassecret`);
+});
+
+check("Sephora is the second Tiendas tile", () => {
+  const order = everydayOrder();
+  if (order[1] !== "sephora")
+    throw new Error(`second Tiendas tile is ${order[1]}, want sephora`);
+});
+
+check("Target and Walmart are the last two Tiendas tiles", () => {
+  const order = everydayOrder();
+  const tail = order.slice(-2).join(",");
+  if (tail !== "target,walmart")
+    throw new Error(`last two Tiendas tiles are [${tail}], want target,walmart`);
+});
+
+check("index.html's Tiendas tile order matches the module's", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const lit = html.slice(html.indexOf("const RETAILERS = {"));
+  const pos = k => {
+    const i = lit.indexOf(`key: '${k}'`);
+    if (i < 0) throw new Error(`${k} missing from the index.html mirror`);
+    return i;
+  };
+  const positions = EXPECTED_EVERYDAY_ORDER.map(pos);
+  for (let i = 1; i < positions.length; i++) {
+    if (!(positions[i - 1] < positions[i]))
+      throw new Error(`index.html mirror order breaks at ${EXPECTED_EVERYDAY_ORDER[i]}`);
   }
 });
 
@@ -2497,24 +2556,24 @@ check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
   if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
 });
 
-check("the parts sources never enter the Tiendas grid", () => {
+check("the parts sources live only in the Repuestos tier", () => {
   /* WHAT THIS RULE IS ACTUALLY FOR. It was written as "the grid stays at
-     its symmetric eight", which is how it was phrased at the time, but
-     the rule being protected is narrower and it is about PARTS SOURCES:
-     RockAuto and Advance Auto live inside Aria Auto as places we buy
-     car parts, and must never appear as storefront tiles a shopper can
-     walk into. AutoZone predates the split and is Aria Auto's own
-     source, so it is the one row in both.
-
-     The count was a proxy for that, and it stopped being a good one the
-     moment a real ninth STORE arrived: Macy's (2026-09-22), added on
-     Danny's explicit instruction. Asserting 8 forever would have blocked
-     every future store the shop signs, which is the opposite of what
-     anyone wanted. So the rule is asserted directly. */
-  const tiendas = Object.keys(RETAILERS).filter((k) => !RETAILERS[k].retired);
-  for (const key of Object.keys(autoSources.AUTO_SOURCES)) {
-    if (key === "autozone") continue;   // predates the split, and Aria Auto's own source
-    if (tiendas.includes(key)) throw new Error(`${key} leaked into the Tiendas grid`);
+     its symmetric eight", then as "parts sources never enter the Tiendas
+     grid". Danny overruled the second phrasing on 2026-09-24: Aria Auto
+     launched with RockAuto and AutoZone as real Tiendas tiles, each with
+     its own storefront view. The rule being protected was never "no auto
+     tiles" — it is that parts sources must not pollute the general store
+     grid. They render ONLY under the Repuestos tier, never in
+     everyday/luxury. */
+  for (const r of retailers.activeRetailers()) {
+    if (r.kind !== "auto") continue;
+    if (retailers.tierOf(r) !== "auto")
+      throw new Error(`${r.key} is an auto source outside the Repuestos tier`);
+  }
+  for (const r of retailers.activeRetailers()) {
+    if (r.kind === "auto") continue;
+    if (retailers.tierOf(r) === "auto")
+      throw new Error(`${r.key} is not an auto source but sits in Repuestos`);
   }
   // And the grid is the registry, never a hand-written list.
   const src = readFileSync(root("index.html"), "utf8");
@@ -2563,11 +2622,16 @@ check("a browsable store is not treated as one still being connected", () => {
   if (!/const CATALOG_RETAILERS = /.test(src)) throw new Error("index.html has no browsable-retailer list");
 });
 
-check("a source with no verified actor is not queried", () => {
+check("every queried auto source has verified backing", () => {
   // Same rule as the beauty stores: a guessed actor returns an empty run,
-  // which reads as "this store has nothing for your car" — a lie.
-  eq(autoSources.AUTO_SOURCES.rockauto.search, false);
-  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
+  // which reads as "this store has nothing for your car" — a lie. RockAuto
+  // went live 2026-09-24 with a verified 2,490-row cache (1,013 unique
+  // parts) served from auto-cache.json, so its `search: true` is
+  // cache-backed, not a guessed actor. A source with neither a verified
+  // actor nor a verified cache must stay out of the fan-out.
+  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone,rockauto");
+  eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto is still unprobed");
+  eq(autoSources.AUTO_SOURCES.oreilly.search, false, "O'Reilly stays out");
 });
 
 check("index.html mirrors the source registry", () => {
@@ -3792,7 +3856,7 @@ check("both catalogue files load, and neither can take the other down", () => {
      bad JSON taking the whole site's categories with it. */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const fn = src.slice(src.indexOf("function loadDepartmentCache("), src.indexOf("const DEPARTMENT_META"));
-  for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
+  for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json", "lanebryant-catalog.json"]) {
     if (!fn.includes(file)) throw new Error(`${file} is not loaded`);
     if (!existsSync(root(file))) throw new Error(`${file} is referenced but not committed`);
   }
@@ -7527,6 +7591,91 @@ check("the size run only prints where a page asked for it", () => {
   if (!/opts\.showSizeRun/.test(fn)) throw new Error("the size run renders whether or not a surface asked");
   if (!/showSizeRun: catalogState\.key === 'curvy'/.test(src)) {
     throw new Error("the catalogue feed no longer turns the size run on for Curvy");
+  }
+});
+/* ==================================================================
+   CURVY LEADS WITH WOMEN (Danny's merchandising rule, 2026-09-24).
+
+   Peru's extended-size demand is women's; men's is the secondary mix.
+   The gender band is the primary sort key on the section and the price
+   sort runs inside each band: women -> unknown -> men. These checks pin
+   the band and the wiring, over the real catalogue, not a fixture.
+   ================================================================== */
+group("Curvy leads with women's extended sizes");
+
+const curvyBand = loadPageCurvyBandSlice();
+
+check("the band puts women first, men last, unknown in the middle", () => {
+  const { curvyBandOf } = curvyBand;
+  // Bucket-carried gender, the common case: the retailer's own aisle.
+  eq(curvyBandOf({ title: "Crew-Neck T-Shirt" }, "women"), 0, "women's bucket did not lead");
+  eq(curvyBandOf({ title: "Crew-Neck T-Shirt" }, "men"), 2, "men's bucket did not trail");
+  eq(curvyBandOf({ title: "Crew-Neck T-Shirt" }, "clothing"), 1, "an ungendered bucket did not sit in the middle");
+  // A title naming a gender beats the bucket -- the site's existing rule.
+  eq(curvyBandOf({ title: "Women's Plus Size Dress 3X" }, "men"), 0, "a women's title lost to its bucket");
+  eq(curvyBandOf({ title: "Men's Big-Tall Oxford 2XL" }, "women"), 2, "a men's title lost to its bucket");
+  // PINK is womenswear by brand, full stop.
+  eq(curvyBandOf({ title: "Baby Tee", brand: "PINK" }, "kids"), 0, "PINK did not read as womenswear");
+});
+
+check("over the real catalogue, every woman's item sorts before every man's", () => {
+  /* The merchandising outcome itself: band first, price inside the band.
+     Driven over the committed data so a re-pull that changes the mix
+     re-proves the rule instead of silently re-burying the women's items. */
+  const { curvyBandOf } = curvyBand;
+  const { hasExtendedSizes } = curvy;
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const items = [];
+  const seen = new Set();
+  for (const [retailer, data] of Object.entries(cache.retailers || {})) {
+    for (const [bucket, entry] of Object.entries(data.departments || {})) {
+      for (const it of entry.items || []) {
+        if (!hasExtendedSizes(it)) continue;
+        const title = it.title || it.name || "";
+        const key = title + "::" + (it.price ?? it.effectivePrice ?? "");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const band = curvyBandOf(it, bucket);
+        // Kidswear never reaches the feed (excluded by the filter), so it
+        // is out of scope for the ordering rule.
+        if (String(title).match(/\b(kids?|boys?|girls?|toddlers?)\b/i)) continue;
+        items.push({ title, price: Number(it.price ?? it.effectivePrice) || 0, band });
+      }
+    }
+  }
+  if (!items.length) throw new Error("no Curvy-eligible items in the committed catalogue");
+  const women = items.filter((i) => i.band === 0);
+  const men = items.filter((i) => i.band === 2);
+  if (!women.length) throw new Error("no women's extended sizes in the catalogue at all");
+  if (!men.length) throw new Error("no men's extended sizes in the catalogue at all");
+  const sorted = [...items].sort((a, b) => (a.band - b.band) || (a.price - b.price));
+  const lastWoman = Math.max(...sorted.map((i, n) => (i.band === 0 ? n : -1)));
+  const firstMan = Math.min(...sorted.map((i, n) => (i.band === 2 ? n : items.length)));
+  eq(lastWoman < firstMan, true,
+     `a man's item (position ${firstMan}) still leads a woman's (position ${lastWoman})`);
+  // Price still governs inside each band: the cheapest woman leads the section.
+  const cheapestWoman = [...women].sort((a, b) => a.price - b.price)[0];
+  eq(sorted[0].title, cheapestWoman.title, "the section no longer opens with the cheapest women's item");
+});
+
+check("the feed sort actually reads the band on Curvy, and only on Curvy", () => {
+  /* The wiring: renderCatalogFeed sorts band-first exactly when the open
+     department is Curvy. Pinned by reading the page source the way the
+     neighbouring Curvy checks do. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/const isCurvy = catalogState\.kind === 'department' && catalogState\.key === 'curvy'/.test(src)) {
+    throw new Error("the feed no longer detects the Curvy department for its sort");
+  }
+  if (!/\(a\.curvyBand \?\? 1\) - \(b\.curvyBand \?\? 1\)/.test(src)) {
+    throw new Error("the band-first comparator is gone from the feed sort");
+  }
+  const stamp = src.slice(src.indexOf("function departmentItemsFor("), src.indexOf("function departmentItemsFor(") + 1400);
+  if (!/curvyBand: curvyBandOf\(raw, bucketName\)/.test(stamp)) {
+    throw new Error("departmentItemsFor no longer stamps the band where the bucket is in hand");
+  }
+  const fwd = src.slice(src.indexOf("function normalizeLiveItem("), src.indexOf("function normalizeLiveItem(") + 9000);
+  if (!/typeof item\.curvyBand === 'number' \? \{ curvyBand: item\.curvyBand \}/.test(fwd)) {
+    throw new Error("normalizeLiveItem no longer carries the band through to the feed");
   }
 });
 /* ==================================================================
