@@ -600,6 +600,46 @@
   .ariaCard--light{ background:#fff; border-color:var(--line); box-shadow:0 10px 30px rgba(10,31,68,0.06) }
   .ariaCard--light .ariaCardIcon{ background:rgba(244,196,99,0.20); border-color:rgba(184,134,11,0.38) }
   @media (min-width:640px){ .ariaCard{ padding:32px } }
+  /* ============ RETURNS COMPARISON (2026-09-25) ============
+     Scoped .ariaCompare* — navy/gold system, no gray pills.
+     The entrance animation replays every time #returnsView becomes
+     .active (display:none -> block restarts keyframes).
+     PENDING LEGAL REVIEW: los valores de esta comparativa (14 días,
+     impuestos 100%, bono de créditos) están DECIDIDOS por el negocio
+     pero PENDIENTES de validación por la abogada en Lima. */
+  .ariaCompare{ display:flex; flex-direction:column; gap:12px; margin-top:44px }
+  .ariaCompareHead{ display:none }
+  .ariaCompareRow{ display:grid; grid-template-columns:1fr 1fr;
+    border-radius:20px; overflow:hidden;
+    border:1px solid rgba(244,196,99,0.22); background:rgba(255,255,255,0.04);
+    animation:ariaCompareIn .65s cubic-bezier(.2,.7,.25,1) both }
+  .ariaCompareRow:nth-of-type(2){ animation-delay:.05s }
+  .ariaCompareRow:nth-of-type(3){ animation-delay:.12s }
+  .ariaCompareRow:nth-of-type(4){ animation-delay:.19s }
+  .ariaCompareRow:nth-of-type(5){ animation-delay:.26s }
+  .ariaCompareRow:nth-of-type(6){ animation-delay:.33s }
+  .ariaCompareRow:nth-of-type(7){ animation-delay:.40s }
+  @keyframes ariaCompareIn{ from{ opacity:0; transform:translateY(16px) } to{ opacity:1; transform:none } }
+  .ariaCompareLabel{ grid-column:1 / -1; padding:16px 18px 4px;
+    font-size:11.5px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:#AFBBD6 }
+  .ariaCompareCell{ padding:8px 18px 18px; display:flex; gap:12px; align-items:flex-start }
+  .ariaCompareCell--other{ border-left:1px solid rgba(244,196,99,0.14) }
+  .ariaCompareMark{ flex:0 0 auto; width:26px; height:26px; border-radius:999px; display:grid; place-items:center; margin-top:2px }
+  .ariaCompareMark--yes{ background:linear-gradient(135deg,#F4C463,#E0A800); box-shadow:0 4px 14px rgba(244,196,99,0.35) }
+  .ariaCompareMark--no{ background:rgba(255,255,255,0.05); border:1px solid rgba(217,138,138,0.4) }
+  .ariaCompareBig{ display:block; font-size:19px; font-weight:800; letter-spacing:-0.01em; line-height:1.2; color:#F4C463 }
+  .ariaCompareCell--other .ariaCompareBig{ color:rgba(255,255,255,0.55) }
+  .ariaCompareSub{ display:block; font-size:13px; color:#AFBBD6; margin-top:3px; line-height:1.45 }
+  .ariaCompareCell--other .ariaCompareSub{ color:rgba(175,187,214,0.6) }
+  @media (min-width:768px){
+    .ariaCompareHead{ display:grid; grid-template-columns:210px 1fr 1fr; padding:0 18px 4px; align-items:end }
+    .ariaCompareHeadName{ font-size:13px; font-weight:800; letter-spacing:0.06em; text-transform:uppercase }
+    .ariaCompareHeadName--aria{ color:#F4C463 }
+    .ariaCompareHeadName--other{ color:rgba(175,187,214,0.7) }
+    .ariaCompareRow{ grid-template-columns:210px 1fr 1fr }
+    .ariaCompareLabel{ grid-column:auto; padding:18px 0 18px 18px; align-self:center; letter-spacing:0.1em }
+    .ariaCompareCell{ padding:18px; align-items:center }
+  }
   /* A line worth stopping on, in both bands. */
   /* ONE ILLUSTRATION STYLE FOR CÓMO FUNCIONA (2026-09-20).
 
@@ -2386,8 +2426,8 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B8860B" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
           </div>
           <div class="text-[11px] font-extrabold tracking-[0.14em] uppercase mb-2" style="color:#8792AD">Paso 1</div>
-          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Repórtalo dentro de 7 días</h3>
-          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Dentro de 7 días de recibido, desde tu cuenta Aria, con fotos del producto y del empaque.</p>
+          <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Repórtalo dentro de 14 días</h3>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Dentro de 14 días de recibido, desde tu cuenta Aria, con fotos del producto y del empaque.</p>
         </article>
         <article class="ariaCard ariaCard--light">
           <div class="ariaCardIcon">
@@ -2419,7 +2459,7 @@
           </div>
           <div class="text-[11px] font-extrabold tracking-[0.14em] uppercase mb-2" style="color:#8792AD">Paso 5</div>
           <h3 class="text-[16.5px] font-extrabold tracking-[-0.01em] mb-2.5" style="color:var(--navy)">Recibes tu reembolso</h3>
-          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Una vez que Miami recibe el producto y la tienda aprueba la devolución, a tu método de pago original o como saldo Aria — tú eliges.</p>
+          <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Una vez aprobado, tú eliges: créditos Aria al instante (con +5% de regalo) o devolución a tu tarjeta.</p>
         </article>
       </div>
     </div>
@@ -2447,7 +2487,7 @@
           </div>
           
           <h3 class="text-[17px] sm:text-[18px] font-extrabold tracking-[-0.01em] mb-3" style="color:#fff">Si te arrepentiste o la talla no era</h3>
-          <p class="text-[14px] leading-relaxed" style="color:#AFBBD6">Puedes devolverlo, pero el retorno a Miami corre por tu cuenta — te cotizamos el costo real antes de que decidas. El reembolso cubre solo el producto, no el envío original.</p>
+          <p class="text-[14px] leading-relaxed" style="color:#AFBBD6">Puedes devolverlo, pero el retorno a Miami corre por tu cuenta — te cotizamos el costo real antes de que decidas. El reembolso cubre el producto y el 100% de los impuestos — siempre, sin importar el motivo.</p>
         </article>
         <article class="ariaCard" style="border-color:rgba(244,196,99,0.22)">
           <div class="ariaCardIcon">
@@ -2460,6 +2500,110 @@
       </div>
     </div>
   </section>
+  <!-- ============ COMPARATIVA DEVOLUCIONES ============ -->
+  <!-- PENDING LEGAL REVIEW (2026-09-25): los valores de esta comparativa
+       (14 días, impuestos 100%, bono de créditos +5%) están DECIDIDOS por
+       el negocio pero PENDIENTES de validación por la abogada en Lima.
+       No cambiar los números sin su visto bueno. El bono vive en la
+       constante ARIA_CREDIT_BONUS (script al final de esta sección). -->
+  <section class="ariaNavyBand relative overflow-hidden" aria-label="Comparación de políticas de devolución">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="ariaKicker mb-3">La comparación honesta</div>
+      <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-4 max-w-[24ch]" style="color:#fff">
+        No nos creas. <span style="color:#F4C463">Compara.</span>
+      </h2>
+      <p class="text-[15px] sm:text-[16.5px] leading-relaxed max-w-[58ch]" style="color:#AFBBD6">
+        Así se ve nuestra política de devoluciones al lado de la de otras tiendas. Sin letra pequeña, sin asteriscos.
+      </p>
+      <div class="ariaCompare">
+        <div class="ariaCompareHead" aria-hidden="true">
+          <div></div>
+          <div class="ariaCompareHeadName ariaCompareHeadName--aria">Aria</div>
+          <div class="ariaCompareHeadName ariaCompareHeadName--other">Otras tiendas</div>
+        </div>
+      <div class="ariaCompareRow">
+        <div class="ariaCompareLabel">Tiempo para reclamar</div>
+        <div class="ariaCompareCell ariaCompareCell--aria">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">14 días</span><span class="ariaCompareSub">el doble de tiempo para decidir tranquila</span></div>
+        </div>
+        <div class="ariaCompareCell ariaCompareCell--other">
+          <span class="ariaCompareMark ariaCompareMark--no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D98A8A" stroke-width="2.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <div><span class="ariaCompareBig">7 días</span><span class="ariaCompareSub">y se acabó</span></div>
+        </div>
+      </div>
+      <div class="ariaCompareRow">
+        <div class="ariaCompareLabel">Dónde devuelves</div>
+        <div class="ariaCompareCell ariaCompareCell--aria">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">Punto de recojo en Lima</span><span class="ariaCompareSub">lo dejas cerquita, nosotros nos encargamos</span></div>
+        </div>
+        <div class="ariaCompareCell ariaCompareCell--other">
+          <span class="ariaCompareMark ariaCompareMark--no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D98A8A" stroke-width="2.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <div><span class="ariaCompareBig">Enviarlo a Miami</span><span class="ariaCompareSub">por DHL, a tu costo</span></div>
+        </div>
+      </div>
+      <div class="ariaCompareRow">
+        <div class="ariaCompareLabel">Impuestos</div>
+        <div class="ariaCompareCell ariaCompareCell--aria">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">Te devolvemos el 100%</span><span class="ariaCompareSub">siempre, sin importar el motivo</span></div>
+        </div>
+        <div class="ariaCompareCell ariaCompareCell--other">
+          <span class="ariaCompareMark ariaCompareMark--no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D98A8A" stroke-width="2.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <div><span class="ariaCompareBig">No te los devuelven</span><span class="ariaCompareSub">si cambiaste de opinión, esa plata se pierde</span></div>
+        </div>
+      </div>
+      <div class="ariaCompareRow">
+        <div class="ariaCompareLabel">Velocidad del reembolso</div>
+        <div class="ariaCompareCell ariaCompareCell--aria">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">Créditos Aria al instante</span><span class="ariaCompareSub"><span data-credit-bonus>+5% de regalo</span></span></div>
+        </div>
+        <div class="ariaCompareCell ariaCompareCell--other">
+          <span class="ariaCompareMark ariaCompareMark--no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D98A8A" stroke-width="2.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <div><span class="ariaCompareBig">Semanas de espera</span><span class="ariaCompareSub">tu producto viaja de vuelta antes que tu plata</span></div>
+        </div>
+      </div>
+      <div class="ariaCompareRow">
+        <div class="ariaCompareLabel">Tú eliges cómo</div>
+        <div class="ariaCompareCell ariaCompareCell--aria">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">Créditos o tarjeta</span><span class="ariaCompareSub">tú decides</span></div>
+        </div>
+        <div class="ariaCompareCell ariaCompareCell--other">
+          <span class="ariaCompareMark ariaCompareMark--no"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D98A8A" stroke-width="2.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></span>
+          <div><span class="ariaCompareBig">Crédito interno</span><span class="ariaCompareSub">que vence en 1 año</span></div>
+        </div>
+      </div>
+      <div class="ariaCompareRow">
+        <div class="ariaCompareLabel">Si el producto llega mal</div>
+        <div class="ariaCompareCell ariaCompareCell--aria">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">Nosotros pagamos todo</span><span class="ariaCompareSub">retorno gratis y reembolso completo</span></div>
+        </div>
+        <div class="ariaCompareCell ariaCompareCell--other">
+          <span class="ariaCompareMark ariaCompareMark--yes"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0A1F44" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>
+          <div><span class="ariaCompareBig">Lo mismo</span><span class="ariaCompareSub">en esto sí coincidimos</span></div>
+        </div>
+      </div>
+      </div>
+      <p class="mt-10 text-center text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em]" style="color:#fff">
+        Compra tranquila. <span style="color:#F4C463">Te cubrimos.</span>
+      </p>
+    </div>
+  </section>
+  <script>
+  /* ARIA_CREDIT_BONUS — única fuente de verdad para el bono de créditos.
+     PENDING LEGAL REVIEW (2026-09-25): 5% decidido por el negocio,
+     pendiente de validación por la abogada en Lima. Cambiar solo aquí. */
+  window.ARIA_CREDIT_BONUS = 5;
+  document.querySelectorAll('[data-credit-bonus]').forEach(function (el) {
+    el.textContent = '+' + window.ARIA_CREDIT_BONUS + '% de regalo';
+  });
+  </script>
+
 
   <section style="background:var(--paper)">
     <div class="max-w-[1120px] mx-auto px-5 pb-16 sm:pb-20">
