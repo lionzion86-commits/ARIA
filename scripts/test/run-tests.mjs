@@ -3509,6 +3509,7 @@ check("every admin endpoint gates on a session AND the allowlist", () => {
      It is only a check paired with getSessionEmail(event), which reads
      the httpOnly cookie server-side. */
   for (const f of ["admin-dashboard.js", "admin-orders-list.js", "admin-orders-update.js",
+                   "admin-orders-delete.js",
                    "admin-settings.js", "admin-shipping.js", "admin-wallet-credit.js"]) {
     const src = stripComments(readFileSync(root(`netlify/functions/${f}`), "utf8"));
     if (!/getSessionEmail\(event\)/.test(src)) throw new Error(`${f} does not read the session`);
