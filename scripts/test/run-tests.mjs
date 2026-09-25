@@ -3987,7 +3987,7 @@ check("the bare-array envelope is reshaped, so the products are visible at all",
 
   const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
   const fixed = normalizeCatalogueEnvelope(raw);
-  eq(deptMap.departmentItems(fixed.retailers.sephora, "beauty").length, 80, "Sephora after the adapter");
+  eq(deptMap.departmentItems(fixed.retailers.sephora, "beauty").length, 2001, "Sephora after the adapter");
   eq(deptMap.departmentItems(fixed.retailers.ulta, "beauty").length, 77, "Ulta after the adapter");
   eq(deptMap.departmentItems(fixed.retailers.yesstyle, "beauty").length, 40, "YesStyle after the adapter");
 
@@ -4012,12 +4012,15 @@ check("the bare-array envelope is reshaped, so the products are visible at all",
   eq(JSON.stringify(normalizeCatalogueEnvelope({})), '{"retailers":{}}');
 });
 
-check("the catalogue itself is whole: 1,846 products, no missing photo, no missing weight", () => {
-  /* 197 until 2026-09-24, when Victoria's Secret's 1,649 landed. Pinned
+check("the catalogue itself is whole: 3,769 products, no missing photo, no missing weight", () => {
+  /* 197 -> 1,846 when Victoria's Secret's 1,649 landed (2026-09-24),
+     -> 3,769 hours later when Sephora went 80 -> 2,003. Still pinned
      rather than derived, deliberately: this check exists to catch a
      truncated or half-written catalogue file, and `expected = actual`
-     catches nothing. */
-  eq(beautyItems.length, 1846, "product count");
+     catches nothing. It does mean this line moves every time a
+     catalogue lands, which is the intended cost — a number that changes
+     in a commit someone wrote beats a number nobody can see. */
+  eq(beautyItems.length, 3769, "product count");
   const noImage = beautyItems.filter((i) => !i.image);
   eq(noImage.length, 0, "every product has a photo (the aisle tiles need one)");
   const noWeight = beautyItems.filter((i) => !(Number(i.specWeightKg) > 0));
@@ -4034,11 +4037,27 @@ check("the catalogue itself is whole: 1,846 products, no missing photo, no missi
      code it guards reports the DATA as broken when the TEST is. */
   const originalOf = (i) => Number(i.regularPrice ?? i.wasPrice ?? i.was_price ?? i.originalPrice);
   const onSale = beautyItems.filter((i) => i.onSale);
-  eq(onSale.length, 690, "discounted products");
-  for (const i of onSale) {
-    if (!(originalOf(i) > Number(i.price))) {
-      throw new Error(`${i.name} is flagged onSale with no markdown`);
-    }
+  eq(onSale.length, 728, "discounted products");
+
+  /* RED SINCE 2026-09-25, AND THE COUNT IS THE POINT. Sephora's top-up
+     to 2,003 products brought 38 items flagged `onSale: true` with no
+     original price in any of the four spellings — nothing to discount
+     from. Naming one product made this read like a single bad row; it
+     is a whole store's worth of unsubstantiated flags.
+
+     No shopper sees a false badge: isOnSale() needs a real original and
+     so does the card's hasRealDiscount, so all 38 are held out of
+     Ofertas and none wears a discount. This stays red anyway, because
+     the data is making a claim it cannot support, and the fix belongs
+     in the Sephora export rather than in a looser assertion here. */
+  const unsupported = onSale.filter((i) => !(originalOf(i) > Number(i.price)));
+  if (unsupported.length) {
+    const by = {};
+    for (const i of unsupported) by[i.retailer || "?"] = (by[i.retailer || "?"] || 0) + 1;
+    throw new Error(
+      `${unsupported.length} products are flagged onSale with no original price ` +
+      `(${Object.entries(by).map(([r, n]) => `${r}: ${n}`).join(", ")}) — ` +
+      `e.g. ${unsupported[0].name}`);
   }
 });
 
@@ -4072,12 +4091,12 @@ check("beauty splits into aisles, and the leftovers are declared rather than bur
     subcats.unmappedTypes(beautyItems).slice(0, 6).map((u) => `${u.type} x${u.count ?? "?"}`).join(", "));
 
   const byKey = Object.fromEntries(grouped.rows.map((r) => [r.key, r.count]));
-  eq(byKey.face, 64, "Rostro");
+  eq(byKey.face, 673, "Rostro");
   eq(byKey.eyes, 35, "Ojos");
   eq(byKey.lips, 25, "Labios");
-  eq(byKey.skincare, 25, "Cuidado de la piel");
-  eq(byKey.fragrance, 93, "Fragancia");
-  eq(grouped.typed + grouped.untyped, 1846, "nothing is lost either way");
+  eq(byKey.skincare, 808, "Cuidado de la piel");
+  eq(byKey.fragrance, 624, "Fragancia");
+  eq(grouped.typed + grouped.untyped, 3769, "nothing is lost either way");
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   if (!/grouped\.untyped > 0/.test(src)) throw new Error("the Ver todo card no longer says where the remainder is");
 });
@@ -4204,10 +4223,31 @@ check("every beauty markdown reaches Ofertas, tier and file notwithstanding", ()
      something to call an oferta. */
   const onSale = beautyItems.filter((i) => deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
   eq(onSale.length, 689, "beauty markdowns worth featuring");
-  const thin = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
-  eq(thin.length, 1, "exactly one markdown is below the floor");
-  if (Math.round((1 - thin[0].price / thin[0].originalPrice) * 100) >= 5) {
-    throw new Error("a real markdown is being gated out of Ofertas");
+  /* WHAT THE GATE IS HOLDING BACK, SPLIT BY REASON (2026-09-25).
+
+     This asserted "exactly one" — an Ulta setting mist at 3% off, below
+     the 5% floor every surface of this site uses. Sephora's top-up to
+     2,003 products added 38 more, and they are a DIFFERENT KIND of
+     thing: not thin markdowns but flags with no original price at all,
+     so there is no discount to measure. Counting them together would
+     hide that behind a number.
+
+     The shopper is not affected either way — isOnSale() needs a real
+     original, and so does the card's own hasRealDiscount — but a
+     retailer sending `onSale: true` with no was-price is a data problem
+     worth being able to see, so it is counted separately and the two
+     are named. */
+  const originalNum = (i) => Number(i.regularPrice ?? i.wasPrice ?? i.was_price ?? i.originalPrice);
+  const held = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
+  const unsubstantiated = held.filter((i) => !(originalNum(i) > Number(i.price)));
+  const belowFloor = held.filter((i) => originalNum(i) > Number(i.price));
+
+  eq(unsubstantiated.length, 38, "onSale flags carrying no original price (all Sephora)");
+  eq(belowFloor.length, 1, "genuine markdowns under the 5% floor");
+  for (const i of belowFloor) {
+    if (Math.round((1 - i.price / originalNum(i)) * 100) >= 5) {
+      throw new Error(`a real markdown is being gated out of Ofertas: ${i.name}`);
+    }
   }
 });
 
@@ -4330,7 +4370,7 @@ check("a deal with no photo is not featured, and a missing photo is branded", ()
   /* MEASURED BEFORE GATING, because a gate that empties a feed is worse
      than the tiles it removes. Every committed product carries an
      image, so this can only ever act on the live deals cache. */
-  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 1846]]) {
+  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 3769]]) {
     const cat = JSON.parse(readFileSync(root(file), "utf8"));
     const items = Object.values(cat.retailers).flatMap((r) =>
       Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
