@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -3845,7 +3845,7 @@ check("both catalogue files load, and neither can take the other down", () => {
      bad JSON taking the whole site's categories with it. */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const fn = src.slice(src.indexOf("function loadDepartmentCache("), src.indexOf("const DEPARTMENT_META"));
-  for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"]) {
+  for (const file of ["macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json", "lanebryant-catalog.json"]) {
     if (!fn.includes(file)) throw new Error(`${file} is not loaded`);
     if (!existsSync(root(file))) throw new Error(`${file} is referenced but not committed`);
   }
@@ -7549,6 +7549,91 @@ check("the size run only prints where a page asked for it", () => {
   if (!/opts\.showSizeRun/.test(fn)) throw new Error("the size run renders whether or not a surface asked");
   if (!/showSizeRun: catalogState\.key === 'curvy'/.test(src)) {
     throw new Error("the catalogue feed no longer turns the size run on for Curvy");
+  }
+});
+/* ==================================================================
+   CURVY LEADS WITH WOMEN (Danny's merchandising rule, 2026-09-24).
+
+   Peru's extended-size demand is women's; men's is the secondary mix.
+   The gender band is the primary sort key on the section and the price
+   sort runs inside each band: women -> unknown -> men. These checks pin
+   the band and the wiring, over the real catalogue, not a fixture.
+   ================================================================== */
+group("Curvy leads with women's extended sizes");
+
+const curvyBand = loadPageCurvyBandSlice();
+
+check("the band puts women first, men last, unknown in the middle", () => {
+  const { curvyBandOf } = curvyBand;
+  // Bucket-carried gender, the common case: the retailer's own aisle.
+  eq(curvyBandOf({ title: "Crew-Neck T-Shirt" }, "women"), 0, "women's bucket did not lead");
+  eq(curvyBandOf({ title: "Crew-Neck T-Shirt" }, "men"), 2, "men's bucket did not trail");
+  eq(curvyBandOf({ title: "Crew-Neck T-Shirt" }, "clothing"), 1, "an ungendered bucket did not sit in the middle");
+  // A title naming a gender beats the bucket -- the site's existing rule.
+  eq(curvyBandOf({ title: "Women's Plus Size Dress 3X" }, "men"), 0, "a women's title lost to its bucket");
+  eq(curvyBandOf({ title: "Men's Big-Tall Oxford 2XL" }, "women"), 2, "a men's title lost to its bucket");
+  // PINK is womenswear by brand, full stop.
+  eq(curvyBandOf({ title: "Baby Tee", brand: "PINK" }, "kids"), 0, "PINK did not read as womenswear");
+});
+
+check("over the real catalogue, every woman's item sorts before every man's", () => {
+  /* The merchandising outcome itself: band first, price inside the band.
+     Driven over the committed data so a re-pull that changes the mix
+     re-proves the rule instead of silently re-burying the women's items. */
+  const { curvyBandOf } = curvyBand;
+  const { hasExtendedSizes } = curvy;
+  const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8"));
+  const items = [];
+  const seen = new Set();
+  for (const [retailer, data] of Object.entries(cache.retailers || {})) {
+    for (const [bucket, entry] of Object.entries(data.departments || {})) {
+      for (const it of entry.items || []) {
+        if (!hasExtendedSizes(it)) continue;
+        const title = it.title || it.name || "";
+        const key = title + "::" + (it.price ?? it.effectivePrice ?? "");
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const band = curvyBandOf(it, bucket);
+        // Kidswear never reaches the feed (excluded by the filter), so it
+        // is out of scope for the ordering rule.
+        if (String(title).match(/\b(kids?|boys?|girls?|toddlers?)\b/i)) continue;
+        items.push({ title, price: Number(it.price ?? it.effectivePrice) || 0, band });
+      }
+    }
+  }
+  if (!items.length) throw new Error("no Curvy-eligible items in the committed catalogue");
+  const women = items.filter((i) => i.band === 0);
+  const men = items.filter((i) => i.band === 2);
+  if (!women.length) throw new Error("no women's extended sizes in the catalogue at all");
+  if (!men.length) throw new Error("no men's extended sizes in the catalogue at all");
+  const sorted = [...items].sort((a, b) => (a.band - b.band) || (a.price - b.price));
+  const lastWoman = Math.max(...sorted.map((i, n) => (i.band === 0 ? n : -1)));
+  const firstMan = Math.min(...sorted.map((i, n) => (i.band === 2 ? n : items.length)));
+  eq(lastWoman < firstMan, true,
+     `a man's item (position ${firstMan}) still leads a woman's (position ${lastWoman})`);
+  // Price still governs inside each band: the cheapest woman leads the section.
+  const cheapestWoman = [...women].sort((a, b) => a.price - b.price)[0];
+  eq(sorted[0].title, cheapestWoman.title, "the section no longer opens with the cheapest women's item");
+});
+
+check("the feed sort actually reads the band on Curvy, and only on Curvy", () => {
+  /* The wiring: renderCatalogFeed sorts band-first exactly when the open
+     department is Curvy. Pinned by reading the page source the way the
+     neighbouring Curvy checks do. */
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/const isCurvy = catalogState\.kind === 'department' && catalogState\.key === 'curvy'/.test(src)) {
+    throw new Error("the feed no longer detects the Curvy department for its sort");
+  }
+  if (!/\(a\.curvyBand \?\? 1\) - \(b\.curvyBand \?\? 1\)/.test(src)) {
+    throw new Error("the band-first comparator is gone from the feed sort");
+  }
+  const stamp = src.slice(src.indexOf("function departmentItemsFor("), src.indexOf("function departmentItemsFor(") + 1400);
+  if (!/curvyBand: curvyBandOf\(raw, bucketName\)/.test(stamp)) {
+    throw new Error("departmentItemsFor no longer stamps the band where the bucket is in hand");
+  }
+  const fwd = src.slice(src.indexOf("function normalizeLiveItem("), src.indexOf("function normalizeLiveItem(") + 9000);
+  if (!/typeof item\.curvyBand === 'number' \? \{ curvyBand: item\.curvyBand \}/.test(fwd)) {
+    throw new Error("normalizeLiveItem no longer carries the band through to the feed");
   }
 });
 /* ==================================================================
