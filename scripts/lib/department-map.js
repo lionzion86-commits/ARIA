@@ -39,6 +39,7 @@ export const DEPARTMENT_SPEC = {
   candy_chocolate: { category: "grocery" },
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
+  home_decor:      { category: "home" },
 
   /* CURVY TAKES THE SLOT PHARMACY LEFT (2026-09-24). Not a category a
      retailer scrapes into -- a filter over apparel on the size run the
@@ -86,6 +87,7 @@ export const BUCKET_SPEC = {
   candy_chocolate: { category: "grocery" },
   sporting_goods:  { category: "sporting" },
   home_goods:      { category: "home" },
+  home_decor:      { category: "home" },
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: "beauty" },
   fragrance:       { category: "beauty" },
