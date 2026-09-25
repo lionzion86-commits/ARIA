@@ -7718,7 +7718,7 @@ group("store carousels: window-shopping rails");
     }
     if (!/cardPhotoHTML\(src/.test(card)) throw new Error("the rail card does not reuse the shared photo builder");
     if (!/productCardOpenExpr\(it, retailer\)/.test(card)) throw new Error("the rail card does not open the product like grid cards do");
-    if (!/fmtDisplayPrice\(price\)/.test(card)) throw new Error("the rail card shows no price");
+    if (!/fmtPEN\(taxed\)/.test(card)) throw new Error("the rail card shows no price");
     if (/Comprar|flete|retailerBadgeHTML/.test(card)) throw new Error("the rail card carries grid-card chrome");
     if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
     const rail = src.slice(src.indexOf("function storeCarouselHTML("), src.indexOf("/* ============================================================\n   THE BROWSE TILE"));

@@ -3004,7 +3004,11 @@
 // shipping across retailers we don't even search drove the homepage
 // search, category tiles, sales page and assistant cards) — don't
 // reintroduce a static product array.
-function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
+/* TWO DECIMALS, ALWAYS (2026-09-24). A price is a price: $4.8 on a
+   card reads as a typo next to S/ 18.40, and toLocaleString's default
+   drops the trailing zeros. fmtUSD is only ever called with prices
+   (never prose), so fixed decimals are safe everywhere it appears. */
+function fmtUSD(n){ return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 /* ============================================================
    PEN CURRENCY DISPLAY — the nav badge says "🇵🇪 Perú · PEN", but until
@@ -3298,6 +3302,37 @@ let departmentCachePromise = null;
    nothing and covers the next export that arrives shaped its own way.
 
    It is a pure reshape: no field is added, renamed or dropped. */
+/* TITLE ALIAS AT THE DOOR (2026-09-24).
+
+   Every card renderer on the site reads item.title, but the feeds do not
+   agree on the field: beauty-catalog, macy's, ssense, walmart and oldnavy
+   exports use `name`, footlocker uses `productName`, autozone uses
+   `productTitle`, and only target's scraper uses `title`. The Destacados
+   rail was the visible casualty -- Sephora and Ulta cards drew a photo
+   and a price with a blank where the name belonged -- but every .title
+   reader had the same hole.
+
+   Aliasing here, once, at the load boundary: every downstream reader
+   (rails, grids, search, related, cross-sell) gets a title, and no
+   source value is renamed or dropped -- the alias is purely additive,
+   so the next re-pull keeps working with zero hand edits. */
+function aliasEnvelopeTitles(envelope){
+  const retailers = envelope?.retailers;
+  if (!retailers || typeof retailers !== 'object') return envelope;
+  for (const bucket of Object.values(retailers)){
+    for (const entry of Object.values(bucket?.departments || {})){
+      const items = Array.isArray(entry) ? entry : entry?.items;
+      if (!Array.isArray(items)) continue;
+      for (const it of items){
+        if (it && typeof it === 'object' && !it.title){
+          const t = it.name || it.productName || it.productTitle;
+          if (t) it.title = t;
+        }
+      }
+    }
+  }
+  return envelope;
+}
 function normalizeCatalogueEnvelope(file){
   const retailers = file?.retailers;
   if (!retailers || typeof retailers !== 'object') return { retailers: {} };
@@ -3309,7 +3344,7 @@ function normalizeCatalogueEnvelope(file){
     }
     out[key] = { ...bucket, departments };
   }
-  return { ...file, retailers: out };
+  return aliasEnvelopeTitles({ ...file, retailers: out });
 }
 
 
@@ -3397,6 +3432,7 @@ function loadDepartmentCache(){
 
     departmentCachePromise = Promise.all([scraped, ...files])
       .then(parts => parts.map(withoutRestrictedDepartments))
+      .then(parts => parts.map(aliasEnvelopeTitles))
       .then(parts => {
       // Not "some store is thin" -- NOTHING answered. That is a broken
       // page, not an empty department, and it is retryable.
@@ -5954,11 +5990,25 @@ function carouselMixItems(deptEntries, max){
 }
 /* END OF THE CAROUSEL SELECTION MIRROR */
 
-/* ONE CARD ON THE RAIL. Image-forward and quiet: a photo, a two-line
-   title, a price — no store mark, no freight line, no buttons. Tapping
-   it opens the product exactly the way the grid cards do
-   (productCardOpenExpr), because a rail card that opened somewhere
-   different would be a second, worse product page.
+/* ONE CARD ON THE RAIL. Image-forward and quiet: a photo, a brand
+   eyebrow, a two-line title, a price — no store mark, no freight line,
+   no buttons. Tapping it opens the product exactly the way the grid
+   cards do (productCardOpenExpr), because a rail card that opened
+   somewhere different would be a second, worse product page.
+
+   NAME/BRAND FIX (2026-09-24): this used to read it.title only, and the
+   file-backed feeds carry `name` (beauty, macy's, ssense, walmart,
+   oldnavy) or `productName` (footlocker) — so the Sephora and Ulta rails
+   drew a photo and a price with a blank where the name belonged, and no
+   brand at all. The title alias at the load boundary
+   (aliasEnvelopeTitles) is the real fix; the local fallbacks below are
+   belt and suspenders.
+
+   SOLES LEAD HERE (2026-09-24): the big figure on the rail is S/,
+   properly formatted, with the dollar small beneath it — Danny's call
+   after the rail showed bare "$25"/"$4.8" figures with no soles at all.
+   The grid cards keep the site's dollars-first convention; the rail is
+   the glance surface and the glance is in soles.
 
    THE SURFACE STAYS LIGHT. On a themed storefront (see STORE_THEMES —
    Victoria's Secret's plum ambience) the rail floats over the dark and
@@ -5970,15 +6020,24 @@ function carouselCardHTML(item, retailer){
   const open = productCardOpenExpr(it, retailer);
   const price = Number(it.price);
   const hasPrice = Number.isFinite(price) && price > 0;
+  const title = String(it.title || it.name || '').trim();
   const src = upgradeImageUrl(safeUrl(it.image || it.imageUrl || it.thumbnail) || '');
+  const taxed = displayPriceUsd(price);
+  const original = Number(it.originalPrice);
+  const hasOriginal = Number.isFinite(original) && hasPrice && original > price;
+  const badgeHTML = hasOriginal
+    ? `<span class="absolute top-3 left-3 text-[13px] font-extrabold px-2.5 py-1 rounded-full" style="background:#F4C463; color:var(--navy)">-${discountPct(it)}%</span>`
+    : '';
   return `<div class="ariaCarouselCard" role="listitem">
     <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
-      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(it.title || 'Ver producto')}"
+      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(title || 'Ver producto')}"
       onkeydown="if(event.key==='Enter'){${open}}">
-      <div class="aspect-[4/5]" style="background:#fff">${cardPhotoHTML(src, { alt: it.title || '', fallbackSrc: imageRetryUrl(src) })}</div>
+      <div class="aspect-[4/5] relative" style="background:#fff">${cardPhotoHTML(src, { alt: title, fallbackSrc: imageRetryUrl(src) })}${badgeHTML}</div>
       <div class="p-4">
-        <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(it.title || '')}</div>
-        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Ver detalle'}</div>
+        ${brandEyebrowHTML(it.brand, { cls: 'text-[10px] mb-0.5' })}
+        <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(title)}</div>
+        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? escapeHtml(fmtPEN(taxed)) : 'Ver detalle'}</div>
+        ${hasPrice && fxRate ? `<div class="text-[11px] tabular mt-0.5" style="color:#6B7487">${escapeHtml(fmtUSD(taxed))} USD</div>` : ''}
       </div>
     </div>
   </div>`;
@@ -14066,9 +14125,11 @@ async function renderCrossSellRail(){
               <span class="absolute bottom-1.5 right-1.5 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(10,31,68,0.72); color:#fff">Ver</span>
             </div>
             <div class="px-2.5 pt-2.5">
+              ${it.brand ? `<div class="text-[9px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(it.brand)}</div>` : ''}
               <div class="text-[11px] font-bold leading-tight line-clamp-2" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(it.title)}</div>
               ${weightLabelHTML(it.title, 'text-[10px] mt-1 font-semibold')}
               <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtDisplayPrice(it.price)}</div>
+              ${solesUnderHTML(displayPriceUsd(Number(it.price)), 'text-[10px] tabular mt-0.5')}
               ${taxIncludedNoteHTML(it.price, 'text-[10px]')}
             </div>
           </button>
@@ -16129,8 +16190,9 @@ function addAssistantProductCard(item, retailer){
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
-      <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
+      <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title || item.name || '')}</div>
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price) : ''}${item.price != null && priceIncludesImportTax(item.price) ? ' · incl. impuestos' : ''}</div>
+      ${item.price != null && Number.isFinite(Number(item.price)) && fxRate ? `<div class="text-[10.5px] text-zinc-400 truncate">${escapeHtml(fmtPEN(displayPriceUsd(Number(item.price))))} · TC ${escapeHtml(String(fxRate))}</div>` : ''}
     </div>`;
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
