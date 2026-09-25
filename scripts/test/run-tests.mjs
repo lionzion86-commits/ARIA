@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageStoreDoorSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -853,7 +853,7 @@ const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
   "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
   "sunglasshut", "dyson",
-  "macys", "oldnavy", "target", "walmart",
+  "macys", "oldnavy", "lanebryant", "target", "walmart",
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
@@ -908,6 +908,96 @@ check("adding a retailer needs no new scraper code", async () => {
   const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
   if (!src.includes("INPUT_SHAPES")) throw new Error("INPUT_SHAPES missing");
   if (!src.includes("config.inputShape")) throw new Error("the handler does not honour inputShape");
+});
+
+/* ============================================================
+   THE STORE DOORWAY — UNIVERSAL (2026-09-25, Danny).
+
+   Every product page is a doorway into its own store: the store
+   attribution (logo + name) is one obvious tap that opens the
+   storefront. The door resolves from the PRODUCT's own store field —
+   a shirt opened from Big and Tall and the same shirt opened from
+   Curvy each resolve to their own store — never from browsing
+   context. Auto-kind retailers open the Aria Auto workshop instead.
+   A store whose catalogue is still being connected opens its
+   storefront page (which says so plainly): a door, never a dead end.
+   ============================================================ */
+group("product page: the store doorway is universal");
+
+check("storeDoorFor resolves every active store; auto kinds open the workshop", () => {
+  for (const r of Object.values(retailers.RETAILERS)) {
+    const door = retailers.storeDoorFor(r.key);
+    if (r.retired) {
+      if (door !== null) throw new Error(`${r.key} is retired but resolves a door`);
+      continue;
+    }
+    if (!door) throw new Error(`${r.key} is active but resolves no door`);
+    eq(door.key, r.key, `door key for ${r.key}`);
+    eq(door.action, r.kind === "auto" ? "auto" : "store", `door action for ${r.key}`);
+  }
+  // Unknown and empty keys resolve to null: the page keeps the plain
+  // badge instead of a button to nowhere.
+  for (const bad of ["acme", "", null, undefined]) {
+    if (retailers.storeDoorFor(bad) !== null)
+      throw new Error(`storeDoorFor(${JSON.stringify(bad)}) should be null`);
+  }
+});
+
+check("the page mirror resolves exactly like the module, for every key", () => {
+  const page = loadPageStoreDoorSlice();
+  const keys = [...Object.keys(retailers.RETAILERS), "acme", ""];
+  for (const key of keys) {
+    const a = JSON.stringify(retailers.storeDoorFor(key));
+    const b = JSON.stringify(page.storeDoorFor(key));
+    eq(b, a, `page/module parity for ${JSON.stringify(key)}`);
+  }
+});
+
+check("showProduct fills the badge slot with the doorway, from the product's own retailer", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fn = src.slice(src.indexOf("function showProduct("), src.indexOf("function goBack(){"));
+  if (!/getElementById\('productViewBadge'\)\.innerHTML = storeDoorwayHTML\(retailer\)/.test(fn))
+    throw new Error("showProduct does not fill the badge slot with storeDoorwayHTML(retailer)");
+  // Universality: every card builder passes the product's own store key
+  // as showProduct's first argument.
+  if (!/const r = retailer \|\| p\.retailer;/.test(src))
+    throw new Error("productCardOpenExpr no longer falls back to the product's own retailer");
+  if (!/showProduct\('\$\{jsAttr\(r\)\}'/.test(src))
+    throw new Error("productCardOpenExpr no longer passes the store key into showProduct");
+});
+
+check("the doorway is one obvious tap: logo, name, and a store CTA", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const start = src.indexOf("function storeDoorwayHTML(");
+  const end = src.indexOf("function openStoreDoor(");
+  if (start < 0 || end < start) throw new Error("storeDoorwayHTML not found");
+  const fn = src.slice(start, end);
+  if (!/openStoreDoor\('\$\{jsAttr\(door\.key\)\}'\)/.test(fn))
+    throw new Error("the doorway does not open with the product's resolved store key");
+  if (!/retailerBadgeHTML\(retailer, 36\)/.test(fn))
+    throw new Error("the doorway does not show the store logo");
+  if (!/Ver la tienda/.test(fn)) throw new Error("the doorway carries no Spanish store CTA");
+  if (!/Abrir Aria Auto/.test(fn)) throw new Error("the doorway has no Aria Auto CTA for auto retailers");
+  if (!/Vendido por/.test(fn)) throw new Error("the doorway does not name the store as the seller");
+  // Unknown keys keep the plain badge: no dead button.
+  if (!/if \(!door\) return retailerBadgeHTML\(retailer\);/.test(fn))
+    throw new Error("the doorway has no plain-badge fallback for unknown stores");
+});
+
+check("openStoreDoor uses the same doors the store tiles use", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const start = src.indexOf("function openStoreDoor(");
+  const fn = src.slice(start, src.indexOf("}", src.indexOf("openStore(door.key);")) + 1);
+  if (!/openAriaAuto\(door\.key\)/.test(fn)) throw new Error("auto retailers do not open the Aria Auto workshop");
+  if (!/openStore\(door\.key\)/.test(fn)) throw new Error("stores do not open through openStore");
+});
+
+check("the suggestions rail is untouched by the doorway", () => {
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const fn = src.slice(src.indexOf("function showProduct("), src.indexOf("function goBack(){"));
+  if (!/renderRelatedRail\(\{ retailer, title: name/.test(fn))
+    throw new Error("showProduct no longer renders the related rail");
+  if (!src.includes('id="relatedRail"')) throw new Error("the related rail section is gone");
 });
 
 /* ------------------------------------------------------------------

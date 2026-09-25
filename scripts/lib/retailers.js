@@ -326,6 +326,21 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* LANE BRYANT (2026-09-25) — the Curvy catalogue's store. Browse-only
+     like Macy's: a real catalogue file, no live actor. Without a row,
+     every Curvy product's store doorway resolved to null and the page
+     kept a dead badge. No supplied artwork, so no invented brand colour
+     — the navy pill is honest. */
+  lanebryant: {
+    key: "lanebryant",
+    label: "Lane Bryant",
+    color: "#0A1F44",
+    logo: null,
+    tagline: "Moda curvy, tallas grandes",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   target: {
     key: "target",
     label: "Target",
@@ -554,6 +569,26 @@ export function retailerColor(key) {
 /** True when this store's whole catalogue is beauty/fragrance. */
 export function isBeautyRetailer(key) {
   return retailerFor(key)?.catalog === "beauty";
+}
+
+/**
+ * THE PRODUCT PAGE'S DOORWAY INTO ITS STORE (2026-09-25, Danny's rule:
+ * universal — every product page, every section, opens its own store).
+ *
+ * The door resolves from the PRODUCT's own store field, never from the
+ * browsing context: a shirt opened from Big and Tall and the same shirt
+ * opened from Curvy each resolve to their own store. Auto-kind
+ * retailers (AutoZone, RockAuto) open the Aria Auto workshop; every
+ * other known store opens its storefront through openStore(), which
+ * says plainly "Catálogo en preparación" while a catalogue is still
+ * being connected — a door, never a dead end. Retired rows and unknown
+ * keys resolve to null, and the product page keeps the plain badge
+ * instead of a button to nowhere.
+ */
+export function storeDoorFor(key) {
+  const r = retailerFor(key);
+  if (!r || r.retired) return null;
+  return { key: r.key, action: r.kind === "auto" ? "auto" : "store" };
 }
 
 /* The flat maps the older call sites still want, derived from the rows

@@ -528,3 +528,29 @@ export function loadPageCarouselSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The store-door mirror: storeDoorFor() index.html carries line-for-line
+   from scripts/lib/retailers.js. The slice starts at the RETAILERS
+   literal because the mirror reads retailerFor(); everything between is
+   data or uncalled function declarations (DOM touches live inside
+   function bodies only), so the slice evaluates cleanly. */
+const STORE_DOOR_START = "const RETAILERS = {";
+const STORE_DOOR_END = "/* END OF THE STORE DOOR MIRROR */";
+
+export function loadPageStoreDoorSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(STORE_DOOR_START);
+  const to = html.indexOf(STORE_DOOR_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html store-door markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { storeDoorFor, retailerFor };",
+    sandbox,
+    { filename: "index.html#storedoor" },
+  );
+  return sandbox.__exports;
+}
