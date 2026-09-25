@@ -3370,6 +3370,33 @@ function withoutRestrictedDepartments(envelope){
   return { ...envelope, retailers: out };
 }
 
+/* TOY SKATE RE-TYPE (2026-09-25, Danny's QA). The catalogue files
+   carry the toy-grade character boards under the retailer's own
+   'SkateboardsLongboards' type, which would file them in the main
+   Skate aisle and ride band 0 to the front of Deportes. Anything
+   isToyGradeSkate flags is re-typed to TOYSKATEBOARD here, at the
+   load boundary, so every downstream read agrees: the 'Skate para
+   niños' aisle is the only Deportes aisle that claims the token,
+   peruSportRank demotes it out of the front, and the Juguetes
+   department picks it up. Idempotent -- a re-typed item still
+   matches the detector through the type signal.
+   (isToyGradeSkate is declared further down; function declarations
+   hoist, and this only runs once the catalogue is loading.) */
+function retypeToySkateBoards(envelope){
+  const retailers = envelope?.retailers;
+  if (!retailers || typeof retailers !== 'object') return envelope;
+  for (const bucket of Object.values(retailers)){
+    for (const entry of Object.values(bucket?.departments || {})){
+      for (const item of entry?.items || []){
+        if (item && typeof item === 'object' && isToyGradeSkate(item)){
+          item.type = 'TOYSKATEBOARD';
+        }
+      }
+    }
+  }
+  return envelope;
+}
+
 function loadDepartmentCache(){
   if (!departmentCachePromise){
     let loaded = 0;
@@ -3400,7 +3427,7 @@ function loadDepartmentCache(){
       .catch(() => ({ retailers: {} })));
 
     departmentCachePromise = Promise.all([scraped, ...files])
-      .then(parts => parts.map(withoutRestrictedDepartments))
+      .then(parts => parts.map(withoutRestrictedDepartments).map(retypeToySkateBoards))
       .then(parts => {
       // Not "some store is thin" -- NOTHING answered. That is a broken
       // page, not an empty department, and it is retryable.
@@ -3432,6 +3459,7 @@ const DEPARTMENT_META = {
   sale: { label: 'Ofertas', icon: '🔥' },
   beauty: { label: 'Aria Beauty', icon: '💄' },
   shoes: { label: 'Zapatos', icon: '👟' },
+  toys: { label: 'Juguetes', icon: '🧸' },
 };
 const BRAND_META = {
   nike: { label: 'Nike', icon: '✔️' },
@@ -3656,6 +3684,7 @@ const CATEGORY_COVERS = {
   men:             'assets/category/men.jpg',
   sale:            'assets/category/sale.jpg',
   shoes:           'assets/category/shoes.jpg',
+  toys:            'assets/category/toys.jpg',
   sporting_goods:  'assets/category/sporting_goods.jpg',
   women:           'assets/category/women.jpg',
 };
@@ -3912,6 +3941,15 @@ const DEPARTMENT_SPEC = {
      in Moda Hombre too; departments overlap here exactly as Ofertas
      overlaps everything. */
   shoes:           { anyCategory: true, footwearOnly: true },
+  /* JUGUETES (2026-09-25, Danny's QA). Not a category either, for the
+     same reason as Zapatos: toy-grade product is a KIND OF ITEM that
+     lives inside other people's buckets. Dick's files its character
+     skateboards under sporting_goods. Answered per item --
+     isToyGradeSkate above, mirroring scripts/lib/toys.js. A kiddie
+     board stays in Deportes too, demoted out of the front;
+     departments overlap here exactly as Ofertas overlaps
+     everything. */
+  toys:            { anyCategory: true, toyOnly: true },
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
@@ -4165,6 +4203,7 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (!dept) return false;
   if (dept.onSaleOnly) return rawItemOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
+  if (dept.toyOnly) return isToyGradeSkate(item);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
   /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
@@ -5609,6 +5648,12 @@ const SUBCATEGORY_SPEC = [
      Editorial order again — skate leads, because boards are what the
      shopper came to this floor for. */
   { key: 'skate',        label: 'Skate',               types: ['SKATEBOARDSLONGBOARDS', 'SKATEBOARD', 'SKATEBOARDS', 'SKATEDECK', 'LONGBOARD', 'LONGBOARDS', 'SKATETRUCKS', 'TRUCKS', 'SKATEWHEELS', 'WHEELS', 'BEARINGS'] },
+  /* SKATE PARA NIÑOS (2026-09-25, Danny's QA). The toy-grade character
+     boards are re-typed to TOYSKATEBOARD at the load boundary, so they
+     file here and ONLY here inside Deportes -- never in the main
+     Skate aisle, never at the front. Mirror of
+     scripts/lib/subcategories.js; the parity test pins them. */
+  { key: 'kids_skate',   label: 'Skate para niños',    types: ['TOYSKATEBOARD'] },
   { key: 'surf',         label: 'Surf',                types: ['WETSUITS', 'WETSUIT', 'RASHGUARDS', 'RASHGUARD', 'SNORKELINGGEAREQUIPMENT', 'SNORKEL', 'SNORKELING', 'SURF', 'SURFBOARD', 'LEASH', 'FINS', 'FIN', 'WAX'] },
   { key: 'fitness',      label: 'Fitness',             types: ['EXERCISEMATS', 'YOGAMAT', 'BOXINGMMAKICKBOXINGGLOVES', 'BOXINGGLOVES', 'HANDWRAPS', 'WORKOUTGLOVESWRAPS', 'WRISTBANDS', 'HEADPROTECTIVEGEAR', 'BIKEHELMETS', 'PROTECTIVEEQUIPMENT', 'DUMBBELL', 'RESISTANCEBAND', 'KETTLEBELL'] },
   /* ROPA DEPORTIVA (2026-09-25, Danny's rule) -- mirror of
@@ -5664,7 +5709,25 @@ function subcategoryLabel(key){
   return (SUBCATEGORY_SPEC.find(r => r.key === key) || {}).label || null;
 }
 function subcategoryOfItem(item){
-  return subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
+  const key = subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
+  /* THE SWIM GUARD (2026-09-25, Danny's iPhone QA) — mirrors
+     scripts/lib/subcategories.js. Retailer type tokens lie: Dick's files
+     surf-brand shirts under "MensSwimsuits". Ropa de baño is ACTUAL
+     SWIMWEAR ONLY; a retailer-typed "swimsuit" that is really a shirt
+     goes to Ropa deportiva, never to the swim aisle. */
+  if (key === 'swim' && !isGenuineSwimwear(item)) return 'sportswear';
+  return key;
+}
+/* Genuine swimwear, whatever the retailer type token says. Positive beats
+   negative — a "Long Sleeve Swimsuit" is swimwear — and when neither
+   matches, it is NOT swimwear. When in doubt, it's clothes. */
+const SWIM_POSITIVE = /\b(bikini|tankini|swimsuit|swim suit|board ?shorts?|swim trunks?|swim shorts?|swim top|swim bottom|swim\b|ba[ñn]ador|traje de ba[ñn]o|rash ?guards?|one ?piece|wetsuit|traje de neopreno)\b/i;
+const SWIM_NEGATIVE = /\b(t-?shirts?|tees?|sweatshirts?|hoodies?|crews?(neck)?|sweaters?|jackets?|windbreakers?|polos?|shirts?|pants|joggers?|sweatpants|short sleeve|long sleeve)\b/i;
+function isGenuineSwimwear(item){
+  const name = String(item?.name ?? item?.title ?? '');
+  if (SWIM_POSITIVE.test(name)) return true;
+  if (SWIM_NEGATIVE.test(name)) return false;
+  return false;
 }
 function groupBySubcategory(items){
   const bucket = new Map();
@@ -6265,6 +6328,14 @@ function retryCatalog(kind, key, retailerFilter){
      4  basketball -- fairly big in Peru, stays in the lead group.
      5  braces & pads -- knee braces, ankle braces, shoulder pads,
         protective gear.
+     5.5 TOY-GRADE SKATE -- the cheap character kids' boards
+        (isToyGradeSkate). They stay in the catalogue and dual-list
+        into Juguetes, and inside Deportes they file under the
+        "Skate para niños" sub-filter only. NEVER at the front:
+        Danny's rule, 2026-09-25 -- the front of Deportes is premium
+        product. The premium-first tier (toyGradeRank) also runs as
+        the secondary sort key inside every other band, so any
+        future toy-grade item sinks within its own band.
      6  everything else.
      7  DEMOTED TO THE BACK -- baseball, American football,
         pickleball, golf, lacrosse. They stay in the catalogue
@@ -6283,6 +6354,59 @@ function retryCatalog(kind, key, retailerFilter){
    "pickleball is huge in Lima now" conversation has one place
    to change it.
    ============================================================ */
+/* TOY-GRADE SKATE DETECTOR (2026-09-25) — MIRROR of
+   scripts/lib/toys.js. index.html is a plain <script> and cannot
+   import, so isToyGradeSkate exists twice and a parity test pins them
+   together. CHANGE ONE, CHANGE THE OTHER. The module carries the full
+   note; the short version:
+
+   Danny's QA on live Deportes: the front was flooded with cheap
+   little-kid character skateboards (Sakar, Barbie, Hot Wheels,
+   Minecraft 31" completes) — toy-aisle product, not skate-shop
+   product. Three signals, most trustworthy first: the TOYSKATEBOARD
+   type the load boundary re-types onto anything flagged here;
+   the brand (Sakar is a toy licensee; Barbie/Hot Wheels/Minecraft/
+   Sonic are character licenses); title keywords last. Helmets and
+   pad packs are NOT caught — the item must be a skateboard before
+   any of this fires. Conservative on purpose: an unrecognised board
+   stays premium skate. */
+const TOY_SKATE_BRANDS = new Set([
+  'SAKAR',
+  'BARBIE',
+  'HOT WHEELS',
+  'MATTEL',
+  'MINECRAFT',
+  'SONIC',
+]);
+const TOY_SKATE_TITLE =
+  /\b(barbie|hot\s*wheels|minecraft|monster\s*jam|lenticular|sonic\s+(shadow|stepup)|toy\b|kids?['\u2019]?|youth|jr\.?|junior|toddler)\b/i;
+function toyItemTitle(item){
+  return String(item?.title || item?.name || item?.productTitle || item?.productName || '');
+}
+function isSkateboardItem(item){
+  const type = String(item?.type || '').toUpperCase();
+  if (type.includes('SKATE')) return true;
+  return /\bskateboard\b/i.test(toyItemTitle(item));
+}
+function isToyGradeSkate(item){
+  if (!item || typeof item !== 'object') return false;
+  const type = String(item?.type || '').toUpperCase();
+  /* The load boundary's own verdict (see retypeToySkateBoards).
+     Settles it either way. */
+  if (type.includes('TOYSKATE')) return true;
+  if (!isSkateboardItem(item)) return false;
+  const brand = String(item?.brand || '').toUpperCase().trim();
+  if (TOY_SKATE_BRANDS.has(brand)) return true;
+  return TOY_SKATE_TITLE.test(toyItemTitle(item));
+}
+/* PREMIUM-FIRST TIER (2026-09-25, Danny's rule). Inside a sport band,
+   real gear outranks toy-grade product: 0 for everything standard,
+   1 for toy-grade. It runs as the secondary sort key under
+   peruSportRank, so a future kids' boxing glove or toy fishing rod
+   sinks inside its own band without touching the band order. */
+function toyGradeRank(item){
+  return isToyGradeSkate(item) ? 1 : 0;
+}
 const PERU_SPORT_TOKENS = [
   /* [band, ...token fragments] -- fragments match inside the
      retailer's own concatenated token (SKATEBOARDSLONGBOARDS). */
@@ -6306,6 +6430,10 @@ const PERU_SPORT_TITLES = [
   [7, ['pickleball', 'baseball', 'golf', 'lacrosse', 'football']],
 ];
 function peruSportRank(item){
+  /* Toy-grade skate never leads, wherever it was filed. Checked first
+     so a re-typed TOYSKATEBOARD (or a future pull's equivalent) cannot
+     ride the SKATEBOARD token fragment into band 0. */
+  if (isToyGradeSkate(item)) return 5.5;
   const tok = String(item?.type || '').toUpperCase();
   if (tok){
     for (const [band, frags] of PERU_SPORT_TOKENS){
@@ -6345,10 +6473,12 @@ function renderCatalogFeed(){
   for (const retailer of active) for (const it of byRetailer.get(retailer)) all.push({ ...it, retailer });
   /* DEPORTES LEADS WITH PERU (see peruSportRank). The aisle landing's
      Destacados rail is drawn from this array before any other sort
-     runs, so the rank has to be on it here -- a stable sort keeps each
-     band in catalogue order. */
+     runs, so the rank has to be on it here -- the premium-first tier
+     (toyGradeRank) rides along as the secondary key, so the rail
+     opens on real gear, never on toy-grade boards. */
   if (catalogState.kind === 'department' && catalogState.key === 'sporting_goods'){
-    all.sort((a, b) => peruSportRank(a) - peruSportRank(b));
+    all.sort((a, b) => (peruSportRank(a) - peruSportRank(b))
+      || (toyGradeRank(a) - toyGradeRank(b)));
   }
 
   /* ---- AISLES ------------------------------------------------------
@@ -6415,7 +6545,8 @@ function renderCatalogFeed(){
   items.sort(isCurvy
     ? (a, b) => ((a.curvyBand ?? 1) - (b.curvyBand ?? 1)) || priceSort(a, b)
     : isSports
-      ? (a, b) => (peruSportRank(a) - peruSportRank(b)) || priceSort(a, b)
+      ? (a, b) => (peruSportRank(a) - peruSportRank(b))
+        || (toyGradeRank(a) - toyGradeRank(b)) || priceSort(a, b)
       : priceSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 

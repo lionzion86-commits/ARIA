@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageToysSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -51,6 +51,7 @@ import * as chatModel from "../../netlify/functions/_aria-chat-model.js";
 import * as subcats from "../lib/subcategories.js";
 import * as brandIndex from "../lib/brand-index.js";
 import * as footwear from "../lib/footwear.js";
+import * as toys from "../lib/toys.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -3558,7 +3559,7 @@ check("the order is editorial, and lingerie is last", () => {
      three are the same fix. */
   const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
   const BEAUTY_AISLES = ["face", "lips", "eyes", "skincare", "nails", "fragrance"];
-  const SPORTS_AISLES = ["skate", "surf", "fitness", "sportswear"];
+  const SPORTS_AISLES = ["skate", "kids_skate", "surf", "fitness", "sportswear"];
   const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k) && !SPORTS_AISLES.includes(k));
   const sports = keys.filter((k) => SPORTS_AISLES.includes(k));
   const beauty = keys.filter((k) => BEAUTY_AISLES.includes(k));
@@ -3567,7 +3568,10 @@ check("the order is editorial, and lingerie is last", () => {
   /* Ropa deportiva walks the sports floor too (2026-09-25): PacSun's
      surf/skate streetwear is not a fashion aisle, so it sits with the
      sports aisles, after fitness. */
-  eq(sports.join(), "skate,surf,fitness,sportswear", "the sports floor is walked skate -> surf -> fitness -> sportswear");
+  /* 2026-09-25, Danny's QA: the kids' aisle walks right after Skate --
+     the toy-grade boards are grouped with skate, behind the premium gear,
+     and never at the front. */
+  eq(sports.join(), "skate,kids_skate,surf,fitness,sportswear", "the sports floor is walked skate -> kids -> surf -> fitness -> sportswear");
   eq(beauty[beauty.length - 1], "fragrance", "fragancia is last on the beauty floor");
   // The three blocks do not interleave: an apparel aisle after a beauty
   // one would put "Rostro" in the middle of a womenswear department the
@@ -6398,6 +6402,151 @@ check("Zapatos is a department with a name and a place in the taxonomy", () => {
   const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
   if (!/shoes:\s+\{ anyCategory: true, footwearOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no shoes");
 });
+group("Juguetes: toy-grade skate dual-lists, never leads Deportes");
+
+const toyPage = loadPageToysSlice();
+
+function everyCatalogueItemWithDicks() {
+  const rows = [];
+  for (const file of ["department-cache.json", "dicks-catalog.json", "pacsun-catalog.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json", "lanebryant-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    for (const [retailer, bucket] of Object.entries(data.retailers || {})) {
+      for (const [, entry] of Object.entries(bucket.departments || {})) {
+        for (const item of (Array.isArray(entry) ? entry : entry.items) || []) rows.push({ retailer, item });
+      }
+    }
+  }
+  return rows;
+}
+
+const EXPECTED_TOY_BOARDS = [
+  "Sonic Shadow 31” Skateboard",
+  "Tony Hawk 31” Signature Series 3 Skateboard",
+  "Sonic Stepup 31\" Skateboard",
+  "Barbie 31\" Skateboard",
+  "Sonic Lenticular Deck Skateboard",
+  "Barbie Lenticular Deck Skateboard",
+  "Tony Hawk 31” Series 1 Skateboard",
+  "Monster Jam 31” Skateboard",
+  "Tony Hawk 31” Series 2 Skateboard",
+  "Hot Wheels Jam 31\" Skateboard",
+  "Minecraft 31\" Skateboard",
+];
+
+check("the page's toy-grade detector and the module agree, item for item", () => {
+  // Compared over every real item rather than over examples: the whole
+  // Juguetes department is this one predicate, twice.
+  let checked = 0;
+  for (const { retailer, item } of everyCatalogueItemWithDicks()) {
+    const a = toyPage.isToyGradeSkate(item);
+    const b = toys.isToyGradeSkate(item);
+    if (a !== b) throw new Error(`drifted on ${retailer}: ${JSON.stringify(item).slice(0, 90)}`);
+    checked++;
+  }
+  if (checked < 4000) throw new Error(`only compared ${checked} items`);
+});
+
+check("the character boards are toy-grade; real gear is not", () => {
+  const dicks = JSON.parse(readFileSync(root("dicks-catalog.json"), "utf8"));
+  const items = dicks.retailers.dicks.departments.sporting_goods.items;
+  const flagged = items.filter((i) => toys.isToyGradeSkate(i)).map((i) => i.name);
+  for (const name of EXPECTED_TOY_BOARDS) {
+    if (!flagged.includes(name)) throw new Error(`"${name}" was not flagged toy-grade`);
+  }
+  eq(flagged.length, EXPECTED_TOY_BOARDS.length, "exactly the character boards, no more");
+  // Conservative by design: unrecognised boards stay premium skate.
+  const series4 = items.find((i) => i.name === "Tony Hawk 31” Series 4 Skateboard");
+  eq(toys.isToyGradeSkate(series4), false, "Tony Hawk Series 4 (own brand, no toy keywords) stays premium");
+  const cruiser = items.find((i) => i.name === "Retrospec Quip 22.5” Mini Cruiser Skateboard");
+  eq(toys.isToyGradeSkate(cruiser), false, "Retrospec is a real skate brand");
+  const helmet = items.find((i) => /Helmet/.test(i.name));
+  eq(toys.isToyGradeSkate(helmet), false, "helmets are protective equipment, not toys");
+});
+
+check("toy-grade skate is demoted out of the front of Deportes", () => {
+  const dicks = JSON.parse(readFileSync(root("dicks-catalog.json"), "utf8"));
+  const items = dicks.retailers.dicks.departments.sporting_goods.items.map((i) => ({ ...i }));
+  // What the load boundary does: re-type anything flagged.
+  for (const i of items) if (toyPage.isToyGradeSkate(i)) i.type = "TOYSKATEBOARD";
+  const cmp = (a, b) =>
+    (toyPage.peruSportRank(a) - toyPage.peruSportRank(b)) ||
+    (toyPage.toyGradeRank(a) - toyPage.toyGradeRank(b));
+  const sorted = [...items].sort(cmp);
+  const front = sorted.slice(0, 16);
+  const intruders = front.filter((i) => toyPage.isToyGradeSkate(i));
+  if (intruders.length) {
+    throw new Error(`toy-grade boards in the first 16: ${intruders.map((i) => i.name).join("; ")}`);
+  }
+  // And they land where the rule says: after braces/pads, before the rest.
+  const toyRanks = new Set(items.filter((i) => toyPage.isToyGradeSkate(i)).map((i) => toyPage.peruSportRank(i)));
+  eq([...toyRanks].join(), "5.5", "toy-grade skate sits at rank 5.5");
+  // The front is premium: boxing gloves lead the sorted feed's first band-1 items.
+  eq(toyPage.peruSportRank({ name: "Everlast Classic Boxing Gloves", type: "BOXINGMMAKICKBOXINGGLOVES" }), 1, "boxing still band 1");
+  eq(toyPage.peruSportRank({ name: "Retrospec Alameda 8” Complete Skateboard", type: "SKATEBOARDSLONGBOARDS", brand: "Retrospec" }), 0, "a real complete still leads skate");
+});
+
+check("Juguetes is a department with a name, a photo, and a place in the taxonomy", () => {
+  eq(deptMap.DEPARTMENT_SPEC.toys.toyOnly, true, "the toys spec");
+  eq(deptMap.DEPARTMENT_SPEC.toys.anyCategory, true, "toys must scan every bucket, not one named bucket");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/toys: \{ label: 'Juguetes'/.test(src)) throw new Error("the department has no Spanish name");
+  const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
+  if (!/toys:\s+\{ anyCategory: true, toyOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no toys");
+  // The kiddie boards dual-list: they belong to Juguetes AND stay in Deportes.
+  const board = { name: "Barbie 31\" Skateboard", brand: "Barbie", type: "SkateboardsLongboards", price: 29.99 };
+  eq(deptMap.itemBelongsToDepartment(board, "sporting_goods", "toys", "dicks"), true, "a character board is Juguetes");
+  const glove = { name: "Everlast Classic Boxing Gloves", brand: "Everlast", type: "BOXINGMMAKICKBOXINGGLOVES", price: 44.99 };
+  eq(deptMap.itemBelongsToDepartment(glove, "sporting_goods", "toys", "dicks"), false, "a boxing glove is not Juguetes");
+  // The kids-skate aisle exists in the module and in the page mirror.
+  const row = subcats.SUBCATEGORY_SPEC.find((r) => r.key === "kids_skate");
+  if (!row) throw new Error("no kids_skate aisle in scripts/lib/subcategories.js");
+  eq(row.types.join(), "TOYSKATEBOARD", "the aisle claims exactly the re-typed token");
+  const pageSubs = loadPageSubcategorySlice();
+  const pageRow = pageSubs.SUBCATEGORY_SPEC.find((r) => r.key === "kids_skate");
+  if (!pageRow) throw new Error("no kids_skate aisle in the index.html mirror");
+  eq(pageRow.types.join(), "TOYSKATEBOARD", "the mirror claims exactly the re-typed token");
+});
+
+group("the swim guard: Ropa de ba\u00f1o is swimwear, not surf-brand shirts");
+
+check("retailer-typed swimsuits that are really shirts go to Ropa deportiva", () => {
+  /* DANNY'S IPHONE QA (2026-09-25). The Ropa de ba\u00f1o aisle showed a
+     Hurley crew SWEATSHIRT: Dick's files surf-brand apparel under
+     "MensSwimsuits" and the type token put it in the swim aisle. Ropa de
+     ba\u00f1o is actual swimwear ONLY — bikinis, one-pieces, boardshorts,
+     swim trunks, rash guards. A shirt is a shirt even when Hurley made it.
+     When in doubt, it's clothes. */
+  const swimTyped = [];
+  for (const f of ["dicks-catalog.json", "pacsun-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(f), "utf8"));
+    for (const rv of Object.values(data.retailers || {}))
+      for (const dv of Object.values(rv.departments || {}))
+        for (const it of dv.items || [])
+          if (/swim/i.test(String(it.type || ""))) swimTyped.push(it);
+  }
+  if (swimTyped.length < 60) throw new Error(`only ${swimTyped.length} swim-typed records — verify this is still the live shape`);
+  const pageSubs = loadPageSubcategorySlice();
+  let impostors = 0, genuine = 0;
+  for (const it of swimTyped) {
+    const mine = subcats.subcategoryOfItem(it);
+    const theirs = pageSubs.subcategoryOfItem(it);
+    eq(theirs, mine, `page mirror disagrees on "${it.name}"`);
+    if (mine === "sportswear") impostors++;
+    else if (mine === "swim") genuine++;
+    else throw new Error(`"${it.name}" landed in aisle "${mine}" — neither swim nor sportswear`);
+  }
+  // The exact item Danny screenshotted, plus the whole impostor class.
+  const hurley = swimTyped.find((it) => /Sunshine Slub Crew Sweatshirt/.test(it.name));
+  if (!hurley) throw new Error("the Hurley crew sweatshirt vanished from the catalogs");
+  eq(subcats.subcategoryOfItem(hurley), "sportswear", "the Hurley crew sweatshirt");
+  eq(pageSubs.subcategoryOfItem(hurley), "sportswear", "the Hurley crew sweatshirt (page mirror)");
+  if (impostors < 10) throw new Error(`only ${impostors} impostors caught — the guard is too loose`);
+  if (genuine < 40) throw new Error(`only ${genuine} genuine swim items kept — the guard is too strict`);
+  // Positive beats negative: a long-sleeve SWIMSUIT is swimwear.
+  const longSleeveSuit = swimTyped.find((it) => /Long Sleeve Swimsuit/.test(it.name));
+  if (longSleeveSuit) eq(subcats.subcategoryOfItem(longSleeveSuit), "swim", "long-sleeve swimsuit stays swim");
+});
+
 group("no price, no buy button");
 
 check("a priceless record is a real thing in the cache, not a hypothesis", () => {

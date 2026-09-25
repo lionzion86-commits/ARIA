@@ -528,3 +528,28 @@ export function loadPageCarouselSlice() {
   );
   return sandbox.__exports;
 }
+
+/* The toy-grade skate detector + premium-first tier + Peru sport rank.
+   Pure list/sort work over items, so the merchandising rule Danny set
+   ("toy-grade boards never at the front; Juguetes dual-lists them") is
+   RUN against the real catalogues rather than grepped for. */
+const TOYS_START = "/* TOY-GRADE SKATE DETECTOR (2026-09-25)";
+const TOYS_END = "function renderCatalogFeed(){";
+
+export function loadPageToysSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf(TOYS_START);
+  const to = html.indexOf(TOYS_END);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html toy-detector markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { isToyGradeSkate, toyGradeRank, peruSportRank, TOY_SKATE_BRANDS };",
+    sandbox,
+    { filename: "index.html#toys" },
+  );
+  return sandbox.__exports;
+}
