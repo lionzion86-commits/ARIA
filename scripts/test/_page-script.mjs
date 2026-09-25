@@ -450,6 +450,65 @@ export function loadPageCurvySlice() {
   return sandbox.__exports;
 }
 
+/* Curvy's women-first band, on its own. curvyBandOf() reads genderOfItem(),
+   which reads the gender markers, the brand rule and BUCKET_SPEC -- all
+   scattered across the page -- so this assembles the dependency chain
+   piece by piece rather than trusting one marker span. Each piece is
+   captured by declaration: a `const X = /.../;` runs to its semicolon, a
+   braced body runs to its matching close brace (none of these bodies
+   carries a brace inside a string, so a plain counter is exact). */
+export function loadPageCurvyBandSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  function grab(name) {
+    const m = new RegExp(`(?:const|function)\\s+${name}\\b`).exec(html);
+    if (!m) throw new Error(`index.html: ${name} not found — update scripts/test/_page-script.mjs`);
+    const i = m.index;
+    const eq = html.indexOf("=", i);
+    const brace = html.indexOf("{", i);
+    if (/^const\s/.test(html.slice(i, i + 6)) && eq > 0 && (brace < 0 || eq < brace)) {
+      let j = eq + 1;
+      while (/\s/.test(html[j])) j++;
+      if (html[j] === "{") { /* object const: fall through to brace matching */ }
+      else {
+        const semi = html.indexOf(";", j);
+        if (semi < 0) throw new Error(`index.html: ${name} unterminated`);
+        return html.slice(i, semi + 1);
+      }
+    }
+    let depth = 0, instr = null, k = brace;
+    for (; k < html.length; k++) {
+      const c = html[k];
+      if (instr) {
+        if (c === instr && html[k - 1] !== "\\") instr = null;
+        continue;
+      }
+      if (c === "'" || c === '"' || c === "`") { instr = c; continue; }
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) break; }
+    }
+    if (depth !== 0) throw new Error(`index.html: ${name} braces unbalanced`);
+    let end = k + 1;
+    while (end < html.length && /\s/.test(html[end])) end++;
+    if (html[end] === ";") end++;
+    return html.slice(i, end);
+  }
+  const parts = [
+    "BUCKET_SPEC", "KID_MARKER", "WOMEN_MARKER", "MEN_MARKER",
+    "rawTitleOf", "genderFromTitle", "brandOf", "PINK_BRAND",
+    "genderOfItem", "curvyBandOf",
+  ].map(grab);
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    parts.join("\n") +
+      "\n;globalThis.__exports = { curvyBandOf, genderOfItem };",
+    sandbox,
+    { filename: "index.html#curvy-band" },
+  );
+  return sandbox.__exports;
+}
+
+
 /* The carousel selection mirror: the pure pick/mix functions index.html
    carries line-for-line from scripts/lib/carousel.js. Pure — no DOM. */
 export function loadPageCarouselSlice() {
