@@ -5585,7 +5585,19 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
   if (teaserStart < 0 || teaserEnd < 0) throw new Error("the story teaser is gone");
   const teaser = why.slice(teaserStart, teaserEnd);
   if (!/balcony-night\.jpg/.test(teaser)) throw new Error("the story teaser lost its photograph");
-  if (!/ariaWhyScrim/.test(teaser)) throw new Error("the story teaser lost its navy scrim");
+  if (!/ariaStoryScrim/.test(teaser)) throw new Error("the story teaser lost its light scrim");
+  if (/class="ariaWhyScrim"/.test(teaser)) throw new Error("the teaser is back on the heavy #whyUs scrim -- unreadable");
+  /* THE TEASER SCRIM STAYS LIGHT (2026-09-25, Danny's iPhone QA, pass 2):
+     the 0.72->0.93 standard scrim crushed the text on his phone. The
+     teaser's own scrim must stay well under the standard's stops. */
+  const scrimAt = hdrSrc.indexOf(".ariaStoryScrim{");
+  if (scrimAt < 0) throw new Error("the .ariaStoryScrim rule is gone");
+  const scrimCss = hdrSrc.slice(scrimAt, scrimAt + 700);
+  const stops = [...scrimCss.matchAll(/rgba\(4,12,28,([0-9.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 3) throw new Error("the story scrim lost its gradient stops");
+  if (stops[0] > 0.40 || stops[stops.length - 1] > 0.65) {
+    throw new Error("the story scrim got heavy again (" + stops.join("->") + ") -- Danny's contrast fix regressed");
+  }
   if (/ariaKicker--onLight|var\(--navy\)|#3D4759/.test(teaser)) {
     throw new Error("dark type on the photograph — unreadable");
   }

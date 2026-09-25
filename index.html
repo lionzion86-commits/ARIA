@@ -275,7 +275,22 @@
                    rgba(4,12,28,0.72) 0%,
                    rgba(4,12,28,0.80) 46%,
                    rgba(4,12,28,0.93) 100%) }
-  #whyUs > .relative{ position:relative; z-index:2 }
+    /* STORY TEASER SCRIM -- LIGHTER (2026-09-25, Danny's iPhone QA, pass 2):
+     the standard 0.72->0.93 scrim above crushed the teaser text on his
+     phone ("can't see the words"). The teaser gets its OWN scrim: much
+     lighter and bottom-weighted, so the girl shows through and the
+     white type does the work against the dark night photo. The standard
+     scrim stays exactly as it is -- its contrast math is documented
+     above and still stands for #whyUs. */
+  .ariaStoryScrim{ position:absolute; inset:0; z-index:1;
+                   background:linear-gradient(180deg,
+                     rgba(4,12,28,0.32) 0%,
+                     rgba(4,12,28,0.42) 45%,
+                     rgba(4,12,28,0.60) 100%) }
+  /* Text separation over the photograph: a soft shadow so the white
+     type reads even where the photo runs bright. */
+  .ariaStoryTeaser{ text-shadow:0 1px 10px rgba(0,0,0,0.55) }
+#whyUs > .relative{ position:relative; z-index:2 }
   /* Glass, not a white box: the photograph stays visible THROUGH the
      promise rather than being covered by it. The border is what keeps
      the edge readable where the backdrop-filter is unsupported. */
@@ -1494,12 +1509,18 @@
            (the girl with the Aria box -- same file as the full story page)
            under the standard navy scrim, white type. Copy stays WORD FOR
            WORD from #aboutView; only the treatment changed. All type on
-           the photograph is white/gold -- never navy-on-dark. -->
+           the photograph is white/gold -- never navy-on-dark.
+           AMENDMENT 2026-09-25 pass 2: Danny's iPhone QA found the standard
+           0.72->0.93 scrim crushed the text ("can't see the words"). The
+           teaser now rides its OWN lighter bottom-weighted scrim
+           (.ariaStoryScrim, 0.32->0.60) with pure-white type plus a soft
+           text shadow; #whyUs above keeps the standard scrim. Copy still
+           WORD FOR WORD. -->
       <div class="relative overflow-hidden rounded-3xl">
         <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
              style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
-        <div class="ariaWhyScrim" aria-hidden="true"></div>
-        <div class="relative px-5 sm:px-8 py-12 sm:py-16">
+        <div class="ariaStoryScrim" aria-hidden="true"></div>
+        <div class="relative px-5 sm:px-8 py-12 sm:py-16 ariaStoryTeaser">
           <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
             <div>
               <div class="ariaKicker mb-3">La historia</div>
@@ -1508,7 +1529,7 @@
               </h3>
             </div>
             <div class="max-w-[62ch]">
-              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4" style="color:#D7E0F4">
+              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4 font-medium" style="color:#fff">
                 Nació como una promesa: que ningún peruano vuelva a pagar de más
                 — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
                 compra en una tienda en Estados Unidos.
