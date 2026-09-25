@@ -2329,8 +2329,7 @@
         <span data-store-count>Ocho</span> tiendas, todas reales.
       </h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-9" style="color:#4A5568">
-        Las que ya tienen catálogo cargado se abren aquí mismo. Las que estamos conectando lo dicen —
-        preferimos un "próximamente" honesto a un logo que no lleva a ningún lado.
+        Los últimos productos, de las mejores tiendas, traídos directo desde Estados Unidos.
       </p>
       <!-- 4-across. Rendered from the RETAILERS registry, never
            hand-written -- and so is the COUNT in the heading above. It
@@ -10229,11 +10228,9 @@ const RETAILERS = {
   /* ============================================================
      THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
 
-     Every one is `search: false` with no `browse`, which is the
-     honest-pending state this page already promises a few sections up:
-     "Las que estamos conectando lo dicen — preferimos un 'próximamente'
-     honesto a un logo que no lleva a ningún lado." They get the muted
-     plate and the "Conectando el catálogo" badge, and their store page
+     Every one is `search: false` with no `browse`: the pending state,
+     shown with the muted plate and the "Conectando el catálogo" badge;
+     their store page
      explains that we buy there by request. None reaches the search
      fan-out, the category feeds or Ofertas, because CATALOG_RETAILERS
      reads `search || browse` and they have neither. No new code.
