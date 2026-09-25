@@ -1481,25 +1481,43 @@
            WORD FOR WORD FROM #aboutView, deliberately. The full page is
            still there and still the canonical telling; this is its first
            lines, so the two cannot come to say different things about
-           where the name came from. -->
-      <div>
-        <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
-          <div>
-            <div class="ariaKicker ariaKicker--onLight mb-3">La historia</div>
-            <h3 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:var(--navy)">
-              Aria lleva el nombre de mi hija.
-            </h3>
-          </div>
-          <div class="max-w-[62ch]">
-            <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4" style="color:#3D4759">
-              Nació como una promesa: que ningún peruano vuelva a pagar de más
-              — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
-              compra en una tienda en Estados Unidos.
-            </p>
-            <blockquote class="ariaPullQuote text-[17px] sm:text-[19px] my-5" style="color:var(--navy)">
-              que el precio que ves sea el precio que pagas.
-            </blockquote>
-            <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:var(--blue)">Lee la historia completa →</button>
+           where the name came from.
+           AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper
+           treatment ("looks like PowerPoint" between the two navy blocks).
+           The teaser below now rides the balcony-night photograph under
+           the standard navy scrim with white/gold type -- the collision
+           this comment guarded against stays guarded: no dark type ever
+           sits on the dark scrim. -->
+      <!-- STORY TEASER ON THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA):
+           the paper teaser sitting between two navy blocks read "like
+           PowerPoint". It now rides the approved balcony-night photograph
+           (the girl with the Aria box -- same file as the full story page)
+           under the standard navy scrim, white type. Copy stays WORD FOR
+           WORD from #aboutView; only the treatment changed. All type on
+           the photograph is white/gold -- never navy-on-dark. -->
+      <div class="relative overflow-hidden rounded-3xl">
+        <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
+             style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
+        <div class="ariaWhyScrim" aria-hidden="true"></div>
+        <div class="relative px-5 sm:px-8 py-12 sm:py-16">
+          <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
+            <div>
+              <div class="ariaKicker mb-3">La historia</div>
+              <h3 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:#fff">
+                Aria lleva el nombre de mi hija.
+              </h3>
+            </div>
+            <div class="max-w-[62ch]">
+              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4" style="color:#D7E0F4">
+                Nació como una promesa: que ningún peruano vuelva a pagar de más
+                — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
+                compra en una tienda en Estados Unidos.
+              </p>
+              <blockquote class="ariaPullQuote text-[17px] sm:text-[19px] my-5" style="color:#fff">
+                que el precio que ves sea el precio que pagas.
+              </blockquote>
+              <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:#F4C463">Lee la historia completa →</button>
+            </div>
           </div>
         </div>
       </div>

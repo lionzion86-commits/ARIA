@@ -5552,7 +5552,12 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
 
      So they moved one section down, to #whyUsStory, which keeps the
      paper they were designed against. The order that MATTERS is intact:
-     what you get, the guarantee behind it, then who is promising it. */
+     what you get, the guarantee behind it, then who is promising it.
+
+     AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper teaser
+     ("like PowerPoint" between the two navy blocks). The teaser itself
+     now rides the balcony-night photograph under the standard scrim with
+     white/gold type; the section around it keeps its paper background. */
   const reasonsAt = why.indexOf("ariaWhyPromise");
   const promisesAt = why.indexOf('id="whyUsPromises"');
   const storyAt = why.indexOf(">La historia<");
@@ -5563,14 +5568,26 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
     throw new Error("the run is no longer reasons -> guarantee -> story");
   }
 
-  /* AND THE STORY IS ON PAPER, which is the one thing a naive merge got
-     wrong. Navy headings and #3D4759 body over the explainer's scrim is
-     the failure this assertion exists to catch. */
+  /* THE TEASER RIDES THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA): the
+     paper teaser sitting between two navy blocks read "like PowerPoint".
+     It now uses the approved balcony-night photograph (the girl with the
+     Aria box, same file as the full story page) under the standard navy
+     scrim, white type. The failure this assertion exists to catch is
+     unchanged in spirit: no dark type on the dark scrim. */
   const storyAtIdx = why.indexOf('id="whyUsStory"');
   if (storyAtIdx < 0) throw new Error("#whyUsStory is gone — the story is back inside the photograph");
   if (storyAtIdx < why.indexOf("ariaWhyPhoto")) throw new Error("the story section sits above the photograph");
   if (!/background:var\(--paper\)/.test(why.slice(storyAtIdx, storyAtIdx + 400))) {
-    throw new Error("#whyUsStory lost its paper background — navy type on a dark scrim");
+    throw new Error("#whyUsStory lost its paper section background");
+  }
+  const teaserStart = why.indexOf("STORY TEASER ON THE PHOTOGRAPH");
+  const teaserEnd = why.indexOf("showPage('aboutView')", teaserStart);
+  if (teaserStart < 0 || teaserEnd < 0) throw new Error("the story teaser is gone");
+  const teaser = why.slice(teaserStart, teaserEnd);
+  if (!/balcony-night\.jpg/.test(teaser)) throw new Error("the story teaser lost its photograph");
+  if (!/ariaWhyScrim/.test(teaser)) throw new Error("the story teaser lost its navy scrim");
+  if (/ariaKicker--onLight|var\(--navy\)|#3D4759/.test(teaser)) {
+    throw new Error("dark type on the photograph — unreadable");
   }
 
   /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
