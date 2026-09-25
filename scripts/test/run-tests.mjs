@@ -4965,7 +4965,7 @@ group("The mobile shopfront");
 const shopfrontSrc = readFileSync(root("index.html"), "utf8");
 const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="mobileShopfront"'),
-  shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+  shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
 check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
@@ -5024,6 +5024,26 @@ check("Ofertas, then Categorías, then Tiendas", () => {
   // renderers write into.
   for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+});
+
+check("the desktop shopfront reads Ofertas, then Tiendas, then Categorías", () => {
+  /* 2026-09-25, DANNY'S ORDER FOR THE LAPTOP: deals first, then the
+     stores, then the departments. The phone keeps its own order
+     (asserted above) -- the two blocks are separate elements. */
+  const desk = shopfrontSrc.slice(
+    shopfrontSrc.indexOf('<div id="desktopShopfront"'),
+    shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+  );
+  if (!desk) throw new Error("there is no desktop shopfront");
+  const open = desk.slice(0, desk.indexOf(">") + 1);
+  if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
+  const order = [...desk.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Tiendas > Categorías", "the desktop shopfront's scroll order");
+  // Each section owns exactly one rail, and the rails are the ids the
+  // renderers write into.
+  for (const id of ["desktopDealsRow", "desktopStoresRow", "desktopCatsRow"]) {
+    eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
@@ -5186,15 +5206,17 @@ check("the rails' images are lazy, and its covers are the curated ones", () => {
   if (!/t\.icon/.test(card)) throw new Error("a department with no cover now renders nothing");
 });
 
-check("the shopfront fills itself when a window is dragged across lg", () => {
+check("the shopfront fills on first paint at any width", () => {
+  /* 2026-09-25: the laptop has its own shopfront now, so the old
+     phone-only guard (wait for the lg query to match before fetching)
+     is gone -- the sales scan runs on first paint at every width. What
+     is pinned: filled once, and the resize listener still exists for
+     the narrow-then-wide case. */
   const init = shopfrontSrc.slice(
     shopfrontSrc.indexOf("const MOBILE_SHOPFRONT_MQ"),
     shopfrontSrc.indexOf("window.addEventListener('DOMContentLoaded', renderPrecioHonestoCards)"),
   );
-  // One query, used by both the guard and the listener, so the point at
-  // which the rails appear and the point at which they fill cannot drift.
-  eq((init.match(/MOBILE_SHOPFRONT_MQ/g) || []).length, 3, "the breakpoint is read from one place");
-  eq(shopfrontSrc.includes("(max-width: 1023px)"), true, "the shopfront's breakpoint moved off lg");
+  if (/if \(!window\.matchMedia\(MOBILE_SHOPFRONT_MQ\)\.matches\) return;/.test(init)) throw new Error("the phone-only guard is back -- the desktop would never fill its rails");
   if (!/addEventListener\('change', initMobileShopfront\)/.test(init)) throw new Error("a resize no longer fills the rails");
   if (!/mq\.addListener/.test(init)) throw new Error("older iOS Safari never fills the rails on rotation");
   // Filled once, not on every crossing: a drag across the breakpoint
@@ -7447,6 +7469,12 @@ check("exactly one Tiendas section is photographic at any width", () => {
   if (!/ariaSectionShot--lg/.test(strip)) throw new Error("the retailers strip is not opted into the lg-only treatment");
   const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
   if (/ariaSectionShot--lg/.test(rail)) throw new Error("the phone's own rail went lg-only — now no width shows the photograph on a phone");
+  // The desktop shopfront's Tiendas rail is a third surface and it must
+  // not take the photograph: at lg the foot strip already has it, and
+  // the whole point of the lg-only rule is one photographic Tiendas
+  // section per width.
+  const desk = stripHtmlComments(forwardSlice(src, '<div id="desktopShopfront"', '<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">', "desktop shopfront"));
+  if (/ariaSectionPhoto/.test(desk)) throw new Error("the desktop Tiendas rail took the photograph -- at lg the retailers strip already has it");
 });
 
 check("the type over the photograph was measured, not eyeballed", () => {

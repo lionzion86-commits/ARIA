@@ -423,7 +423,9 @@
      1280x482, showing a comfortable 62% of the frame). Below lg this
      strip is the paper band it always was, down to the caption's colour.
      The breakpoint is lg because that is where #mobileShopfront hides --
-     the two are the same switch and must not drift apart. */
+     the two are the same switch and must not drift apart. (The desktop
+     shopfront's Tiendas rail is not photographic, so at lg the photo
+     still appears exactly once.) */
   @media (max-width:1023.98px){
     .ariaSectionShot--lg{ background:var(--paper) }
     .ariaSectionShot--lg > .ariaSectionPhoto,
@@ -573,6 +575,17 @@
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
+  /* DESKTOP SHOPFRONT (2026-09-25). The phone's three rails at laptop
+     scale: the same cards the same renderers write, in a wider stance,
+     so a 1280px window shows five or six deals instead of two. The
+     selectors outrank the cards' Tailwind widths (id + attribute beats
+     a utility class), and there is no photograph in these sections, so
+     nothing here depends on the CDN. */
+  #desktopDealsRow [data-mobile-deal]{ width:208px }
+  #desktopDealsRow [data-mobile-deal] > span:first-child{ height:208px }
+  #desktopDealsRow [data-mobile-deal-all]{ width:180px }
+  #desktopCatsRow [data-mobile-cat]{ width:200px }
+  #desktopCatsRow [data-mobile-cat] > span:first-child{ height:140px }
   /* The brand directory's scroller. NOT a Tailwind utility on purpose:
      the page is built to boot with the CDN blocked, and an unbounded
      192-row list inside a store page is the one place where losing the
@@ -1020,7 +1033,9 @@
        lg:hidden, NOT md:hidden, deliberately: the nav is
        `hidden lg:flex`, so everything below 1024px is behind the
        hamburger — tablets included. The shopfront appears exactly where
-       the menu takes over. Desktop is untouched above it.
+       the menu takes over. At lg and up this block hides and
+       #desktopShopfront (just below) takes over with the same three
+       rails in Danny's desktop order: Ofertas -> Tiendas -> Categorias.
        ============================================================ -->
   <div id="mobileShopfront" class="lg:hidden">
 
@@ -1072,6 +1087,65 @@
     </section>
   </div>
 
+  <!-- ============================================================
+       THE DESKTOP SHOPFRONT (2026-09-25).
+
+       Danny's Chromebook verdict: on a laptop the home page opened on
+       a hero and a search box with no way to browse -- the
+       Ofertas/Categorias/Tiendas rails only existed below lg. The
+       desktop gets its own shopfront now, in the order he gave it:
+       Ofertas -> Tiendas -> Categorias. The phone keeps its own order
+       (Ofertas -> Categorias -> Tiendas); #mobileShopfront is untouched.
+
+       Same data, same cards, same renderers as the phone: the three
+       render functions below write both rows. The Tiendas section here
+       is deliberately NOT photographic -- the foot strip owns the
+       photograph at lg (see .ariaSectionShot--lg), and two mall photos
+       on one page is the duplication that rule was written to prevent.
+       ============================================================ -->
+  <div id="desktopShopfront" class="hidden lg:block">
+
+    <!-- OFERTAS: the same navy band as the phone, at laptop scale. -->
+    <section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="relative max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <div class="flex items-baseline gap-2 min-w-0">
+            <span class="text-[26px] font-extrabold tracking-[-0.02em] leading-none" style="color:#F4C463">OFERTAS</span>
+            <span aria-hidden="true" class="text-[18px] leading-none">&#x1F525;</span>
+          </div>
+          <button onclick="goSales()" class="flex items-center gap-1 text-[14px] font-extrabold flex-shrink-0 focus-ring rounded" style="color:#F4C463">
+            Ver todo
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+        <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- TIENDAS: paper band, the branded chips carry the visual weight. -->
+    <section aria-label="Tiendas" class="border-b" style="border-color:var(--line); background:var(--paper)">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas en EE.&nbsp;UU.</h2>
+          <button onclick="showPage('storesView')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas &#8594;</button>
+        </div>
+        <div id="desktopStoresRow" class="flex gap-3 overflow-x-auto px-8 pb-6 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section aria-label="Categorías" style="background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
+          <button onclick="openCategories()" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas &#8594;</button>
+        </div>
+        <div id="desktopCatsRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+  </div>
+
   <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
     <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
       <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
@@ -1082,25 +1156,25 @@
       </g>
       <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
     </svg>
-    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 text-center">
-      <span class="relative inline-block mb-6"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
-      <h1 class="text-[38px] sm:text-[50px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
+      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
+      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
         Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
       </h1>
-      <p class="text-[15px] leading-relaxed mt-4 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
         Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de EE. UU., y te mostramos un solo total ya puesto en tu puerta.
       </p>
 
-      <div class="mt-8 relative max-w-[560px] mx-auto">
+      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
         <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
           style="border-color:var(--line)">
         <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
 
-      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px] lg:hidden">
         <span style="color:#8FA3D6">Prueba con:</span>
         <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
         <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
@@ -1131,6 +1205,12 @@
        follows the logo it belongs to, and the tiles come after it, so
        the run is: what is on sale -> what we sell -> who sells it ->
        who we are -> browse it properly. Nothing above this changed.
+
+       DESKTOP ORDER (2026-09-25, Danny): the laptop now opens on its
+       own shopfront -- #desktopShopfront, right after the hero --
+       reading Ofertas -> Tiendas -> Categorias, then the (slimmed)
+       search hero, then the explainer below. The phone's order is
+       unchanged.
        ============================================================ -->
   <!-- WHY SHOP WITH US -->
   <!-- ============================================================
@@ -1493,8 +1573,9 @@
   </div>
 
   <!-- RETAILERS STRIP. On a LAPTOP this is the Tiendas section -- the
-       shopfront rail above is lg:hidden -- so it takes the photograph
-       there and only there. On a phone it stays the paper band it was,
+       phone's shopfront rail above is lg:hidden, and the desktop
+       shopfront's Tiendas rail is not photographic -- so the strip
+       takes the photograph there and only there. On a phone it stays the paper band it was,
        because this grid is ten rows tall on a 393px screen and a wide
        photograph cropped into that shape is a blur, not a mall. The
        arithmetic is in .ariaSectionShot--lg. -->
@@ -5454,7 +5535,7 @@ window.addEventListener('DOMContentLoaded', initDepartmentTiles);
 
 
 /* ============================================================
-   THE PHONE'S THREE RAILS.
+   THE HOME PAGE'S THREE RAILS -- ON THE PHONE AND ON THE DESKTOP.
 
    ONE SOURCE EACH, AND ALL THREE ARE SOURCES THAT ALREADY EXIST:
    Ofertas reads saleItemsCache — literally what renderSalesGrid()
@@ -6215,24 +6296,32 @@ function spreadDealsByStore(sorted, lead){
    feed defaults to cheapest door-to-door and this rail is answering a
    different question. */
 function renderMobileDealsRail(){
-  const row = document.getElementById('mobileDealsRow');
-  if (!row) return;
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
     .sort((a, b) => discountPct(b) - discountPct(a));
   const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
-  if (!deals.length){
-    /* An empty rail is worse than none. The same honest line the Ofertas
-       page itself shows on a cold cache, not a row of grey boxes. */
-    row.innerHTML = `<div class="text-[12.5px] leading-relaxed pb-1" style="color:#AFBBD6">
-      Estamos actualizando las ofertas. Mientras tanto, busca cualquier producto arriba — el buscador funciona con normalidad.
-    </div>`;
-    return;
-  }
-  row.innerHTML = deals.map(mobileDealCardHTML).join('')
-    + `<button onclick="goSales()" data-mobile-deal-all
+  /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
+     shopfront's rail show the same deals in the same order, so a tap
+     opens the right card on either: openMobileDeal indexes the shared
+     mobileDealsRendered array. The empty-state line points at the
+     search box, which sits above the rail on a phone and below it on
+     a laptop. */
+  for (const [rowId, dir] of [['mobileDealsRow', 'arriba'], ['desktopDealsRow', 'abajo']]){
+    const row = document.getElementById(rowId);
+    if (!row) continue;
+    if (!deals.length){
+      /* An empty rail is worse than none. The same honest line the Ofertas
+         page itself shows on a cold cache, not a row of grey boxes. */
+      row.innerHTML = `<div class="text-[12.5px] leading-relaxed pb-1" style="color:#AFBBD6">
+        Estamos actualizando las ofertas. Mientras tanto, busca cualquier producto 
+        ${dir} — el buscador funciona con normalidad.
+      </div>`;
+      continue;
+    }
+    row.innerHTML = deals.map(mobileDealCardHTML).join('')
+      + `<button onclick="goSales()" data-mobile-deal-all
         class="flex-shrink-0 w-[128px] rounded-2xl focus-ring grid place-items-center text-center px-3"
         style="background:rgba(255,255,255,0.08); border:1px solid rgba(244,196,99,0.45)">
         <span class="block">
@@ -6240,21 +6329,23 @@ function renderMobileDealsRail(){
           <span class="block text-[11.5px] mt-1" style="color:#AFBBD6">${saleItemsCache.length.toLocaleString('es-PE')} ofertas</span>
         </span>
       </button>`;
+  }
 }
 
 /* The same chip the home page's store grid renders, in a rail. Reused
    rather than restyled so a store's mark, its colour and its honest
    "próximamente" treatment cannot differ between the two. */
 function renderMobileStoresRail(){
-  const row = document.getElementById('mobileStoresRow');
-  if (!row) return;
-  row.innerHTML = activeRetailers()
-    /* `grid` so the shared chip -- which carries no width of its own,
-       because in the home grid its cell gives it one -- stretches to the
-       rail's 118px instead of shrinking to fit its logo. A rail whose
-       tiles are each a different width reads as broken, not as a shelf. */
-    .map(r => `<div class="flex-shrink-0 w-[118px] grid">${homeStoreChipHTML(r)}</div>`)
-    .join('');
+  /* `grid` so the shared chip -- which carries no width of its own,
+     because in the home grid its cell gives it one -- stretches to the
+     rail's tile width instead of shrinking to fit its logo. A rail whose
+     tiles are each a different width reads as broken, not as a shelf.
+     The desktop rail's tiles are wider: same chips, laptop stance. */
+  const chips = activeRetailers().map(r => homeStoreChipHTML(r));
+  const phone = document.getElementById('mobileStoresRow');
+  if (phone) phone.innerHTML = chips.map(c => `<div class="flex-shrink-0 w-[118px] grid">${c}</div>`).join('');
+  const desk = document.getElementById('desktopStoresRow');
+  if (desk) desk.innerHTML = chips.map(c => `<div class="flex-shrink-0 w-[150px] grid">${c}</div>`).join('');
 }
 
 /* Department cards at rail scale, wearing the same curated covers as
@@ -6278,9 +6369,11 @@ function mobileCatCardHTML(t, kind){
 }
 
 function renderMobileCatsRail(tiles){
-  const row = document.getElementById('mobileCatsRow');
-  if (!row) return;
-  row.innerHTML = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('');
+  const html = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('');
+  const phone = document.getElementById('mobileCatsRow');
+  if (phone) phone.innerHTML = html;
+  const desk = document.getElementById('desktopCatsRow');
+  if (desk) desk.innerHTML = html;
 }
 
 /* OFERTAS LOADS FIRST, per the brief, and it is the one rail that needs
@@ -6289,19 +6382,20 @@ function renderMobileCatsRail(tiles){
    means the rail shows exactly what the page behind it will show. The
    department cache it reads is memoized and already on its way.
 
-   Only on the phone. On a desktop the rails are display:none and this
-   would be a fetch and a hundred product photos for nothing -- but a
-   desktop window dragged narrow, or a tablet turned on its side, crosses
-   `lg` and reveals them. So the same query that hides them is watched,
-   and the rails fill the first time they are actually on screen. Once
-   filled they stay filled; re-crossing the breakpoint does not re-fetch. */
+   AT EVERY WIDTH (2026-09-25). The rails used to be phone-only, so this
+   waited for the `lg` query to match before fetching anything. The
+   desktop has its own shopfront now -- same data, same cards, wider
+   stance -- so the sales scan and the rail fills run on first paint no
+   matter the width. The breakpoint query is still watched: a window
+   dragged across `lg` swaps which block is visible, and both are
+   already filled. Once filled they stay filled; re-crossing does not
+   re-fetch. */
 const MOBILE_SHOPFRONT_MQ = '(max-width: 1023px)';
 let mobileShopfrontStarted = false;
 
 function initMobileShopfront(){
   if (mobileShopfrontStarted) return;
   if (!document.getElementById('mobileDealsRow')) return;
-  if (!window.matchMedia(MOBILE_SHOPFRONT_MQ).matches) return;
   mobileShopfrontStarted = true;
   renderMobileStoresRail();
   runSalesScan().then(renderMobileDealsRail).catch(() => renderMobileDealsRail());
