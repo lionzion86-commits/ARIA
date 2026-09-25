@@ -843,6 +843,65 @@ check("index.html's registry mirror matches the module", () => {
   }
 });
 
+/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised).
+   The Tiendas de siempre row leads with aspirational, brag-worthy brands
+   that catch a woman's eye; the mall feels exclusive, not downmarket.
+   Target and Walmart sit at the very back (thin catalogs there). The tile
+   order is the registry's insertion order, so this pins the full order in
+   both the module and the index.html mirror. */
+const EXPECTED_EVERYDAY_ORDER = [
+  "victoriassecret", "sephora", "skims", "revolve", "ulta",
+  "bathandbodyworks", "yesstyle", "footlocker", "sunglasshut", "dyson",
+  "macys", "oldnavy", "target", "walmart",
+];
+function everydayOrder(){
+  return Object.keys(RETAILERS).filter(k => {
+    const r = RETAILERS[k];
+    return !r.retired && (r.tier || (r.kind === "auto" ? "auto" : "everyday")) === "everyday";
+  });
+}
+
+check("Tiendas tiles follow Danny's exclusive-mall order", () => {
+  const order = everydayOrder();
+  const want = EXPECTED_EVERYDAY_ORDER.join(",");
+  const got = order.join(",");
+  if (got !== want) throw new Error(`Tiendas order is [${got}], want [${want}]`);
+});
+
+check("Victoria's Secret is the first Tiendas tile", () => {
+  const order = everydayOrder();
+  if (order[0] !== "victoriassecret")
+    throw new Error(`first Tiendas tile is ${order[0]}, want victoriassecret`);
+});
+
+check("Sephora is the second Tiendas tile", () => {
+  const order = everydayOrder();
+  if (order[1] !== "sephora")
+    throw new Error(`second Tiendas tile is ${order[1]}, want sephora`);
+});
+
+check("Target and Walmart are the last two Tiendas tiles", () => {
+  const order = everydayOrder();
+  const tail = order.slice(-2).join(",");
+  if (tail !== "target,walmart")
+    throw new Error(`last two Tiendas tiles are [${tail}], want target,walmart`);
+});
+
+check("index.html's Tiendas tile order matches the module's", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const lit = html.slice(html.indexOf("const RETAILERS = {"));
+  const pos = k => {
+    const i = lit.indexOf(`key: '${k}'`);
+    if (i < 0) throw new Error(`${k} missing from the index.html mirror`);
+    return i;
+  };
+  const positions = EXPECTED_EVERYDAY_ORDER.map(pos);
+  for (let i = 1; i < positions.length; i++) {
+    if (!(positions[i - 1] < positions[i]))
+      throw new Error(`index.html mirror order breaks at ${EXPECTED_EVERYDAY_ORDER[i]}`);
+  }
+});
+
 check("adding a retailer needs no new scraper code", async () => {
   // The point of INPUT_SHAPES: a new store declares a spelling, not a function.
   const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");

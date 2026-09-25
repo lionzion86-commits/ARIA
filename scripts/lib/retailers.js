@@ -47,70 +47,22 @@
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
-  walmart: {
-    key: "walmart",
-    label: "Walmart",
-    color: "#0071CE",
-    logo: "logos/walmart.svg",
-    tagline: "De todo, a buen precio",
+  victoriassecret: {
+    key: "victoriassecret",
+    label: "Victoria's Secret",
+    color: "#E31C79",
+    logo: "logos/victoriassecret.png",
+    tagline: "Lencería, brumas corporales y fragancias",
     kind: "general",
-    search: true,
+    catalog: "beauty",
+    search: false,
+    browse: true,
   },
-  target: {
-    key: "target",
-    label: "Target",
-    color: "#CC0000",
-    logo: "logos/target.svg",
-    tagline: "Ropa, hogar y belleza",
-    kind: "general",
-    search: true,
-  },
-  oldnavy: {
-    key: "oldnavy",
-    label: "Old Navy",
-    color: "#001E62",
-    logo: "logos/oldnavy.svg",
-    tagline: "Ropa casual para toda la familia",
-    kind: "general",
-    search: true,
-  },
-  footlocker: {
-    key: "footlocker",
-    label: "Foot Locker",
-    color: "#000000",
-    logo: "logos/footlocker.svg",
-    tagline: "Zapatillas y ropa deportiva",
-    kind: "general",
-    search: true,
-  },
-  /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
-
-     Both are real rows: they appear on Tiendas, they carry their own
-     brand colour and wordmark, and every beauty weight in the estimator
-     was written for their catalogues. What they do not have yet is a
-     verified Apify actor — the Apify store could not be reached from the
-     build environment to confirm an actor ID, and pointing the scraper at
-     a guessed one returns an empty run that reads as "this store has no
-     products" rather than as a missing integration.
-
-     So they ship as `search: false` with `catalog: "beauty"`. Step 3 and
-     step 4 of ADDING A RETAILER above are the whole remaining task.
-
-     2026-09-20: their real logo files landed, so steps 1 and 2 are done —
-     all three render their own mark on Tiendas now instead of a wordmark
-     pill. That is independent of the scraper: a store can look like
-     itself long before its catalogue is connected.
-
-     2026-09-22: SEPHORA IS BROWSABLE. beauty-catalog.json landed with
-     80 Sephora products, so its row flips `browse: true` and drops the
-     pending note, exactly as Macy's did — same distinction, same two
-     flags. Bath & Body Works is NOT in that file and stays pending; a
-     store is only browsable when a catalogue actually names it.
-
-     2026-09-24: VICTORIA'S SECRET IS BROWSABLE. beauty-catalog.json
-     landed with 1,649 Victoria's Secret products, so its row flips
-     `browse: true` and drops the pending note — same distinction, same
-     two flags. */
+  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
+     the audience this shop is being launched for, and it is the eighth
+     store — which is what makes the stores grid symmetric at 4x2 instead
+     of leaving a hole. Same status as the other two beauty stores: a
+     real row, quotas written, no verified actor yet. */
   sephora: {
     key: "sephora",
     label: "Sephora",
@@ -130,22 +82,37 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
-  victoriassecret: {
-    key: "victoriassecret",
-    label: "Victoria's Secret",
-    color: "#E31C79",
-    logo: "logos/victoriassecret.png",
-    tagline: "Lencería, brumas corporales y fragancias",
+  skims: {
+    key: "skims",
+    label: "Skims",
+    color: "#605848",
+    logo: "logos/skims.png",
+    tagline: "Shapewear, ropa interior y loungewear",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  revolve: {
+    key: "revolve",
+    label: "Revolve",
+    color: "#000000",
+    logo: "logos/revolve.png",
+    tagline: "Moda contemporánea y de diseñador",
+    kind: "general",
+    search: false,
+    pendingNote: "Conectando el catálogo",
+  },
+  ulta: {
+    key: "ulta",
+    label: "Ulta Beauty",
+    color: "#F88038",
+    logo: "logos/ulta.png",
+    tagline: "Maquillaje, skincare y cuidado del cabello",
     kind: "general",
     catalog: "beauty",
     search: false,
     browse: true,
   },
-  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
-     the audience this shop is being launched for, and it is the eighth
-     store — which is what makes the stores grid symmetric at 4x2 instead
-     of leaving a hole. Same status as the other two beauty stores: a
-     real row, quotas written, no verified actor yet. */
   bathandbodyworks: {
     key: "bathandbodyworks",
     label: "Bath & Body Works",
@@ -181,58 +148,6 @@ export const RETAILERS = {
 
      Fulfilment is not a question here — Macy's ships to the Miami
      warehouse like the rest, so nothing special is needed downstream. */
-  macys: {
-    key: "macys",
-    label: "Macy's",
-    color: "#E21A2C",
-    logo: "logos/macys.png",
-    tagline: "Moda mujer, marcas y vestidos",
-    kind: "general",
-    search: false,
-    browse: true,
-  },
-  /* ============================================================
-     ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
-
-     77 Ulta products and 40 YesStyle products arrived in the same file
-     as Sephora's 80. Both are browse-without-scrape, same as Macy's and
-     SSENSE: a real catalogue, no actor, kept out of the live fan-out.
-
-     BOTH MARKS LANDED (2026-09-22). They shipped as wordmark pills on
-     our navy for a few hours, because a brand's name on a colour we
-     invented for them is worse than one on ours. Now they render their
-     own logos, and `color` has stopped being a placeholder: each value
-     below was SAMPLED FROM THE SUPPLIED ARTWORK rather than recalled,
-     which is the lesson the SSENSE tagline taught. Ulta's orange is
-     #F88038 across 229,142 pixels of its file. YesStyle's most common
-     ink is actually its near-black (#201818, the "STYLE" half), but a
-     near-black badge is indistinguishable from Sephora's and SSENSE's,
-     so the row takes the green (#50A838) that says whose mark it is.
-     Either way the colour is now only a fallback: it backs the wordmark
-     pill and the small text badge, neither of which renders while the
-     logo file resolves.
-
-     YESSTYLE'S FILE NEEDED CROPPING. The wordmark filled 7.4% of a
-     1000x667 canvas and the rest was white. Contain-fit sizes the
-     CANVAS, so it would have drawn a sliver exactly the way SSENSE did
-     -- see the coverage test in scripts/test/run-tests.mjs, which now
-     fails any logo under 35%. Cropped to 642x86, it is 89.6% mark.
-
-     YesStyle is Asian beauty specifically (Korean and Japanese houses —
-     Anua, BBIA, CLIO, Canmake). The tagline says so, because "YesStyle"
-     tells a shopper in Lima nothing and "coreana" tells them everything.
-     ============================================================ */
-  ulta: {
-    key: "ulta",
-    label: "Ulta Beauty",
-    color: "#F88038",
-    logo: "logos/ulta.png",
-    tagline: "Maquillaje, skincare y cuidado del cabello",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
   yesstyle: {
     key: "yesstyle",
     label: "YesStyle",
@@ -276,22 +191,49 @@ export const RETAILERS = {
      tier beside SSENSE; the other four are everyday. A tier decides one
      heading on Tiendas and nothing else — see TIERS below.
      ============================================================ */
-  skims: {
-    key: "skims",
-    label: "Skims",
-    color: "#605848",
-    logo: "logos/skims.png",
-    tagline: "Shapewear, ropa interior y loungewear",
-    kind: "general",
-    search: false,
-    pendingNote: "Conectando el catálogo",
-  },
-  revolve: {
-    key: "revolve",
-    label: "Revolve",
+  footlocker: {
+    key: "footlocker",
+    label: "Foot Locker",
     color: "#000000",
-    logo: "logos/revolve.png",
-    tagline: "Moda contemporánea y de diseñador",
+    logo: "logos/footlocker.svg",
+    tagline: "Zapatillas y ropa deportiva",
+    kind: "general",
+    search: true,
+  },
+  /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
+
+     Both are real rows: they appear on Tiendas, they carry their own
+     brand colour and wordmark, and every beauty weight in the estimator
+     was written for their catalogues. What they do not have yet is a
+     verified Apify actor — the Apify store could not be reached from the
+     build environment to confirm an actor ID, and pointing the scraper at
+     a guessed one returns an empty run that reads as "this store has no
+     products" rather than as a missing integration.
+
+     So they ship as `search: false` with `catalog: "beauty"`. Step 3 and
+     step 4 of ADDING A RETAILER above are the whole remaining task.
+
+     2026-09-20: their real logo files landed, so steps 1 and 2 are done —
+     all three render their own mark on Tiendas now instead of a wordmark
+     pill. That is independent of the scraper: a store can look like
+     itself long before its catalogue is connected.
+
+     2026-09-22: SEPHORA IS BROWSABLE. beauty-catalog.json landed with
+     80 Sephora products, so its row flips `browse: true` and drops the
+     pending note, exactly as Macy's did — same distinction, same two
+     flags. Bath & Body Works is NOT in that file and stays pending; a
+     store is only browsable when a catalogue actually names it.
+
+     2026-09-24: VICTORIA'S SECRET IS BROWSABLE. beauty-catalog.json
+     landed with 1,649 Victoria's Secret products, so its row flips
+     `browse: true` and drops the pending note — same distinction, same
+     two flags. */
+  sunglasshut: {
+    key: "sunglasshut",
+    label: "Sunglass Hut",
+    color: "#000000",
+    logo: "logos/sunglasshut.png",
+    tagline: "Lentes de sol de marca",
     kind: "general",
     search: false,
     pendingNote: "Conectando el catálogo",
@@ -306,59 +248,74 @@ export const RETAILERS = {
     search: false,
     pendingNote: "Conectando el catálogo",
   },
-  sunglasshut: {
-    key: "sunglasshut",
-    label: "Sunglass Hut",
-    color: "#000000",
-    logo: "logos/sunglasshut.png",
-    tagline: "Lentes de sol de marca",
+  macys: {
+    key: "macys",
+    label: "Macy's",
+    color: "#E21A2C",
+    logo: "logos/macys.png",
+    tagline: "Moda mujer, marcas y vestidos",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
-  },
-  autozone: {
-    key: "autozone",
-    label: "AutoZone",
-    color: "#1C8A4B",
-    logo: "logos/autozone.png",
-    tagline: "Repuestos y autopartes — vía Aria Auto",
-    // Aria Auto's part-search source, not a general storefront: it is
-    // deliberately excluded from the general search fan-out.
-    kind: "auto",
-    search: true,
-  },
-  rockauto: {
-    key: "rockauto",
-    label: "RockAuto",
-    color: "#303090",
-    logo: "logos/rockauto.png",
-    tagline: "Catálogo profundo de repuestos — vía Aria Auto",
-    // Aria Auto's second part-search source; same exclusion as AutoZone.
-    kind: "auto",
-    search: true,
+    browse: true,
   },
   /* ============================================================
-     SSENSE (2026-09-22) — THE HIGH-END TIER, AND NORDSTROM'S REPLACEMENT
+     ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
 
-     Nordstrom was the luxury slot and it never worked: three integration
-     attempts, zero products, because its bot protection beats the actor.
-     It stays retired below. SSENSE takes the slot.
+     77 Ulta products and 40 YesStyle products arrived in the same file
+     as Sephora's 80. Both are browse-without-scrape, same as Macy's and
+     SSENSE: a real catalogue, no actor, kept out of the live fan-out.
 
-     THE SHOPPER DOES NOT KNOW "SSENSE", and that is the design
-     constraint Danny named: a shopper in Lima recognises Gucci, Prada
-     and Adidas, not the retailer carrying them. So a high-end store is
-     introduced by its BRANDS, not by its name — brandsFor() below reads
-     them from the catalogue rather than from a hand-written list, so the
-     card can never promise a label the store is not actually carrying.
+     BOTH MARKS LANDED (2026-09-22). They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours. Now they render their
+     own logos, and `color` has stopped being a placeholder: each value
+     below was SAMPLED FROM THE SUPPLIED ARTWORK rather than recalled,
+     which is the lesson the SSENSE tagline taught. Ulta's orange is
+     #F88038 across 229,142 pixels of its file. YesStyle's most common
+     ink is actually its near-black (#201818, the "STYLE" half), but a
+     near-black badge is indistinguishable from Sephora's and SSENSE's,
+     so the row takes the green (#50A838) that says whose mark it is.
+     Either way the colour is now only a fallback: it backs the wordmark
+     pill and the small text badge, neither of which renders while the
+     logo file resolves.
 
-     STATUS: listed, not yet browsable. A 2,431-product men's pull exists
-     in Apify ($2.45, 2026-09-22) and the women's pull is waiting on the
-     monthly limit, but neither has been exported into this repo. Until
-     the file lands this is exactly the Macy's situation before its
-     export arrived: a real row, honestly labelled, kept out of the live
-     search so an unconfigured retailer cannot return a failed store
-     card. Flip `browse: true` the day the catalogue is committed.
+     YESSTYLE'S FILE NEEDED CROPPING. The wordmark filled 7.4% of a
+     1000x667 canvas and the rest was white. Contain-fit sizes the
+     CANVAS, so it would have drawn a sliver exactly the way SSENSE did
+     -- see the coverage test in scripts/test/run-tests.mjs, which now
+     fails any logo under 35%. Cropped to 642x86, it is 89.6% mark.
+
+     YesStyle is Asian beauty specifically (Korean and Japanese houses —
+     Anua, BBIA, CLIO, Canmake). The tagline says so, because "YesStyle"
+     tells a shopper in Lima nothing and "coreana" tells them everything.
      ============================================================ */
+  oldnavy: {
+    key: "oldnavy",
+    label: "Old Navy",
+    color: "#001E62",
+    logo: "logos/oldnavy.svg",
+    tagline: "Ropa casual para toda la familia",
+    kind: "general",
+    search: true,
+  },
+  target: {
+    key: "target",
+    label: "Target",
+    color: "#CC0000",
+    logo: "logos/target.svg",
+    tagline: "Ropa, hogar y belleza",
+    kind: "general",
+    search: true,
+  },
+  walmart: {
+    key: "walmart",
+    label: "Walmart",
+    color: "#0071CE",
+    logo: "logos/walmart.svg",
+    tagline: "De todo, a buen precio",
+    kind: "general",
+    search: true,
+  },
   ssense: {
     key: "ssense",
     label: "SSENSE",
@@ -420,6 +377,49 @@ export const RETAILERS = {
      items across three attempts). They stay here so a label and a colour
      still resolve for any historical order or cached item that names
      them, and so nobody re-adds them without reading why they went. */
+  autozone: {
+    key: "autozone",
+    label: "AutoZone",
+    color: "#1C8A4B",
+    logo: "logos/autozone.png",
+    tagline: "Repuestos y autopartes — vía Aria Auto",
+    // Aria Auto's part-search source, not a general storefront: it is
+    // deliberately excluded from the general search fan-out.
+    kind: "auto",
+    search: true,
+  },
+  rockauto: {
+    key: "rockauto",
+    label: "RockAuto",
+    color: "#303090",
+    logo: "logos/rockauto.png",
+    tagline: "Catálogo profundo de repuestos — vía Aria Auto",
+    // Aria Auto's second part-search source; same exclusion as AutoZone.
+    kind: "auto",
+    search: true,
+  },
+  /* ============================================================
+     SSENSE (2026-09-22) — THE HIGH-END TIER, AND NORDSTROM'S REPLACEMENT
+
+     Nordstrom was the luxury slot and it never worked: three integration
+     attempts, zero products, because its bot protection beats the actor.
+     It stays retired below. SSENSE takes the slot.
+
+     THE SHOPPER DOES NOT KNOW "SSENSE", and that is the design
+     constraint Danny named: a shopper in Lima recognises Gucci, Prada
+     and Adidas, not the retailer carrying them. So a high-end store is
+     introduced by its BRANDS, not by its name — brandsFor() below reads
+     them from the catalogue rather than from a hand-written list, so the
+     card can never promise a label the store is not actually carrying.
+
+     STATUS: listed, not yet browsable. A 2,431-product men's pull exists
+     in Apify ($2.45, 2026-09-22) and the women's pull is waiting on the
+     monthly limit, but neither has been exported into this repo. Until
+     the file lands this is exactly the Macy's situation before its
+     export arrived: a real row, honestly labelled, kept out of the live
+     search so an unconfigured retailer cannot return a failed store
+     card. Flip `browse: true` the day the catalogue is committed.
+     ============================================================ */
   bestbuy: { key: "bestbuy", label: "Best Buy", color: "#0046BE", logo: null, kind: "general", search: false, retired: true },
   nordstrom: { key: "nordstrom", label: "Nordstrom", color: "#000000", logo: null, kind: "general", search: false, retired: true,
     retiredNote: "Bot protection: tres integraciones, cero productos. Reemplazada por SSENSE." },
