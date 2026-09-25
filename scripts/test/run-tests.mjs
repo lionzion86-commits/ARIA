@@ -6507,6 +6507,46 @@ check("Juguetes is a department with a name, a photo, and a place in the taxonom
   eq(pageRow.types.join(), "TOYSKATEBOARD", "the mirror claims exactly the re-typed token");
 });
 
+group("the swim guard: Ropa de ba\u00f1o is swimwear, not surf-brand shirts");
+
+check("retailer-typed swimsuits that are really shirts go to Ropa deportiva", () => {
+  /* DANNY'S IPHONE QA (2026-09-25). The Ropa de ba\u00f1o aisle showed a
+     Hurley crew SWEATSHIRT: Dick's files surf-brand apparel under
+     "MensSwimsuits" and the type token put it in the swim aisle. Ropa de
+     ba\u00f1o is actual swimwear ONLY — bikinis, one-pieces, boardshorts,
+     swim trunks, rash guards. A shirt is a shirt even when Hurley made it.
+     When in doubt, it's clothes. */
+  const swimTyped = [];
+  for (const f of ["dicks-catalog.json", "pacsun-catalog.json"]) {
+    const data = JSON.parse(readFileSync(root(f), "utf8"));
+    for (const rv of Object.values(data.retailers || {}))
+      for (const dv of Object.values(rv.departments || {}))
+        for (const it of dv.items || [])
+          if (/swim/i.test(String(it.type || ""))) swimTyped.push(it);
+  }
+  if (swimTyped.length < 60) throw new Error(`only ${swimTyped.length} swim-typed records — verify this is still the live shape`);
+  const pageSubs = loadPageSubcategorySlice();
+  let impostors = 0, genuine = 0;
+  for (const it of swimTyped) {
+    const mine = subcats.subcategoryOfItem(it);
+    const theirs = pageSubs.subcategoryOfItem(it);
+    eq(theirs, mine, `page mirror disagrees on "${it.name}"`);
+    if (mine === "sportswear") impostors++;
+    else if (mine === "swim") genuine++;
+    else throw new Error(`"${it.name}" landed in aisle "${mine}" — neither swim nor sportswear`);
+  }
+  // The exact item Danny screenshotted, plus the whole impostor class.
+  const hurley = swimTyped.find((it) => /Sunshine Slub Crew Sweatshirt/.test(it.name));
+  if (!hurley) throw new Error("the Hurley crew sweatshirt vanished from the catalogs");
+  eq(subcats.subcategoryOfItem(hurley), "sportswear", "the Hurley crew sweatshirt");
+  eq(pageSubs.subcategoryOfItem(hurley), "sportswear", "the Hurley crew sweatshirt (page mirror)");
+  if (impostors < 10) throw new Error(`only ${impostors} impostors caught — the guard is too loose`);
+  if (genuine < 40) throw new Error(`only ${genuine} genuine swim items kept — the guard is too strict`);
+  // Positive beats negative: a long-sleeve SWIMSUIT is swimwear.
+  const longSleeveSuit = swimTyped.find((it) => /Long Sleeve Swimsuit/.test(it.name));
+  if (longSleeveSuit) eq(subcats.subcategoryOfItem(longSleeveSuit), "swim", "long-sleeve swimsuit stays swim");
+});
+
 group("no price, no buy button");
 
 check("a priceless record is a real thing in the cache, not a hypothesis", () => {

@@ -5709,7 +5709,25 @@ function subcategoryLabel(key){
   return (SUBCATEGORY_SPEC.find(r => r.key === key) || {}).label || null;
 }
 function subcategoryOfItem(item){
-  return subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
+  const key = subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
+  /* THE SWIM GUARD (2026-09-25, Danny's iPhone QA) — mirrors
+     scripts/lib/subcategories.js. Retailer type tokens lie: Dick's files
+     surf-brand shirts under "MensSwimsuits". Ropa de baño is ACTUAL
+     SWIMWEAR ONLY; a retailer-typed "swimsuit" that is really a shirt
+     goes to Ropa deportiva, never to the swim aisle. */
+  if (key === 'swim' && !isGenuineSwimwear(item)) return 'sportswear';
+  return key;
+}
+/* Genuine swimwear, whatever the retailer type token says. Positive beats
+   negative — a "Long Sleeve Swimsuit" is swimwear — and when neither
+   matches, it is NOT swimwear. When in doubt, it's clothes. */
+const SWIM_POSITIVE = /\b(bikini|tankini|swimsuit|swim suit|board ?shorts?|swim trunks?|swim shorts?|swim top|swim bottom|swim\b|ba[ñn]ador|traje de ba[ñn]o|rash ?guards?|one ?piece|wetsuit|traje de neopreno)\b/i;
+const SWIM_NEGATIVE = /\b(t-?shirts?|tees?|sweatshirts?|hoodies?|crews?(neck)?|sweaters?|jackets?|windbreakers?|polos?|shirts?|pants|joggers?|sweatpants|short sleeve|long sleeve)\b/i;
+function isGenuineSwimwear(item){
+  const name = String(item?.name ?? item?.title ?? '');
+  if (SWIM_POSITIVE.test(name)) return true;
+  if (SWIM_NEGATIVE.test(name)) return false;
+  return false;
 }
 function groupBySubcategory(items){
   const bucket = new Map();
