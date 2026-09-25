@@ -4891,27 +4891,66 @@ const HOME_ROW_DEPARTMENTS = [
      destination for the core shopper, so it is the first thing the row
      offers rather than the tenth. */
   'beauty',
-  'electronics',
-  'clothing',
-  'men',
-  'women',
-  'kids',
-  'candy_chocolate',
-  'sporting_goods',
-  'home_goods',
   'curvy',
+  'women',
+  'men',
   'shoes',
-  /* OFERTAS IS NOT LISTED HERE, AND THAT IS THE POINT (2026-09-24).
-     The deals hero sits directly above this row, with its own carousel
-     and its own "Ver todo". A second door to the same feed, six cards
-     further down, is the same offer twice -- and on a phone the row is
-     already asking for more sideways scrolling than it has earned.
-
-     The department still EXISTS in every other sense: `sale` is still
-     in DEPARTMENT_SPEC, still tiled on Categorías, still routed by
-     openCatalog('department','sale'), and still what the hero's own
-     "Ver todo" opens. Only the duplicate card is gone. */
 ];
+
+/* ============================================================
+   WHY FIVE, AND WHY THESE FIVE (2026-09-24)
+
+   The row was twelve cards. Danny's note: "too many cards, too much
+   sideways scrolling on a phone. Keep only the main destinations."
+
+   WHAT I COULD NOT MEASURE, SAID FIRST. Nobody has traffic data here --
+   there is no analytics in this repo -- so "top departments by expected
+   traffic" is not a number I can look up. What IS measurable is how much
+   is actually behind each door, and how much of it is the same stock
+   behind two doors. That is what the cuts below are argued from, and
+   where I have substituted judgement for evidence I have said so.
+
+   BEAUTY AND CURVY ARE GIVENS, not findings: Danny's identity sections,
+   named in the brief. Curvy is 18 products and stays anyway -- it is the
+   one card here kept for what it says rather than what it holds, and it
+   ships with its own honest thin-catalogue notice.
+
+   ROPA IS CUT AS A DUPLICATE, NOT AS A SMALL DEPARTMENT -- it is the
+   biggest one. Measured over the committed cache: Ropa holds 1,153
+   distinct items; Moda Hombre + Moda Mujer + Moda Niños hold 1,151 of
+   the same ones. Exactly two items are in Ropa and in no gendered
+   department (a Target bathrobe and a backpack), and none is the other
+   way round. `clothing` is `{ category: 'apparel' }` with no gender
+   facet, so it is the union by construction. Four cards, one inventory.
+
+   THE FOUR SIDE CATEGORIES ARE CUT AS SHALLOW BY DESIGN, which is
+   different from under-scraped. Electrónica, Hogar and Dulces get ONE
+   quota each per store in scripts/lib/catalog-quotas.js -- a single
+   query at Walmart and a single query at Target, 60 apiece -- where
+   apparel gets five or six. Deportes has no quota at all and is whatever
+   `sporting_goods` buckets happen to contain. They hold 48, 48, 48 and
+   44 today against a planned ceiling of 120, and the repo's own floor
+   for presenting a catalogue as a shop rather than a sample is
+   MIN_HONEST_STOREFRONT = 120. (Written for a storefront, not a
+   department -- borrowed as a reference point, not as a rule it was
+   meant to enforce.) Raising those quotas is the way one of these earns
+   the row back, and it is a one-line change in this list when it does.
+
+   MODA NIÑOS IS CUT ON DEPTH ALONE: 42 products, and no other argument
+   for or against it.
+
+   THE ONE LINE I WOULD ARGUE ABOUT is Moda Mujer above Moda Hombre.
+   Hombre has more than three times the stock (2,491 against 756). Mujer
+   is above it because the two cards leading this row are a beauty
+   destination and a women's size section, and sending that run into
+   menswear reads as a mistake. That is a judgement about who this row is
+   addressed to, not a measurement -- swap the two lines to reverse it.
+
+   NOTHING HERE IS REMOVED FROM THE SITE. All twelve departments keep
+   their pages, their routes and their tiles on Categorías, one tap away
+   through "Explora más" directly under this row.
+   ============================================================ */
+
 
 /* The home row's tiles: the shortlist above, in its order, minus any
    department the cache says nobody carries. Categorías keeps calling
