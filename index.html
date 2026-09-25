@@ -943,7 +943,7 @@
            login/logout/page-load; the two static buttons here are just
            the logged-out default markup. -->
       <div id="authArea" class="flex items-center gap-2 sm:gap-2.5">
-        <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+        <button onclick="openAuthModal('login')" class="inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
         <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>
       </div>
       <button onclick="toggleMobileMenu()" aria-label="Menú" class="lg:hidden w-9 h-9 grid place-items-center rounded-lg focus-ring flex-shrink-0" style="color:var(--navy)">
@@ -14380,7 +14380,7 @@ function renderAuthUI(){
     </div>
     <button onclick="logout()" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Salir</button>`;
   const loggedOutHTML = `
-    <button onclick="openAuthModal('login')" class="hidden sm:inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
+    <button onclick="openAuthModal('login')" class="inline-flex h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold border focus-ring transition hover:bg-zinc-50" style="border-color:var(--line); color:var(--navy)">Entrar</button>
     <button onclick="openAuthModal('signup')" class="h-9 px-2.5 sm:px-4 rounded-full text-[13px] font-semibold text-white focus-ring transition" style="background:var(--blue)">Crear cuenta</button>`;
   document.getElementById('authArea').innerHTML = currentUser ? loggedInHTML : loggedOutHTML;
 
