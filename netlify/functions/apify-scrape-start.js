@@ -142,7 +142,16 @@ export const BRAND_CONFIG = {
     // plan's fallback rule, same as Walmart's no-brand-mode case.
   },
   footlocker: {
+    // browseByBrand mode is actor-confirmed; "Nike" real-test confirmed
+    // 2026-09-17. The rest use the same mode — counts are verified
+    // empirically per run (empty result = wrong brand string, not a
+    // broken mode).
     nike: { brand: "Nike" },
+    jordan: { brand: "Jordan" },
+    adidas: { brand: "Adidas" },
+    puma: { brand: "Puma" },
+    newbalance: { brand: "New Balance" },
+    reebok: { brand: "Reebok" },
   },
   // walmart: no dedicated brand-mode confirmed on this actor — brand
   // search there stays a plain keyword search using the brand name itself.
