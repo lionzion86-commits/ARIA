@@ -5142,6 +5142,30 @@ function extendedSizesOf(item){
 }
 
 function hasExtendedSizes(item){ return extendedSizesOf(item).length > 0; }
+/* CURVY STORE CARDS (2026-09-25, Danny): the department opens with one wide
+   card per store that carries extended sizes -- Lane Bryant first (the
+   plus-size destination), then Old Navy, then Victoria's Secret, then the
+   rest by product count. CURVY_STORE_CARDS:SLICE-START
+
+   DERIVED FROM THE FEED, NEVER HARDCODED: the input is the catalog view's
+   own byRetailer map -- stores whose Curvy items the filters already
+   approved -- so a future catalog pull adds its card the moment its
+   products pass hasExtendedSizes, with no code change. A store with no
+   extended-size inventory gets no card, which is the honest state, not a
+   dead storefront. */
+const CURVY_STORE_LEAD_ORDER = ['lanebryant', 'oldnavy', 'victoriassecret'];
+function curvyStoreCards(byRetailer){
+  const leadRank = new Map(CURVY_STORE_LEAD_ORDER.map((k, i) => [k, i]));
+  return Array.from(byRetailer.entries())
+    .filter(([, items]) => Array.isArray(items) && items.length > 0)
+    .map(([key, items]) => ({ key, count: items.length }))
+    .sort((a, b) => {
+      const ra = leadRank.has(a.key) ? leadRank.get(a.key) : 1e9;
+      const rb = leadRank.has(b.key) ? leadRank.get(b.key) : 1e9;
+      return (ra - rb) || (b.count - a.count) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+    });
+}
+/* CURVY_STORE_CARDS:SLICE-END */
 
 /* Biggest first, and printed the way a label prints it: a shopper
    scanning for "3X" should find it without translating our formatting. */
@@ -7240,6 +7264,40 @@ function catalogStoreChipsHTML(){
   </div>`;
 }
 
+/* The wide store cards that head Curvy (2026-09-25, Danny): one long
+   landscape card per store carrying extended sizes, led by Lane Bryant.
+   They drive the SAME filter the chips use -- setCatalogStore -- so card
+   and chip row always agree about what the grid shows; tapping the active
+   card clears back to all stores. */
+function curvyStoreCardsHTML(){
+  const { retailerFilter, byRetailer } = catalogState;
+  const stores = curvyStoreCards(byRetailer);
+  if (!stores.length) return '';
+  const card = ({ key, count }) => {
+    const r = retailerFor(key);
+    const label = r ? r.label : (LIVE_RETAILER_LABEL[key] || key);
+    const active = retailerFilter === key;
+    /* The store's mark on a white plate, the same zone discipline as the
+       Tiendas cards: a logo file gets contain-fit; a store with no file
+       (Lane Bryant today) gets its wordmark on its brand colour -- a
+       designed treatment, never a broken image. */
+    const mark = r && r.logo
+      ? `<img src="${r.logo}" alt="${escapeHtml(label)}" data-retailer="${escapeHtml(key)}" style="width:100%; max-height:46px; max-width:72%; object-fit:contain" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+      : `<span class="inline-flex items-center h-[26px] px-3 rounded-lg text-[12px] font-extrabold text-white text-center leading-tight" style="background:${r ? r.color : 'var(--navy)'}">${escapeHtml(label)}</span>`;
+    return `<button onclick="${active ? 'setCatalogStore(null)' : `setCatalogStore('${key}')`}" aria-pressed="${active}"
+      class="w-full rounded-2xl px-3 py-3 flex items-center gap-4 text-left focus-ring transition"
+      style="background:linear-gradient(135deg,#0B1B3A 0%,#16305F 55%,#0B1B3A 100%); border:2px solid ${active ? '#F4C463' : 'rgba(255,255,255,0.10)'}">
+      <span class="flex-shrink-0 inline-flex items-center justify-center rounded-xl bg-white px-2" style="width:104px; height:62px">${mark}</span>
+      <span class="flex-1 min-w-0">
+        <span class="block text-[16px] font-extrabold uppercase tracking-wide text-white truncate">${escapeHtml(label)}</span>
+        <span class="block text-[12.5px] font-semibold mt-0.5" style="color:#F4C463">${count} producto${count === 1 ? '' : 's'}</span>
+      </span>
+      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '&#10003;' : '&rsaquo;'}</span>
+    </button>`;
+  };
+  return `<div id="curvyStoreCards" class="flex flex-col gap-3 mb-5">${stores.map(card).join('')}</div>`;
+}
+
 /* SEARCH WITHIN A CATEGORY.
 
    BUG FIX (2026-09-20): this bar's input and button have both called
@@ -7842,6 +7900,7 @@ function renderCatalogFeed(){
     ${catalogSearchBarHTML()}
     ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
+    ${isCurvy ? curvyStoreCardsHTML() : ''}
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
@@ -10826,6 +10885,17 @@ const RETAILERS = {
      public identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
   dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
   pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
+  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. lanebryant-catalog.json (169 products,
+     ~153 with extended sizes) is committed at repo root and merged by
+     loadDepartmentCache like Macy's. This row was the missing piece the
+     catalog audit found: the file was fetched in CATALOGUE_FILES but the
+     retailer was never registered, so all 169 products were invisible in
+     Tiendas, Curvy, Ofertas and the brand panels. No logo file yet — the
+     wordmark pill on brand colour is the documented fallback, not a
+     broken state. Colour is Lane Bryant's brand red, from their public
+     identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
+  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
   sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
   dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
