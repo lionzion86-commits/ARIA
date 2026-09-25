@@ -40,7 +40,7 @@
    which aria-chat-groq.js also uses, so the two endpoints cannot answer
    differently. The only line this one alters is `stream: true`.
    ============================================================ */
-import { chatRequestBody, deltaFromLine, isDoneLine, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, deltaFromLine, isDoneLine, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -143,15 +143,17 @@ export default async function handler(req) {
            already on screen by the time this resolves — so the round
            trip costs the shopper nothing they can see. Best effort, as
            it has always been: null here means the browser's own voice
-           takes over client-side. */
-        send(controller, { done: true, reply, audio: await speechFor(reply) });
+           takes over client-side. The reply is sanitized (see
+           sanitizeSpokenPunctuation) so dictated punctuation words never
+           reach the shopper as words, in the bubble or the voice. */
+        send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), audio: await speechFor(reply) });
         controller.close();
       } catch (error) {
         /* MID-STREAM FAILURE KEEPS WHAT IT HAS. Whatever Aria had
            already said stays on screen and is returned as the reply, so
            a dropped connection leaves a short answer rather than
            deleting a paragraph the shopper was reading. */
-        if (reply) send(controller, { done: true, reply, audio: null, truncated: true });
+        if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), audio: null, truncated: true });
         else send(controller, { error: error.message });
         controller.close();
       } finally {

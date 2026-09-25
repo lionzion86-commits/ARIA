@@ -7741,6 +7741,129 @@ group("store carousels: window-shopping rails");
   });
 }
 
+/* ------------------------------------------------------------------
+   VOICE PUNCTUATION + THE SEARCH DOORWAY (2026-09-24)
+
+   TWO REPORTS FROM DANNY'S IPHONE. (1) Aria said the word "comma" out
+   loud — "of course we do comma why" — instead of pausing at a comma.
+   (2) He tapped a shoe in Smart Search and landed on a page titled
+   "Women's Mid-Rise Bootcut Pants" with no image and no results.
+   ------------------------------------------------------------------ */
+group("voice: dictated punctuation never reaches the shopper as words");
+
+check("the reported exchange is punctuated, not spoken", () => {
+  // The verbatim failure Danny reported, plus the dictated-punctuation
+  // shapes around it: the model echoing the words, the user dictating
+  // them, and both languages (recognition is es-PE, dictation English).
+  const cases = [
+    ["of course we do comma why would you think that", "of course we do, why would you think that"],
+    ["show me red shoes comma size eight please", "show me red shoes, size eight please"],
+    ["quiero zapatos rojos coma talla ocho por favor", "quiero zapatos rojos, talla ocho por favor"],
+    ["really exclamation point I love them", "really! I love them"],
+    ["are they on sale question mark", "are they on sale?"],
+    ["dear mom new paragraph I found them", "dear mom\nI found them"],
+    ["that sounds perfect period", "that sounds perfect."],
+  ];
+  for (const [input, want] of cases) {
+    eq(chatModel.sanitizeSpokenPunctuation(input), want, JSON.stringify(input));
+  }
+});
+
+check("spanish idioms are not mistaken for punctuation", () => {
+  // "punto" in "a punto de" / "punto de venta" is a noun, not a dictated
+  // period — corrupting it would be worse than the bug being fixed.
+  for (const idiom of ["estoy a punto de buscar tu pedido", "nuestro punto de venta en Miami"]) {
+    eq(chatModel.sanitizeSpokenPunctuation(idiom), idiom, JSON.stringify(idiom));
+  }
+});
+
+check("ordinary text passes through untouched", () => {
+  for (const plain of ["just show me the shoes", "I found them for $41.65, well-known brand"]) {
+    eq(chatModel.sanitizeSpokenPunctuation(plain), plain, JSON.stringify(plain));
+  }
+});
+
+check("the client mirror agrees with the server copy", () => {
+  // index.html cannot import, so the rule list lives twice — this pins
+  // that the two never drift, the way the weight tables are pinned.
+  const src = readFileSync(root("index.html"), "utf8");
+  const m = src.match(/function spokenPunctuationToMarks\(text\)\{[\s\S]*?\r?\n\}/);
+  if (!m) throw new Error("spokenPunctuationToMarks is missing from index.html");
+  const client = new Function(m[0] + "; return spokenPunctuationToMarks;")();
+  const samples = [
+    "of course we do comma why would you think that",
+    "quiero zapatos rojos coma talla ocho por favor",
+    "really exclamation point I love them",
+    "estoy a punto de buscar tu pedido",
+    "just show me the shoes",
+  ];
+  for (const sample of samples) {
+    eq(client(sample), chatModel.sanitizeSpokenPunctuation(sample), JSON.stringify(sample));
+  }
+});
+
+check("both chat endpoints and the TTS path sanitize the reply", () => {
+  // The voice Danny hears comes from Grok TTS fed by speechFor; the
+  // bubble and the history come from the endpoint replies. All three
+  // must carry the sanitized text, or the voice says "comma" again.
+  const model = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
+  if (!/const speakable = sanitizeSpokenPunctuation\(reply\)/.test(model) ||
+      !/text:\s*speakable/.test(model)) {
+    throw new Error("speechFor no longer sanitizes before Grok TTS");
+  }
+  const groq = readFileSync(root("netlify/functions/aria-chat-groq.js"), "utf8");
+  if (!/const reply = sanitizeSpokenPunctuation\(chatData/.test(groq)) {
+    throw new Error("aria-chat-groq.js returns the unsanitized reply");
+  }
+  const stream = readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8");
+  if (!/reply: sanitizeSpokenPunctuation\(reply\)/.test(stream)) {
+    throw new Error("aria-chat-stream.js returns the unsanitized reply");
+  }
+  const stt = readFileSync(root("index.html"), "utf8");
+  if (!/const cleanTranscript = spokenPunctuationToMarks\(transcript\)/.test(stt)) {
+    throw new Error("the speech-to-text transcript is not sanitized before the chat");
+  }
+});
+
+group("search doorway: a product route never degrades into a fake search");
+
+check("restoring a product route resolves the catalogue, never searches the title", () => {
+  // The doorway: applyRoute's productView case used to call
+  // showResults(route.name) when the in-memory item was gone, which is
+  // how a tapped shoe became a pants title with no image and no results.
+  const src = readFileSync(root("index.html"), "utf8");
+  const route = src.slice(src.indexOf("async function applyRoute(route){"), src.indexOf("/* ============================================================\n   THE CATALOGUE PAGE"));
+  const productCase = route.slice(route.indexOf("case 'productView'"), route.indexOf("case 'catalogView'"));
+  if (/showResults\(route\.name/.test(productCase)) {
+    throw new Error("product route restoration still fakes a search out of the product name");
+  }
+  if (!/findCatalogProductByTitle\(route\.name\)/.test(productCase)) {
+    throw new Error("product route restoration does not resolve the catalogue by title");
+  }
+  if (!/showProductUnavailable\(route\.name\)/.test(productCase)) {
+    throw new Error("an unresolvable product route has no honest empty state");
+  }
+});
+
+check("a failed catalogue search says so and offers a retry", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("async function showResults(query, opts = {}){"), src.indexOf("/* ============================================================\n   THE LIVE SCAN"));
+  if (!/catch \(err\)[\s\S]*?catalogSearch/.test(fn) && !/try \{[\s\S]*?catalogSearch\(query\)/.test(fn)) {
+    throw new Error("showResults does not guard catalogSearch");
+  }
+  if (!/No pudimos cargar el catálogo/.test(fn) || !/retryFailedSearch/.test(fn)) {
+    throw new Error("a failed search has no honest message with a retry");
+  }
+});
+
+check("one poison record cannot empty the search pool", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const pool = src.slice(src.indexOf("async function relatedPool(){"), src.indexOf("/* ============================================================\n   CATALOG-FIRST SEARCH"));
+  if (!/try \{ it = normalizeLiveItem/.test(pool)) {
+    throw new Error("relatedPool does not isolate a throwing record");
+  }
+});
+
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
