@@ -287,9 +287,17 @@
                      rgba(4,12,28,0.32) 0%,
                      rgba(4,12,28,0.42) 45%,
                      rgba(4,12,28,0.60) 100%) }
-  /* Text separation over the photograph: a soft shadow so the white
-     type reads even where the photo runs bright. */
-  .ariaStoryTeaser{ text-shadow:0 1px 10px rgba(0,0,0,0.55) }
+  /* POP PASS (2026-09-25, Danny's iPhone QA pass 3): the photo brightness
+     is settled -- he likes it. The letters do the work now. Layered
+     text-shadow so every letter lifts off the night photo; gold elements
+     get a warm gold-tinted glow of their own. Scrim stays light -- the
+     suite pins .ariaStoryScrim stops <= 0.40/0.65, so pop comes from the
+     type, never from darkening the scrim. (Manrope tops out at 800 in our
+     font bundle, so the headline keeps font-extrabold and gets its pop
+     from size + shadow instead of a 900 weight.) */
+  .ariaStoryTeaser{ text-shadow:0 2px 12px rgba(0,0,0,.65), 0 0 2px rgba(0,0,0,.8) }
+  .ariaStoryTeaser .ariaKicker{ font-size:12.5px;
+     text-shadow:0 0 14px rgba(244,196,99,.55), 0 1px 6px rgba(0,0,0,.7) }
 #whyUs > .relative{ position:relative; z-index:2 }
   /* Glass, not a white box: the photograph stays visible THROUGH the
      promise rather than being covered by it. The border is what keeps
@@ -1515,7 +1523,11 @@
            teaser now rides its OWN lighter bottom-weighted scrim
            (.ariaStoryScrim, 0.32->0.60) with pure-white type plus a soft
            text shadow; #whyUs above keeps the standard scrim. Copy still
-           WORD FOR WORD. -->
+           WORD FOR WORD.
+           AMENDMENT 2026-09-25 pass 3: photo brightness is settled (Danny
+           likes it); the LETTERS got the pop -- layered glow text-shadow,
+           larger headline, semibold body, gold glow on kicker and link,
+           pull quote bumped. Scrim untouched. -->
       <div class="relative overflow-hidden rounded-3xl">
         <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
              style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
@@ -1524,20 +1536,20 @@
           <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
             <div>
               <div class="ariaKicker mb-3">La historia</div>
-              <h3 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:#fff">
+              <h3 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:#fff">
                 Aria lleva el nombre de mi hija.
               </h3>
             </div>
             <div class="max-w-[62ch]">
-              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4 font-medium" style="color:#fff">
+              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4 font-semibold" style="color:#fff">
                 Nació como una promesa: que ningún peruano vuelva a pagar de más
                 — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
                 compra en una tienda en Estados Unidos.
               </p>
-              <blockquote class="ariaPullQuote text-[17px] sm:text-[19px] my-5" style="color:#fff">
+              <blockquote class="ariaPullQuote text-[18px] sm:text-[20px] my-5" style="color:#fff">
                 que el precio que ves sea el precio que pagas.
               </blockquote>
-              <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:#F4C463">Lee la historia completa →</button>
+              <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:#F4C463; text-shadow:0 0 12px rgba(244,196,99,.5), 0 1px 4px rgba(0,0,0,.7)">Lee la historia completa →</button>
             </div>
           </div>
         </div>
