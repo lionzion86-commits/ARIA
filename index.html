@@ -87,6 +87,12 @@
   /* The sort select keeps its white surface; its hairline turns rose so
      it does not look pasted on. */
   [data-store-theme="victoriassecret"] #catalogSort{ border-color:#E8A9C4 !important; }
+  /* AUTO STORES — light brand wash (2026-09-24). Unlike the dark VS
+     ambient, Aria Auto keeps its light surfaces: the store's colour only
+     tints the page background behind the cards, so no text re-inking is
+     needed. Worn when the view is opened from that store's tile. */
+  [data-store-theme="autozone"]{ background:linear-gradient(180deg, #DFF0E4 0%, var(--paper) 340px); }
+  [data-store-theme="rockauto"]{ background:linear-gradient(180deg, #E2E3F5 0%, var(--paper) 340px); }
   /* STORE CAROUSELS — WINDOW-SHOPPING RAILS (2026-09-24).
      Danny: every store landing and every category drill-down leads with
      a swipeable product rail; the wordy tiles move below. The rail is a
@@ -2028,6 +2034,7 @@
   </section>
 
   <div class="max-w-[900px] mx-auto px-5 py-12 sm:py-14">
+    <div id="autoStoreHeaderWrap" class="hidden"></div>
     <!-- VEHICLE SELECTOR -->
     <div class="rounded-3xl border p-5 sm:p-7" style="border-color:var(--line); background:linear-gradient(135deg,var(--sky) 0%,#fff 60%)">
       <div class="font-bold text-[15px] mb-4" style="color:var(--navy)">1. Elige tu vehículo</div>
@@ -2059,13 +2066,28 @@
         <div class="font-bold text-[15px] mb-1" style="color:var(--navy)">2. Busca la pieza que necesitas</div>
         <div id="autoVehicleSummary" class="text-[12.5px] text-zinc-500 mb-4"></div>
         <div class="relative">
-          <input id="autoPartQuery" type="text" placeholder="Ej. pastillas de freno, alternador, filtro de aceite"
+          <input id="autoPartQuery" type="text" placeholder="Ej. pastillas de freno, filtro de aceite o un número de parte (D2076)"
             onkeydown="if(event.key==='Enter')searchAutoParts()"
             class="w-full h-[52px] bg-white border rounded-2xl pl-4 pr-[110px] text-[14px] outline-none focus-ring" style="border-color:var(--line)">
           <button onclick="searchAutoParts()" class="absolute right-1.5 top-1.5 h-9 px-4 rounded-xl text-white text-[13px] font-bold focus-ring" style="background:var(--blue)">Buscar</button>
         </div>
+        <div class="flex flex-wrap gap-2 mt-4" aria-label="Categorías de repuestos">
+          <span class="text-[12px] font-bold self-center mr-1" style="color:#8A93A8">Explora:</span>
+          <button onclick="autoChipSearch('pastillas de freno')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Frenos</button>
+          <button onclick="autoChipSearch('filtro de aceite')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Filtros de aceite</button>
+          <button onclick="autoChipSearch('filtro de aire')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Filtros de aire</button>
+          <button onclick="autoChipSearch('bujías')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Bujías</button>
+          <button onclick="autoChipSearch('limpiaparabrisas')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Limpiaparabrisas</button>
+          <button onclick="autoChipSearch('bobina de encendido')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Encendido</button>
+          <button onclick="autoChipSearch('sensor de oxígeno')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Sensores</button>
+          <button onclick="autoChipSearch('correa de accesorios')" class="h-8 px-3.5 rounded-full border text-[12.5px] font-bold focus-ring transition hover:shadow" style="border-color:var(--line); color:var(--navy); background:#fff">Correas</button>
+        </div>
       </div>
     </div>
+<script>function autoChipSearch(q){ var i=document.getElementById('autoPartQuery'); if(i) i.value=q; searchAutoParts(); }</script>
+
+    <!-- DESTACADOS — this store's own shelf (only when opened from its tile) -->
+    <div id="autoDestacadosWrap" class="mt-6 hidden"></div>
 
     <!-- RESULTS -->
     <div id="autoPartsResultsWrap" class="mt-6 hidden"></div>
@@ -6443,7 +6465,7 @@ function storeCardHTML(r){
      opens the store page, which explains that we buy there by request
      while the catalogue is connected. A logo that goes nowhere is worse
      than no logo. */
-  const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;
+  const action = r.kind === 'auto' ? `openAriaAuto('${jsAttr(r.key)}')` : `openStore('${jsAttr(r.key)}')`;
   return `<button onclick="${action}"
     class="group text-left bg-white border rounded-2xl overflow-hidden focus-ring transition hover:shadow-[0_14px_30px_rgba(10,31,68,0.10)] flex flex-col"
     style="border-color:${pending ? 'var(--line)' : 'rgba(10,31,68,0.14)'}">
@@ -6546,7 +6568,7 @@ function homeStoreChipHTML(r){
          style="width:100%; max-height:42px; max-width:96px; object-fit:contain"
          onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
     : `<span class="text-[11.5px] font-extrabold text-white px-2 py-1 rounded-md text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
-  const action = r.kind === 'auto' ? 'openAriaAuto()' : `openStore('${jsAttr(r.key)}')`;
+  const action = r.kind === 'auto' ? `openAriaAuto('${jsAttr(r.key)}')` : `openStore('${jsAttr(r.key)}')`;
   return `<button onclick="${action}" class="relative h-[62px] rounded-xl border bg-white grid place-items-center px-3 focus-ring transition hover:shadow-[0_8px_18px_rgba(10,31,68,0.08)]"
     style="border-color:var(--line); ${pending && !r.logo ? 'filter:grayscale(1); opacity:.6' : ''}" title="${escapeHtml(r.label)}${pending ? ' — ' + escapeHtml(r.pendingNote || 'Próximamente') : ''}">
     ${mark}
@@ -7171,7 +7193,7 @@ async function applyRoute(route){
       case 'salesView': goSales(route.retailer || undefined); break;
       case 'categoriesView': await openCategories(); break;
       case 'cartView': openCart(); break;
-      case 'ariaAutoView': openAriaAuto(); break;
+      case 'ariaAutoView': openAriaAuto(route.store); break;
       case 'homeView': showPage('homeView'); if (route.hash) scrollToSection(route.hash); break;
       default: showPage(route.view || 'homeView');
     }
@@ -9276,7 +9298,8 @@ const RETAILERS = {
   fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
   miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
   goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
-  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.svg',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
+  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
+  rockauto:        { key: 'rockauto',        label: 'RockAuto',          color: '#303090', logo: 'logos/rockauto.png',   tagline: 'Catálogo profundo de repuestos — vía Aria Auto', kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: null, kind: 'general', search: false, retired: true },
@@ -9301,6 +9324,10 @@ const STORE_THEMES = {
      reads as luxury, so its section is lit like the real store instead
      of the white grid every other storefront still uses. */
   victoriassecret: { glow: '#E31C79' },
+  /* AUTO STORES — the ambient follows the tile that opened Aria Auto.
+     AutoZone's garage green, RockAuto's catalogue blue. */
+  autozone: { glow: '#1C8A4B' },
+  rockauto: { glow: '#303090' },
 };
 function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
 /* Paint or clear the ambient on a view container. Wired into openStore /
@@ -11539,7 +11566,7 @@ const STATIC_YEARS = Array.from({ length: 2026 - 2009 + 1 }, (_, i) => String(20
 // after them is selector-only for now and falls through to a live call
 // on part search, same as any other cache miss.
 const STATIC_VEHICLES = [
-  { make: 'Toyota', models: ['Camry', 'Corolla', 'Avalon', 'Yaris', 'Prius', 'Prius C', 'Prius V', 'RAV4', 'Highlander', '4Runner', 'Sequoia', 'Land Cruiser', 'Tacoma', 'Tundra', 'Sienna', 'Venza', 'C-HR', 'Corolla Cross', 'GR86', 'Supra', 'FJ Cruiser', 'Matrix'] },
+  { make: 'Toyota', models: ['Camry', 'Corolla', 'Hilux', 'Avalon', 'Yaris', 'Prius', 'Prius C', 'Prius V', 'RAV4', 'Highlander', '4Runner', 'Sequoia', 'Land Cruiser', 'Tacoma', 'Tundra', 'Sienna', 'Venza', 'C-HR', 'Corolla Cross', 'GR86', 'Supra', 'FJ Cruiser', 'Matrix'] },
   { make: 'Honda', models: ['Accord', 'Civic', 'Insight', 'Fit', 'CR-V', 'HR-V', 'Pilot', 'Passport', 'Ridgeline', 'Odyssey', 'Element', 'Crosstour', 'Clarity'] },
   { make: 'Ford', models: ['F-150', 'Escape', 'F-250', 'F-350', 'Ranger', 'Maverick', 'Explorer', 'Edge', 'Expedition', 'Bronco', 'Bronco Sport', 'EcoSport', 'Fusion', 'Focus', 'Fiesta', 'Taurus', 'Mustang', 'Flex', 'C-Max', 'Transit Connect'] },
   { make: 'Kia', models: ['Optima', 'Sportage', 'K5', 'Forte', 'Rio', 'Soul', 'Sorento', 'Telluride', 'Seltos', 'Niro', 'Sedona', 'Carnival', 'Cadenza', 'K900', 'Amanti', 'Borrego', 'Stinger', 'EV6', 'EV9', 'K4'] },
@@ -11567,14 +11594,81 @@ function loadAutoCache(){
   return autoCachePromise;
 }
 
-function openAriaAuto(){
-  pushRoute({ view: 'ariaAutoView' });
+function openAriaAuto(sourceKey){
+  pushRoute({ view: 'ariaAutoView', store: sourceKey || null });
   showPage('ariaAutoView');
   // Kick off the part-search cache fetch early (used later by
   // AUTO_PARTS_SOURCES) — harmless to call more than once, the promise
   // is shared, and the selector below never waits on it.
   loadAutoCache();
   initAutoSelector();
+  /* A store tile carries its store in: the view wears that store's
+     colours and shows its Destacados rail below the search area. The nav
+     link passes nothing — the neutral view, no rail. */
+  renderAutoStoreHeader(sourceKey || null);
+  applyStoreTheme('ariaAutoView', sourceKey || null);
+  renderAutoDestacados(sourceKey || null);
+}
+
+/* Store-branded band at the top of the Aria Auto view when opened from a
+   store tile: the store's own logo on a tint of its brand colour, so the
+   shopper knows whose catalogue they are browsing. */
+function renderAutoStoreHeader(sourceKey){
+  const wrap = document.getElementById('autoStoreHeaderWrap');
+  if (!wrap) return;
+  const s = sourceKey && autoSourceFor(sourceKey);
+  if (!s){ wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+  const r = retailerFor(sourceKey) || {};
+  wrap.innerHTML = `<div class="rounded-3xl border p-5 sm:p-6 mb-6 flex items-center gap-4"
+      style="border-color:var(--line); background:linear-gradient(135deg, ${s.color}14, #fff 55%)">
+    <img src="${escapeHtml(s.logo || r.logo || '')}" alt="${escapeHtml(s.label)}"
+      style="height:34px; max-width:150px; object-fit:contain" onerror="this.style.display='none'">
+    <div class="min-w-0">
+      <div class="font-extrabold text-[15px]" style="color:var(--navy)">Repuestos vía ${escapeHtml(s.label)}</div>
+      <div class="text-[12.5px]" style="color:#5B6478">${escapeHtml(r.tagline || s.note || '')}</div>
+    </div>
+  </div>`;
+  wrap.classList.remove('hidden');
+}
+
+/* DESTACADOS — the store's own shelf, below the search area. Built once
+   per store from the free cache file: imaged, priced parts, deduped by
+   part number, normalized through the same path as search results so the
+   price already carries the door margin. */
+let autoDestacadosCache = {};
+async function autoDestacadosFor(sourceKey){
+  if (autoDestacadosCache[sourceKey]) return autoDestacadosCache[sourceKey];
+  const cache = await loadAutoCache();
+  const out = [];
+  const seen = new Set();
+  for (const key of Object.keys(cache?.partSearches || {})){
+    const arr = cache.partSearches[key]?.[sourceKey];
+    if (!Array.isArray(arr)) continue;
+    for (const raw of arr){
+      const id = String(raw.part_number || raw.partNumber || raw.title || '');
+      if (!id || seen.has(id)) continue;
+      const n = normalizeAutoPartItem(sourceKey, raw);
+      if (!n.image || n.price == null) continue;
+      seen.add(id);
+      out.push({ retailer: sourceKey, title: n.title, price: n.price, image: n.image,
+                 weightKg: n.weightKg, brand: raw.brand || '' });
+      if (out.length >= 48) break;
+    }
+    if (out.length >= 48) break;
+  }
+  autoDestacadosCache[sourceKey] = out;
+  return out;
+}
+
+async function renderAutoDestacados(sourceKey){
+  const wrap = document.getElementById('autoDestacadosWrap');
+  if (!wrap) return;
+  if (!sourceKey){ wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+  const label = autoSourceLabel(sourceKey);
+  const items = await autoDestacadosFor(sourceKey);
+  const html = storeCarouselHTML({ id: 'autoDestacadosRail', title: `Destacados en ${label}`, items, retailer: sourceKey });
+  wrap.innerHTML = html;
+  wrap.classList.toggle('hidden', !html);
 }
 
 let autoSelectorInitialized = false;
@@ -12096,7 +12190,7 @@ const AUTO_SOURCES = {
     key: "autozone",
     label: "AutoZone",
     color: "#1C8A4B",
-    logo: "logos/autozone.svg",
+    logo: "logos/autozone.png",
     search: true,
     /* Whether this source publishes a per-vehicle compatibility list at
        all. `partial` is the honest answer for AutoZone today: the actor
@@ -12122,15 +12216,18 @@ const AUTO_SOURCES = {
      shopper as "RockAuto has no parts for your car" — a lie, and exactly
      the kind this section is being fixed to stop telling. Step 2 and
      step 3 of ADDING A PARTS SOURCE above are the whole remaining task. */
+  /* ROCKAUTO — LIVE (2026-09-24). The staged catalog pull (2,490 rows /
+     1,013 unique parts, 97.4% imaged) is filed into auto-cache.json under
+     {year}|toyota|{model}|{spanish-query} keys, so no live scrape is
+     needed: searchAutoSource serves it from the free cache file. */
   rockauto: {
     key: "rockauto",
     label: "RockAuto",
-    color: "#C8102E",
-    logo: null,
-    search: false,
+    color: "#303090",
+    logo: "logos/rockauto.png",
+    search: true,
     fitmentData: "yes",
-    pendingNote: "Conectando el catálogo",
-    note: "Selector año/marca/modelo propio y listas de compatibilidad por pieza.",
+    note: "Catálogo profundo con fotos y listas de compatibilidad por pieza.",
   },
   /* ADVANCE AUTO PARTS — conditional per the brief: probe it, onboard it
      only if the scrape comes back clean, and skip it silently otherwise
@@ -12260,10 +12357,39 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   const cache = await loadAutoCache();
   const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
   if (cached?.length) return cached.map(it => normalizeAutoPartItem(sourceKey, it));
+  /* PART-NUMBER / BRAND FALLBACK (2026-09-24). A shopper typing "D2076" or
+     "Bosch" is not asking a keyword question — resolve it against the
+     prebuilt part-number and brand indexes before any paid live scrape. */
+  const indexed = searchAutoIndex(cache, sourceKey, vehicle, query);
+  if (indexed.length) return indexed;
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
   const rawItems = await scrapeRetailer(sourceKey, combined, maxItems);
   return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
+}
+
+/* Brand / part-number lookup against the prebuilt indexes in
+   auto-cache.json. Scoped to the selected vehicle: an index hit filed
+   under a different car is not shown. */
+function searchAutoIndex(cache, sourceKey, vehicle, query){
+  if (!cache || !vehicle) return [];
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return [];
+  const prefix = `${vehicle.year}|${vehicle.make}|${vehicle.model}|`.toLowerCase();
+  const pnKey = q.replace(/[^a-z0-9]/g, '');
+  const tuples = (pnKey && cache.partNumberIndex?.[pnKey]) || cache.brandIndex?.[q] || [];
+  const out = [];
+  const seen = new Set();
+  for (const [key, source, idx] of tuples){
+    if (source !== sourceKey) continue;
+    if (!String(key).toLowerCase().startsWith(prefix)) continue;
+    const raw = cache.partSearches?.[key]?.[source]?.[idx];
+    if (!raw || seen.has(raw)) continue;
+    seen.add(raw);
+    out.push(normalizeAutoPartItem(sourceKey, raw));
+    if (out.length >= 12) break;
+  }
+  return out;
 }
 
 /* Built from the registry, not hand-listed. A row with search:false is
@@ -12789,6 +12915,11 @@ function axleFromItem(item){
 
 /** Per-item weight: the axle the listing is for, not an average of both. */
 function partWeightForItem(item, query, vehicle){
+  /* The normalized catalog weight (estimate table x1.10 packaging cushion
+     at ingest, per Danny's rule) beats re-estimating: it is the
+     per-listing figure, already cushioned. */
+  const w = Number(item?.raw?.weight_kg);
+  if (Number.isFinite(w) && w > 0) return w;
   const axle = axleFromItem(item);
   if (!axle) return estimatePartWeightKg(query, vehicle);
   // The estimator already reads an axle out of the query text (see
@@ -12983,7 +13114,7 @@ async function searchAutoParts(){
   autoPartsRendered = [];   // a new search replaces what the cards index into
   autoConfirmedBySource = new Map();
   wrap.classList.remove('hidden');
-  wrap.innerHTML = `<div id="autoCompareWrap"></div>`
+  wrap.innerHTML = `<div id="autoCompareWrap"></div><div id="autoSimilarWrap"></div>`
     + AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${
         s.pending ? autoPendingBlockHTML(s, selectedVehicle, query) : autoPartSkeleton(s.label)
       }</div>`).join('');
@@ -13002,6 +13133,61 @@ async function searchAutoParts(){
     renderAutoComparison(query);
   }));
   renderAutoComparison(query);
+  renderAutoSimilarRail();
+}
+
+/* SIMILAR PARTS RAIL (2026-09-24) — "Similares de otras marcas". The
+   comparison strip answers "the same part, store by store"; this answers
+   the next question: the same TYPE of part from the other store's shelf.
+   Built from the confirmed-fit results already in memory, grouped by
+   part type, preferring the type with the most brand variety. Cards ride
+   the same autoPartsRendered index as the main blocks, so a tap opens the
+   same product page with the originating store attached. */
+function renderAutoSimilarRail(){
+  const wrap = document.getElementById('autoSimilarWrap');
+  if (!wrap) return;
+  const byType = new Map();
+  for (const [sourceKey, items] of autoConfirmedBySource){
+    for (const it of (items || [])){
+      const t = String(it?.raw?.part_type || it?.raw?.partType || '').trim();
+      if (!t) continue;
+      if (!byType.has(t)) byType.set(t, []);
+      byType.get(t).push({ sourceKey, it });
+    }
+  }
+  let best = null;
+  for (const [t, list] of byType){
+    if (list.length < 3) continue;
+    const brands = new Set(list.map(e => String(e.it?.raw?.brand || '').toLowerCase()));
+    const sources = new Set(list.map(e => e.sourceKey));
+    const score = brands.size * 10 + sources.size;
+    if (!best || score > best.score) best = { t, list, score };
+  }
+  if (!best){ wrap.innerHTML = ''; return; }
+  const cards = best.list.slice(0, 10).map(({ sourceKey, it }) => {
+    const axle = axleFromItem(it);
+    const card = {
+      retailer: sourceKey,
+      title: it.title,
+      price: it.price,
+      weightKg: partWeightForItem(it, '', selectedVehicle),
+      image: it.image || '',
+      rating: null,
+      axle,
+      partNumber: partNumberLabel(it.raw),
+    };
+    const idx = autoPartsRendered.push(card) - 1;
+    return `<div class="ariaCarouselCard" role="listitem">${productCardHTML(card, {
+      open: `openAutoPart(${idx})`,
+      badgeHTML: `<div class="mb-2">${autoSourceBadgeHTML(sourceKey, 18)}</div>`,
+      extraHTML: autoPartNumberHTML(card.partNumber),
+    })}</div>`;
+  }).join('');
+  wrap.innerHTML = `<section aria-label="Similares de otras marcas" class="mb-8">
+    <h2 class="ariaCarouselTitle text-[20px] font-extrabold tracking-[-0.02em] mb-1" style="color:var(--navy)">Similares de otras marcas</h2>
+    <p class="text-[12px] mb-4" style="color:#6B7487">Mismo tipo de repuesto (${escapeHtml(best.t)}), del otro lado del mostrador.</p>
+    <div class="ariaCarousel no-scrollbar" role="list">${cards}</div>
+  </section>`;
 }
 
 /* ============================================================
