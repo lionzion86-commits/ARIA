@@ -483,6 +483,45 @@
                 height:48px; padding:0 26px; margin-top:24px; border-radius:16px;
                 background:#F4C463; color:var(--navy);
                 font-size:15px; font-weight:800; letter-spacing:-0.01em }
+  /* ============================================================
+     THE TIENDAS HERO, PHOTOGRAPHED (2026-09-25)
+
+     The flat navy hero was doing its job and nothing more. The
+     photograph is a golden-hour American shopping street -- warm
+     storefronts, awnings, people -- under a navy grade heavy enough
+     that the white/gold headline stays legible on a phone.
+
+     THE SCRIM IS COMPUTED, NOT CHOSEN. The brightest pixels actually
+     behind the text runs measured ~1.0 luminance (blown highlights on
+     the sunlit awnings), so the stops are set against a pure-white
+     worst case: composite alpha 0.91 at the kicker, 0.86 at the
+     headline, 0.95 at the paragraph. That puts the 11.5px gold kicker
+     at ~4.5:1, the white/gold display headline past 5:1 / 3.2:1, and
+     the #AFBBD6 paragraph near 4.9:1. The photo does its work on the
+     right of the text column and at the edges, where the horizontal
+     gradient eases off; the bottom runs nearly opaque so the band
+     grounds into the page instead of floating.
+
+     Positioning lives here, never in a Tailwind utility -- the same
+     guard as .ariaHero and .ariaSectionShot: an absolutely positioned
+     photo whose containing block vanishes with the CDN does not
+     degrade, it covers the page.
+     ============================================================ */
+  .ariaTiendasHero{ position:relative; overflow:hidden; background:var(--navy) }
+  .ariaTiendasHeroPhoto{ position:absolute; inset:0; width:100%; height:100%;
+                         object-fit:cover; object-position:50% 45%; z-index:0 }
+  .ariaTiendasHeroScrim{ position:absolute; inset:0; z-index:1;
+                         background:
+                           linear-gradient(180deg,
+                             rgba(4,12,28,0.88) 0%,
+                             rgba(4,12,28,0.80) 30%,
+                             rgba(4,12,28,0.90) 60%,
+                             rgba(4,12,28,0.97) 100%),
+                           linear-gradient(90deg,
+                             rgba(4,12,28,0.28) 0%,
+                             rgba(4,12,28,0.12) 45%,
+                             rgba(4,12,28,0.00) 75%) }
+  .ariaTiendasHeroInner{ position:relative; z-index:2 }
 
   /* The Nosotros feature photograph: full-bleed on a phone, inset and
      rounded once there is a margin to inset into. No text over it -- the
@@ -2080,14 +2119,17 @@
        Precio Honesto homepage section is the template for a WHOLE page,
        not just its top — navy bands and white bands alternating, gold as
        an accent inside both, never a section that is just white with a
-       border. That rhythm is what this page has now: navy hero, white
-       store grid, navy proof band, white FAQ, navy CTA.
+       border. That rhythm is what this page has now: photographed navy
+       hero, white store grid, navy proof band, white FAQ, navy CTA.
 
        The white top nav stays. Gold is for accents; yellow is only ever
        a sale badge, never a header. -->
-  <section class="ariaNavyBand relative overflow-hidden">
+  <section class="ariaTiendasHero">
+    <img src="assets/tiendas/tiendas-hero.jpg" alt="" aria-hidden="true" class="ariaTiendasHeroPhoto"
+         decoding="async" fetchpriority="high" onerror="this.remove()">
+    <div class="ariaTiendasHeroScrim" aria-hidden="true"></div>
     <div class="ariaGoldHair"></div>
-    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+    <div class="ariaTiendasHeroInner max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
       <div class="max-w-[62ch]">
         <div class="ariaKicker mb-4">Tiendas en EE. UU.</div>
         <h1 class="text-[32px] sm:text-[46px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-5" style="color:#fff">
