@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -258,6 +258,42 @@ check("the sandals polybag fix from PR #2 is intact", () => {
 check("balls quote real mass times count", () => {
   eq(itemWeight.ballWeightKg("Rawlings Official League Baseball"), 0.24);
   eq(itemWeight.ballWeightKg("Titleist Golf Balls (12 pack)"), 0.7);
+});
+
+check("candles quote parcel weight, never the wax weight", () => {
+  // The wax-weight trap: "22 oz" is wax, the glass jar ships too.
+  eq(itemWeight.candleWeightKg("Yankee Candle Large Jar Candle 22 oz"), 1.3);
+  if (itemWeight.candleWeightKg("Yankee Candle Large Jar Candle 22 oz") === 0.62)
+    throw new Error("the wax-weight trap fired: 22 oz read as the parcel weight");
+  eq(itemWeight.candleWeightKg("Bath & Body Works 3-Wick Scented Candle 14.5 oz"), 1.3);
+  eq(itemWeight.candleWeightKg("Yankee Candle Medium Jar 14.5 oz"), 1.05);
+  eq(itemWeight.candleWeightKg("Yankee Candle Small Jar 3.7 oz"), 0.45);
+  eq(itemWeight.candleWeightKg("Chesapeake Bay Pillar Candle"), 0.55);
+  eq(itemWeight.candleWeightKg("Scented Wax Melts"), 0.25);
+  eq(itemWeight.candleWeightKg("Votive Candles Set of 12"), 0.15);
+  eq(itemWeight.candleWeightKg("Flameless LED Candles"), 0.3);
+  eq(itemWeight.candleWeightKg("Yankee Candle Large Jar 3 Pack"), 3.9);
+  // Accessories are not the candle.
+  eq(itemWeight.candleWeightKg("Glass Candle Holder"), null);
+  eq(itemWeight.candleWeightKg("Candle Warmer"), null);
+  eq(itemWeight.candleWeightKg("Wax Warmer"), null);
+  eq(itemWeight.candleWeightKg("Wick Snuffer"), null);
+  // No candle words, no match — a 22 oz bottle is not a candle.
+  eq(itemWeight.candleWeightKg("Hydro Flask 22 oz Water Bottle"), null);
+  // The estimator chain puts the candle figure ahead of the stated wax weight.
+  const d = estimateWeightDetail("Yankee Candle Large Jar Candle 22 oz");
+  eq(d.kg, 1.3, "estimate chain");
+  eq(d.source, "candle", "estimate chain source");
+  if (d.reviewKind === "gap") throw new Error("a real candle row must not be flagged as a gap");
+  // The checkout resolver agrees — the cart charges freight on 1.3 kg, not 0.62.
+  const r = resolveItemWeight({ title: "Yankee Candle Large Jar Candle 22 oz", price: 25 });
+  eq(r.weightKg, 1.3, "checkout resolver");
+  eq(r.source, "candle", "checkout resolver source");
+  // Page mirror parity on a handful of candle titles.
+  for (const t of ["Yankee Candle Large Jar Candle 22 oz", "Bath & Body Works 3-Wick Scented Candle 14.5 oz",
+                   "Chesapeake Bay Pillar Candle", "Votive Candles Set of 12", "Glass Candle Holder"]) {
+    eq(page.candleWeightKg(t), itemWeight.candleWeightKg(t), "page mirror: " + t);
+  }
 });
 
 check("a retailer's published DIMENSIONS are no longer a weight source", () => {
@@ -4834,13 +4870,24 @@ check("no grid anywhere can build a wall of brands", () => {
   if (/brand/i.test(tiles)) throw new Error("collectTiles can make a brand tile again");
   if (!/DEPARTMENT_SPEC/.test(tiles)) throw new Error("collectTiles lost the department taxonomy");
 
-  for (const [label, from, to] of [
-    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)"],
-    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan("],
+  /* THE HOME PAGE REACHES collectTiles THROUGH ONE HOP NOW (2026-09-24).
+     It calls homeRowTiles(), which is the editorial shortlist, and that
+     reads collectTiles(). So the builder each grid ends at is checked
+     rather than the literal call in the grid -- which keeps this exactly
+     as strong as it was: whatever the shortlist names, the tiles it
+     hands back are still made only from DEPARTMENT_SPEC, and the hop is
+     itself asserted below rather than assumed. */
+  const homeRow = src.slice(src.indexOf("function homeRowTiles("), src.indexOf("function initDepartmentTiles("));
+  if (!/collectTiles\(\)/.test(homeRow)) throw new Error("homeRowTiles no longer builds from collectTiles");
+  if (/brand/i.test(homeRow)) throw new Error("the home row's shortlist can name a brand");
+
+  for (const [label, from, to, builder] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/],
+    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan(", /collectTiles\(\)/],
   ]) {
     const grid = src.slice(src.indexOf(from), src.indexOf(to));
     if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
-    if (!/collectTiles\(\)/.test(grid)) throw new Error(`${label} lost its department tiles`);
+    if (!builder.test(grid)) throw new Error(`${label} lost its department tiles`);
   }
 
   // And the route a brand still travels is untouched.
@@ -6426,6 +6473,143 @@ group("search synonyms: one concept, many words");
 
 
 /* ==================================================================
+   BRAND AND RETAILER NAMES ARE SEARCHABLE (2026-09-24).
+
+   WHAT ALE FOUND. Searching "Victoria's Secret" in the search bar
+   returned nothing on her phone -- and the audit showed five carried
+   stores (Sephora, Ulta, Target, Walmart, Old Navy) answered to nothing
+   at all, because catalogWordsOf reads title + brand and a store's own
+   name appears in neither. "VS" matched 11 stray titles instead of the
+   brand. The store page she was on had the same root cause from the
+   other side: a tab opened before the catalogue published has no data
+   for the new store, and openStore read that as "this shop is empty".
+   ================================================================== */
+group("Brand and retailer names are searchable");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand, retailer) => ({ title, brand: brand || "", retailer: retailer || "ssense", price: 100 });
+
+  check("an alias expands to the brand it names", () => {
+    eq(cs.expandBrandAliases("VS"), "Victoria's Secret", "VS expands");
+    eq(cs.expandBrandAliases("vs"), "Victoria's Secret", "lowercase expands");
+    eq(cs.expandBrandAliases("vs pink"), "vs pink", "a longer query is left alone");
+    eq(cs.expandBrandAliases("nike"), "nike", "non-aliases pass through");
+  });
+
+  check("a store's name resolves to that store, and a mere subset does not", () => {
+    const RETS = [
+      { key: "sephora", label: "Sephora" },
+      { key: "ulta", label: "Ulta Beauty" },
+      { key: "oldnavy", label: "Old Navy" },
+      { key: "macys", label: "Macy's" },
+      { key: "victoriassecret", label: "Victoria's Secret" },
+      { key: "target", label: "Target" },
+    ];
+    eq(cs.retailerIntentFor("Sephora", RETS), "sephora", "Sephora");
+    eq(cs.retailerIntentFor("old navy", RETS), "oldnavy", "Old Navy by whole name");
+    eq(cs.retailerIntentFor("Macy's", RETS), "macys", "apostrophe-s is noise");
+    eq(cs.retailerIntentFor("Victoria's Secret", RETS), "victoriassecret", "apostrophe-s both sides");
+    eq(cs.retailerIntentFor("beauty", RETS), null, "beauty is a category, not Ulta Beauty");
+    eq(cs.retailerIntentFor("target shoes", RETS), "target", "store + category composes");
+    eq(cs.retailerIntentFor("nike shoes", RETS), null, "no store named Nike");
+  });
+
+  check("a store-name search returns that store's products", () => {
+    const RETS = [
+      { key: "sephora", label: "Sephora" },
+      { key: "target", label: "Target" },
+    ];
+    const pool = [
+      P("Rare Beauty Blush", "Rare Beauty", "sephora"),
+      P("Nike Air Force 1", "Nike", "target"),
+    ];
+    for (const q of ["Sephora", "sephora"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, { retailers: RETS });
+      if (items.length !== 1 || items[0].retailer !== "sephora")
+        throw new Error(`${q} returned ${items.map(i => i.retailer).join(",")}`);
+    }
+  });
+
+  check("VS returns Victoria's Secret products, not stray titles", () => {
+    const RETS = [{ key: "victoriassecret", label: "Victoria's Secret" }];
+    const pool = [
+      P("Victoria's Secret Bombshell Bra", "Victoria's Secret", "victoriassecret"),
+      P("PINK Cotton Thong", "PINK", "victoriassecret"),
+      P("Savage X Fenty Bra", "Savage X Fenty", "macys"),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "VS", { retailers: RETS });
+    if (!items.length) throw new Error("VS returned nothing");
+    if (items.some(it => it.retailer !== "victoriassecret"))
+      throw new Error("VS leaked another store: " + items.map(i => i.retailer).join(","));
+  });
+
+  check("store intent composes with category intent", () => {
+    const RETS = [
+      { key: "target", label: "Target" },
+      { key: "walmart", label: "Walmart" },
+    ];
+    const pool = [
+      P("Nike Running Shoes", "Nike", "target"),
+      P("Cotton T-Shirt", "Hanes", "target"),
+      P("Adidas Running Shoes", "Adidas", "walmart"),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "target shoes", { retailers: RETS });
+    if (items.length !== 1 || items[0].retailer !== "target")
+      throw new Error("target shoes returned " + items.map(i => i.title).join("; "));
+  });
+
+  check("every carried store is findable through search", () => {
+    const html = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const RETS = [];
+    for (const m of html.matchAll(/^\s*\w+:\s*\{\s*key:\s*'(\w+)',[^}\n]*?label:\s*(?:"([^"]+)"|'([^']+)')/gm)) {
+      if (/retired:\s*true/.test(m[0])) continue;
+      RETS.push({ key: m[1], label: m[2] || m[3] });
+    }
+    if (!RETS.length) throw new Error("no retailer rows parsed");
+    const files = ["department-cache.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"];
+    const pool = [];
+    for (const f of files) {
+      const data = JSON.parse(readFileSync(root(f), "utf8"));
+      const buckets = data.retailers || {};
+      for (const [rk, bucket] of Object.entries(buckets)) {
+        for (const entry of Object.values(bucket.departments || {})) {
+          const items = Array.isArray(entry) ? entry : entry.items || [];
+          for (const it of items) {
+            const title = it.title || it.name || it.productTitle || it.productName;
+            if (title) pool.push({ title, brand: it.brand || "", retailer: rk });
+          }
+        }
+      }
+    }
+    const missing = [];
+    for (const r of RETS) {
+      const stocked = pool.some(it => it.retailer === r.key);
+      if (!stocked) continue;
+      for (const q of [r.label, r.key]) {
+        const { items } = cs.rankCatalogMatches(pool, q, { retailers: RETS });
+        const own = items.filter(it => it.retailer === r.key).length;
+        if (!items.length || !own) missing.push(`${r.key} via "${q}": ${items.length} items, ${own} own`);
+      }
+    }
+    if (missing.length) throw new Error("unfindable stores:\n      " + missing.join("\n      "));
+  });
+
+  check("a store with no catalogue data gets a retry, not a ghost town", () => {
+    /* THE OTHER HALF OF ALE'S REPORT. openStore read a missing
+       retailerData as "this shop is empty". The page must now offer the
+       retry that busts the memoised catalogue load instead. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const open = src.slice(src.indexOf("async function openStore(retailer){"), src.indexOf("async function openStoreResults"));
+    if (!/if\s*\(!retailerData\)/.test(open)) throw new Error("openStore has no missing-data branch");
+    if (!/retryStore\(/.test(open)) throw new Error("the missing-data branch offers no retry");
+    if (!/function retryStore\(retailer\)/.test(src)) throw new Error("retryStore is not defined");
+    if (!/departmentCachePromise = null/.test(src.slice(src.indexOf("function retryStore")))) throw new Error("retryStore does not bust the memoised load");
+  });
+}
+
+
+/* ==================================================================
    THE FARFETCH TREATMENT.
 
    The thesis of the reference is that the luxury look is not a palette:
@@ -7298,6 +7482,161 @@ check("every category cover named in the page is actually on disk", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("The home row leads with what the shop wants read first");
+
+/* WHY THIS GROUP EXISTS AT ALL. The running order used to be implicit --
+   whatever order DEPARTMENT_SPEC declared its keys in -- so there was
+   nothing to assert and no way to get it wrong except by editing the
+   taxonomy. Now it is an editorial list, which is better but introduces
+   exactly one new way to break the page silently, and that is what the
+   first check below is for. */
+
+check("Aria Beauty is the first card in the home row", () => {
+  /* Danny's call, 2026-09-24: Beauty is the highest-traffic destination
+     for the core shopper, so it leads. Asserted by POSITION, not merely
+     by presence -- "beauty is somewhere in the row" was true before this
+     change too, at position ten. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  if (HOME_ROW_DEPARTMENTS[0] !== "beauty") {
+    throw new Error(`the home row leads with "${HOME_ROW_DEPARTMENTS[0]}", not Aria Beauty`);
+  }
+});
+
+check("every key in the home row names a department that exists", () => {
+  /* THE SILENT FAILURE THIS EXISTS TO CATCH. homeRowTiles() looks each
+     key up and drops what it cannot find, which is the right behaviour
+     for a department no retailer stocks yet -- `beauty` sat in the
+     taxonomy for days before its catalogue landed. The cost is that a
+     TYPO behaves identically: 'shoez' renders nothing, throws nothing,
+     and the card is just gone. Nobody notices until someone asks where
+     Zapatos went.
+
+     So the list is checked against the taxonomy rather than against the
+     cache: naming a department early is allowed, naming one that does
+     not exist is not. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const known = new Set(Object.keys(deptMap.DEPARTMENT_SPEC));
+  const unknown = HOME_ROW_DEPARTMENTS.filter(k => !known.has(k));
+  if (unknown.length) {
+    throw new Error(
+      `the home row names ${unknown.map(k => JSON.stringify(k)).join(", ")}, which ` +
+      `${unknown.length === 1 ? "is not a department" : "are not departments"} — ` +
+      `it will render nothing and fail silently. Known: ${[...known].join(", ")}`);
+  }
+});
+
+check("no department is listed in the home row twice", () => {
+  /* A duplicate does not throw either: it renders the same card twice,
+     which on a phone rail reads as a glitch rather than a decision. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const seen = new Set(), dupes = [];
+  for (const k of HOME_ROW_DEPARTMENTS) (seen.has(k) ? dupes.push(k) : seen.add(k));
+  if (dupes.length) throw new Error(`the home row lists ${dupes.join(", ")} more than once`);
+});
+
+check("the home row is the shortlist, and every department it drops is still on Categorías", () => {
+  /* THE SHORTLIST IS PINNED BY NAME, deliberately, where most lists here
+     are pinned to a rule. This one is editorial -- it is what the shop
+     leads with -- so there is no rule to derive it from, and the thing
+     worth protecting is that changing it is a DECISION rather than a
+     side effect of some other edit. Change the row, change this line,
+     and the diff says who decided what.
+
+     The second half is the one that matters. Cutting a card from the
+     front door is only honest while the door to everything else is
+     complete: every department left out here must still be tiled on
+     Categorías. That is asserted against the taxonomy rather than
+     against a list of names, so a department added tomorrow is covered
+     without anyone remembering to add it. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const expected = ["beauty", "curvy", "women", "men", "shoes"];
+  if (HOME_ROW_DEPARTMENTS.join() !== expected.join()) {
+    throw new Error(
+      `the home row is [${HOME_ROW_DEPARTMENTS.join(", ")}], expected [${expected.join(", ")}] — ` +
+      `if this was deliberate, update this check in the same commit`);
+  }
+
+  /* Everything cut is still a department, so it still tiles on
+     Categorías, which builds from the taxonomy and not from this list
+     (asserted separately above).
+
+     READ FROM index.html, NOT FROM THE LIB. My first version of this
+     derived the dropped set from deptMap.DEPARTMENT_SPEC and then
+     checked each key was in deptMap.DEPARTMENT_SPEC — a tautology that
+     could not fail. The claim worth making is a CROSS-CHECK: the row
+     shrank, and the page's own taxonomy did not shrink with it. So the
+     keys come out of index.html's declaration and are compared against
+     the lib's, which is the pair that has to stay in step. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const specBlock = forwardSlice(src, "const DEPARTMENT_SPEC = {", "\nconst BUCKET_SPEC = {", "DEPARTMENT_SPEC");
+  const pageKeys = [...specBlock.matchAll(/^\s{2}([a-z_]+):\s*\{/gm)].map(m => m[1]);
+  if (pageKeys.length < 10) throw new Error(`only found ${pageKeys.length} departments in index.html — the slice is wrong`);
+
+  const dropped = pageKeys.filter(k => !HOME_ROW_DEPARTMENTS.includes(k));
+  if (!dropped.length) throw new Error("nothing was trimmed — this check is measuring nothing");
+
+  for (const key of dropped) {
+    if (!deptMap.DEPARTMENT_SPEC[key]) {
+      throw new Error(
+        `"${key}" is off the home row and missing from scripts/lib/department-map.js — ` +
+        `the two taxonomies have drifted, and a department cut from the front door ` +
+        `is the one place that drift would go unnoticed`);
+    }
+  }
+  for (const key of HOME_ROW_DEPARTMENTS) {
+    if (!pageKeys.includes(key)) {
+      throw new Error(`the home row leads with "${key}", which index.html's DEPARTMENT_SPEC does not declare`);
+    }
+  }
+
+  /* Ropa is the cut that needs its reason recorded next to it, because
+     it is the BIGGEST department and cutting it looks like a mistake
+     until you know it is the union of the three gendered ones. */
+  for (const gendered of ["men", "women"]) {
+    if (!HOME_ROW_DEPARTMENTS.includes(gendered)) {
+      throw new Error(
+        `Ropa is cut from the row because Moda Hombre/Mujer/Niños hold the same stock — ` +
+        `with "${gendered}" also cut, that inventory has no card at all`);
+    }
+  }
+});
+
+check("the grid and the phone rail are still built from one list", () => {
+  /* The rule this protects is older than this change and is written in
+     index.html as "from the SAME tiles -- never a second list". Two
+     lists is how the phone and the desktop end up disagreeing about
+     what the shop sells. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const init = forwardSlice(src, "function initDepartmentTiles(){", "\nwindow.addEventListener('DOMContentLoaded', initDepartmentTiles);", "initDepartmentTiles");
+  if (!/const tiles = homeRowTiles\(\)/.test(init)) {
+    throw new Error("the home row no longer reads its own list");
+  }
+  if (!/renderMobileCatsRail\(tiles\)/.test(init)) {
+    throw new Error("the phone rail no longer renders the same tiles the grid does");
+  }
+});
+
+check("Categorías still shows every department, whatever the home row drops", () => {
+  /* THE PROMISE THAT MAKES TRIMMING THE ROW SAFE. Leaving a department
+     out of the front door is only honest while the door to everything
+     else is still there and still complete. renderCategoriesGrid() must
+     keep reading collectTiles() directly -- the moment it reads the
+     shortlist instead, cutting a card from the home row quietly deletes
+     a section of the shop. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const cats = forwardSlice(src, "function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
+  if (!/collectTiles\(\)/.test(cats)) {
+    throw new Error("Categorías no longer builds from collectTiles() — it can no longer be the page that shows everything");
+  }
+  if (/HOME_ROW_DEPARTMENTS|homeRowTiles/.test(cats)) {
+    throw new Error("Categorías is filtering through the home row's shortlist — departments left off the front door would vanish from the site");
+  }
+  /* And the way back to it stays under the row. */
+  if (!/data-explora[^>]*>Explora más</.test(src)) {
+    throw new Error("the \"Explora más\" link out of the home row is gone");
+  }
+});
+
 group("A department is never a dead page");
 
 check("the catalogue knows the difference between broken and empty", () => {
@@ -8246,7 +8585,12 @@ group("store carousels: window-shopping rails");
     }
     if (!/cardPhotoHTML\(src/.test(card)) throw new Error("the rail card does not reuse the shared photo builder");
     if (!/productCardOpenExpr\(it, retailer\)/.test(card)) throw new Error("the rail card does not open the product like grid cards do");
-    if (!/fmtDisplayPrice\(price\)/.test(card)) throw new Error("the rail card shows no price");
+    if (!/fmtPriceLabel\(taxed\)/.test(card)) throw new Error("the rail card does not lead with the USD price");
+    if (!/solesUnderHTML\(taxed/.test(card)) throw new Error("the rail card shows no soles (venta) reference");
+    if (!/weightLabelHTML\(title/.test(card)) throw new Error("the rail card shows no estimated shipping weight");
+    const wl = src.slice(src.indexOf("function weightLabelHTML("), src.indexOf("function weightLabelHTML(") + 900);
+    if (!/estimateRetailWeightKg\(title\)/.test(wl)) throw new Error("the weight line can go blank when the title lookup misses");
+    if (!/brandEyebrowHTML\(it\.brand/.test(card)) throw new Error("the rail card shows no brand");
     if (/Comprar|flete|retailerBadgeHTML/.test(card)) throw new Error("the rail card carries grid-card chrome");
     if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
     const rail = src.slice(src.indexOf("function storeCarouselHTML("), src.indexOf("/* ============================================================\n   THE BROWSE TILE"));
@@ -8268,6 +8612,129 @@ group("store carousels: window-shopping rails");
     if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
   });
 }
+
+/* ------------------------------------------------------------------
+   VOICE PUNCTUATION + THE SEARCH DOORWAY (2026-09-24)
+
+   TWO REPORTS FROM DANNY'S IPHONE. (1) Aria said the word "comma" out
+   loud — "of course we do comma why" — instead of pausing at a comma.
+   (2) He tapped a shoe in Smart Search and landed on a page titled
+   "Women's Mid-Rise Bootcut Pants" with no image and no results.
+   ------------------------------------------------------------------ */
+group("voice: dictated punctuation never reaches the shopper as words");
+
+check("the reported exchange is punctuated, not spoken", () => {
+  // The verbatim failure Danny reported, plus the dictated-punctuation
+  // shapes around it: the model echoing the words, the user dictating
+  // them, and both languages (recognition is es-PE, dictation English).
+  const cases = [
+    ["of course we do comma why would you think that", "of course we do, why would you think that"],
+    ["show me red shoes comma size eight please", "show me red shoes, size eight please"],
+    ["quiero zapatos rojos coma talla ocho por favor", "quiero zapatos rojos, talla ocho por favor"],
+    ["really exclamation point I love them", "really! I love them"],
+    ["are they on sale question mark", "are they on sale?"],
+    ["dear mom new paragraph I found them", "dear mom\nI found them"],
+    ["that sounds perfect period", "that sounds perfect."],
+  ];
+  for (const [input, want] of cases) {
+    eq(chatModel.sanitizeSpokenPunctuation(input), want, JSON.stringify(input));
+  }
+});
+
+check("spanish idioms are not mistaken for punctuation", () => {
+  // "punto" in "a punto de" / "punto de venta" is a noun, not a dictated
+  // period — corrupting it would be worse than the bug being fixed.
+  for (const idiom of ["estoy a punto de buscar tu pedido", "nuestro punto de venta en Miami"]) {
+    eq(chatModel.sanitizeSpokenPunctuation(idiom), idiom, JSON.stringify(idiom));
+  }
+});
+
+check("ordinary text passes through untouched", () => {
+  for (const plain of ["just show me the shoes", "I found them for $41.65, well-known brand"]) {
+    eq(chatModel.sanitizeSpokenPunctuation(plain), plain, JSON.stringify(plain));
+  }
+});
+
+check("the client mirror agrees with the server copy", () => {
+  // index.html cannot import, so the rule list lives twice — this pins
+  // that the two never drift, the way the weight tables are pinned.
+  const src = readFileSync(root("index.html"), "utf8");
+  const m = src.match(/function spokenPunctuationToMarks\(text\)\{[\s\S]*?\r?\n\}/);
+  if (!m) throw new Error("spokenPunctuationToMarks is missing from index.html");
+  const client = new Function(m[0] + "; return spokenPunctuationToMarks;")();
+  const samples = [
+    "of course we do comma why would you think that",
+    "quiero zapatos rojos coma talla ocho por favor",
+    "really exclamation point I love them",
+    "estoy a punto de buscar tu pedido",
+    "just show me the shoes",
+  ];
+  for (const sample of samples) {
+    eq(client(sample), chatModel.sanitizeSpokenPunctuation(sample), JSON.stringify(sample));
+  }
+});
+
+check("both chat endpoints and the TTS path sanitize the reply", () => {
+  // The voice Danny hears comes from Grok TTS fed by speechFor; the
+  // bubble and the history come from the endpoint replies. All three
+  // must carry the sanitized text, or the voice says "comma" again.
+  const model = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
+  if (!/const speakable = sanitizeSpokenPunctuation\(reply\)/.test(model) ||
+      !/text:\s*speakable/.test(model)) {
+    throw new Error("speechFor no longer sanitizes before Grok TTS");
+  }
+  const groq = readFileSync(root("netlify/functions/aria-chat-groq.js"), "utf8");
+  if (!/const reply = sanitizeSpokenPunctuation\(chatData/.test(groq)) {
+    throw new Error("aria-chat-groq.js returns the unsanitized reply");
+  }
+  const stream = readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8");
+  if (!/reply: sanitizeSpokenPunctuation\(reply\)/.test(stream)) {
+    throw new Error("aria-chat-stream.js returns the unsanitized reply");
+  }
+  const stt = readFileSync(root("index.html"), "utf8");
+  if (!/const cleanTranscript = spokenPunctuationToMarks\(transcript\)/.test(stt)) {
+    throw new Error("the speech-to-text transcript is not sanitized before the chat");
+  }
+});
+
+group("search doorway: a product route never degrades into a fake search");
+
+check("restoring a product route resolves the catalogue, never searches the title", () => {
+  // The doorway: applyRoute's productView case used to call
+  // showResults(route.name) when the in-memory item was gone, which is
+  // how a tapped shoe became a pants title with no image and no results.
+  const src = readFileSync(root("index.html"), "utf8");
+  const route = src.slice(src.indexOf("async function applyRoute(route){"), src.indexOf("/* ============================================================\n   THE CATALOGUE PAGE"));
+  const productCase = route.slice(route.indexOf("case 'productView'"), route.indexOf("case 'catalogView'"));
+  if (/showResults\(route\.name/.test(productCase)) {
+    throw new Error("product route restoration still fakes a search out of the product name");
+  }
+  if (!/findCatalogProductByTitle\(route\.name\)/.test(productCase)) {
+    throw new Error("product route restoration does not resolve the catalogue by title");
+  }
+  if (!/showProductUnavailable\(route\.name\)/.test(productCase)) {
+    throw new Error("an unresolvable product route has no honest empty state");
+  }
+});
+
+check("a failed catalogue search says so and offers a retry", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("async function showResults(query, opts = {}){"), src.indexOf("/* ============================================================\n   THE LIVE SCAN"));
+  if (!/catch \(err\)[\s\S]*?catalogSearch/.test(fn) && !/try \{[\s\S]*?catalogSearch\(query\)/.test(fn)) {
+    throw new Error("showResults does not guard catalogSearch");
+  }
+  if (!/No pudimos cargar el catálogo/.test(fn) || !/retryFailedSearch/.test(fn)) {
+    throw new Error("a failed search has no honest message with a retry");
+  }
+});
+
+check("one poison record cannot empty the search pool", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const pool = src.slice(src.indexOf("async function relatedPool(){"), src.indexOf("/* ============================================================\n   CATALOG-FIRST SEARCH"));
+  if (!/try \{ it = normalizeLiveItem/.test(pool)) {
+    throw new Error("relatedPool does not isolate a throwing record");
+  }
+});
 
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);

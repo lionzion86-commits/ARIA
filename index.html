@@ -3297,7 +3297,11 @@
 // shipping across retailers we don't even search drove the homepage
 // search, category tiles, sales page and assistant cards) — don't
 // reintroduce a static product array.
-function fmtUSD(n){ return '$' + n.toLocaleString('en-US'); }
+/* TWO DECIMALS, ALWAYS (2026-09-25). A price is a price: $4.8 on a
+   card reads as a typo next to S/ 18.40, and toLocaleString's default
+   drops the trailing zeros. fmtUSD is only ever called with prices
+   (never prose), so fixed decimals are safe everywhere it appears. */
+function fmtUSD(n){ return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
 
 /* ============================================================
    PEN CURRENCY DISPLAY — the nav badge says "🇵🇪 Perú · PEN", but until
@@ -3609,6 +3613,37 @@ let departmentCachePromise = null;
    nothing and covers the next export that arrives shaped its own way.
 
    It is a pure reshape: no field is added, renamed or dropped. */
+/* TITLE ALIAS AT THE DOOR (2026-09-25).
+
+   Every card renderer on the site reads item.title, but the feeds do not
+   agree on the field: beauty-catalog, macy's, ssense, walmart and oldnavy
+   exports use `name`, footlocker uses `productName`, autozone uses
+   `productTitle`, and only target's scraper uses `title`. The Destacados
+   rail was the visible casualty -- Sephora and Ulta cards drew a photo
+   and a price with a blank where the name belonged -- but every .title
+   reader had the same hole.
+
+   Aliasing here, once, at the load boundary: every downstream reader
+   (rails, grids, search, related, cross-sell) gets a title, and no
+   source value is renamed or dropped -- the alias is purely additive,
+   so the next re-pull keeps working with zero hand edits. */
+function aliasEnvelopeTitles(envelope){
+  const retailers = envelope?.retailers;
+  if (!retailers || typeof retailers !== 'object') return envelope;
+  for (const bucket of Object.values(retailers)){
+    for (const entry of Object.values(bucket?.departments || {})){
+      const items = Array.isArray(entry) ? entry : entry?.items;
+      if (!Array.isArray(items)) continue;
+      for (const it of items){
+        if (it && typeof it === 'object' && !it.title){
+          const t = it.name || it.productName || it.productTitle;
+          if (t) it.title = t;
+        }
+      }
+    }
+  }
+  return envelope;
+}
 function normalizeCatalogueEnvelope(file){
   const retailers = file?.retailers;
   if (!retailers || typeof retailers !== 'object') return { retailers: {} };
@@ -3620,7 +3655,7 @@ function normalizeCatalogueEnvelope(file){
     }
     out[key] = { ...bucket, departments };
   }
-  return { ...file, retailers: out };
+  return aliasEnvelopeTitles({ ...file, retailers: out });
 }
 
 
@@ -3712,6 +3747,7 @@ function loadDepartmentCache(){
 
     departmentCachePromise = Promise.all([scraped, ...files])
       .then(parts => parts.map(withoutRestrictedDepartments))
+      .then(parts => parts.map(aliasEnvelopeTitles))
       .then(parts => {
       // Not "some store is thin" -- NOTHING answered. That is a broken
       // page, not an empty department, and it is retryable.
@@ -5023,6 +5059,105 @@ function deptTileHTML(t, kind){
   </button>`;
 }
 
+/* ============================================================
+   WHAT THE HOME ROW LEADS WITH, AND IN WHAT ORDER (2026-09-24)
+
+   Until now this row was whatever order DEPARTMENT_SPEC happened to
+   declare its keys in -- an implicit ordering, in a table written for a
+   different purpose, that nobody could change without editing the
+   taxonomy. Aria Beauty sat tenth because `beauty` was added tenth.
+
+   So the running order is its own list now, and it is a SHORTLIST of
+   keys, not a sort: the home row is an editorial choice about what the
+   shop leads with, and an editorial choice should be one readable line
+   someone can reorder.
+
+   NOTHING IS REMOVED FROM THE SITE BY LEAVING IT OUT HERE. Every
+   department still has its page, still appears on Categorías with its
+   own sort and store filter, and is one tap away through "Explora más"
+   directly under this row. This list decides what the FRONT DOOR shows,
+   and cutting a card from a front door is not the same as closing a
+   room.
+
+   A key here that no retailer carries still renders nothing -- the
+   existing rule in collectTiles() -- so this list can name a department
+   before its catalogue arrives, exactly as `beauty` did.
+   ============================================================ */
+const HOME_ROW_DEPARTMENTS = [
+  /* Aria Beauty leads. Danny's call, 2026-09-24: it is the highest-traffic
+     destination for the core shopper, so it is the first thing the row
+     offers rather than the tenth. */
+  'beauty',
+  'curvy',
+  'women',
+  'men',
+  'shoes',
+];
+
+/* ============================================================
+   WHY FIVE, AND WHY THESE FIVE (2026-09-24)
+
+   The row was twelve cards. Danny's note: "too many cards, too much
+   sideways scrolling on a phone. Keep only the main destinations."
+
+   WHAT I COULD NOT MEASURE, SAID FIRST. Nobody has traffic data here --
+   there is no analytics in this repo -- so "top departments by expected
+   traffic" is not a number I can look up. What IS measurable is how much
+   is actually behind each door, and how much of it is the same stock
+   behind two doors. That is what the cuts below are argued from, and
+   where I have substituted judgement for evidence I have said so.
+
+   BEAUTY AND CURVY ARE GIVENS, not findings: Danny's identity sections,
+   named in the brief. Curvy is 18 products and stays anyway -- it is the
+   one card here kept for what it says rather than what it holds, and it
+   ships with its own honest thin-catalogue notice.
+
+   ROPA IS CUT AS A DUPLICATE, NOT AS A SMALL DEPARTMENT -- it is the
+   biggest one. Measured over the committed cache: Ropa holds 1,153
+   distinct items; Moda Hombre + Moda Mujer + Moda Niños hold 1,151 of
+   the same ones. Exactly two items are in Ropa and in no gendered
+   department (a Target bathrobe and a backpack), and none is the other
+   way round. `clothing` is `{ category: 'apparel' }` with no gender
+   facet, so it is the union by construction. Four cards, one inventory.
+
+   THE FOUR SIDE CATEGORIES ARE CUT AS SHALLOW BY DESIGN, which is
+   different from under-scraped. Electrónica, Hogar and Dulces get ONE
+   quota each per store in scripts/lib/catalog-quotas.js -- a single
+   query at Walmart and a single query at Target, 60 apiece -- where
+   apparel gets five or six. Deportes has no quota at all and is whatever
+   `sporting_goods` buckets happen to contain. They hold 48, 48, 48 and
+   44 today against a planned ceiling of 120, and the repo's own floor
+   for presenting a catalogue as a shop rather than a sample is
+   MIN_HONEST_STOREFRONT = 120. (Written for a storefront, not a
+   department -- borrowed as a reference point, not as a rule it was
+   meant to enforce.) Raising those quotas is the way one of these earns
+   the row back, and it is a one-line change in this list when it does.
+
+   MODA NIÑOS IS CUT ON DEPTH ALONE: 42 products, and no other argument
+   for or against it.
+
+   THE ONE LINE I WOULD ARGUE ABOUT is Moda Mujer above Moda Hombre.
+   Hombre has more than three times the stock (2,491 against 756). Mujer
+   is above it because the two cards leading this row are a beauty
+   destination and a women's size section, and sending that run into
+   menswear reads as a mistake. That is a judgement about who this row is
+   addressed to, not a measurement -- swap the two lines to reverse it.
+
+   NOTHING HERE IS REMOVED FROM THE SITE. All twelve departments keep
+   their pages, their routes and their tiles on Categorías, one tap away
+   through "Explora más" directly under this row.
+   ============================================================ */
+
+
+/* The home row's tiles: the shortlist above, in its order, minus any
+   department the cache says nobody carries. Categorías keeps calling
+   collectTiles() directly, because that page's job is to show
+   everything. */
+function homeRowTiles(){
+  const byKey = Object.fromEntries(collectTiles().map(t => [t.key, t]));
+  return HOME_ROW_DEPARTMENTS.map(k => byKey[k]).filter(Boolean);
+}
+
 function initDepartmentTiles(){
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
@@ -5045,7 +5180,7 @@ function initDepartmentTiles(){
        So this grid is the eleven departments, and they carry the section
        on their own. If brands ever come back here they need a section
        and a cap, not a spread. */
-    const tiles = collectTiles().map(t => ({ t, kind: 'department' }));
+    const tiles = homeRowTiles().map(t => ({ t, kind: 'department' }));
     const catGrid = document.getElementById('catGrid');
     catGrid.innerHTML = tiles.length
       ? tiles.map(({ t, kind }) => deptTileHTML(t, kind)).join('')
@@ -5120,6 +5255,7 @@ function railCardHTML(p, onclick, attr){
           ${hasOriginal ? `<span class="text-[11.5px] tabular line-through" style="color:#9AA3B5">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
         </span>
         ${solesUnderHTML(displayPriceUsd(p.price), 'text-[11px] tabular mt-0.5')}
+        ${weightLabelHTML(p.title, 'text-[10.5px] tabular mt-0.5')}
       </span>
     </span>
   </button>`;
@@ -5223,8 +5359,11 @@ async function relatedPool(){
            department grid withholds. No committed catalogue carries the
            flag today, so this is a no-op now and a guard later. */
         if (!notQuarantined(raw)) continue;
-        const it = normalizeLiveItem(raw, { retailer, department });
-        if (!it.title) continue;
+        /* One malformed record must never take down the whole search:
+           skip the poison item and keep the rest of the catalogue. */
+        let it = null;
+        try { it = normalizeLiveItem(raw, { retailer, department }); } catch { continue; }
+        if (!it || !it.title) continue;
         const key = retailer + '::' + it.title;
         const had = byKey.get(key);
         if (had){ if (!had.departments.includes(department)) had.departments.push(department); continue; }
@@ -5589,12 +5728,25 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
 
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
+  query = expandBrandAliases(query);
   /* SYNONYMS CANONICALISED UP FRONT, so "sneakers", "shoes",
      "zapatos" and "zapatillas" do not merely overlap — they run the
      identical token list, and return the identical items in the
      identical order. */
   const toks = canonicalizeTokens(searchTokens(query));
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
+
+  /* A store's name is answered by that store's stock (see the note on
+     retailerIntentFor). Applied before the category filter so "target
+     shoes" still means Target's shoes. The pool guard matters: "dyson"
+     and "fendi" are retailer rows with no catalogue behind them, and
+     without it their names would return nothing instead of the
+     Dyson/Fendi products other stores carry. */
+  const intentKey = retailerIntentFor(toks.join(' '), opts && opts.retailers);
+  const retailerKey = intentKey && (pool || []).some(it => it && it.retailer === intentKey) ? intentKey : null;
+  const retailerToks = retailerKey ? new Set(retailerNameTokens(opts.retailers, retailerKey)) : null;
+  let candidates = (pool || []);
+  if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
 
   /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
      footwear exactly as much as "shoes" does, and the category filter
@@ -5612,15 +5764,16 @@ function rankCatalogMatches(pool, query, opts){
     return c;
   };
 
-  const candidates = intent
-    ? (pool || []).filter(it => it && it.title && categoryOf(it) === intent)
-    : (pool || []);
+  if (intent) candidates = candidates.filter(it => it && it.title && categoryOf(it) === intent);
   const weights = catalogTokenWeights(candidates, toks, intent, categoryOf);
   let exact = 0, partial = 0;
   const scored = [];
   for (const item of candidates){
     if (!item || !item.title) continue;
     const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+    /* The store's own name counts as one of its products' words -- see
+       retailerNameTokens below. */
+    if (retailerToks) for (const t of retailerToks) words.add(t);
     const hits = catalogTokenHits(words, toks);
     if (!hits) continue;
     if (hits === toks.length) exact++; else partial++;
@@ -5635,6 +5788,72 @@ function rankCatalogMatches(pool, query, opts){
      because "Airbrush" starts with it. Relevance has to survive as a
      value on the item, not as the order of a list. */
   return { items: scored.slice(0, limit).map(x => ({ ...x.item, matchScore: x.score })), exact, partial };
+}
+
+/* ============================================================
+   BRAND ALIASES AND RETAILER NAMES ARE SEARCHABLE (2026-09-24).
+
+   WHAT ALE FOUND. Searching "Victoria's Secret" in the search bar
+   returned nothing on her phone -- and the audit that followed showed
+   why a shopper could reasonably believe brands were broken: the five
+   general stores whose products carry other brands' names (Sephora,
+   Ulta, Target, Walmart, Old Navy) answered to nothing, because
+   catalogWordsOf reads title + brand and a store's own name appears in
+   neither. "VS" answered with 11 stray titles instead of the brand.
+
+   Two rules, both conservative:
+
+   1. BRAND_ALIASES. A query that IS an alias expands to the brand it
+      names -- "vs" becomes "Victoria's Secret". Only the whole query:
+      "vs pink" is left alone, so this can only ever widen a query that
+      named nothing else.
+
+   2. RETAILER INTENT. A query that CONTAINS a store's whole name is
+      answered by that store's stock -- "sephora" returns Sephora's
+      products, "old navy" Old Navy's, "target shoes" Target's shoes.
+      The comparison is on significant tokens (the apostrophe-s in
+      "Macy's" and "Victoria's Secret" is noise, so it is dropped on
+      both sides), and the name must be wholly present: "beauty" keeps
+      meaning the category instead of collapsing to Ulta Beauty, whose
+      label merely contains the word. A name with no catalogue behind
+      it (Dyson, Fendi) never fires, so those keep finding the brand's
+      products at the stores that carry them.
+   ============================================================ */
+const BRAND_ALIASES = {
+  'vs': "Victoria's Secret",
+};
+
+function expandBrandAliases(query){
+  const q = String(query || '').trim().toLowerCase();
+  return BRAND_ALIASES[q] || query;
+}
+
+function retailerIntentFor(query, retailers){
+  const sig = (toks) => toks.filter(t => t.length > 1);
+  const qt = sig(searchTokens(query));
+  if (!qt.length || !retailers) return null;
+  /* The query CONTAINS the whole store name -- "target shoes" is
+     Target's shoes, "old navy dress" Old Navy's. A subset the other
+     way ("beauty" in "Ulta Beauty") never fires. Longest name wins. */
+  let best = null;
+  for (const r of retailers){
+    for (const name of [r.key, r.label]){
+      const nt = sig(searchTokens(name || ''));
+      if (!nt.length) continue;
+      if (nt.every(t => qt.includes(t)) && (!best || nt.length > best.nt.length)) best = { key: r.key, nt };
+    }
+  }
+  return best ? best.key : null;
+}
+
+/* Every word a store answers to: its key plus the significant tokens
+   of its label. Added to each of its products' searchable words, so
+   the products carry the store's name the way they already carry the
+   brand's. */
+function retailerNameTokens(retailers, key){
+  const r = (retailers || []).find(x => x && x.key === key);
+  if (!r) return [key];
+  return [...new Set([key, ...searchTokens(r.label || '').filter(t => t.length > 1)])];
 }
 
 function catalogResultsAreThin(res){
@@ -5653,7 +5872,7 @@ function catalogResultsAreThin(res){
 async function catalogSearch(query, opts){
   const t = translateQuery(query);
   const pool = await relatedPool();
-  const res = rankCatalogMatches(pool, t.query, opts);
+  const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
   return { ...res, asked: query, translated: t.query, changed: t.changed };
 }
 
@@ -6313,11 +6532,25 @@ function carouselMixItems(deptEntries, max){
 }
 /* END OF THE CAROUSEL SELECTION MIRROR */
 
-/* ONE CARD ON THE RAIL. Image-forward and quiet: a photo, a two-line
-   title, a price — no store mark, no freight line, no buttons. Tapping
-   it opens the product exactly the way the grid cards do
-   (productCardOpenExpr), because a rail card that opened somewhere
-   different would be a second, worse product page.
+/* ONE CARD ON THE RAIL. Image-forward and quiet: a photo, a brand
+   eyebrow, a two-line title, a price — no store mark, no freight line,
+   no buttons. Tapping it opens the product exactly the way the grid
+   cards do (productCardOpenExpr), because a rail card that opened
+   somewhere different would be a second, worse product page.
+
+   NAME/BRAND FIX (2026-09-25): this used to read it.title only, and the
+   file-backed feeds carry `name` (beauty, macy's, ssense, walmart,
+   oldnavy) or `productName` (footlocker) — so the Sephora and Ulta rails
+   drew a photo and a price with a blank where the name belonged, and no
+   brand at all. The title alias at the load boundary
+   (aliasEnvelopeTitles) is the real fix; the local fallbacks below are
+   belt and suspenders.
+
+   USD LEADS HERE (2026-09-25): the big figure on the rail is the dollar
+   price — Aria sells in dollars — with the soles conversion small
+   beneath it at the venta rate, exactly like the grid cards. A rail card
+   carries the full card spec: name, brand, image, USD price, S/ (venta)
+   reference, sale badge, and the estimated shipping weight.
 
    THE SURFACE STAYS LIGHT. On a themed storefront (see STORE_THEMES —
    Victoria's Secret's plum ambience) the rail floats over the dark and
@@ -6329,15 +6562,25 @@ function carouselCardHTML(item, retailer){
   const open = productCardOpenExpr(it, retailer);
   const price = Number(it.price);
   const hasPrice = Number.isFinite(price) && price > 0;
+  const title = String(it.title || it.name || '').trim();
+  const taxed = displayPriceUsd(price);
+  const original = Number(it.originalPrice);
+  const hasOriginal = Number.isFinite(original) && hasPrice && original > price;
+  const badgeHTML = hasOriginal
+    ? `<span class="absolute top-3 left-3 text-[13px] font-extrabold px-2.5 py-1 rounded-full" style="background:#F4C463; color:var(--navy)">-${discountPct(it)}%</span>`
+    : '';
   const src = upgradeImageUrl(safeUrl(it.image || it.imageUrl || it.thumbnail) || '');
   return `<div class="ariaCarouselCard" role="listitem">
     <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
-      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(it.title || 'Ver producto')}"
+      onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(title || 'Ver producto')}"
       onkeydown="if(event.key==='Enter'){${open}}">
-      <div class="aspect-[4/5]" style="background:#fff">${cardPhotoHTML(src, { alt: it.title || '', fallbackSrc: imageRetryUrl(src) })}</div>
+      <div class="aspect-[4/5] relative" style="background:#fff">${cardPhotoHTML(src, { alt: title, fallbackSrc: imageRetryUrl(src) })}${badgeHTML}</div>
       <div class="p-4">
-        <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(it.title || '')}</div>
-        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price) : 'Ver detalle'}</div>
+        ${brandEyebrowHTML(it.brand, { cls: 'text-[10px] mb-0.5' })}
+        <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(title)}</div>
+        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(taxed) : 'Ver detalle'}</div>
+        ${hasPrice ? solesUnderHTML(taxed, 'text-[11px] tabular mt-0.5') : ''}
+        ${hasPrice ? weightLabelHTML(title, 'text-[11px] tabular mt-0.5') : ''}
       </div>
     </div>
   </div>`;
@@ -7232,6 +7475,23 @@ async function openStore(retailer){
   const data = await loadDepartmentCache();
   departmentCacheData = data;
   const retailerData = data.retailers[retailer];
+  /* A carried store with NO catalogue data is not an empty store: the
+     tab loaded before the catalogue published, or the fetch failed.
+     Say so, and offer the retry that busts the memoised load -- this
+     is the other half of Ale's report (the store page that showed
+     "No hay artículos" for 1,649 real products). */
+  if (!retailerData){
+    const label = escapeHtml((meta && meta.label) || retailer);
+    document.getElementById('storeViewSubtitle').textContent = 'Actualizando el catálogo…';
+    document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
+      <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Estamos actualizando el catálogo de ${label}</div>
+      <div class="text-[13px] leading-relaxed mb-4" style="color:#5B6478">
+        Tus artículos están en camino. Vuelve a cargar la tienda para verlos.
+      </div>
+      <button onclick="retryStore('${retailer}')" class="rounded-xl px-5 py-2.5 text-[14px] font-bold" style="background:var(--navy); color:#fff">Reintentar</button>
+    </div>`;
+    return;
+  }
   // Taxonomy-driven, same as the tiles: this store lists every department
   // it actually carries stock for, which is no longer the same thing as
   // "has a bucket of that name". Walmart now shows Moda Hombre and Ofertas
@@ -7333,6 +7593,17 @@ let storeResultsReturnQuery = '';
 function storeResultsGoBack(){
   showResults(storeResultsReturnQuery);
 }
+/* Busts the memoised catalogue load and re-opens the store: the
+   tab that loaded before a catalogue published gets a second chance
+   without a full page reload. */
+function retryStore(retailer){
+  departmentCachePromise = null;
+  departmentCacheData = null;
+  departmentCacheFailed = false;
+  relatedPoolCache = null;
+  openStore(retailer);
+}
+
 async function openStoreResults(retailer, query){
   pushRoute({ view: 'storeResultsView', retailer, q: query });
   showPage('storeResultsView');
@@ -7579,6 +7850,41 @@ function pushRoute(route){
 
 /* Re-renders a view from a history entry. Never pushes — this is the
    back button's path, and pushing here is how SPAs trap people. */
+/* Resolve a product by its exact title against the live catalogue.
+   Used when a product route is restored without the in-memory item it came
+   from (fresh load, restored tab, shared link). Title-only URLs cannot
+   identify a product any other way — retailer and product id are not in
+   the route — so this is the last honest chance before admitting the
+   product is unavailable. Never fakes a search out of the product name:
+   that is the doorway that showed Danny a pants title with no image and
+   no results after he tapped a shoe. */
+async function findCatalogProductByTitle(title){
+  const want = String(title || '').trim().toLowerCase();
+  if (!want) return null;
+  const pool = await relatedPool().catch(() => []);
+  return pool.find(it => String(it.title || '').trim().toLowerCase() === want) || null;
+}
+
+/* Honest empty state for a product route the catalogue cannot resolve.
+   Shows the product page shell with a plain-language explanation instead
+   of substituting a different product or an empty search page. */
+function showProductUnavailable(name){
+  showPage('productView');
+  const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
+  set('productViewBadge', el => { el.innerHTML = ''; });
+  set('productViewBrand', el => { el.textContent = ''; el.hidden = true; });
+  set('productViewTitle', el => { el.textContent = name || 'Producto'; });
+  set('productViewPrice', el => { el.innerHTML = ''; });
+  setProductBuyable(false);
+  set('productViewImg', el => { el.removeAttribute('src'); el.classList.add('hidden'); });
+  set('productViewImgFallback', el => { el.classList.remove('hidden'); });
+  set('productViewMeta', el => {
+    el.innerHTML = '<div class="text-[13px]" style="color:#5B6478">Este producto ya no está disponible en nuestro catálogo. Prueba buscar algo similar con la barra de búsqueda.</div>';
+  });
+  set('productSizeWrap', el => { el.hidden = true; });
+  set('relatedRail', el => { el.hidden = true; });
+}
+
 async function applyRoute(route){
   isRestoringRoute = true;
   try {
@@ -7586,7 +7892,10 @@ async function applyRoute(route){
       case 'resultsView': await showResults(route.q || '', { fromHistory: true }); break;
       case 'productView': {
         // Restore from the list we came back to when we still have it;
-        // otherwise show what the URL carries rather than a blank page.
+        // otherwise resolve the product against the catalogue by exact
+        // title — never fake a search out of the product name, which is
+        // the doorway that once showed a pants title with no image and
+        // no results after a shoe was tapped.
         const known = (searchResults || []).find(it => it.title === route.name)
           || (salesRendered || []).find(it => it.title === route.name)
           || (autoPartsRendered || []).find(it => it.title === route.name);
@@ -7594,7 +7903,14 @@ async function applyRoute(route){
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
           known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
           { brand: known.brand });
-        else if (route.name) showResults(route.name, { fromHistory: true });
+        else if (route.name) {
+          const found = await findCatalogProductByTitle(route.name).catch(() => null);
+          if (found) showProduct(found.retailer, found.title, found.price, found.weightKg, found.image || '',
+            found.sizes || [], needsSizeSelection(found.retailer, found.title), sizeCategoryFor(found.retailer, found.title),
+            found.rating != null ? String(found.rating) : '', found.images || [], found.catalogWeightKg ?? null,
+            { brand: found.brand });
+          else showProductUnavailable(route.name);
+        }
         else showPage('homeView');
         break;
       }
@@ -8722,6 +9038,11 @@ let liveSearchFailures = [];    // stores that did not answer, by label
 let liveSearchFound = 0;        // how many items the live scan actually added
 let liveSearchQueryUsed = '';   // the refined words the scan actually went out with
 
+/* Retry entry point for a failed catalogue search. The failed query is
+   kept in module state so the retry button needs no inline quoting. */
+let lastFailedQuery = null;
+function retryFailedSearch(){ if (lastFailedQuery) showResults(lastFailedQuery); }
+
 async function showResults(query, opts = {}){
   pushRoute({ view: 'resultsView', q: query });
   showPage('resultsView');
@@ -8773,7 +9094,22 @@ async function showResults(query, opts = {}){
      department tiles ask for it on DOMContentLoaded -- so by the time
      anyone has finished typing, this is a read out of memory. No
      network, no Apify, no cost, and it works at zero balance. */
-  const res = await catalogSearch(query);
+  /* A catalogue failure must never leave the page showing a bare title
+     with no image and no results and no explanation — that is the broken
+     doorway Danny reported. Say plainly that the catalogue failed and
+     offer a retry. */
+  let res = null;
+  try {
+    res = await catalogSearch(query);
+  } catch (err) {
+    console.warn('[search] catalogSearch failed:', err);
+    lastFailedQuery = query;
+    document.getElementById('resultCount').innerHTML =
+      'No pudimos cargar el catálogo para esta búsqueda. ' +
+      '<button type="button" class="underline font-bold" onclick="retryFailedSearch()">Reintentar</button>';
+    return;
+  }
+  lastFailedQuery = null;
   /* Guard against a slow catalogue and a fast second search: if the
      shopper has already asked for something else, this result is stale
      and must not overwrite theirs. */
@@ -10288,6 +10624,10 @@ function fragranceLimitNoticeHTML(){
    lines above a freight figure built on 0.35 kg. A cosmetic states its
    volume instead, in ml, which is what the retailer meant. */
 function contentLabelFor(title){
+  /* Candles: the card must quote the parcel weight (1.3 kg), never the wax
+     weight the title states ("22 oz" = 623 g). Returning null lets the
+     weight line fall back to the same freight estimate the cart charges. */
+  if (candleWeightKg(title) != null) return null;
   if (beautyWeightDetail(title, {})){
     const ml = titleVolumeMl(title);
     return ml ? `${Math.round(ml)} ml` : null;
@@ -10297,7 +10637,13 @@ function contentLabelFor(title){
 
 function weightLabelHTML(title, cls){
   const label = contentLabelFor(title);
-  return label ? `<div class="${cls}" style="color:#7A8296">${escapeHtml(label)}</div>` : '';
+  if (label) return `<div class="${cls}" style="color:#7A8296">${escapeHtml(label)}</div>`;
+  /* Fallback: the cart freights on estimateRetailWeightKg, so the card must
+     never go blank — transparency means the weight line always shows. */
+  const kg = estimateRetailWeightKg(title);
+  if (!(kg > 0)) return '';
+  const metric = kg >= 1 ? `${Math.round(kg * 100) / 100} kg` : `${Math.round(kg * 1000)} g`;
+  return `<div class="${cls}" style="color:#7A8296">~${metric} est.</div>`;
 }
 
 /* ACTUAL SCALE WEIGHT ONLY (2026-09-20). A dimensional-weight helper and
@@ -11351,6 +11697,38 @@ function ballWeightKg(title) {
   return withBuffer(hit.kg * packs + PACKAGING_ALLOWANCE_KG, "cited");
 }
 
+/* CANDLES: THE WAX-WEIGHT TRAP (2026-09-25). A candle title states the WAX
+   weight — "Yankee Candle Large Jar 22 oz" — but the parcel ships the glass
+   jar too, roughly another half kilo. Reading 22 oz as the shipped weight
+   underquotes freight on every big candle, so candleWeightKg is consulted
+   BEFORE the titleWeight stated-weight path in every estimator chain.
+   Figures are shippable weights with the +10% already baked in (large jar
+   measured 1.14 kg product / 1.19 kg packaged -> 1.3 kg): no buffer here;
+   multi-packs multiply the single-unit figure. Mirrors item-weight.js. */
+const CANDLE_GATE_RE = /\bcandles?\b|\bwicks?\b|\bwax\b|\bvotives?\b|\btea\s*lights?\b/i;
+/* Accessories that are not the candle: a holder ships empty, a warmer
+   ships a hot plate. These must return null, never a candle weight. */
+const CANDLE_IMPOSTOR_RE = /\bcandles?\s+(?:holder|sleeve|shade|topper|warmer|lamp)s?\b|\bwax\s+warmer\b|\bsnuffers?\b/i;
+const CANDLE_SPECS = [
+  { match: /\bflameless\b|\bled\s+candles?\b/i, kg: 0.3 },
+  { match: /\bwax\s*(?:melt|tart)s?\b/i, kg: 0.25 },
+  { match: /\bvotives?\b|\btea\s*lights?\b/i, kg: 0.15 },
+  { match: /\b3[\s-]*wick\b/i, kg: 1.3 },
+  { match: /\blarge\b|\b22\s*oz\b/i, kg: 1.3 },
+  { match: /\bmedium\b|\b14\.5\s*oz\b/i, kg: 1.05 },
+  { match: /\bsmall\b|\b3\.7\s*oz\b/i, kg: 0.45 },
+  { match: /\bpillars?\b/i, kg: 0.55 },
+];
+
+function candleWeightKg(title) {
+  const t = String(title || "");
+  if (!CANDLE_GATE_RE.test(t)) return null;
+  if (CANDLE_IMPOSTOR_RE.test(t)) return null;
+  const hit = CANDLE_SPECS.find((b) => b.match.test(t));
+  if (!hit) return null;
+  return Math.round(hit.kg * titlePackCount(t) * 100) / 100;
+}
+
 function bulkyWeightKg(text){
   const t = String(text || '');
   const goal = goalWeightKg(t);
@@ -11630,7 +12008,11 @@ function catalogWeightDetail(item, title){
 function estimateRetailWeightDetail(text, hints){
   const t = text || '';
   const beauty = beautyWeightDetail(t, hints || {});
-  const stated = beauty ? null : titleWeight(t);
+  /* CANDLES BEFORE THE TITLE PARSE (2026-09-25): "22 oz" on a candle is wax
+     weight, not parcel weight — the glass jar is another half kilo.
+     candleWeightKg beats the stated-weight path or freight is underquoted. */
+  const candle = candleWeightKg(t);
+  const stated = beauty || candle ? null : titleWeight(t);
   const classified = !beauty && !stated && (bulkyWeightKg(t) != null
     || bookWeightKg(t) != null
     || supplementWeightKg(t, hints || {}) != null
@@ -11641,6 +12023,7 @@ function estimateRetailWeightDetail(text, hints){
 
   // The raw estimate, before the band is applied, is what the band judges.
   const raw = beauty ? beauty.kg
+    : candle != null ? candle
     : stated ? stated.kg
     : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? supplementWeightKg(t, hints || {}) ?? footwearWeightKg(t) ?? ballWeightKg(t)
         ?? (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))
@@ -11650,7 +12033,7 @@ function estimateRetailWeightDetail(text, hints){
     : GENERIC_FALLBACK_KG;
 
   const check = weightSanity(t, raw);
-  const source = beauty ? 'beauty' : stated ? 'title' : classified ? 'category' : 'fallback';
+  const source = beauty ? 'beauty' : candle != null ? 'candle' : stated ? 'title' : classified ? 'category' : 'fallback';
   /* THREE STATES. out-of-band fails closed (no freight figure is
      rendered anywhere and it is kept out of Ofertas); a gap is quotable
      on the generic estimate but never promoted as a deal; a beauty
@@ -14519,9 +14902,11 @@ async function renderCrossSellRail(){
               <span class="absolute bottom-1.5 right-1.5 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full" style="background:rgba(10,31,68,0.72); color:#fff">Ver</span>
             </div>
             <div class="px-2.5 pt-2.5">
+              ${it.brand ? `<div class="text-[9px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(it.brand)}</div>` : ''}
               <div class="text-[11px] font-bold leading-tight line-clamp-2" style="display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(it.title)}</div>
               ${weightLabelHTML(it.title, 'text-[10px] mt-1 font-semibold')}
               <div class="text-[11.5px] font-extrabold mt-1" style="color:var(--navy)">${fmtDisplayPrice(it.price)}</div>
+              ${solesUnderHTML(displayPriceUsd(Number(it.price)), 'text-[10px] tabular mt-0.5')}
               ${taxIncludedNoteHTML(it.price, 'text-[10px]')}
             </div>
           </button>
@@ -16803,8 +17188,9 @@ function addAssistantProductCard(item, retailer){
     <div class="min-w-0 flex-1">
       <div class="mb-0.5">${retailerBadgeHTML(retailer, 14)}</div>
       ${item.brand ? `<div class="text-[9.5px] font-bold uppercase leading-tight truncate" style="color:var(--navy); letter-spacing:0.09em">${escapeHtml(item.brand)}</div>` : ''}
-      <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title)}</div>
+      <div class="text-[12.5px] font-bold truncate">${escapeHtml(item.title || item.name || '')}</div>
       <div class="text-[11.5px] text-zinc-500 truncate">${item.price != null ? fmtDisplayPrice(item.price) : ''}${item.price != null && priceIncludesImportTax(item.price) ? ' · incl. impuestos' : ''}</div>
+      ${item.price != null && Number.isFinite(Number(item.price)) ? solesUnderHTML(displayPriceUsd(Number(item.price)), 'text-[10.5px] text-zinc-400 truncate') : ''}
     </div>`;
   wrap.appendChild(card);
   wrap.scrollTop = wrap.scrollHeight;
@@ -17455,6 +17841,44 @@ if (SpeechRecognitionAPI) {
       }, MAX_SESSION_MS);
     };
 
+/* SPOKEN PUNCTUATION -> REAL PUNCTUATION (client mirror).
+   Speech-to-text hears Danny dictate his punctuation, so the transcript
+   arrives full of the words "comma", "period", "exclamation point" —
+   and the model echoes them, and then Aria's voice says them out loud
+   ("of course we do comma why" — the 2026-09-24 report). This converts
+   the dictated words into the marks they mean before the transcript is
+   shown or sent. The recognition is es-PE but Danny dictates in
+   English, so both languages are covered. Mirror of
+   sanitizeSpokenPunctuation in netlify/functions/_aria-chat-model.js —
+   keep the two rule lists identical. */
+function spokenPunctuationToMarks(text){
+  let t = String(text || '');
+  if (!t) return t;
+  const rules = [
+    [/(exclamation\s+points?|signos?\s+de\s+exclamaci[oó]n)/gi, '!'],
+    [/(question\s+marks?|signos?\s+de\s+(interrogaci[oó]n|pregunta))/gi, '?'],
+    [/(punto\s+y\s+coma|semicolons?)/gi, ';'],
+    [/(dos\s+puntos|colons?)/gi, ':'],
+    [/(periods?|puntos?(?!\s+de\b))/gi, '.'],
+    [/(commas?|(?<!en\s)comas?)/gi, ','],
+    [/(new\s+paragraphs?|nuevos?\s+p[aá]rrafos?)/gi, '\n'],
+    [/(new\s+lines?|nuevas?\s+l[ií]neas?)/gi, '\n'],
+    [/(at\s+signs?|arrobas?)/gi, '@'],
+    [/(hyphens?|dashes|guiones?)/gi, '-'],
+  ];
+  t = ' ' + t + ' ';
+  for (const [re, sym] of rules) {
+    // The lookahead keeps the trailing space unconsumed so "comma comma"
+    // converts both, not just the first.
+    t = t.replace(new RegExp(' (' + re.source + ')(?= )', re.flags), ' ' + sym + ' ');
+  }
+  return t
+    .replace(/[ \t]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\s*([,.!?;:])/g, '$1')
+    .trim();
+}
+
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
   const transcript = result[0].transcript;
@@ -17477,16 +17901,23 @@ recognition.onresult = (e) => {
 
   if (result.isFinal) {
     lastTranscriptLength = 0;
-    addAssistantMessage('user', transcript);
+    /* Dictated punctuation arrives as words ("comma", "punto") — convert
+       to the real marks before the message is shown or sent, so the chat
+       bubble, the search and the model all see "shoes, red ones" instead
+       of "shoes comma red ones". Mirror of sanitizeSpokenPunctuation in
+       netlify/functions/_aria-chat-model.js (this page is a plain
+       <script> and cannot import). */
+    const cleanTranscript = spokenPunctuationToMarks(transcript);
+    addAssistantMessage('user', cleanTranscript);
     document.getElementById('assistantInput').value = '';
 
-    if (isGoodbye(transcript)) {
+    if (isGoodbye(cleanTranscript)) {
       continuousMode = false;
-      setTimeout(() => runAssistantBrain(transcript), 350);
+      setTimeout(() => runAssistantBrain(cleanTranscript), 350);
       return;
     }
 
-    setTimeout(() => runAssistantBrain(transcript), 350);
+    setTimeout(() => runAssistantBrain(cleanTranscript), 350);
   }
 };
 

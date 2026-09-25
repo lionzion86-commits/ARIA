@@ -1148,14 +1148,24 @@ await check("the home page grid is departments only", async () => {
     };
   });
 
-  /* PINNED TO THE TAXONOMY, NOT TO A NUMBER. This read `eq(grid.cards,
-     11)` and went red the day Zapatos was added — which is a department
-     arriving, not the wall coming back. What must hold is that the grid
-     is exactly the departments the taxonomy declares: a brand sneaking
-     in would push the count ABOVE that, and a lost department below it,
-     and neither can hide behind a hand-updated literal. */
-  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
-  eq(grid.cards, departments, "home page tiles vs departments in the taxonomy");
+  /* PINNED TO A LIST, NOT TO A NUMBER — AND SINCE 2026-09-24 TO THE HOME
+     ROW'S LIST RATHER THAN THE WHOLE TAXONOMY. This read `eq(grid.cards,
+     11)` and went red the day Zapatos was added, so it was re-anchored
+     to Object.keys(DEPARTMENT_SPEC).length; that held right up until the
+     home row stopped being every department. It is the SHORTLIST now,
+     resolved through the same lookup the page uses, so a card cut from
+     the front door is not a failure and a card nobody asked for still
+     is.
+
+     The anti-wall guarantee did not move, it just lives on the other
+     grid: Categorías is still pinned to the taxonomy exactly, and that
+     is the page a brand wall would have to come back through. Here, a
+     brand cannot even be named — HOME_ROW_DEPARTMENTS is keys, and
+     homeRowTiles() resolves them against collectTiles(), which no longer
+     has a code path that builds a brand tile. */
+  const expected = await page.evaluate(() => homeRowTiles().map(t => t.label));
+  eq(grid.cards, expected.length, "home page tiles vs the home row's list");
+  eq(grid.names.join("|"), expected.join("|"), "the grid is not the home row's list, in its order");
   eq(grid.names.includes("Curvy"), true, `Curvy is not on the home page: ${grid.names.join()}`);
   if (grid.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on the home page: ${grid.names.join()}`);
@@ -1708,6 +1718,112 @@ await check("a stream that dies keeps what the shopper is already reading", asyn
    behind it are telling the shopper the same numbers.
    ================================================================== */
 const PHONE = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+await check("Aria Beauty is the first card the shop offers, on the phone and the desktop", async () => {
+  /* ASSERTED ON THE RENDERED PAGE, NOT ON THE LIST. run-tests.mjs
+     already pins HOME_ROW_DEPARTMENTS[0] === "beauty" from the text;
+     that is cheap and it is not the same claim. What a shopper meets is
+     the first CARD, and between the list and the card sit
+     homeRowTiles()'s lookup, the drop of any department nobody stocks,
+     and two separate renderers. A beauty catalogue that failed to load
+     would leave the list correct and the row still led by Electrónica.
+
+     BOTH SURFACES, because they are drawn by different functions from
+     one array -- deptTileHTML into #catGrid, mobileCatCardHTML into
+     #mobileCatsRow -- and "first" is a property of the array that either
+     renderer could drop. */
+  const first = async (ctxOpts) => {
+    const { ctx, page, errors } = await openPage({}, ctxOpts);
+    await page.waitForTimeout(4000);
+    const r = await page.evaluate(() => {
+      const label = (el) => (el?.textContent || "").trim().split("\n")[0].trim();
+      const rail = document.getElementById("mobileCatsRow");
+      return {
+        grid: label(document.getElementById("catGrid").children[0]),
+        rail: rail && rail.children.length ? label(rail.children[0]) : null,
+        listHead: HOME_ROW_DEPARTMENTS[0],
+      };
+    });
+    if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+    await ctx.close();
+    return r;
+  };
+
+  const phone = await first(PHONE);
+  eq(phone.listHead, "beauty", "the home row's list no longer starts with beauty");
+  eq(phone.grid, "Aria Beauty", `the grid's first card at 393px is "${phone.grid}"`);
+  eq(phone.rail, "Aria Beauty", `the phone rail's first card is "${phone.rail}"`);
+
+  const desktop = await first();
+  eq(desktop.grid, "Aria Beauty", `the grid's first card at desktop width is "${desktop.grid}"`);
+});
+
+await check("Ofertas is not offered twice, and is still one tap away", async () => {
+  /* THE DUPLICATE IS THE BUG, NOT THE DEPARTMENT. The deals hero sits
+     directly above this row with its own carousel and its own "Ver
+     todo". A second Ofertas card six cards further down is the same
+     offer twice, and on a phone it costs real sideways scrolling.
+
+     So this asserts BOTH halves, because removing a card is only
+     defensible while every route into it survives. A version of this
+     change that deleted `sale` from DEPARTMENT_SPEC would pass the first
+     assertion and break the shop. */
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+  const r = await page.evaluate(() => {
+    const label = (el) => (el?.textContent || "").trim().split("\n")[0].trim();
+    const names = (id) => [...(document.getElementById(id)?.children || [])].map(label);
+    return {
+      gridNames: names("catGrid"),
+      railNames: names("mobileCatsRow"),
+      /* Still a department in every other sense. */
+      inTaxonomy: Object.keys(DEPARTMENT_SPEC).includes("sale"),
+      stillTiled: collectTiles().some(t => t.key === "sale"),
+      label: (DEPARTMENT_META.sale || {}).label,
+    };
+  });
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+
+  eq(r.gridNames.includes("Ofertas"), false, `Ofertas is back in the grid: ${r.gridNames.join()}`);
+  eq(r.railNames.includes("Ofertas"), false, `Ofertas is back in the phone rail: ${r.railNames.join()}`);
+
+  eq(r.inTaxonomy, true, "`sale` was deleted from the taxonomy — that is a different and much larger change");
+  eq(r.stillTiled, true, "Ofertas can no longer be tiled at all, so Categorías lost it too");
+  eq(r.label, "Ofertas", "the Ofertas department lost its label");
+
+  /* AND THE HERO ABOVE THE ROW STILL OPENS IT — CLICKED, NOT GREPPED.
+     My first version of this tested a regex against the rendered HTML
+     for `openCatalog('department','sale')`. That string does not exist:
+     the hero's "Ver todo" calls goSales(). The check passed anyway,
+     because documentElement.innerHTML carries the page's own inline
+     script and something in it matched — a green assertion measuring
+     nothing, which is worse than a red one. It only surfaced when a
+     later change shifted the source enough to stop matching.
+
+     So it presses the button and looks at where the page went. That
+     cannot pass by coincidence. */
+  const openedVia = await page.evaluate(() => {
+    const hero = document.getElementById("mobileDealsRow")?.closest("section, div");
+    const btn = [...(hero?.querySelectorAll("button") || [])]
+      .find(b => /ver todo/i.test(b.textContent || ""));
+    if (!btn) return { found: false };
+    /* VIEWS ARE TOGGLED BY `active`, NOT BY `hidden` — showPage() does
+       classList.toggle('active', ...). My first attempt asked for
+       `#salesView:not(.hidden)`, which matches whether or not the page
+       ever opened, so it reported success every time. Twice now this
+       check has been green while measuring nothing; the fix is to read
+       the class the code actually sets, and to record what was on screen
+       BEFORE the click so "it was already there" cannot pass either. */
+    const activeNow = () => document.querySelector(".view.active, [id$='View'].active")?.id || null;
+    const before = activeNow();
+    btn.click();
+    return { found: true, before, after: activeNow() };
+  });
+  eq(openedVia.found, true, "the deals hero has no \"Ver todo\" button to reach Ofertas by");
+  if (openedVia.before === "salesView") throw new Error("the sales view was already open before the click — this proves nothing");
+  eq(openedVia.after, "salesView", `"Ver todo" left the page on ${openedVia.after}, not the sales view`);
+  await ctx.close();
+});
 
 await check("the phone's rails fill from the page's own data", async () => {
   const { ctx, page, errors } = await openPage({}, PHONE);
