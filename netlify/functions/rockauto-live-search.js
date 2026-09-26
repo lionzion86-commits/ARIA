@@ -32,9 +32,9 @@
    browser.
    ============================================================ */
 import { getStore } from "@netlify/blobs";
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
-import { dirname, join } from "node:path";
+// JSON is inlined into the bundle by the Netlify bundler — no
+// filesystem lookup, so this survives CJS/ESM bundling.
+import GLOSSARY_JSON from "../../scripts/lib/es-en-parts-glossary.json" with { type: "json" };
 import {
   ROCKAUTO_UA,
   ROCKAUTO_CHARSET,
@@ -54,11 +54,7 @@ import {
 const STORE = "rockauto-live";
 const PER_REQUEST_TIMEOUT_MS = 12000;
 
-const here = dirname(fileURLToPath(import.meta.url));
-const GLOSSARY = JSON.parse(
-  readFileSync(join(here, "..", "..", "scripts", "lib", "es-en-parts-glossary.json"), "utf8"),
-);
-const GLOSSARY_PAIRS = glossaryToPairs(GLOSSARY);
+const GLOSSARY_PAIRS = glossaryToPairs(GLOSSARY_JSON);
 
 const json = (statusCode, body) => ({
   statusCode,
