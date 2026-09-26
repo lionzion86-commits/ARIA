@@ -5309,6 +5309,51 @@ check("a store rail curates its own shelf: sale first, Ofertas deprioritised, fe
   eq(storeRailPicks("macys", [], [], new Set()).length, 0, "an empty store broke the curation");
 });
 
+check("the Gymshark rail opens on a model shot, socks second", () => {
+  const { storeRailPicks } = loadPageStoreRailSlice();
+  const sale = (retailer, title, price, originalPrice, type) =>
+    ({ retailer, title, price, originalPrice, image: "img", ...(type ? { type } : {}) });
+
+  /* The sock rack must never be the opener: the first apparel card --
+     Gymshark shoots apparel on models -- takes card one, the cheap
+     big-discount socks take card two, everything after keeps order. */
+  const items = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14),
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Reset Pink", 4.2, 14),
+    sale("gymshark", "Woven Shorts \u2014 Indigo Purple", 10.2, 34),
+    sale("gymshark", "Power T-Shirt \u2014 White/Brand Blue", 14.4, 36),
+  ];
+  const picks = storeRailPicks("gymshark", items, [], new Set());
+  eq(picks[0].title, "Woven Shorts \u2014 Indigo Purple", "the Gymshark opener is not apparel");
+  eq(picks[1].title, "Comfy Rest Day Socks \u2014 Stone Beige", "the socks are not card two");
+  eq(picks.slice(2).map(p => p.title).join(),
+    "Comfy Rest Day Socks \u2014 Reset Pink,Power T-Shirt \u2014 White/Brand Blue",
+    "the tail of the rail moved");
+
+  /* An explicit apparel category is authoritative even when the name is
+     accessory-adjacent. */
+  const typed = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14, "WOMENS_ACCESSORIES_SOCKS_LONG"),
+    sale("gymshark", "Woven Shorts \u2014 Indigo Purple", 10.2, 34, "WOMENS_APPAREL_SHORTS_LOOSE"),
+  ];
+  eq(storeRailPicks("gymshark", typed, [], new Set())[0].title,
+    "Woven Shorts \u2014 Indigo Purple", "the apparel type did not win the opener");
+
+  /* No apparel on the shelf: the order is left exactly as-is. */
+  const socksOnly = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14),
+    sale("gymshark", "Crew Socks 3 Pack", 8, 16),
+  ];
+  eq(storeRailPicks("gymshark", socksOnly, [], new Set()).map(p => p.title).join(),
+    "Comfy Rest Day Socks \u2014 Stone Beige,Crew Socks 3 Pack",
+    "a socks-only shelf got reordered");
+
+  /* Other stores are untouched by the Gymshark lead. */
+  const macys = storeRailPicks("macys",
+    [sale("macys", "coat", 50, 100), sale("macys", "dress", 20, 100)], [], new Set());
+  eq(macys.map(p => p.title).join(), "dress,coat", "a non-Gymshark rail changed order");
+});
+
 check("the store rails reuse the page's own cards, feeds and registry", () => {
   const railAnchor = shopfrontSrc.indexOf("STORE RAILS -- THE MALL, NOT THE DIRECTORY");
   const rails = shopfrontSrc.slice(

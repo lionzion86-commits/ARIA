@@ -7352,6 +7352,41 @@ function openStoreRailProduct(key, idx){
    (Keep it that way: no calls to page functions.) */
 const STORE_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
 const STORE_RAIL_TOTAL = 12; // shelf length; fewer without apology
+/* GYMSHARK RAIL OPENER (2026-09-26, Danny): the Gymshark shelf opens
+   on a model shot, never the sock rack. Gymshark shoots apparel on
+   models (verified on the real sale images), so the first apparel card
+   is the people shot; the cheap big-discount socks ride second. Nothing
+   is removed -- this only orders -- and if no apparel card is on the
+   shelf the order is left exactly as-is. Pure and self-contained like
+   the rest of this slice. */
+const GYMSHARK_SOCKS_RX = /\bsocks?\b/i;
+const GYMSHARK_OPENER_ACCESSORY_RX = /\b(socks?|keychains?|key\s*chain|hats?|beanies?|snapback|bucket\s*hat|dad\s*hat|bags?|backpack|duffel|tote|headbands?|bottles?|gloves?|belts?|bracelets?|wristbands?)\b/i;
+function gymsharkRailOpenerIdx(picks){
+  for (let i = 0; i < picks.length; i++){
+    const p = picks[i];
+    if (!p) continue;
+    /* An explicit apparel category is authoritative. */
+    if (/apparel/i.test(String(p.type || ''))) return i;
+    const name = String(p.title || p.name || '').replace(/\bcap\s+sleeves?\b/i, '');
+    if (!GYMSHARK_OPENER_ACCESSORY_RX.test(name)) return i;
+  }
+  return -1;
+}
+function gymsharkRailLead(picks){
+  if (!Array.isArray(picks) || picks.length < 2) return picks;
+  const openerIdx = gymsharkRailOpenerIdx(picks);
+  if (openerIdx > 0){
+    const opener = picks.splice(openerIdx, 1)[0];
+    picks.unshift(opener);
+  }
+  /* The cheap big-discount socks ride second -- never the opener. */
+  const s = picks.findIndex(p => p && GYMSHARK_SOCKS_RX.test(String(p.title || p.name || '')));
+  if (s > 1){
+    const sock = picks.splice(s, 1)[0];
+    picks.splice(1, 0, sock);
+  }
+  return picks;
+}
 function storeRailPicks(key, saleItems, pool, ofertasKeys){
   /* COSTCO NEVER GOES THROUGH THE SALE/FEATURED FILL: its shelf is the
      treasure-hunt curation (electronics first, never candy) and the rail
@@ -7391,6 +7426,8 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
       picks.push(it);
     }
   }
+  /* GYMSHARK OPENS ON A MODEL SHOT (2026-09-26, Danny). */
+  if (String(key || '').toLowerCase() === 'gymshark') gymsharkRailLead(picks);
   return picks;
 }
 /* COSTCO'S TREASURE-HUNT SHELF (2026-09-26, Danny's call): Costco is not
