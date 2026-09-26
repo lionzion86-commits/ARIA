@@ -1,2 +1,10 @@
 /checkout.html
   Cache-Control: no-cache, no-store, must-revalidate
+# index.html must always revalidate: a phone holding a cached copy of an
+# older index.html keeps running that copy's cart code. Before PR #89 that
+# code doubled every cart line on every page load (1 -> 2 -> ... -> 256),
+# and a stale copy would keep re-corrupting carts after the fix shipped.
+/index.html
+  Cache-Control: no-cache
+/
+  Cache-Control: no-cache

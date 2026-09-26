@@ -9436,6 +9436,94 @@ check("the page merge cannot sum quantities", () => {
 });
 
 /* ============================================================
+   CART QUANTITY HEALING (2026-09-26, live money bug): PR #89's max()
+   merge stops NEW doublings but can never repair a cart corrupted by
+   the old summing merge — max(256, 256) is 256 forever. Danny's live
+   cart proved it: two lines at qty 256 (2^8), $26,145 declared value.
+   repairDoubledQuantities heals the exact fingerprint (a power of two
+   >= 64, unreachable via the +1 stepper) back to 1 and leaves every
+   plausible quantity alone.
+   ============================================================ */
+
+check("the doubling incident reproduces: 8 summing merges turn qty 1 into 256", () => {
+  // Pre-#89 behavior: local and server are exact mirrors and the merge
+  // summed on matching keys; the client overwrote the server after
+  // every load, so each reload doubled every line.
+  const summingMerge = (l, s) => {
+    const map = new Map();
+    for (const it of s) map.set([it.retailer, it.title, it.selectedSize || ""].join("::"), { ...it });
+    for (const it of l) {
+      const key = [it.retailer, it.title, it.selectedSize || ""].join("::");
+      if (map.has(key)) map.get(key).qty += it.qty;
+      else map.set(key, { ...it });
+    }
+    return Array.from(map.values());
+  };
+  let local = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 1)];
+  let server = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 1)];
+  for (let i = 0; i < 8; i++) {
+    const merged = summingMerge(local, server);
+    local = merged;
+    server = merged.map((it) => ({ ...it }));
+  }
+  eq(local[0].qty, 256, "8 reloads double qty 1 to 256");
+});
+
+check("max() alone never heals a corrupted cart", () => {
+  const local = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256)];
+  const server = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged[0].qty, 256, "max(256,256) stays 256 - the gap repairDoubledQuantities closes");
+});
+
+check("repairDoubledQuantities heals the doubling fingerprint back to 1", () => {
+  const list = [
+    cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256),
+    cartKey("Victoria's Secret", "Heritage Mesh Lace-Trim", "M", 128),
+  ];
+  const { cart, repaired } = pageCart.repairDoubledQuantities(list);
+  eq(repaired, 2, "both lines healed");
+  eq(cart[0].qty, 1, "256 -> 1");
+  eq(cart[1].qty, 1, "128 -> 1");
+  eq(cart[0].title, "New Balance 740 - Men's", "rest of the line untouched");
+  eq(cart[0].selectedSize, "10", "size untouched");
+});
+
+check("repairDoubledQuantities leaves plausible quantities alone", () => {
+  const list = [
+    cartKey("Nike", "Air Force 1", "10", 1),
+    cartKey("Nike", "Dunk Low", "10", 2),
+    cartKey("Adidas", "Samba", "9", 3),
+    cartKey("Party", "Vasos descartables", "", 8),
+    cartKey("Party", "Vasos descartables", "", 16),
+    cartKey("Party", "Vasos descartables", "", 32),
+    cartKey("Party", "Platos hondos", "", 30),
+    cartKey("Party", "Servilletas", "", 100),
+  ];
+  const { cart, repaired } = pageCart.repairDoubledQuantities(list);
+  eq(repaired, 0, "nothing repaired");
+  eq(cart.map((it) => it.qty).join(","), "1,2,3,8,16,32,30,100", "quantities untouched");
+});
+
+check("initCart runs the quantity healing pass", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("async function initCart(){"), src.indexOf("let cartLoaded = false;"));
+  if (!/repairDoubledQuantities\(cart\)/.test(fn)) {
+    throw new Error("initCart does not run repairDoubledQuantities");
+  }
+});
+
+check("index.html is never served stale (stale doubling code must not survive)", () => {
+  const headers = readFileSync(root("_headers"), "utf8");
+  const idx = headers.search(/^\/index\.html$/m);
+  if (idx < 0) throw new Error("_headers has no /index.html cache rule");
+  const section = headers.slice(idx).split(/\n[^\s]/)[0];
+  if (!/no-cache/.test(section)) {
+    throw new Error("/index.html is cacheable - a stale summing mergeCarts could keep doubling carts");
+  }
+});
+
+/* ============================================================
    GUÍA DE TALLAS (2026-09-26): brand- and region-aware size guide.
    A Nike L, a Zara L and a Peruvian-market L are different garments,
    so the guide resolves per brand (curated tables transcribed from

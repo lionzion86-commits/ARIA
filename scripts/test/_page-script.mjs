@@ -724,7 +724,7 @@ export function loadPageCartSlice() {
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { cartItemKey, mergeCarts };",
+    html.slice(from, to) + "\n;globalThis.__exports = { cartItemKey, mergeCarts, repairDoubledQuantities };",
     sandbox,
     { filename: "index.html#cart" },
   );
