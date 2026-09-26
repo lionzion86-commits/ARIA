@@ -9208,7 +9208,7 @@ check("opening the guide cannot disturb the shopper's chosen size", () => {
   }
 });
 
-check("the product page offers a continue-to-cart line after a successful add", () => {
+check("the product page shows a continue-to-cart line whenever the cart holds items", () => {
   const src = readFileSync(root("index.html"), "utf8");
   // The line lives directly under the buy button and taps straight into the cart.
   const btnZone = src.slice(src.indexOf('id="addToCartBtn"'), src.indexOf('id="productNoPriceNote"'));
@@ -9216,22 +9216,36 @@ check("the product page offers a continue-to-cart line after a successful add", 
     throw new Error("continueToCartBtn is not directly under #addToCartBtn or does not open the cart");
   }
   if (!/class="[^"]*\bhidden\b/.test(btnZone)) {
-    throw new Error("continueToCartBtn is not hidden until an add");
+    throw new Error("continueToCartBtn does not start hidden in the markup");
   }
   // The success path of addToCartFromProduct() raises it with the live count.
   const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("function retailerFor("));
   if (!/showContinueToCart\(\)/.test(fn)) {
     throw new Error("addToCartFromProduct does not show the continue-to-cart line on success");
   }
-  // A fresh product render resets it — no leaking across products.
+  // A fresh product render DRIVES the line off the cart count (Danny's iPhone QA
+  // 2026-09-26: hiding it on every render made it vanish on navigation even with
+  // items in the cart). It must sync, never unconditionally wipe.
   const buyable = src.slice(src.indexOf("function setProductBuyable(hasPrice){"), src.indexOf("function addToCartFromProduct(){"));
-  if (!/continueToCartBtn/.test(buyable)) {
-    throw new Error("setProductBuyable does not reset the continue-to-cart line");
+  if (!/refreshContinueToCart\(ctc\)/.test(buyable)) {
+    throw new Error("setProductBuyable does not sync the continue-to-cart line to the cart count");
   }
-  // The count stays live: every cart mutation funnels through renderCartBadge().
+  if (/ctc\.classList\.add\('hidden'\)/.test(buyable)) {
+    throw new Error("setProductBuyable still wipes the continue-to-cart line on every render");
+  }
+  // Every cart mutation funnels through renderCartBadge(), which syncs the line
+  // unconditionally — it must APPEAR from here too, not only refresh while visible.
   const badge = src.slice(src.indexOf("function renderCartBadge(){"), src.indexOf("function addToCart(item){"));
-  if (!/refreshContinueToCart/.test(badge)) {
-    throw new Error("renderCartBadge does not keep the continue-to-cart count live");
+  if (!/if \(ctc\) refreshContinueToCart\(ctc\);/.test(badge)) {
+    throw new Error("renderCartBadge does not unconditionally sync the continue-to-cart line");
+  }
+  if (/contains\('hidden'\)\) refreshContinueToCart/.test(badge)) {
+    throw new Error("renderCartBadge still only refreshes the line while it is visible");
+  }
+  // The sync never paints a cart that has not finished loading.
+  const sync = src.slice(src.indexOf("function refreshContinueToCart(el){"), src.indexOf("function showContinueToCart(){"));
+  if (!/cartLoaded \? cartCount\(\) : 0/.test(sync)) {
+    throw new Error("refreshContinueToCart does not guard on cartLoaded");
   }
   // Spanish-first copy with a real count, singular and plural.
   if (!/Continuar al carrito/.test(src)) {
