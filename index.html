@@ -100,7 +100,6 @@
      tints the page background behind the cards, so no text re-inking is
      needed. Worn when the view is opened from that store's tile. */
   [data-store-theme="autozone"]{ background:linear-gradient(180deg, #DFF0E4 0%, var(--paper) 340px); }
-  [data-store-theme="rockauto"]{ background:linear-gradient(180deg, #E2E3F5 0%, var(--paper) 340px); }
   /* STORE CAROUSELS — WINDOW-SHOPPING RAILS (2026-09-24).
      Danny: every store landing and every category drill-down leads with
      a swipeable product rail; the wordy tiles move below. The rail is a
@@ -1179,7 +1178,7 @@
          no product carousel. Aria Auto is a huge section nobody discovers
          from the homepage -- the logo/branding moment lands first, then
          this black banner, then the Victoria's Secret rails. Relatable
-         promise first (Aria Auto + price), RockAuto/Advance as the trust
+         promise first (Aria Auto + price), AutoZone as the trust
          kicker underneath. Permanent, one banner only. -->
     <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
@@ -1187,73 +1186,12 @@
       <div class="relative px-5 py-8" style="z-index:1">
         <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
         <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
-        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por RockAuto &middot; Advance Auto Parts</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone</p>
         <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
       </div>
     </section>
 
     <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
-        </span>
-        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: GYMSHARK (2026-09-26, Danny). The gym brand sits between Victoria's Secret and Sephora — most-known
-         gym brand in Peru right now. Sale + featured picks from the Gym Rat catalog's Gymshark
-         shelf; the header opens the full Gymshark store. No logo file: the wordmark pill on the
-         brand colour is the designed treatment, same as Dick's. -->
-    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#000000">Gymshark</span>
-        <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: SEPHORA. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
-        </span>
-        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: MACY'S. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
-        </span>
-        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: FOOT LOCKER. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
     <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
@@ -1267,34 +1205,59 @@
         </span>
         <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: SSENSE. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
+    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
            class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
           </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
         </span>
-        <button onclick="openStore('ssense')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
-      <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: DICK'S SPORTING GOODS. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
+      <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
+        </span>
+        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
             style="background:#D22630">Dick's Sporting Goods</span>
         <button onclick="openStore('dicks')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
+        </span>
+        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
          picker and the Costco zone -- the catalogue's top clothing brands
@@ -1311,7 +1274,7 @@
          curated cozy-home-first for Danny's women-shopper lens, no candy (see costcoCuratedItems).
          The header keeps the official logo + the big store name; the row
          is painted by initStoreRails like every other rail. -->
-    <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+<section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1323,7 +1286,30 @@
         </span>
         <button onclick="openStore('costco')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="mStoreRail-costco" data-store-rail-row="costco" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+        <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+        </span>
+        <button onclick="openStore('ssense')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
+      <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
@@ -1376,6 +1362,9 @@
       </div>
       <div id="mOtherStoresRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
+
+    <!-- CÓMO FUNCIONA TU ENVÍO (2026-09-26) — filled by renderShippingExplainers. -->
+    <div id="mShippingExplainer"></div>
 
     <!-- CATEGORÍAS -->
     <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
@@ -1487,77 +1476,13 @@
         <div class="min-w-0">
           <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
           <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
-          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por RockAuto &middot; Advance Auto Parts</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone</p>
         </div>
         <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
       </div>
     </section>
 
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
-        </span>
-          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- STORE RAIL: GYMSHARK (desktop, 2026-09-26, Danny). Same shelf as the phone, wider stance —
-         sits between Victoria's Secret and Sephora. -->
-    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#000000">Gymshark</span>
-          <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- STORE RAIL: SEPHORA (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
-        </span>
-          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- STORE RAIL: MACY'S (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
-        </span>
-          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- STORE RAIL: FOOT LOCKER (desktop). Same shelf as the phone, wider stance. -->
     <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -1571,28 +1496,42 @@
         </span>
           <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
-        <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section>
-    <!-- STORE RAIL: SSENSE (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
+    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
           <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
            class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
           </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
         </span>
-          <button onclick="openStore('ssense')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
-        <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
+      <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section>
-    <!-- STORE RAIL: DICK'S SPORTING GOODS (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
+        </span>
+          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1600,7 +1539,24 @@
             style="background:#D22630">Dick's Sporting Goods</span>
           <button onclick="openStore('dicks')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
-        <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
@@ -1615,7 +1571,7 @@
     </section>
     <!-- COSTCO: THE TREASURE-HUNT SHELF (desktop, 2026-09-26, Danny's call).
          Same curated shelf as the phone -- electronics first, no candy. -->
-    <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+<section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
       <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1628,7 +1584,34 @@
         </span>
         <button onclick="openStore('costco')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
+      <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="dStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+          <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+        </span>
+          <button onclick="openStore('ssense')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
+      <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -1685,6 +1668,9 @@
         <div id="dOtherStoresRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
+
+    <!-- CÓMO FUNCIONA TU ENVÍO (2026-09-26) — filled by renderShippingExplainers. -->
+    <div id="dShippingExplainer"></div>
 
     <!-- CATEGORIAS -->
     <section aria-label="Categorías" style="background:#fff">
@@ -2313,6 +2299,8 @@
     </button>
     <div id="storeViewHero" class="mb-3"></div>
     <p id="storeViewSubtitle" class="text-[13px] text-zinc-500 mb-8"></p>
+    <!-- Delivery transparency (2026-09-26): the store's Miami transit range, set by openStore. -->
+    <p id="storeViewDelivery" class="text-[13px] font-semibold -mt-6 mb-8" style="color:var(--navy)"></p>
     <div id="storeViewSections"></div>
   </div>
 </div>
@@ -2368,6 +2356,8 @@
       <!-- The courier's four-fragrance-per-shipment clause, stated where
            the basket is built rather than at the payment step. -->
       <div id="cartFragranceWrap" class="mt-6"></div>
+      <!-- Delivery transparency (2026-09-26): per-store Miami ranges, set by renderCartView. -->
+      <div id="cartDeliveryWrap" class="mt-6"></div>
       <div id="taxZoneBarWrap" class="mt-6"></div>
       <div id="customsDisclosureWrap" class="mt-3"></div>
       <div id="crossSellRailWrap" class="mt-8"></div>
@@ -2431,6 +2421,8 @@
     </button>
     <div class="bg-white border rounded-3xl p-6 sm:p-8" style="border-color:var(--line)">
       <div id="productViewBadge" class="mb-4"></div>
+      <!-- Delivery transparency (2026-09-26): this store's Miami transit range, set by showProduct. -->
+      <div id="productViewDelivery" class="text-[12.5px] font-semibold mb-4 -mt-2" style="color:var(--navy)"></div>
       <!-- Spec §6 product imagery: the image column was a 220px square
            under object-cover, which both beheaded portrait catalog shots
            and gave the customer no way to actually look at the product.
@@ -2975,70 +2967,6 @@
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
     </div>
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="max-w-[1120px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
-        </span>
-          <button onclick="openStore('victoriassecret')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- VITRINA: GYMSHARK (2026-09-26, Danny). Sits between Victoria's Secret and Sephora, same shelf as the
-         homepage rails -- the most-known gym brand in Peru. No logo file: the black wordmark pill is the designed
-         treatment, same as the homepage rail. Painted by initStoreRails. -->
-    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
-      <div class="max-w-[1120px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none" style="background:#000000">Gymshark</span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Gymshark</span>
-        </span>
-          <button onclick="openStore('gymshark')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="max-w-[1120px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
-        </span>
-          <button onclick="openStore('sephora')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
-      <div class="max-w-[1120px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
-        </span>
-          <button onclick="openStore('macys')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div id="tStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
-      </div>
-    </section>
     <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -3052,26 +2980,42 @@
         </span>
           <button onclick="openStore('footlocker')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
-        <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section>
-    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
+    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
           <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
            class="h-[22px] w-auto max-w-[120px] object-contain"
            onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
           </span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Sephora</span>
         </span>
-          <button onclick="openStore('ssense')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+          <button onclick="openStore('sephora')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
-        <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
+      <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section>
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Macy's</span>
+        </span>
+          <button onclick="openStore('macys')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="tStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3079,13 +3023,26 @@
             style="background:#D22630">Dick's Sporting Goods</span>
           <button onclick="openStore('dicks')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
-        <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section>
-    <!-- STORE RAIL: COSTCO (Tiendas). The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store.
-         Wordmark pill until the logo file lands (see the Costco row note). -->
-    <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
       <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3098,7 +3055,36 @@
         </span>
         <button onclick="openStore('costco')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="tStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none" style="background:#000000">Gymshark</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Gymshark</span>
+        </span>
+          <button onclick="openStore('gymshark')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/ssense.png" alt="SSENSE" data-retailer="ssense" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">SSENSE</span>
+        </span>
+          <button onclick="openStore('ssense')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
+      <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
   </section>
@@ -4966,18 +4952,29 @@ function withoutRestrictedDepartments(envelope){
    gone when a catalogue is re-pulled, because the filter runs on
    every load, not on the data files.
 
+   2026-09-26, DANNY'S CALL: no TVs and no TV mounts, anywhere. TV and
+   mount products were deleted from the catalogues, and the wall-mount
+   carve-out above was removed, so a re-pulled mount can never slip
+   back in as a "parcel accessory". TV stands (furniture) stay.
+
    Name-based, because the committed catalogues carry no usable
    weight/type fields (weightKg is null across the board). Two
    deliberate carve-outs so the rule does not eat the small stuff:
-   TV-adjacent parcel accessories (Apple TV box, HDMI cables, wall
-   mounts, streaming sticks, projectors -- a projector runs Google TV
+   TV-adjacent parcel accessories (Apple TV box, HDMI cables,
+   streaming sticks, projectors -- a projector runs Google TV
    but it is a small electronic, not a television) and small goods
    whose names merely mention furniture (hair dryers, pillow covers
    "for sofas", freezer trays, a perfume called Wardrobe).
    ============================================================ */
 const UNSHIPPABLE_TV_RX = /\btvs?\b|television|televisor|smart[-\s]?tv|\bqled\b|\boled\b/i;
-const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|wall\smount|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv/i;
-const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|\bshed\b|cobertizo|playset|gazebo|patio\sset|\bconsole\b|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|tv\sstand|tv\sconsole|entertainment\scenter/i;
+const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter/i;
+/* TV STANDS ARE FURNITURE (2026-09-26, Danny): a stand or console that holds a TV is not a television. */
+const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero/i;
+/* TV STANDS ARE FURNITURE (2026-09-26, Danny): tv stand / tv console /
+   entertainment center were removed from the pattern above, along with the
+   bare \bconsole\b that only ever targeted the TV console. Stands stay
+   visible and shippable; only TV sets and TV mounts are banned
+   (UNSHIPPABLE_TV_RX). */
 const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|infinitipro|bed head|revlon|hot tools|pressure|hidrolavadora|\btray\b|perfume|fragancia|cologne|\bfor\b.{0,30}\b(sofas?|couch(es)?|mattress(es)?|beds?|dressers?)\b|\btoy\b|\bdoll\b|lego|nintendo|playstation|xbox/i;
 /* Anything over this is freight, not a parcel -- a backstop for the day
    the catalogues start carrying real weights (weightKg is null today). */
@@ -7515,7 +7512,10 @@ function renderMobileDealsRail(){
    VICTORIA'S SECRET AND SEPHORA (2026-09-26, Danny): the most-known gym
    brand in Peru right now sits right under Victoria's Secret; its shelf
    is the Gym Rat catalogue's Gymshark picks. */
-const STORE_RAIL_STORES = ['victoriassecret', 'gymshark', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks', 'costco'];
+/* RELIABLE-FIRST (2026-09-26, Danny): the window displays lead with the strongest shippers.
+   Every rail card prints the store's Miami delivery line (see storeCardHTML).
+   SSENSE anchors the end: browsable and honest, but red-tier and slow. */
+const STORE_RAIL_STORES = ['footlocker', 'sephora', 'macys', 'dicks', 'victoriassecret', 'costco', 'gymshark', 'ssense'];
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
 
@@ -9297,6 +9297,7 @@ function storeCardHTML(r){
     <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">
       <div class="text-[13.5px] font-extrabold leading-tight" style="color:var(--navy)">${escapeHtml(r.label)}</div>
       <div class="text-[12px] leading-snug mt-0.5" style="color:#6B7487">${escapeHtml(r.tagline || '')}</div>
+      ${deliveryFor(r.key) ? `<div class="text-[11.5px] font-semibold mt-1 leading-snug" style="color:var(--navy)">${escapeHtml(storeDeliveryLineEs(r.key))}</div>` : ''}
       <!-- Filled from the catalogue once it loads (paintStoreBrandLines).
            Hidden until then: a store with no brands we can name says
            nothing rather than guessing. -->
@@ -9493,6 +9494,16 @@ function renderOtherStoresStrip(){
   }
 }
 window.addEventListener('DOMContentLoaded', renderOtherStoresStrip);
+/* CÓMO FUNCIONA TU ENVÍO (2026-09-26): the two-leg explainer strip,
+   rendered into both home copies from one function. */
+function renderShippingExplainers(){
+  const html = shippingExplainerHTML();
+  for (const id of ['mShippingExplainer', 'dShippingExplainer']){
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+}
+window.addEventListener('DOMContentLoaded', renderShippingExplainers);
 
 
 /* ============================================================
@@ -9627,10 +9638,19 @@ async function openStore(retailer){
   await loadFxRate();
   document.getElementById('storeViewHero').innerHTML = retailerBadgeHTML(retailer, 44);
   document.getElementById('storeViewSubtitle').textContent = 'Cargando artículos…';
+  /* DELIVERY TRANSPARENCY (2026-09-26): the store's Miami transit range,
+     stated on the storefront before a single product is looked at. */
+  document.getElementById('storeViewDelivery').textContent = storeDeliveryLineEs(retailer) || '';
   /* A beauty store leads with the courier's fragrance limit. It is the
      one rule that can invalidate a whole basket, so it belongs at the top
      of the page the basket gets built on. */
-  document.getElementById('storeViewSections').innerHTML = isBeautyRetailer(retailer) ? fragranceLimitNoticeHTML() : '';
+  /* A RED-TIER store leads with the honest warning instead: its timing is
+     the whole point of the storefront, and Danny's rule is that a slow
+     store stays only if the slowness is stated plainly. */
+  const __redNotice = redTierNoticeEs(retailer);
+  document.getElementById('storeViewSections').innerHTML =
+    (__redNotice ? `<div class="rounded-2xl px-4 py-3 mb-5 text-[13px] font-semibold leading-snug" style="background:#FFF7E6; border:1px solid #F4C463; color:var(--navy)">${escapeHtml(__redNotice)}</div>` : '') +
+    (isBeautyRetailer(retailer) ? fragranceLimitNoticeHTML() : '');
 
   /* A store we have not wired a scraper for yet says so plainly rather
      than showing "sin artículos", which reads as "this shop is
@@ -9641,6 +9661,7 @@ async function openStore(retailer){
      with 431 real products behind it. */
   const meta = retailerFor(retailer);
   if (meta && !(meta.search || meta.browse)){
+    document.getElementById('storeViewDelivery').textContent = '';
     document.getElementById('storeViewSubtitle').textContent = 'Catálogo en preparación';
     document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
       <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Estamos conectando el catálogo de ${escapeHtml(meta.label)}</div>
@@ -9661,6 +9682,7 @@ async function openStore(retailer){
      "No hay artículos" for 1,649 real products). */
   if (!retailerData){
     const label = escapeHtml((meta && meta.label) || retailer);
+    document.getElementById('storeViewDelivery').textContent = '';
     document.getElementById('storeViewSubtitle').textContent = 'Actualizando el catálogo…';
     document.getElementById('storeViewSections').innerHTML += `<div class="rounded-2xl border p-6" style="border-color:var(--line); background:var(--paper)">
       <div class="text-[14px] font-bold mb-1" style="color:var(--navy)">Estamos actualizando el catálogo de ${label}</div>
@@ -10051,6 +10073,7 @@ function showProductUnavailable(name){
   showPage('productView');
   const set = (id, fn) => { const el = document.getElementById(id); if (el) fn(el); };
   set('productViewBadge', el => { el.innerHTML = ''; });
+  set('productViewDelivery', el => { el.textContent = ''; });
   set('productViewBrand', el => { el.textContent = ''; el.hidden = true; });
   set('productViewTitle', el => { el.textContent = name || 'Producto'; });
   set('productViewPrice', el => { el.innerHTML = ''; });
@@ -10381,9 +10404,8 @@ const ES_EN_WORDS = {
   ordenador: "computer",
   tableta: "tablet",
   pantalla: "monitor",
-  televisor: "tv",
-  television: "tv",
-  tele: "tv",
+  /* No TV aliases (2026-09-26, Danny): televisions and mounts are banned
+     outright — the glossary must not route shoppers toward them. */
   audifono: "headphones",
   auricular: "headphones",
   parlante: "speaker",
@@ -12283,7 +12305,8 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg, brand: String(opts?.brand || '').trim() };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
-  /* The designer, above the product. textContent, never innerHTML: this
+  /* DELIVERY TRANSPARENCY (2026-09-26): timing before the buy box. */
+  document.getElementById('productViewDelivery').textContent = storeDeliveryLineEs(retailer) || '';  /* The designer, above the product. textContent, never innerHTML: this
      string comes from a retailer's catalogue. Emptied when there is no
      brand so the previous product's label cannot survive onto this one
      -- the same leak the part-number field guards against below. */
@@ -12595,9 +12618,11 @@ function addToCartFromProduct(){
    returns a failed-store card that reads like a bug.
    ============================================================ */
 const RETAILERS = {
-/* EXCLUSIVE MALL ORDER (2026-09-24, Danny): aspirational brands first —
-   the mall feels exclusive, not downmarket. Target and Walmart at the back. Mirrors scripts/lib/retailers.js. */
-  victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
+  target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
+  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
+  walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
+  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   /* SEPHORA IS BROWSABLE (2026-09-22). beauty-catalog.json landed with
      80 Sephora products, so this row flips `browse: true` and drops the
      pending note -- the same two-flag distinction Macy's introduced.
@@ -12613,6 +12638,69 @@ const RETAILERS = {
      same two names twice on one card and goes stale the first time the
      export changes. */
   sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
+     it has a real catalogue (macys-catalog.json); `search: false` keeps
+     it out of the live fan-out, which has no actor for it. See the note
+     on the Macy's row in scripts/lib/retailers.js. */
+  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+  /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor (Macy's pattern):
+     browse: true, search: false. No logo file yet, so the wordmark pill
+     on brand colour; colours are brand-red / near-black from the brands'
+     public identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
+  dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
+  /* COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the Macy's
+     pattern: browse: true, search: false. costco-catalog.json (1,569 products)
+     and samsclub-catalog.json (120 products) are committed at repo root and
+     merged by loadDepartmentCache like Macy's. No logo files yet -- the
+     wordmark pill on brand colour is the documented fallback. Colours are
+     the brands' official red/blue; sample from the artwork when the logo
+     files land. Party City is deliberately NOT a store row: its catalogue
+     surfaces only through the Fiestas y Eventos vertical. Mirrors
+     scripts/lib/retailers.js. */
+  costco:          { key: 'costco',          label: 'Costco',            color: '#E31837', logo: 'logos/costco.svg',   tagline: 'Precios de almacén, todo por mayor',                        kind: 'general', search: false, browse: true },
+/* EXCLUSIVE MALL ORDER (2026-09-24, Danny): aspirational brands first —
+   the mall feels exclusive, not downmarket. Target and Walmart at the back. Mirrors scripts/lib/retailers.js. */
+  victoriassecret: { key: 'victoriassecret', label: "Victoria's Secret", color: '#E31C79', logo: 'logos/victoriassecret.png',                   tagline: 'Lencería, brumas corporales y fragancias',     kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
+     file. Browse-without-scrape, like Macy's and SSENSE.
+
+     BOTH MARKS LANDED the same day. They shipped as wordmark pills on
+     our navy for a few hours, because a brand's name on a colour we
+     invented for them is worse than one on ours — and `color` is no
+     longer a placeholder either: both values were SAMPLED FROM THE
+     SUPPLIED ARTWORK rather than recalled (Ulta's orange is #F88038
+     across 229,142 pixels of its file; YesStyle's most common ink is
+     its near-black, but a near-black badge is indistinguishable from
+     Sephora's and SSENSE's, so the row takes the green that says whose
+     mark it is). The colour only ever backs the wordmark pill and the
+     small text badge now, neither of which renders while the logo file
+     resolves.
+
+     YesStyle's file needed cropping — the wordmark filled 7.4% of its
+     canvas, which is the SSENSE sliver all over again. See the logo
+     coverage test. Mirrors scripts/lib/retailers.js. */
+  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
+  oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
+  samsclub:         { key: 'samsclub',         label: "Sam's Club",        color: '#0B6CFF', logo: 'logos/samsclub.svg', tagline: 'Mayoreo y esenciales para el hogar',                       kind: 'general', search: false, browse: true },
+  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. lanebryant-catalog.json (169 products,
+     ~153 with extended sizes) is committed at repo root and merged by
+     loadDepartmentCache like Macy's. This row was the missing piece the
+     catalog audit found: the file was fetched in CATALOGUE_FILES but the
+     retailer was never registered, so all 169 products were invisible in
+     Tiendas, Curvy, Ofertas and the brand panels. No logo file yet — the
+     wordmark pill on brand colour is the documented fallback, not a
+     broken state. Colour is Lane Bryant's brand red, from their public
+     identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
+  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
+  alphalete:       { key: 'alphalete',       label: 'Alphalete',        color: '#000000', tagline: 'Ropa de gym premium',                                kind: 'general', search: false, browse: true },
+  /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's pattern:
+     browse: true, search: false. The Gym Rat catalogues (gymrat-catalog.json) are
+     committed files; they power the Gym Rat department, its brand pills, the
+     Gymshark home rail, and Ofertas via fileBackedDeals. Apparel cluster, after Old Navy. Mirrors scripts/lib/retailers.js. */
+  youngla:         { key: 'youngla',         label: 'YoungLA',          color: '#000000', tagline: 'Ropa de gym — oversize y streetwear',                 kind: 'general', search: false, browse: true },
+  gymshark:        { key: 'gymshark',        label: 'Gymshark',         color: '#000000', tagline: 'Ropa de gym — leggings, tops y conjuntos',            kind: 'general', search: false, browse: true },
   /* ============================================================
      THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
 
@@ -12639,64 +12727,15 @@ const RETAILERS = {
      Mirrors scripts/lib/retailers.js.
      ============================================================ */
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
-  revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
-  /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
-     file. Browse-without-scrape, like Macy's and SSENSE.
-
-     BOTH MARKS LANDED the same day. They shipped as wordmark pills on
-     our navy for a few hours, because a brand's name on a colour we
-     invented for them is worse than one on ours — and `color` is no
-     longer a placeholder either: both values were SAMPLED FROM THE
-     SUPPLIED ARTWORK rather than recalled (Ulta's orange is #F88038
-     across 229,142 pixels of its file; YesStyle's most common ink is
-     its near-black, but a near-black badge is indistinguishable from
-     Sephora's and SSENSE's, so the row takes the green that says whose
-     mark it is). The colour only ever backs the wordmark pill and the
-     small text badge now, neither of which renders while the logo file
-     resolves.
-
-     YesStyle's file needed cropping — the wordmark filled 7.4% of its
-     canvas, which is the SSENSE sliver all over again. See the logo
-     coverage test. Mirrors scripts/lib/retailers.js. */
-  ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.' },
-  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
-  /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor (Macy's pattern):
-     browse: true, search: false. No logo file yet, so the wordmark pill
-     on brand colour; colours are brand-red / near-black from the brands'
-     public identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
-  dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
-  pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
-  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
-     browse: true, search: false. lanebryant-catalog.json (169 products,
-     ~153 with extended sizes) is committed at repo root and merged by
-     loadDepartmentCache like Macy's. This row was the missing piece the
-     catalog audit found: the file was fetched in CATALOGUE_FILES but the
-     retailer was never registered, so all 169 products were invisible in
-     Tiendas, Curvy, Ofertas and the brand panels. No logo file yet — the
-     wordmark pill on brand colour is the documented fallback, not a
-     broken state. Colour is Lane Bryant's brand red, from their public
-     identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
-  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
-  /* COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the Macy's
-     pattern: browse: true, search: false. costco-catalog.json (1,569 products)
-     and samsclub-catalog.json (120 products) are committed at repo root and
-     merged by loadDepartmentCache like Macy's. No logo files yet -- the
-     wordmark pill on brand colour is the documented fallback. Colours are
-     the brands' official red/blue; sample from the artwork when the logo
-     files land. Party City is deliberately NOT a store row: its catalogue
-     surfaces only through the Fiestas y Eventos vertical. Mirrors
-     scripts/lib/retailers.js. */
-  costco:          { key: 'costco',          label: 'Costco',            color: '#E31837', logo: 'logos/costco.svg',   tagline: 'Precios de almacén, todo por mayor',                        kind: 'general', search: false, browse: true },
-  samsclub:         { key: 'samsclub',         label: "Sam's Club",        color: '#0B6CFF', logo: 'logos/samsclub.svg', tagline: 'Mayoreo y esenciales para el hogar',                       kind: 'general', search: false, browse: true },
-  sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, retired: true, retiredNote: 'Descartada por Danny (2026-09-25). Sin pull.' },
-  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.' },
-  /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
-     it has a real catalogue (macys-catalog.json); `search: false` keeps
-     it out of the live fan-out, which has no actor for it. See the note
-     on the Macy's row in scripts/lib/retailers.js. */
-  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+/* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
+   Delivery transparency is the merchandising strategy now — the stores
+   with the strongest shipping lead, because every storefront, product
+   page, cart and checkout states its Miami delivery range before anyone
+   pays. Within each tier: green-tier shippers, then yellow, then red,
+   then stores with no researched delivery data yet. Retired rows stay
+   (label/colour resolution for historical orders) but never render.
+   RockAuto was removed outright 2026-09-26 (Danny's call). Replaces the
+   2026-09-24 aspirational-first order. Mirrors scripts/lib/retailers.js. */
   /* SSENSE (2026-09-22) — the high-end tier, replacing Nordstrom, whose
      bot protection returned zero products across three integrations.
      Catalogue file ssense-catalog.json (2,426 men's products) is committed
@@ -12713,26 +12752,19 @@ const RETAILERS = {
      catalogue that arrived carries NEITHER Gucci NOR Prada. The real
      names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
-  oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
-  /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's pattern:
-     browse: true, search: false. The Gym Rat catalogues (gymrat-catalog.json) are
-     committed files; they power the Gym Rat department, its brand pills, the
-     Gymshark home rail, and Ofertas via fileBackedDeals. Apparel cluster, after Old Navy. Mirrors scripts/lib/retailers.js. */
-  youngla:         { key: 'youngla',         label: 'YoungLA',          color: '#000000', tagline: 'Ropa de gym — oversize y streetwear',                 kind: 'general', search: false, browse: true },
-  gymshark:        { key: 'gymshark',        label: 'Gymshark',         color: '#000000', tagline: 'Ropa de gym — leggings, tops y conjuntos',            kind: 'general', search: false, browse: true },
-  alphalete:       { key: 'alphalete',       label: 'Alphalete',        color: '#000000', tagline: 'Ropa de gym premium',                                kind: 'general', search: false, browse: true },
-  target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
-  walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
+  miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, browse: true },
+  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
   /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
      store in this tier with a catalogue behind it, and renderStoresGrid
      preserves declaration order — three "conectando" cards above it
      would bury the one a shopper can open today. */
   fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, retired: true, retiredNote: 'Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Reintentar tras el reset del 16-oct.' },
-  miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, browse: true },
   goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, retired: true, retiredNote: 'Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Actor probado; deep pull listo tras el reset del 16-oct.' },
-  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
-  rockauto:        { key: 'rockauto',        label: 'RockAuto',          color: '#303090', logo: 'logos/rockauto.png',   tagline: 'Catálogo profundo de repuestos — vía Aria Auto', kind: 'auto',    search: true },
+  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.' },
+  sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, retired: true, retiredNote: 'Descartada por Danny (2026-09-25). Sin pull.' },
+  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.' },
+  rockauto:        { key: 'rockauto',        label: 'RockAuto',          color: '#303090', logo: 'logos/rockauto.png',   tagline: 'Catálogo profundo de repuestos — vía Aria Auto', kind: 'auto',    search: false, retired: true, retiredNote: 'Eliminada por Danny (2026-09-26).' },
   // Retired, kept so a label and a colour still resolve for a historical
   // order or a cached item that names them. See the module for why.
   bestbuy:         { key: 'bestbuy',         label: 'Best Buy',          color: '#0046BE', logo: null, kind: 'general', search: false, retired: true },
@@ -12740,6 +12772,141 @@ const RETAILERS = {
 };
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
+/* ============================================================
+   RETAILER DELIVERY — the Miami transit dataset (2026-09-26).
+
+   How long each retailer's orders take to reach Aria's Miami warehouse.
+   Figures come from the delivery research briefs; nothing is invented.
+   A store with no row has no researched figure — the UI shows no
+   delivery line for it rather than guessing. Red-tier storefronts
+   carry the honest-warning banner (see redTierNoticeEs).
+
+   MIRROR of scripts/lib/retailer-delivery.js; the test suite pins the
+   two together. Edit the module, then regenerate this block.
+   ============================================================ */
+const MIAMI_TO_DOOR_MIN = 2;
+const MIAMI_TO_DOOR_MAX = 7;
+const RETAILER_DELIVERY = {
+  revolve: { miamiMin: 2, miamiMax: 2, tier: "green", noteEs: "Entrega típica: unos 2 días." },
+  target: { miamiMin: 2, miamiMax: 5, tier: "green" },
+  footlocker: { miamiMin: 3, miamiMax: 5, tier: "green" },
+  walmart: { miamiMin: 2, miamiMax: 5, tier: "green" },
+  autozone: { miamiMin: 3, miamiMax: 5, tier: "green" },
+  dyson: { miamiMin: 2, miamiMax: 5, tier: "green" },
+  bestbuy: { miamiMin: 2, miamiMax: 3, tier: "green" },
+  miumiu: { miamiMin: 3, miamiMax: 5, tier: "green" },
+  goldengoose: { miamiMin: 2, miamiMax: 5, tier: "green" },
+  sephora: { miamiMin: 1, miamiMax: 3, tier: "yellow" },
+  macys: { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  dicks: { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  costco: { miamiMin: 5, miamiMax: 7, tier: "yellow" },
+  skims: { miamiMin: null, miamiMax: 7, tier: "yellow" },
+  victoriassecret: { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  ulta: { miamiMin: 3, miamiMax: 8, tier: "yellow" },
+  pacsun: { miamiMin: 5, miamiMax: 7, tier: "yellow" },
+  bathandbodyworks: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
+  oldnavy: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
+  partycity: { miamiMin: 5, miamiMax: 7, tier: "yellow" },
+  samsclub: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
+  kohls: { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  yesstyle: { miamiMin: 14, miamiMax: 28, tier: "red", noteEs: "Se envía desde Hong Kong." },
+  lanebryant: { miamiMin: 5, miamiMax: 8, tier: "red" },
+  alphalete: { miamiMin: 7, miamiMax: 30, tier: "red", plus: true, noteEs: "Puede superar los 30 días." },
+  ssense: { miamiMin: 5, miamiMax: 5, tier: "red", noteEs: "Se envía desde Montreal, Canadá." },
+  fendi: { miamiMin: 3, miamiMax: 30, tier: "red", noteEs: "Normalmente unos 3 días, pero hasta 30 si el pedido se prepara en Italia." },
+  qvc: { miamiMin: 7, miamiMax: 10, tier: "red" },
+  bhphoto: { miamiMin: 1, miamiMax: 5, tier: "green" },
+  adorama: { miamiMin: 1, miamiMax: 3, tier: "green" },
+  rei: { miamiMin: 3, miamiMax: 5, tier: "green" },
+  newbalance: { miamiMin: 2, miamiMax: 5, tier: "green" },
+  advanceauto: { miamiMin: 3, miamiMax: 4, tier: "green" },
+  madewell: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
+};
+function deliveryFor(key){ return RETAILER_DELIVERY[String(key || '').toLowerCase()] || null; }
+/* "2–5 días" · "2 días" · "hasta 7 días" · "7–30+ días" */
+function miamiRangeEs(entry){
+  if (!entry) return null;
+  const max = `${entry.miamiMax}${entry.plus ? '+' : ''}`;
+  if (entry.miamiMin == null) return `hasta ${max} días`;
+  if (entry.miamiMin === entry.miamiMax && !entry.plus) return `${entry.miamiMin} días`;
+  return `${entry.miamiMin}–${max} días`;
+}
+/* "Llega a nuestro almacén en Miami en 2–5 días." — null when unresearched.
+   "en 7 días como máximo" when only a max is researched (never "en hasta 7 días"). */
+function storeDeliveryLineEs(key){
+  const e = deliveryFor(key);
+  if (!e) return null;
+  if (e.miamiMin == null){
+    const max = `${e.miamiMax}${e.plus ? '+' : ''}`;
+    return `Llega a nuestro almacén en Miami en ${max} días como máximo.`;
+  }
+  return `Llega a nuestro almacén en Miami en ${miamiRangeEs(e)}.`;
+}
+/* Red-tier storefront banner. Null for non-red stores. */
+function redTierNoticeEs(key){
+  const e = deliveryFor(key);
+  if (!e || e.tier !== 'red') return null;
+  let s = `Aviso honesto: los pedidos de esta tienda tardan ${miamiRangeEs(e)} en llegar a nuestro almacén en Miami. De ahí a tu puerta: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.`;
+  if (e.noteEs) s += ` ${e.noteEs}`;
+  return s;
+}
+/* Slowest store in a key list — sets the visible expectation at checkout. */
+function slowestDeliveryKey(keys){
+  let best = null;
+  for (const k of keys || []){
+    const e = deliveryFor(k);
+    if (!e) continue;
+    if (!best || e.miamiMax > best.e.miamiMax ||
+        (e.miamiMax === best.e.miamiMax && (e.miamiMin || 0) > (best.e.miamiMin || 0))){
+      best = { key: String(k).toLowerCase(), e };
+    }
+  }
+  return best ? best.key : null;
+}
+/* One shared renderer for the per-store delivery block (cart + checkout).
+   One store: one line. Several: one row per store, slowest emphasised,
+   then the Miami-to-door leg every shopper needs. */
+function deliverySummaryHTML(cart){
+  const keys = [...new Set((cart || []).map(it => String(it.retailer || '').toLowerCase()))]
+    .filter(k => deliveryFor(k));
+  if (!keys.length) return '';
+  const slowest = slowestDeliveryKey(keys);
+  const rows = keys.map(k => {
+    const label = (retailerFor(k) && retailerFor(k).label) || k;
+    const range = miamiRangeEs(deliveryFor(k));
+    const hot = keys.length > 1 && k === slowest;
+    return `<div class="flex items-baseline justify-between gap-3 py-1">
+      <span class="text-[13px]" style="color:#5B6478">${escapeHtml(label)}</span>
+      <span class="text-[13px] tabular ${hot ? 'font-extrabold' : 'font-semibold'}" style="color:${hot ? 'var(--navy)' : '#5B6478'}">${escapeHtml(range)}</span>
+    </div>`;
+  }).join('');
+  const slowLabel = keys.length > 1 ? escapeHtml((retailerFor(slowest) && retailerFor(slowest).label) || slowest) : '';
+  return `<div class="rounded-2xl border px-4 py-3" style="border-color:var(--line); background:#F7F9FD">
+    <div class="text-[11px] font-extrabold uppercase tracking-wide mb-1" style="color:var(--navy)">Tiempos de entrega</div>
+    ${rows}
+    <div class="text-[12.5px] mt-1.5 pt-1.5 font-semibold" style="color:var(--navy); border-top:1px solid var(--line)">De Miami a tu puerta: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</div>
+    ${keys.length > 1 ? `<div class="text-[12px] mt-1 leading-snug" style="color:#8A93A8">Tu pedido sale de Miami cuando llegue lo de ${slowLabel}.</div>` : ''}
+  </div>`;
+}
+/* "Cómo funciona tu envío" — the two-leg explainer strip (homepage + checkout). */
+function shippingExplainerHTML(){
+  return `<section aria-label="Cómo funciona tu envío" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+    <div class="ariaGoldHair"></div>
+    <div class="px-5 py-6 sm:px-8">
+      <h2 class="text-[18px] font-extrabold tracking-[-0.01em]" style="color:#fff">Cómo funciona tu envío</h2>
+      <div class="grid sm:grid-cols-2 gap-4 mt-4">
+        <div class="rounded-2xl p-4" style="background:rgba(255,255,255,.06); border:1px solid rgba(244,196,99,.35)">
+          <div class="text-[13.5px] font-extrabold" style="color:#F4C463">1 · Tienda en EE. UU. → Miami</div>
+          <p class="text-[13px] leading-relaxed mt-1.5" style="color:rgba(255,255,255,.85)">Compramos tu pedido en la tienda y lo llevamos a nuestro almacén en Miami. El tiempo varía por tienda y lo ves en cada producto antes de pagar.</p>
+        </div>
+        <div class="rounded-2xl p-4" style="background:rgba(255,255,255,.06); border:1px solid rgba(244,196,99,.35)">
+          <div class="text-[13.5px] font-extrabold" style="color:#F4C463">2 · Miami → tu puerta</div>
+          <p class="text-[13px] leading-relaxed mt-1.5" style="color:rgba(255,255,255,.85)">De Miami a tu puerta en Perú: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</p>
+        </div>
+      </div>
+    </div>
+  </section>`;
+}
 function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
 /* ============================================================
    PER-STORE AMBIENT THEMES (2026-09-24) — pilot: Victoria's Secret.
@@ -12758,9 +12925,8 @@ const STORE_THEMES = {
      of the white grid every other storefront still uses. */
   victoriassecret: { glow: '#E31C79' },
   /* AUTO STORES — the ambient follows the tile that opened Aria Auto.
-     AutoZone's garage green, RockAuto's catalogue blue. */
+     AutoZone's garage green. (RockAuto's theme row was removed with the store, 2026-09-26.) */
   autozone: { glow: '#1C8A4B' },
-  rockauto: { glow: '#303090' },
 };
 function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
 /* Paint or clear the ambient on a view container. Wired into openStore /
@@ -13031,7 +13197,7 @@ function round2(n){ return Math.round(n * 100) / 100; }
 
 // CONFIDENCE-BASED SAFETY BUFFER — shared by every weight estimate on the
 // site that feeds into checkout, both general retail (RETAIL_WEIGHT_ESTIMATES_KG,
-// estimateTvWeightKg, DEFAULT_RETAIL_WEIGHT_KG below) and Aria Auto parts
+// DEFAULT_RETAIL_WEIGHT_KG below) and Aria Auto parts
 // (PART_WEIGHT_ESTIMATES_KG and friends, further down this file). Each
 // estimate is tagged 'cited' (a real, sourced weight was found — see the
 // comment on that specific row/table) or 'reasoned' (no citation was
@@ -13128,7 +13294,6 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: 'cited' }, // mainstream laptops 0.9-3.2kg; 1.8kg centers on the common 13-15" range (pcbuildadvisor.com)
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: 'cited' }, // typical 3-6ft HDMI/USB cable ~100-200g (cablematters.com)
   { match: /\bremote\b/i, kg: 0.2, tier: 'reasoned' },
-  { match: /\bwall mount\b|\btv mount\b/i, kg: 3.5, tier: 'reasoned' }, // typical TV wall-mount bracket, not the TV itself
   // Rigid boxed goods. These rows used to carry a dimCm (the typical
   // retail box) and bill the greater of mass and dimensional weight; the
   // courier contract has no dimensional component, so they are plain
@@ -13341,33 +13506,9 @@ function weightLabelHTML(title, cls){
    queue. */
 const GENERIC_FALLBACK_KG = 0.6;
 
-// TVs vary too much by screen size for one flat number — parse an inch
-// figure out of the title when present. Buckets from weightofstuff.com /
-// blinksandbuttons.net size-to-weight ranges (using each bucket's midpoint).
-// All cited — including the no-size-found default, a blend of those same
-// cited ranges.
-function estimateTvWeightKg(text){
-  const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(text || '');
-  if (!m) return withBuffer(14, 'cited'); // no size in the title — blended default across common sizes
-  const inches = parseInt(m[1], 10);
-  if (inches <= 32) return withBuffer(8, 'cited');
-  if (inches <= 43) return withBuffer(12, 'cited');
-  if (inches <= 50) return withBuffer(19, 'cited');
-  if (inches <= 55) return withBuffer(23, 'cited');
-  if (inches <= 65) return withBuffer(31, 'cited');
-  return withBuffer(40, 'cited'); // 70"+
-}
 
-// BUG FIX (live audit): a bare \btv\b match caught any title that merely
-// mentions TV *compatibility* — e.g. "4ft HDMI Cable for TV", "TV Wall
-// Mount", "TV Remote" — and routed it into the television weight
-// estimator, whose no-size-found default (~12kg before buffer) produced
-// a 13.2kg estimate for a cable that actually weighs a couple hundred
-// grams (S/ 578.64 freight on a S/ 57.90 product). Real TV listings are
-// the actual appliance; excluding common TV *accessories* explicitly is
-// more robust than trying to positively enumerate every real TV title
-// pattern (accessories now match their own real entries above instead).
-const TV_ACCESSORY_KEYWORDS = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
+/* TV weight estimation removed 2026-09-26 (Danny): TVs and TV mounts are
+   banned outright — no television can ever reach the estimator. */
 
 /* BULKY GOODS (2026-09-18) — mirrors scripts/lib/item-weight.js, which the
    refresh script imports; this page is a plain <script> and cannot import
@@ -14289,9 +14430,10 @@ const WEIGHT_SANITY_BOUNDS = [
   { key: "proyector",
     test: (t) => PROJECTOR_RE.test(t) && !PROJECTOR_ACCESSORY_RE.test(t),
     minKg: 0.5, maxKg: 12 },
-  { key: "televisor",
-    test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(String(t).replace(/\bwith\b[^,;]*/gi, ' ')),
-    minKg: 4, maxKg: 90 },
+  /* No "televisor" row: Danny banned TVs and TV mounts outright (2026-09-26),
+     so no television can ever reach the estimator — and the row's \btv\b
+     could only misfire on the parcel accessories that stay (Apple TV).
+     TV stands weigh as furniture through the default bands. */
   /* Long AND light: these state their length in feet but are nylon and
      air. Named before the catch-all so it never floors them to 4 kg. */
   { key: "accesorio plegable", match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b|\b(jump rope|yoga mat|resistance bands?|slip ?n ?slide)\b/i, minKg: 0.3, maxKg: 6 },
@@ -14693,18 +14835,15 @@ function estimateRetailWeightDetail(text, hints){
     || supplementWeightKg(t, hints || {}) != null
     || footwearWeightKg(t) != null
     || ballWeightKg(t) != null
-    || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t))
-    || (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))));
+    || RETAIL_WEIGHT_ESTIMATES_KG.some(p => p.match.test(t)));
 
   // The raw estimate, before the band is applied, is what the band judges.
   const raw = beauty ? beauty.kg
     : candle != null ? candle
     : stated ? stated.kg
     : classified ? (bulkyWeightKg(t) ?? bookWeightKg(t) ?? supplementWeightKg(t, hints || {}) ?? footwearWeightKg(t) ?? ballWeightKg(t)
-        ?? (/\btv\b|television/i.test(t) && !TV_ACCESSORY_KEYWORDS.test(t.replace(/\bwith\b[^,;]*/gi, ' '))
-              ? estimateTvWeightKg(t)
-              : withBuffer(RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).kg,
-                           RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).tier)))
+        ?? withBuffer(RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).kg,
+                         RETAIL_WEIGHT_ESTIMATES_KG.find(p => p.match.test(t)).tier))
     : GENERIC_FALLBACK_KG;
 
   const check = weightSanity(t, raw);
@@ -15723,19 +15862,8 @@ const AUTO_SOURCES = {
      shopper as "RockAuto has no parts for your car" — a lie, and exactly
      the kind this section is being fixed to stop telling. Step 2 and
      step 3 of ADDING A PARTS SOURCE above are the whole remaining task. */
-  /* ROCKAUTO — LIVE (2026-09-24). The staged catalog pull (2,490 rows /
-     1,013 unique parts, 97.4% imaged) is filed into auto-cache.json under
-     {year}|toyota|{model}|{spanish-query} keys, so no live scrape is
-     needed: searchAutoSource serves it from the free cache file. */
-  rockauto: {
-    key: "rockauto",
-    label: "RockAuto",
-    color: "#303090",
-    logo: "logos/rockauto.png",
-    search: true,
-    fitmentData: "yes",
-    note: "Catálogo profundo con fotos y listas de compatibilidad por pieza.",
-  },
+  /* ROCKAUTO — REMOVED 2026-09-26 (Danny's call). Row deleted; cache entries deleted from auto-cache.json. */
+
   /* ADVANCE AUTO PARTS — conditional per the brief: probe it, onboard it
      only if the scrape comes back clean, and skip it silently otherwise
      rather than blocking the fix.
@@ -15858,51 +15986,10 @@ function autoSourceBadgeHTML(key, heightPx = 22){
 /* ONE SEARCH PATH FOR EVERY SOURCE. AutoZone's cached results and a
    future source's live scrape go through the same function; the only
    per-source facts are the registry row and the actor config in
-   apify-scrape-start.js. That is what makes adding RockAuto data entry
-   rather than code. */
-/* ROCKAUTO DIRECT LIVE SEARCH (2026-09-26) — the zero-Apify fallback.
-   Danny: "Yes, scrape it directly for free for sure." POSTs { year, make,
-   model, query } to the server function, which runs the 4-request
-   RockAuto chain (catalog -> node -> category -> part type -> listings),
-   parses brand / part number / price / image, and caches by
-   {year}|{make}|{model}|{spanish-query} for 7 days. A cache hit costs
-   zero RockAuto requests.
-
-   ANY failure — catalog miss, timeout, fetch failure, rate limit —
-   throws with sourceNotConnected, so the block renders the honest
-   "Estamos ampliando nuestro catálogo de repuestos" pending state.
-   RockAuto diagnostics never reach the shopper. */
-async function rockautoLiveSearch(vehicle, query){
-  const res = await fetchWithStartTimeout('/.netlify/functions/rockauto-live-search', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      year: vehicle.year, make: vehicle.make, model: vehicle.model,
-      query: String(query || ''),
-    }),
-  }, 30000);
-  if (!res || !res.ok) throw new Error('rockauto-live: bad response');
-  return res.json();
-}
-
-async function searchRockautoLive(vehicle, query, maxItems){
-  let data;
-  try {
-    data = await rockautoLiveSearch(vehicle, query);
-  } catch (err){
-    const fail = new Error(`rockauto-live fetch failed: ${err && err.message ? err.message : err}`);
-    fail.sourceNotConnected = true;
-    throw fail;
-  }
-  if (!data || data.ok === false || !Array.isArray(data.items) || !data.items.length){
-    const miss = new Error(`rockauto-live miss: ${data && data.miss ? data.miss : 'empty'}`);
-    miss.sourceNotConnected = true;
-    throw miss;
-  }
-  const n = Number(maxItems) > 0 ? Number(maxItems) : data.items.length;
-  return data.items.slice(0, n).map((it) => normalizeAutoPartItem('rockauto', it));
-}
-
+   apify-scrape-start.js. That is what makes adding a new source data entry
+   rather than code. (RockAuto was removed 2026-09-26, Danny's call.) */
+/* ROCKAUTO LIVE SEARCH — REMOVED 2026-09-26 with the source (Danny's call).
+   The zero-Apify fallback and its server function are retired with it. */
 async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   const cache = await loadAutoCache();
   const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
@@ -15914,11 +16001,7 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   if (indexed.length) return indexed;
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
-  /* ROCKAUTO DIRECT (2026-09-26): the Apify actor path is replaced by the
-     free server-side chain. Triggered only on an Aria Auto cache miss,
-     after the vehicle and the Spanish query are known — same contract as
-     every other source's live path. */
-  if (sourceKey === 'rockauto') return searchRockautoLive(vehicle, query, maxItems);
+  /* (RockAuto's live branch was removed with the source 2026-09-26, Danny's call.) */
   const rawItems = await scrapeRetailer(sourceKey, combined, maxItems);
   return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
 }
@@ -17552,6 +17635,9 @@ function renderCartView(){
 
   renderCartWeightReview();
   renderCartFragranceLimit();
+  /* DELIVERY TRANSPARENCY (2026-09-26): the cart states every store's
+     Miami timing before the shopper proceeds to pay. */
+  document.getElementById('cartDeliveryWrap').innerHTML = deliverySummaryHTML(cart);
 
   renderTaxZoneBar(totals.priceUsd);
   renderCustomsDisclosure(totals.priceUsd);

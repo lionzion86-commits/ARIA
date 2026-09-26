@@ -97,7 +97,6 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited" },
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: "cited" },
   { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
-  { match: /\bwall mount\b|\btv mount\b/i, kg: 3.5, tier: "reasoned" },
   // Rigid boxed goods. All reasoned.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
@@ -132,6 +131,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
 // whole site, deliberately low. See GENERIC_FALLBACK_KG there.
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
 
+/* RETIRED 2026-09-26 (Danny's no-TV rule): kept for reference, no longer called. */
 function tvWeightKg(title) {
   const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(title);
   const inches = m ? parseInt(m[1], 10) : null;
@@ -173,7 +173,8 @@ export function categoryWeightKg(title, hints = {}) {
   // A ball's real mass and count, against the box that gets billed.
   const ball = ballWeightKg(t);
   if (ball != null) return ball;
-  if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
+  /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
+     tvWeightKg stays defined below for reference only. */
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
   if (!hit) return null;
   return withBuffer(hit.kg, hit.tier);
