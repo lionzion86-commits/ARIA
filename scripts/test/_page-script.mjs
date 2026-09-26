@@ -412,7 +412,18 @@ export function loadPageDealSpreadSlice() {
   }
   const sandbox = { console };
   vm.createContext(sandbox);
-  vm.runInContext(html.slice(from, to) + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD };",
+  /* OFERTAS LEAD (2026-09-26, Danny): the lead-brand sort ships in the
+     same slice as the spread, so its behaviour is tested, not just its
+     source text. */
+  /* ofertasLeadSort leans on the page's own discountPct -- the slice
+     carries that one-liner along so the sort runs for real. */
+  const dpctStart = html.indexOf("function discountPct(p){");
+  const dpctEnd = html.indexOf("\n", dpctStart);
+  if (dpctStart < 0 || dpctEnd < 0) {
+    throw new Error("index.html discountPct moved — update scripts/test/_page-script.mjs");
+  }
+  vm.runInContext(html.slice(from, to) + "\n" + html.slice(dpctStart, dpctEnd)
+    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory };",
     sandbox, { filename: "index.html#deal-spread" });
   return sandbox.__exports;
 }
