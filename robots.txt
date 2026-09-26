@@ -1,0 +1,9 @@
+# Aria — ariashop.pe (2026-09-26)
+User-agent: *
+Allow: /
+
+# Panel interno: fuera del indice.
+Disallow: /admin
+Disallow: /admin.html
+
+Sitemap: https://ariashop.pe/sitemap.xml
