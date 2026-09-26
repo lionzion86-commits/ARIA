@@ -576,6 +576,42 @@ export function loadPageCurvyBandSlice() {
 }
 
 
+/* The department read chain, on its own. departmentItemsFor() is what
+   turns a retailer's raw buckets into the category sections a store page
+   shows -- so Costco's standard-template storefront is settled by
+   execution over the real catalogue, not by reading BUCKET_SPEC.
+   Marker-sliced verbatim (DEPARTMENT_CHAIN:SLICE-START/END in index.html),
+   the way the fiestas slice works: brace-counting extraction chokes on
+   apostrophes inside the region's own comments (2026-09-26). The four
+   far-away consts the chain reads are single-line declarations, lifted by
+   line match so the slice needs no second region. Pure -- the region is
+   kept free of DOM, network and page calls by the marker comment. */
+export function loadPageDepartmentSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("DEPARTMENT_CHAIN:SLICE-START");
+  const from = html.lastIndexOf("/*", marker);
+  const endMarker = html.indexOf("DEPARTMENT_CHAIN:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html department-chain markers moved -- update scripts/test/_page-script.mjs");
+  }
+  const line = (name) => {
+    const m = html.match(new RegExp(`^const ${name} = [^\\n]+;`, "m"));
+    if (!m) throw new Error(`index.html lost const ${name} -- update scripts/test/_page-script.mjs`);
+    return m[0];
+  };
+  const prelude = ["MIN_DISCOUNT_PCT", "KID_MARKER", "WOMEN_MARKER", "MEN_MARKER"].map(line).join("\n");
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    prelude + "\n" + html.slice(from, to) +
+      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC };",
+    sandbox,
+    { filename: "index.html#department" },
+  );
+  return sandbox.__exports;
+}
+
 /* The carousel selection mirror: the pure pick/mix functions index.html
    carries line-for-line from scripts/lib/carousel.js. Pure — no DOM. */
 export function loadPageCarouselSlice() {

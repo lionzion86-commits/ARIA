@@ -4902,11 +4902,23 @@ const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|i
 /* Anything over this is freight, not a parcel -- a backstop for the day
    the catalogues start carrying real weights (weightKg is null today). */
 const UNSHIPPABLE_WEIGHT_KG = 30;
+/* BULKY PROJECTOR PACKAGES (2026-09-26, Danny's QA: no price ceiling).
+   Costco's projector bundles carry no weight or dimension data -- only
+   titles -- so the freight signal has to come from the package the title
+   describes: a bundled 80"+ screen, a UST (ultra-short-throw) chassis, or
+   a soundbar/Dolby bundle. Each is parcel-impossible at these sizes. A
+   genuinely small portable/mini projector with no such package signal
+   stays shippable; the screen clause requires a bundle word so a title
+   like "Mini Projector, projects up to 100 inch" is not punished for
+   naming a screen size it merely supports. */
+const PROJECTOR_RX = /(projector|proyector)/i;
+const BULKY_PROJECTOR_PACKAGE_RX = /\bUST\b|(bundl|inclu|kit|combo|pack).{0,60}\b(80|100|110|120|130|150)\s?["\u201c\u201d]|bundl.{0,40}(soundbar|dolby|atmos|speaker|bocina|parlante)/i;
 function isShippableItem(p){
   if (!p) return false;
   const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
   if (UNSHIPPABLE_TV_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
   if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
+  if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
   const w = Number(p.weightKg);
   if (Number.isFinite(w) && w > UNSHIPPABLE_WEIGHT_KG) return false;
   return true;
@@ -5443,6 +5455,11 @@ function categoryCoverArtHTML(t){
    cross-checks both over the real cache. Change one, change the other.
    ============================================================ */
 
+/* DEPARTMENT_CHAIN:SLICE-START
+   The pure department-resolution chain: the specs, the bucket map, the
+   per-item classifiers and departmentItemsFor. Grabbed verbatim by
+   loadPageDepartmentSlice in scripts/test/_page-script.mjs -- keep this
+   region free of DOM, network and page calls. */
 // A department = one product category, optionally narrowed to a gender.
 const DEPARTMENT_SPEC = {
   electronics:     { category: 'electronics' },
@@ -5500,6 +5517,16 @@ const BUCKET_SPEC = {
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: 'beauty' },
   fragrance:       { category: 'beauty' },
+  /* COSTCO BUCKETS (2026-09-26). costco-catalog.json files its departments
+     under these Spanish names and no other retailer uses them, so they map
+     here without touching anyone else. This puts the Costco store page on
+     the standard template: the buckets now resolve through DEPARTMENT_SPEC
+     like every other store. fiesta and dulces already live in Fiestas y
+     Eventos; bebe and juguetes have no department and stay reachable
+     through search. */
+  electronica:     { category: 'electronics' },
+  hogar:           { category: 'home' },
+  belleza:         { category: 'beauty' },
 };
 
 /* ============================================================
@@ -5871,6 +5898,7 @@ function departmentItemsFor(retailerData, kind, key, retailer){
   }
   return out;
 }
+/* DEPARTMENT_CHAIN:SLICE-END */
 
 /* DEPARTMENTS ONLY. A BRAND IS NEVER A TILE (2026-09-22).
 
@@ -9269,27 +9297,6 @@ async function openStore(retailer){
      setting. Two is where a list starts to be worth reading. */
   const brandList = brandRows(retailerBrandBuckets(retailerData));
   const brandPanel = brandList.length > 1 ? storeBrandPanelHTML(brandList) : '';
-  /* COSTCO'S STOREFRONT IS A TREASURE HUNT, NOT A BRAND DIRECTORY
-     (2026-09-26, Danny's call): its raw buckets never map through
-     DEPARTMENT_SPEC, so deptEntries is empty and the generic fallback
-     would print "Sin categorias por ahora - busca por marca" -- a brand
-     directory over a warehouse club, which makes no sense. Costco gets
-     a product-first storefront instead: one big curated carousel
-     (electronics first, then the interesting finds, never candy), no
-     category tiles, no brand panel, no "busca por marca". */
-  if (retailer === 'costco'){
-    const curated = costcoCuratedItems(await relatedPool());
-    document.getElementById('storeViewSubtitle').textContent = curated.length
-      ? `${curated.length} hallazgos de Costco`
-      : 'No hay artículos disponibles por ahora.';
-    if (curated.length){
-      document.getElementById('storeViewSections').innerHTML += storeCarouselHTML({
-        id: 'storeRail', title: 'Lo mejor de Costco',
-        items: curated, retailer, max: COSTCO_CAROUSEL_MAX,
-      });
-    }
-    return;
-  }
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = brandPanel

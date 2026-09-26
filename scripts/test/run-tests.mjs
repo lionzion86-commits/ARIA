@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5592,23 +5592,43 @@ check("Costco's curation ranks electronics, finds, clothes, home -- never candy"
   eq(costcoBucketOf({ department: "Electrónica" }), "electronica", "singular department field");
 });
 
-check("Costco's storefront never shows the brand-directory fallback", () => {
-  /* 2026-09-26, DANNY'S QA: "Costco says sin categoría, busca por
-     marca... that doesn't make any sense." The storefront special-case
-     returns before the generic deptEntries fallback, so the
-     "Sin categorías por ahora — busca por marca" copy can never render
-     for Costco. */
+check("Costco's storefront follows the standard store template", () => {
+  /* 2026-09-26, DANNY'S QA: the Costco store page (tap "Ver tienda") must
+     read like every other store page -- carousel first, then category
+     sections -- not a one-off curated shelf. Costco's Spanish buckets map
+     through BUCKET_SPEC now, so the standard openStore path (Destacados
+     carousel + department tiles + brand panel) renders for it like any
+     other store, and the treasure-hunt special-case is gone. Settled by
+     execution over the real catalogue, not by reading the code. */
+  const { departmentItemsFor } = loadPageDepartmentSlice();
+  const { withoutUnshippableItems } = loadPageEnvelopeSlice();
+  const raw = JSON.parse(readFileSync(root("costco-catalog.json"), "utf8"));
+  const costco = withoutUnshippableItems(raw).retailers.costco;
+  const electronics = departmentItemsFor(costco, "department", "electronics", "costco");
+  const home = departmentItemsFor(costco, "department", "home_goods", "costco");
+  const beauty = departmentItemsFor(costco, "department", "beauty", "costco");
+  if (!electronics.length) throw new Error("Costco's electronica bucket no longer resolves to the electronics department");
+  if (!home.length) throw new Error("Costco's hogar bucket no longer resolves to the home department");
+  if (!beauty.length) throw new Error("Costco's belleza bucket no longer resolves to the beauty department");
+  // the whole kept catalogue is reachable through the departments -- no 48-item cap
+  const reachable = electronics.length + home.length + beauty.length;
+  if (reachable < 700) throw new Error("only " + reachable + " Costco items reachable through departments");
+  // no bulky projector bundle survives to the storefront
+  const titles = [...electronics, ...home, ...beauty].map(p => p.name || p.title || "");
+  if (titles.some(t => /projector|proyector/i.test(t) && /100"|120"|150"|\bUST\b/i.test(t)))
+    throw new Error("a bulky projector bundle reached Costco's storefront departments");
+  // and openStore keeps no Costco-only storefront
   const html = readFileSync(root("index.html"), "utf8");
-  const special = html.indexOf("COSTCO'S STOREFRONT IS A TREASURE HUNT");
-  const fallback = html.indexOf("if (!deptEntries.length){");
-  if (special < 0) throw new Error("the Costco storefront special-case is gone");
-  if (fallback < 0) throw new Error("the generic fallback moved -- update this check");
-  if (!(special < fallback)) throw new Error("the Costco special-case does not pre-empt the fallback");
-  const block = html.slice(special, fallback);
-  if (!/costcoCuratedItems/.test(block)) throw new Error("the storefront does not curate");
-  if (/storeBrandPanelHTML/i.test(block)) throw new Error("the brand panel leaked into Costco's storefront");
-  if (/Sin categorías por ahora/.test(block)) throw new Error("the fallback copy leaked into Costco's storefront");
+  const start = html.indexOf("async function openStore(retailer){");
+  const end = html.indexOf("async function openStoreResults(", start);
+  if (start < 0 || end < 0 || end < start) throw new Error("openStore moved -- update this check");
+  const body = html.slice(start, end);
+  if (/Lo mejor de Costco|hallazgos de Costco/.test(body))
+    throw new Error("the curated-shelf storefront is still in openStore");
+  if (/retailer === 'costco'/.test(body))
+    throw new Error("a Costco special-case is still in openStore");
 });
+
 
 check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surface", () => {
   /* 2026-09-26, DANNY'S CALL: "we do not sell fucking TVs." TVs of any
@@ -5629,6 +5649,18 @@ check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surfac
     'Puerta Del Sol TV Console',
   ]) if (out(tv)) throw new Error(`a TV slipped through: ${tv}`);
   // freight-class bulky goods
+  // bulky projector packages (2026-09-26, Danny's QA: no price ceiling).
+  // No weight or dimension data on these -- only titles -- so the freight
+  // signal comes from the package the title describes: a bundled 80"+
+  // screen, a UST chassis, or a soundbar bundle. A small portable projector
+  // with no such package signal stays shippable (see the carve-outs).
+  for (const bulky of [
+    'JMGO N3 4K UHD Triple Laser Google TV Smart Projector Bundle with 100" Portable Screen',
+    'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle with Power Bank Tripod and 100" Portable Screen',
+    'Hisense, 80"- 150" 4K UHD IMAX Enhanced Triple Laser Smart UST Projector PT1 Bundled with 3.1.2ch Dolby Atmos',
+    'Hisense M2SE Pro 4K Triple Laser Smart Projector Bundle with 120" Projector Screen',
+    'Hisense C2 Pro 4K Portable Laser Mini Projector Bundle with 120" Portable Indoor/ Outdoor Projector Screen',
+  ]) if (out(bulky)) throw new Error("a bulky projector bundle slipped through: " + bulky);
   for (const big of [
     'Thomasville Fallon Modular Sectional 6-piece Gray with Ottoman',
     'Henredon Caley Reversible Sofa Chaise with Ottoman',
@@ -5646,6 +5678,8 @@ check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surfac
     'Apple TV 4K 64GB (Wi-Fi)',
     'SANUS Preferred 3 Meter 8K Ultra High-Speed HDMI 2.1 Cable, 2-pack',
     'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle',
+    'Anker Nebula Capsule Mini Portable Projector',
+    'Mini Projector, projects up to 120 inch screen',
     'Dreame Pocket Ultra High-Speed Hair Dryer',
     'Nintendo Switch OLED console',
     'Velvet Throw Pillow Cushion Covers for Sofas, Chairs',
