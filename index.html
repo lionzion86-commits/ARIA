@@ -2514,7 +2514,10 @@
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
     <div data-honest-banner></div>
-    <div class="rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, var(--navy) 0%, #14306B 100%)">
+    <!-- OFERTAS BANNER (2026-09-26): clearance-rack photo under a navy
+         gradient tint (darker left where the text sits) so the white
+         title stays legible. Danny iPhone QA: the flat navy bar looked empty. -->
+    <div class="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, rgba(8,17,36,0.95) 0%, rgba(8,17,36,0.80) 48%, rgba(8,17,36,0.40) 100%), url('assets/ofertas/clearance-banner.webp') center 35%/cover no-repeat, #0A1428">
       <div>
         <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2">🔥 Ofertas y liquidación</h1>
         <p id="salesCount" class="text-[12.5px] mt-1" style="color:#B9C6E8"></p>
@@ -2525,6 +2528,11 @@
            renderSalesFreshness(). -->
       <div id="salesFreshness" class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)"></div>
     </div>
+
+    <!-- OFERTAS BOARD (2026-09-26): navy-black backboard under the banner
+         so the white product cards pop; inner text is lightened for
+         contrast. Danny iPhone QA: the white content area looked unfinished. -->
+    <div class="rounded-2xl border border-white/10 p-5 sm:p-6" style="background:linear-gradient(165deg,#0A1428 0%,#0C1C40 55%,#0A1428 100%)">
 
     <!-- Ofertas had no search of its own: the only search input on the way
          here was the one on the store-picker page, which mobile used to
@@ -2541,7 +2549,7 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
-      <p id="salesSearchHint" class="text-[11.5px] mt-2 max-w-[520px]" style="color:#8A93A8">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en EE. UU.</p>
+      <p id="salesSearchHint" class="text-[11.5px] mt-2 max-w-[520px]" style="color:#AEB9D4">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en EE. UU.</p>
     </div>
 
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
@@ -2553,12 +2561,12 @@
            as categoriesView — it stacks above the grid instead of hiding. -->
       <aside class="mb-2 lg:mb-0">
         <div class="flex items-center justify-between mb-4">
-          <div class="font-bold text-[14px]">Filtros</div>
+          <div class="font-bold text-[14px] text-white">Filtros</div>
         </div>
         <div class="space-y-6 text-[13px]">
           <div>
-            <div class="font-semibold mb-2.5">Tienda</div>
-            <div id="salesStoreFilters" class="space-y-2 text-zinc-600"></div>
+            <div class="font-semibold mb-2.5 text-white">Tienda</div>
+            <div id="salesStoreFilters" class="space-y-2" style="color:#C7D0E8"></div>
           </div>
         </div>
       </aside>
@@ -2577,6 +2585,7 @@
         <div id="salesGrid" class="grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3 xl:gap-6"></div>
       </div>
     </div>
+    </div><!-- /ofertas board -->
   </div>
 </div>
 
@@ -15593,6 +15602,49 @@ function autoSourceBadgeHTML(key, heightPx = 22){
    per-source facts are the registry row and the actor config in
    apify-scrape-start.js. That is what makes adding RockAuto data entry
    rather than code. */
+/* ROCKAUTO DIRECT LIVE SEARCH (2026-09-26) — the zero-Apify fallback.
+   Danny: "Yes, scrape it directly for free for sure." POSTs { year, make,
+   model, query } to the server function, which runs the 4-request
+   RockAuto chain (catalog -> node -> category -> part type -> listings),
+   parses brand / part number / price / image, and caches by
+   {year}|{make}|{model}|{spanish-query} for 7 days. A cache hit costs
+   zero RockAuto requests.
+
+   ANY failure — catalog miss, timeout, fetch failure, rate limit —
+   throws with sourceNotConnected, so the block renders the honest
+   "Estamos ampliando nuestro catálogo de repuestos" pending state.
+   RockAuto diagnostics never reach the shopper. */
+async function rockautoLiveSearch(vehicle, query){
+  const res = await fetchWithStartTimeout('/.netlify/functions/rockauto-live-search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      year: vehicle.year, make: vehicle.make, model: vehicle.model,
+      query: String(query || ''),
+    }),
+  }, 30000);
+  if (!res || !res.ok) throw new Error('rockauto-live: bad response');
+  return res.json();
+}
+
+async function searchRockautoLive(vehicle, query, maxItems){
+  let data;
+  try {
+    data = await rockautoLiveSearch(vehicle, query);
+  } catch (err){
+    const fail = new Error(`rockauto-live fetch failed: ${err && err.message ? err.message : err}`);
+    fail.sourceNotConnected = true;
+    throw fail;
+  }
+  if (!data || data.ok === false || !Array.isArray(data.items) || !data.items.length){
+    const miss = new Error(`rockauto-live miss: ${data && data.miss ? data.miss : 'empty'}`);
+    miss.sourceNotConnected = true;
+    throw miss;
+  }
+  const n = Number(maxItems) > 0 ? Number(maxItems) : data.items.length;
+  return data.items.slice(0, n).map((it) => normalizeAutoPartItem('rockauto', it));
+}
+
 async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   const cache = await loadAutoCache();
   const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
@@ -15604,6 +15656,11 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   if (indexed.length) return indexed;
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
+  /* ROCKAUTO DIRECT (2026-09-26): the Apify actor path is replaced by the
+     free server-side chain. Triggered only on an Aria Auto cache miss,
+     after the vehicle and the Spanish query are known — same contract as
+     every other source's live path. */
+  if (sourceKey === 'rockauto') return searchRockautoLive(vehicle, query, maxItems);
   const rawItems = await scrapeRetailer(sourceKey, combined, maxItems);
   return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
 }
