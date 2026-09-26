@@ -17024,7 +17024,10 @@ function loadCartLocal(){
   try {
     const raw = localStorage.getItem(CART_STORAGE_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    // A stored qty is never trusted: see normalizeCartQty above.
+    return parsed.filter(it => it && typeof it === 'object')
+      .map(it => ({ ...it, qty: normalizeCartQty(it.qty) }));
   } catch { return []; }
 }
 
@@ -17037,6 +17040,21 @@ function saveCartLocal(){
 // constraint noted at normalizeLiveItem()).
 function cartItemKey(item){
   return [item.retailer, item.title, item.selectedSize || ''].join('::');
+}
+
+/* QUANTITY NORMALISATION (2026-09-26).
+
+   A cart line's qty must always be a positive integer by the time any
+   arithmetic touches it. Stored carts predate that guarantee: a qty that
+   arrived as a string turns `existing.qty += 1` into concatenation
+   ("50" -> "501"), and the stepper's `${it.qty + 1}` renders "501" as
+   well. Normalising on every entry point (local load, server merge,
+   add, set) makes the string-concat class impossible, whatever history
+   a line carries. Unknown/unparseable becomes 1: the line exists because
+   the shopper added it at least once. */
+function normalizeCartQty(q){
+  const n = Math.floor(Number(q));
+  return Number.isFinite(n) && n >= 1 ? n : 1;
 }
 
 function cartCount(){
@@ -17082,11 +17100,12 @@ async function loadCartFromServer(){
 // cross-device adds (an item present on only one side still appears).
 function mergeCarts(localCart, serverCart){
   const map = new Map();
-  for (const it of serverCart) map.set(cartItemKey(it), { ...it });
+  for (const it of serverCart) map.set(cartItemKey(it), { ...it, qty: normalizeCartQty(it.qty) });
   for (const it of localCart){
     const key = cartItemKey(it);
-    if (map.has(key)) map.get(key).qty = Math.max(map.get(key).qty, it.qty);
-    else map.set(key, { ...it });
+    const qty = normalizeCartQty(it.qty);
+    if (map.has(key)) map.get(key).qty = Math.max(map.get(key).qty, qty);
+    else map.set(key, { ...it, qty });
   }
   return Array.from(map.values());
 }
@@ -17107,26 +17126,40 @@ function mergeCarts(localCart, serverCart){
    in localStorage and in the server cart, forever. Nothing else in this
    file repairs quantities (repairCartWeights only fixes weights).
 
-   This is the healing pass. Fingerprint: the ONLY way a line reaches an
-   exact power of two >= 64 is repeated doubling. The cart UI's sole
-   quantity control is a +1 stepper, so no shopper hand-builds 64, 128
-   or 256 of anything - and 64+ identical sized garments (the incident
-   lines were one size-10 shoe and one size-M panty) are never a real
-   order. Smaller powers of two (2-32) are deliberately left alone:
-   they can be genuine bulk buys (party supplies), and we never silently
-   rewrite a plausible cart.
+   FOSSILS (2026-09-26): the #89 healing pass only recognised exact
+   powers of two >= 64. But the doubling era also produced every OTHER
+   large number: 251 doubled to 502 on a single load, stepper taps made
+   during the doubling era froze mid-flight values, and a string qty
+   ("50") turned `+= 1` into concatenation ("501"). The live report:
+   one size-M panty at qty 502, $4,654 declared. Neither max(), nor the
+   power-of-two fingerprint, nor the stepper can ever bring those down.
+   The fingerprint is therefore widened with one careful cut: a power of
+   two >= 64 is still always corruption (unreachable via the +1 stepper,
+   sized or not), and any OTHER integer >= 64 heals only on a SIZED
+   variant. Rationale: 64+ of one size is never a real order - genuine
+   bulk buys are unsized party goods, and nobody taps the stepper 63
+   times on a single size - while an unsized 100-pack of napkins stays
+   plausible and is left alone. Smaller quantities (2-63) are likewise
+   never touched: we never silently rewrite a plausible cart.
 
    Runs inside initCart on every load; healed lines are saved back to
    localStorage and synced to the server, exactly like the weight repair.
    ============================================================ */
-function isDoubledQty(qty){
-  return Number.isInteger(qty) && qty >= 64 && (qty & (qty - 1)) === 0;
+function isImplausibleQty(it){
+  const qty = Number(it.qty);
+  if (!Number.isInteger(qty) || qty < 64) return false;
+  // A power of two >= 64 is unreachable via the +1 stepper: always the
+  // fingerprint of the pre-#89 load-doubling bug, sized or not.
+  if ((qty & (qty - 1)) === 0) return true;
+  // Otherwise 64+ of one SIZE variant is never a real order (see the
+  // comment above); unsized lines keep the old, narrower fingerprint.
+  return Boolean(it.selectedSize);
 }
 
-function repairDoubledQuantities(list){
+function repairImplausibleQuantities(list){
   let repaired = 0;
   const cart = list.map((it) => {
-    if (!isDoubledQty(Number(it.qty))) return it;
+    if (!isImplausibleQty(it)) return it;
     repaired += 1;
     return { ...it, qty: 1 };
   });
@@ -17175,10 +17208,10 @@ async function initCart(){
     }
   }
   // Heal carts corrupted by the pre-#89 load-doubling bug (see
-  // repairDoubledQuantities above): max() stops new doublings but can
-  // never shrink a 256 back to 1, so without this the corruption is
-  // permanent in localStorage and in the server cart.
-  const healed = repairDoubledQuantities(cart);
+  // repairImplausibleQuantities above): max() stops new doublings but can
+  // never shrink an inflated qty back to 1, so without this the
+  // corruption is permanent in localStorage and in the server cart.
+  const healed = repairImplausibleQuantities(cart);
   cart = healed.cart;
   if (healed.repaired){ saveCartLocal(); syncCartToServer(); }
   const fixed = repairCartWeights(cart);
@@ -17285,7 +17318,7 @@ function addToCart(item){
   }
   const key = cartItemKey(item);
   const existing = cart.find(it => cartItemKey(it) === key);
-  if (existing) existing.qty += 1;
+  if (existing) existing.qty = Math.floor(Number(existing.qty) || 0) + 1;
   else cart.push({ ...item, qty: 1 });
   saveCartLocal();
   syncCartToServer();
@@ -17304,8 +17337,9 @@ function removeFromCartByKey(key){
 function setCartQty(key, qty){
   const it = cart.find(it => cartItemKey(it) === key);
   if (!it) return;
-  if (qty <= 0){ removeFromCartByKey(key); return; }
-  it.qty = qty;
+  const n = Math.floor(Number(qty));
+  if (!Number.isFinite(n) || n <= 0){ removeFromCartByKey(key); return; }
+  it.qty = n;
   saveCartLocal();
   syncCartToServer();
   renderCartBadge();
@@ -17330,9 +17364,9 @@ function cartLineItemHTML(it){
       ${solesUnderHTML(it.priceUsd, 'text-[11px] tabular')}
     </div>
     <div class="flex items-center gap-2 flex-shrink-0">
-      <button onclick="setCartQty('${jsAttr(key)}', ${it.qty - 1})" aria-label="Restar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">−</button>
+      <button onclick="setCartQty('${jsAttr(key)}', ${Number(it.qty) - 1})" aria-label="Restar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">−</button>
       <span class="w-6 text-center text-[13px] font-bold tabular">${it.qty}</span>
-      <button onclick="setCartQty('${jsAttr(key)}', ${it.qty + 1})" aria-label="Sumar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">+</button>
+      <button onclick="setCartQty('${jsAttr(key)}', ${Number(it.qty) + 1})" aria-label="Sumar" class="w-8 h-8 rounded-lg border grid place-items-center focus-ring transition hover:bg-zinc-50" style="border-color:var(--line)">+</button>
       <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar" class="w-8 h-8 rounded-lg grid place-items-center focus-ring transition text-zinc-400 hover:text-red-500">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
       </button>
