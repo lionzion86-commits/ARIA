@@ -31,7 +31,7 @@
    repuestos" empty state. No RockAuto diagnostics ever reach the
    browser.
    ============================================================ */
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 // JSON is inlined into the bundle by the Netlify bundler — no
 // filesystem lookup, so this survives CJS/ESM bundling.
 import GLOSSARY_JSON from "../../scripts/lib/es-en-parts-glossary.json" with { type: "json" };
@@ -118,26 +118,9 @@ async function fetchRockautoHtml(url) {
 }
 
 export async function handler(event) {
-  // TEMPORARY DIAGNOSTIC (remove before merge): ?diag=blobs exercises the
-  // Blobs read/write path and reports, without touching RockAuto.
-  try {
-    const rawUrl = event.rawUrl || event.path || "";
-    if (rawUrl.includes("diag=blobs")) {
-      const report = { getStoreOk: false, writeOk: false, readBackOk: false, error: null };
-      try {
-        const store = getStore("rockauto-live");
-        report.getStoreOk = true;
-        await store.setJSON("__diag_probe__", { t: Date.now() });
-        report.writeOk = true;
-        const back = await store.get("__diag_probe__", { type: "json" });
-        report.readBackOk = !!(back && back.t);
-        await store.delete("__diag_probe__");
-      } catch (e) {
-        report.error = String((e && e.message) || e).slice(0, 300);
-      }
-      return json(200, { diag: "blobs", ...report });
-    }
-  } catch { /* fall through to normal handling */ }
+  // Classic-functions requirement (see _auth-helpers.js): connect the
+  // Blobs context before any getStore() — ours or the lease helper's.
+  try { connectLambda(event); } catch { /* cache/lease degrade gracefully */ }
 
   if (event.httpMethod !== "POST") return json(405, { ok: false });
 

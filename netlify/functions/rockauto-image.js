@@ -16,7 +16,7 @@
      listings chain.
    - Failure -> 404; the card falls back to its placeholder.
    ============================================================ */
-import { getStore } from "@netlify/blobs";
+import { getStore, connectLambda } from "@netlify/blobs";
 import { createHash } from "node:crypto";
 import { ROCKAUTO_BASE, ROCKAUTO_UA } from "../../scripts/lib/rockauto-direct.js";
 
@@ -58,6 +58,10 @@ async function writeCache(path, bodyB64, contentType) {
 }
 
 export async function handler(event) {
+  // Classic-functions requirement (see _auth-helpers.js): connect the
+  // Blobs context before any getStore().
+  try { connectLambda(event); } catch { /* image cache degrades gracefully */ }
+
   const raw = event.queryStringParameters?.u || "";
   let path = "";
   try {
