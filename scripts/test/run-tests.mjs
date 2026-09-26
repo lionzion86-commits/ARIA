@@ -5822,6 +5822,26 @@ check("the orb is docked on every screen \u2014 the lane drift is retired", () =
   if (/'lane'/.test(body)) throw new Error("the lane drift is back in orbLane");
 });
 
+check("the orb is pinch-zoom-proof \u2014 pure CSS anchor, no JS repositioning", () => {
+  /* 2026-09-26 (Danny, iPhone QA with a screenshot): pinch-zooming on iOS
+     Safari threw the orb from its corner to mid-screen. The old swim loop
+     rewrote the launcher's transform every animation frame from
+     window.innerWidth/innerHeight, which track the VISUAL viewport on iOS
+     -- zooming shrank the anchor. The launcher is now pinned with pure
+     CSS (position:fixed rides the visual viewport at any zoom level), the
+     JS loop is retired, and the bounded float lives in keyframes. */
+  const btnCss = hdrSrc.slice(hdrSrc.indexOf("#assistantBtn {"), hdrSrc.indexOf("#assistantBtn:hover"));
+  if (!btnCss) throw new Error("#assistantBtn CSS block is gone");
+  if (!/position:\s*fixed/.test(btnCss)) throw new Error("the orb is no longer position:fixed in CSS");
+  if (!/right:\s*12px/.test(btnCss)) throw new Error("the orb lost its CSS right anchor");
+  if (!/bottom:\s*calc\(12px/.test(btnCss)) throw new Error("the orb lost its CSS bottom anchor");
+  const swimFn = hdrSrc.slice(hdrSrc.indexOf("function startOrbSwim(){"), hdrSrc.indexOf("THE CHAT ON A PHONE"));
+  if (!swimFn) throw new Error("startOrbSwim is gone");
+  if (/requestAnimationFrame\(orbStep\)/.test(swimFn)) throw new Error("the swim loop is running again");
+  if (/\.style\.transform/.test(swimFn)) throw new Error("JS is positioning the orb again");
+  if (!/@keyframes ariaOrbFloat/.test(hdrSrc)) throw new Error("the bounded float keyframes are gone");
+});
+
 check("the utility bar sits above the header and pushes nothing down", () => {
   if (!utilityBar) throw new Error("there is no utility bar");
 
