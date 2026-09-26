@@ -8158,7 +8158,9 @@ check("the home row is the shortlist, and every department it drops is still on 
      against a list of names, so a department added tomorrow is covered
      without anyone remembering to add it. */
   const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
-  const expected = ["beauty", "curvy", "women", "men", "shoes"];
+  /* GYM RAT (2026-09-26, Danny): added as an identity destination
+     like Curvy and Aria Beauty — deliberate, per the test's own rule. */
+  const expected = ["beauty", "curvy", "gym_rat", "women", "men", "shoes"];
   if (HOME_ROW_DEPARTMENTS.join() !== expected.join()) {
     throw new Error(
       `the home row is [${HOME_ROW_DEPARTMENTS.join(", ")}], expected [${expected.join(", ")}] — ` +

@@ -73,6 +73,11 @@ export const DEPARTMENT_SPEC = {
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
+  /* GYM RAT (2026-09-26, Danny): the gym-culture identity destination.
+     The gym brands file everything under a gym_rat bucket (category
+     'gymrat'); Foot Locker contributes its athletic shoes via the
+     retailer rule in itemBelongsToDepartment. */
+  gym_rat:         { category: 'gymrat' },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -91,6 +96,7 @@ export const BUCKET_SPEC = {
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: "beauty" },
   fragrance:       { category: "beauty" },
+  gym_rat:         { category: "gymrat" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:
@@ -191,6 +197,9 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
   if (!dept) return false;
   if (dept.onSaleOnly) return isOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
+  /* GYM RAT (2026-09-26, Danny): Foot Locker's athletic shoes belong
+     here too — the store is the signal, same as Zapatos. */
+  if (deptKey === 'gym_rat' && retailer === 'footlocker') return isFootwear(item, retailer);
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
