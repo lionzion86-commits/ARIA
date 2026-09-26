@@ -7316,30 +7316,49 @@ group("search synonyms: one concept, many words");
       throw new Error('"sneakers" did not find "Shoes"');
   });
 
-  check("\"aletas\" / \"fins\" / \"flippers\" return the same fin sets", () => {
-    /* REPORTED LIVE 2026-09-26: "aletas" is flippers. One concept, so the
-       Spanish word, the English word and the slang all run the identical
-       token list — the Dick's fin sets the dad's search missed. */
+  check("\"aletas\" means ONLY flippers -- strict, no junk", () => {
+    /* REPORTED LIVE 2026-09-26, refined same day by Danny: "aletas" is
+       flippers and nothing else. The preview returned a serum "for Fine
+       Lines and Wrinkles" and a "Walnut Wood Finish" frame because the
+       3-letter "fin" took the prefix shortcut. Two rules now: short
+       concept words match whole words only, and a fins-only query is
+       answered exclusively by real fin products. */
     const pool = [
       P("Speedo Adult Adventure Mask, Snorkel & Fin Set", "Speedo"),
       P("Speedo Adult Mask, Snorkel, and Fin Set", "Speedo"),
       P("Speedo Kids' Aqua Quest Mask, Snorkel & Fin Snorkeling Set", "Speedo"),
+      P("The Ordinary Matrixyl 10% + Hyaluronic Acid for Fine Lines and Wrinkles", "The Ordinary"), // "fine" junk
+      P("Mainstays 4 x 6 Picture Frame, Walnut Wood Finish", "Mainstays"), // "finish" junk
+      P("Final Clearance Swim Goggles", "Speedo"), // "final" junk
       P("Cotton T-Shirt", "Hanes"), // control: not fins
     ];
+    const isFinTitle = (t) => /\b(?:fin|fins|flipper|flippers)\b/i.test(t);
     const seen = [];
     for (const q of ["aletas", "aleta", "fins", "fin", "flipper", "flippers"]) {
       const { items } = cs.rankCatalogMatches(pool, q, {});
       const titles = items.map((i) => i.title);
       seen.push(JSON.stringify(titles));
-      if (!titles.some((t) => /fin set/i.test(t))) throw new Error(`"${q}" missed the fin sets`);
-      if (titles.includes("Cotton T-Shirt")) throw new Error(`"${q}" leaked a non-fin product`);
+      // The three real fin sets come back, first.
+      eq(titles.filter(isFinTitle).length, 3, `"${q}" real fin count`);
+      eq(titles.slice(0, 3).every(isFinTitle), true, `"${q}" fin sets first`);
+      // EVERY result is a real fin product -- no junk, no control.
+      for (const t of titles) {
+        if (!isFinTitle(t)) throw new Error(`"${q}" leaked non-fin product: ${t}`);
+      }
     }
     for (const sig of seen) eq(sig, seen[0], "identical result set and order");
-    // The full phrase the dad typed: "diving" narrows nothing, the fin
-    // sets still come back and the control stays out.
+    // The full phrase the dad typed: strict too.
     const phrase = cs.rankCatalogMatches(pool, "aletas de buceo", {}).items.map((i) => i.title);
     if (!phrase.some((t) => /fin set/i.test(t))) throw new Error('"aletas de buceo" missed the fin sets');
-    if (phrase.includes("Cotton T-Shirt")) throw new Error('"aletas de buceo" leaked a non-fin product');
+    for (const t of phrase) {
+      if (!isFinTitle(t)) throw new Error(`"aletas de buceo" leaked non-fin product: ${t}`);
+    }
+    // Word boundary at the unit level: "fin" never matches fine/finish/final.
+    const junkWords = cs.catalogWordsOf(P("for Fine Lines and Wrinkles Wood Finish Final", ""));
+    eq(cs.catalogTokenHits(junkWords, ["fin"]), 0, '"fin" must not hit fine/finish/final');
+    // But the exact word still hits.
+    const finWords = cs.catalogWordsOf(P("Mask, Snorkel & Fin Set", "Speedo"));
+    eq(cs.catalogTokenHits(finWords, ["fin"]), 1, '"fin" must still hit "Fin Set"');
   });
 
   check("other groups behave the same way", () => {
