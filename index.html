@@ -139,6 +139,31 @@
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  /* STORE RAIL COMPACT (2026-09-26, Danny): the six fashion rails are a
+     store picker, not six full features -- their cards read a touch
+     smaller than the full-size rails. */
+  .storeRailCompact [data-store-rail-card]{ width:142px }
+  .storeRailCompact [data-store-rail-card] > span.relative{ height:142px }
+  /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
+     section nobody discovers from the homepage -- a shopper browsing deals
+     never learns it exists. A full-width house banner (not an ad, not a
+     product carousel: one bold statement) under the ARIA brand band and
+     above the store rails breaks the rhythm at the right moment: the
+     logo/branding moment lands first, then the black banner, then the
+     Victoria's Secret rails. Dark automotive -- charcoal and black with an
+     amber accent -- deliberately NOT the navy rail language, so it reads
+     as its own destination. Typographic treatment: the repo has no auto
+     banner art. Permanent, one banner only. */
+  .ariaAutoBanner{ background:linear-gradient(135deg, #0B0D10 0%, #171A1F 52%, #0B0D10 100%) }
+  .ariaAutoBannerHair{ position:absolute; left:0; right:0; top:0; height:2px;
+    background:linear-gradient(90deg, transparent, rgba(245,158,11,0.9), transparent) }
+  .ariaAutoGhost{ position:absolute; right:-8px; top:50%; transform:translateY(-52%) skewX(-8deg);
+    font-weight:900; font-style:italic; font-size:clamp(96px, 24vw, 230px); line-height:1;
+    letter-spacing:-0.045em; color:transparent; -webkit-text-stroke:1.5px rgba(245,158,11,0.22);
+    pointer-events:none; user-select:none; white-space:nowrap }
+  .ariaAutoCta{ display:inline-flex; align-items:center; justify-content:center;
+    height:48px; padding:0 26px; border-radius:16px; background:#F59E0B; color:#0B0D10;
+    font-size:15px; font-weight:800; letter-spacing:-0.01em }
   /* STORE RAIL BANDS (2026-09-25, Danny's iPhone QA): the six store rails
      sit on the mall's evening navy instead of white-on-white, so the page
      feels full and each rail reads as a lit storefront window. White cards
@@ -1112,11 +1137,26 @@
     </div>
   </div>
 
-
+    <!-- ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): one bold statement,
+         no product carousel. Aria Auto is a huge section nobody discovers
+         from the homepage -- the logo/branding moment lands first, then
+         this black banner, then the Victoria's Secret rails. Relatable
+         promise first (Aria Auto + price), RockAuto/Advance as the trust
+         kicker underneath. Permanent, one banner only. -->
+    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative px-5 py-8" style="z-index:1">
+        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por RockAuto &middot; Advance Auto Parts</p>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
 
     <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1132,7 +1172,7 @@
     </section>
     <!-- STORE RAIL: SEPHORA. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1148,7 +1188,7 @@
     </section>
     <!-- STORE RAIL: MACY'S. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1164,7 +1204,7 @@
     </section>
     <!-- STORE RAIL: FOOT LOCKER. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1180,7 +1220,7 @@
     </section>
     <!-- STORE RAIL: SSENSE. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1196,7 +1236,7 @@
     </section>
     <!-- STORE RAIL: DICK'S SPORTING GOODS. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
@@ -1205,9 +1245,21 @@
       </div>
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
-    <!-- STORE RAIL: COSTCO. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store.
-         Wordmark pill until the logo file lands (see the Costco row note). -->
+    <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
+         picker and the Costco zone -- the catalogue's top clothing brands
+         as one swipeable row. Painted by initBrandStrip(). -->
+    <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Las marcas que visten</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De las tiendas de moda del mall, directo a tu puerta.</p>
+      </div>
+      <div id="mBrandStrip" data-brand-strip class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+    <!-- COSTCO: THE TREASURE-HUNT SHELF (2026-09-26, Danny's call). Costco
+         is not a brand directory -- its own section below the brand strip,
+         curated electronics-first with no candy (see costcoCuratedItems).
+         The header keeps the official logo + the big store name; the row
+         is painted by initStoreRails like every other rail. -->
     <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -1375,8 +1427,23 @@
     </div>
   </div>
 
+    <!-- ARIA AUTO HOUSE BANNER (desktop, 2026-09-26, Danny's call): same house
+         banner as the phone's -- one bold statement, category-led copy. -->
+    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
+        <div class="min-w-0">
+          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por RockAuto &middot; Advance Auto Parts</p>
+        </div>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
+
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1393,7 +1460,7 @@
       </div>
     </section>
     <!-- STORE RAIL: SEPHORA (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1410,7 +1477,7 @@
       </div>
     </section>
     <!-- STORE RAIL: MACY'S (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1427,7 +1494,7 @@
       </div>
     </section>
     <!-- STORE RAIL: FOOT LOCKER (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1444,7 +1511,7 @@
       </div>
     </section>
     <!-- STORE RAIL: SSENSE (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1461,7 +1528,7 @@
       </div>
     </section>
     <!-- STORE RAIL: DICK'S SPORTING GOODS (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1472,9 +1539,18 @@
         <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
-    <!-- STORE RAIL: COSTCO (desktop). Same shelf as the phone, wider stance.. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store.
-         Wordmark pill until the logo file lands (see the Costco row note). -->
+    <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
+    <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Las marcas que visten</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">De las tiendas de moda del mall, directo a tu puerta.</p>
+      </div>
+      <div id="dBrandStrip" data-brand-strip class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+    </section>
+    <!-- COSTCO: THE TREASURE-HUNT SHELF (desktop, 2026-09-26, Danny's call).
+         Same curated shelf as the phone -- electronics first, no candy. -->
     <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -7108,6 +7184,11 @@ function openStoreRailProduct(key, idx){
 const STORE_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
 const STORE_RAIL_TOTAL = 12; // shelf length; fewer without apology
 function storeRailPicks(key, saleItems, pool, ofertasKeys){
+  /* COSTCO NEVER GOES THROUGH THE SALE/FEATURED FILL: its shelf is the
+     treasure-hunt curation (electronics first, never candy) and the rail
+     takes the first twelve of it. */
+  if (String(key || '').toLowerCase() === 'costco' && Array.isArray(pool))
+    return costcoCuratedItems(pool).slice(0, STORE_RAIL_TOTAL);
   const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
   const pct = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
   const seen = new Set();
@@ -7142,6 +7223,55 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
     }
   }
   return picks;
+}
+/* COSTCO'S TREASURE-HUNT SHELF (2026-09-26, Danny's call): Costco is not
+   a brand directory -- its raw buckets do not map through the generic
+   DEPARTMENT_SPEC taxonomy, so the storefront's generic fallback would
+   render "Sin categorias por ahora - busca por marca", which makes no
+   sense for a warehouse club. Costco's shelf and storefront are curated
+   by hand-rank instead: electronics first, then the interesting finds
+   (gadgets, gemstone boxes, quirky discoveries), then clothes, then
+   home, then everything else. Candy never appears here -- it belongs in
+   Fiestas y Eventos -> Dulces y Chocolates, not leading Costco.
+   Pure and self-contained like the rest of this slice, so the test
+   suite can run it in a vm without the page. */
+const COSTCO_CAROUSEL_MAX = 48;
+const COSTCO_TREASURE_RX = /(gadget|gemstone|gema|joyero|jewelry\s?box|projector|proyector|c[áa]mara|camera|drone|smart|port[áa]til|reloj|aud[íi]fono|headphone|tablet|monitor|speaker|bocina|keyboard|teclado|consola|console|lego|coleccionable|collectible|novedad|quirky|ins[óo]lito|curios)/i;
+const COSTCO_APPAREL_RX = /(camisa|pantal[óo]n|jeans?|vestido|blusa|chaqueta|sudadera|hoodie|shorts?|falda|traje|\bropa\b|t-?shirt|camiseta|abrigo|sweater|su[ée]ter|pijama|calcet[íi]n|leggings?|jogger|cardigan)/i;
+function costcoBucketOf(p){
+  const deps = Array.isArray(p && p.departments) ? p.departments
+    : (p && p.department ? [p.department] : []);
+  /* Bucket names arrive accented ("Electrónica") as often as plain. */
+  const low = deps.map(d => String(d).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+  for (const b of ['electronica','hogar','belleza','dulces','bebe','juguetes','fiesta'])
+    if (low.some(d => d.indexOf(b) !== -1)) return b;
+  return '';
+}
+function costcoTreasureRank(p){
+  const bucket = costcoBucketOf(p);
+  if (bucket === 'electronica') return 0;
+  const hay = `${p.title || ''} ${p.brand || ''} ${p.name || ''}`;
+  if (COSTCO_TREASURE_RX.test(hay)) return 1;
+  if (COSTCO_APPAREL_RX.test(hay)) return 2;
+  if (bucket === 'hogar') return 3;
+  return 4;
+}
+function costcoCuratedItems(items){
+  const seen = new Set();
+  const clean = [];
+  for (const p of items || []){
+    if (!p || String(p.retailer || '').toLowerCase() !== 'costco') continue;
+    /* Candy belongs in Fiestas y Eventos -> Dulces y Chocolates. */
+    if (costcoBucketOf(p) === 'dulces') continue;
+    const price = Number(p.price);
+    if (!Number.isFinite(price) || price <= 0) continue;
+    if (!p.image) continue;
+    const key = String(p.image || '') + '::' + String(p.title || p.name || '');
+    if (seen.has(key)) continue;
+    seen.add(key);
+    clean.push(p);
+  }
+  return clean.sort((a, b) => costcoTreasureRank(a) - costcoTreasureRank(b)).slice(0, COSTCO_CAROUSEL_MAX);
 }
 /* STORE_RAIL_PICKS:SLICE-END */
 
@@ -7217,6 +7347,52 @@ function mobileCatCardHTML(t, kind){
       <span class="block text-[11px] mt-0.5 tabular" style="color:#6B7487">${t.count ? `${t.count.toLocaleString('es-PE')} productos` : 'Ver'}</span>
     </span>
   </button>`;
+}
+
+/* THE BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
+   picker and the Costco zone -- the catalogue's top clothing brands as
+   one swipeable row. Brand keys are global (openCatalog('brand', key)
+   walks every retailer), so the strip aggregates brandBucketsFromItems
+   counts over the fashion departments of the fashion retailers. Painted
+   by initBrandStrip, called next to initStoreRails. */
+const BRAND_STRIP_DEPTS = ['clothing','men','women','kids','curvy','shoes'];
+const BRAND_STRIP_RETAILERS = ['victoriassecret','macys','footlocker','ssense','dicks','oldnavy'];
+const BRAND_STRIP_MAX = 24;
+function brandStripBrands(){
+  const data = departmentCacheData?.retailers || {};
+  const counts = new Map();
+  for (const r of BRAND_STRIP_RETAILERS){
+    const rd = data[r];
+    if (!rd) continue;
+    const items = [];
+    for (const d of BRAND_STRIP_DEPTS){
+      try { items.push(...departmentItemsFor(rd, 'department', d, r)); } catch { /* a missing department is not an error */ }
+    }
+    for (const [key, bucket] of Object.entries(brandBucketsFromItems(items))){
+      const n = (bucket.items || []).length;
+      if (n < 3) continue;
+      const cur = counts.get(key);
+      if (cur) cur.count += n;
+      else counts.set(key, { key, label: String(bucket.label || key), count: n });
+    }
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, BRAND_STRIP_MAX);
+}
+function brandStripTileHTML(b){
+  return `<button type="button" onclick="openCatalog('brand','${jsAttr(b.key)}')" data-brand-strip-item="${escapeHtml(b.key)}"
+    class="flex-shrink-0 rounded-2xl border px-5 py-4 text-left focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]"
+    style="border-color:var(--line); background:#fff">
+    <span class="block text-[15px] font-extrabold tracking-[-0.01em] whitespace-nowrap" style="color:var(--navy)">${escapeHtml(b.label)}</span>
+    <span class="block text-[11px] tabular mt-1" style="color:#6B7487">${b.count} productos</span>
+  </button>`;
+}
+async function initBrandStrip(){
+  /* A failed pool leaves the strip empty, never a broken boot. */
+  try {
+    if (!departmentCacheData?.retailers) await relatedPool();
+    const html = brandStripBrands().map(brandStripTileHTML).join('');
+    document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
+  } catch { /* the shelf stays empty */ }
 }
 
 /* ============================================================
@@ -7443,8 +7619,8 @@ function initMobileShopfront(){
   /* OFERTAS FIRST, then the store rails: the rails deprioritise what
      Ofertas already leads on, so they need its keys. */
   runSalesScan()
-    .then(() => { renderMobileDealsRail(); initStoreRails(); })
-    .catch(() => { renderMobileDealsRail(); initStoreRails(); });
+    .then(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); })
+    .catch(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); });
 }
 window.addEventListener('DOMContentLoaded', () => {
   initMobileShopfront();
@@ -8034,8 +8210,9 @@ function carouselCardHTML(item, retailer){
    carouselMixItems); this only decides whether there is a rail at all
    and wraps it. Fewer than CAROUSEL_MIN_ITEMS cards is not a rail — the
    surface keeps its old layout rather than a broken-looking row. */
-function storeCarouselHTML({ id, title, items, retailer }){
-  const picks = carouselPickItems(items, CAROUSEL_MAX);
+function storeCarouselHTML({ id, title, items, retailer, max }){
+  const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : CAROUSEL_MAX;
+  const picks = carouselPickItems(items, limit);
   if (picks.length < CAROUSEL_MIN_ITEMS) return '';
   return `<section aria-label="${escapeHtml(title)}" class="mb-8">
     <h2 class="ariaCarouselTitle text-[20px] font-extrabold tracking-[-0.02em] mb-4" style="color:var(--navy)">${escapeHtml(title)}</h2>
@@ -8987,6 +9164,27 @@ async function openStore(retailer){
      setting. Two is where a list starts to be worth reading. */
   const brandList = brandRows(retailerBrandBuckets(retailerData));
   const brandPanel = brandList.length > 1 ? storeBrandPanelHTML(brandList) : '';
+  /* COSTCO'S STOREFRONT IS A TREASURE HUNT, NOT A BRAND DIRECTORY
+     (2026-09-26, Danny's call): its raw buckets never map through
+     DEPARTMENT_SPEC, so deptEntries is empty and the generic fallback
+     would print "Sin categorias por ahora - busca por marca" -- a brand
+     directory over a warehouse club, which makes no sense. Costco gets
+     a product-first storefront instead: one big curated carousel
+     (electronics first, then the interesting finds, never candy), no
+     category tiles, no brand panel, no "busca por marca". */
+  if (retailer === 'costco'){
+    const curated = costcoCuratedItems(await relatedPool());
+    document.getElementById('storeViewSubtitle').textContent = curated.length
+      ? `${curated.length} hallazgos de Costco`
+      : 'No hay artículos disponibles por ahora.';
+    if (curated.length){
+      document.getElementById('storeViewSections').innerHTML += storeCarouselHTML({
+        id: 'storeRail', title: 'Lo mejor de Costco',
+        items: curated, retailer, max: COSTCO_CAROUSEL_MAX,
+      });
+    }
+    return;
+  }
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = brandPanel
