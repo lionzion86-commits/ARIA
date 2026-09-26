@@ -5840,6 +5840,26 @@ check("the orb is docked on every screen \u2014 the lane drift is retired", () =
   if (/'lane'/.test(body)) throw new Error("the lane drift is back in orbLane");
 });
 
+check("the orb is pinch-zoom-proof \u2014 pure CSS anchor, no JS repositioning", () => {
+  /* 2026-09-26 (Danny, iPhone QA with a screenshot): pinch-zooming on iOS
+     Safari threw the orb from its corner to mid-screen. The old swim loop
+     rewrote the launcher's transform every animation frame from
+     window.innerWidth/innerHeight, which track the VISUAL viewport on iOS
+     -- zooming shrank the anchor. The launcher is now pinned with pure
+     CSS (position:fixed rides the visual viewport at any zoom level), the
+     JS loop is retired, and the bounded float lives in keyframes. */
+  const btnCss = hdrSrc.slice(hdrSrc.indexOf("#assistantBtn {"), hdrSrc.indexOf("#assistantBtn:hover"));
+  if (!btnCss) throw new Error("#assistantBtn CSS block is gone");
+  if (!/position:\s*fixed/.test(btnCss)) throw new Error("the orb is no longer position:fixed in CSS");
+  if (!/right:\s*12px/.test(btnCss)) throw new Error("the orb lost its CSS right anchor");
+  if (!/bottom:\s*calc\(12px/.test(btnCss)) throw new Error("the orb lost its CSS bottom anchor");
+  const swimFn = hdrSrc.slice(hdrSrc.indexOf("function startOrbSwim(){"), hdrSrc.indexOf("THE CHAT ON A PHONE"));
+  if (!swimFn) throw new Error("startOrbSwim is gone");
+  if (/requestAnimationFrame\(orbStep\)/.test(swimFn)) throw new Error("the swim loop is running again");
+  if (/\.style\.transform/.test(swimFn)) throw new Error("JS is positioning the orb again");
+  if (!/@keyframes ariaOrbFloat/.test(hdrSrc)) throw new Error("the bounded float keyframes are gone");
+});
+
 check("the utility bar sits above the header and pushes nothing down", () => {
   if (!utilityBar) throw new Error("there is no utility bar");
 
@@ -10032,6 +10052,84 @@ check("every RockAuto live failure degrades to the honest pending block", () => 
 
 /* ------------------------------------------------------------------ */
 await Promise.all(pendingAsync);
+
+/* ============================================================
+   SEO INDEXABILITY (2026-09-26). Google told a shopper in Lima the
+   domain "doesn't appear to operate as an active online store" —
+   because it was never indexed: no robots.txt, no sitemap.xml.
+   These checks pin the crawl surface: robots allows everything and
+   points at the sitemap; every sitemap URL is same-origin on "/" (the
+   query-based SPA routes all serve index.html, so 200); every
+   tienda= key is an ACTIVE retailer (no dead storefronts — the
+   standing rule); index.html has no noindex; canonical + OG present
+   for WhatsApp/Facebook cards.
+   ============================================================ */
+group("SEO indexability");
+
+check("robots.txt exists, allows all, and points at the sitemap", () => {
+  if (!existsSync(root("robots.txt"))) throw new Error("robots.txt missing");
+  const robots = readFileSync(root("robots.txt"), "utf8");
+  if (!/^User-agent: \*$/m.test(robots)) throw new Error("no User-agent: *");
+  if (!/^Allow: \/$/m.test(robots)) throw new Error("root not allowed");
+  if (!/^Sitemap: https:\/\/ariashop\.pe\/sitemap\.xml$/m.test(robots))
+    throw new Error("sitemap not referenced");
+  if (/^Disallow: \/$/m.test(robots)) throw new Error("root disallowed");
+});
+
+check("sitemap.xml is valid XML with same-origin index.html URLs only", () => {
+  if (!existsSync(root("sitemap.xml"))) throw new Error("sitemap.xml missing");
+  const xml = readFileSync(root("sitemap.xml"), "utf8");
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  if (!locs.length) throw new Error("no <loc> entries");
+  for (const loc of locs) {
+    const u = new URL(loc);
+    eq(u.origin, "https://ariashop.pe", `origin of ${loc}`);
+    eq(u.pathname, "/", `pathname of ${loc}`); // query routes hang off "/"
+  }
+  if (!locs.includes("https://ariashop.pe/")) throw new Error("homepage missing");
+});
+
+check("every sitemap tienda= key is an ACTIVE retailer (no dead storefronts)", () => {
+  const xml = readFileSync(root("sitemap.xml"), "utf8");
+  const html = readFileSync(root("index.html"), "utf8");
+  const keys = [...xml.matchAll(/[?&]tienda=([a-z0-9]+)/g)].map((m) => m[1]);
+  if (!keys.length) throw new Error("no storefront URLs in sitemap");
+  for (const key of keys) {
+    // the row must exist in the inline RETAILERS registry and not be retired
+    const row = html.match(new RegExp(`^\\s*${key}:\\s*\\{([^}]*)\\}`, "m"));
+    if (!row) throw new Error(`tienda=${key} has no RETAILERS row`);
+    if (/retired:\s*true/.test(row[1])) throw new Error(`tienda=${key} is retired`);
+  }
+});
+
+check("index.html has no noindex; checkout.html keeps its deliberate noindex", () => {
+  const index = readFileSync(root("index.html"), "utf8");
+  if (/name="robots"[^>]*noindex/i.test(index)) throw new Error("index.html has noindex");
+  // checkout is app functionality, not landing content - its noindex is intentional
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  if (!/name="robots"[^>]*noindex/i.test(checkout)) throw new Error("checkout.html lost its noindex");
+  if (/X-Robots-Tag/i.test(readFileSync(root("_headers"), "utf8")))
+    throw new Error("_headers sets X-Robots-Tag");
+});
+
+check("head carries canonical + Spanish description + OG/Twitter card tags", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/<link rel="canonical" href="https:\/\/ariashop\.pe\/">/.test(html))
+    throw new Error("canonical missing");
+  const desc = html.match(/<meta name="description" content="([^"]+)">/);
+  if (!desc) throw new Error("meta description missing");
+  if (!/[áéíóúñ¿¡]/.test(desc[1]) && /\b(the|and|with|your)\b/i.test(desc[1]))
+    throw new Error("meta description does not look Spanish");
+  for (const tag of ["og:title", "og:description", "og:image", "og:url", "og:site_name", "twitter:card"]) {
+    if (!new RegExp(`property="${tag}"|name="${tag}"`).test(html)) throw new Error(`${tag} missing`);
+  }
+});
+
+check("Search Console verification hook is present (placeholder until Danny pastes the code)", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/<meta name="google-site-verification" content="[^"]+">/.test(html))
+    throw new Error("google-site-verification meta missing");
+});
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

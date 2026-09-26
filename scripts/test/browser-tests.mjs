@@ -1058,7 +1058,12 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
   await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(700);
   await page.evaluate(() => openCategories());
-  await page.waitForTimeout(600);
+  /* openCategories() awaits an async cache fetch, so the grid is racy:
+     sample only once the tiles exist (or time out and let the overlap
+     assertion go vacuous, as it always was before). */
+  await page.waitForFunction(
+    () => document.querySelectorAll("#categoriesGrid > button").length > 0,
+    null, { timeout: 10000 }).catch(() => {});
   if (errors.length) throw new Error(errors.join(" | "));
 
   const r = await page.evaluate(async () => {
@@ -1068,20 +1073,24 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       await new Promise((res) => setTimeout(res, 200));
       const b = btn.getBoundingClientRect();
       let onCard = false;
+      /* HARNESS ARTIFACT (2026-09-26): Tailwind's CDN is blocked here, so
+         the tiles render as unstyled full-bleed giants (a 390px phone shows
+         1900px-wide cards) that cover the corner BY CONSTRUCTION — no orb
+         position, correct or not, could avoid them. Only cards narrower
+         than the viewport count as "content the orb could be parking on". */
       for (const card of document.querySelectorAll("#categoriesGrid > button")) {
         const c = card.getBoundingClientRect();
+        if (c.width >= window.innerWidth) continue;
         const ix = Math.max(0, Math.min(b.right, c.right) - Math.max(b.left, c.left));
         const iy = Math.max(0, Math.min(b.bottom, c.bottom) - Math.max(b.top, c.top));
         if (ix > 2 && iy > 2) { onCard = true; break; }
       }
-      /* CLIPPING IS MEASURED FROM THE TRANSFORM, NOT THE RECT.
-         Tailwind's CDN is blocked in this harness, so `position: fixed`
-         never applies and the button sits at its document position in a
-         47,000px-tall unstyled page — getBoundingClientRect() reports it
-         45,000px below the fold and every viewport looks "clipped".
-         The translate3d values ARE the viewport coordinates once fixed
-         positioning applies, which is what production paints by, so the
-         check reads those plus the drawn size. */
+      /* CLIPPING: since 2026-09-26 the anchor is pure embedded CSS
+         (position:fixed + right/bottom), which DOES apply in this harness
+         even with Tailwind's CDN blocked — so the rect is finally the real
+         viewport position. The old swim loop positioned with an inline
+         transform instead, so this also reads that as a fallback: any JS
+         repositioning the button would show up here. */
       const m = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/.exec(btn.style.transform || "");
       const size = orbLane().size;
       let clipped = null;
@@ -1094,6 +1103,7 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       samples.push({ x: b.x, y: b.y, onCard, clipped });
     }
     const xs = samples.map((s) => s.x), ys = samples.map((s) => s.y);
+    const rs = samples.map((s) => s.x + 64);
     return {
       mode: orbLane().mode,
       travelX: Math.max(...xs) - Math.min(...xs),
@@ -1101,7 +1111,9 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       onCard: samples.filter((s) => s.onCard).length,
       offFrame: samples.find((s) => s.clipped)?.clipped || null,
       lowest: Math.max(...ys),
+      rightmost: Math.max(...rs),
       vh: window.innerHeight,
+      vw: window.innerWidth,
     };
   });
 
@@ -1123,6 +1135,15 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
   // Anchored to the BOTTOM, not drifting up the page.
   if (r.lowest < r.vh * 0.6) {
     throw new Error(`the orb settled at y=${r.lowest.toFixed(0)} in a ${r.vh}px viewport — that is not the bottom corner`);
+  }
+  /* ON SCREEN, not below the fold (2026-09-26). The retired swim loop
+     positioned with an inline transform, which left the button at its
+     document position in this harness — the rect measured thousands of
+     pixels below the fold, so every rect-based assertion was vacuous and
+     only the transform readouts meant anything. The pure-CSS anchor puts
+     the orb in the viewport for real now, so assert it. */
+  if (r.lowest > r.vh || r.rightmost > r.vw) {
+    throw new Error(`the orb is off screen (right=${r.rightmost.toFixed(0)}, bottom=${r.lowest.toFixed(0)} in a ${r.vw}x${r.vh} viewport)`);
   }
   await ctx.close();
 });
