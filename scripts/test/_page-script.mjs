@@ -641,3 +641,24 @@ export function loadPageCurvyStoreCardsSlice() {
   );
   return sandbox.__exports;
 }
+
+/* THE CART MERGE, on its own. mergeCarts + cartItemKey are pure functions;
+   the slice runs them so the idempotence rule ("reload must never change
+   quantities") is settled by execution, not by reading the code. */
+export function loadPageCartSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const CART_STORAGE_KEY = 'aria_cart_v1';");
+  const endMarker = html.indexOf("CART WEIGHT REPAIR");
+  const to = html.lastIndexOf("/*", endMarker);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html cart markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { cartItemKey, mergeCarts };",
+    sandbox,
+    { filename: "index.html#cart" },
+  );
+  return sandbox.__exports;
+}

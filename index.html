@@ -15390,12 +15390,17 @@ async function loadCartFromServer(){
   } catch { return null; }
 }
 
+// Idempotent merge: for a logged-in shopper the server cart is already an
+// exact mirror of the localStorage cart (cart-save.js overwrites server with
+// client after every mutation), so summing quantities here doubled every line
+// on every page load. qty = max() can never double and still unions genuine
+// cross-device adds (an item present on only one side still appears).
 function mergeCarts(localCart, serverCart){
   const map = new Map();
   for (const it of serverCart) map.set(cartItemKey(it), { ...it });
   for (const it of localCart){
     const key = cartItemKey(it);
-    if (map.has(key)) map.get(key).qty += it.qty;
+    if (map.has(key)) map.get(key).qty = Math.max(map.get(key).qty, it.qty);
     else map.set(key, { ...it });
   }
   return Array.from(map.values());

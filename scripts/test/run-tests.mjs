@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageCartSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -9056,6 +9056,52 @@ check("one poison record cannot empty the search pool", () => {
   const pool = src.slice(src.indexOf("async function relatedPool(){"), src.indexOf("/* ============================================================\n   CATALOG-FIRST SEARCH"));
   if (!/try \{ it = normalizeLiveItem/.test(pool)) {
     throw new Error("relatedPool does not isolate a throwing record");
+  }
+});
+
+/* ============================================================
+   CART MERGE IDEMPOTENCE (2026-09-26, live bug): for a logged-in shopper
+   the server cart is an exact mirror of the localStorage cart, so the old
+   sum-on-match merge doubled every line on every page load. mergeCarts
+   now unions by cartItemKey with qty = max() — reloads can never change
+   quantities, genuine cross-device adds still union.
+   ============================================================ */
+const pageCart = loadPageCartSlice();
+const cartKey = (retailer, title, size, qty) => ({ retailer, title, selectedSize: size, qty });
+
+check("a logged-in reload never changes quantities", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 1, "line count");
+  eq(merged[0].qty, 1, "qty after reload");
+});
+
+check("cross-device adds still union without doubling", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1), cartKey("Adidas", "Samba", "9", 2)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 2, "line count");
+  eq(merged.find((it) => it.retailer === "Nike").qty, 1, "Nike qty");
+  eq(merged.find((it) => it.retailer === "Adidas").qty, 2, "Adidas qty");
+});
+
+check("divergent quantities keep the larger side", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 3)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 1, "line count");
+  eq(merged[0].qty, 3, "qty keeps the larger side");
+});
+
+check("the page merge cannot sum quantities", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("function mergeCarts(localCart, serverCart){"), src.indexOf("CART WEIGHT REPAIR"));
+  if (/\.qty\s*\+=\s*it\.qty/.test(fn)) {
+    throw new Error("mergeCarts still sums quantities on matching keys");
+  }
+  if (!/Math\.max\(/.test(fn)) {
+    throw new Error("mergeCarts does not take the max quantity on matching keys");
   }
 });
 
