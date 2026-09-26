@@ -4999,24 +4999,36 @@ const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
-check("the shopfront opens the home page: Ofertas is the first thing", () => {
+check("the photo hero opens the home page, shopfront follows", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* THIS RULE CHANGED ON 2026-09-25, DELIBERATELY, AT DANNY'S WORD.
-     It used to read: nothing but the photographic hero comes before
-     the shopfront. Danny's verdict on his phone: the brand statement
-     ("Compra en Estados Unidos / Te lo llevamos a Perú") sat eight
-     carousels down and the deals were not the first thing the eye
-     met. The photographic hero moved below the rails; the shopfront
-     is the FIRST child of #homeView again, and the Ofertas rail is the
-     first section inside it. One element above the rails -- hero or
-     anything else -- fails, which is what this check guards. */
+  /* THIS RULE CHANGED ON 2026-09-26, DELIBERATELY, AT DANNY'S WORD.
+     2026-09-25 had it: the shopfront is the FIRST child of #homeView
+     and the Ofertas rail is the first section inside it -- deals first
+     because that is what stops the scroll. On iPhone review Danny
+     reversed it: "Todo USA ahora en Lima" is the strong opening message
+     and it should hit you the moment you walk in, like it originally
+     did. The photographic hero is the FIRST child of #homeView again,
+     the shopfront follows it, and the Ofertas rail stays the first
+     section inside the shopfront. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
   const first = tags[0] || "";
-  if (!first.startsWith('<div id="mobileShopfront"')) {
-    throw new Error(`the first thing in #homeView is not the shopfront: ${first.slice(0, 70)}`);
+  if (!first.startsWith('<section class="ariaHero"')) {
+    throw new Error(`the first thing in #homeView is not the photo hero: ${first.slice(0, 70)}`);
+  }
+  if (!first.includes('aria-label="Todo USA ahora en Lima"')) {
+    throw new Error("the photo hero lost its aria-label");
+  }
+  const second = (() => {
+    const heroOpen = body.indexOf('<section class="ariaHero"');
+    const heroClose = body.indexOf("</section>", heroOpen) + "</section>".length;
+    const after = body.slice(heroClose);
+    return (after.match(/<(?!!--)[a-zA-Z][^>]*>/) || [])[0] || "";
+  })();
+  if (!second.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`the shopfront does not follow the hero: ${second.slice(0, 70)}`);
   }
   const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
   if (firstSection !== "Ofertas") {
@@ -5032,7 +5044,7 @@ check("the shopfront opens the home page: Ofertas is the first thing", () => {
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
+check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5052,9 +5064,18 @@ check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
      between the six rails and Categorías -- the rest of the mall
      directory as one logo strip, with a way into the full 22-store
-     Tiendas directory.) */
-  const order = [...shopfront.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
+     Tiendas directory.
+
+     (2026-09-26, DANNY'S HOMEPAGE ORDER V2: the photo hero opens the
+     page again -- "Todo USA ahora en Lima" is the strong message that
+     hits you the moment you walk in. The 2026-09-25 order holds after
+     it.) */
+  const homeSlice = shopfrontSrc.slice(
+    shopfrontSrc.indexOf('<div id="homeView"'),
+    shopfrontSrc.indexOf('<div id="desktopShopfront"'),
+  );
+  const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
@@ -5076,7 +5097,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
      between the six rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
-    shopfrontSrc.indexOf('class="ariaHero"'),
+    shopfrontSrc.indexOf('id="whyUs"'),
   );
   if (!desk) throw new Error("there is no desktop shopfront");
   const open = desk.slice(0, desk.indexOf(">") + 1);
@@ -7696,7 +7717,7 @@ check("the six rails stand in mall order on all three surfaces", () => {
   const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
-    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'class="ariaHero"'],
+    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
     ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
