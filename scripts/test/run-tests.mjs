@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -1595,7 +1595,7 @@ check("translating twice changes nothing", () => {
 
 check("every query that leaves for a retailer is translated first", () => {
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  const calls = src.match(/fetch\('\/\.netlify\/functions\/apify-scrape-start'[\s\S]{0,400}?\}\);/g) || [];
+  const calls = src.match(/fetch(?:WithStartTimeout)?\('\/\.netlify\/functions\/apify-scrape-start'[\s\S]{0,400}?\}\);/g) || [];
   if (calls.length !== 2) throw new Error(`expected 2 scrape entry points, found ${calls.length}`);
   for (const call of calls) {
     if (!/query: translateSearchQuery\(/.test(call)) {
@@ -9672,6 +9672,84 @@ check("the product page shows a continue-to-cart line whenever the cart holds it
   if (!/1 art\u00edculo/.test(src) || !/art\u00edculos/.test(src)) {
     throw new Error("the continue-to-cart line has no singular/plural count copy");
   }
+});
+
+group("rockauto dev-string fix + shared parts glossary");
+
+check("the parts glossary JSON is valid shared infrastructure", () => {
+  const g = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
+  if (!g.version || !g.entries || !g._readme) throw new Error("glossary missing version/entries/_readme");
+  if (!/shared/i.test(g._readme.join("\n"))) throw new Error("glossary does not document its shared-infrastructure role");
+  const cats = new Set(["brakes","filters","fluids","ignition","electrical","lighting","cooling","fuel","exhaust","belts","suspension","steering","drivetrain","transmission","wipers","body","wheels","sensors"]);
+  const seen = new Set();
+  for (const e of g.entries) {
+    if (!e.es || !Array.isArray(e.en) || !e.en.length) throw new Error(`bad entry shape: ${JSON.stringify(e)}`);
+    if (!cats.has(e.category)) throw new Error(`unknown category ${e.category} on ${e.es}`);
+    for (const t of [e.es, ...(e.synonyms_es || [])]) {
+      const k = t.toLowerCase();
+      if (seen.has(k)) throw new Error(`duplicate Spanish term: ${t}`);
+      seen.add(k);
+    }
+  }
+  const flat = new Map();
+  for (const e of g.entries) for (const t of [e.es, ...(e.synonyms_es || [])]) flat.set(t.toLowerCase(), e.en[0]);
+  eq(flat.get("bujía"), "spark plug", "bujía");
+  eq(flat.get("bujías"), "spark plugs", "bujías");
+  eq(flat.get("filtro de aire"), "engine air filter", "filtro de aire");
+});
+
+check("the inline glossary in index.html matches the JSON source of truth", () => {
+  const g = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
+  const { AUTO_PART_TERMS_ES_EN } = loadPageAutoGlossarySlice();
+  const want = new Map();
+  for (const e of g.entries) for (const t of [e.es, ...(e.synonyms_es || [])]) want.set(t.toLowerCase(), e.en[0]);
+  const got = new Map(AUTO_PART_TERMS_ES_EN.map(([es, en]) => [es.toLowerCase(), en]));
+  eq(got.size, want.size, "inline pair count");
+  for (const [es, en] of want) eq(got.get(es), en, `inline pair for ${es}`);
+});
+
+check("the shared glossary translates the acceptance terms (accent-insensitive)", () => {
+  const { translatePartQuery } = loadPageAutoGlossarySlice();
+  eq(translatePartQuery("bujía"), "spark plug", "bujía");
+  eq(translatePartQuery("bujías"), "spark plugs", "bujías");
+  eq(translatePartQuery("BUJIAS"), "spark plugs", "BUJIAS");
+  eq(translatePartQuery("filtro de aire"), "engine air filter", "filtro de aire");
+  eq(translatePartQuery("pastilla de freno"), "brake pad", "pastilla de freno");
+  eq(translatePartQuery("faja de distribución"), "timing belt", "faja de distribución");
+  eq(translatePartQuery("correa de accesorios"), "serpentine belt", "correa de accesorios");
+});
+
+check("an unwired auto source renders the honest pending block, never the backend diagnostic", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/autoPendingBlockHTML\(\{\s*\.\.\.source,\s*pendingNote:\s*'Estamos ampliando nuestro catálogo de repuestos/.test(html))
+    throw new Error("the auto search catch does not render the pending block for unwired sources");
+  if (!/DEV_DIAGNOSTIC_RE\.test\(rawErr\)/.test(html))
+    throw new Error("renderAutoPartBlock does not sanitize dev diagnostics");
+  if (!/throwIfNotConnected\(startData,\s*startRes\)/.test(html))
+    throw new Error("no pendingIntegration detection on the scrape start call");
+});
+
+check("both scrape entry points time out the start call (no endless skeleton)", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const starts = html.match(/fetchWithStartTimeout\('\/\.netlify\/functions\/apify-scrape-start'/g) || [];
+  eq(starts.length, 2, "start calls through fetchWithStartTimeout");
+});
+
+check("the on-demand error path never toasts a raw backend diagnostic", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/Esta tienda aún no está conectada — prueba con otra\./.test(html))
+    throw new Error("no friendly on-demand toast for unwired stores");
+});
+
+check("the scrape backend keeps dev diagnostics out of the production error", () => {
+  const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (!/isDevRequest\(event\)/.test(src)) throw new Error("no dev-request gating");
+  const prodErr = src.match(/error:\s*known\s*\?\s*`([^`]+)`/);
+  if (!prodErr) throw new Error("production unwired-retailer error not found");
+  if (/TO FINISH|no Apify actor configured/.test(prodErr[1]))
+    throw new Error("dev diagnostic still in the production error string");
+  if (!/is not connected yet/.test(prodErr[1])) throw new Error("production error is not shopper-safe");
+  if (!/devNote/.test(src)) throw new Error("devNote missing for dev-flagged requests");
 });
 
 /* ------------------------------------------------------------------ */

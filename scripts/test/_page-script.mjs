@@ -47,6 +47,31 @@ export function loadPageWeightSlice() {
   return sandbox.__exports;
 }
 
+const AUTO_GLOSSARY_START = "/* ==== GLOSSARY-BLOCK-START";
+const AUTO_GLOSSARY_END = "\n/* ============================================================\n   ARIA AUTO'S PARTS SOURCES";
+
+/* The shared ES->EN parts glossary (generated from
+   scripts/lib/es-en-parts-glossary.json) and its lookup, on their own.
+   The JSON is the canonical module — the future Aria AI assistant imports
+   it directly; this slice proves the browser's inline copy matches it. */
+export function loadPageAutoGlossarySlice() {
+  const html = readFileSync(INDEX, "utf8").replace(/\r\n/g, "\n");
+  const from = html.indexOf(AUTO_GLOSSARY_START);
+  const to = html.indexOf(AUTO_GLOSSARY_END, from);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html auto-glossary slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { AUTO_PART_TERMS_ES_EN, translatePartQuery };",
+    sandbox,
+    { filename: "index.html#auto-glossary" },
+  );
+  return sandbox.__exports;
+}
+
 /* 2026-09-22: the scored-selection block this used to load is gone —
    category covers are curated art now, not a lucky dip over scraped
    photos (see the note above CATEGORY_COVERS in index.html). What is
