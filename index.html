@@ -6337,6 +6337,38 @@ function isFootwear(item, retailer){
   return isFootwearTitle(title);
 }
 /* ============================================================
+   IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)
+   Mirror of scripts/lib/toys.js — the page is a plain <script>
+   and cannot import. Change one, change the other; a parity test
+   compares them over the real catalogues.
+   Cheap character-licensed boards (Sakar, Barbie, Hot Wheels,
+   Mattel, Minecraft, Sonic) belong in Juguetes, never in Surf &
+   Skate. Deliberately narrow: no bare "toy" (Toy Machine is a real
+   pro brand), no kid/jr/youth words ("Spanky Jr" is a pro nickname,
+   Birdhouse "Toy Invasion" a pro graphic, CCS kid completes are real
+   skate-shop construction), no "lenticular" (DGK x Bruce Lee is a pro
+   collab). An unrecognised board stays real skate. */
+const TOY_SKATE_BRANDS = new Set([
+  'SAKAR','BARBIE','HOT WHEELS','MATTEL','MINECRAFT','SONIC',
+]);
+const TOY_SKATE_TITLE =
+  /\b(barbie|hot\s*wheels|minecraft|monster\s*jam|sonic)\b/i;
+function toySkateName(item){
+  return String((item && (item.name || item.title)) || '');
+}
+function isSkateboardItem(item){
+  const t = String((item && item.type) || '').toUpperCase();
+  if (t.indexOf('SKATE') !== -1) return true;
+  return /\bskateboards?\b/i.test(toySkateName(item));
+}
+function isToyGradeSkate(item){
+  if (!item || typeof item !== 'object') return false;
+  if (String((item && item.type) || '').toUpperCase().indexOf('TOYSKATE') !== -1) return true;
+  if (!isSkateboardItem(item)) return false;
+  if (TOY_SKATE_BRANDS.has(String((item && item.brand) || '').toUpperCase().trim())) return true;
+  return TOY_SKATE_TITLE.test(toySkateName(item));
+}
+/* ============================================================
    IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)
    Mirror of scripts/lib/surfskate.js — the page is a plain <script>
    and cannot import. Change one, change the other; a parity test
@@ -6344,7 +6376,10 @@ function isFootwear(item, retailer){
    Signals, most trustworthy first:
    1. The normalizer's Spanish `type` vocabulary (SURFSKATE_TYPES).
    2. Title keywords as a last resort for generic-typed gear.
-   Spearfishing gear is NOT surf/skate: it stays in Deportes. */
+   Spearfishing gear is NOT surf/skate: it stays in Deportes.
+   Toy-grade character boards are NOT surf/skate either: isToyGradeSkate
+   answers first, so they land in Juguetes no matter what their type
+   or title says. */
 const SURFSKATE_TYPES = new Set([
   'Tablas de surf','Bodyboards','Skimboards','SUP / Paddle surf',
   'Trajes de neopreno','Rash guards','Accesorios de surf','Quillas de surf',
@@ -6357,6 +6392,10 @@ const NOT_SURFSKATE =
   /\b(speargun|arp[oó]n|polespear|freediv|apnea|pesca submarina|máscara de buceo)\b/i;
 function isSurfSkate(item, retailer){
   if (!item || typeof item !== 'object') return false;
+  /* Toy-aisle character boards are never surf/skate gear — they belong
+     in Juguetes. Checked before the type vocabulary so a Sakar board
+     typed "Skateboards completos" is still refused. */
+  if (isToyGradeSkate(item)) return false;
   if (item.type && SURFSKATE_TYPES.has(item.type)) return true;
   const title = (item.title || item.name || '') + ' ' + (item.type || '');
   if (NOT_SURFSKATE.test(title)) return false;
@@ -6595,7 +6634,7 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.surfSkateOnly) return isSurfSkate(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
-  if (dept.toysOnly) return isToy(item, retailer, bucketName);
+  if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
@@ -8644,7 +8683,9 @@ function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
   const hay = `${(typeof rawTitleOf === 'function' ? rawTitleOf(item) : (item && item.title)) || ''} ${item && item.brand || ''} ${item && item.name || ''}`;
-  return TOY_KEYWORD_RX.test(hay);
+  /* Toy-aisle character skateboards live here too (2026-09-26, Danny):
+     real surf/skate refuses them, so Juguetes claims them. */
+  return TOY_KEYWORD_RX.test(hay) || isToyGradeSkate(item);
 }
 /* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
    normalized pool carries `sizes`. hasExtendedSizes only reads the raw
@@ -8705,7 +8746,7 @@ const CATEGORY_RAILS = [
     open: "openCatalog('department','electronics')" },
   { key: 'toys', label: 'Juguetes', icon: '🧸', stores: null, poolOnly: true,
     blurb: 'Juguetes para todas las edades.',
-    test: (p) => isToy(p, p.retailer, p.departments),
+    test: (p) => isToyGradeSkate(p) || isToy(p, p.retailer, p.departments),
     open: "openCatalog('department','toys')" },
   { key: 'party', label: 'Aria Party', icon: '🎉', stores: ['partycity', 'costco', 'samsclub'], poolOnly: true,
     blurb: 'Todo para tu fiesta en un solo lugar.',

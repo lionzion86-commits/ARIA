@@ -32,7 +32,14 @@
    DEPARTMENT_CHAIN slice (the page is a plain <script> and cannot
    import). Change one, change the other; a parity test compares them
    over the real catalogues.
+
+   TOY-GRADE BOARDS ARE NOT SURF/SKATE GEAR (2026-09-26, Danny):
+   isToyGradeSkate (scripts/lib/toys.js) answers first, so a
+   character-licensed toy board never counts as surf/skate no matter
+   what its type or title says. It belongs in Juguetes.
    ============================================================ */
+
+import { isToyGradeSkate } from "./toys.js";
 
 /* The normalizer's Spanish type vocabulary for surf/skate gear. These
    are the real values in *-catalog.json, not a guess. */
@@ -63,9 +70,11 @@ const SURFSKATE_TITLE =
 const NOT_SURFSKATE =
   /\b(speargun|arp[oó]n|polespear|freediv|apnea|pesca submarina|máscara de buceo)\b/i;
 
-/** True when this catalogue item is surf or skate GEAR (not apparel). */
+/** True when this catalogue item is surf or skate GEAR (not apparel,
+    and never a toy-aisle character board — those belong in Juguetes). */
 export function isSurfSkate(item) {
   if (!item) return false;
+  if (isToyGradeSkate(item)) return false;
   if (SURFSKATE_TYPES.has(item.type)) return true;
   const name = `${item.name || ""} ${item.type || ""}`;
   if (NOT_SURFSKATE.test(name)) return false;

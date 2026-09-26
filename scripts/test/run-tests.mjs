@@ -11073,8 +11073,13 @@ check("the nine shops carry honest delivery timing on both surfaces", () => {
 checkAsync("the Surf & Skate predicate matches between module and page over real catalogues", async () => {
   const { isSurfSkate: moduleFn } = await import(root("scripts/lib/surfskate.js"));
   const html = HOME_SRC();
-  const start = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)");
-  if (start < 0) throw new Error("the page's isSurfSkate mirror is missing");
+  /* The mirror opens with the toy-grade gate (2026-09-26, Danny):
+     isSurfSkate refuses toy-aisle character boards before anything
+     else, so the slice starts at the toy block, not the surf block. */
+  const start = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  if (start < 0) throw new Error("the page's isToyGradeSkate mirror is missing");
+  if (html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", start) < 0)
+    throw new Error("the page's isSurfSkate mirror is missing");
   const end = html.indexOf("function itemBelongsToDepartment", start);
   const js = html.slice(html.lastIndexOf("/* ===", start), end);
   const pageFn = new Function(`${js}; return isSurfSkate;`)();
@@ -11099,6 +11104,86 @@ checkAsync("the Surf & Skate predicate matches between module and page over real
     if (mod !== want[k]) throw new Error(`${k}: ${mod} surf/skate matches, expected ${want[k]}`);
   }
   if (grand !== 12971) throw new Error(`grand total ${grand}, expected 12971`);
+});
+
+/* TOY-GRADE SKATEBOARDS (2026-09-26, Danny): character-licensed toy
+   boards belong in Juguetes; Surf & Skate carries only real,
+   professional-caliber gear. The detector is deliberately narrow —
+   the pins below are real false positives the catalogue produced. */
+checkAsync("the toy-grade skate detector matches between module and page over real catalogues", async () => {
+  const { isToyGradeSkate: moduleFn } = await import(root("scripts/lib/toys.js"));
+  const html = HOME_SRC();
+  const start = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  if (start < 0) throw new Error("the page's isToyGradeSkate mirror is missing");
+  const nextBlock = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", start);
+  if (nextBlock < 0) throw new Error("the surf/skate mirror block moved");
+  const js = html.slice(html.lastIndexOf("/* ===", start), html.lastIndexOf("/*", nextBlock));
+  const pageFn = new Function(`${js}; return isToyGradeSkate;`)();
+  /* 11 toy-aisle character boards in Dick's (Sakar/Barbie/Hot Wheels/
+     Minecraft/Sonic 31" completes), measured 2026-09-26; zero in the
+     nine surf shops and zero in the department cache. */
+  const shopFlags = {};
+  for (const k of [...SURF9, "dicks"]) {
+    const items = surf9Catalog(k);
+    shopFlags[k] = 0;
+    for (const p of items) {
+      const m = !!moduleFn(p), g = !!pageFn(p);
+      if (m !== g) throw new Error(`module/page disagree on ${k}: ${surf9Name(p).slice(0, 50)}`);
+      if (m) shopFlags[k]++;
+    }
+  }
+  if (shopFlags.dicks !== 11) throw new Error(`dicks: ${shopFlags.dicks} toy-grade boards, expected 11`);
+  for (const k of SURF9)
+    if (shopFlags[k] !== 0) throw new Error(`${k}: ${shopFlags[k]} toy-grade boards, expected 0`);
+});
+
+checkAsync("the toy-grade detector flags the toy aisle and spares real gear", async () => {
+  const { isToyGradeSkate } = await import(root("scripts/lib/toys.js"));
+  const dicks = surf9Catalog("dicks");
+  const byName = (sub) => dicks.find(p => surf9Name(p).includes(sub));
+  /* The 11: Sakar's licensed toy completes and the character brands. */
+  for (const sub of ["Sonic Shadow", "Sonic Lenticular", "Barbie Lenticular", "Monster Jam",
+      "Hot Wheels Jam", "Minecraft 31", "Barbie 31", "Sonic Stepup",
+      "Signature Series 3", "Series 1 Skateboard", "Series 2 Skateboard"]) {
+    const p = byName(sub);
+    if (!p) throw new Error(`toy board missing from catalogue: ${sub}`);
+    if (!isToyGradeSkate(p)) throw new Error(`toy board not flagged: ${surf9Name(p).slice(0, 60)}`);
+  }
+  /* Real gear the catalogue proves must never be exiled to Toys. */
+  const ccs = surf9Catalog("ccs");
+  const island = surf9Catalog("islandwatersports");
+  const mustStay = [
+    byName("Tony Hawk 31\u201d Series 4 Skateboard"),           // Tony Hawk's own brand, not Sakar's license
+    byName("Retrospec Quip"),                                    // real cruiser brand
+    byName("Retrospec Alameda"),                                 // real complete brand
+    byName("Scout Bike and Skate Helmet"),                       // protective gear, not a board
+    ccs.find(p => surf9Name(p).includes("Spanky Jr")),            // pro skater nickname, not a kid's toy
+    ccs.find(p => surf9Name(p).includes("Toy Invasion")),        // Birdhouse pro graphic series
+    ccs.find(p => surf9Name(p).includes("DGK") && surf9Name(p).includes("Lenticular")), // pro collab deck
+    ccs.find(p => /CCS Catalog Kid Skateboard/.test(surf9Name(p))), // real skate-shop kid complete
+    island.find(p => /toy machine/i.test(surf9Name(p))),         // Toy Machine is a pro skate brand
+  ];
+  for (const p of mustStay) {
+    if (!p) throw new Error("a real-gear pin is missing from the catalogue");
+    if (isToyGradeSkate(p)) throw new Error(`real gear flagged as toy-grade: ${surf9Name(p).slice(0, 60)}`);
+  }
+});
+
+check("toy-grade boards are refused by Surf & Skate and claimed by Juguetes", () => {
+  const { itemBelongsToDepartment, isSurfSkate, isToyGradeSkate } = loadPageDepartmentSlice();
+  const dicks = surf9Catalog("dicks");
+  const toy = dicks.find(p => isToyGradeSkate(p));
+  if (!toy) throw new Error("no toy-grade board to route");
+  if (isSurfSkate(toy, "dicks")) throw new Error("Surf & Skate still claims a toy-grade board");
+  if (itemBelongsToDepartment(toy, "sporting_goods", "surf_skate", "dicks"))
+    throw new Error("the Surf & Skate department page still claims a toy-grade board");
+  if (!itemBelongsToDepartment(toy, "sporting_goods", "toys", "dicks"))
+    throw new Error("the Juguetes department page does not claim a toy-grade board");
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs") && !isToyGradeSkate(p));
+  if (!deck) throw new Error("no real CCS deck to route");
+  if (!itemBelongsToDepartment(deck, "sporting_goods", "surf_skate", "ccs"))
+    throw new Error("the Surf & Skate department page lost a real deck");
 });
 
 checkAsync("the surf_skate department answers through the module's itemBelongsToDepartment", async () => {

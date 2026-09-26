@@ -664,7 +664,7 @@ export function loadPageDepartmentSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     prelude + "\n" + html.slice(from, to) +
-      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC };",
+      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC, isToyGradeSkate, isSurfSkate };",
     sandbox,
     { filename: "index.html#department" },
   );
