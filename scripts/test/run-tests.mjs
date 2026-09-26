@@ -5610,6 +5610,85 @@ check("Costco's storefront never shows the brand-directory fallback", () => {
   if (/Sin categorías por ahora/.test(block)) throw new Error("the fallback copy leaked into Costco's storefront");
 });
 
+check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surface", () => {
+  /* 2026-09-26, DANNY'S CALL: "we do not sell fucking TVs." TVs of any
+     size and anything that needs freight (sofas, sectionals, mattresses,
+     cribs, big appliances, treadmills, patio sets, generators, safes)
+     are dropped at the load boundary -- the same place pharmacy went --
+     so no surface (search, Ofertas, rails, aisles, store pages) can show
+     them, and a re-pulled catalogue cannot bring them back. */
+  const { isShippableItem, withoutUnshippableItems } = loadPageEnvelopeSlice();
+  const out = (name) => isShippableItem({ name });
+  // TVs, all sizes, plus TV services and TV furniture
+  for (const tv of [
+    'TCL 65" Class - Q77K Series - 4K UHD QLED Smart TV',
+    'Samsung 60" - TU700D Series - 4K UHD LED LCD TV',
+    'onn 32 in Class 720p HD Smart TV Powered by VIZIO, 32S2V1',
+    'Hisense 40-Inch Class H4 Series FHD Roku Smart TV',
+    'Angi Premier - Basic 2-Pro TV Mounting Service',
+    'Puerta Del Sol TV Console',
+  ]) if (out(tv)) throw new Error(`a TV slipped through: ${tv}`);
+  // freight-class bulky goods
+  for (const big of [
+    'Thomasville Fallon Modular Sectional 6-piece Gray with Ottoman',
+    'Henredon Caley Reversible Sofa Chaise with Ottoman',
+    'Stearns & Foster Devan Fabric Sleeper Sofa with King Memory Foam Mattress',
+    'Imagio Baby Ashley 3-piece Crib Set, Brushed White',
+    'Allspace 5-piece Modular Outdoor Patio Set',
+    'Tresanti Jordyn 85” Console with ClassicFlame Electric Fireplace',
+  ]) if (out(big)) throw new Error(`a freight item slipped through: ${big}`);
+  // weight backstop for the day catalogues carry real weights
+  if (isShippableItem({ name: 'Treadmill Pro 5000', weightKg: 85 }))
+    throw new Error("the 30kg weight backstop did not catch an 85kg item");
+  // carve-outs: small TV-adjacent accessories and small goods that
+  // merely mention furniture must survive
+  for (const small of [
+    'Apple TV 4K 64GB (Wi-Fi)',
+    'SANUS Preferred 3 Meter 8K Ultra High-Speed HDMI 2.1 Cable, 2-pack',
+    'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle',
+    'Dreame Pocket Ultra High-Speed Hair Dryer',
+    'Nintendo Switch OLED console',
+    'Velvet Throw Pillow Cushion Covers for Sofas, Chairs',
+    'SSENSE Exclusive Off-White FF Bunker Jacket',
+    'Souper Cubes Silicone Freezer Storage Tray, 5-pack',
+  ]) if (!out(small)) throw new Error(`a shippable small good got eaten: ${small}`);
+  // the envelope filter drops them per-department, keeps the rest
+  const env = withoutUnshippableItems({ retailers: { costco: { departments: {
+    electronica: { items: [{ name: 'TCL 65" Class Smart TV' }, { name: 'Bose Solo Soundbar Series II' }] },
+    hogar: { items: [{ name: 'Thomasville Fallon Modular Sectional' }, { name: 'Toallas de baño' }] },
+  } } } });
+  const e = env.retailers.costco.departments.electronica.items.map(i => i.name);
+  const h = env.retailers.costco.departments.hogar.items.map(i => i.name);
+  if (e.length !== 1 || e[0] !== 'Bose Solo Soundbar Series II')
+    throw new Error("the envelope filter kept a TV or dropped a soundbar");
+  if (h.length !== 1 || h[0] !== 'Toallas de baño')
+    throw new Error("the envelope filter kept a sectional or dropped towels");
+  // and the pipeline actually runs it on every load
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/\.then\(parts => parts\.map\(withoutUnshippableItems\)\)/.test(html))
+    throw new Error("withoutUnshippableItems is not wired into the load pipeline");
+});
+
+check("Costco's rail leads with a small shippable electronic, never a TV", () => {
+  /* 2026-09-26, DANNY'S QA: the shelf's lead card was a 65-inch TV.
+     With TVs filtered at the load boundary, the hero is the best small
+     electronic: projector, soundbar, laptop, phone, camera, drone. */
+  const { costcoCuratedItems } = loadPageStoreRailSlice();
+  const mk = (title, departments, extra = {}) => ({
+    retailer: "costco", title, price: 29.99,
+    image: "https://img/" + title.replace(/\W+/g, "_"),
+    brand: "", departments, ...extra,
+  });
+  const items = [
+    mk("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer", ["electronica"]),
+    mk("Camisa de vestir", ["bebe"]),
+    mk("Toallas de baño", ["hogar"]),
+  ];
+  const out = costcoCuratedItems(items);
+  if (!/soundbar|proyector|projector/i.test(out[0].title))
+    throw new Error(`the hero is not a small electronic: ${out[0].title}`);
+});
+
 check("every Fiestas sub-rail has a non-empty product set", () => {
   const { FIESTAS_RAILS, fiestasItemsFor } = loadPageFiestasSlice();
   eq(FIESTAS_RAILS.map(r => r.key).join(","), "decoracion,sorpresas,menaje,dulces", "the four sub-rails");

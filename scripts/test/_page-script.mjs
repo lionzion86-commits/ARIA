@@ -284,7 +284,7 @@ export function loadPageEnvelopeSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     extractNamedFunction(html, "aliasEnvelopeTitles") + "\n" +
-    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope };",
+    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope, isShippableItem, withoutUnshippableItems };",
     sandbox,
     { filename: "index.html#envelope" },
   );

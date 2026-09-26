@@ -4870,6 +4870,63 @@ function withoutRestrictedDepartments(envelope){
   return { ...envelope, retailers: out };
 }
 
+/* ============================================================
+   WHAT WE DO NOT SELL, PERIOD (2026-09-26, Danny's call)
+
+   No TVs. No freight. "We do not sell fucking TVs" -- and nothing
+   that needs a freight truck rather than a parcel box: sofas,
+   sectionals, mattresses, cribs, big appliances, treadmills, patio
+   sets, generators, safes, dining sets, TV consoles. If it cannot
+   fly Miami -> Lima in a normal parcel, it does not belong on Aria.
+
+   Enforced at the same load boundary as RESTRICTED_DEPARTMENTS, for
+   the same reason: search, Ofertas, the rails, the aisles, the store
+   pages and the category tiles all read the one merged object, so an
+   item dropped here is gone from every surface at once -- and stays
+   gone when a catalogue is re-pulled, because the filter runs on
+   every load, not on the data files.
+
+   Name-based, because the committed catalogues carry no usable
+   weight/type fields (weightKg is null across the board). Two
+   deliberate carve-outs so the rule does not eat the small stuff:
+   TV-adjacent parcel accessories (Apple TV box, HDMI cables, wall
+   mounts, streaming sticks, projectors -- a projector runs Google TV
+   but it is a small electronic, not a television) and small goods
+   whose names merely mention furniture (hair dryers, pillow covers
+   "for sofas", freezer trays, a perfume called Wardrobe).
+   ============================================================ */
+const UNSHIPPABLE_TV_RX = /\btvs?\b|television|televisor|smart[-\s]?tv|\bqled\b|\boled\b/i;
+const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|wall\smount|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv/i;
+const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|\bshed\b|cobertizo|playset|gazebo|patio\sset|\bconsole\b|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|tv\sstand|tv\sconsole|entertainment\scenter/i;
+const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|infinitipro|bed head|revlon|hot tools|pressure|hidrolavadora|\btray\b|perfume|fragancia|cologne|\bfor\b.{0,30}\b(sofas?|couch(es)?|mattress(es)?|beds?|dressers?)\b|\btoy\b|\bdoll\b|lego|nintendo|playstation|xbox/i;
+/* Anything over this is freight, not a parcel -- a backstop for the day
+   the catalogues start carrying real weights (weightKg is null today). */
+const UNSHIPPABLE_WEIGHT_KG = 30;
+function isShippableItem(p){
+  if (!p) return false;
+  const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
+  if (UNSHIPPABLE_TV_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
+  if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
+  const w = Number(p.weightKg);
+  if (Number.isFinite(w) && w > UNSHIPPABLE_WEIGHT_KG) return false;
+  return true;
+}
+function withoutUnshippableItems(envelope){
+  const retailers = envelope?.retailers;
+  if (!retailers || typeof retailers !== 'object') return envelope;
+  const out = {};
+  for (const [key, bucket] of Object.entries(retailers)){
+    const departments = {};
+    for (const [dept, entry] of Object.entries(bucket?.departments || {})){
+      if (Array.isArray(entry)){ departments[dept] = entry.filter(isShippableItem); continue; }
+      if (!entry || !Array.isArray(entry.items)){ departments[dept] = entry; continue; }
+      departments[dept] = { ...entry, items: entry.items.filter(isShippableItem) };
+    }
+    out[key] = { ...bucket, departments };
+  }
+  return { ...envelope, retailers: out };
+}
+
 function loadDepartmentCache(){
   if (!departmentCachePromise){
     let loaded = 0;
@@ -4901,6 +4958,7 @@ function loadDepartmentCache(){
 
     departmentCachePromise = Promise.all([scraped, ...files])
       .then(parts => parts.map(withoutRestrictedDepartments))
+      .then(parts => parts.map(withoutUnshippableItems))
       .then(parts => parts.map(aliasEnvelopeTitles))
       .then(parts => {
       // Not "some store is thin" -- NOTHING answered. That is a broken
@@ -7287,10 +7345,17 @@ function costcoBucketOf(p){
     if (low.some(d => d.indexOf(b) !== -1)) return b;
   return '';
 }
+/* DANNY'S NO-TV RULE (2026-09-26): the shelf's lead card used to be a
+   65-inch TV. TVs never reach the curation anymore (see
+   withoutUnshippableItems), so the hero is the best small electronic
+   we actually carry: projector, soundbar, speaker, laptop, phone,
+   tablet, camera, drone, console, headphones. */
+const COSTCO_HERO_RX = /(proyector|projector|soundbar|bocina|parlante|speaker|laptop|port[áa]til|tablet|ipad|tel[ée]fono|phone|smartphone|c[áa]mara|gopro|drone|dron|nintendo|playstation|xbox|game\sconsole|videojuego|aud[íi]fono|headphone|reloj|smartwatch|teclado|keyboard)/i;
 function costcoTreasureRank(p){
   const bucket = costcoBucketOf(p);
-  if (bucket === 'electronica') return 0;
   const hay = `${p.title || ''} ${p.brand || ''} ${p.name || ''}`;
+  if (bucket === 'electronica' && COSTCO_HERO_RX.test(hay)) return -1;
+  if (bucket === 'electronica') return 0;
   if (COSTCO_TREASURE_RX.test(hay)) return 1;
   if (COSTCO_APPAREL_RX.test(hay)) return 2;
   if (bucket === 'hogar') return 3;
