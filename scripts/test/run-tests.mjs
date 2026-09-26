@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -888,6 +888,10 @@ check("index.html's registry mirror matches the module", () => {
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
   "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
+  /* LANE BRYANT (2026-09-25): registered at last -- the audit found its
+     169 products were invisible for want of this row. Apparel cluster,
+     after PacSun. */
+  "lanebryant",
   "sunglasshut", "dyson",
   "macys", "oldnavy", "target", "walmart",
 ];
@@ -1661,9 +1665,11 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      1200x631 banner and a square file share a tile without either being
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
-  /* Two when the homepage chip row existed (card + chip); one since the
-     store rails superseded it on 2026-09-25. */
-  if (imgs.length !== 1) throw new Error(`expected 1 store-mark <img> tag, found ${imgs.length}`);
+  /* Three since the "Todas las otras tiendas" strip joined (2026-09-25):
+     the Tiendas card template, the Curvy card template, and the strip's
+     own tiles — every store-mark template obeys the zone rules, which the
+     loop below pins per template. */
+  if (imgs.length !== 3) throw new Error(`expected 3 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -5026,7 +5032,7 @@ check("the shopfront opens the home page: Ofertas is the first thing", () => {
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, brand band, store rails, Categorías", () => {
+check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5041,25 +5047,33 @@ check("Ofertas, brand band, store rails, Categorías", () => {
      rails in mall order, then departments.
      2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo, "Compra
      en Estados Unidos / Te lo llevamos a Perú", the search -- sits
-     directly under the Ofertas rail, ahead of the store rails.) */
+     directly under the Ofertas rail, ahead of the store rails.
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the six rails and Categorías -- the rest of the mall
+     directory as one logo strip, with a way into the full 22-store
+     Tiendas directory.) */
   const order = [...shopfront.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["mobileDealsRow", "mobileCatsRow",
+  const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
-check("the desktop shopfront reads Ofertas, brand band, store rails, Categorías", () => {
+check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
      scroll order now -- deals, the six store rails in mall order,
      departments. The Tiendas chips rail is superseded by the rails.
      2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band (logo, "Compra
      en Estados Unidos / Te lo llevamos a Perú", search) sits directly
-     under the Ofertas rail, ahead of the store rails. */
+     under the Ofertas rail, ahead of the store rails.
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the six rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
     shopfrontSrc.indexOf('class="ariaHero"'),
@@ -5068,14 +5082,33 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Categorías
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["desktopDealsRow", "desktopCatsRow",
+  const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
+});
+
+check("Todas las otras tiendas carries the rest of the directory, not the six", () => {
+  /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the six rails
+     and Categorías shows every active retailer that is NOT a featured
+     rail store, painted from the RETAILERS registry (never hardcoded),
+     with a way into the full Tiendas directory. */
+  const html = shopfrontSrc;
+  for (const id of ["mOtherStoresRow", "dOtherStoresRow"]) {
+    eq((html.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+  // The way into the full directory: both headers point at storesView.
+  const ways = [...html.matchAll(/onclick="showPage\('storesView'\)"[^>]*>Ver todas las tiendas/g)];
+  if (ways.length < 2) throw new Error(`expected a "Ver todas las tiendas" way in on both surfaces, found ${ways.length}`);
+  // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
+  const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
+  if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the six featured rail stores");
+  if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
 check("a rail scrolls sideways and snaps, and the page does not", () => {
@@ -8737,6 +8770,70 @@ check("the feed sort actually reads the band on Curvy, and only on Curvy", () =>
    The page mirrors scripts/lib/carousel.js; both copies are pinned
    below, plus the wiring that puts a rail on each surface.
    ================================================================== */
+/* ==================================================================
+   CURVY STORE CARDS (2026-09-25, Danny).
+
+   The department opens with one wide card per store that carries
+   extended sizes -- Lane Bryant first (the plus-size destination), then
+   Old Navy, then Victoria's Secret, then the rest by product count. The
+   set is DERIVED from the feed's own byRetailer map, never hardcoded: a
+   future catalog pull adds its card the moment its products pass
+   hasExtendedSizes, with no code change.
+   ================================================================== */
+group("curvy store cards: one wide card per extended-size store");
+
+const curvyCards = loadPageCurvyStoreCardsSlice();
+
+check("lane bryant leads, then old navy, then victoria's secret, whatever the counts", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["oldnavy", new Array(500)],
+    ["victoriassecret", new Array(900)],
+    ["lanebryant", new Array(3)],
+    ["dicks", new Array(40)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "lanebryant,oldnavy,victoriassecret,dicks", "lead order broken");
+});
+
+check("non-lead stores sort by count, ties alphabetical", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["target", new Array(10)],
+    ["walmart", new Array(30)],
+    ["macys", new Array(30)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "macys,walmart,target", "count sort broken");
+});
+
+check("empty stores and empty feeds produce no cards", () => {
+  const { curvyStoreCards } = curvyCards;
+  eq(curvyStoreCards(new Map()).length, 0, "empty feed produced cards");
+  const keys = curvyStoreCards(new Map([["lanebryant", []], ["oldnavy", new Array(2)]])).map(s => s.key).join(",");
+  eq(keys, "oldnavy", "a store with zero items got a card");
+});
+
+check("lane bryant is registered and browsable in both mirrors", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const row = /lanebryant:\s*\{[^}]*\}/.exec(src);
+  if (!row) throw new Error("lanebryant is not in index.html's RETAILERS");
+  if (!/browse:\s*true/.test(row[0])) throw new Error("lanebryant is not browsable");
+  if (!/search:\s*false/.test(row[0])) throw new Error("lanebryant must not join the live search fan-out (no actor)");
+  const mirror = retailers.RETAILERS.lanebryant;
+  if (!mirror) throw new Error("lanebryant is missing from scripts/lib/retailers.js");
+  eq(mirror.label, "Lane Bryant", "mirror label drifted");
+  eq(mirror.browse, true, "mirror browse flag drifted");
+});
+
+check("the cards render only on the curvy department feed", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/\$\{isCurvy \? curvyStoreCardsHTML\(\) : ''\}/.test(src)) {
+    throw new Error("curvyStoreCardsHTML is not gated on the curvy feed");
+  }
+  if (!/function curvyStoreCardsHTML\(\)/.test(src)) throw new Error("curvyStoreCardsHTML is gone");
+});
+
 group("store carousels: window-shopping rails");
 
 {
