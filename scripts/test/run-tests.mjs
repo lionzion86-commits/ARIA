@@ -11231,6 +11231,19 @@ check("Deportes refuses all surf/skate gear but keeps rollerblades and regular s
   const ball = { title: "Wilson NCAA Replica Basketball", brand: "Wilson" };
   if (!itemBelongsToDepartment(ball, "sporting_goods", "sporting_goods", "dicks"))
     throw new Error("Deportes lost regular sports");
+  /* Skate helmets are surf/skate protection (Danny 2026-09-26): a dual
+     "Bike and Skate" helmet leaves Deportes for Surf & Skate, while a
+     pure bike helmet stays in Deportes. */
+  const skateHelmet = { name: "Retrospec Kids' Scout Bike and Skate Helmet", title: "Retrospec Kids' Scout Bike and Skate Helmet", type: "BikeHelmets" };
+  if (!isSurfSkate(skateHelmet, "dicks"))
+    throw new Error("a Bike and Skate helmet is not claimed as surf/skate");
+  if (itemBelongsToDepartment(skateHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes still lists a skate helmet");
+  const bikeHelmet = { name: "Giro Fixture MIPS Bike Helmet", title: "Giro Fixture MIPS Bike Helmet", type: "BikeHelmets" };
+  if (isSurfSkate(bikeHelmet, "dicks"))
+    throw new Error("a pure bike helmet is claimed as surf/skate");
+  if (!itemBelongsToDepartment(bikeHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes lost pure bike helmets");
 });
 
 check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny)", () => {
@@ -11315,6 +11328,19 @@ checkAsync("the module's Deportes refuses all surf/skate gear but keeps rollerbl
   const ball = { title: "Wilson NCAA Replica Basketball", brand: "Wilson" };
   if (!deptMap.itemBelongsToDepartment(ball, "sporting_goods", "sporting_goods", "dicks"))
     throw new Error("the module lost regular sports in Deportes");
+  /* Skate helmets are surf/skate protection (Danny 2026-09-26): a dual
+     "Bike and Skate" helmet leaves Deportes for Surf & Skate, while a
+     pure bike helmet stays in Deportes. */
+  const skateHelmet = { name: "Retrospec Kids' Scout Bike and Skate Helmet", title: "Retrospec Kids' Scout Bike and Skate Helmet", type: "BikeHelmets" };
+  if (!isSurfSkate(skateHelmet, "dicks"))
+    throw new Error("the module does not claim a Bike and Skate helmet as surf/skate");
+  if (deptMap.itemBelongsToDepartment(skateHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module still lists a skate helmet in Deportes");
+  const bikeHelmet = { name: "Giro Fixture MIPS Bike Helmet", title: "Giro Fixture MIPS Bike Helmet", type: "BikeHelmets" };
+  if (isSurfSkate(bikeHelmet, "dicks"))
+    throw new Error("the module claims a pure bike helmet as surf/skate");
+  if (!deptMap.itemBelongsToDepartment(bikeHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module lost pure bike helmets in Deportes");
 });
 
 check("the Surf & Skate department cover exists and is a real image", () => {

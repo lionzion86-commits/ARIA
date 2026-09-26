@@ -6390,6 +6390,13 @@ const SURFSKATE_TITLE =
   /\b(surfboards?|tablas? de surf|bodyboards?|skimboards?|paddle\s?boards?|\bsup\b|wetsuits?|trajes? de neopreno|neoprenos?|rash\s?guards?|skateboards?|patinetas?|longboards?|cruisers?|skate\s?decks?|trucks? de skate|quillas?|leash(es)?|correas? de surf)\b/i;
 const NOT_SURFSKATE =
   /\b(speargun|arp[oó]n|polespear|freediv|apnea|pesca submarina|máscara de buceo)\b/i;
+/* A helmet marketed for skate, in either word order and either
+   language: "Bike and Skate Helmet", "Yepa Skate Helmet",
+   "casco de skate". Requires the skate word — a pure bike helmet
+   never matches, so bike helmets stay in Deportes (Danny 2026-09-26:
+   skate helmets live only in Surf & Skate). */
+const SURFSKATE_HELMET =
+  /\bskate\b.{0,30}\bhelmets?\b|\bhelmets?\b.{0,30}\bskate\b|\bskate\b.{0,30}\bcascos?\b|\bcascos?\b.{0,30}\bskate\b/i;
 function isSurfSkate(item, retailer){
   if (!item || typeof item !== 'object') return false;
   /* Toy-aisle character boards are never surf/skate gear — they belong
@@ -6399,7 +6406,7 @@ function isSurfSkate(item, retailer){
   if (item.type && SURFSKATE_TYPES.has(item.type)) return true;
   const title = (item.title || item.name || '') + ' ' + (item.type || '');
   if (NOT_SURFSKATE.test(title)) return false;
-  return SURFSKATE_TITLE.test(title);
+  return SURFSKATE_TITLE.test(title) || SURFSKATE_HELMET.test(title);
 }
 
 /* ============================================================
