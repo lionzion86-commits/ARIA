@@ -21,6 +21,66 @@
    ============================================================ */
 import { buildSystemPrompt, sanitizeHistory } from "./_aria-prompt.js";
 
+/* ============================================================
+   SPOKEN PUNCTUATION -> REAL PUNCTUATION (2026-09-24)
+
+   REPORTED FROM THE LIVE SITE (Danny, voice chat): Aria said the word
+   "comma" out loud — "of course we do comma why" — instead of pausing
+   at a comma. Nobody says "comma" or "period" in conversation; hearing
+   it is the single fastest way to sound like a robot.
+
+   THE CHAIN. Danny dictates by voice, so his punctuation arrives as
+   words ("comma", "punto") in the speech-to-text transcript. The model
+   echoes those words into its reply, and Grok TTS then speaks them
+   literally. The recognition is es-PE but Danny dictates in English, so
+   both languages' punctuation words are covered here.
+
+   THE FIX. This runs over the reply BEFORE it reaches Grok TTS (see
+   speechFor) and before the reply is returned to the client, so the
+   bubble on screen and the voice saying it always agree. index.html
+   carries a mirrored copy (spokenPunctuationToMarks) for the
+   speech-to-text side — the transcript is cleaned before it ever
+   reaches the chat, so search and the model see "shoes, red ones"
+   instead of "shoes comma red ones".
+   ============================================================ */
+const SPOKEN_PUNCTUATION_RULES = [
+  [/(exclamation\s+points?|signos?\s+de\s+exclamaci[oó]n)/gi, "!"],
+  [/(question\s+marks?|signos?\s+de\s+(interrogaci[oó]n|pregunta))/gi, "?"],
+  [/(punto\s+y\s+coma|semicolons?)/gi, ";"],
+  [/(dos\s+puntos|colons?)/gi, ":"],
+  /* "punto" is guarded against the idiom "a punto de" / "punto de venta"
+     (point of sale): a dictated period is never followed by "de". */
+  [/(periods?|puntos?(?!\s+de\b))/gi, "."],
+  /* "coma" is guarded against "en coma": a dictated comma is never
+     preceded by "en". */
+  [/(commas?|(?<!en\s)comas?)/gi, ","],
+  [/(new\s+paragraphs?|nuevos?\s+p[aá]rrafos?)/gi, "\n"],
+  [/(new\s+lines?|nuevas?\s+l[ií]neas?)/gi, "\n"],
+  [/(at\s+signs?|arrobas?)/gi, "@"],
+  [/(hyphens?|dashes|guiones?)/gi, "-"],
+];
+
+/** Convert dictated punctuation words ("comma", "punto", ...) into the
+ * marks they mean, so Aria's voice never says them out loud. */
+export function sanitizeSpokenPunctuation(text) {
+  let t = String(text || "");
+  if (!t) return t;
+  // Padded so a punctuation word at either end still matches; the
+  // lookahead keeps the trailing space unconsumed so "comma comma"
+  // converts both, not just the first.
+  t = " " + t + " ";
+  for (const [re, sym] of SPOKEN_PUNCTUATION_RULES) {
+    t = t.replace(new RegExp(" (" + re.source + ")(?= )", re.flags), " " + sym + " ");
+  }
+  return (
+    t
+      .replace(/[ \t]+/g, " ")
+      .replace(/ *\n */g, "\n")
+      .replace(/\s*([,.!?;:])/g, "$1")
+      .trim()
+  );
+}
+
 export const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 export const TEMPERATURE = 0.7;
@@ -66,13 +126,17 @@ export function chatRequestBody(body) {
 export async function speechFor(reply) {
   if (!reply || !process.env.GROK_API_KEY) return null;
   try {
+    // The voice must never speak punctuation words ("comma", "punto"):
+    // the reply is sanitized before Grok renders it, so what the shopper
+    // hears is what the bubble shows. See sanitizeSpokenPunctuation.
+    const speakable = sanitizeSpokenPunctuation(reply);
     const res = await fetch("https://api.x.ai/v1/tts", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${process.env.GROK_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ voice_id: "ara", text: reply, language: "es" }),
+      body: JSON.stringify({ voice_id: "ara", text: speakable, language: "es" }),
     });
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer()).toString("base64");

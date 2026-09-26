@@ -38,7 +38,7 @@ export const MIN_DISCOUNT_PCT = 5;
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
   titleWeight, FREIGHT_FEATURE_CEILING, weightSanity, footwearWeightKg, ballWeightKg, bookWeightKg,
-  GENERIC_FALLBACK_KG,
+  candleWeightKg, GENERIC_FALLBACK_KG,
 } from "./item-weight.js";
 import { beautyWeightDetail } from "./beauty-weight.js";
 import { supplementWeightKg } from "./supplement-weight.js";
@@ -97,7 +97,6 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /laptop|notebook|macbook|chromebook/i, kg: 2.4, tier: "cited" },
   { match: /\bhdmi\b|\busb\b|\bcable\b|\bcord\b/i, kg: 0.25, tier: "cited" },
   { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
-  { match: /\bwall mount\b|\btv mount\b/i, kg: 3.5, tier: "reasoned" },
   // Rigid boxed goods. All reasoned.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
@@ -132,6 +131,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
 // whole site, deliberately low. See GENERIC_FALLBACK_KG there.
 const TV_ACCESSORY_RE = /\bcable\b|\bcord\b|\bmount\b|\bstand\b|\bremote\b|\bantenna\b|\bbracket\b|\badapter\b|\bconverter\b|\bscreen protector\b/i;
 
+/* RETIRED 2026-09-26 (Danny's no-TV rule): kept for reference, no longer called. */
 function tvWeightKg(title) {
   const m = /(\d{2})\s*(?:"|in\b|inch)/i.exec(title);
   const inches = m ? parseInt(m[1], 10) : null;
@@ -173,7 +173,8 @@ export function categoryWeightKg(title, hints = {}) {
   // A ball's real mass and count, against the box that gets billed.
   const ball = ballWeightKg(t);
   if (ball != null) return ball;
-  if (/\btv\b|television/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t))) return tvWeightKg(t);
+  /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
+     tvWeightKg stays defined below for reference only. */
   const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
   if (!hit) return null;
   return withBuffer(hit.kg, hit.tier);
@@ -197,7 +198,7 @@ export function estimateWeightKg(title, hints = {}) {
  * The same chain, with its reasoning attached — and with the sanity
  * bounds applied at the end, so nothing implausible leaves this function.
  *
- * { kg, source: "title"|"category"|"fallback", flagged, bound, reason }
+ * { kg, source: "title"|"category"|"candle"|"fallback", flagged, bound, reason }
  *
  * `flagged` means the chain produced a weight the bounds rejected: the
  * floor is used instead (never under-quote) and the caller is expected to
@@ -212,8 +213,13 @@ export function estimateWeightDetail(title, hints = {}) {
      the box, which are most of the parcel. Everywhere else a weight the
      retailer wrote in the title is still a fact that beats any table. */
   const beauty = beautyWeightDetail(title, hints);
-  const stated = beauty ? null : titleWeight(title);
+  /* CANDLES BEFORE THE TITLE PARSE (2026-09-25): "22 oz" on a candle is
+     wax weight, not parcel weight — the glass jar is another half kilo.
+     candleWeightKg beats the stated-weight path or freight is underquoted. */
+  const candle = candleWeightKg(title);
+  const stated = beauty || candle ? null : titleWeight(title);
   const raw = beauty ? { kg: beauty.kg, source: "beauty", beautyKey: beauty.key }
+    : candle != null ? { kg: candle, source: "candle" }
     : stated ? { kg: stated.kg, source: "title" }
     : (() => {
         const category = categoryWeightKg(title, hints);

@@ -31,8 +31,11 @@
      byte of this file is this file.
 
      WHERE THE DATA COMES FROM
-     One endpoint: /.netlify/functions/admin-dashboard, with ?view=.
-     It is gated on a real session cookie whose email is on ADMIN_EMAILS.
+     The original endpoint: /.netlify/functions/admin-dashboard, with ?view=.
+     Ops v1 adds: admin-pipeline (?view=pipeline), admin-batches
+     (?view=batches|claims), admin-tax (?view=tax), and POST
+     admin-orders-update (the express flag). Every one of them is gated
+     on a real session cookie whose email is on ADMIN_EMAILS.
      This page's gate is a COURTESY — it shows a sign-in prompt instead
      of an error — and is never the security boundary. The server refuses
      regardless of what this page believes.
@@ -116,7 +119,7 @@
   nav.tabs[hidden] { display: none; }
   nav.tabs {
     position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
-    display: grid; grid-template-columns: repeat(4, 1fr);
+    display: grid; grid-template-columns: repeat(5, 1fr);
     background: var(--card); border-top: 1px solid var(--line);
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
@@ -171,6 +174,20 @@
   .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; }
   .btn.wide { width: 100%; }
   .btn:disabled { opacity: .45; }
+  /* Destructive actions get the red treatment, and the armed state is a
+     filled red button that reads as "you are about to do it" — the
+     two-tap confirm is the only guardrail, so it has to be unmissable. */
+  .btn.danger { color: var(--bad); border-color: var(--bad); }
+  .btn.danger.armed { background: var(--bad); border-color: var(--bad); color: #fff; }
+  /* Little confirmation toast, bottom center above the tab bar. */
+  #toast {
+    position: fixed; left: 50%; bottom: calc(var(--tabbar) + env(safe-area-inset-bottom, 0px) + 18px);
+    transform: translateX(-50%) translateY(12px); opacity: 0; pointer-events: none;
+    background: var(--ink); color: var(--bg); font-weight: 700; font-size: 13.5px;
+    padding: 11px 18px; border-radius: 999px; z-index: 60; max-width: 90vw; text-align: center;
+    transition: opacity .2s, transform .2s;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
   .btns { display: flex; gap: 8px; flex-wrap: wrap; }
   .note { font-size: 12px; line-height: 1.45; color: var(--ink-2); }
   .banner {
@@ -204,6 +221,60 @@
   .sub { font-size: 11.5px; color: var(--ink-3); }
   .spin { text-align: center; padding: 30px 0; color: var(--ink-3); font-size: 13px; }
 
+  /* ---- ops v1: pipeline, batches, claims, tax, express ------------------
+     Same tokens, same rules as everything above: 16px typeables, 44px
+     targets, pills for state, details/summary for anything expandable.
+     Nothing here knows about dark mode — the tokens do that. */
+  .field select {
+    width: 100%; height: 44px; border: 1px solid var(--line); border-radius: 10px;
+    padding: 0 11px; background: var(--card);
+  }
+  /* Segmented filter: three options is the most that fits a 393px phone
+     as buttons; four or more would become a select. */
+  .seg { display: flex; gap: 6px; }
+  .seg button {
+    flex: 1 1 0; min-height: 44px; border: 1px solid var(--line); border-radius: 999px;
+    background: var(--card); font-size: 12px; font-weight: 800; color: var(--ink-2);
+    padding: 6px 4px;
+  }
+  .seg button.on { background: var(--navy); border-color: var(--navy); color: #fff; }
+  @media (prefers-color-scheme: dark) {
+    .seg button.on { background: var(--blue); border-color: var(--blue); }
+  }
+  .check {
+    display: flex; align-items: center; gap: 10px; min-height: 44px;
+    font-weight: 700; font-size: 14px; cursor: pointer;
+  }
+  .check input { width: 22px; height: 22px; accent-color: var(--blue); flex: 0 0 auto; }
+  /* Stage timeline inside a pipeline card: done stages get the green dot,
+     the current stage gets the blue ring, future stages stay gray. */
+  .tl { margin: 4px 0 0; padding: 0; list-style: none; }
+  .tl li {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 7px 0; border-top: 1px dashed var(--line); font-size: 12.5px;
+  }
+  .tl li:first-child { border-top: 0; }
+  .tl .tdot {
+    width: 9px; height: 9px; border-radius: 999px; background: var(--line);
+    flex: 0 0 auto; transform: translateY(1px);
+  }
+  .tl li.done .tdot { background: var(--ok); }
+  .tl li.now .tdot { background: var(--blue); box-shadow: 0 0 0 3px var(--sky); }
+  .tl .tlab { font-weight: 700; }
+  .tl li.now .tlab { color: var(--blue); }
+  .tl .tat { margin-left: auto; color: var(--ink-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+  /* The "Más" menu: big rows, one thumb-tap each, label plus a plain-
+     Spanish one-liner so nobody has to guess what "Lotes" means. */
+  .mitem {
+    display: flex; align-items: center; gap: 12px; width: 100%; text-align: left;
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 13px 14px; margin-bottom: 10px; font-size: 14.5px; font-weight: 800;
+    min-height: 60px;
+  }
+  .mitem .ico { font-size: 22px; line-height: 1; }
+  .mitem .sub2 { display: block; font-size: 12px; font-weight: 500; color: var(--ink-2); margin-top: 2px; }
+  .mitem .chev { margin-left: auto; color: var(--ink-3); font-size: 20px; font-weight: 400; }
+
   /* Wider screens get two columns; the layout is still phone-first and
      this is the only thing that changes. */
   @media (min-width: 720px) {
@@ -226,8 +297,9 @@
 <nav class="tabs" id="tabs" hidden>
   <button data-tab="orders"   aria-selected="true"  onclick="go('orders')"><span class="ico">&#128230;</span>Pedidos</button>
   <button data-tab="payments" aria-selected="false" onclick="go('payments')"><span class="ico">&#128179;</span>Pagos</button>
-  <button data-tab="couriers" aria-selected="false" onclick="go('couriers')"><span class="ico">&#128666;</span>Couriers</button>
-  <button data-tab="ledger"   aria-selected="false" onclick="go('ledger')"><span class="ico">&#128220;</span>Libro</button>
+  <button data-tab="pipeline" aria-selected="false" onclick="go('pipeline')"><span class="ico">&#128260;</span>Tubería</button>
+  <button data-tab="couriers" aria-selected="false" onclick="go('couriers')"><span class="ico">&#128666;</span>Envíos</button>
+  <button data-tab="more"     aria-selected="false" onclick="go('more')"><span class="ico">&#9776;</span>Más</button>
 </nav>
 
 <script>
@@ -238,7 +310,13 @@
    ============================================================ */
 const API = "/.netlify/functions/admin-dashboard";
 
-const state = { tab: "orders", summary: null, orders: null, payments: null, couriers: null, ledger: null, offset: 0 };
+const state = {
+  tab: "orders", more: "menu",
+  summary: null, orders: null, payments: null, couriers: null, ledger: null, offset: 0,
+  /* ops v1 */
+  pipeline: null, pipelineQ: "", pipelineStage: "", pipelineExpress: "all",
+  batches: null, claims: null, tax: null, taxFilter: "unreconciled", expressOrders: null,
+};
 
 /* ---- formatting ---------------------------------------------------- */
 function esc(v) {
@@ -283,10 +361,8 @@ const PAYMENT_ES = {
   succeeded: ["Cobrado", "ok"], unknown: ["Desconocido", "flat"],
 };
 /* The registry's `role` is English and internal ("primary"/"secondary").
-   Printing it raw put "secondary · primario · modo manual" on the card,
-   which reads as a contradiction rather than as the real situation: AVI
-   is classed as overflow and is currently carrying everything. */
-const ROLE_ES = { primary: "rol primario", secondary: "rol de respaldo" };
+   The ops screen prints plain Spanish: Principal / Secundario. */
+const ROLE_ES = { primary: "Principal", secondary: "Secundario" };
 const ORDER_ES = {
   pending_payment: ["Esperando pago", "warn"], confirmed: ["Confirmado", "ok"],
   cancelled: ["Cancelado", "flat"],
@@ -430,6 +506,7 @@ function orderCard(o, payment, shipments) {
       <div style="text-align:right; display:flex; flex-direction:column; gap:4px; align-items:flex-end">
         ${payPill(o.paymentStatus || "unpaid")}
         <span class="pill ${otone}">${esc(ostat)}</span>
+        <button class="btn danger" onclick="armDeleteOrder('${esc(o.orderId)}', this)">Eliminar</button>
       </div>
     </div>
     ${mismatch}
@@ -522,6 +599,73 @@ async function issueCredit(orderId, email, amountPen) {
   } catch (e) {
     msg.textContent = e.message;
   }
+}
+
+/* Order deletion: two taps, no bulk. The first tap arms the button
+   (it turns solid red and asks "¿Confirmar?"); the second tap, within a
+   few seconds, actually deletes the order. Tapping a different order's
+   button, or the timeout, disarms. The confirm is the guardrail — there
+   is deliberately no second modal, because on a phone a modal is a
+   context switch and this tool gets used one-handed. */
+let delArmId = null;
+let delArmTimer = null;
+
+function disarmDelete() {
+  delArmId = null;
+  clearTimeout(delArmTimer);
+  document.querySelectorAll(".btn.danger.armed").forEach((b) => {
+    b.classList.remove("armed");
+    b.textContent = "Eliminar";
+  });
+}
+
+function armDeleteOrder(orderId, btn) {
+  if (delArmId === orderId) { doDeleteOrder(orderId, btn); return; } // second tap: go
+  disarmDelete();
+  delArmId = orderId;
+  btn.classList.add("armed");
+  btn.textContent = "¿Confirmar?";
+  delArmTimer = setTimeout(disarmDelete, 5000);
+}
+
+async function doDeleteOrder(orderId, btn) {
+  disarmDelete();
+  btn.disabled = true;
+  btn.textContent = "Eliminando…";
+  try {
+    const res = await fetch(ORDERS_DELETE_API, {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Error");
+    if (state.orders && state.orders.orders) {
+      state.orders.orders = state.orders.orders.filter((o) => o.orderId !== orderId);
+      state.orders.total = Math.max(0, (state.orders.total || 1) - 1);
+    }
+    const card = btn.closest(".card");
+    if (card) card.remove();
+    toast("Pedido eliminado");
+  } catch (e) {
+    btn.disabled = false;
+    btn.textContent = "Eliminar";
+    toast(e.message || "No se pudo eliminar");
+  }
+}
+
+let toastTimer = null;
+function toast(msg) {
+  let el = document.getElementById("toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "toast";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
 function renderOrders() {
@@ -647,6 +791,7 @@ function renderCouriers() {
       ${p.errors && p.errors.length
         ? `<div class="banner bad" style="margin:9px 0 0">${p.errors.map(esc).join("<br>")}</div>` : ""}
       ${p.note ? `<p class="note" style="margin:9px 0 0">${esc(p.note)}</p>` : ""}
+      ${p.note ? `<p class="note" style="margin:9px 0 0"><strong>Términos:</strong> ${esc(p.note)}</p>` : ""}
       <div class="hr"></div>
       <div class="row">
         <span class="k">Última cotización (sonda ${p.lastQuote ? p.lastQuote.probeWeightKg : 1} kg)</span>
@@ -760,8 +905,512 @@ function downloadLedger() {
   window.location.href = `${API}?view=ledger&format=csv`;
 }
 
+/* ---- ops v1: pipeline, batches, claims, tax, express ------------------
+   New endpoints, same contract discipline as the originals: the server
+   decides, this page renders. The 11 pipeline stages are NOT hardcoded
+   here — the stage filter is built from the stages the endpoint returns,
+   so a backend stage rename never leaves a dead option in the dropdown.
+
+   The ?view=couriers contract now includes the Velozzy (primary) and
+   Lady A rows; that section is data-driven, so a new courier changes
+   nothing here except the registry on the server. */
+
+/* api() above is pinned to admin-dashboard because downloadLedger() and
+   the gate lean on its path. These siblings take the function path, with
+   the same 403 treatment: the server is the boundary, this page is the
+   courtesy. */
+async function api2(path, params) {
+  const qs = new URLSearchParams(params).toString();
+  const res = await fetch(`${path}${qs ? "?" + qs : ""}`, { credentials: "same-origin" });
+  if (res.status === 403) throw Object.assign(new Error("no-autorizado"), { code: 403 });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
+const PIPELINE_API = "/.netlify/functions/admin-pipeline";
+const BATCHES_API = "/.netlify/functions/admin-batches";
+const TAX_API = "/.netlify/functions/admin-tax";
+const ORDERS_UPDATE_API = "/.netlify/functions/admin-orders-update";
+const ORDERS_DELETE_API = "/.netlify/functions/admin-orders-delete";
+
+/* ---- tab: tubería (pipeline) --------------------------------------- */
+
+/* Every stage the loaded orders have seen, in first-seen order. The
+   contract promises 11; if it ever promises 12 the dropdown follows. */
+function pipeStages() {
+  const map = new Map();
+  for (const o of (state.pipeline && state.pipeline.orders) || []) {
+    for (const s of o.stages || []) {
+      if (s && s.key && !map.has(s.key)) map.set(s.key, s.label || s.key);
+    }
+    if (o.currentStage && !map.has(o.currentStage)) {
+      map.set(o.currentStage, o.currentStageLabel || o.currentStage);
+    }
+  }
+  return [...map.entries()];
+}
+
+function pipeStageOptionsHtml() {
+  const cur = state.pipelineStage;
+  return `<option value="">Todas las etapas</option>` + pipeStages().map(([k, label]) =>
+    `<option value="${esc(k)}"${k === cur ? " selected" : ""}>${esc(label)}</option>`).join("");
+}
+
+function refreshPipeStageOptions() {
+  const sel = document.getElementById("pipeStage");
+  if (sel) sel.innerHTML = pipeStageOptionsHtml();
+}
+
+/* The pill tone for the current stage: finished endings go green,
+   cancelled/exception go red, everything mid-flight stays the default
+   blue. The keys are the contract's, so this is a heuristic with a plain
+   fallback, not a registry. */
+function stageTone(o) {
+  const k = String(o.currentStage || "").toLowerCase();
+  if (k.includes("cancel") || k.includes("exception")) return "bad";
+  const stages = o.stages || [];
+  const i = stages.findIndex((s) => s.key === o.currentStage);
+  if (i >= 0 && i === stages.length - 1 && stages[i].at) return "ok";
+  return "";
+}
+
+function stageTimeline(o) {
+  const stages = o.stages || [];
+  if (!stages.length) return '<p class="note">Sin etapas registradas.</p>';
+  const items = stages.map((s) => {
+    const cls = `${s.at ? "done" : ""}${s.key === o.currentStage ? " now" : ""}`.trim();
+    return `<li${cls ? ` class="${cls}"` : ""}><span class="tdot"></span>` +
+      `<span class="tlab">${esc(s.label || s.key)}</span>` +
+      `<span class="tat">${s.at ? when(s.at) : "pendiente"}</span></li>`;
+  }).join("");
+  return `<ul class="tl">${items}</ul>`;
+}
+
+function pipelineCard(o) {
+  const fee = o.expressFeeUsd != null ? ` · ${usd(o.expressFeeUsd)}` : "";
+  return `
+  <div class="card">
+    <div class="head">
+      <div>
+        <div class="title mono">${esc(o.orderId)}</div>
+        <div class="sub">${when(o.createdAt)} · ${esc(o.customerName || o.customerEmail || "—")}</div>
+      </div>
+      <div style="text-align:right; display:flex; flex-direction:column; gap:4px; align-items:flex-end">
+        ${o.expressSelected ? `<span class="pill warn">⚡ Ni bien llegue${fee}</span>` : ""}
+        ${payPill(o.paymentStatus)}
+        <span class="pill ${stageTone(o)}">${esc(o.currentStageLabel || o.currentStage || "—")}</span>
+      </div>
+    </div>
+    <div class="hr"></div>
+    <div class="row"><span class="k">Total</span><span class="v big">${pen(o.totalPen)}</span></div>
+    <details>
+      <summary>Línea de tiempo (${(o.stages || []).length} etapas)</summary>
+      ${stageTimeline(o)}
+    </details>
+  </div>`;
+}
+
+function pipeResults() {
+  const d = state.pipeline;
+  if (!d) return '<div class="spin">Cargando tubería…</div>';
+  if (!d.orders.length) {
+    return `<div class="card"><div class="title">Sin resultados</div>
+      <p class="note" style="margin-top:6px">Ningún pedido coincide con esos filtros.</p></div>`;
+  }
+  const cards = d.orders.map(pipelineCard).join("");
+  const more = d.hasMore
+    ? `<button class="btn wide" id="pipeMoreBtn" onclick="loadMorePipeline()">Cargar más (${d.orders.length} de ${d.total})</button>`
+    : `<p class="note" style="text-align:center">${d.total} pedido(s) en total.</p>`;
+  const bad = d.unreadable
+    ? `<div class="banner warn">${d.unreadable} registro(s) de esta página no se pudieron leer.</div>` : "";
+  return `${bad}<div class="cols">${cards}</div>${more}`;
+}
+
+function renderPipeline() {
+  return `<h2>Tubería</h2>
+  <div class="card">
+    <label class="field"><span>Buscar</span>
+      <input id="pipeQ" type="search" placeholder="Pedido, cliente o email…" value="${esc(state.pipelineQ)}" oninput="pipeSearch(this.value)" autocomplete="off"></label>
+    <label class="field"><span>Etapa</span>
+      <select id="pipeStage" onchange="setPipelineFilter('stage', this.value)">${pipeStageOptionsHtml()}</select></label>
+    <div class="field" style="margin-bottom:0"><span>Modo de entrega</span>
+      <div class="seg" id="pipeExpress" role="group" aria-label="Filtro express">
+        <button data-x="all" class="${state.pipelineExpress === "all" ? "on" : ""}" onclick="setPipelineFilter('express', 'all')">Todos</button>
+        <button data-x="express" class="${state.pipelineExpress === "express" ? "on" : ""}" onclick="setPipelineFilter('express', 'express')">⚡ Ni bien llegue</button>
+        <button data-x="consolidated" class="${state.pipelineExpress === "consolidated" ? "on" : ""}" onclick="setPipelineFilter('express', 'consolidated')">Todo junto</button>
+      </div>
+    </div>
+  </div>
+  <div id="pipeResults">${pipeResults()}</div>`;
+}
+
+/* The search box debounces and rewrites ONLY the results node: a full
+   paint() on every keystroke would steal focus and make the field
+   unusable on a phone. */
+let pipeSearchT = null;
+function pipeSearch(v) {
+  clearTimeout(pipeSearchT);
+  pipeSearchT = setTimeout(() => setPipelineFilter("q", v.trim()), 450);
+}
+
+async function setPipelineFilter(k, v) {
+  if (k === "q") state.pipelineQ = v;
+  if (k === "stage") state.pipelineStage = v;
+  if (k === "express") {
+    state.pipelineExpress = ["all", "express", "consolidated"].includes(v) ? v : "all";
+    document.querySelectorAll("#pipeExpress button").forEach((b) =>
+      b.classList.toggle("on", b.dataset.x === state.pipelineExpress));
+  }
+  await reloadPipeline();
+}
+
+async function reloadPipeline() {
+  const box = document.getElementById("pipeResults");
+  if (box) box.innerHTML = '<div class="spin">Cargando tubería…</div>';
+  try {
+    state.pipeline = await LOADER.pipeline();
+    refreshPipeStageOptions();
+    if (box) box.innerHTML = pipeResults();
+  } catch (e) {
+    if (e.code === 403) return renderGate();
+    if (box) box.innerHTML = `<div class="banner bad">${esc(e.message)}</div>`;
+  }
+}
+
+async function loadMorePipeline() {
+  const btn = document.getElementById("pipeMoreBtn");
+  if (btn) { btn.disabled = true; btn.textContent = "Cargando…"; }
+  const next = await api2(PIPELINE_API, {
+    view: "pipeline", q: state.pipelineQ, stage: state.pipelineStage,
+    express: state.pipelineExpress, limit: 25, offset: state.pipeline.orders.length,
+  });
+  state.pipeline = { ...next, orders: [...state.pipeline.orders, ...next.orders] };
+  document.getElementById("pipeResults").innerHTML = pipeResults();
+}
+
+/* ---- tab: más (overflow) ---------------------------------------------
+   Five tabs is the ceiling on a phone tab bar, so everything that is not
+   a daily-driver view lives here behind one extra tap: Lotes, Reclamos,
+   Impuestos, Express and the Libro mayor (same renderer as ever — the old
+   tab just moved house). */
+
+function renderMoreMenu() {
+  const item = (sub, ico, label, desc) => `
+    <button class="mitem" onclick="goMore('${sub}')">
+      <span class="ico">${ico}</span>
+      <span>${label}<span class="sub2">${desc}</span></span>
+      <span class="chev">›</span>
+    </button>`;
+  return `<h2>Más</h2>` +
+    item("batches", "🧳", "Lotes", "Consolidados por courier, peso y mínimo de 1 kg") +
+    item("claims", "⏰", "Reclamos", "Ventanas de reclamo por lote") +
+    item("tax", "🧾", "Impuestos", "Estimado contra real SUNAT") +
+    item("express", "⚡", "Express", "Pedidos «ni bien llegue» y su control") +
+    item("ledger", "📄", "Libro", "Libro mayor y descarga CSV");
+}
+
+function renderMore() {
+  switch (state.more) {
+    case "batches": return renderBatches();
+    case "claims": return renderClaims();
+    case "tax": return renderTax();
+    case "express": return renderExpress();
+    case "ledger": return renderLedger();
+    default: return renderMoreMenu();
+  }
+}
+
+function moreHead(title) {
+  return `<button class="btn" onclick="goMore('menu')" style="margin-bottom:11px">← Más</button><h2>${title}</h2>`;
+}
+
+async function goMore(sub) {
+  state.more = sub;
+  paint();
+  window.scrollTo({ top: 0, behavior: "instant" });
+  const need = { batches: "batches", claims: "claims", tax: "tax", express: "expressOrders", ledger: "ledger" }[sub];
+  if (need && !state[need]) {
+    try {
+      state[need] = await LOADER[need]();
+    } catch (e) {
+      if (e.code === 403) return renderGate();
+      document.getElementById("main").innerHTML =
+        summaryStrip() + `<div class="banner bad">${esc(e.message)}</div>`;
+      return;
+    }
+    paint();
+  }
+}
+
+/* ---- más → lotes -------------------------------------------------------
+   A batch is the unit the courier bills: N customer orders consolidated
+   into one shipment. The 1 kg minimum applies to the batch, not to the
+   order — that is the counter Danny added — so the card compares the
+   batch weight against it, ✓ or ⚠. */
+const BATCH_STATUS = {
+  consolidating: ["Consolidando", ""], ready: ["Listo", "ok"],
+  in_transit: ["En camino", ""], lince: ["En Lince", "warn"],
+  delivered: ["Entregado", "ok"], closed: ["Cerrado", "flat"],
+};
+function batchStatusPill(s) {
+  const [label, tone] = BATCH_STATUS[s] || [s || "—", "flat"];
+  return `<span class="pill ${tone}">${esc(label)}</span>`;
+}
+
+function renderBatches() {
+  const d = state.batches;
+  const head = moreHead("Lotes");
+  if (!d) return head + '<div class="spin">Cargando lotes…</div>';
+  if (!(d.batches || []).length) {
+    return head + `<div class="card"><div class="title">Sin lotes</div>
+      <p class="note" style="margin-top:6px">Todavía no hay ningún lote consolidado.</p></div>`;
+  }
+  const cards = d.batches.map((b) => {
+    const n = b.orderCount != null ? b.orderCount : (b.orderIds || []).length;
+    const kg = b.totalWeightKg;
+    const min = b.minKg != null ? b.minKg : 1;
+    const wsrc = { estimated: "estimado", actual: "real" }[b.weightSource] || b.weightSource;
+    const ids = (b.orderIds || []).map((id) =>
+      `<li><span class="mono">${esc(id)}</span><span></span></li>`).join("");
+    return `
+    <div class="card">
+      <div class="head">
+        <div>
+          <div class="title mono">${esc(b.shipmentId)}</div>
+          <div class="sub">${esc(b.providerLabel || b.provider || "—")} · ${when(b.createdAt)}</div>
+        </div>
+        ${batchStatusPill(b.status)}
+      </div>
+      <div class="hr"></div>
+      <div class="row"><span class="k">Pedidos</span><span class="v">${n}</span></div>
+      <div class="row"><span class="k">Peso total</span>
+        <span class="v">${kg != null && isFinite(Number(kg)) ? Number(kg).toFixed(2) + " kg" : '<span class="muted">—</span>'}
+          <span class="pill ${b.meetsMinimum ? "ok" : "warn"}" style="margin-left:6px">${b.meetsMinimum ? "✓" : "⚠"} mín ${min} kg</span>
+        </span></div>
+      ${wsrc ? `<div class="row"><span class="k">Origen del peso</span><span class="v" style="font-weight:500">${esc(wsrc)}</span></div>` : ""}
+      ${b.linceAvailableAt ? `<div class="row"><span class="k">Disponible en Lince</span><span class="v">${when(b.linceAvailableAt)}</span></div>` : ""}
+      ${ids ? `<details><summary>Ver ${n} pedido(s)</summary><ul class="items">${ids}</ul></details>` : ""}
+    </div>`;
+  }).join("");
+  return `${head}<div class="cols">${cards}</div>
+    <p class="note" style="text-align:center">${d.total != null ? d.total : d.batches.length} lote(s) en total.</p>`;
+}
+
+/* ---- más → reclamos -----------------------------------------------------
+   The claim window is the one ops deadline that cannot be recovered: a
+   lot whose window expired without a claim filed is money left on the
+   table. Green past 3 days, amber 0–3, red expired, gray when the backend
+   has no deadline for the lot. */
+function claimChip(c) {
+  const days = c.daysRemaining;
+  if (c.state === "expired") {
+    const ago = days != null && isFinite(Number(days)) ? `hace ${Math.abs(Math.round(Number(days)))} d` : "";
+    return `<span class="pill bad">Venció${ago ? " " + ago : ""}</span>`;
+  }
+  if (c.state === "warning") return `<span class="pill warn">Quedan ${days} d</span>`;
+  if (c.state === "ok") return `<span class="pill ok">Quedan ${days} d</span>`;
+  return `<span class="pill flat">Sin fecha</span>`;
+}
+
+function renderClaims() {
+  const d = state.claims;
+  const head = moreHead("Reclamos");
+  if (!d) return head + '<div class="spin">Cargando reclamos…</div>';
+  if (!(d.claims || []).length) {
+    return head + `<div class="card"><div class="title">Sin reclamos pendientes</div>
+      <p class="note" style="margin-top:6px">Ningún lote está dentro de una ventana de reclamo.</p></div>`;
+  }
+  const cards = d.claims.map((c) => {
+    const n = c.orderCount != null ? c.orderCount : (c.orderIds || []).length;
+    const ids = (c.orderIds || []).map((id) =>
+      `<li><span class="mono">${esc(id)}</span><span></span></li>`).join("");
+    return `
+    <div class="card">
+      <div class="head">
+        <div>
+          <div class="title mono">${esc(c.shipmentId)}</div>
+          <div class="sub">${esc(c.providerLabel || "—")} · ${n} pedido(s)</div>
+        </div>
+        ${claimChip(c)}
+      </div>
+      <div class="hr"></div>
+      <div class="row"><span class="k">Disponible en Lince</span><span class="v">${when(c.linceAvailableAt)}</span></div>
+      <div class="row"><span class="k">Vence</span><span class="v">${when(c.deadlineAt)}</span></div>
+      ${ids ? `<details><summary>Ver pedidos</summary><ul class="items">${ids}</ul></details>` : ""}
+    </div>`;
+  }).join("");
+  return `${head}<div class="cols">${cards}</div>`;
+}
+
+/* ---- más → impuestos -----------------------------------------------------
+   Same "blank is not zero" rule as the ledger: an unreconciled row shows
+   «sin conciliar», never S/ 0.00, because a zero would read as settled.
+   The totals header renders whichever totals the endpoint returns. */
+const TAX_STATE = {
+  reconciled: ["Conciliado", "ok"], unreconciled: ["Pendiente", "warn"],
+  credit_due: ["Saldo por emitir", "warn"], absorbed: ["Absorbido", "flat"],
+};
+const TAX_TOTALS = [
+  ["estimatedPen", "Estimado total"], ["actualPen", "Real SUNAT total"],
+  ["differencePen", "Diferencia total"], ["creditDuePen", "Saldo a favor del cliente"],
+  ["absorbedPen", "Absorbido por Aria"],
+];
+
+function taxTotalsCard(t) {
+  if (!t) return "";
+  const rows = TAX_TOTALS
+    .filter(([k]) => t[k] != null)
+    .map(([k, label]) => `<div class="row"><span class="k">${label}</span><span class="v">${pen(t[k])}</span></div>`)
+    .join("");
+  if (!rows) return "";
+  return `<div class="card tight"><div class="title" style="margin-bottom:6px">Totales</div>${rows}</div>`;
+}
+
+function taxRowCard(r) {
+  const [slabel, stone] = TAX_STATE[r.state] || [r.state || "—", "flat"];
+  return `
+  <div class="card tight">
+    <div class="head">
+      <div>
+        <div class="title mono" style="font-size:12.5px">${esc(r.orderId)}</div>
+        <div class="sub">${when(r.createdAt)} · ${esc(r.customerName || "—")}</div>
+      </div>
+      <span class="pill ${stone}">${esc(slabel)}</span>
+    </div>
+    <div class="hr"></div>
+    <div class="row"><span class="k">Estimado</span><span class="v">${pen(r.taxEstimatedPen)}</span></div>
+    <div class="row"><span class="k">Real SUNAT</span><span class="v">${
+      r.taxReconciledAt ? pen(r.taxActualPen) : '<span class="muted">sin conciliar</span>'}</span></div>
+    ${r.differencePen != null ? `<div class="row"><span class="k">Diferencia</span><span class="v">${pen(r.differencePen)}</span></div>` : ""}
+    ${Number(r.creditDuePen) > 0 ? `<div class="row"><span class="k">Saldo a emitir</span><span class="v">${pen(r.creditDuePen)}</span></div>` : ""}
+    ${Number(r.absorbedPen) > 0 ? `<div class="row"><span class="k">Absorbido por Aria</span><span class="v">${pen(r.absorbedPen)}</span></div>` : ""}
+    ${r.sunatDocRef ? `<div class="row"><span class="k">Doc. SUNAT</span><span class="v mono">${esc(r.sunatDocRef)}</span></div>` : ""}
+  </div>`;
+}
+
+function renderTax() {
+  const d = state.tax;
+  const head = moreHead("Impuestos");
+  const seg = `<div class="seg" style="margin-bottom:11px" role="group" aria-label="Filtro de impuestos">
+      <button class="${state.taxFilter === "unreconciled" ? "on" : ""}" onclick="setTaxFilter('unreconciled')">Pendientes</button>
+      <button class="${state.taxFilter === "all" ? "on" : ""}" onclick="setTaxFilter('all')">Todos</button>
+    </div>`;
+  if (!d) return head + seg + '<div class="spin">Cargando impuestos…</div>';
+  if (!(d.rows || []).length) {
+    return head + seg + `<div class="card"><div class="title">Sin filas</div>
+      <p class="note" style="margin-top:6px">${state.taxFilter === "unreconciled" ? "Todo conciliado. Nada pendiente." : "Todavía no hay filas de impuestos."}</p></div>`;
+  }
+  return head + seg + taxTotalsCard(d.totals) +
+    `<div class="cols">${d.rows.map(taxRowCard).join("")}</div>
+     <p class="note" style="text-align:center">${d.total != null ? d.total : d.rows.length} fila(s) en total.</p>`;
+}
+
+async function setTaxFilter(f) {
+  state.taxFilter = f;
+  state.tax = null;
+  paint();
+  try {
+    state.tax = await LOADER.tax();
+  } catch (e) {
+    if (e.code === 403) return renderGate();
+    document.getElementById("main").innerHTML =
+      summaryStrip() + `<div class="banner bad">${esc(e.message)}</div>`;
+    return;
+  }
+  paint();
+}
+
+/* ---- más → express ---------------------------------------------------------
+   The "red sticker": Danny's $8 toggle between «todo junto» (free,
+   consolidated, the default) and «⚡ ni bien llegue». Setting it is one
+   POST; unsetting is the same POST with selected:false. The per-card
+   «Quitar ⚡» button exists because on a phone, retyping the order id to
+   undo is the kind of friction that makes ops skip the undo. */
+async function setExpress(orderId, selected, feeUsd) {
+  const res = await fetch(ORDERS_UPDATE_API, {
+    method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ orderId, express: { selected, feeUsd } }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) throw new Error(data.error || "Error");
+  return data.express || {};
+}
+
+async function saveExpress() {
+  const msg = document.getElementById("exp-msg");
+  const orderId = document.getElementById("exp-order").value.trim();
+  const selected = document.getElementById("exp-toggle").checked;
+  const fee = Number(document.getElementById("exp-fee").value);
+  if (!orderId) { msg.textContent = "Escribe el id del pedido."; return; }
+  msg.textContent = "Guardando…";
+  try {
+    const ex = await setExpress(orderId, selected, isFinite(fee) ? fee : 8);
+    msg.innerHTML = ex.selected
+      ? `✓ <strong>${esc(orderId)}</strong> ahora va <strong>⚡ ni bien llegue</strong>${ex.feeUsd != null ? ` (${usd(ex.feeUsd)})` : ""}.`
+      : `✓ <strong>${esc(orderId)}</strong> volvió a <strong>todo junto</strong>.`;
+    document.getElementById("exp-order").value = "";
+    state.expressOrders = await LOADER.expressOrders();
+    paint();
+  } catch (e) {
+    msg.textContent = e.message;
+  }
+}
+
+async function unsetExpress(orderId) {
+  try {
+    await setExpress(orderId, false, 8);
+    state.expressOrders = await LOADER.expressOrders();
+    paint();
+  } catch (e) {
+    document.getElementById("main").innerHTML =
+      summaryStrip() + `<div class="banner bad">${esc(e.message)}</div>`;
+  }
+}
+
+function renderExpress() {
+  const d = state.expressOrders;
+  const head = moreHead("Express");
+  const control = `
+  <div class="card">
+    <div class="title" style="margin-bottom:8px">Marcar pedido con ⚡</div>
+    <label class="field"><span>Id del pedido</span>
+      <input id="exp-order" class="mono" placeholder="p. ej. AR-1024" autocomplete="off" autocapitalize="characters"></label>
+    <label class="check"><input type="checkbox" id="exp-toggle" checked>
+      <span>⚡ Ni bien llegue <span class="muted">(desmárcalo para quitarlo)</span></span></label>
+    <label class="field" style="margin:9px 0 0"><span>Cargo express (USD)</span>
+      <input id="exp-fee" type="number" step="0.01" inputmode="decimal" value="8" style="max-width:150px"></label>
+    <div class="btns" style="margin-top:11px">
+      <button class="btn primary" onclick="saveExpress()">Guardar</button>
+    </div>
+    <p class="note" id="exp-msg" style="margin:8px 0 0"></p>
+  </div>`;
+  if (!d) return head + control + '<div class="spin">Cargando pedidos express…</div>';
+  const cards = (d.orders || []).map((o) => `
+    <div class="card tight">
+      <div class="head">
+        <div>
+          <div class="title mono" style="font-size:12.5px">${esc(o.orderId)}</div>
+          <div class="sub">${esc(o.customerName || o.customerEmail || "—")} · ${when(o.createdAt)}</div>
+        </div>
+        <span class="pill warn">⚡${o.expressFeeUsd != null ? " " + usd(o.expressFeeUsd) : ""}</span>
+      </div>
+      <div class="row"><span class="k">Total</span><span class="v">${pen(o.totalPen)}</span></div>
+      <div class="row"><span class="k">Etapa</span><span class="v" style="font-weight:500">${esc(o.currentStageLabel || o.currentStage || "—")}</span></div>
+      <div class="btns" style="margin-top:9px">
+        <button class="btn" onclick="unsetExpress('${esc(o.orderId)}')">Quitar ⚡</button>
+      </div>
+    </div>`).join("");
+  return head + control +
+    `<h2>Con ⚡ activo · ${d.total != null ? d.total : (d.orders || []).length}</h2>` +
+    (cards
+      ? `<div class="cols">${cards}</div>`
+      : `<div class="card"><div class="title">Ninguno</div><p class="note" style="margin-top:6px">Ningún pedido va «ni bien llegue» ahora mismo.</p></div>`);
+}
+
 /* ---- shell --------------------------------------------------------- */
-const RENDER = { orders: renderOrders, payments: renderPayments, couriers: renderCouriers, ledger: renderLedger };
+const RENDER = { orders: renderOrders, payments: renderPayments, pipeline: renderPipeline, couriers: renderCouriers, more: renderMore };
 
 function paint() {
   document.getElementById("main").innerHTML = summaryStrip() + RENDER[state.tab]();
@@ -773,7 +1422,12 @@ function paint() {
 const LOADER = {
   orders: () => api({ view: "orders", limit: 25 }),
   payments: () => api({ view: "payments", limit: 50 }),
+  pipeline: () => api2(PIPELINE_API, { view: "pipeline", q: state.pipelineQ, stage: state.pipelineStage, express: state.pipelineExpress, limit: 25 }),
   couriers: () => api({ view: "couriers" }),
+  batches: () => api2(BATCHES_API, { view: "batches" }),
+  claims: () => api2(BATCHES_API, { view: "claims" }),
+  tax: () => api2(TAX_API, { view: "tax", filter: state.taxFilter }),
+  expressOrders: () => api2(PIPELINE_API, { view: "pipeline", express: "express", limit: 50 }),
   ledger: () => api({ view: "ledger" }),
 };
 
