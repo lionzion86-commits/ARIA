@@ -47,51 +47,6 @@
    calls an unconfigured retailer just returns a failed store card, which
    looks like a bug to a shopper and is one to us. */
 export const RETAILERS = {
-  victoriassecret: {
-    key: "victoriassecret",
-    label: "Victoria's Secret",
-    color: "#E31C79",
-    logo: "logos/victoriassecret.png",
-    tagline: "Lencería, brumas corporales y fragancias",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
-  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
-     the audience this shop is being launched for, and it is the eighth
-     store — which is what makes the stores grid symmetric at 4x2 instead
-     of leaving a hole. Same status as the other two beauty stores: a
-     real row, quotas written, no verified actor yet. */
-  sephora: {
-    key: "sephora",
-    label: "Sephora",
-    color: "#000000",
-    logo: "logos/sephora.png",
-    /* NO BRAND NAMED HERE — the SSENSE rule, applied before it can bite.
-       The brief's line was "Maquillaje y skincare — NARS, Rare Beauty",
-       and both ARE in the export, so it would have been true today. It
-       is still the wrong place to say it: the card already paints a
-       brand line read from the catalogue (topBrandsFor), so naming the
-       same two by hand would print them twice on one card and would go
-       stale the first time the export changes. The data says the
-       brands; the tagline says the department. */
-    tagline: "Maquillaje, skincare y perfumes",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
-  },
-  skims: {
-    key: "skims",
-    label: "Skims",
-    color: "#605848",
-    logo: "logos/skims.png",
-    tagline: "Shapewear, ropa interior y loungewear",
-    kind: "general",
-    search: false,
-    pendingNote: "Conectando el catálogo",
-  },
   revolve: {
     key: "revolve",
     label: "Revolve",
@@ -100,64 +55,16 @@ export const RETAILERS = {
     tagline: "Moda contemporánea y de diseñador",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
-  },
-  ulta: {
-    key: "ulta",
-    label: "Ulta Beauty",
-    color: "#F88038",
-    logo: "logos/ulta.png",
-    tagline: "Maquillaje, skincare y cuidado del cabello",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
     browse: true,
   },
-  bathandbodyworks: {
-    key: "bathandbodyworks",
-    label: "Bath & Body Works",
-    color: "#0F4C81",
-    logo: "logos/bathandbodyworks.png",
-    tagline: "Cremas, jabones y velas aromáticas",
+  target: {
+    key: "target",
+    label: "Target",
+    color: "#CC0000",
+    logo: "logos/target.svg",
+    tagline: "Ropa, hogar y belleza",
     kind: "general",
-    catalog: "beauty",
-    search: false,
-    pendingNote: "Conectando el catálogo",
-  },
-  /* ============================================================
-     MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
-
-     Macy's arrived as a file: an export of 960 women's-clothing best
-     sellers, not a live actor. That broke an assumption baked into this
-     registry since it was written — that `search` meant both "you can
-     browse this store" and "we can query it live". Those are different
-     capabilities and Macy's has exactly one of them, so they are two
-     flags now:
-
-       search  the live cross-store fan-out may call it. Needs a
-               RETAILER_CONFIG actor in apify-scrape-start.js. FALSE for
-               Macy's: calling an unconfigured retailer returns a failed
-               store card, which looks like a bug to a shopper.
-       browse  it has a real catalogue a shopper can walk through, from
-               whatever source. TRUE — macys-catalog.json, built by
-               scripts/build-macys-catalog.mjs.
-
-     A store with `browse` is NOT "conectando el catálogo": it has one.
-     That distinction is why storeCardHTML's pending state reads both
-     flags rather than just `search`.
-
-     Fulfilment is not a question here — Macy's ships to the Miami
-     warehouse like the rest, so nothing special is needed downstream. */
-  yesstyle: {
-    key: "yesstyle",
-    label: "YesStyle",
-    color: "#50A838",
-    logo: "logos/yesstyle.png",
-    tagline: "Belleza coreana y japonesa",
-    kind: "general",
-    catalog: "beauty",
-    search: false,
-    browse: true,
+    search: true,
   },
   /* ============================================================
      THE 2026-09-22 LOGO BATCH — seven stores, no catalogues yet
@@ -200,53 +107,54 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
-  /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
-
-     Both are real rows: they appear on Tiendas, they carry their own
-     brand colour and wordmark, and every beauty weight in the estimator
-     was written for their catalogues. What they do not have yet is a
-     verified Apify actor — the Apify store could not be reached from the
-     build environment to confirm an actor ID, and pointing the scraper at
-     a guessed one returns an empty run that reads as "this store has no
-     products" rather than as a missing integration.
-
-     So they ship as `search: false` with `catalog: "beauty"`. Step 3 and
-     step 4 of ADDING A RETAILER above are the whole remaining task.
-
-     2026-09-20: their real logo files landed, so steps 1 and 2 are done —
-     all three render their own mark on Tiendas now instead of a wordmark
-     pill. That is independent of the scraper: a store can look like
-     itself long before its catalogue is connected.
-
-     2026-09-22: SEPHORA IS BROWSABLE. beauty-catalog.json landed with
-     80 Sephora products, so its row flips `browse: true` and drops the
-     pending note, exactly as Macy's did — same distinction, same two
-     flags. Bath & Body Works is NOT in that file and stays pending; a
-     store is only browsable when a catalogue actually names it.
-
-     2026-09-24: VICTORIA'S SECRET IS BROWSABLE. beauty-catalog.json
-     landed with 1,649 Victoria's Secret products, so its row flips
-     `browse: true` and drops the pending note — same distinction, same
-     two flags. */
-  sunglasshut: {
-    key: "sunglasshut",
-    label: "Sunglass Hut",
-    color: "#000000",
-    logo: "logos/sunglasshut.png",
-    tagline: "Lentes de sol de marca",
+  walmart: {
+    key: "walmart",
+    label: "Walmart",
+    color: "#0071CE",
+    logo: "logos/walmart.svg",
+    tagline: "De todo, a buen precio",
     kind: "general",
-    search: false,
-    pendingNote: "Conectando el catálogo",
+    search: true,
   },
-  dyson: {
-    key: "dyson",
-    label: "Dyson",
-    color: "#202020",
-    logo: "logos/dyson.png",
-    tagline: "Secadoras, aspiradoras y purificadores",
+  /* Listed but not sold: these were integrated once and turned off for
+     real reasons (cost, and Nordstrom's bot protection returning zero
+     items across three attempts). They stay here so a label and a colour
+     still resolve for any historical order or cached item that names
+     them, and so nobody re-adds them without reading why they went. */
+  autozone: {
+    key: "autozone",
+    label: "AutoZone",
+    color: "#1C8A4B",
+    logo: "logos/autozone.png",
+    tagline: "Repuestos y autopartes — vía Aria Auto",
+    // Aria Auto's part-search source, not a general storefront: it is
+    // deliberately excluded from the general search fan-out.
+    kind: "auto",
+    search: true,
+  },
+  /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
+     the audience this shop is being launched for, and it is the eighth
+     store — which is what makes the stores grid symmetric at 4x2 instead
+     of leaving a hole. Same status as the other two beauty stores: a
+     real row, quotas written, no verified actor yet. */
+  sephora: {
+    key: "sephora",
+    label: "Sephora",
+    color: "#000000",
+    logo: "logos/sephora.png",
+    /* NO BRAND NAMED HERE — the SSENSE rule, applied before it can bite.
+       The brief's line was "Maquillaje y skincare — NARS, Rare Beauty",
+       and both ARE in the export, so it would have been true today. It
+       is still the wrong place to say it: the card already paints a
+       brand line read from the catalogue (topBrandsFor), so naming the
+       same two by hand would print them twice on one card and would go
+       stale the first time the export changes. The data says the
+       brands; the tagline says the department. */
+    tagline: "Maquillaje, skincare y perfumes",
     kind: "general",
+    catalog: "beauty",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   macys: {
     key: "macys",
@@ -258,24 +166,76 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
-  /* COSTCO (2026-09-24) — Danny's call: warehouse club, mass/value like
-     Target/Walmart, so it sits at the back of the Tiendas row — near them,
-     never adjacent (see the order test below). Real logo (logos/costco.png,
-     840px; red sampled from the artwork: #E01030). No catalogue yet, so the
-     honest-pending state: `search: false` with `pendingNote`, same as
-     Skims/Revolve/Fendi. The day costco-catalog.json is committed at repo
-     root, flip `browse: true` and add it to CATALOGUE_FILES in
-     loadDepartmentCache's index.html mirror — one line each, and the store
-     lights up everywhere downstream. */
+  /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor, the Macy's
+     pattern: browse: true, search: false. Their 251 sports products
+     (skate, surf, fitness, swim) live inside Deportes per Danny — these
+     rows are what put the right name ("Dick's Sporting Goods", not the
+     raw "dicks" key) on the product-card badge and make the stores
+     browsable on Tiendas. No logo file yet, so both render the wordmark
+     pill on their brand colour, which the registry documents as a real
+     fallback rather than a broken state. Colours are brand-red /
+     near-black chosen from the brands' public identity, not sampled
+     from artwork — replace with sampled values if logo files land. */
+  dicks: {
+    key: "dicks",
+    label: "Dick's Sporting Goods",
+    color: "#D22630",
+    tagline: "Skate, surf y fitness",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* ============================================================
+     COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the
+     Macy's pattern: browse: true, search: false. costco-catalog.json
+     (1,569 products) and samsclub-catalog.json (120 products) are
+     committed at repo root. No logo files yet -- the wordmark pill on
+     brand colour is the documented fallback. Colours are the brands'
+     official red/blue; sample from the artwork when the logo files
+     land. Party City is deliberately NOT a store row: its catalogue
+     surfaces only through the Fiestas y Eventos vertical. Mirrors
+     index.html; a parity test pins the two.
+     ============================================================ */
   costco: {
     key: "costco",
     label: "Costco",
-    color: "#E01030",
-    logo: "logos/costco.png",
-    tagline: "Electrónica, hogar y más, a precio de club",
+    color: "#E31837",
+    logo: "logos/costco.svg",
+    tagline: "Precios de almacén, todo por mayor",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
+  },
+  victoriassecret: {
+    key: "victoriassecret",
+    label: "Victoria's Secret",
+    color: "#E31C79",
+    logo: "logos/victoriassecret.png",
+    tagline: "Lencería, brumas corporales y fragancias",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
+  ulta: {
+    key: "ulta",
+    label: "Ulta Beauty",
+    color: "#F88038",
+    logo: "logos/ulta.png",
+    tagline: "Maquillaje, skincare y cuidado del cabello",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
+  pacsun: {
+    key: "pacsun",
+    label: "PacSun",
+    color: "#111111",
+    tagline: "Moda surf y skate",
+    kind: "general",
+    search: false,
+    browse: true,
   },
   /* ============================================================
      ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
@@ -317,24 +277,76 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
-  target: {
-    key: "target",
-    label: "Target",
-    color: "#CC0000",
-    logo: "logos/target.svg",
-    tagline: "Ropa, hogar y belleza",
+  samsclub: {
+    key: "samsclub",
+    label: "Sam's Club",
+    color: "#0B6CFF",
+    logo: "logos/samsclub.svg",
+    tagline: "Mayoreo y esenciales para el hogar",
     kind: "general",
-    search: true,
+    search: false,
+    browse: true,
   },
-  walmart: {
-    key: "walmart",
-    label: "Walmart",
-    color: "#0071CE",
-    logo: "logos/walmart.svg",
-    tagline: "De todo, a buen precio",
+  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. Mirrors the index.html row; the page is a
+     plain <script> and cannot import. */
+  lanebryant: {
+    key: "lanebryant",
+    label: "Lane Bryant",
+    color: "#C41230",
+    tagline: "Moda femenina en tallas grandes",
     kind: "general",
-    search: true,
+    search: false,
+    browse: true,
   },
+  alphalete: {
+    key: "alphalete",
+    label: "Alphalete",
+    color: "#000000",
+    tagline: "Ropa de gym premium",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's
+     pattern: browse: true, search: false. The Gym Rat catalogues
+     (gymrat-catalog.json) are committed files. They power the Gym Rat
+     department, its brand pills, the Gymshark home rail, and Ofertas via
+     fileBackedDeals. Apparel cluster, after Old Navy. Mirrors the index.html rows;
+     the page is a plain <script> and cannot import. */
+  youngla: {
+    key: "youngla",
+    label: "YoungLA",
+    color: "#000000",
+    tagline: "Ropa de gym — oversize y streetwear",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  gymshark: {
+    key: "gymshark",
+    label: "Gymshark",
+    color: "#000000",
+    tagline: "Ropa de gym — leggings, tops y conjuntos",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  skims: {
+    key: "skims",
+    label: "Skims",
+    color: "#605848",
+    logo: "logos/skims.png",
+    tagline: "Shapewear, ropa interior y loungewear",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
+     Mirrors index.html. Within each tier: green-tier shippers, then
+     yellow, then red, then stores with no researched delivery data yet.
+     RockAuto removed 2026-09-26 (Danny's call); row kept retired so a
+     label still resolves for historical orders. */
   ssense: {
     key: "ssense",
     label: "SSENSE",
@@ -353,6 +365,52 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  miumiu: {
+    key: "miumiu",
+    label: "Miu Miu",
+    color: "#000000",
+    logo: "logos/miumiu.png",
+    tagline: "Bolsos, calzado y moda italiana",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    browse: true,
+  },
+  /* ============================================================
+     MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
+
+     Macy's arrived as a file: an export of 960 women's-clothing best
+     sellers, not a live actor. That broke an assumption baked into this
+     registry since it was written — that `search` meant both "you can
+     browse this store" and "we can query it live". Those are different
+     capabilities and Macy's has exactly one of them, so they are two
+     flags now:
+
+       search  the live cross-store fan-out may call it. Needs a
+               RETAILER_CONFIG actor in apify-scrape-start.js. FALSE for
+               Macy's: calling an unconfigured retailer returns a failed
+               store card, which looks like a bug to a shopper.
+       browse  it has a real catalogue a shopper can walk through, from
+               whatever source. TRUE — macys-catalog.json, built by
+               scripts/build-macys-catalog.mjs.
+
+     A store with `browse` is NOT "conectando el catálogo": it has one.
+     That distinction is why storeCardHTML's pending state reads both
+     flags rather than just `search`.
+
+     Fulfilment is not a question here — Macy's ships to the Miami
+     warehouse like the rest, so nothing special is needed downstream. */
+  yesstyle: {
+    key: "yesstyle",
+    label: "YesStyle",
+    color: "#50A838",
+    logo: "logos/yesstyle.png",
+    tagline: "Belleza coreana y japonesa",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    browse: true,
+  },
 
   /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
      store in this tier with a catalogue behind it, and retailersByTier()
@@ -367,18 +425,8 @@ export const RETAILERS = {
     kind: "general",
     tier: "luxury",
     search: false,
-    pendingNote: "Conectando el catálogo",
-  },
-  miumiu: {
-    key: "miumiu",
-    label: "Miu Miu",
-    color: "#000000",
-    logo: "logos/miumiu.png",
-    tagline: "Bolsos, calzado y moda italiana",
-    kind: "general",
-    tier: "luxury",
-    search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Reintentar tras el reset del 16-oct.",
   },
   goldengoose: {
     key: "goldengoose",
@@ -389,23 +437,70 @@ export const RETAILERS = {
     kind: "general",
     tier: "luxury",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Actor probado; deep pull listo tras el reset del 16-oct.",
   },
-  /* Listed but not sold: these were integrated once and turned off for
-     real reasons (cost, and Nordstrom's bot protection returning zero
-     items across three attempts). They stay here so a label and a colour
-     still resolve for any historical order or cached item that names
-     them, and so nobody re-adds them without reading why they went. */
-  autozone: {
-    key: "autozone",
-    label: "AutoZone",
-    color: "#1C8A4B",
-    logo: "logos/autozone.png",
-    tagline: "Repuestos y autopartes — vía Aria Auto",
-    // Aria Auto's part-search source, not a general storefront: it is
-    // deliberately excluded from the general search fan-out.
-    kind: "auto",
-    search: true,
+  bathandbodyworks: {
+    key: "bathandbodyworks",
+    label: "Bath & Body Works",
+    color: "#0F4C81",
+    logo: "logos/bathandbodyworks.png",
+    tagline: "Cremas, jabones y velas aromáticas",
+    kind: "general",
+    catalog: "beauty",
+    search: false,
+    retired: true,
+    retiredNote: "Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.",
+  },
+  /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
+
+     Both are real rows: they appear on Tiendas, they carry their own
+     brand colour and wordmark, and every beauty weight in the estimator
+     was written for their catalogues. What they do not have yet is a
+     verified Apify actor — the Apify store could not be reached from the
+     build environment to confirm an actor ID, and pointing the scraper at
+     a guessed one returns an empty run that reads as "this store has no
+     products" rather than as a missing integration.
+
+     So they ship as `search: false` with `catalog: "beauty"`. Step 3 and
+     step 4 of ADDING A RETAILER above are the whole remaining task.
+
+     2026-09-20: their real logo files landed, so steps 1 and 2 are done —
+     all three render their own mark on Tiendas now instead of a wordmark
+     pill. That is independent of the scraper: a store can look like
+     itself long before its catalogue is connected.
+
+     2026-09-22: SEPHORA IS BROWSABLE. beauty-catalog.json landed with
+     80 Sephora products, so its row flips `browse: true` and drops the
+     pending note, exactly as Macy's did — same distinction, same two
+     flags. Bath & Body Works is NOT in that file and stays pending; a
+     store is only browsable when a catalogue actually names it.
+
+     2026-09-24: VICTORIA'S SECRET IS BROWSABLE. beauty-catalog.json
+     landed with 1,649 Victoria's Secret products, so its row flips
+     `browse: true` and drops the pending note — same distinction, same
+     two flags. */
+  sunglasshut: {
+    key: "sunglasshut",
+    label: "Sunglass Hut",
+    color: "#000000",
+    logo: "logos/sunglasshut.png",
+    tagline: "Lentes de sol de marca",
+    kind: "general",
+    search: false,
+    retired: true,
+    retiredNote: "Descartada por Danny (2026-09-25). Sin pull.",
+  },
+  dyson: {
+    key: "dyson",
+    label: "Dyson",
+    color: "#202020",
+    logo: "logos/dyson.png",
+    tagline: "Secadoras, aspiradoras y purificadores",
+    kind: "general",
+    search: false,
+    retired: true,
+    retiredNote: "Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.",
   },
   rockauto: {
     key: "rockauto",
@@ -415,7 +510,9 @@ export const RETAILERS = {
     tagline: "Catálogo profundo de repuestos — vía Aria Auto",
     // Aria Auto's second part-search source; same exclusion as AutoZone.
     kind: "auto",
-    search: true,
+    search: false,
+    retired: true,
+    retiredNote: "Eliminada por Danny (2026-09-26).",
   },
   /* ============================================================
      SSENSE (2026-09-22) — THE HIGH-END TIER, AND NORDSTROM'S REPLACEMENT

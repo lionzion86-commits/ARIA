@@ -74,7 +74,7 @@ async function handleGet(event, headers) {
   // The CSV the operator hands AVI. Same endpoint, because it is the same
   // data and the same permission; `?format=csv` keeps it one round trip.
   if ((event.queryStringParameters?.format || "") === "csv") {
-    const wanted = (event.queryStringParameters?.status || "created").split(",").filter(Boolean);
+    const wanted = (event.queryStringParameters?.status || "purchased_usa").split(",").filter(Boolean);
     const rows = shipments.filter((s) => wanted.includes(s.status));
     return {
       statusCode: 200,
@@ -183,7 +183,7 @@ async function handlePost(event, headers, email) {
       };
 
       const opened = applyStatusUpdate(shipment, {
-        status: "created", by: email, note: routed.reason,
+        status: "purchased_usa", by: email, note: routed.reason,
       });
       await writeShipment(opened.shipment);
       return json(200, headers, { ok: true, shipment: opened.shipment });

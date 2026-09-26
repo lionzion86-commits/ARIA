@@ -1,0 +1,504 @@
+{
+  "name": "es-en-parts-glossary",
+  "version": "1.1.0",
+  "updated": "2026-09-26",
+  "_readme": [
+    "ES->EN AUTO PARTS GLOSSARY — shared infrastructure, not a search hack.",
+    "",
+    "Purpose: the canonical Spanish-to-English mapping for auto-part names,",
+    "maintained once and consumed by every surface that needs it:",
+    "  1. Aria Auto search (browser) — inlined into index.html by running",
+    "     `node scripts/build-parts-glossary-inline.mjs` (see the GENERATED",
+    "     notice above AUTO_PART_TERMS_ES_EN in index.html).",
+    "  2. The future Aria AI assistant — imports THIS JSON file directly",
+    "     (Node: JSON.parse(fs.readFileSync(...))) for part-name translation",
+    "     and recognition. Nothing about this file's structure is",
+    "     search-specific, so the assistant can adopt it as-is.",
+    "",
+    "DO NOT rebuild this as a duplicate list elsewhere. If a new consumer",
+    "needs part-name knowledge, it imports this file.",
+    "",
+    "Versioning (semver):",
+    "  patch — new synonyms or typo fixes, no new concepts;",
+    "  minor — new part concepts added;",
+    "  major — schema change (entry shape, category list).",
+    "",
+    "Entry shape:",
+    "  es           canonical Spanish term (lowercase, with accents)",
+    "  en           English term(s); the search uses en[0]",
+    "  category     one of: brakes, filters, fluids, ignition, electrical,",
+    "               lighting, cooling, fuel, exhaust, belts, suspension,",
+    "               steering, drivetrain, transmission, wipers, body,",
+    "               wheels, sensors",
+    "  synonyms_es  other Spanish spellings/variants, incl. singular/plural",
+    "               and regionalisms (e.g. Peruvian 'faja' for belt)",
+    "  notes        optional translator note",
+    "",
+    "Matching rules live with the consumer (accent- and case-insensitive,",
+    "whole-word, longest-phrase-first); this file holds only knowledge."
+  ],
+  "entries": [
+    {
+      "category": "brakes",
+      "en": [
+        "brake pads"
+      ],
+      "es": "pastillas de freno",
+      "synonyms_es": [
+        "balatas de freno",
+        "balatas"
+      ]
+    },
+    {
+      "es": "pastilla de freno",
+      "en": [
+        "brake pad"
+      ],
+      "category": "brakes",
+      "synonyms_es": []
+    },
+    {
+      "category": "brakes",
+      "en": [
+        "brake rotors"
+      ],
+      "es": "discos de freno",
+      "synonyms_es": []
+    },
+    {
+      "category": "brakes",
+      "en": [
+        "brake rotor"
+      ],
+      "es": "disco de freno",
+      "synonyms_es": [
+        "rotor de freno"
+      ]
+    },
+    {
+      "category": "brakes",
+      "en": [
+        "brake shoes"
+      ],
+      "es": "zapatas de freno",
+      "synonyms_es": []
+    },
+    {
+      "category": "brakes",
+      "en": [
+        "brake caliper"
+      ],
+      "es": "mordaza de freno",
+      "synonyms_es": [
+        "calíper de freno"
+      ]
+    },
+    {
+      "category": "brakes",
+      "en": [
+        "brake fluid"
+      ],
+      "es": "líquido de frenos",
+      "synonyms_es": []
+    },
+    {
+      "category": "brakes",
+      "en": [
+        "master cylinder"
+      ],
+      "es": "cilindro maestro",
+      "synonyms_es": []
+    },
+    {
+      "category": "filters",
+      "en": [
+        "cabin air filter"
+      ],
+      "es": "filtro de aire de cabina",
+      "synonyms_es": [
+        "filtro de cabina",
+        "filtro de habitáculo"
+      ]
+    },
+    {
+      "category": "filters",
+      "en": [
+        "oil filter"
+      ],
+      "es": "filtro de aceite",
+      "synonyms_es": []
+    },
+    {
+      "category": "filters",
+      "en": [
+        "engine air filter"
+      ],
+      "es": "filtro de aire",
+      "synonyms_es": []
+    },
+    {
+      "category": "filters",
+      "en": [
+        "fuel filter"
+      ],
+      "es": "filtro de combustible",
+      "synonyms_es": []
+    },
+    {
+      "category": "fluids",
+      "en": [
+        "motor oil"
+      ],
+      "es": "aceite de motor",
+      "synonyms_es": []
+    },
+    {
+      "category": "fluids",
+      "en": [
+        "coolant"
+      ],
+      "es": "refrigerante",
+      "synonyms_es": []
+    },
+    {
+      "category": "fluids",
+      "en": [
+        "antifreeze"
+      ],
+      "es": "anticongelante",
+      "synonyms_es": []
+    },
+    {
+      "category": "ignition",
+      "en": [
+        "spark plugs"
+      ],
+      "es": "bujías",
+      "synonyms_es": [
+        "bujías de encendido"
+      ]
+    },
+    {
+      "category": "ignition",
+      "en": [
+        "spark plug"
+      ],
+      "es": "bujía",
+      "notes": "Singular; the plural entry covers 'bujías'.",
+      "synonyms_es": []
+    },
+    {
+      "category": "ignition",
+      "en": [
+        "ignition coil"
+      ],
+      "es": "bobina de encendido",
+      "synonyms_es": []
+    },
+    {
+      "category": "electrical",
+      "en": [
+        "car battery"
+      ],
+      "es": "batería",
+      "synonyms_es": []
+    },
+    {
+      "category": "electrical",
+      "en": [
+        "alternator"
+      ],
+      "es": "alternador",
+      "synonyms_es": []
+    },
+    {
+      "category": "electrical",
+      "en": [
+        "starter motor"
+      ],
+      "es": "motor de arranque",
+      "synonyms_es": [
+        "marcha"
+      ]
+    },
+    {
+      "category": "lighting",
+      "en": [
+        "headlight"
+      ],
+      "es": "faro delantero",
+      "synonyms_es": []
+    },
+    {
+      "category": "lighting",
+      "en": [
+        "headlights"
+      ],
+      "es": "faros",
+      "synonyms_es": []
+    },
+    {
+      "category": "lighting",
+      "en": [
+        "tail light"
+      ],
+      "es": "calavera",
+      "notes": "Mexican/regional term for the tail-light assembly.",
+      "synonyms_es": [
+        "luz trasera"
+      ]
+    },
+    {
+      "category": "lighting",
+      "en": [
+        "light bulb"
+      ],
+      "es": "foco",
+      "synonyms_es": []
+    },
+    {
+      "category": "lighting",
+      "en": [
+        "turn signal"
+      ],
+      "es": "direccional",
+      "synonyms_es": []
+    },
+    {
+      "category": "cooling",
+      "en": [
+        "radiator"
+      ],
+      "es": "radiador",
+      "synonyms_es": []
+    },
+    {
+      "category": "cooling",
+      "en": [
+        "water pump"
+      ],
+      "es": "bomba de agua",
+      "synonyms_es": []
+    },
+    {
+      "category": "cooling",
+      "en": [
+        "thermostat"
+      ],
+      "es": "termostato",
+      "synonyms_es": []
+    },
+    {
+      "category": "cooling",
+      "en": [
+        "radiator cap"
+      ],
+      "es": "tapa de radiador",
+      "synonyms_es": []
+    },
+    {
+      "category": "fuel",
+      "en": [
+        "fuel pump"
+      ],
+      "es": "bomba de gasolina",
+      "synonyms_es": []
+    },
+    {
+      "category": "exhaust",
+      "en": [
+        "catalytic converter"
+      ],
+      "es": "catalizador",
+      "synonyms_es": []
+    },
+    {
+      "category": "exhaust",
+      "en": [
+        "muffler"
+      ],
+      "es": "silenciador",
+      "synonyms_es": []
+    },
+    {
+      "category": "exhaust",
+      "en": [
+        "exhaust"
+      ],
+      "es": "escape",
+      "synonyms_es": []
+    },
+    {
+      "category": "belts",
+      "en": [
+        "timing belt"
+      ],
+      "es": "correa de distribución",
+      "synonyms_es": [
+        "correa de tiempo",
+        "faja de distribución"
+      ]
+    },
+    {
+      "category": "belts",
+      "en": [
+        "serpentine belt"
+      ],
+      "es": "correa serpentina",
+      "notes": "'faja' is the Peruvian term for belt.",
+      "synonyms_es": [
+        "correa de accesorios",
+        "faja de accesorios"
+      ]
+    },
+    {
+      "category": "suspension",
+      "en": [
+        "shock absorbers"
+      ],
+      "es": "amortiguadores",
+      "synonyms_es": []
+    },
+    {
+      "category": "suspension",
+      "en": [
+        "shock absorber"
+      ],
+      "es": "amortiguador",
+      "synonyms_es": []
+    },
+    {
+      "category": "suspension",
+      "en": [
+        "control arm"
+      ],
+      "es": "brazo de control",
+      "synonyms_es": []
+    },
+    {
+      "category": "suspension",
+      "en": [
+        "ball joint"
+      ],
+      "es": "rótula",
+      "synonyms_es": []
+    },
+    {
+      "category": "drivetrain",
+      "en": [
+        "wheel bearing"
+      ],
+      "es": "rodamiento de rueda",
+      "synonyms_es": [
+        "balero de rueda"
+      ]
+    },
+    {
+      "category": "drivetrain",
+      "en": [
+        "cv axle"
+      ],
+      "es": "eje homocinético",
+      "synonyms_es": []
+    },
+    {
+      "category": "drivetrain",
+      "en": [
+        "cv joint"
+      ],
+      "es": "junta homocinética",
+      "synonyms_es": []
+    },
+    {
+      "category": "steering",
+      "en": [
+        "tie rod end"
+      ],
+      "es": "terminal de dirección",
+      "synonyms_es": []
+    },
+    {
+      "category": "transmission",
+      "en": [
+        "clutch kit"
+      ],
+      "es": "embrague",
+      "synonyms_es": [
+        "clutch"
+      ]
+    },
+    {
+      "category": "wipers",
+      "en": [
+        "windshield wiper blades"
+      ],
+      "es": "limpiaparabrisas",
+      "synonyms_es": [
+        "plumillas",
+        "escobillas"
+      ]
+    },
+    {
+      "category": "body",
+      "en": [
+        "windshield"
+      ],
+      "es": "parabrisas",
+      "synonyms_es": []
+    },
+    {
+      "category": "body",
+      "en": [
+        "side mirror"
+      ],
+      "es": "espejo lateral",
+      "synonyms_es": []
+    },
+    {
+      "category": "body",
+      "en": [
+        "rearview mirror"
+      ],
+      "es": "espejo retrovisor",
+      "synonyms_es": []
+    },
+    {
+      "category": "body",
+      "en": [
+        "grille"
+      ],
+      "es": "parrilla",
+      "synonyms_es": []
+    },
+    {
+      "category": "wheels",
+      "en": [
+        "tires"
+      ],
+      "es": "llantas",
+      "synonyms_es": [
+        "neumáticos"
+      ]
+    },
+    {
+      "category": "wheels",
+      "en": [
+        "tire"
+      ],
+      "es": "llanta",
+      "synonyms_es": [
+        "neumático"
+      ]
+    },
+    {
+      "category": "sensors",
+      "en": [
+        "oxygen sensor"
+      ],
+      "es": "sensor de oxígeno",
+      "synonyms_es": [
+        "sensor de oxigeno"
+      ]
+    }
+  ]
+}

@@ -30,11 +30,12 @@ export async function handler(event) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "JSON inválido" }) };
   }
 
-  const { orderId, actuals, tax } = body;
-  // Either block alone is a valid call: recording the SUNAT figure is a
-  // separate errand from recording the real courier cost, and often a
-  // different week.
-  if (!orderId || (typeof actuals !== "object" && typeof tax !== "object")) {
+  const { orderId, actuals, tax, express } = body;
+  // Any one block alone is a valid call: recording the SUNAT figure,
+  // the real courier actuals, or the express ("red sticker") flag are
+  // separate errands — often different weeks, sometimes different
+  // operators.
+  if (!orderId || (typeof actuals !== "object" && typeof tax !== "object" && typeof express !== "object")) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Faltan datos" }) };
   }
 
@@ -109,8 +110,47 @@ export async function handler(event) {
       }
     }
 
+    /* ---- EXPRESS FLAG ("red sticker") ------------------------------
+       CHECKOUT CONTRACT (orders-create.js, future): when the checkout
+       toggle ships, orders-create.js must accept and store this same
+       shape at purchase time —
+         order.express = { selected, feeUsd: 8, updatedAt, updatedBy: "checkout" }
+       `selected` is the shopper's choice: "Recibir todo junto" (free,
+       default) vs "Recibir cada paquete ni bien llegue" (+$8).
+       This endpoint is the admin override path: flip the flag or fix the
+       fee after purchase, e.g. a waiver or a mis-tap at checkout.
+       Neither path overwrites the other's fields; creation-time fields
+       stay sacred. */
+    // Strict but forgiving on the fee: selected=true with a missing or
+    // out-of-range fee falls back to the $8 standard and says so in the
+    // response (`feeDefaulted: true`), rather than 400ing an operator's
+    // deliberate act. selected=false carries feeUsd 0 — express not taken
+    // means nothing owed — whatever number arrived with it is discarded.
+    let feeDefaulted = false;
+    if (typeof express === "object" && express) {
+      const selected = Boolean(express.selected);
+      const rawFee = finite(express.feeUsd);
+      let feeUsd;
+      if (!selected) {
+        feeUsd = 0;
+      } else if (rawFee == null || rawFee < 0 || rawFee > 100) {
+        feeUsd = 8;
+        feeDefaulted = true;
+      } else {
+        feeUsd = Math.round(rawFee * 100) / 100;
+      }
+      order.express = {
+        selected,
+        feeUsd,
+        updatedAt: new Date().toISOString(),
+        updatedBy: email,
+      };
+    }
+
     await ordersStore.setJSON(orderId, order);
-    return { statusCode: 200, headers, body: JSON.stringify({ ok: true, taxOwed }) };
+    const response = { ok: true, taxOwed, express: order.express ?? null };
+    if (feeDefaulted) response.feeDefaulted = true;
+    return { statusCode: 200, headers, body: JSON.stringify(response) };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
