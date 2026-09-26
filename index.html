@@ -648,7 +648,23 @@
                            object-fit:cover; object-position:50% 42% }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
-  .ariaRail > *{ scroll-snap-align:start }
+  .ariaRail > *{ scroll-snap-align:start }
+  /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
+     unreadable as brands). Official logo SVGs live in logos/brands/,
+     keyed by brandKeyOf(label). A brand with no sourced logo keeps the
+     text label -- a missing logo is never faked or redrawn. */
+  .brandTile{ display:flex; flex-direction:column; align-items:center; justify-content:center;
+              gap:6px; min-width:132px; max-width:184px; min-height:108px;
+              padding:12px 12px; border-radius:16px; border:1px solid var(--line);
+              background:#fff; flex-shrink:0; text-align:center }
+  .brandTile-logo{ display:flex; align-items:center; justify-content:center; height:38px; width:100% }
+  .brandTile-logo img{ height:38px; width:auto; max-width:148px; object-fit:contain }
+  .brandTile-name{ font-size:12px; font-weight:800; letter-spacing:-0.01em; color:var(--navy);
+                  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100% }
+  .brandTile-count{ font-size:11px; color:#6B7487; font-variant-numeric:tabular-nums }
+  .brandTile--dark{ background:#111318; border-color:#23262e }
+  .brandTile--dark .brandTile-name{ color:#fff }
+  .brandTile--dark .brandTile-count{ color:rgba(255,255,255,.62) }
   /* DESKTOP SHOPFRONT (2026-09-25). The phone's three rails at laptop
      scale: the same cards the same renderers write, in a wider stance,
      so a 1280px window shows five or six deals instead of two. The
@@ -7418,12 +7434,49 @@ function brandStripBrands(){
   }
   return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, BRAND_STRIP_MAX);
 }
+/* BRAND STRIP LOGOS (2026-09-26). Official logo SVGs in logos/brands/,
+   keyed by brandKeyOf(label). `dark: true` tiles get a dark plaque because
+   the brand's official mark is white (Fear of God). A brand with no entry
+   renders the text label -- a missing logo is never faked. */
+const BRAND_LOGOS = {
+  victoriassecret: { src: 'logos/brands/victoriassecret.svg' },
+  pink: { src: 'logos/brands/pink.svg' },
+  nike: { src: 'logos/brands/nike.svg' },
+  rickowens: { src: 'logos/brands/rickowens.svg' },
+  driesvannoten: { src: 'logos/brands/driesvannoten.svg' },
+  thombrowne: { src: 'logos/brands/thombrowne.svg' },
+  carharttworkinprogress: { src: 'logos/brands/carharttworkinprogress.svg' },
+  stoneisland: { src: 'logos/brands/stoneisland.svg' },
+  boss: { src: 'logos/brands/boss.svg' },
+  newbalance: { src: 'logos/brands/newbalance.svg' },
+  wacoal: { src: 'logos/brands/wacoal.svg' },
+  poloralphlauren: { src: 'logos/brands/poloralphlauren.svg' },
+  moncler: { src: 'logos/brands/moncler.svg' },
+  adidas: { src: 'logos/brands/adidas.svg' },
+  bottegaveneta: { src: 'logos/brands/bottegaveneta.svg' },
+  marni: { src: 'logos/brands/marni.svg' },
+  maisonmargiela: { src: 'logos/brands/maisonmargiela.svg' },
+  mm6maisonmargiela: { src: 'logos/brands/maisonmargiela.svg' },
+  isabelmarant: { src: 'logos/brands/isabelmarant.svg' },
+  jilsander: { src: 'logos/brands/jilsander.svg' },
+  levis: { src: 'logos/brands/levis.svg' },
+  acnestudios: { src: 'logos/brands/acnestudios.svg' },
+  amiri: { src: 'logos/brands/amiri.svg' },
+  bali: { src: 'logos/brands/bali.svg' },
+  fearofgodessentials: { src: 'logos/brands/fearofgodessentials.svg', dark: true },
+};
 function brandStripTileHTML(b){
+  const logo = BRAND_LOGOS[b.key];
+  const label = escapeHtml(b.label);
+  const logoHTML = logo
+    ? `<span class="brandTile-logo"><img src="${logo.src}" alt="${label}" loading="lazy" decoding="async"
+         onerror="this.closest('.brandTile-logo').style.display='none'"></span>`
+    : '';
   return `<button type="button" onclick="openCatalog('brand','${jsAttr(b.key)}')" data-brand-strip-item="${escapeHtml(b.key)}"
-    class="flex-shrink-0 rounded-2xl border px-5 py-4 text-left focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]"
-    style="border-color:var(--line); background:#fff">
-    <span class="block text-[15px] font-extrabold tracking-[-0.01em] whitespace-nowrap" style="color:var(--navy)">${escapeHtml(b.label)}</span>
-    <span class="block text-[11px] tabular mt-1" style="color:#6B7487">${b.count} productos</span>
+    class="brandTile${logo && logo.dark ? ' brandTile--dark' : ''} focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]">
+    ${logoHTML}
+    <span class="brandTile-name">${label}</span>
+    <span class="brandTile-count">${b.count} productos</span>
   </button>`;
 }
 async function initBrandStrip(){
