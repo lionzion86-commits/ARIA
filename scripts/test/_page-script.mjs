@@ -641,3 +641,49 @@ export function loadPageCurvyStoreCardsSlice() {
   );
   return sandbox.__exports;
 }
+
+/* THE CART MERGE, on its own. mergeCarts + cartItemKey are pure functions;
+   the slice runs them so the idempotence rule ("reload must never change
+   quantities") is settled by execution, not by reading the code. */
+export function loadPageSizeGuideSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const SIZE_GUIDE_GENERAL = {");
+  const to = html.indexOf("let pendingProduct = null;");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html size-guide markers moved — update scripts/test/_page-script.mjs");
+  }
+  /* The resolver leans on the two gender keyword regexes declared just
+     above standardSizeOptions; pull those single lines in so the slice
+     stays self-contained without dragging the whole size region. */
+  const kidsAt = html.indexOf("const PRODUCT_KIDS_KEYWORDS =");
+  const mensAt = html.indexOf("const PRODUCT_MENS_KEYWORDS =");
+  const kidsLine = html.slice(kidsAt, html.indexOf("\n", kidsAt) + 1);
+  const mensLine = html.slice(mensAt, html.indexOf("\n", mensAt) + 1);
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    kidsLine + mensLine + html.slice(from, to) +
+      "\n;globalThis.__exports = { SIZE_GUIDE_GENERAL, SIZE_GUIDE_BRANDS, resolveSizeGuide, sizeGuideBrandEntry };",
+    sandbox,
+    { filename: "index.html#size-guide" },
+  );
+  return sandbox.__exports;
+}
+
+export function loadPageCartSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const CART_STORAGE_KEY = 'aria_cart_v1';");
+  const endMarker = html.indexOf("CART WEIGHT REPAIR");
+  const to = html.lastIndexOf("/*", endMarker);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html cart markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { cartItemKey, mergeCarts };",
+    sandbox,
+    { filename: "index.html#cart" },
+  );
+  return sandbox.__exports;
+}
