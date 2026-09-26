@@ -147,7 +147,7 @@ export function loadPageSubcategorySlice() {
 }
 
 const QUERY_START = "/** Lowercase, strip accents, collapse whitespace. */";
-const QUERY_END = "function searchFor(q){";
+const QUERY_END = "function searchFor(q, which){";
 
 /** The Spanish→English query table and its lookup, on their own. */
 export function loadPageQuerySlice() {
@@ -612,6 +612,32 @@ export function loadPageStoreRailSlice() {
     html.slice(from, to) + "\n;globalThis.__exports = { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks };",
     sandbox,
     { filename: "index.html#storeRail" },
+  );
+  return sandbox.__exports;
+}
+
+/* CURVY'S STORE CARDS, on their own. curvyStoreCards is written
+   self-contained (pure: byRetailer in, ordered list out) precisely so
+   this slice can run it in a vm. */
+export function loadPageCurvyStoreCardsSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("CURVY_STORE_CARDS:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("CURVY_STORE_CARDS:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html curvy-store-cards markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { CURVY_STORE_LEAD_ORDER, curvyStoreCards };",
+    sandbox,
+    { filename: "index.html#curvyStoreCards" },
   );
   return sandbox.__exports;
 }

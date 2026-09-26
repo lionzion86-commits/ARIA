@@ -1,0 +1,1573 @@
+{
+ "generatedAt": "2026-09-25T23:41:32.105324+00:00",
+ "source": "MHvcxSfb7ntSd0XbM (revolve-scraper, logical_scrapers)",
+ "declaredProductCount": 60,
+ "retailers": {
+  "revolve": {
+   "label": "Revolve",
+   "departments": {
+    "women": {
+     "label": "Mujer",
+     "items": [
+      {
+       "name": "LIONESS Icon Tee",
+       "brand": "LIONESS",
+       "price": 40,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS406_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS406_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS406_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS406_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS406_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-icon-tee-in-porcelain/dp/LIOR-WS406/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Angelic Mini Dress",
+       "brand": "LIONESS",
+       "price": 90,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD245_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD245_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD245_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD245_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-angelic-mini-dress-in-dark-chocolate/dp/LIOR-WD245/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Steve Madden Calico Ballet Flat",
+       "brand": "Steve Madden",
+       "price": 119.95,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SMAD-WZ1626_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SMAD-WZ1626_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SMAD-WZ1626_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SMAD-WZ1626_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SMAD-WZ1626_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SMAD-WZ1626_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/steve-madden-calico-ballet-flat-in-black-leather/dp/SMAD-WZ1626/",
+       "availableSizes": [
+        "5",
+        "5.5",
+        "6",
+        "6.5",
+        "7",
+        "7.5",
+        "8",
+        "8.5",
+        "9",
+        "9.5",
+        "10",
+        "11"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Shoes",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Kravitz Baseball Tee",
+       "brand": "LIONESS",
+       "price": 75,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS336_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS336_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS336_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS336_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS336_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-kravitz-baseball-tee-in-crimson/dp/LIOR-WS336/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "REVOLVE Beauty 2026 Revolve Advent Calendar",
+       "brand": "REVOLVE Beauty",
+       "price": 150,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V6.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V7.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V8.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/RBEA-WU76_V9.jpg"
+       ],
+       "url": "https://www.revolve.com/revolve-beauty-2026-revolve-advent-calendar/dp/RBEA-WU76/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Beauty",
+       "retailer": "revolve"
+      },
+      {
+       "name": "SNDYS Tonya Slip Maxi Dress",
+       "brand": "SNDYS",
+       "price": 119,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD534_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD534_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD534_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD534_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/sndys-tonya-slip-maxi-dress-in-creme/dp/SDYS-WD534/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "AGOLDE 90's Pinch Waist Jeans",
+       "brand": "AGOLDE",
+       "price": 208,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ446_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ446_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ446_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ446_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ446_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/agolde-90s-pinch-waist-jeans-in-range/dp/AGOL-WJ446/",
+       "availableSizes": [
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Jeans",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Esme Halter Top",
+       "brand": "LIONESS",
+       "price": 65,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS364_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS364_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS364_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS364_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS364_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-esme-halter-top-in-dark-olive/dp/LIOR-WS364/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Salomon XT-6  Sneaker",
+       "brand": "Salomon",
+       "price": 185,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ154_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/salomon-xt6-sneaker-in-black-coffee-burro-bitter-chocolate/dp/SOMO-WZ154/",
+       "availableSizes": [
+        "Mens 4 / Womens 5",
+        "Mens 4.5 / Womens 5.5",
+        "Mens 5 / Womens 6",
+        "Mens 5.5 / Womens 6.5",
+        "Mens 6 / Womens 7",
+        "Mens 6.5 / Womens 7.5",
+        "Mens 7 / Womens 8",
+        "Mens 7.5 / Womens 8.5",
+        "Mens 8 / Womens 9",
+        "Mens 8.5 / Womens 9.5",
+        "Mens 9 / Womens 10",
+        "Mens 9.5 / Womens 10.5",
+        "Mens 10 / Womens 11"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Shoes",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Long Nights Duster",
+       "brand": "LIONESS",
+       "price": 110,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO117_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO117_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO117_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO117_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO117_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-long-nights-duster-in-noir/dp/LIOR-WO117/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Outerwear",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Vista Bomber Jacket",
+       "brand": "LIONESS",
+       "price": 129,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO42_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO42_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO42_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO42_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO42_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO42_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-vista-bomber-jacket-in-crimson/dp/LIOR-WO42/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Outerwear",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Marvis Travel Whitening Mint",
+       "brand": "Marvis",
+       "price": 8,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MVIS-WU11_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MVIS-WU11_V1.jpg"
+       ],
+       "url": "https://www.revolve.com/marvis-travel-whitening-mint/dp/MVIS-WU11/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Beauty",
+       "retailer": "revolve"
+      },
+      {
+       "name": "SNDYS Helene Mini Dress",
+       "brand": "SNDYS",
+       "price": 129,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD574_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD574_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD574_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SDYS-WD574_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/sndys-helene-mini-dress-in-butter/dp/SDYS-WD574/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Summer Fridays Sweet Summer Minis",
+       "brand": "Summer Fridays",
+       "price": 22,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V6.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V7.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V8.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V9.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V10.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V11.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU118_V12.jpg"
+       ],
+       "url": "https://www.revolve.com/summer-fridays-sweet-summer-minis/dp/SUMR-WU118/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Beauty",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Clarity Shirt",
+       "brand": "LIONESS",
+       "price": 90,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS412_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS412_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS412_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS412_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS412_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-clarity-shirt-in-slate-plaid/dp/LIOR-WS412/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Luminous Poncho",
+       "brand": "LIONESS",
+       "price": 55,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WK46_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WK46_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WK46_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WK46_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WK46_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WK46_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-luminous-poncho-in-milk/dp/LIOR-WK46/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Sweaters & Knits",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Gabriella Cutout Mini Dress",
+       "brand": "MORE TO COME",
+       "price": 88,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1255_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1255_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1255_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1255_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1255_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1255_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-gabriella-cutout-mini-dress-in-dark-olive/dp/MOTO-WD1255/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Adelaide Mini Dress",
+       "brand": "MORE TO COME",
+       "price": 110,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD909_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD909_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD909_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD909_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD909_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-adelaide-mini-dress-in-gold/dp/MOTO-WD909/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Salomon XT-6  GTX Sneaker",
+       "brand": "Salomon",
+       "price": 200,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ150_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/salomon-xt6-gtx-sneaker-in-black-icy-pink-dawn-pink/dp/SOMO-WZ150/",
+       "availableSizes": [
+        "Mens 4 / Womens 5",
+        "Mens 4.5 / Womens 5.5",
+        "Mens 5 / Womens 6",
+        "Mens 5.5 / Womens 6.5",
+        "Mens 6 / Womens 7",
+        "Mens 6.5 / Womens 7.5",
+        "Mens 7 / Womens 8",
+        "Mens 7.5 / Womens 8.5",
+        "Mens 8 / Womens 9",
+        "Mens 8.5 / Womens 9.5",
+        "Mens 9 / Womens 10",
+        "Mens 9.5 / Womens 10.5",
+        "Mens 10 / Womens 11"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Shoes",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Essential Windbreaker",
+       "brand": "LIONESS",
+       "price": 110,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO130_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO130_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO130_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO130_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO130_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WO130_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-essential-windbreaker-in-beige/dp/LIOR-WO130/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Outerwear",
+       "retailer": "revolve"
+      },
+      {
+       "name": "SKIMS Cotton 5\" Boxer Brief 3-Pack",
+       "brand": "SKIMS",
+       "price": 48,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI4_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI4_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI4_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI4_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/skims-cotton-5-boxer-brief-3pack-in-onyx/dp/SKMF-MI4/",
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL/1X",
+        "XXL/2X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Intimates",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Schott Ribbed Wool Crewneck Sweater",
+       "brand": "Schott",
+       "price": 110,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SCHF-MK1_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SCHF-MK1_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SCHF-MK1_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SCHF-MK1_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SCHF-MK1_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/schott-ribbed-wool-crewneck-sweater-in-black/dp/SCHF-MK1/",
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Sweaters & Knits",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Nike Zoom Vomero Roam",
+       "brand": "Nike",
+       "price": 180,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/NIKR-MZ776_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/nike-zoom-vomero-roam-in-black-racer-blue/dp/NIKR-MZ776/",
+       "availableSizes": [
+        "6",
+        "6.5",
+        "7",
+        "7.5",
+        "8",
+        "8.5",
+        "9",
+        "9.5",
+        "10",
+        "10.5",
+        "11",
+        "11.5",
+        "12",
+        "13"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Shoes",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Calvin Klein Washed Corduroy Trucker Jacket",
+       "brand": "Calvin Klein",
+       "price": 189,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/CALK-MO48W_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/CALK-MO48W_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/CALK-MO48W_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/CALK-MO48W_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/CALK-MO48W_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/CALK-MO48W_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/calvin-klein-washed-corduroy-trucker-jacket-in-pageant-blue/dp/CALK-MO48/",
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL/1X",
+        "XXL/2X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Outerwear",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Junk Food Rams Baseball Jersey",
+       "brand": "Junk Food",
+       "price": 88,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/JUNK-MS261W_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/JUNK-MS261W_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/JUNK-MS261W_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/JUNK-MS261W_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/JUNK-MS261W_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/junk-food-rams-baseball-jersey-in-vintage-black/dp/JUNK-MS261/",
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL/1X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "SKIMS Cotton 5\" Boxer Brief 3-Pack",
+       "brand": "SKIMS",
+       "price": 48,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI5_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI5_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI5_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MI5_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/skims-cotton-5-boxer-brief-3pack-in-heather-multi/dp/SKMF-MI5/",
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL/1X",
+        "XXL/2X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Intimates",
+       "retailer": "revolve"
+      },
+      {
+       "name": "SKIMS Cotton Rib Tank 3-Pack",
+       "brand": "SKIMS",
+       "price": 68,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SKMF-MS1_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MS1_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MS1_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MS1_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MS1_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SKMF-MS1_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/skims-cotton-rib-tank-3pack-in-chalk/dp/SKMF-MS1/",
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL/1X",
+        "XXL/2X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "TOM FORD Renee Sunglasses",
+       "brand": "TOM FORD",
+       "price": 465,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/TFOF-WA15_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/TFOF-WA15_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TFOF-WA15_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TFOF-WA15_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/tom-ford-renee-sunglasses-in-shiny-black-gradient-smoke-lens/dp/TFOF-WA15/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Eyewear",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Tommy Jeans Striped Rugby",
+       "brand": "Tommy Jeans",
+       "price": 119,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/TJEA-MS63_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/TJEA-MS63_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TJEA-MS63_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TJEA-MS63_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TJEA-MS63_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TJEA-MS63_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/tommy-jeans-striped-rugby-in-calypso-berry-stripe/dp/TJEA-MS63/",
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL/1X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "The Forecast Agency Peanuts Athletic Tee",
+       "brand": "The Forecast Agency",
+       "price": 48,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/TNCR-MS11W_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/TNCR-MS11W_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TNCR-MS11W_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TNCR-MS11W_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/TNCR-MS11W_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/the-forecast-agency-peanuts-athletic-tee-in-ivory/dp/TNCR-MS11/",
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL/1X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Owala 24-oz. Stainless Steel Freesip",
+       "brand": "Owala",
+       "price": 30,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/OWAR-WH1_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/OWAR-WH1_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/OWAR-WH1_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/OWAR-WH1_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/owala-24oz-stainless-steel-freesip-in-very-very-dark/dp/OWAR-WH1/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Home",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Shoreline Midi Skirt",
+       "brand": "LIONESS",
+       "price": 65,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WQ106_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-shoreline-midi-skirt-in-persian-jewel/dp/LIOR-WQ106/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Skirts",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Lemme Relax Magnesium Soft Chews",
+       "brand": "Lemme",
+       "price": 30,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LMME-WU26_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LMME-WU26_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LMME-WU26_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LMME-WU26_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/lemme-relax-magnesium-soft-chews/dp/LMME-WU26/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Beauty",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Femme Blouse",
+       "brand": "LIONESS",
+       "price": 53,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS326_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS326_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS326_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS326_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS326_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-femme-blouse-in-navy-lemon-plaid/dp/LIOR-WS326/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Bare Cami",
+       "brand": "LIONESS",
+       "price": 55,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS387_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS387_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS387_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS387_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS387_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-bare-cami-in-noir/dp/LIOR-WS387/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Kimmie Mini Dress",
+       "brand": "MORE TO COME",
+       "price": 96,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1222_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1222_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1222_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1222_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1222_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-kimmie-mini-dress-in-black/dp/MOTO-WD1222/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "8 Other Reasons Belt",
+       "brand": "8 Other Reasons",
+       "price": 43,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/8OTH-WA396_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/8OTH-WA396_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/8OTH-WA396_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/8OTH-WA396_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/8-other-reasons-belt-in-brown/dp/8OTH-WA396/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Accessories",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Superdown Saanvi Mini Dress",
+       "brand": "Superdown",
+       "price": 88,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3210_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3210_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3210_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3210_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/superdown-saanvi-mini-dress-in-zebra-print/dp/SPDW-WD3210/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Summer Fridays Jet Lag Eye Patches 6-Pack",
+       "brand": "Summer Fridays",
+       "price": 24,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V6.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V7.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SUMR-WU74_V8.jpg"
+       ],
+       "url": "https://www.revolve.com/summer-fridays-jet-lag-eye-patches-6pack/dp/SUMR-WU74/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Beauty",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Superdown Radford Mini Dress",
+       "brand": "Superdown",
+       "price": 92,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3366_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3366_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3366_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3366_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3366_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/superdown-radford-mini-dress-in-black/dp/SPDW-WD3366/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Kai Mini Dress",
+       "brand": "MORE TO COME",
+       "price": 88,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD933_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD933_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD933_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD933_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD933_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD933_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-kai-mini-dress-in-baby-pink/dp/MOTO-WD933/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Genesis Pant",
+       "brand": "LIONESS",
+       "price": 69,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WP83_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-genesis-pant-in-noir/dp/LIOR-WP83/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Pants",
+       "retailer": "revolve"
+      },
+      {
+       "name": "AGOLDE Riley High Rise Straight Crop Jeans",
+       "brand": "AGOLDE",
+       "price": 208,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ232_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ232_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ232_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ232_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AGOL-WJ232_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/agolde-riley-high-rise-straight-crop-jeans-in-frequency/dp/AGOL-WJ232/",
+       "availableSizes": [
+        "23",
+        "24",
+        "25",
+        "26",
+        "27",
+        "28",
+        "29",
+        "30",
+        "31",
+        "32",
+        "33",
+        "34"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Jeans",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Apex Tee",
+       "brand": "LIONESS",
+       "price": 40,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS366_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS366_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS366_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS366_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS366_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-apex-tee-in-vintage-stripe/dp/LIOR-WS366/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Superdown Akosia Mini Dress",
+       "brand": "Superdown",
+       "price": 78,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3232_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3232_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3232_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3232_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/superdown-akosia-mini-dress-in-black/dp/SPDW-WD3232/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Salomon XT-Pathway 2 Sneaker",
+       "brand": "Salomon",
+       "price": 130,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ151_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/salomon-xtpathway-2-sneaker-in-white-black-ftw-silver/dp/SOMO-WZ151/",
+       "availableSizes": [
+        "Mens 4 / Womens 5",
+        "Mens 4.5 / Womens 5.5",
+        "Mens 5 / Womens 6",
+        "Mens 5.5 / Womens 6.5",
+        "Mens 6 / Womens 7",
+        "Mens 6.5 / Womens 7.5",
+        "Mens 7 / Womens 8",
+        "Mens 7.5 / Womens 8.5",
+        "Mens 8 / Womens 9",
+        "Mens 8.5 / Womens 9.5",
+        "Mens 9 / Womens 10",
+        "Mens 9.5 / Womens 10.5",
+        "Mens 10 / Womens 11"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Shoes",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Bethanie Midi Skirt",
+       "brand": "MORE TO COME",
+       "price": 72,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WQ199_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-bethanie-midi-skirt-in-olive/dp/MOTO-WQ199/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Skirts",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Salomon XT-Whisper Sneaker",
+       "brand": "Salomon",
+       "price": 145,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SOMO-WZ153_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/salomon-xtwhisper-sneaker-in-black-almond-milk-ftw-silver/dp/SOMO-WZ153/",
+       "availableSizes": [
+        "Mens 4 / Womens 5",
+        "Mens 4.5 / Womens 5.5",
+        "Mens 5 / Womens 6",
+        "Mens 5.5 / Womens 6.5",
+        "Mens 6 / Womens 7",
+        "Mens 6.5 / Womens 7.5",
+        "Mens 7 / Womens 8",
+        "Mens 7.5 / Womens 8.5",
+        "Mens 8 / Womens 9",
+        "Mens 8.5 / Womens 9.5",
+        "Mens 9 / Womens 10",
+        "Mens 9.5 / Womens 10.5",
+        "Mens 10 / Womens 11"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Shoes",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Bethanie Cami Top",
+       "brand": "MORE TO COME",
+       "price": 60,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WS582_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WS582_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WS582_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WS582_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WS582_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WS582_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-bethanie-cami-top-in-olive/dp/MOTO-WS582/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Superdown Emilijiah Maxi Dress",
+       "brand": "Superdown",
+       "price": 76,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3057_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3057_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3057_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3057_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3057_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/superdown-emilijiah-maxi-dress-in-black/dp/SPDW-WD3057/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Cheri Long Sleeve Top",
+       "brand": "LIONESS",
+       "price": 75,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V5.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS308_V6.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-cheri-long-sleeve-top-in-cream-noir-stripe/dp/LIOR-WS308/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Stars Align Midi Dress",
+       "brand": "LIONESS",
+       "price": 100,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD229_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD229_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD229_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD229_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WD229_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-stars-align-midi-dress-in-honey-check/dp/LIOR-WD229/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Superdown Niomie Capri Jumpsuit",
+       "brand": "Superdown",
+       "price": 78,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SPDW-WC254_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WC254_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WC254_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WC254_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/superdown-niomie-capri-jumpsuit-in-black/dp/SPDW-WC254/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Jumpsuits",
+       "retailer": "revolve"
+      },
+      {
+       "name": "AFRM Harris Bodysuit",
+       "brand": "AFRM",
+       "price": 68,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/AFFM-WS543_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/AFFM-WS543_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AFFM-WS543_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AFFM-WS543_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AFFM-WS543_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/AFFM-WS543_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/afrm-harris-bodysuit-in-multi-blur-rose/dp/AFFM-WS543/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL",
+        "1X"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Kamilia Halter Mini Dress",
+       "brand": "MORE TO COME",
+       "price": 76,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1022_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1022_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1022_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1022_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1022_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-kamilia-halter-mini-dress-in-black-gingham/dp/MOTO-WD1022/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "MORE TO COME Rosa Strapless Mini Dress",
+       "brand": "MORE TO COME",
+       "price": 86,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1232_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1232_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1232_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/MOTO-WD1232_V3.jpg"
+       ],
+       "url": "https://www.revolve.com/more-to-come-rosa-strapless-mini-dress-in-pink/dp/MOTO-WD1232/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Free People Blush Hour Tee",
+       "brand": "Free People",
+       "price": 48,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/FREE-WS5774_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/FREE-WS5774_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/FREE-WS5774_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/FREE-WS5774_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/FREE-WS5774_V4.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/FREE-WS5774_V5.jpg"
+       ],
+       "url": "https://www.revolve.com/free-people-blush-hour-tee-in-clean-ivory/dp/FREE-WS5774/",
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Owala 32-oz. Stainless Steel Freesip",
+       "brand": "Owala",
+       "price": 35,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/OWAR-WH12_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/OWAR-WH12_V1.jpg"
+       ],
+       "url": "https://www.revolve.com/owala-32oz-stainless-steel-freesip-in-shy-marshmallow/dp/OWAR-WH12/",
+       "availableSizes": [],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Home",
+       "retailer": "revolve"
+      },
+      {
+       "name": "LIONESS Bronx Long Sleeve Top",
+       "brand": "LIONESS",
+       "price": 65,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS347_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS347_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS347_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS347_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/LIOR-WS347_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/lioness-bronx-long-sleeve-top-in-sky-blue/dp/LIOR-WS347/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL",
+        "XXL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Tops",
+       "retailer": "revolve"
+      },
+      {
+       "name": "Superdown Assa Mini Dress",
+       "brand": "Superdown",
+       "price": 66,
+       "image": "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3049_V1.jpg",
+       "images": [
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3049_V1.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3049_V2.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3049_V3.jpg",
+        "https://is4.revolveassets.com/images/p4/n/z/SPDW-WD3049_V4.jpg"
+       ],
+       "url": "https://www.revolve.com/superdown-assa-mini-dress-in-brown/dp/SPDW-WD3049/",
+       "availableSizes": [
+        "XXS",
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
+       "weightKg": 0.5,
+       "weightEstimated": true,
+       "type": "Dresses",
+       "retailer": "revolve"
+      }
+     ]
+    }
+   },
+   "brands": {
+    "LIONESS": 17,
+    "Steve Madden": 1,
+    "REVOLVE Beauty": 1,
+    "SNDYS": 2,
+    "AGOLDE": 2,
+    "Salomon": 4,
+    "Marvis": 1,
+    "Summer Fridays": 2,
+    "MORE TO COME": 8,
+    "SKIMS": 3,
+    "Schott": 1,
+    "Nike": 1,
+    "Calvin Klein": 1,
+    "Junk Food": 1,
+    "TOM FORD": 1,
+    "Tommy Jeans": 1,
+    "The Forecast Agency": 1,
+    "Owala": 2,
+    "Lemme": 1,
+    "8 Other Reasons": 1,
+    "Superdown": 6,
+    "AFRM": 1,
+    "Free People": 1
+   }
+  }
+ }
+}

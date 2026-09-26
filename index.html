@@ -275,7 +275,38 @@
                    rgba(4,12,28,0.72) 0%,
                    rgba(4,12,28,0.80) 46%,
                    rgba(4,12,28,0.93) 100%) }
-  #whyUs > .relative{ position:relative; z-index:2 }
+    /* STORY TEASER SCRIM -- LIGHTER (2026-09-25, Danny's iPhone QA, pass 2):
+     the standard 0.72->0.93 scrim above crushed the teaser text on his
+     phone ("can't see the words"). The teaser gets its OWN scrim: much
+     lighter and bottom-weighted, so the girl shows through and the
+     white type does the work against the dark night photo. The standard
+     scrim stays exactly as it is -- its contrast math is documented
+     above and still stands for #whyUs. */
+  .ariaStoryScrim{ position:absolute; inset:0; z-index:1; pointer-events:none;
+                   background:linear-gradient(180deg,
+                     rgba(4,12,28,0.32) 0%,
+                     rgba(4,12,28,0.42) 45%,
+                     rgba(4,12,28,0.60) 100%) }
+  /* POP PASS (2026-09-25, Danny's iPhone QA pass 3): the photo brightness
+     is settled -- he likes it. The letters do the work now. Layered
+     text-shadow so every letter lifts off the night photo; gold elements
+     get a warm gold-tinted glow of their own. Scrim stays light -- the
+     suite pins .ariaStoryScrim stops <= 0.40/0.65, so pop comes from the
+     type, never from darkening the scrim. (Manrope tops out at 800 in our
+     font bundle, so the headline keeps font-extrabold and gets its pop
+     from size + shadow instead of a 900 weight.) */
+  .ariaStoryTeaser{ position:relative; z-index:2;
+                   text-shadow:0 2px 12px rgba(0,0,0,.65), 0 0 2px rgba(0,0,0,.8) }
+  /* CLICK FIX (2026-09-25, Danny's iPhone QA): the scrim's z-index:1 sat above the
+     z-index:auto content and swallowed every tap on 'Lee la historia completa ->'.
+     The scrim is pointer-events:none now and the content rides at z-index:2. */
+  /* BODY BRIGHTNESS NUDGE (2026-09-25): the body paragraph read a touch dark next
+     to the headline -- the inherited dark halo was doing it. Soften the halo on
+     the paragraph only; headline, kicker, quote and photo stay exactly as they are. */
+  .ariaStoryTeaser p{ text-shadow:0 1px 8px rgba(0,0,0,.45) }
+  .ariaStoryTeaser .ariaKicker{ font-size:12.5px;
+     text-shadow:0 0 14px rgba(244,196,99,.55), 0 1px 6px rgba(0,0,0,.7) }
+#whyUs > .relative{ position:relative; z-index:2 }
   /* Glass, not a white box: the photograph stays visible THROUGH the
      promise rather than being covered by it. The border is what keeps
      the edge readable where the backdrop-filter is unsupported. */
@@ -951,27 +982,7 @@
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
 
-  <!-- ============================================================
-       HERO. First thing on the page at every width, above the mobile
-       shopfront. NOTE FOR REVIEW: that puts it above the Ofertas rail on
-       a phone, which changes the running order set on 2026-09-23
-       (Ofertas -> Categorías -> Tiendas -> logo -> explainer -> tiles).
-       The brief asked for a hero "at the top of the homepage"; if the
-       rail should stay first on a phone, this section moves below it and
-       nothing else changes.
-
-       Every word here is HTML -- nothing is baked into the photograph.
-       ============================================================ -->
-  <section class="ariaHero" aria-label="Todo USA ahora en Lima">
-    <img src="assets/hero/flatlay-hero.jpg" alt="" aria-hidden="true" class="ariaHeroPhoto"
-         decoding="async" fetchpriority="high" onerror="this.remove()">
-    <div class="ariaHeroScrim" aria-hidden="true"></div>
-    <div class="ariaHeroInner">
-      <h1 class="ariaHeroTitle">Todo USA ahora en Lima.</h1>
-      <p class="ariaHeroSub">ARIA te lo trae.</p>
-      <button onclick="goSales()" class="ariaHeroCta focus-ring">Ver ofertas</button>
-    </div>
-  </section>
+  
 
   <!-- ============================================================
        THE MOBILE SHOPFRONT (2026-09-23)
@@ -1025,6 +1036,60 @@
       </div>
       <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+
+  <!-- ============================================================
+       BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
+       "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
+       search sit directly under the Ofertas rail -- deals first because
+       that is what stops the scroll, then the brand the moment they
+       look up. The six store rails follow; the photo hero moved below
+       the rails. One copy per breakpoint (mobile/desktop), same as the
+       rails themselves; the desktop copy reads searchInputD.
+       ============================================================ -->
+  <div class="relative overflow-hidden" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
+      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
+      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
+      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">EE. UU.</text>
+      <g transform="translate(1120 130) rotate(24)">
+        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
+    </svg>
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
+      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
+      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
+      </h1>
+      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de EE. UU., y te mostramos un solo total ya puesto en tu puerta.
+      </p>
+
+      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
+        <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          style="border-color:var(--line)">
+        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px] lg:hidden">
+        <span style="color:#8FA3D6">Prueba con:</span>
+        <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
+        <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
+        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
+             promise that the search behind it returns something, and the
+             one thing this one could still reach is the live scrape at
+             the aisle we are not allowed to import from. "Toallas" keeps
+             what the row was for -- a third department, and the only
+             Spanish example, so the chips also show that the search
+             understands Spanish. Verified: translateQuery gives "towel"
+             and the catalogue holds 21 of them. -->
+        <button onclick="searchFor('Toallas')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
+      </div>
+    </div>
+  </div>
 
 
 
@@ -1120,6 +1185,18 @@
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
+    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
+         that is not one of the six featured rails, as one swipeable logo strip.
+         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
+         newly registered store appears here with no markup change. -->
+    <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
+      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
+        <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas las tiendas &#8594;</button>
+      </div>
+      <div id="mOtherStoresRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
+
     <!-- CATEGORÍAS -->
     <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -1166,6 +1243,60 @@
         <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
+
+  <!-- ============================================================
+       BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
+       "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
+       search sit directly under the Ofertas rail -- deals first because
+       that is what stops the scroll, then the brand the moment they
+       look up. The six store rails follow; the photo hero moved below
+       the rails. One copy per breakpoint (mobile/desktop), same as the
+       rails themselves; the desktop copy reads searchInputD.
+       ============================================================ -->
+  <div class="relative overflow-hidden" aria-label="Compra en Estados Unidos" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
+      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
+      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
+      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">EE. UU.</text>
+      <g transform="translate(1120 130) rotate(24)">
+        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
+    </svg>
+    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
+      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
+      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
+        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
+      </h1>
+      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
+        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de EE. UU., y te mostramos un solo total ya puesto en tu puerta.
+      </p>
+
+      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
+        <input id="searchInputD" onkeydown="if(event.key==='Enter')doSearch('d')" placeholder="¿Qué estás buscando hoy?"
+          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
+          style="border-color:var(--line)">
+        <button onclick="doSearch('d')" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+      </div>
+
+      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
+        <span style="color:#8FA3D6">Prueba con:</span>
+        <button onclick=\"searchFor('MacBook Air','d')\" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
+        <button onclick=\"searchFor('Nike Air Force','d')\" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
+        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
+             promise that the search behind it returns something, and the
+             one thing this one could still reach is the live scrape at
+             the aisle we are not allowed to import from. "Toallas" keeps
+             what the row was for -- a third department, and the only
+             Spanish example, so the chips also show that the search
+             understands Spanish. Verified: translateQuery gives "towel"
+             and the catalogue holds 21 of them. -->
+        <button onclick=\"searchFor('Toallas','d')\" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
+      </div>
+    </div>
+  </div>
 
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
     <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
@@ -1266,6 +1397,18 @@
     </section>
 
 
+    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
+         mall directory between the six featured rails and Categorías. -->
+    <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
+          <button onclick="showPage('storesView')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas las tiendas &#8594;</button>
+        </div>
+        <div id="dOtherStoresRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
     <!-- CATEGORIAS -->
     <section aria-label="Categorías" style="background:#fff">
       <div class="max-w-[1240px] mx-auto">
@@ -1278,52 +1421,7 @@
     </section>
   </div>
 
-  <div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
-    <svg class="absolute inset-0 w-full h-full pointer-events-none hidden md:block" viewBox="0 0 1240 420" preserveAspectRatio="xMidYMin slice" style="opacity:.35">
-      <path d="M120 90 C 420 30, 820 30, 1120 130" fill="none" stroke="#3E5FB8" stroke-width="2" stroke-dasharray="1 10" stroke-linecap="round"/>
-      <circle cx="120" cy="90" r="5" fill="#7FB8FF"/>
-      <text x="120" y="70" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">EE. UU.</text>
-      <g transform="translate(1120 130) rotate(24)">
-        <path d="M-11 0 L11 0 L4 -6 L-2 -6 Z M0 0 L0 9" stroke="#7FB8FF" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-      </g>
-      <text x="1120" y="112" font-family="Manrope" font-size="12" font-weight="800" fill="#DCE6FF" text-anchor="middle">Perú</text>
-    </svg>
-    <div class="relative max-w-[820px] mx-auto px-5 pt-14 pb-12 lg:pt-8 lg:pb-8 text-center">
-      <span class="relative inline-block mb-6 lg:mb-3"><img src="aria-full-logo.png" alt="Aria Shop™" class="mx-auto w-[220px] sm:w-[260px] lg:w-[150px] h-auto object-contain"><span aria-hidden="true" class="absolute top-1 right-2 text-[11px] font-bold" style="color:#DCE6FF">™</span></span>
-      <h1 class="text-[38px] sm:text-[50px] lg:text-[30px] font-extrabold tracking-[-0.04em] leading-[1.03]" style="color:#fff">
-        Compra en Estados Unidos.<br><span style="color:#7FB8FF">Te lo llevamos a Perú.</span>
-      </h1>
-      <p class="text-[15px] lg:text-[13.5px] leading-relaxed mt-4 lg:mt-3 max-w-[52ch] mx-auto" style="color:#B9C6E8">
-        Busca cualquier producto, comparamos precio, envío y aranceles en varias tiendas de EE. UU., y te mostramos un solo total ya puesto en tu puerta.
-      </p>
-
-      <div class="mt-8 lg:mt-5 relative max-w-[560px] lg:max-w-[480px] mx-auto">
-        <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
-          class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
-          style="border-color:var(--line)">
-        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
-      </div>
-
-      <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px] lg:hidden">
-        <span style="color:#8FA3D6">Prueba con:</span>
-        <button onclick="searchFor('MacBook Air')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
-        <button onclick="searchFor('Nike Air Force')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
-        <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
-             promise that the search behind it returns something, and the
-             one thing this one could still reach is the live scrape at
-             the aisle we are not allowed to import from. "Toallas" keeps
-             what the row was for -- a third department, and the only
-             Spanish example, so the chips also show that the search
-             understands Spanish. Verified: translateQuery gives "towel"
-             and the catalogue holds 21 of them. -->
-        <button onclick="searchFor('Toallas')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- ============================================================
+<!-- ============================================================
        ORDER ON THE HOME PAGE (2026-09-23)
 
        The phone used to read: Ofertas -> Categorías (the compact
@@ -1333,10 +1431,11 @@
        met the categories AGAIN -- the same list twice, with the story
        wedged between the two halves of it.
 
-       The tiles were not deleted; they were moved. The explainer now
-       follows the logo it belongs to, and the tiles come after it, so
-       the run is: what is on sale -> what we sell -> who sells it ->
-       who we are -> browse it properly. Nothing above this changed.
+       (2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo,
+       "Compra en Estados Unidos / Te lo llevamos a Perú", search --
+       moved directly under the Ofertas rail in both shopfronts, and the
+       photo hero moved below the rails. The run is now: what is on
+       sale -> who we are -> the six store rails -> departments.)
 
        DESKTOP ORDER (2026-09-25, Danny): the laptop now opens on its
        own shopfront -- #desktopShopfront, right after the hero --
@@ -1367,6 +1466,23 @@
        thinnest part; over a pure-white photo pixel it still leaves
        white text above 4.5:1. Measured in the browser check.
        ============================================================ -->
+  <!-- ============================================================
+       PHOTO HERO, RELOCATED (2026-09-25, DANNY'S HOMEPAGE ORDER): it used
+       to open the page above the shopfront; Danny wants the deals rail
+       to be the first thing a shopper sees, with the brand band right
+       under it. The hero keeps its copy and CTA and now lands here, a
+       brand beat between the rails and "¿Por qué comprar con Aria?".
+       ============================================================ -->
+  <section class="ariaHero" aria-label="Todo USA ahora en Lima">
+    <img src="assets/hero/flatlay-hero.jpg" alt="" aria-hidden="true" class="ariaHeroPhoto"
+         decoding="async" fetchpriority="high" onerror="this.remove()">
+    <div class="ariaHeroScrim" aria-hidden="true"></div>
+    <div class="ariaHeroInner">
+      <h1 class="ariaHeroTitle">Todo USA ahora en Lima.</h1>
+      <p class="ariaHeroSub">ARIA te lo trae.</p>
+      <button onclick="goSales()" class="ariaHeroCta focus-ring">Ver ofertas</button>
+    </div>
+  </section>
   <div id="whyUs" class="relative overflow-hidden">
     <img src="assets/portal-girl-bg.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
       decoding="async" onerror="this.remove()">
@@ -1481,25 +1597,53 @@
            WORD FOR WORD FROM #aboutView, deliberately. The full page is
            still there and still the canonical telling; this is its first
            lines, so the two cannot come to say different things about
-           where the name came from. -->
-      <div>
-        <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
-          <div>
-            <div class="ariaKicker ariaKicker--onLight mb-3">La historia</div>
-            <h3 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:var(--navy)">
-              Aria lleva el nombre de mi hija.
-            </h3>
-          </div>
-          <div class="max-w-[62ch]">
-            <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4" style="color:#3D4759">
-              Nació como una promesa: que ningún peruano vuelva a pagar de más
-              — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
-              compra en una tienda en Estados Unidos.
-            </p>
-            <blockquote class="ariaPullQuote text-[17px] sm:text-[19px] my-5" style="color:var(--navy)">
-              que el precio que ves sea el precio que pagas.
-            </blockquote>
-            <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:var(--blue)">Lee la historia completa →</button>
+           where the name came from.
+           AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper
+           treatment ("looks like PowerPoint" between the two navy blocks).
+           The teaser below now rides the balcony-night photograph under
+           the standard navy scrim with white/gold type -- the collision
+           this comment guarded against stays guarded: no dark type ever
+           sits on the dark scrim. -->
+      <!-- STORY TEASER ON THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA):
+           the paper teaser sitting between two navy blocks read "like
+           PowerPoint". It now rides the approved balcony-night photograph
+           (the girl with the Aria box -- same file as the full story page)
+           under the standard navy scrim, white type. Copy stays WORD FOR
+           WORD from #aboutView; only the treatment changed. All type on
+           the photograph is white/gold -- never navy-on-dark.
+           AMENDMENT 2026-09-25 pass 2: Danny's iPhone QA found the standard
+           0.72->0.93 scrim crushed the text ("can't see the words"). The
+           teaser now rides its OWN lighter bottom-weighted scrim
+           (.ariaStoryScrim, 0.32->0.60) with pure-white type plus a soft
+           text shadow; #whyUs above keeps the standard scrim. Copy still
+           WORD FOR WORD.
+           AMENDMENT 2026-09-25 pass 3: photo brightness is settled (Danny
+           likes it); the LETTERS got the pop -- layered glow text-shadow,
+           larger headline, semibold body, gold glow on kicker and link,
+           pull quote bumped. Scrim untouched. -->
+      <div class="relative overflow-hidden rounded-3xl">
+        <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
+             style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
+        <div class="ariaStoryScrim" aria-hidden="true"></div>
+        <div class="relative px-5 sm:px-8 py-12 sm:py-16 ariaStoryTeaser">
+          <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
+            <div>
+              <div class="ariaKicker mb-3">La historia</div>
+              <h3 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:#fff">
+                Aria lleva el nombre de mi hija.
+              </h3>
+            </div>
+            <div class="max-w-[62ch]">
+              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4 font-semibold" style="color:#fff">
+                Nació como una promesa: que ningún peruano vuelva a pagar de más
+                — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
+                compra en una tienda en Estados Unidos.
+              </p>
+              <blockquote class="ariaPullQuote text-[18px] sm:text-[20px] my-5" style="color:#fff">
+                que el precio que ves sea el precio que pagas.
+              </blockquote>
+              <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:#F4C463; text-shadow:0 0 12px rgba(244,196,99,.5), 0 1px 4px rgba(0,0,0,.7)">Lee la historia completa →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -4445,7 +4589,7 @@ function loadDepartmentCache(){
        Danny — no separate section. Both files bucket everything under
        sporting_goods so the department picks it up with no other change;
        the aisle split below is what keeps skate, surf and fitness apart. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json'];
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json'];
     const files = CATALOGUE_FILES.map(url => fetch(url)
       .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
       .then(normalizeCatalogueEnvelope)
@@ -5151,6 +5295,30 @@ function extendedSizesOf(item){
 }
 
 function hasExtendedSizes(item){ return extendedSizesOf(item).length > 0; }
+/* CURVY STORE CARDS (2026-09-25, Danny): the department opens with one wide
+   card per store that carries extended sizes -- Lane Bryant first (the
+   plus-size destination), then Old Navy, then Victoria's Secret, then the
+   rest by product count. CURVY_STORE_CARDS:SLICE-START
+
+   DERIVED FROM THE FEED, NEVER HARDCODED: the input is the catalog view's
+   own byRetailer map -- stores whose Curvy items the filters already
+   approved -- so a future catalog pull adds its card the moment its
+   products pass hasExtendedSizes, with no code change. A store with no
+   extended-size inventory gets no card, which is the honest state, not a
+   dead storefront. */
+const CURVY_STORE_LEAD_ORDER = ['lanebryant', 'oldnavy', 'victoriassecret'];
+function curvyStoreCards(byRetailer){
+  const leadRank = new Map(CURVY_STORE_LEAD_ORDER.map((k, i) => [k, i]));
+  return Array.from(byRetailer.entries())
+    .filter(([, items]) => Array.isArray(items) && items.length > 0)
+    .map(([key, items]) => ({ key, count: items.length }))
+    .sort((a, b) => {
+      const ra = leadRank.has(a.key) ? leadRank.get(a.key) : 1e9;
+      const rb = leadRank.has(b.key) ? leadRank.get(b.key) : 1e9;
+      return (ra - rb) || (b.count - a.count) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+    });
+}
+/* CURVY_STORE_CARDS:SLICE-END */
 
 /* Biggest first, and printed the way a label prints it: a shopper
    scanning for "3X" should find it without translating our formatting. */
@@ -7249,6 +7417,40 @@ function catalogStoreChipsHTML(){
   </div>`;
 }
 
+/* The wide store cards that head Curvy (2026-09-25, Danny): one long
+   landscape card per store carrying extended sizes, led by Lane Bryant.
+   They drive the SAME filter the chips use -- setCatalogStore -- so card
+   and chip row always agree about what the grid shows; tapping the active
+   card clears back to all stores. */
+function curvyStoreCardsHTML(){
+  const { retailerFilter, byRetailer } = catalogState;
+  const stores = curvyStoreCards(byRetailer);
+  if (!stores.length) return '';
+  const card = ({ key, count }) => {
+    const r = retailerFor(key);
+    const label = r ? r.label : (LIVE_RETAILER_LABEL[key] || key);
+    const active = retailerFilter === key;
+    /* The store's mark on a white plate, the same zone discipline as the
+       Tiendas cards: a logo file gets contain-fit; a store with no file
+       (Lane Bryant today) gets its wordmark on its brand colour -- a
+       designed treatment, never a broken image. */
+    const mark = r && r.logo
+      ? `<img src="${r.logo}" alt="${escapeHtml(label)}" data-retailer="${escapeHtml(key)}" style="width:100%; max-height:46px; max-width:72%; object-fit:contain" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+      : `<span class="inline-flex items-center h-[26px] px-3 rounded-lg text-[12px] font-extrabold text-white text-center leading-tight" style="background:${r ? r.color : 'var(--navy)'}">${escapeHtml(label)}</span>`;
+    return `<button onclick="${active ? 'setCatalogStore(null)' : `setCatalogStore('${key}')`}" aria-pressed="${active}"
+      class="w-full rounded-2xl px-3 py-3 flex items-center gap-4 text-left focus-ring transition"
+      style="background:linear-gradient(135deg,#0B1B3A 0%,#16305F 55%,#0B1B3A 100%); border:2px solid ${active ? '#F4C463' : 'rgba(255,255,255,0.10)'}">
+      <span class="flex-shrink-0 inline-flex items-center justify-center rounded-xl bg-white px-2" style="width:104px; height:62px">${mark}</span>
+      <span class="flex-1 min-w-0">
+        <span class="block text-[16px] font-extrabold uppercase tracking-wide text-white truncate">${escapeHtml(label)}</span>
+        <span class="block text-[12.5px] font-semibold mt-0.5" style="color:#F4C463">${count} producto${count === 1 ? '' : 's'}</span>
+      </span>
+      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '&#10003;' : '&rsaquo;'}</span>
+    </button>`;
+  };
+  return `<div id="curvyStoreCards" class="flex flex-col gap-3 mb-5">${stores.map(card).join('')}</div>`;
+}
+
 /* SEARCH WITHIN A CATEGORY.
 
    BUG FIX (2026-09-20): this bar's input and button have both called
@@ -7851,6 +8053,7 @@ function renderCatalogFeed(){
     ${catalogSearchBarHTML()}
     ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
+    ${isCurvy ? curvyStoreCardsHTML() : ''}
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
@@ -8130,6 +8333,60 @@ function renderStoresGrid(){
   for (const el of document.querySelectorAll('[data-store-count]')) el.textContent = spanishCount(listed);
 }
 window.addEventListener('DOMContentLoaded', renderStoresGrid);
+
+/* ============================================================
+   "TODAS LAS OTRAS TIENDAS" — the rest of the mall directory as one logo
+   strip between the six featured rails and Categorías (2026-09-25, Danny's
+   iPhone review: shoppers should meet the other sixteen stores before the
+   categories, with a way into the full 22-store Tiendas directory).
+
+   Painted from the RETAILERS registry minus STORE_RAIL_STORES, so a newly
+   registered store (e.g. Lane Bryant, once its registry row lands) appears
+   here with no markup change. Ordering: shoppable first (search/browse
+   live), then connecting-soon, then Aria Auto — registry order inside
+   each band.
+
+   Tiles reuse the Tiendas treatments: a real logo file contain-fit on a
+   white plate, or the store's wordmark on its own brand colour when there
+   is no file; a 404ing logo is swapped in place for the text fallback by
+   storeLogoFallback — never a broken image. */
+function otherStoresStripOrder(){
+  const featured = new Set(STORE_RAIL_STORES);
+  const band = r => r.kind === 'auto' ? 2 : (r.search || r.browse) ? 0 : 1;
+  return activeRetailers()
+    .filter(r => !featured.has(r.key))
+    .map((r, i) => ({ r, i }))
+    .sort((a, b) => (band(a.r) - band(b.r)) || (a.i - b.i))
+    .map(x => x.r);
+}
+function otherStoreTileHTML(r){
+  const action = r.kind === 'auto' ? `openAriaAuto('${jsAttr(r.key)}')` : `openStore('${jsAttr(r.key)}')`;
+  /* The mark gets the same ZONE treatment as the Tiendas card (see the
+     "every store mark fills its zone" test): width:100% so small files grow
+     into the plate, max-height/max-width caps, contain-fit, never a fixed
+     height. A store's logo is their art -- it is never stretched. */
+  const plate = r.logo
+    ? `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 bg-white border rounded-2xl" style="border-color:var(--line)">
+         <img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}" loading="lazy" decoding="async"
+              style="width:100%; max-height:34px; max-width:75%; object-fit:contain"
+              onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+       </span>`
+    : `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 rounded-2xl text-white text-[13px] font-extrabold text-center leading-tight" style="background:${r.color}">${escapeHtml(r.label)}</span>`;
+  return `<button type="button" onclick="${action}" aria-label="${escapeHtml(r.label)}"
+      class="flex-shrink-0 w-[104px] md:w-[128px] focus-ring rounded-2xl">
+    ${plate}
+    <span class="block mt-1.5 text-[11px] font-bold text-center truncate" style="color:var(--navy)">${escapeHtml(r.label)}</span>
+  </button>`;
+}
+function renderOtherStoresStrip(){
+  const html = otherStoresStripOrder().map(otherStoreTileHTML).join('');
+  for (const id of ['mOtherStoresRow', 'dOtherStoresRow']){
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+}
+window.addEventListener('DOMContentLoaded', renderOtherStoresStrip);
+
 
 /* ============================================================
    "VER POR MARCA" — the store's own A-Z brand directory.
@@ -9255,13 +9512,14 @@ function translateSearchQuery(raw) {
   return translateQuery(raw).query;
 }
 
-function searchFor(q){
-  document.getElementById('searchInput').value = q;
-  doSearch();
+function searchFor(q, which){
+  document.getElementById(which==='d' ? 'searchInputD' : 'searchInput').value = q;
+  doSearch(which);
 }
 
 function doSearch(which){
-  const raw = (which===2 ? document.getElementById('searchInput2').value : document.getElementById('searchInput').value).trim();
+  const id = which===2 ? 'searchInput2' : (which==='d' ? 'searchInputD' : 'searchInput');
+  const raw = document.getElementById(id).value.trim();
   if(!raw){ showToast('Escribe algo para buscar.'); return; }
   // The shopper's own words go to the page; scrapeRetailer() is what
   // translates, and it is the only thing that needs to.
@@ -10818,8 +11076,8 @@ const RETAILERS = {
 
      Mirrors scripts/lib/retailers.js.
      ============================================================ */
-  skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
-  revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
+  revolve:         { key: 'revolve',         label: 'Revolve',           color: '#000000', logo: 'logos/revolve.png',    tagline: 'Moda contemporánea y de diseñador',            kind: 'general', search: false, browse: true },
   /* ULTA AND YESSTYLE (2026-09-22) — the other 117 products in the same
      file. Browse-without-scrape, like Macy's and SSENSE.
 
@@ -10839,7 +11097,7 @@ const RETAILERS = {
      canvas, which is the SSENSE sliver all over again. See the logo
      coverage test. Mirrors scripts/lib/retailers.js. */
   ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', pendingNote: 'Conectando el catálogo' },
+  bathandbodyworks:{ key: 'bathandbodyworks', label: 'Bath & Body Works', color: '#0F4C81', logo: 'logos/bathandbodyworks.png',              tagline: 'Cremas, jabones y velas aromáticas',           kind: 'general', search: false, catalog: 'beauty', retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.' },
   yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
   footlocker:      { key: 'footlocker',      label: 'Foot Locker',       color: '#000000', logo: 'logos/footlocker.png', tagline: 'Zapatillas y ropa deportiva',                  kind: 'general', search: true },
   /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor (Macy's pattern):
@@ -10848,8 +11106,19 @@ const RETAILERS = {
      public identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
   dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
   pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
-  sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
-  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, pendingNote: 'Conectando el catálogo' },
+  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. lanebryant-catalog.json (169 products,
+     ~153 with extended sizes) is committed at repo root and merged by
+     loadDepartmentCache like Macy's. This row was the missing piece the
+     catalog audit found: the file was fetched in CATALOGUE_FILES but the
+     retailer was never registered, so all 169 products were invisible in
+     Tiendas, Curvy, Ofertas and the brand panels. No logo file yet — the
+     wordmark pill on brand colour is the documented fallback, not a
+     broken state. Colour is Lane Bryant's brand red, from their public
+     identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
+  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
+  sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, retired: true, retiredNote: 'Descartada por Danny (2026-09-25). Sin pull.' },
+  dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.' },
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
      it has a real catalogue (macys-catalog.json); `search: false` keeps
      it out of the live fan-out, which has no actor for it. See the note
@@ -10879,9 +11148,9 @@ const RETAILERS = {
      store in this tier with a catalogue behind it, and renderStoresGrid
      preserves declaration order — three "conectando" cards above it
      would bury the one a shopper can open today. */
-  fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
-  miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
-  goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, pendingNote: 'Conectando el catálogo' },
+  fendi:           { key: 'fendi',           label: 'Fendi',             color: '#202020', logo: 'logos/fendi.png',      tagline: 'Bolsos, accesorios y moda italiana',           kind: 'general', tier: 'luxury', search: false, retired: true, retiredNote: 'Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Reintentar tras el reset del 16-oct.' },
+  miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, browse: true },
+  goldengoose:     { key: 'goldengoose',     label: 'Golden Goose',      color: '#000000', logo: 'logos/goldengoose.png', tagline: 'Zapatillas y moda italiana',                  kind: 'general', tier: 'luxury', search: false, retired: true, retiredNote: 'Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Actor probado; deep pull listo tras el reset del 16-oct.' },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
   rockauto:        { key: 'rockauto',        label: 'RockAuto',          color: '#303090', logo: 'logos/rockauto.png',   tagline: 'Catálogo profundo de repuestos — vía Aria Auto', kind: 'auto',    search: true },
   // Retired, kept so a label and a colour still resolve for a historical

@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -888,6 +888,10 @@ check("index.html's registry mirror matches the module", () => {
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
   "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
+  /* LANE BRYANT (2026-09-25): registered at last -- the audit found its
+     169 products were invisible for want of this row. Apparel cluster,
+     after PacSun. */
+  "lanebryant",
   "sunglasshut", "dyson",
   "macys", "oldnavy", "target", "walmart",
 ];
@@ -1661,9 +1665,11 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      1200x631 banner and a square file share a tile without either being
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
-  /* Two when the homepage chip row existed (card + chip); one since the
-     store rails superseded it on 2026-09-25. */
-  if (imgs.length !== 1) throw new Error(`expected 1 store-mark <img> tag, found ${imgs.length}`);
+  /* Three since the "Todas las otras tiendas" strip joined (2026-09-25):
+     the Tiendas card template, the Curvy card template, and the strip's
+     own tiles — every store-mark template obeys the zone rules, which the
+     loop below pins per template. */
+  if (imgs.length !== 3) throw new Error(`expected 3 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -4993,35 +4999,28 @@ const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
-check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
+check("the shopfront opens the home page: Ofertas is the first thing", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* THIS RULE CHANGED ON 2026-09-23, DELIBERATELY, AND THE OLD ONE IS
-     WORTH KEEPING IN VIEW. It read: the shopfront is the FIRST child of
-     #homeView, because "a shopper who scrolls -- and they all scroll --
-     meets the deals before anything else. One element moved above this
-     and the rails are below the fold again." That came out of a real
-     user test and it was right.
-
-     Danny then asked for a photographic hero at the top of the home
-     page. A hero is exactly the "one element moved above this", and on
-     a 393x852 phone it does push the Ofertas rail off the first screen.
-     That is a trade he made knowingly and it is recorded here rather
-     than quietly deleted: the protection now is that the hero is the
-     ONLY thing allowed above the rails. A third element between the
-     header and the shopfront still fails, which is what the original
-     check was really guarding. */
+  /* THIS RULE CHANGED ON 2026-09-25, DELIBERATELY, AT DANNY'S WORD.
+     It used to read: nothing but the photographic hero comes before
+     the shopfront. Danny's verdict on his phone: the brand statement
+     ("Compra en Estados Unidos / Te lo llevamos a Perú") sat eight
+     carousels down and the deals were not the first thing the eye
+     met. The photographic hero moved below the rails; the shopfront
+     is the FIRST child of #homeView again, and the Ofertas rail is the
+     first section inside it. One element above the rails -- hero or
+     anything else -- fails, which is what this check guards. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
   const first = tags[0] || "";
-  if (!/class="ariaHero"/.test(first)) {
-    throw new Error(`the first thing in #homeView is not the hero: ${first.slice(0, 70)}`);
+  if (!first.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`the first thing in #homeView is not the shopfront: ${first.slice(0, 70)}`);
   }
-  const afterHero = body.slice(body.indexOf("</section>") + "</section>".length);
-  const nextTag = (afterHero.match(/<(?!!--)[a-zA-Z][^>]*>/) || [""])[0];
-  if (!nextTag.startsWith('<div id="mobileShopfront"')) {
-    throw new Error(`something sits between the hero and the shopfront: ${nextTag.slice(0, 70)}`);
+  const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
+  if (firstSection !== "Ofertas") {
+    throw new Error(`the first section in the shopfront is ${firstSection}, want Ofertas`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -5033,7 +5032,7 @@ check("nothing but the hero comes before the shopfront, and it is phone-only", (
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, then the store rails, then Categorías", () => {
+check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5045,38 +5044,71 @@ check("Ofertas, then the store rails, then Categorías", () => {
      stores. I'm just browsing." The Tiendas chips rail is gone from the
      home page -- each store gets its own window display, and the two
      breakpoints finally share one scroll order: deals, the six store
-     rails in mall order, then departments.) */
-  const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the shopfront's scroll order");
+     rails in mall order, then departments.
+     2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo, "Compra
+     en Estados Unidos / Te lo llevamos a Perú", the search -- sits
+     directly under the Ofertas rail, ahead of the store rails.
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the six rails and Categorías -- the rest of the mall
+     directory as one logo strip, with a way into the full 22-store
+     Tiendas directory.) */
+  const order = [...shopfront.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["mobileDealsRow", "mobileCatsRow",
+  const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
-check("the desktop shopfront reads Ofertas, then the store rails, then Categorías", () => {
+check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
      scroll order now -- deals, the six store rails in mall order,
-     departments. The Tiendas chips rail is superseded by the rails. */
+     departments. The Tiendas chips rail is superseded by the rails.
+     2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band (logo, "Compra
+     en Estados Unidos / Te lo llevamos a Perú", search) sits directly
+     under the Ofertas rail, ahead of the store rails.
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the six rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
-    shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+    shopfrontSrc.indexOf('class="ariaHero"'),
   );
   if (!desk) throw new Error("there is no desktop shopfront");
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
-  const order = [...desk.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categorías", "the desktop shopfront's scroll order");
+  const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["desktopDealsRow", "desktopCatsRow",
+  const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
+});
+
+check("Todas las otras tiendas carries the rest of the directory, not the six", () => {
+  /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the six rails
+     and Categorías shows every active retailer that is NOT a featured
+     rail store, painted from the RETAILERS registry (never hardcoded),
+     with a way into the full Tiendas directory. */
+  const html = shopfrontSrc;
+  for (const id of ["mOtherStoresRow", "dOtherStoresRow"]) {
+    eq((html.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+  // The way into the full directory: both headers point at storesView.
+  const ways = [...html.matchAll(/onclick="showPage\('storesView'\)"[^>]*>Ver todas las tiendas/g)];
+  if (ways.length < 2) throw new Error(`expected a "Ver todas las tiendas" way in on both surfaces, found ${ways.length}`);
+  // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
+  const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
+  if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the six featured rail stores");
+  if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
 check("a rail scrolls sideways and snaps, and the page does not", () => {
@@ -5552,7 +5584,12 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
 
      So they moved one section down, to #whyUsStory, which keeps the
      paper they were designed against. The order that MATTERS is intact:
-     what you get, the guarantee behind it, then who is promising it. */
+     what you get, the guarantee behind it, then who is promising it.
+
+     AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper teaser
+     ("like PowerPoint" between the two navy blocks). The teaser itself
+     now rides the balcony-night photograph under the standard scrim with
+     white/gold type; the section around it keeps its paper background. */
   const reasonsAt = why.indexOf("ariaWhyPromise");
   const promisesAt = why.indexOf('id="whyUsPromises"');
   const storyAt = why.indexOf(">La historia<");
@@ -5563,14 +5600,52 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
     throw new Error("the run is no longer reasons -> guarantee -> story");
   }
 
-  /* AND THE STORY IS ON PAPER, which is the one thing a naive merge got
-     wrong. Navy headings and #3D4759 body over the explainer's scrim is
-     the failure this assertion exists to catch. */
+  /* THE TEASER RIDES THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA): the
+     paper teaser sitting between two navy blocks read "like PowerPoint".
+     It now uses the approved balcony-night photograph (the girl with the
+     Aria box, same file as the full story page) under the standard navy
+     scrim, white type. The failure this assertion exists to catch is
+     unchanged in spirit: no dark type on the dark scrim. */
   const storyAtIdx = why.indexOf('id="whyUsStory"');
   if (storyAtIdx < 0) throw new Error("#whyUsStory is gone — the story is back inside the photograph");
   if (storyAtIdx < why.indexOf("ariaWhyPhoto")) throw new Error("the story section sits above the photograph");
   if (!/background:var\(--paper\)/.test(why.slice(storyAtIdx, storyAtIdx + 400))) {
-    throw new Error("#whyUsStory lost its paper background — navy type on a dark scrim");
+    throw new Error("#whyUsStory lost its paper section background");
+  }
+  const teaserStart = why.indexOf("STORY TEASER ON THE PHOTOGRAPH");
+  const teaserEnd = why.indexOf("showPage('aboutView')", teaserStart);
+  if (teaserStart < 0 || teaserEnd < 0) throw new Error("the story teaser is gone");
+  const teaser = why.slice(teaserStart, teaserEnd);
+  if (!/balcony-night\.jpg/.test(teaser)) throw new Error("the story teaser lost its photograph");
+  if (!/ariaStoryScrim/.test(teaser)) throw new Error("the story teaser lost its light scrim");
+  if (/class="ariaWhyScrim"/.test(teaser)) throw new Error("the teaser is back on the heavy #whyUs scrim -- unreadable");
+  /* THE TEASER SCRIM STAYS LIGHT (2026-09-25, Danny's iPhone QA, pass 2):
+     the 0.72->0.93 standard scrim crushed the text on his phone. The
+     teaser's own scrim must stay well under the standard's stops. */
+  const scrimAt = hdrSrc.indexOf(".ariaStoryScrim{");
+  if (scrimAt < 0) throw new Error("the .ariaStoryScrim rule is gone");
+  const scrimCss = hdrSrc.slice(scrimAt, scrimAt + 700);
+  const stops = [...scrimCss.matchAll(/rgba\(4,12,28,([0-9.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 3) throw new Error("the story scrim lost its gradient stops");
+  if (stops[0] > 0.40 || stops[stops.length - 1] > 0.65) {
+    throw new Error("the story scrim got heavy again (" + stops.join("->") + ") -- Danny's contrast fix regressed");
+  }
+  if (/ariaKicker--onLight|var\(--navy\)|#3D4759/.test(teaser)) {
+    throw new Error("dark type on the photograph — unreadable");
+  }
+
+  /* THE TEASER LINK IS TAPPABLE (2026-09-25, Danny's iPhone QA): the scrim's
+     z-index:1 sat above the z-index:auto content and swallowed every tap on
+     "Lee la historia completa ->". The scrim must never intercept pointer
+     events, and the content must ride above it. */
+  if (!/\.ariaStoryScrim\{[^}]*pointer-events\s*:\s*none/.test(hdrSrc)) {
+    throw new Error("the story scrim can intercept taps - the teaser link is dead");
+  }
+  if (!/\.ariaStoryTeaser\{[^}]*z-index\s*:\s*2/.test(hdrSrc)) {
+    throw new Error("the teaser content is not above the scrim - the link may not receive taps");
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) {
+    throw new Error("the teaser link no longer opens the full story");
   }
 
   /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
@@ -7422,13 +7497,13 @@ check("the page promises nothing we cannot do", () => {
   }
 });
 
-check("the explainer follows the logo, and the category tiles follow the explainer", () => {
-  /* THE PHONE USED TO READ: Ofertas -> Categorías (the compact
-     carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
-     (the long tiles). The visitor met the categories, scrolled past
-     them to reach the brand and how any of this works, and met the
-     categories AGAIN -- the same list twice with the story wedged
-     between its two halves.
+check("the home page runs deals, brand band, rails, departments, story", () => {
+  /* 2026-09-25, DANNY'S HOMEPAGE ORDER (his phone verdict): the brand
+     band -- the ARIA logo, "Compra en Estados Unidos / Te lo llevamos
+     a Perú", the search -- sat eight carousels down and the deals were
+     not the first thing the eye met. Now the run is: Ofertas, the
+     brand band, the six store rails in mall order, Categorías, then
+     the story sections. One scroll order on both breakpoints.
 
      Asserted on SOURCE ORDER, not on measured positions: the browser
      harness blocks the CDN, so nothing there has a reliable y. */
@@ -7442,6 +7517,7 @@ check("the explainer follows the logo, and the category tiles follow the explain
     return i;
   };
   const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
+  const band   = at('aria-label="Compra en Estados Unidos"', "the brand band");
   const cats   = at('id="mobileCatsRow"', "the Categorías rail");
   const rails  = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]
     .map(k => at(`id="mStoreRail-${k}"`, `the ${k} rail`));
@@ -7449,16 +7525,17 @@ check("the explainer follows the logo, and the category tiles follow the explain
   const why    = at('id="whyUs"', "the Por qué Aria explainer");
   const tiles  = at('id="cats"', "the Comprar por categoría tiles");
 
-  // 2026-09-25, DANNY'S MALL VISION: Ofertas, the six store rails in
-  // mall order, then Categorías -- one scroll order on both breakpoints.
-  if (!(deals < rails[0])) throw new Error("the store rails no longer follow Ofertas");
+  // 2026-09-25, DANNY'S HOMEPAGE ORDER: Ofertas, the brand band, the
+  // six store rails in mall order, then Categorías -- one scroll order
+  // on both breakpoints.
+  if (!(deals < band)) throw new Error("the brand band no longer follows Ofertas");
+  if (!(band < rails[0])) throw new Error("the store rails no longer follow the brand band");
   for (let i = 1; i < rails.length; i++) {
     if (!(rails[i - 1] < rails[i])) throw new Error("the store rails are out of mall order");
   }
   if (!(rails[rails.length - 1] < cats)) throw new Error("Categorías no longer follows the store rails");
-  if (!(cats < logo)) throw new Error("the rails no longer come before the logo");
-  // The move itself.
-  if (!(logo < why)) throw new Error("the explainer no longer follows the ARIA logo it belongs to");
+  // The brand story still closes the run: logo, explainer, then tiles.
+  if (!(logo < why)) throw new Error("the explainer no longer follows the brand story");
   if (!(why < tiles)) throw new Error("the category tiles interrupt the brand story again");
 
   /* NOTHING WAS DELETED. The tiles are still there and still built by
@@ -7619,7 +7696,7 @@ check("the six rails stand in mall order on all three surfaces", () => {
   const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
-    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)"'],
+    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'class="ariaHero"'],
     ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
@@ -8693,6 +8770,70 @@ check("the feed sort actually reads the band on Curvy, and only on Curvy", () =>
    The page mirrors scripts/lib/carousel.js; both copies are pinned
    below, plus the wiring that puts a rail on each surface.
    ================================================================== */
+/* ==================================================================
+   CURVY STORE CARDS (2026-09-25, Danny).
+
+   The department opens with one wide card per store that carries
+   extended sizes -- Lane Bryant first (the plus-size destination), then
+   Old Navy, then Victoria's Secret, then the rest by product count. The
+   set is DERIVED from the feed's own byRetailer map, never hardcoded: a
+   future catalog pull adds its card the moment its products pass
+   hasExtendedSizes, with no code change.
+   ================================================================== */
+group("curvy store cards: one wide card per extended-size store");
+
+const curvyCards = loadPageCurvyStoreCardsSlice();
+
+check("lane bryant leads, then old navy, then victoria's secret, whatever the counts", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["oldnavy", new Array(500)],
+    ["victoriassecret", new Array(900)],
+    ["lanebryant", new Array(3)],
+    ["dicks", new Array(40)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "lanebryant,oldnavy,victoriassecret,dicks", "lead order broken");
+});
+
+check("non-lead stores sort by count, ties alphabetical", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["target", new Array(10)],
+    ["walmart", new Array(30)],
+    ["macys", new Array(30)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "macys,walmart,target", "count sort broken");
+});
+
+check("empty stores and empty feeds produce no cards", () => {
+  const { curvyStoreCards } = curvyCards;
+  eq(curvyStoreCards(new Map()).length, 0, "empty feed produced cards");
+  const keys = curvyStoreCards(new Map([["lanebryant", []], ["oldnavy", new Array(2)]])).map(s => s.key).join(",");
+  eq(keys, "oldnavy", "a store with zero items got a card");
+});
+
+check("lane bryant is registered and browsable in both mirrors", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const row = /lanebryant:\s*\{[^}]*\}/.exec(src);
+  if (!row) throw new Error("lanebryant is not in index.html's RETAILERS");
+  if (!/browse:\s*true/.test(row[0])) throw new Error("lanebryant is not browsable");
+  if (!/search:\s*false/.test(row[0])) throw new Error("lanebryant must not join the live search fan-out (no actor)");
+  const mirror = retailers.RETAILERS.lanebryant;
+  if (!mirror) throw new Error("lanebryant is missing from scripts/lib/retailers.js");
+  eq(mirror.label, "Lane Bryant", "mirror label drifted");
+  eq(mirror.browse, true, "mirror browse flag drifted");
+});
+
+check("the cards render only on the curvy department feed", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/\$\{isCurvy \? curvyStoreCardsHTML\(\) : ''\}/.test(src)) {
+    throw new Error("curvyStoreCardsHTML is not gated on the curvy feed");
+  }
+  if (!/function curvyStoreCardsHTML\(\)/.test(src)) throw new Error("curvyStoreCardsHTML is gone");
+});
+
 group("store carousels: window-shopping rails");
 
 {
