@@ -50,6 +50,18 @@ export const RETAILER_DELIVERY = {
   victoriassecret:{ miamiMin: 3, miamiMax: 6, tier: "yellow" },
   ulta:           { miamiMin: 3, miamiMax: 8, tier: "yellow" },
   pacsun:         { miamiMin: 5, miamiMax: 7, tier: "yellow" },
+  /* SURF & SKATE BATCH (2026-09-26, Danny): nine surf/skate/spearfishing
+     shops, browse-from-catalogue. All Florida shops at the standard
+     3–6 day yellow tier; Val Surf ships from California (5–8). */
+  nautilus:        { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  islandwatersports:{ miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  quietstorm:      { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  surfworld:       { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  surfstation:     { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  mainland:        { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  parrot:          { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  ccs:             { miamiMin: 3, miamiMax: 6, tier: "yellow" },
+  valsurf:         { miamiMin: 5, miamiMax: 8, tier: "yellow" },
   bathandbodyworks:{ miamiMin: 3, miamiMax: 7, tier: "yellow" },
   oldnavy:        { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   partycity:      { miamiMin: 5, miamiMax: 7, tier: "yellow" },
