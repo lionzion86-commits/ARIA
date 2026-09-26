@@ -241,6 +241,37 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* ============================================================
+     COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the
+     Macy's pattern: browse: true, search: false. costco-catalog.json
+     (1,569 products) and samsclub-catalog.json (120 products) are
+     committed at repo root. No logo files yet -- the wordmark pill on
+     brand colour is the documented fallback. Colours are the brands'
+     official red/blue; sample from the artwork when the logo files
+     land. Party City is deliberately NOT a store row: its catalogue
+     surfaces only through the Fiestas y Eventos vertical. Mirrors
+     index.html; a parity test pins the two.
+     ============================================================ */
+  costco: {
+    key: "costco",
+    label: "Costco",
+    color: "#E31837",
+    logo: "logos/costco.svg",
+    tagline: "Precios de almacén, todo por mayor",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  samsclub: {
+    key: "samsclub",
+    label: "Sam's Club",
+    color: "#0B6CFF",
+    logo: "logos/samsclub.svg",
+    tagline: "Mayoreo y esenciales para el hogar",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
      Both are real rows: they appear on Tiendas, they carry their own

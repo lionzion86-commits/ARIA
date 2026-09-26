@@ -1184,7 +1184,63 @@
       </div>
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+    <!-- STORE RAIL: COSTCO. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store.
+         Wordmark pill until the logo file lands (see the Costco row note). -->
+    <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/costco.svg" alt="Costco" data-retailer="costco" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Costco</span>
+        </span>
+        <button onclick="openStore('costco')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-costco" data-store-rail-row="costco" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+    <section id="mFiestasSection" aria-label="Fiestas y Eventos" data-fiestas-section class="ariaNavyBand relative overflow-hidden">
+      <div class="ariaGoldHair"></div>
+      <div class="px-5 pt-6 pb-1">
+        <h2 class="text-[21px] font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff">Fiestas y Eventos</h2>
+        <p class="text-[13.5px] font-semibold mt-1" style="color:#F4C463">Las mamás fashion merecen más opciones.</p>
+      </div>
+      <div data-fiestas-subrail="decoracion">
+        <div class="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <h3 class="text-[16px] font-extrabold" style="color:#fff">Decoración</h3>
+          <button onclick="openCatalog('fiestas','decoracion')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="mFiestasRail-decoracion" data-fiestas-rail-row="decoracion" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      </div>      <div data-fiestas-subrail="sorpresas">
+        <div class="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <h3 class="text-[16px] font-extrabold" style="color:#fff">Sorpresas</h3>
+          <button onclick="openCatalog('fiestas','sorpresas')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="mFiestasRail-sorpresas" data-fiestas-rail-row="sorpresas" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      </div>      <div data-fiestas-subrail="menaje">
+        <div class="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <h3 class="text-[16px] font-extrabold" style="color:#fff">Menaje descartable</h3>
+          <button onclick="openCatalog('fiestas','menaje')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="mFiestasRail-menaje" data-fiestas-rail-row="menaje" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      </div>      <div data-fiestas-subrail="dulces">
+        <div class="flex items-center justify-between gap-3 px-5 pt-4 pb-3">
+          <span class="min-w-0">
+            <h3 class="text-[16px] font-extrabold leading-tight" style="color:#fff">Dulces y Chocolates</h3>
+            <p class="text-[12px] mt-0.5" style="color:rgba(255,255,255,.65)">Sin esperar a la tía que viaja a Miami.</p>
+          </span>
+          <button onclick="openCatalog('fiestas','dulces')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="mFiestasRail-dulces" data-fiestas-rail-row="dulces" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      </div>    </section>
     <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
          that is not one of the six featured rails, as one swipeable logo strip.
          Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
@@ -1395,7 +1451,67 @@
         <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
+    <!-- STORE RAIL: COSTCO (desktop). Same shelf as the phone, wider stance.. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store.
+         Wordmark pill until the logo file lands (see the Costco row note). -->
+    <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+      <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/costco.svg" alt="Costco" data-retailer="costco" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Costco</span>
+        </span>
+        <button onclick="openStore('costco')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="dStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+    <section id="dFiestasSection" aria-label="Fiestas y Eventos" data-fiestas-section class="ariaNavyBand relative overflow-hidden">
+      <div class="ariaGoldHair"></div>
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-6 pb-1">
+        <h2 class="text-[24px] font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff">Fiestas y Eventos</h2>
+        <p class="text-[13.5px] font-semibold mt-1" style="color:#F4C463">Las mamás fashion merecen más opciones.</p>
+      </div>
+      <div data-fiestas-subrail="decoracion">
+        <div class="flex items-center justify-between gap-3 px-8 pt-4 pb-3">
+          <h3 class="text-[16px] font-extrabold" style="color:#fff">Decoración</h3>
+          <button onclick="openCatalog('fiestas','decoracion')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="dFiestasRail-decoracion" data-fiestas-rail-row="decoracion" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>      <div data-fiestas-subrail="sorpresas">
+        <div class="flex items-center justify-between gap-3 px-8 pt-4 pb-3">
+          <h3 class="text-[16px] font-extrabold" style="color:#fff">Sorpresas</h3>
+          <button onclick="openCatalog('fiestas','sorpresas')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="dFiestasRail-sorpresas" data-fiestas-rail-row="sorpresas" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>      <div data-fiestas-subrail="menaje">
+        <div class="flex items-center justify-between gap-3 px-8 pt-4 pb-3">
+          <h3 class="text-[16px] font-extrabold" style="color:#fff">Menaje descartable</h3>
+          <button onclick="openCatalog('fiestas','menaje')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="dFiestasRail-menaje" data-fiestas-rail-row="menaje" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>      <div data-fiestas-subrail="dulces">
+        <div class="flex items-center justify-between gap-3 px-8 pt-4 pb-3">
+          <span class="min-w-0">
+            <h3 class="text-[16px] font-extrabold leading-tight" style="color:#fff">Dulces y Chocolates</h3>
+            <p class="text-[12px] mt-0.5" style="color:rgba(255,255,255,.65)">Sin esperar a la tía que viaja a Miami.</p>
+          </span>
+          <button onclick="openCatalog('fiestas','dulces')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
+        </div>
+        <div id="dFiestasRail-dulces" data-fiestas-rail-row="dulces" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>      </div>
+    </section>
 
     <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
          mall directory between the six featured rails and Categorías. -->
@@ -2767,6 +2883,25 @@
           <button onclick="openStore('dicks')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: COSTCO (Tiendas). The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store.
+         Wordmark pill until the logo file lands (see the Costco row note). -->
+    <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+      <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/costco.svg" alt="Costco" data-retailer="costco" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Costco</span>
+        </span>
+        <button onclick="openStore('costco')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="tStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
   </section>
@@ -4580,7 +4715,7 @@ function loadDepartmentCache(){
        Danny — no separate section. Both files bucket everything under
        sporting_goods so the department picks it up with no other change;
        the aisle split below is what keeps skate, surf and fitness apart. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json'];
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json'];
     const files = CATALOGUE_FILES.map(url => fetch(url)
       .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
       .then(normalizeCatalogueEnvelope)
@@ -4621,6 +4756,14 @@ const DEPARTMENT_META = {
   sale: { label: 'Ofertas', icon: '🔥' },
   beauty: { label: 'Aria Beauty', icon: '💄' },
   shoes: { label: 'Zapatos', icon: '👟' },
+  /* FIESTAS Y EVENTOS (2026-09-25): the vertical's four sub-rails as
+     catalogue addresses -- openCatalog('fiestas', key) lands on the
+     listing with the right title and icon. They name no DEPARTMENT_SPEC
+     entry, so they never tile as departments. */
+  decoracion: { label: 'Decoración', icon: '🎈' },
+  sorpresas: { label: 'Sorpresas', icon: '🎁' },
+  menaje: { label: 'Menaje descartable', icon: '🍽️' },
+  dulces: { label: 'Dulces y Chocolates', icon: '🍬' },
 };
 const BRAND_META = {
   nike: { label: 'Nike', icon: '✔️' },
@@ -6880,9 +7023,10 @@ function renderMobileDealsRail(){
    the viewport, through one IntersectionObserver. No timers, no
    autoplay -- the rails never move on their own.
    ============================================================ */
-/* The six window displays, in mall order: aspirational first, the way
-   the RETAILERS registry itself is ordered. */
-const STORE_RAIL_STORES = ['victoriassecret', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks'];
+/* The seven window displays, in mall order: aspirational first, the way
+   the RETAILERS registry itself is ordered. Costco (2026-09-25) is the
+   seventh rail: the warehouse club's bulk prices belong in the window row. */
+const STORE_RAIL_STORES = ['victoriassecret', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks', 'costco'];
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
 
@@ -7014,8 +7158,200 @@ function mobileCatCardHTML(t, kind){
   </button>`;
 }
 
+/* ============================================================
+   FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+   catalogue plus the warehouse clubs' party aisles, as four sub-rails on
+   the home page (phone and laptop): Decoración, Sorpresas, Menaje
+   descartable, Dulces y Chocolates.
+
+   Party City is NOT a store row -- its catalogue surfaces only here --
+   so the config reads departmentCache directly by retailer key rather
+   than through CATALOG_RETAILERS, which only knows registered stores.
+
+   The paint reuses railCardHTML and the same lazy IntersectionObserver
+   pattern as initStoreRails: headers are static markup, cards paint when
+   the section nears the viewport, and an empty sub-rail hides itself
+   instead of showing a shelf with nothing on it.
+
+   NO MEMBERS-ONLY BADGES. Danny: Aria holds the memberships, so the
+   isMemberOnly/membershipRequired flags in the data are ignored at
+   render -- a Costco/Sam's product is shown like any other.
+   ============================================================ */
+/* FIESTAS_PICK:SLICE-START
+   Pure: the vertical's shelf config and the raw-item selector. The test
+   suite runs this slice in a vm without the page. (Keep it that way: no
+   calls to page functions. fiestasRailPicks lives below the slice end
+   because it needs normalizeLiveItem's weight closure.)
+   Party City is not a registered store, so its rail cards and the
+   Fiestas listing's store chips would fall back to the raw key. This
+   is the display name for the one unregistered retailer the site
+   surfaces. */
+const FIESTAS_RETAILER_LABEL = { partycity: 'Party City' };
+/* Inside Costco's mixed 'fiesta' bucket, the Menaje rail keeps only the
+   tableware. Matched on the English title, the way the search does. */
+const FIESTAS_TABLEWARE_RX = /plate|cutlery|cup|napkin|bowl|utensil|tray|tablecover|straw|fork|spoon|knife/i;
+/* The Dulces rail leads with the variety bags, Danny's call. */
+const FIESTAS_VARIETY_RX = /variety|minis|fun size/i;
+const FIESTAS_RAIL_TOTAL = 12; // shelf length; fewer without apology
+
+const FIESTAS_RAILS = [
+  { key: 'decoracion', label: 'Decoración',
+    departments: {
+      partycity: ['balloons','banners-signs','backdrops-scene-setters','tabletop-decorations','decorating-kits','hanging-decorations','confetti-streamers','cake-toppers-picks','photo-booth-props','yard-decorations-signs','decorations'],
+      costco: ['fiesta'] } },
+  { key: 'sorpresas', label: 'Sorpresas',
+    departments: {
+      partycity: ['favors','favor-bags-containers','favor-kits','gift-bags'] } },
+  { key: 'menaje', label: 'Menaje descartable',
+    departments: {
+      partycity: ['plates','tablecovers','napkins','drinkware','cutlery','straws','bowls'],
+      /* Sam's whole file: 120 items, nearly all tableware/party. */
+      samsclub: 'ALL',
+      costco: [{ dept: 'fiesta', tableware: true }] } },
+  { key: 'dulces', label: 'Dulces y Chocolates',
+    departments: { costco: ['dulces'] },
+    varietyFirst: true },
+];
+
+/* Raw items for one Fiestas sub-rail out of one retailer's cached
+   buckets. A spec entry is a department key, 'ALL' (every department),
+   or { dept, tableware: true } to keep only the tableware inside a
+   mixed bucket. Pure, so the test suite can run it over the real files. */
+function fiestasItemsFor(retailerData, subKey, retailer){
+  const rail = FIESTAS_RAILS.find(r => r.key === subKey);
+  if (!rail) return [];
+  const spec = rail.departments[retailer];
+  if (spec == null) return [];
+  const departments = retailerData?.departments || {};
+  const entries = spec === 'ALL' ? Object.keys(departments)
+    : (Array.isArray(spec) ? spec : []);
+  const out = [];
+  for (const s of entries){
+    const dept = typeof s === 'string' ? s : s.dept;
+    const items = departments[dept]?.items;
+    if (!Array.isArray(items)) continue;
+    for (const raw of items){
+      if (!notQuarantined(raw)) continue;
+      if (typeof s !== 'string' && s.tableware && !FIESTAS_TABLEWARE_RX.test(rawTitleOf(raw))) continue;
+      out.push(raw);
+    }
+  }
+  return out;
+}
+/* FIESTAS_PICK:SLICE-END */
+
+/* Pure: a sub-rail key and the merged department cache in, an ordered
+   shelf out. Same house rules as the store rails -- real products with
+   a price and a photo, never priceless, never imageless, deduped. */
+function fiestasRailPicks(subKey, cache){
+  const rail = FIESTAS_RAILS.find(r => r.key === subKey);
+  if (!rail || !cache?.retailers) return [];
+  const seen = new Set();
+  const picks = [];
+  /* A rail that re-sorts after collecting (Dulces leads with variety
+     bags) must see every candidate first -- stopping at the shelf cap
+     and only then sorting would strand later variety bags outside it. */
+  const cap = rail.varietyFirst ? Infinity : FIESTAS_RAIL_TOTAL;
+  for (const retailer of Object.keys(rail.departments)){
+    for (const raw of fiestasItemsFor(cache.retailers[retailer], subKey, retailer)){
+      let it = null;
+      try { it = normalizeLiveItem(raw, { retailer }); } catch { continue; }
+      if (!it || !it.title) continue;
+      const k = retailer + '::' + it.title;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      if (!Number.isFinite(Number(it.price)) || Number(it.price) <= 0 || !it.image) continue;
+      /* The pool the raw came from carries the retailer on the item, not
+         in the hints -- attach it the way relatedPool() does, or the
+         card badge and the product page lose the store. */
+      picks.push({ ...it, retailer });
+      if (picks.length >= cap) break;
+    }
+    if (picks.length >= cap) break;
+  }
+  if (rail.varietyFirst){
+    picks.sort((a, b) =>
+      (FIESTAS_VARIETY_RX.test(b.title || '') ? 1 : 0) - (FIESTAS_VARIETY_RX.test(a.title || '') ? 1 : 0));
+  }
+  return picks.slice(0, FIESTAS_RAIL_TOTAL);
+}
+
+let fiestasRailsRendered = {}; // sub-rail key -> picks; one shelf shared by the sub-rail's rows on both widths
+let fiestasRailsStarted = false;
+
+function openFiestasRailProduct(key, idx){
+  const p = (fiestasRailsRendered[key] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand });
+}
+
+function initFiestasRails(){
+  if (fiestasRailsStarted) return;
+  const rows = [...document.querySelectorAll('[data-fiestas-rail-row]')];
+  if (!rows.length) return;
+  fiestasRailsStarted = true;
+  const paint = (row) => {
+    const key = row.getAttribute('data-fiestas-rail-row');
+    const picks = fiestasRailsRendered[key] || [];
+    /* An empty shelf is worse than none: the sub-rail hides instead of
+       showing a shelf with nothing on it. */
+    const sub = row.closest('[data-fiestas-subrail]');
+    if (!picks.length){ if (sub) sub.hidden = true; return; }
+    row.innerHTML = picks.map((p, i) => railCardHTML(p,
+      `openFiestasRailProduct('${jsAttr(key)}',${i})`,
+      `data-fiestas-rail-card="${escapeHtml(key)}" data-idx="${i}"`)).join('');
+  };
+  /* When every sub-rail hid itself, the whole vertical stands down. A
+     sub-rail that has not painted yet still counts as standing, so the
+     section never hides mid-paint. */
+  const hideEmptyVertical = () => {
+    document.querySelectorAll('[data-fiestas-section]').forEach(sec => {
+      const anyStanding = [...sec.querySelectorAll('[data-fiestas-subrail]')].some(s => !s.hidden);
+      if (!anyStanding) sec.hidden = true;
+    });
+  };
+  loadDepartmentCache().then(cache => {
+    for (const rail of FIESTAS_RAILS){
+      fiestasRailsRendered[rail.key] = fiestasRailPicks(rail.key, cache);
+    }
+    if ('IntersectionObserver' in window){
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); hideEmptyVertical(); } });
+      }, { rootMargin: '600px 0px' });
+      rows.forEach(r => io.observe(r));
+    } else {
+      rows.forEach(paint);
+      hideEmptyVertical();
+    }
+  }).catch(() => { /* a failed cache leaves headers standing, cards absent */ });
+}
+window.addEventListener('DOMContentLoaded', initFiestasRails);
+
+/* Fiestas' door on the Categorías row: the same card chassis as the
+   department tiles, but it scrolls to the vertical's section instead of
+   opening a catalogue. */
+function fiestasCatTileHTML(){
+  return `<button onclick="goFiestasSection()" data-fiestas-cat="1"
+    class="flex-shrink-0 w-[148px] text-left rounded-2xl overflow-hidden border focus-ring" style="border-color:var(--line); background:#fff">
+    <span class="block w-full h-[104px] overflow-hidden grid place-items-center text-[26px]" style="background:linear-gradient(160deg,#0A1F44,#0D2A5C)" aria-hidden="true">🎉</span>
+    <span class="block px-3 py-2.5">
+      <span class="block text-[13px] font-extrabold leading-tight" style="color:var(--navy)">Fiestas y Eventos</span>
+      <span class="block text-[11px] mt-0.5 tabular" style="color:#6B7487">Decoración, dulces y más</span>
+    </span>
+  </button>`;
+}
+
+function goFiestasSection(){
+  const mobile = window.matchMedia(MOBILE_SHOPFRONT_MQ).matches;
+  goHomeSection(mobile ? 'mFiestasSection' : 'dFiestasSection');
+}
+
 function renderMobileCatsRail(tiles){
-  const html = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('');
+  /* The vertical's door rides at the end of the row, on both widths. */
+  const html = tiles.map(({ t, kind }) => mobileCatCardHTML(t, kind)).join('') + fiestasCatTileHTML();
   const phone = document.getElementById('mobileCatsRow');
   if (phone) phone.innerHTML = html;
   const desk = document.getElementById('desktopCatsRow');
@@ -7336,8 +7672,18 @@ async function openCatalog(kind, key, opts = {}){
   // has to carry honest counts for the stores you are NOT looking at, or
   // the filter has quietly become a gate again.
   const byRetailer = new Map();
-  for (const retailer of CATALOG_RETAILERS){
-    const items = departmentItemsFor(data.retailers[retailer], kind, key, retailer)
+  /* FIESTAS Y EVENTOS (2026-09-25): a vertical, not a department. Its
+     shelves are configured in FIESTAS_RAILS, and Party City is not a
+     registered store, so its buckets are read directly rather than
+     through CATALOG_RETAILERS. */
+  const fiestasRetailers = kind === 'fiestas'
+    ? Object.keys(FIESTAS_RAILS.find(r => r.key === key)?.departments || {})
+    : null;
+  for (const retailer of (fiestasRetailers || CATALOG_RETAILERS)){
+    const raws = kind === 'fiestas'
+      ? fiestasItemsFor(data.retailers[retailer], key, retailer)
+      : departmentItemsFor(data.retailers[retailer], kind, key, retailer);
+    const items = raws
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
@@ -7404,7 +7750,7 @@ function catalogStoreChipsHTML(){
   return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
     ${chip(!retailerFilter, 'Todas las tiendas', total, 'setCatalogStore(null)')}
     ${Array.from(byRetailer.entries()).map(([r, items]) =>
-      chip(retailerFilter === r, escapeHtml(LIVE_RETAILER_LABEL[r] || r), items.length, `setCatalogStore('${r}')`)).join('')}
+      chip(retailerFilter === r, escapeHtml(LIVE_RETAILER_LABEL[r] || FIESTAS_RETAILER_LABEL[r] || r), items.length, `setCatalogStore('${r}')`)).join('')}
   </div>`;
 }
 
@@ -11095,6 +11441,17 @@ const RETAILERS = {
      broken state. Colour is Lane Bryant's brand red, from their public
      identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
   lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
+  /* COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the Macy's
+     pattern: browse: true, search: false. costco-catalog.json (1,569 products)
+     and samsclub-catalog.json (120 products) are committed at repo root and
+     merged by loadDepartmentCache like Macy's. No logo files yet -- the
+     wordmark pill on brand colour is the documented fallback. Colours are
+     the brands' official red/blue; sample from the artwork when the logo
+     files land. Party City is deliberately NOT a store row: its catalogue
+     surfaces only through the Fiestas y Eventos vertical. Mirrors
+     scripts/lib/retailers.js. */
+  costco:          { key: 'costco',          label: 'Costco',            color: '#E31837', logo: 'logos/costco.svg',   tagline: 'Precios de almacén, todo por mayor',                        kind: 'general', search: false, browse: true },
+  samsclub:         { key: 'samsclub',         label: "Sam's Club",        color: '#0B6CFF', logo: 'logos/samsclub.svg', tagline: 'Mayoreo y esenciales para el hogar',                       kind: 'general', search: false, browse: true },
   sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, retired: true, retiredNote: 'Descartada por Danny (2026-09-25). Sin pull.' },
   dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.' },
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
@@ -11231,7 +11588,7 @@ const RETAILER_LOGO_FILE = Object.fromEntries(Object.values(RETAILERS).filter(r 
 function retailerTextBadgeHTML(retailer){
   const key = String(retailer || '').toLowerCase();
   const color = RETAILER_BADGE_COLOR[key] || 'var(--navy)';
-  const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
+  const label = LIVE_RETAILER_LABEL[key] || FIESTAS_RETAILER_LABEL[key] || retailer || 'Tienda';
   return `<span class="inline-flex items-center h-7 px-3 rounded-full text-[12px] font-extrabold text-white" style="background:${color}">${escapeHtml(label)}</span>`;
 }
 
@@ -11271,7 +11628,7 @@ function retailerBadgeHTML(retailer, heightPx = 28){
   const key = String(retailer || '').toLowerCase();
   const logoFile = RETAILER_LOGO_FILE[key];
   if (!logoFile) return retailerTextBadgeHTML(retailer);
-  const label = LIVE_RETAILER_LABEL[key] || retailer || 'Tienda';
+  const label = LIVE_RETAILER_LABEL[key] || FIESTAS_RETAILER_LABEL[key] || retailer || 'Tienda';
   // object-fit matters: a wordmark like Foot Locker's is ~9:1, so a
   // max-width of 4x the height used to squash it horizontally rather than
   // scale it. Contain keeps every logo in proportion at any size.
