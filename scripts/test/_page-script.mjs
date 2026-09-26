@@ -147,7 +147,7 @@ export function loadPageSubcategorySlice() {
 }
 
 const QUERY_START = "/** Lowercase, strip accents, collapse whitespace. */";
-const QUERY_END = "function searchFor(q){";
+const QUERY_END = "function searchFor(q, which){";
 
 /** The Spanish→English query table and its lookup, on their own. */
 export function loadPageQuerySlice() {
