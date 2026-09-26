@@ -522,9 +522,10 @@ export const WEIGHT_SANITY_BOUNDS = [
   { key: "proyector",
     test: (t) => PROJECTOR_RE.test(t) && !PROJECTOR_ACCESSORY_RE.test(t),
     minKg: 0.5, maxKg: 12 },
-  { key: "televisor",
-    test: (t) => /\b(tv|television|televisor)\b/i.test(t) && !TV_ACCESSORY_RE.test(withoutBundledClauses(t)),
-    minKg: 4, maxKg: 90 },
+  /* No "televisor" row: Danny banned TVs and TV mounts outright (2026-09-26),
+     so no television can ever reach the estimator — and the row's \btv\b
+     could only misfire on the parcel accessories that stay (Apple TV).
+     TV stands weigh as furniture through the default bands. */
   /* Long AND light: these state their length in feet but are nylon and
      air. Named before the catch-all so it never floors them to 4 kg. */
   { key: "accesorio plegable", match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b|\b(jump rope|yoga mat|resistance bands?|slip ?n ?slide)\b/i, minKg: 0.3, maxKg: 6 },

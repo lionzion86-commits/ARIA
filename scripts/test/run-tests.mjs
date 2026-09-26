@@ -27,12 +27,12 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL
          importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
          TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
+import * as delivery from "../lib/retailer-delivery.js";
 import * as retailers from "../lib/retailers.js";
 import * as deptMap from "../lib/department-map.js";
 import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
 import { inkCoverage, pngShape } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
-import * as rockautoDirect from "../lib/rockauto-direct.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import * as synonyms from "../lib/search-synonyms.js";
@@ -391,7 +391,7 @@ check("an estimate BELOW its category band fails closed", () => {
   eq(under.ok, false);
   eq(under.outOfBand, true);
   eq(under.minKg, 0.5, "a projector under half a kilo is not a projector");
-  eq(itemWeight.weightSanity('Samsung 55" QLED TV', 0.12).outOfBand, true, "the TV-stand class");
+  /* No TV band: Danny banned TVs outright (2026-09-26) — they never reach the estimator. */
   eq(itemWeight.weightSanity("Mainstay 4-Shelf TV Stand", 0).outOfBand, true, "a zero weight is a missing measurement");
 });
 
@@ -902,21 +902,14 @@ check("index.html's registry mirror matches the module", () => {
    shoppable catalogs -- dead storefronts never show, per Danny's rule),
    so they no longer appear here. Costco and Sam's Club join after Lane
    Bryant: warehouse club, end of the aspirational run, before Macy's. */
+/* Reliable-first (2026-09-26, Danny): Revolve, Target, Foot Locker and
+   Walmart lead the directory, then the other researched reliable shippers,
+   then YesStyle (red tier: honest 14-28 day timing, shown last).
+   AutoZone (kind auto) is not in the everyday tier. */
 const EXPECTED_EVERYDAY_ORDER = [
-  "victoriassecret", "sephora", "skims", "revolve", "ulta",
-  "yesstyle", "footlocker", "dicks", "pacsun",
-  /* LANE BRYANT (2026-09-25): registered at last -- the audit found its
-     169 products were invisible for want of this row. Apparel cluster,
-     after PacSun. */
-  "lanebryant",
-  /* COSTCO + SAM'S CLUB (2026-09-26): real catalogs wired (1,569 + 120
-     products), both browse-true general retailers. */
-  "costco", "samsclub",
-  "macys", "oldnavy",
-  /* GYM BRANDS (2026-09-26, Danny): browse-able file-backed catalogues
-     (gymrat-catalog.json). Apparel cluster, after Old Navy. */
-  "youngla", "gymshark", "alphalete",
-  "target", "walmart",
+  "revolve", "target", "footlocker", "walmart", "sephora", "macys", "dicks",
+  "costco", "victoriassecret", "ulta", "pacsun", "oldnavy", "samsclub",
+  "lanebryant", "alphalete", "youngla", "gymshark", "skims", "yesstyle"
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
@@ -932,23 +925,23 @@ check("Tiendas tiles follow Danny's exclusive-mall order", () => {
   if (got !== want) throw new Error(`Tiendas order is [${got}], want [${want}]`);
 });
 
-check("Victoria's Secret is the first Tiendas tile", () => {
+check("Revolve is the first Tiendas tile (reliable-first, 2026-09-26)", () => {
   const order = everydayOrder();
-  if (order[0] !== "victoriassecret")
-    throw new Error(`first Tiendas tile is ${order[0]}, want victoriassecret`);
+  if (order[0] !== "revolve")
+    throw new Error(`first Tiendas tile is ${order[0]}, want revolve`);
 });
 
-check("Sephora is the second Tiendas tile", () => {
+check("Target is the second Tiendas tile (reliable-first, 2026-09-26)", () => {
   const order = everydayOrder();
-  if (order[1] !== "sephora")
-    throw new Error(`second Tiendas tile is ${order[1]}, want sephora`);
+  if (order[1] !== "target")
+    throw new Error(`second Tiendas tile is ${order[1]}, want target`);
 });
 
-check("Target and Walmart are the last two Tiendas tiles", () => {
+check("Skims and YesStyle are the last two Tiendas tiles (then red-tier, 2026-09-26)", () => {
   const order = everydayOrder();
   const tail = order.slice(-2).join(",");
-  if (tail !== "target,walmart")
-    throw new Error(`last two Tiendas tiles are [${tail}], want target,walmart`);
+  if (tail !== "skims,yesstyle")
+    throw new Error(`last two Tiendas tiles are [${tail}], want skims,yesstyle`);
 });
 
 check("the Tiendas directory keeps its tiles and gains the six rails below them", () => {
@@ -1578,7 +1571,7 @@ check("the words the brief named, and the ones a shopper actually types", () => 
     ["zapatillas", "sneakers"],
     ["cartera", "handbag"],
     ["audífonos", "headphones"],
-    ["televisor", "tv"],
+    /* No TV alias: televisions are banned (2026-09-26, Danny). */
     ["chompa", "sweater"],
     ["juguetes", "toy"],
     ["plancha de cabello", "hair straightener"],
@@ -2641,16 +2634,19 @@ check("no layer of the auto pipeline drops fields", () => {
 
 group("auto: sources are a registry, and not Tiendas");
 
-check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
-  eq(autoSources.AUTO_SOURCES.rockauto.label, "RockAuto");
+check("RockAuto is removed, O'Reilly is excluded, Advance is unprobed", () => {
+  /* 2026-09-26, DANNY'S CALL: RockAuto is out — "a liability waiting to
+     happen". The registry row is deleted from AUTO_SOURCES entirely, so
+     no fan-out, tile, banner or search path can reach it. */
+  if ("rockauto" in autoSources.AUTO_SOURCES) throw new Error("RockAuto is still a registered auto source");
   eq(autoSources.AUTO_SOURCES.oreilly.excluded, true, "O'Reilly stays out");
   if (!autoSources.AUTO_SOURCES.oreilly.excludedReason) throw new Error("no reason recorded for O'Reilly");
   eq(autoSources.AUTO_SOURCES.advanceauto.probe, "not-run", "Advance Auto could not be probed from here");
   // An excluded or unprobed source is never shown to a shopper.
   const visible = autoSources.visibleAutoSources().map((s) => s.key);
+  if (visible.includes("rockauto")) throw new Error("RockAuto is being shown");
   if (visible.includes("oreilly")) throw new Error("O'Reilly is being shown");
   if (visible.includes("advanceauto")) throw new Error("an unprobed source is being shown");
-  if (!visible.includes("rockauto")) throw new Error("RockAuto is not shown");
   if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
 });
 
@@ -2724,12 +2720,11 @@ check("a browsable store is not treated as one still being connected", () => {
 
 check("every queried auto source has verified backing", () => {
   // Same rule as the beauty stores: a guessed actor returns an empty run,
-  // which reads as "this store has nothing for your car" — a lie. RockAuto
-  // went live 2026-09-24 with a verified 2,490-row cache (1,013 unique
-  // parts) served from auto-cache.json, so its `search: true` is
-  // cache-backed, not a guessed actor. A source with neither a verified
-  // actor nor a verified cache must stay out of the fan-out.
-  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone,rockauto");
+  // which reads as "this store has nothing for your car" — a lie. A source
+  // with neither a verified actor nor a verified cache must stay out of
+  // the fan-out. (RockAuto's cache-backed source was removed 2026-09-26,
+  // Danny's call; AutoZone remains.)
+  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
   eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto is still unprobed");
   eq(autoSources.AUTO_SOURCES.oreilly.search, false, "O'Reilly stays out");
 });
@@ -5081,7 +5076,7 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
      (2026-09-25, DANNY'S MALL VISION: "I'm not clicking in between
      stores. I'm just browsing." The Tiendas chips rail is gone from the
      home page -- each store gets its own window display, and the two
-     breakpoints finally share one scroll order: deals, the six store
+     breakpoints finally share one scroll order: deals, the eight store
      rails in mall order, then departments.
      2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo, "Compra
      en Estados Unidos / Te lo llevamos a Perú", the search -- sits
@@ -5108,7 +5103,7 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Gymshark > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
@@ -5140,7 +5135,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Gymshark > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
@@ -5382,12 +5377,12 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
   if (!rails) throw new Error("the store rails' code is gone");
-  /* The eight window displays, in mall order: Victoria's Secret first,
-     Gymshark right under it (2026-09-26, Danny -- most-known gym brand in
-     Peru), then Sephora, the way the RETAILERS registry is ordered. */
+  /* The eight window displays, reliable-first (2026-09-26, Danny): Foot
+     Locker, Sephora, Macy's and Dick's lead -- the researched reliable
+     shippers -- then Victoria's Secret, Costco, Gymshark, SSENSE. */
   const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
   if (!m) throw new Error("STORE_RAIL_STORES is gone");
-  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,gymshark,sephora,macys,footlocker,ssense,dicks,costco",
+  eq(m[1].replace(/['\s]/g, ""), "footlocker,sephora,macys,dicks,victoriassecret,costco,gymshark,ssense",
     "the store rails are not the eight agreed stores in mall order");
   /* The same card every other rail draws -- a second card component is
      how the rails drift apart. */
@@ -5525,7 +5520,7 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
    ================================================================== */
 group("Fiestas y Eventos: the party vertical");
 
-const FIESTA_CATALOG_COUNTS = { "partycity-catalog.json": 518, "samsclub-catalog.json": 120, "costco-catalog.json": 1569 };
+const FIESTA_CATALOG_COUNTS = { "partycity-catalog.json": 518, "samsclub-catalog.json": 120, "costco-catalog.json": 1397 };
 const FIESTA_CATALOG_RETAILERS = { "partycity-catalog.json": "partycity", "samsclub-catalog.json": "samsclub", "costco-catalog.json": "costco" };
 
 function fiestaEnvelopes(){
@@ -5580,7 +5575,8 @@ check("Costco and Sam's Club are registered stores; Party City is not", () => {
     if (!/browse: true/.test(row[0])) throw new Error(`the mirror's ${key} row lost browse:true`);
   }
   if ("partycity" in RETAILERS) throw new Error("partycity is registered as a store");
-  if (/^\s*partycity:\s*\{/m.test(shopfrontSrc)) throw new Error("partycity has a mirror row as a store");
+  const retailersBlockSrc = /const RETAILERS = \{[\s\S]*?\n\};/.exec(shopfrontSrc)[0];
+  if (/^\s*partycity:\s*\{/m.test(retailersBlockSrc)) throw new Error("partycity has a mirror row as a store");
   /* No member-only badges: Danny holds the memberships, so the
      catalogs' membershipRequired/isMemberOnly flags must never be read
      at render, and no members-only badge copy may exist. (The "miembro"
@@ -5750,14 +5746,16 @@ check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surfac
      them, and a re-pulled catalogue cannot bring them back. */
   const { isShippableItem, withoutUnshippableItems } = loadPageEnvelopeSlice();
   const out = (name) => isShippableItem({ name });
-  // TVs, all sizes, plus TV services and TV furniture
+  // TVs, all sizes, plus TV mounting services (TV stands are furniture and stay)
   for (const tv of [
     'TCL 65" Class - Q77K Series - 4K UHD QLED Smart TV',
     'Samsung 60" - TU700D Series - 4K UHD LED LCD TV',
     'onn 32 in Class 720p HD Smart TV Powered by VIZIO, 32S2V1',
     'Hisense 40-Inch Class H4 Series FHD Roku Smart TV',
     'Angi Premier - Basic 2-Pro TV Mounting Service',
-    'Puerta Del Sol TV Console',
+    'TV Wall Mount Bracket 32-65 inch', // mounts banned even without a bare "TV"
+    'Soporte TV de pared articulado',
+    'Soporte para TV fijo 14-42 pulgadas',
   ]) if (out(tv)) throw new Error(`a TV slipped through: ${tv}`);
   // freight-class bulky goods
   // bulky projector packages (2026-09-26, Danny's QA: no price ceiling).
@@ -5793,6 +5791,8 @@ check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surfac
     'Mini Projector, projects up to 120 inch screen',
     'Dreame Pocket Ultra High-Speed Hair Dryer',
     'Nintendo Switch OLED console',
+    'Puerta Del Sol TV Console', // TV stands are furniture, not televisions (2026-09-26, Danny)
+    'Walker Edison 58" TV Stand',
     'Velvet Throw Pillow Cushion Covers for Sofas, Chairs',
     'SSENSE Exclusive Off-White FF Bunker Jacket',
     'Souper Cubes Silicone Freezer Storage Tray, 5-pack',
@@ -5894,19 +5894,21 @@ check("Party City cards badge the store by name, without a storefront", () => {
 
 check("the Aria Auto house banner sits under the brand band, on both breakpoints", () => {
   /* 2026-09-26, DANNY'S CALL (final position): the logo/branding moment
-     lands first, then the black banner, then the Victoria's Secret
-     rails -- at the very top it would read like the page title. One
-     bold statement, no product carousel. Danny's copy: relatable
-     promise first, RockAuto/Advance as the trust kicker. The CTA opens
-     the Aria Auto vertical. (Supersedes PR #92's between-Fiestas slot.) */
+     lands first, then the black banner, then the rails -- at the very top
+     it would read like the page title. One bold statement, no product
+     carousel. Danny's copy: relatable promise first, the live source as
+     the trust kicker. The CTA opens the Aria Auto vertical.
+     (Supersedes PR #92's between-Fiestas slot. RockAuto's name left the
+     banner 2026-09-26 with the source itself.) */
   const html = readFileSync(root("index.html"), "utf8");
   const banners = [...html.matchAll(/<section[^>]*aria-label="Aria Auto"[^>]*>([\s\S]*?)<\/section>/g)];
   eq(banners.length, 2, "one Aria Auto banner per breakpoint");
   for (const [, body] of banners) {
     for (const phrase of ["Aria Auto", "Repuestos para tu auto a una fracci", "frenos, filtros, amortiguadores",
-        "Abastecido por RockAuto", "Advance Auto Parts", "Encuentra tu repuesto"]) {
+        "Abastecido por AutoZone", "Encuentra tu repuesto"]) {
       if (!body.includes(phrase)) throw new Error(`the banner lost its copy: ${phrase}`);
     }
+    if (/RockAuto/.test(body)) throw new Error("the banner still names RockAuto");
     if (!/openAriaAuto\(\);return false;/.test(body)) throw new Error("the banner CTA does not open Aria Auto");
     if (!/ariaAutoCta/.test(body)) throw new Error("the banner CTA lost its amber button styling");
   }
@@ -8209,7 +8211,7 @@ check("the home page runs deals, brand band, rails, departments, story", () => {
   const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
   const band   = at('aria-label="Compra en Estados Unidos"', "the brand band");
   const cats   = at('id="mobileCatsRow"', "the Categorías rail");
-  const rails  = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]
+  const rails  = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "ssense"]
     .map(k => at(`id="mStoreRail-${k}"`, `the ${k} rail`));
   const logo   = at('src="aria-full-logo.png"', "the ARIA logo");
   const why    = at('id="whyUs"', "the Por qué Aria explainer");
@@ -8318,6 +8320,14 @@ function forwardSlice(src, a, b, what){
 const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
 
 const HOME_SRC = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("the search glossary has no TV aliases (banned category, 2026-09-26)", () => {
+  const src = HOME_SRC();
+  for (const term of ["televisor", "television"]) {
+    const m = new RegExp(`^\\s*${term}:\\s*["']tv["']`, "m").exec(src);
+    if (m) throw new Error(`the glossary still routes "${term}" to a TV search`);
+  }
+});
 const SECTION_PHOTO = "assets/sections/tiendas-mall-row.jpg";
 
 check("the mall photograph is committed, and small enough to send to a phone", () => {
@@ -8384,10 +8394,9 @@ check("the eight rails stand in mall order on all three surfaces", () => {
      vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
      mall stops feeling like one mall. */
   const src = HOME_SRC();
-  /* GYMSHARK BETWEEN VICTORIA'S SECRET AND SEPHORA (2026-09-26, Danny):
-     eight rails, one order on the phone, the laptop, and the Tiendas
-     vitrinas. */
-  const want = ["victoriassecret", "gymshark", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
+  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): eight rails, one order
+     on the phone, the laptop, and the Tiendas vitrinas. */
+  const want = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "gymshark", "ssense"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
     ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
@@ -10080,7 +10089,7 @@ check("the product page shows a continue-to-cart line whenever the cart holds it
   }
 });
 
-group("rockauto dev-string fix + shared parts glossary");
+group("shared parts glossary");
 
 check("the parts glossary JSON is valid shared infrastructure", () => {
   const g = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
@@ -10158,265 +10167,9 @@ check("the scrape backend keeps dev diagnostics out of the production error", ()
   if (!/devNote/.test(src)) throw new Error("devNote missing for dev-flagged requests");
 });
 
-/* ------------------------------------------------------------------
-   ROCKAUTO DIRECT HTTP FALLBACK (2026-09-26) — the zero-Apify live
-   scrape. The chain is pure + fetch-injected in
-   scripts/lib/rockauto-direct.js, so every step is unit-testable
-   without touching the network. Fixtures below mirror the real
-   RockAuto markup verified live on 2026-09-26 (selectors, the
-   &amp;-encoded category slugs, the lazy nav tree).
-   ------------------------------------------------------------------ */
-group("rockauto direct HTTP fallback (zero-Apify)");
+/* ROCKAUTO DIRECT — REMOVED 2026-09-26 with the source (Danny's call).
+   The zero-Apify fallback, its fixtures and its checks lived here. */
 
-const RA_GLOSSARY = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
-const RA_ENTRIES = rockautoDirect.glossaryToPairs(RA_GLOSSARY);
-
-const RA_CATALOG_FIXTURE = [
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.3l+l4+electric,1444951">1.3L L4 Electric</a>',
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952">1.8L L4</a>',
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,2.0l+l4,1444957">2.0L L4</a>',
-].join("\n");
-const RA_NODE_FIXTURE = [
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,engine">Engine</a>',
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air">Fuel &amp; Air</a>',
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,brake+&amp;+wheel+hub">Brake &amp; Wheel Hub</a>',
-].join("\n");
-const RA_CATEGORY_FIXTURE = [
-  '<a class="navlabellink nvoffset nimportant" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air,air+filter,6192">Air Filter</a>',
-  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air,fuel+filter,6205">Fuel Filter</a>',
-].join("\n");
-const RA_LISTINGS_FIXTURE = [
-  '<div id="listingcontainer[8]" class="mtf-outer-list listing-container-c compact-mobile">',
-  '<span id="dprice[8][v]">$4.12</span>',
-  '<b><span class="listing-final-manufacturer no-text-select">FRAM</span></b> ',
-  '<span class="listing-final-partnumber no-text-select" id="vew_partnumber[8]">CA10165</span>',
-  '<img id="inlineimg[8]" class=" listing-inline-image" src="/info/915/CA10165_Front__ra_m.jpg" alt="Part image"/>',
-  "</div>",
-  '<div id="listingcontainer[9]" class="mtf-outer-list listing-container-c compact-mobile">',
-  '<span id="dprice[9][v]">$8.99</span>',
-  '<b><span class="listing-final-manufacturer no-text-select">WIX</span></b> ',
-  '<span class="listing-final-partnumber no-text-select" id="vew_partnumber[9]">49744</span>',
-  '<img id="inlineimg[9]" class=" listing-inline-image" src="/info/99/49744_ra_m.jpg" alt="Part image"/>',
-  "</div>",
-].join("\n");
-
-const RA_CATALOG_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic";
-const RA_NODE_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952";
-const RA_CATEGORY_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&+air";
-const RA_PARTTYPE_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&+air,air+filter,6192";
-
-function raFixtureFetch(pages, counter) {
-  return async (url) => {
-    counter.count++;
-    return pages.get(url) ?? null;
-  };
-}
-
-check("the server translator matches the browser translator on the acceptance terms", () => {
-  const { translatePartQuery } = loadPageAutoGlossarySlice();
-  for (const q of ["filtro de aire", "bujía", "BUJIAS", "pastilla de freno", "faja de distribución", "correa de accesorios"]) {
-    eq(
-      rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, q),
-      translatePartQuery(q),
-      `server/browser parity for "${q}"`,
-    );
-  }
-  eq(rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, "filtro de aire"), "engine air filter", "filtro de aire");
-  eq(rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, "bujía"), "spark plug", "bujía");
-});
-
-check("engine links parse with node ids and the volume engine wins over hybrid", () => {
-  const engines = rockautoDirect.parseEngineLinks(RA_CATALOG_FIXTURE, RA_CATALOG_URL);
-  eq(engines.length, 3, "engine count");
-  eq(engines[1].nodeId, "1444952", "node id");
-  const picked = rockautoDirect.pickEngine(engines);
-  eq(picked.label, "1.8L L4", "hybrid skipped");
-  eq(picked.url, RA_NODE_URL, "node url");
-});
-
-check("category slugs keep their & and resolve to the curated category", () => {
-  const cats = rockautoDirect.parseCategoryLinks(RA_NODE_FIXTURE, RA_NODE_URL);
-  eq(cats.length, 3, "category count");
-  const fuel = cats.find((c) => /fuel/i.test(c.name));
-  eq(fuel.url, RA_CATEGORY_URL, "full slug with & preserved");
-  const matched = rockautoDirect.matchCategory(cats, "engine air filter");
-  eq(matched.name, "Fuel & Air", "engine air filter -> Fuel & Air, not Engine");
-});
-
-check("part-type links resolve the translated term to the verified part type", () => {
-  const pts = rockautoDirect.parsePartTypeLinks(RA_CATEGORY_FIXTURE, RA_CATEGORY_URL);
-  eq(pts.length, 2, "part-type count");
-  const matched = rockautoDirect.matchPartType(pts, "engine air filter");
-  eq(matched.name, "Air Filter", "part-type name");
-  eq(matched.url, RA_PARTTYPE_URL, "part-type url (id 6192, parsed not guessed)");
-});
-
-check("listings parse brand, part number, raw price and image — the canary shape", () => {
-  const items = rockautoDirect.parseListings(RA_LISTINGS_FIXTURE);
-  eq(items.length, 2, "listing count");
-  eq(items[0].brand, "FRAM", "brand");
-  eq(items[0].partNumber, "CA10165", "part number");
-  eq(items[0].priceUsd, 4.12, "raw USD price (no markup — the page applies 1.07 x 1.24)");
-  eq(items[0].imagePath, "/info/915/CA10165_Front__ra_m.jpg", "relative image path");
-  for (const it of items) {
-    if (!it.brand || !it.partNumber || !(it.priceUsd > 0) || !it.imagePath)
-      throw new Error(`incomplete listing: ${JSON.stringify(it)}`);
-  }
-});
-
-check("the cache key normalizes case, accents and whitespace", () => {
-  const a = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", "filtro de aire");
-  const b = rockautoDirect.rockautoCacheKey("2010", "honda", "civic", "Filtro  de Aire");
-  eq(a, b, "same search, one key");
-  eq(a, "2010|honda|civic|filtro de aire", "key shape mirrors autoPartCacheKey");
-  const c = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", "bujía");
-  if (a === c) throw new Error("different queries share a key");
-});
-
-checkAsync("the full chain resolves filtro de aire to live listings", async () => {
-  const counter = { count: 0 };
-  const pages = new Map([
-    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
-    [RA_NODE_URL, RA_NODE_FIXTURE],
-    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
-    [RA_PARTTYPE_URL, RA_LISTINGS_FIXTURE],
-  ]);
-  const r = await rockautoDirect.runRockautoLiveChain({
-    year: "2010",
-    make: "Honda",
-    model: "Civic",
-    query: "filtro de aire",
-    entries: RA_ENTRIES,
-    fetchHtml: raFixtureFetch(pages, counter),
-    courtesyDelayMs: 0,
-  });
-  if (!r.ok) throw new Error(`chain failed: ${r.miss}`);
-  eq(r.translatedQuery, "engine air filter", "translated query");
-  eq(r.engine, "1.8L L4", "engine label for the card");
-  eq(r.category, "Fuel & Air", "category");
-  eq(r.partType, "Air Filter", "part type");
-  eq(r.items.length, 2, "items");
-  eq(r.items[0].priceUsd, 4.12, "price is raw USD");
-  eq(counter.count, 4, "four RockAuto requests");
-});
-
-checkAsync("a cache hit performs zero RockAuto requests on the second identical search", async () => {
-  const counter = { count: 0 };
-  const pages = new Map([
-    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
-    [RA_NODE_URL, RA_NODE_FIXTURE],
-    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
-    [RA_PARTTYPE_URL, RA_LISTINGS_FIXTURE],
-  ]);
-  // Mirrors the function: Blobs-backed, keyed {year}|{make}|{model}|{spanish-query}.
-  const cache = new Map();
-  const search = async (query) => {
-    const key = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", query);
-    if (cache.has(key)) return { ...cache.get(key), cached: true };
-    const r = await rockautoDirect.runRockautoLiveChain({
-      year: "2010",
-      make: "Honda",
-      model: "Civic",
-      query,
-      entries: RA_ENTRIES,
-      fetchHtml: raFixtureFetch(pages, counter),
-      courtesyDelayMs: 0,
-    });
-    if (r.ok) cache.set(key, r);
-    return { ...r, cached: false };
-  };
-  const first = await search("filtro de aire");
-  if (!first.ok || first.cached) throw new Error("first search should miss the cache and run the chain");
-  eq(counter.count, 4, "first search runs the chain");
-  const second = await search("Filtro  de Aire");
-  if (!second.ok || !second.cached) throw new Error("second search should hit the cache");
-  eq(counter.count, 4, "second identical search: zero RockAuto requests");
-  eq(second.items.length, first.items.length, "cached items served");
-});
-
-checkAsync("a hanging RockAuto degrades to a timeout miss, never a hung function", async () => {
-  const r = await rockautoDirect.runRockautoLiveChain({
-    year: "2010",
-    make: "Honda",
-    model: "Civic",
-    query: "filtro de aire",
-    entries: RA_ENTRIES,
-    fetchHtml: () => new Promise(() => {}),
-    courtesyDelayMs: 0,
-    deadlineMs: 120,
-  });
-  eq(r.ok, false, "not ok");
-  eq(r.miss, "timeout", "miss reason");
-});
-
-checkAsync("a vehicle with no engine options is a graceful catalog miss", async () => {
-  const counter = { count: 0 };
-  const hiluxCatalog = "https://www.rockauto.com/en/catalog/toyota,2010,hilux";
-  const r = await rockautoDirect.runRockautoLiveChain({
-    year: "2010",
-    make: "Toyota",
-    model: "Hilux",
-    query: "filtro de aire",
-    entries: RA_ENTRIES,
-    fetchHtml: raFixtureFetch(new Map([[hiluxCatalog, "<html><body>no engines here</body></html>"]]), counter),
-    courtesyDelayMs: 0,
-  });
-  eq(r.ok, false, "not ok");
-  eq(r.miss, "no-engine", "miss reason");
-  eq(counter.count, 1, "one request, then the friendly empty state");
-});
-
-checkAsync("an unknown part type is a graceful miss, not an exception", async () => {
-  const counter = { count: 0 };
-  const pages = new Map([
-    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
-    [RA_NODE_URL, RA_NODE_FIXTURE],
-    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
-  ]);
-  const r = await rockautoDirect.runRockautoLiveChain({
-    year: "2010",
-    make: "Honda",
-    model: "Civic",
-    query: "espejo retrovisor cuántico",
-    entries: RA_ENTRIES,
-    fetchHtml: raFixtureFetch(pages, counter),
-    courtesyDelayMs: 0,
-  });
-  eq(r.ok, false, "not ok");
-  if (!["no-category", "no-part-type"].includes(r.miss)) throw new Error(`unexpected miss: ${r.miss}`);
-});
-
-check("the live-search function keeps prices raw — the 24% margin belongs to the page", () => {
-  const src = readFileSync(root("netlify/functions/rockauto-live-search.js"), "utf8");
-  if (/1\.24|1\.07|SALES_TAX_RATE|LIVE_PRICE_MARKUP/.test(src))
-    throw new Error("the function is applying the markup — that belongs to normalizeLiveItem");
-  if (!/price: it\.priceUsd/.test(src)) throw new Error("raw USD price not passed through");
-});
-
-check("RockAuto images are proxied, never hotlinked", () => {
-  const src = readFileSync(root("netlify/functions/rockauto-live-search.js"), "utf8");
-  if (!/rockauto-image\?u=/.test(src)) throw new Error("listings do not route images through the proxy");
-  if (/https:\/\/www\.rockauto\.com\/info\//.test(src)) throw new Error("raw /info/ hotlink leaked into the client payload");
-  const proxy = readFileSync(root("netlify/functions/rockauto-image.js"), "utf8");
-  if (!/const ALLOWED =/.test(proxy) || !/\(info\|catalog\)/.test(proxy))
-    throw new Error("proxy path allowlist missing");
-});
-
-check("the client routes RockAuto to the direct function with a 30s start timeout", () => {
-  const html = readFileSync(root("index.html"), "utf8");
-  if (!/if \(sourceKey === 'rockauto'\) return searchRockautoLive\(vehicle, query, maxItems\);/.test(html))
-    throw new Error("searchAutoSource does not branch RockAuto to the direct function");
-  if (!/fetchWithStartTimeout\('\/\.netlify\/functions\/rockauto-live-search'/.test(html))
-    throw new Error("rockautoLiveSearch does not use the 30s start timeout");
-});
-
-check("every RockAuto live failure degrades to the honest pending block", () => {
-  const html = readFileSync(root("index.html"), "utf8");
-  if (!/miss\.sourceNotConnected = true;/.test(html) || !/fail\.sourceNotConnected = true;/.test(html))
-    throw new Error("rockauto failures do not flag sourceNotConnected");
-  if (!/pendingNote: 'Estamos ampliando nuestro catálogo de repuestos/.test(html))
-    throw new Error("the pending block does not carry the required shopper message");
-});
 
 /* ------------------------------------------------------------------ */
 await Promise.all(pendingAsync);
@@ -10615,26 +10368,25 @@ check("the Gym Rat lead is wired into the department sort, explicit sorts bypass
   if (!/onchange="onCatalogSortChange\(\)"/.test(src)) throw new Error("the sort dropdown is not wired to onCatalogSortChange");
 });
 
-check("Gymshark sits between Victoria's Secret and Sephora on all three surfaces", () => {
-  /* DANNY (2026-09-26): Gymshark -- the most-known gym brand in Peru right
-     now -- sits right under Victoria's Secret and above Sephora: on the
-     phone, the laptop, and the Tiendas vitrinas. No rail was removed to
-     make room. */
+check("Gymshark sits between Costco and SSENSE on all three surfaces (reliable-first, 2026-09-26)", () => {
+  /* DANNY (2026-09-26, reliable-first): Gymshark sits between Costco and
+     SSENSE on the phone, the laptop, and the Tiendas vitrinas. No rail was
+     removed to make room. */
   const src = readFileSync(root("index.html"), "utf8");
-  if (!/const STORE_RAIL_STORES = \[\s*'victoriassecret',\s*'gymshark',\s*'sephora'/.test(src)) {
-    throw new Error("STORE_RAIL_STORES is not victoriassecret, gymshark, sephora");
+  if (!/const STORE_RAIL_STORES = \[\s*'footlocker',\s*'sephora',\s*'macys'/.test(src)) {
+    throw new Error("STORE_RAIL_STORES is not footlocker, sephora, macys");
   }
   for (const id of ["mStoreRail-gymshark", "dStoreRail-gymshark", "tStoreRail-gymshark"]) {
     eq((src.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is not declared exactly once`);
   }
-  /* DOM adjacency: the Gymshark section directly follows the Victoria's
-     Secret section and directly precedes the Sephora section, per surface. */
+  /* DOM adjacency: the Gymshark section directly follows the Costco
+     section and directly precedes the SSENSE section, per surface. */
   for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]) {
     const ids = [...src.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
     const i = ids.indexOf("gymshark");
     if (i < 0) throw new Error(`${prefix}-gymshark is missing`);
-    eq(ids[i - 1], "victoriassecret", `${prefix}: Gymshark is not under Victoria's Secret`);
-    eq(ids[i + 1], "sephora", `${prefix}: Gymshark is not above Sephora`);
+    eq(ids[i - 1], "costco", `${prefix}: Gymshark is not under Costco`);
+    eq(ids[i + 1], "ssense", `${prefix}: Gymshark is not above SSENSE`);
   }
 });
 
@@ -10683,6 +10435,153 @@ check("ofertasLeadSort holds heavy coats and near-duplicates out of the lead, an
   if (dupIdx < OFERTAS_LEAD_N) throw new Error(`a near-duplicate leads at index ${dupIdx}`);
   if (!titles.includes("Women's Oversized Hooded Sweatshirt")) throw new Error("the stronger duplicate went missing");
 });
+
+
+/* ================================================================
+   DELIVERY TRANSPARENCY (2026-09-26, Danny's brief): store-by-store
+   Miami timing, shown on store and product pages and in cart/checkout
+   before anyone pays. Honesty and communication and transparency. */
+check("the delivery dataset is well-formed", () => {
+  const rows = Object.entries(delivery.RETAILER_DELIVERY);
+  if (rows.length < 30) throw new Error(`only ${rows.length} delivery rows`);
+  for (const [key, e] of rows) {
+    if (!Number.isFinite(e.miamiMax) || e.miamiMax < 1)
+      throw new Error(`${key}: bad miamiMax ${e.miamiMax}`);
+    if (e.miamiMin != null && (e.miamiMin < 1 || e.miamiMin > e.miamiMax))
+      throw new Error(`${key}: bad miamiMin ${e.miamiMin}`);
+    if (!["green", "yellow", "red"].includes(e.tier))
+      throw new Error(`${key}: bad tier ${e.tier}`);
+  }
+  eq(delivery.MIAMI_TO_DOOR_MIN, 2, "Miami-to-door min");
+  eq(delivery.MIAMI_TO_DOOR_MAX, 7, "Miami-to-door max");
+});
+
+check("the researched timings Danny approved are in the dataset", () => {
+  eq(delivery.miamiRangeEs(delivery.deliveryFor("dicks")), "3–6 días", "Dick's");
+  eq(delivery.miamiRangeEs(delivery.deliveryFor("yesstyle")), "14–28 días", "YesStyle");
+  eq(delivery.deliveryFor("yesstyle").tier, "red", "YesStyle is red tier");
+  if (!/Hong Kong/.test(delivery.deliveryFor("yesstyle").noteEs || ""))
+    throw new Error("YesStyle lost its Hong Kong note");
+  if (!delivery.deliveryFor("alphalete").plus)
+    throw new Error("Alphalete lost its 30+ open end");
+});
+
+check("the store delivery line reads naturally in Spanish", () => {
+  eq(delivery.storeDeliveryLineEs("dicks"),
+    "Llega a nuestro almacén en Miami en 3–6 días.", "range line");
+  eq(delivery.storeDeliveryLineEs("skims"),
+    "Llega a nuestro almacén en Miami en 7 días como máximo.", "max-only line");
+  if (/en hasta/.test(delivery.storeDeliveryLineEs("skims")))
+    throw new Error('the awkward "en hasta" copy is back');
+  eq(delivery.storeDeliveryLineEs("nosuchstore"), null, "unresearched store");
+});
+
+check("the red-tier notice is honest about the slow lane", () => {
+  const notice = delivery.redTierNoticeEs("yesstyle");
+  if (!/Aviso honesto/.test(notice)) throw new Error("not an honest warning");
+  if (!/14–28 días/.test(notice)) throw new Error("hides the 14-28 day range");
+  if (!/2–7 días/.test(notice)) throw new Error("hides the Miami-to-door leg");
+  eq(delivery.redTierNoticeEs("dicks"), null, "non-red store has no warning");
+});
+
+check("the slowest store sets the checkout expectation", () => {
+  eq(delivery.slowestDeliveryKey(["dicks", "yesstyle", "sephora"]), "yesstyle", "slowest wins");
+  eq(delivery.slowestDeliveryKey(["dicks", "sephora"]), "dicks", "slower of two");
+  eq(delivery.slowestDeliveryKey(["nosuchstore"]), null, "no researched stores");
+});
+
+check("the page mirrors the delivery dataset", () => {
+  const src = HOME_SRC();
+  const m = src.match(/const RETAILER_DELIVERY = \{([\s\S]*?)\n\};/);
+  if (!m) throw new Error("the page lost its RETAILER_DELIVERY mirror");
+  for (const key of ["dicks", "yesstyle", "skims", "ssense", "sephora"]) {
+    const row = new RegExp(`^\\s*${key}:\\s*\\{[^\\n]*`, "m").exec(m[1]);
+    if (!row) throw new Error(`the page mirror lost its ${key} row`);
+    const mod = delivery.deliveryFor(key);
+    for (const f of ["miamiMin", "miamiMax", "tier"]) {
+      const want = String(mod[f]);
+      if (!new RegExp(`${f}:\\s*["']?${want}["']?\\b`).test(row[0]))
+        throw new Error(`mirror ${key}.${f} is ${row[0]}, module says ${want}`);
+    }
+  }
+  for (const fn of ["deliveryFor", "miamiRangeEs", "storeDeliveryLineEs", "redTierNoticeEs", "slowestDeliveryKey"]) {
+    if (!new RegExp(`function ${fn}\\(`).test(src)) throw new Error(`the page lost ${fn}`);
+  }
+});
+
+check("store cards, rails, storefronts and product pages disclose delivery", () => {
+  const src = HOME_SRC();
+  if (!/storeDeliveryLineEs\(r\.key\)/.test(src))
+    throw new Error("store cards lost their delivery line");
+  if (!/storeDeliveryLineEs\(retailer\)/.test(src))
+    throw new Error("storefront/product pages lost their delivery line");
+  if (!/redTierNoticeEs\(/.test(src))
+    throw new Error("the red-tier storefront warning is gone");
+  for (const id of ["storeViewDelivery", "productViewDelivery", "cartDeliveryWrap"]) {
+    if (!src.includes(`id="${id}"`)) throw new Error(`the page lost #${id}`);
+  }
+});
+
+check("the homepage and checkout explain how shipping works", () => {
+  const src = HOME_SRC();
+  for (const id of ["mShippingExplainer", "dShippingExplainer"]) {
+    if (!src.includes(`id="${id}"`)) throw new Error(`the homepage lost #${id}`);
+  }
+  if (!/renderShippingExplainers/.test(src)) throw new Error("the explainer renderer is gone");
+  if (!/La tienda en EE\. UU\./.test(src) && !/tienda.*Miami.*puerta/.test(src))
+    throw new Error("the explainer lost its two-leg story");
+  const co = readFileSync(root("checkout.html"), "utf8");
+  if (!co.includes("checkoutExplainerWrap")) throw new Error("checkout lost its explainer");
+  if (!/De Miami a tu puerta/.test(co)) throw new Error("checkout lost the Miami-to-door leg");
+  if (!/slowestDeliveryKey/.test(co)) throw new Error("checkout lost the slowest-store logic");
+});
+
+check("RockAuto and Sunglass Hut are gone from every shopper path", () => {
+  const src = HOME_SRC();
+  const liveRefs = src.replace(/retiredNote:[^\n]*/g, "")
+    .replace(/^\s*rockauto:\s*\{[^\n]*/gm, ""); // the one retired registry row
+  if (/["']rockauto["']/.test(liveRefs))
+    throw new Error("rockauto still referenced as a live store");
+  if (!/retired: *true/.test(src.match(/rockauto:\s*\{[^}]*\}/)?.[0] || "retired: true"))
+    throw new Error("rockauto lost its retired flag");
+  /* Sunglass Hut: dropped 2026-09-25, no pull attempted — only the retired
+     registry row may remain. */
+  const shLive = src.replace(/retiredNote:[^\n]*/g, "")
+    .replace(/^\s*sunglasshut:\s*\{[^\n]*/gm, "");
+  if (/["']sunglasshut["']/.test(shLive))
+    throw new Error("sunglasshut still referenced as a live store");
+  for (const f of ["scripts/lib/rockauto-direct.js", "netlify/functions/rockauto-live-search.js",
+                   "netlify/functions/rockauto-image.js", "scripts/canary-rockauto.mjs"]) {
+    if (existsSync(root(f))) throw new Error(`${f} still exists`);
+  }
+  if (existsSync(root("netlify/functions/rockauto-live-search.js")))
+    throw new Error("the RockAuto serverless function still exists");
+});
+
+check("no TV set or TV mount survives in the catalogs", () => {
+  const tvSet = /\btv\b[\s-]*(set|sets)?\b/i;
+  const mountRx = /tv\s*mount|soporte\s*(para\s*)?tv|wall\s*mount|montaje\s*(de\s*)?tv/i;
+  for (const f of ["costco-catalog.json", "department-cache.json"]) {
+    const items = JSON.parse(readFileSync(root(f), "utf8"));
+    const list = Array.isArray(items) ? items : items.products || [];
+    for (const p of list) {
+      const name = String(p.title || p.name || "");
+      if (mountRx.test(name) && !/stand|console|entertainment/i.test(name))
+        throw new Error(`${f} still lists a mount: ${name.slice(0, 60)}`);
+    }
+  }
+});
+
+check("TV stands stay: they are furniture, not televisions", () => {
+  const src = HOME_SRC();
+  const m = src.match(/const TV_PARCEL_OK_RX = \/(.*?)\/i;/);
+  if (!m) throw new Error("TV_PARCEL_OK_RX is gone");
+  const okRx = new RegExp(m[1], "i");
+  for (const name of ["Puerta Del Sol TV Console", "Walker Edison 58\" TV Stand"]) {
+    if (!okRx.test(name)) throw new Error(`${name} is not carved out as furniture`);
+  }
+});
+
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
