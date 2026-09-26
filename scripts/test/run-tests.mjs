@@ -4999,35 +4999,28 @@ const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
-check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
+check("the shopfront opens the home page: Ofertas is the first thing", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* THIS RULE CHANGED ON 2026-09-23, DELIBERATELY, AND THE OLD ONE IS
-     WORTH KEEPING IN VIEW. It read: the shopfront is the FIRST child of
-     #homeView, because "a shopper who scrolls -- and they all scroll --
-     meets the deals before anything else. One element moved above this
-     and the rails are below the fold again." That came out of a real
-     user test and it was right.
-
-     Danny then asked for a photographic hero at the top of the home
-     page. A hero is exactly the "one element moved above this", and on
-     a 393x852 phone it does push the Ofertas rail off the first screen.
-     That is a trade he made knowingly and it is recorded here rather
-     than quietly deleted: the protection now is that the hero is the
-     ONLY thing allowed above the rails. A third element between the
-     header and the shopfront still fails, which is what the original
-     check was really guarding. */
+  /* THIS RULE CHANGED ON 2026-09-25, DELIBERATELY, AT DANNY'S WORD.
+     It used to read: nothing but the photographic hero comes before
+     the shopfront. Danny's verdict on his phone: the brand statement
+     ("Compra en Estados Unidos / Te lo llevamos a Perú") sat eight
+     carousels down and the deals were not the first thing the eye
+     met. The photographic hero moved below the rails; the shopfront
+     is the FIRST child of #homeView again, and the Ofertas rail is the
+     first section inside it. One element above the rails -- hero or
+     anything else -- fails, which is what this check guards. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
   const first = tags[0] || "";
-  if (!/class="ariaHero"/.test(first)) {
-    throw new Error(`the first thing in #homeView is not the hero: ${first.slice(0, 70)}`);
+  if (!first.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`the first thing in #homeView is not the shopfront: ${first.slice(0, 70)}`);
   }
-  const afterHero = body.slice(body.indexOf("</section>") + "</section>".length);
-  const nextTag = (afterHero.match(/<(?!!--)[a-zA-Z][^>]*>/) || [""])[0];
-  if (!nextTag.startsWith('<div id="mobileShopfront"')) {
-    throw new Error(`something sits between the hero and the shopfront: ${nextTag.slice(0, 70)}`);
+  const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
+  if (firstSection !== "Ofertas") {
+    throw new Error(`the first section in the shopfront is ${firstSection}, want Ofertas`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -5039,7 +5032,7 @@ check("nothing but the hero comes before the shopfront, and it is phone-only", (
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, then the store rails, then Todas las otras tiendas, then Categorías", () => {
+check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5051,14 +5044,17 @@ check("Ofertas, then the store rails, then Todas las otras tiendas, then Categor
      stores. I'm just browsing." The Tiendas chips rail is gone from the
      home page -- each store gets its own window display, and the two
      breakpoints finally share one scroll order: deals, the six store
-     rails in mall order, then departments.)
+     rails in mall order, then departments.
+     2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo, "Compra
+     en Estados Unidos / Te lo llevamos a Perú", the search -- sits
+     directly under the Ofertas rail, ahead of the store rails.
 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
      between the six rails and Categorías -- the rest of the mall
      directory as one logo strip, with a way into the full 22-store
      Tiendas directory.) */
-  const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
+  const order = [...shopfront.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
@@ -5068,22 +5064,25 @@ check("Ofertas, then the store rails, then Todas las otras tiendas, then Categor
   }
 });
 
-check("the desktop shopfront reads Ofertas, then the store rails, then Todas las otras tiendas, then Categorías", () => {
+check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
      scroll order now -- deals, the six store rails in mall order,
      departments. The Tiendas chips rail is superseded by the rails.
+     2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band (logo, "Compra
+     en Estados Unidos / Te lo llevamos a Perú", search) sits directly
+     under the Ofertas rail, ahead of the store rails.
 
-     2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
      between the six rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
-    shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+    shopfrontSrc.indexOf('class="ariaHero"'),
   );
   if (!desk) throw new Error("there is no desktop shopfront");
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
-  const order = [...desk.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
@@ -7498,13 +7497,13 @@ check("the page promises nothing we cannot do", () => {
   }
 });
 
-check("the explainer follows the logo, and the category tiles follow the explainer", () => {
-  /* THE PHONE USED TO READ: Ofertas -> Categorías (the compact
-     carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
-     (the long tiles). The visitor met the categories, scrolled past
-     them to reach the brand and how any of this works, and met the
-     categories AGAIN -- the same list twice with the story wedged
-     between its two halves.
+check("the home page runs deals, brand band, rails, departments, story", () => {
+  /* 2026-09-25, DANNY'S HOMEPAGE ORDER (his phone verdict): the brand
+     band -- the ARIA logo, "Compra en Estados Unidos / Te lo llevamos
+     a Perú", the search -- sat eight carousels down and the deals were
+     not the first thing the eye met. Now the run is: Ofertas, the
+     brand band, the six store rails in mall order, Categorías, then
+     the story sections. One scroll order on both breakpoints.
 
      Asserted on SOURCE ORDER, not on measured positions: the browser
      harness blocks the CDN, so nothing there has a reliable y. */
@@ -7518,6 +7517,7 @@ check("the explainer follows the logo, and the category tiles follow the explain
     return i;
   };
   const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
+  const band   = at('aria-label="Compra en Estados Unidos"', "the brand band");
   const cats   = at('id="mobileCatsRow"', "the Categorías rail");
   const rails  = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]
     .map(k => at(`id="mStoreRail-${k}"`, `the ${k} rail`));
@@ -7525,16 +7525,17 @@ check("the explainer follows the logo, and the category tiles follow the explain
   const why    = at('id="whyUs"', "the Por qué Aria explainer");
   const tiles  = at('id="cats"', "the Comprar por categoría tiles");
 
-  // 2026-09-25, DANNY'S MALL VISION: Ofertas, the six store rails in
-  // mall order, then Categorías -- one scroll order on both breakpoints.
-  if (!(deals < rails[0])) throw new Error("the store rails no longer follow Ofertas");
+  // 2026-09-25, DANNY'S HOMEPAGE ORDER: Ofertas, the brand band, the
+  // six store rails in mall order, then Categorías -- one scroll order
+  // on both breakpoints.
+  if (!(deals < band)) throw new Error("the brand band no longer follows Ofertas");
+  if (!(band < rails[0])) throw new Error("the store rails no longer follow the brand band");
   for (let i = 1; i < rails.length; i++) {
     if (!(rails[i - 1] < rails[i])) throw new Error("the store rails are out of mall order");
   }
   if (!(rails[rails.length - 1] < cats)) throw new Error("Categorías no longer follows the store rails");
-  if (!(cats < logo)) throw new Error("the rails no longer come before the logo");
-  // The move itself.
-  if (!(logo < why)) throw new Error("the explainer no longer follows the ARIA logo it belongs to");
+  // The brand story still closes the run: logo, explainer, then tiles.
+  if (!(logo < why)) throw new Error("the explainer no longer follows the brand story");
   if (!(why < tiles)) throw new Error("the category tiles interrupt the brand story again");
 
   /* NOTHING WAS DELETED. The tiles are still there and still built by
@@ -7695,7 +7696,7 @@ check("the six rails stand in mall order on all three surfaces", () => {
   const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
-    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)"'],
+    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'class="ariaHero"'],
     ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
