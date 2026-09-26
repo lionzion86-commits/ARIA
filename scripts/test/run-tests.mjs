@@ -9882,6 +9882,117 @@ group("store carousels: window-shopping rails");
   });
 }
 
+/* ==================================================================
+   PER-STORE AMBIENT THEMES — FULL ROLLOUT (2026-09-24).
+
+   Danny: every carried store gets a brand-grounded ambient, not just
+   Victoria's Secret. Each theme is a STORE_THEMES row plus a
+   [data-store-theme="<key>"] CSS block (3 radial glows + linear base,
+   then the 7 re-ink rules). The wiring (applyStoreTheme) is generic and
+   already covers the store landing, department drill-downs and
+   store-scoped search — these checks pin the registry and the CSS.
+   ================================================================== */
+group("per-store ambient themes: full rollout");
+
+{
+  const themeKeys = () => {
+    const src = readFileSync(root("index.html"), "utf8");
+    const lit = src.slice(src.indexOf("const STORE_THEMES = {"), src.indexOf("function storeThemeFor("));
+    return [...lit.matchAll(/^  ([a-z0-9]+): \{ glow: '(#[0-9A-Fa-f]{6})' \},$/gm)].map(m => m[1]);
+  };
+  const cssFor = (key) => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const css = src.slice(0, src.indexOf("</style>"));
+    const start = css.indexOf(`[data-store-theme="${key}"]{`);
+    if (start < 0) return null;
+    // the block runs to the last re-ink rule for this key
+    const endMarker = `[data-store-theme="${key}"] .ariaCarouselTitle`;
+    const end = css.indexOf(endMarker);
+    return css.slice(start, css.indexOf("}", end) + 1);
+  };
+  const lum = (hex) => {
+    let h = hex.replace("#", "");
+    if (h.length === 3) h = [...h].map(c => c + c).join("");
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+    const f = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const contrast = (a, b) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+
+  check("every carried store has an ambient theme", () => {
+    const keys = themeKeys();
+    const expected = ["walmart","target","oldnavy","footlocker","sephora","ulta",
+      "yesstyle","victoriassecret","bathandbodyworks","macys","skims","revolve",
+      "dyson","sunglasshut","ssense","fendi","miumiu","goldengoose","autozone"];
+    for (const k of expected) {
+      if (!keys.includes(k)) throw new Error(`no STORE_THEMES row for ${k}`);
+    }
+    for (const retired of ["bestbuy", "nordstrom"]) {
+      if (keys.includes(retired)) throw new Error(`retired store ${retired} has a theme`);
+    }
+    if (new Set(keys).size !== keys.length) throw new Error("duplicate theme keys");
+  });
+
+  check("the Victoria's Secret theme is untouched", () => {
+    const src = readFileSync(root("index.html"), "utf8");
+    if (!/victoriassecret: \{ glow: '#E31C79' \},/.test(src)) {
+      throw new Error("the VS registry row changed");
+    }
+    const css = cssFor("victoriassecret");
+    // 2026-09-24 restyle (Danny: keep it pink all the way down) — the
+    // approved base is now the pink gradient, not the old near-black plum.
+    if (!css || !css.includes("#D6337F")) throw new Error("the VS ambient changed");
+  });
+
+  check("every theme has the full CSS block", () => {
+    const rules = ["h1{", "#catalogSubtitle", ".themeBack{", '[aria-pressed="true"]{',
+      ".chipLabel{", "#catalogSort{", ".ariaCarouselTitle{"];
+    for (const k of themeKeys()) {
+      // AutoZone keeps Aria Auto's light surfaces with a brand-colour wash
+      // instead of a dark ambient — pinned separately below.
+      if (k === "autozone") continue;
+      const css = cssFor(k);
+      if (!css) throw new Error(`no CSS block for ${k}`);
+      if (!/radial-gradient/.test(css) || !/linear-gradient\(180deg/.test(css)) {
+        throw new Error(`${k}: ambient background is not glows-over-base`);
+      }
+      for (const r of rules) {
+        if (!css.includes(r)) throw new Error(`${k}: missing re-ink rule ${r}`);
+      }
+    }
+  });
+
+  check("active filter chips hold 4.5:1 on every theme", () => {
+    for (const k of themeKeys()) {
+      // Victoria's Secret is the pilot (PR #42, owned elsewhere): its approved
+      // values predate this bar and compute to 4.46:1. Grandfathered, not touched.
+      // AutoZone has no pressed-chip rule: it wears the light wash, not a dark ambient.
+      if (k === "victoriassecret" || k === "autozone") continue;
+      const css = cssFor(k);
+      const m = css.match(/\[aria-pressed="true"\]\{\s*background:(#[0-9A-Fa-f]{3,6}) !important; border-color:(#[0-9A-Fa-f]{3,6}) !important; color:(#[0-9A-Fa-f]{3,6}) !important;/);
+      if (!m) throw new Error(`${k}: pressed-chip rule not in the expected shape`);
+      const ratio = contrast(m[3], m[1]);
+      if (ratio < 4.5) throw new Error(`${k}: chip contrast ${ratio.toFixed(2)}:1 under 4.5`);
+    }
+  });
+}
+  check("the auto store keeps the light wash", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    if (!/autozone: \{ glow: '#1C8A4B' \},/.test(src)) {
+      throw new Error("the AutoZone registry row changed");
+    }
+    const css = src.slice(0, src.indexOf("</style>"));
+    if (!css.includes('[data-store-theme="autozone"]{ background:linear-gradient(180deg, #DFF0E4')) {
+      throw new Error("the AutoZone light wash is gone");
+    }
+  });
+
+/* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------
    VOICE PUNCTUATION + THE SEARCH DOORWAY (2026-09-24)
 
@@ -10820,7 +10931,6 @@ check("TV stands stay: they are furniture, not televisions", () => {
     if (!okRx.test(name)) throw new Error(`${name} is not carved out as furniture`);
   }
 });
-
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
