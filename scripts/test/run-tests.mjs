@@ -5070,13 +5070,16 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
      (2026-09-26, DANNY'S HOMEPAGE ORDER V2: the photo hero opens the
      page again -- "Todo USA ahora en Lima" is the strong message that
      hits you the moment you walk in. The 2026-09-25 order holds after
-     it, with the Costco rail and the Fiestas y Eventos vertical.) */
+     it, with the Costco rail and the Fiestas y Eventos vertical.
+     2026-09-26, DANNY'S ARIA AUTO BANNER: the Aria Auto house banner
+     sits between Fiestas y Eventos and "Todas las otras tiendas" on
+     both breakpoints.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Aria Auto > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
@@ -5104,7 +5107,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Aria Auto > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
@@ -5581,6 +5584,30 @@ check("Party City cards badge the store by name, without a storefront", () => {
   eq(FIESTAS_RETAILER_LABEL.partycity, "Party City", "the Party City display name");
   // And nothing in the page routes to a Party City storefront.
   if (/openStore\(\s*['"]partycity['"]\)/.test(shopfrontSrc)) throw new Error("something opens a partycity storefront");
+});
+
+check("the Aria Auto house banner sits between Fiestas and the strip, on both breakpoints", () => {
+  /* 2026-09-26, DANNY'S ARIA AUTO BANNER: one bold statement, no product
+     carousel -- Aria Auto is a huge section nobody discovers from the
+     homepage. Dark automotive, deliberately NOT the navy rail language.
+     Danny's final copy: relatable promise first, RockAuto/Advance as the
+     trust kicker. The CTA opens the Aria Auto vertical. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const banners = [...html.matchAll(/<section[^>]*aria-label="Aria Auto"[^>]*>([\s\S]*?)<\/section>/g)];
+  eq(banners.length, 2, "one Aria Auto banner per breakpoint");
+  for (const [, body] of banners) {
+    for (const phrase of ["Aria Auto", "Repuestos para tu auto a una fracci", "frenos, filtros, amortiguadores",
+        "Abastecido por RockAuto", "Advance Auto Parts", "Encuentra tu repuesto"]) {
+      if (!body.includes(phrase)) throw new Error(`the banner lost its copy: ${phrase}`);
+    }
+    if (!/openAriaAuto\(\);return false;/.test(body)) throw new Error("the banner CTA does not open Aria Auto");
+    if (!/ariaAutoCta/.test(body)) throw new Error("the banner CTA lost its amber button styling");
+  }
+  // Dark automotive styling exists, and the banner never wears the navy rail band.
+  if (!/\.ariaAutoBanner\{/.test(html)) throw new Error("the banner lost its dark styling");
+  for (const [tag] of banners) {
+    if (/ariaNavyBand/.test(tag)) throw new Error("the auto banner wears the navy rail language");
+  }
 });
 
 

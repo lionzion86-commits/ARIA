@@ -139,6 +139,25 @@
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
+     section nobody discovers from the homepage -- a shopper browsing deals
+     never learns it exists, and a woman shopping might spot the banner and
+     tell her husband. A full-width house banner (not an ad, not a product
+     carousel: one bold statement) between Fiestas y Eventos and "Todas las
+     otras tiendas" breaks the rail rhythm. Dark automotive -- charcoal and
+     black with an amber accent -- deliberately NOT the navy rail language,
+     so it reads as its own destination. Typographic treatment: the repo
+     has no auto banner art. Permanent, one banner only. */
+  .ariaAutoBanner{ background:linear-gradient(135deg, #0B0D10 0%, #171A1F 52%, #0B0D10 100%) }
+  .ariaAutoBannerHair{ position:absolute; left:0; right:0; top:0; height:2px;
+    background:linear-gradient(90deg, transparent, rgba(245,158,11,0.9), transparent) }
+  .ariaAutoGhost{ position:absolute; right:-8px; top:50%; transform:translateY(-52%) skewX(-8deg);
+    font-weight:900; font-style:italic; font-size:clamp(96px, 24vw, 230px); line-height:1;
+    letter-spacing:-0.045em; color:transparent; -webkit-text-stroke:1.5px rgba(245,158,11,0.22);
+    pointer-events:none; user-select:none; white-space:nowrap }
+  .ariaAutoCta{ display:inline-flex; align-items:center; justify-content:center;
+    height:48px; padding:0 26px; border-radius:16px; background:#F59E0B; color:#0B0D10;
+    font-size:15px; font-weight:800; letter-spacing:-0.01em }
   /* STORE RAIL BANDS (2026-09-25, Danny's iPhone QA): the six store rails
      sit on the mall's evening navy instead of white-on-white, so the page
      feels full and each rail reads as a lit storefront window. White cards
@@ -1262,6 +1281,20 @@
         </div>
         <div id="mFiestasRail-dulces" data-fiestas-rail-row="dulces" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
       </div>    </section>
+    <!-- ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): one bold statement,
+         no product carousel. Relatable promise first (Aria Auto + price),
+         RockAuto/Advance as the trust kicker underneath. Permanent, one
+         banner only. -->
+    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative px-5 py-8" style="z-index:1">
+        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por RockAuto &middot; Advance Auto Parts</p>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
     <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
          that is not one of the six featured rails, as one swipeable logo strip.
          Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
@@ -1534,6 +1567,20 @@
       </div>      </div>
     </section>
 
+    <!-- ARIA AUTO HOUSE BANNER (desktop, 2026-09-26, Danny's call): same house
+         banner as the phone's -- one bold statement, category-led copy. -->
+    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
+        <div class="min-w-0">
+          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por RockAuto &middot; Advance Auto Parts</p>
+        </div>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
     <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
          mall directory between the six featured rails and Categorías. -->
     <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
