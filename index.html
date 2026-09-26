@@ -2211,6 +2211,15 @@
           <div id="productViewPartNumber" class="text-[12.5px] font-semibold mb-3" style="color:var(--navy)" hidden></div>
           <div id="productViewPrice" class="text-[26px] font-extrabold mb-3" style="color:var(--navy)"></div>
           <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-4"></div>
+          <!-- DESCRIPCIÓN (2026-09-25): the retailer's own product description,
+               translated to Spanish (1-2 sentences) by the catalog enrichment
+               pass. Filled by showProduct() via textContent, never innerHTML;
+               hidden when the catalogue carries none so no stale text leaks
+               between products. -->
+          <div id="productViewDescWrap" class="mb-4" hidden>
+            <h2 class="text-[12px] font-extrabold uppercase mb-1.5" style="color:var(--navy); letter-spacing:0.09em">Descripción</h2>
+            <p id="productViewDesc" class="text-[13.5px] leading-relaxed max-w-[62ch]" style="color:#3A4256"></p>
+          </div>
           <!-- BUG FIX (cart rework): size now has to be picked before the
                item can sit in the cart as a concrete line item, so this
                moved here from checkout.html (see standardSizeOptions() in
@@ -6132,7 +6141,7 @@ function openMobileDeal(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* ============================================================
@@ -6801,7 +6810,7 @@ function openRelatedProduct(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 async function renderRelatedRail(anchorIn){
@@ -6940,7 +6949,7 @@ function openStoreRailProduct(key, idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* STORE_RAIL_PICKS:SLICE-START
@@ -8764,7 +8773,7 @@ function productCardOpenExpr(p, retailer){
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
     + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
     + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'}, `
-    + `${escapeHtml(JSON.stringify({ brand: p.brand || '' }))})`;
+    + `${escapeHtml(JSON.stringify({ brand: p.brand || '', description: p.description || '' }))})`;
 }
 
 /* ============================================================
@@ -9013,13 +9022,13 @@ async function applyRoute(route){
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
           known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
-          { brand: known.brand });
+          { brand: known.brand, description: known.description || '' });
         else if (route.name) {
           const found = await findCatalogProductByTitle(route.name).catch(() => null);
           if (found) showProduct(found.retailer, found.title, found.price, found.weightKg, found.image || '',
             found.sizes || [], needsSizeSelection(found.retailer, found.title), sizeCategoryFor(found.retailer, found.title),
             found.rating != null ? String(found.rating) : '', found.images || [], found.catalogWeightKg ?? null,
-            { brand: found.brand });
+            { brand: found.brand, description: found.description || '' });
           else showProductUnavailable(route.name);
         }
         else showPage('homeView');
@@ -9632,7 +9641,7 @@ function openSearchProduct(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* Same product, different store. Retailers word titles differently, so
@@ -11269,6 +11278,19 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     // The fragrance limit belongs on the page where the decision to add
     // to the cart is made, not only on the card that led here.
     + fragranceLimitChipHTML({ title: name });
+
+  /* DESCRIPCIÓN (2026-09-25): the retailer's own description, translated to
+     Spanish, carried on opts by every showProduct() caller. textContent,
+     never innerHTML — this string originates in catalogue data. The wrap
+     is emptied and hidden when there is none, so the previous product's
+     description cannot survive onto this one. */
+  const descWrap = document.getElementById('productViewDescWrap');
+  const descEl = document.getElementById('productViewDesc');
+  const descText = String(opts?.description || '').trim();
+  if (descWrap && descEl){
+    descEl.textContent = descText;
+    descWrap.hidden = !descText;
+  }
 
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
@@ -13827,7 +13849,16 @@ function normalizeLiveItem(item, hints){
     /* Curvy's women-first band (see curvyBandOf): stamped in
        departmentItemsFor, read by the feed sort. Absent on every other
        department -- the sort treats a missing band as unknown/middle. */
-    ...(typeof item.curvyBand === 'number' ? { curvyBand: item.curvyBand } : null) };
+    ...(typeof item.curvyBand === 'number' ? { curvyBand: item.curvyBand } : null),
+    /* DESCRIPCIÓN (2026-09-25): the retailer's own product description,
+       translated to Spanish (1-2 sentences) by the catalog enrichment pass.
+       descriptionSource is 'retailer' when the text came from the store's
+       own PDP and 'generated' when it is a factual fallback line from
+       name/brand/type. Rendered by showProduct() via textContent. */
+    description: typeof item.description === 'string' && item.description.trim()
+      ? item.description.trim().slice(0, 600) : null,
+    descriptionSource: item.descriptionSource === 'retailer' ? 'retailer'
+      : (item.description ? 'generated' : null) };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -17570,7 +17601,7 @@ function openSaleProduct(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
