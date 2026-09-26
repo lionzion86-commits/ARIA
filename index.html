@@ -8679,13 +8679,22 @@ function isParty(item, retailer, bucketName){
    words with boundaries. Bare "toy" is excluded on purpose: Toy Machine
    is a skate brand. An empty shelf hides its own tab. */
 const TOY_KEYWORD_RX = /\b(lego|juguete|mu[ñn]eca|peluche|plush|barbie|hot wheels|nerf|nintendo|playstation|xbox|videojuego|puzzle|rompecabezas|triciclo|bloques)\b/i;
+/* A keyword alone must not dress bedding or apparel as toys
+   (2026-09-26, Danny): "plush" is a fabric word — plush throws and
+   blankets are bedding, not toys — and a gaming tee is clothing. The
+   bucket-name path above is untouched: a real "juguetes" department
+   stays a toy department. */
+const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|quilt|coverlet|mattress|pants|pajama|pijama|robe|slipper|socks|tee|t-shirt|hoodie|sweatshirt)\b/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
   const hay = `${(typeof rawTitleOf === 'function' ? rawTitleOf(item) : (item && item.title)) || ''} ${item && item.brand || ''} ${item && item.name || ''}`;
   /* Toy-aisle character skateboards live here too (2026-09-26, Danny):
      real surf/skate refuses them, so Juguetes claims them. */
-  return TOY_KEYWORD_RX.test(hay) || isToyGradeSkate(item);
+  if (isToyGradeSkate(item)) return true;
+  if (!TOY_KEYWORD_RX.test(hay)) return false;
+  if (NOT_A_TOY_RX.test(hay)) return false;
+  return true;
 }
 /* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
    normalized pool carries `sizes`. hasExtendedSizes only reads the raw

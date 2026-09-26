@@ -11186,6 +11186,37 @@ check("toy-grade boards are refused by Surf & Skate and claimed by Juguetes", ()
     throw new Error("the Surf & Skate department page lost a real deck");
 });
 
+check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny)", () => {
+  const html = HOME_SRC();
+  const rt0 = html.indexOf("function rawTitleOf(item){");
+  if (rt0 < 0) throw new Error("rawTitleOf moved");
+  const rt1 = html.indexOf("}", html.indexOf("productName", rt0)) + 1;
+  const t0 = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  const t1 = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", t0);
+  const toyJs = html.slice(html.lastIndexOf("/* ===", t0), html.lastIndexOf("/*", t1));
+  const j0 = html.indexOf("const TOY_KEYWORD_RX");
+  const j1 = html.indexOf("/* Pool-safe extended sizes", j0);
+  if (j0 < 0 || j1 < 0) throw new Error("the JUGUETES block moved");
+  const isToy = new Function(
+    html.slice(rt0, rt1) + ";" + toyJs + ";" + html.slice(j0, j1) + "; return isToy;")();
+  const yes = [
+    [{ title: "Jumbo Baby Animal Plush", brand: "Jumbo" }, "bebe"],
+    [{ title: "LEGO Donkey Kong Bundle", brand: "LEGO" }, "juguetes"],
+    [{ title: 'Barbie 31" Skateboard', brand: "Barbie", type: "SkateboardsLongboards" }, "sporting_goods"],
+  ];
+  const no = [
+    [{ title: "Berkshire Ultra Plush Throw", brand: "Berkshire" }, "hogar"],
+    [{ title: "Berkshire Herringbone Plush Blanket", brand: "Berkshire" }, "hogar"],
+    [{ title: "The Big One Oversized Supersoft Plush Throw Blanket", brand: "Kohl's" }, "kids"],
+    [{ title: "Juniors' Mighty Fine Plush Halloween Pants", brand: "" }, "clothing"],
+    [{ title: "Men's Nintendo The Legend of Zelda Link Sword Graphic Tee", brand: "Kohl's" }, "men"],
+  ];
+  for (const [item, bucket] of yes)
+    if (!isToy(item, "costco", bucket)) throw new Error(`not claimed as a toy: ${item.title}`);
+  for (const [item, bucket] of no)
+    if (isToy(item, "costco", bucket)) throw new Error(`bedding/apparel claimed as a toy: ${item.title}`);
+});
+
 checkAsync("the surf_skate department answers through the module's itemBelongsToDepartment", async () => {
   const deptMap = await import(root("scripts/lib/department-map.js"));
   const { isSurfSkate } = await import(root("scripts/lib/surfskate.js"));
