@@ -4096,6 +4096,19 @@
   background: transparent;
   overflow: visible;
   transition: transform 0.2s ease;
+  /* PINCH-ZOOM-PROOF ANCHOR (2026-09-26). The launcher is pinned to the
+     bottom-right corner with pure CSS fixed positioning -- NO JavaScript
+     may move it. The old swim loop rewrote its transform every animation
+     frame from window.innerWidth/innerHeight, and on iOS Safari those
+     track the VISUAL viewport: pinch-zoom shrank them and the orb jumped
+     to mid-screen. position:fixed with right/bottom rides the visual
+     viewport's corner at any zoom level, portrait or landscape. */
+  position: fixed;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  width: 64px;
+  height: 64px;
+  padding: 0;
 }
 #assistantBtn:hover { transform: scale(1.12); }
 
@@ -4158,6 +4171,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #ariaOrbImg,
   #assistantIconSpark,
   #assistantIconSpark::before,
   #assistantIconSpark::after,
@@ -4168,6 +4182,23 @@
   }
   #assistantIconSpark.is-thinking::after { opacity: 0; }
 }
+/* The bounded float, now in CSS (2026-09-26): the JS swim loop that used
+   to drift the orb is retired with the pinch-zoom fix, but the gentle
+   flotacion suave Danny asked for stays. One slow loop, always up-and-left
+   of the anchor -- never down or right, which would push her off the screen
+   edge or under the home indicator. Transform-only, so it composites on
+   the GPU and never triggers layout. */
+@keyframes ariaOrbFloat {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-15px, -11px); }
+  50%  { transform: translate(-7px, -15px); }
+  75%  { transform: translate(-15px, -4px); }
+  100% { transform: translate(0, 0); }
+}
+#ariaOrbImg {
+  animation: ariaOrbFloat 11s ease-in-out infinite;
+  will-change: transform;
+}
 @keyframes ariaBubbleIn {
   0% { opacity: 0; transform: translateY(8px) scale(0.94); }
   100% { opacity: 1; transform: translateY(0) scale(1); }
@@ -4176,14 +4207,15 @@
   animation: ariaBubbleIn 0.35s ease-out;
 }
 </style>
-<!-- Position is driven by the swim loop below: the orb is docked in the
-     bottom-right corner on every screen (2026-09-25), moved with a
-     transform, with a small bounded float so it reads alive. The trail
-     lives in #ariaOrbTrail, behind it. -->
+<!-- Position is pure CSS (2026-09-26): #assistantBtn is pinned to the
+     bottom-right corner with position:fixed + right/bottom, so iOS
+     pinch-zoom cannot dislodge it. The swim loop is retired; the small
+     bounded float lives in the ariaOrbFloat keyframes so it reads alive.
+     The trail lives in #ariaOrbTrail, behind it. -->
 <div id="ariaOrbTrail" aria-hidden="true" class="fixed inset-0 z-30 pointer-events-none overflow-hidden"></div>
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
-  class="fixed left-0 top-0 z-40 w-[96px] h-[96px] rounded-full grid place-items-center focus-ring">
-  <div id="assistantIconSpark" class="relative" style="width:86px;height:86px;">
+  class="fixed z-40 w-16 h-16 rounded-full grid place-items-center focus-ring">
+  <div id="assistantIconSpark" class="relative" style="width:100%;height:100%;">
     <img id="ariaOrbImg" src="assets/orb-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
     <span class="aria-orb-ring" aria-hidden="true"></span>
   </div>
@@ -18940,54 +18972,21 @@ function orbStep(now){
 // call from the earlier init block would hit the temporal dead zone.
 function startOrbSwim(){
   if (orbSwim.started) return;
-  const btn = document.getElementById('assistantBtn');
-  const trailWrap = document.getElementById('ariaOrbTrail');
-  if (!btn || !trailWrap) return;
   orbSwim.started = true;
-
-  // The drift is retired (2026-09-25): progress 0 and 0.5 are the same
-  // docked corner now, so the orb opens parked on every visit and never
-  // travels. The rest of this function — anchor, float, trail, resize
-  // reclamp — is unchanged.
-  const laneStart = orbLane();
-  orbReserveSpace(laneStart);
-  orbSwim.rested = orbHasDriftedThisSession();
-  orbProgress = orbSwim.rested ? 0.5 : 0;
-  const rim = orbRimPoint(orbProgress);
-  orbSwim.x = rim.x; orbSwim.y = rim.y;
-  orbSwim.legStart = orbProgress;
-  orbPickNextLeg(performance.now());
-  btn.style.transformOrigin = '0 0';
-  btn.style.transform = `translate3d(${Math.round(orbSwim.x)}px, ${Math.round(orbSwim.y)}px, 0) scale(${(laneStart.size / ORB_SIZE).toFixed(3)})`;
-
-  // Someone who asked for less motion gets none of this: the orb stays
-  // where it is and keeps only its breathing.
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-  for (let i = 0; i < ORB_TRAIL_DOTS; i++){
-    const size = 46 - i * 5;
-    const el = document.createElement('span');
-    el.className = 'absolute rounded-full';
-    el.style.cssText = `width:${size}px;height:${size}px;left:0;top:0;pointer-events:none;` +
-      `background:radial-gradient(circle at 50% 50%, rgba(120,170,255,${0.30 - i * 0.035}), rgba(120,170,255,0));` +
-      `filter:blur(${5 + i}px);will-change:transform;`;
-    trailWrap.appendChild(el);
-    orbSwim.trail.push({ el, size, x: orbSwim.x + ORB_SIZE / 2, y: orbSwim.y + ORB_SIZE / 2 });
-  }
-
-  window.addEventListener('pointermove', (e) => { orbSwim.pointer = { x: e.clientX, y: e.clientY }; }, { passive: true });
-  window.addEventListener('pointerleave', () => { orbSwim.pointer = null; }, { passive: true });
-  // The lane moves when the window does, and when a different view (with
-  // a different content column) comes up under a scroll.
-  const reclamp = () => {
-    const b = orbBounds();
-    orbSwim.x = Math.min(b.maxX, Math.max(b.minX, orbSwim.x));
-    orbSwim.y = Math.min(b.maxY, Math.max(b.minY, orbSwim.y));
-  };
-  window.addEventListener('resize', reclamp, { passive: true });
-  window.addEventListener('scroll', reclamp, { passive: true });
-
-  requestAnimationFrame(orbStep);
+  /* RETIRED 2026-09-26 -- PINCH-ZOOM FIX. This used to run a
+     requestAnimationFrame loop that rewrote the launcher's transform
+     every frame from window.innerWidth/innerHeight. On iOS Safari those
+     track the VISUAL viewport, so pinch-zoom shrank the anchor and threw
+     the orb to the middle of the screen (reported live with a screenshot:
+     zooming in to tap the cart's trash icons parked the orb over the
+     content). The launcher is now anchored with pure CSS (#assistantBtn:
+     position:fixed + right/bottom), which rides the visual viewport at
+     any zoom level -- so the JS must not touch its transform, on zoom,
+     resize, or scroll, ever again. The breathing, glow, and bounded float
+     stay in CSS. orbReserveSpace still runs once so the page keeps the
+     corner clear. Everything else (orbAnchor, orbLane, orbCoversContent)
+     is kept: tests pin orbLane()'s dock and the probe's behaviour. */
+  orbReserveSpace(orbLane());
 }
 
 /* ==================================================================
