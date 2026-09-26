@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageCartSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -9102,6 +9102,109 @@ check("the page merge cannot sum quantities", () => {
   }
   if (!/Math\.max\(/.test(fn)) {
     throw new Error("mergeCarts does not take the max quantity on matching keys");
+  }
+});
+
+/* ============================================================
+   GUÍA DE TALLAS (2026-09-26): brand- and region-aware size guide.
+   A Nike L, a Zara L and a Peruvian-market L are different garments,
+   so the guide resolves per brand (curated tables transcribed from
+   each brand's own published chart — never invented) and falls back
+   to a clearly labeled general-reference table for unknown brands.
+   ============================================================ */
+const pageSizeGuide = loadPageSizeGuideSlice();
+
+check("a Nike shoe resolves to the Nike shoe table", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Nike", "Nike Air Force 1", "shoe");
+  eq(g.title, "Guía de tallas — Nike", "header");
+  eq(g.isGeneral, false, "isGeneral");
+  eq(g.activeTab, "shoes", "default tab for shoes");
+  const tab = g.getTab("shoes");
+  if (!tab.cols.some((c) => /largo del pie/i.test(c))) {
+    throw new Error("Nike shoe table has no foot-length column");
+  }
+  if (!tab.rows.some((r) => r[0] === "9" && r[2] === "27")) {
+    throw new Error("Nike shoe table is missing the US 9 → 27 cm row");
+  }
+});
+
+check("an unknown brand resolves to the general table", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Zara", "Vestido floral", "clothing");
+  eq(g.title, "Guía de tallas — tabla general", "fallback header");
+  eq(g.isGeneral, true, "isGeneral");
+  eq(g.activeTab, "womens", "default tab");
+});
+
+check("the brand header names the brand when one is curated", () => {
+  eq(pageSizeGuide.resolveSizeGuide("Lane Bryant", "Blusa", "clothing").title, "Guía de tallas — Lane Bryant", "Lane Bryant header");
+  eq(pageSizeGuide.resolveSizeGuide("Cacique", "Brasier", "clothing").title, "Guía de tallas — Lane Bryant", "Cacique resolves to Lane Bryant");
+  eq(pageSizeGuide.resolveSizeGuide("adidas", "Remera", "clothing").title, "Guía de tallas — adidas", "adidas header");
+});
+
+check("women's clothing guides include 1X through 5X", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Lane Bryant", "Vestido", "clothing");
+  const rows = g.getTab("womens").rows.map((r) => r[0]);
+  for (const want of ["1X", "2X", "3X", "4X", "5X"]) {
+    if (!rows.includes(want)) throw new Error(`Lane Bryant womens table is missing ${want}`);
+  }
+});
+
+check("every curated brand table ships with a non-empty source URL", () => {
+  for (const brand of pageSizeGuide.SIZE_GUIDE_BRANDS) {
+    if (!/^https?:\/\//.test(brand.source || "")) {
+      throw new Error(`${brand.display} has no source URL`);
+    }
+    for (const id of Object.keys(brand.tabs)) {
+      const tab = brand.tabs[id];
+      if (!tab.cols.length || !tab.rows.length) {
+        throw new Error(`${brand.display} tab ${id} is empty`);
+      }
+    }
+  }
+});
+
+check("size tables are region-aware: UK/UE equivalents plus cm body measurements", () => {
+  const nike = pageSizeGuide.resolveSizeGuide("Nike", "Remera", "clothing").getTab("womens");
+  for (const need of ["UK", "UE"]) {
+    if (!nike.cols.some((c) => c === need)) throw new Error(`Nike womens table has no ${need} column`);
+  }
+  if (!nike.cols.some((c) => /cm/i.test(c))) throw new Error("Nike womens table has no cm column");
+  const general = pageSizeGuide.resolveSizeGuide("", "Remera", "clothing").getTab("womens");
+  if (!general.cols.some((c) => c === "UK") || !general.cols.some((c) => c === "UE")) {
+    throw new Error("general womens table has no UK/UE columns");
+  }
+});
+
+check("the guide link lives inside the size picker and the modal closes three ways", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const wrap = src.slice(src.indexOf('id="productSizeWrap"'), src.indexOf('id="addToCartBtn"'));
+  if (!/id="sizeGuideLink"/.test(wrap)) {
+    throw new Error("Guía de tallas link is not inside #productSizeWrap");
+  }
+  if (!/id="sizeGuideBackdrop"[\s\S]*?onclick="if\(event\.target===this\)closeSizeGuide\(\)"/.test(src)) {
+    throw new Error("backdrop does not close the size guide on tap");
+  }
+  const escFn = src.slice(src.indexOf("function sizeGuideEscHandler"), src.indexOf("}", src.indexOf("function sizeGuideEscHandler")) + 1);
+  if (!/key\s*===\s*['"]Escape['"]/.test(escFn)) {
+    throw new Error("Escape does not close the size guide");
+  }
+  if (!/Las tallas son referenciales y pueden variar según la marca y el modelo\./.test(src)) {
+    throw new Error("the reference disclaimer is missing");
+  }
+  if (!/Cómo medir el cuerpo/.test(src)) {
+    throw new Error("the body-measuring guidance is missing");
+  }
+});
+
+check("opening the guide cannot disturb the shopper's chosen size", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("function openSizeGuide(){"), src.indexOf("function sizeGuideTab("));
+  if (/productSizeSelect/.test(fn)) {
+    throw new Error("openSizeGuide touches the size select");
+  }
+  const closer = src.slice(src.indexOf("function closeSizeGuide(){"), src.indexOf("function sizeGuideEscHandler("));
+  if (/productSizeSelect/.test(closer)) {
+    throw new Error("closeSizeGuide touches the size select");
   }
 });
 
