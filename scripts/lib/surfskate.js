@@ -19,6 +19,13 @@
       generic ("Accesorios"): surfboard, skateboard, longboard,
       bodyboard, wetsuit, neopreno, skate deck, trucks...
 
+   2b. A SKATE HELMET BY NAME. Dick's files dual "Bike and Skate"
+      helmets under type BikeHelmets, so neither the type vocabulary
+      nor the board keywords catch them — but a helmet marketed for
+      skate is skate protection (Danny 2026-09-26: skate helmets live
+      only in Surf & Skate). Pure bike helmets (no "skate" in the
+      title) are untouched and stay in Deportes.
+
    WHAT THE KEYWORDS HAD TO LEARN NOT TO MATCH:
      * "fish" is not a surfboard (Nautilus sells spearfishing gear;
        the normalizer already routes spearguns before surf).
@@ -32,7 +39,14 @@
    DEPARTMENT_CHAIN slice (the page is a plain <script> and cannot
    import). Change one, change the other; a parity test compares them
    over the real catalogues.
+
+   TOY-GRADE BOARDS ARE NOT SURF/SKATE GEAR (2026-09-26, Danny):
+   isToyGradeSkate (scripts/lib/toys.js) answers first, so a
+   character-licensed toy board never counts as surf/skate no matter
+   what its type or title says. It belongs in Juguetes.
    ============================================================ */
+
+import { isToyGradeSkate } from "./toys.js";
 
 /* The normalizer's Spanish type vocabulary for surf/skate gear. These
    are the real values in *-catalog.json, not a guess. */
@@ -63,11 +77,20 @@ const SURFSKATE_TITLE =
 const NOT_SURFSKATE =
   /\b(speargun|arp[oó]n|polespear|freediv|apnea|pesca submarina|máscara de buceo)\b/i;
 
-/** True when this catalogue item is surf or skate GEAR (not apparel). */
+/* A helmet marketed for skate, in either word order and either
+   language: "Bike and Skate Helmet", "Yepa Skate Helmet",
+   "casco de skate". Requires the skate word — a pure bike helmet
+   never matches. */
+const SURFSKATE_HELMET =
+  /\bskate\b.{0,30}\bhelmets?\b|\bhelmets?\b.{0,30}\bskate\b|\bskate\b.{0,30}\bcascos?\b|\bcascos?\b.{0,30}\bskate\b/i;
+
+/** True when this catalogue item is surf or skate GEAR (not apparel,
+    and never a toy-aisle character board — those belong in Juguetes). */
 export function isSurfSkate(item) {
   if (!item) return false;
+  if (isToyGradeSkate(item)) return false;
   if (SURFSKATE_TYPES.has(item.type)) return true;
   const name = `${item.name || ""} ${item.type || ""}`;
   if (NOT_SURFSKATE.test(name)) return false;
-  return SURFSKATE_TITLE.test(name);
+  return SURFSKATE_TITLE.test(name) || SURFSKATE_HELMET.test(name);
 }

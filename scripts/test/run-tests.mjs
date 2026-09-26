@@ -8841,6 +8841,34 @@ check("the Surf & Skate category rail mixes stores, sale-first", () => {
   eq(categoryRailPicks([], [], [], new Set()).length, 0, "no stores broke the curation");
 });
 
+check("Surf & Skate sale socks sort after real gear (2026-09-26, Danny)", () => {
+  /* Sales lead -- unless the sale is socks. A markdown on foot socks or
+     fin socks must not lead the tab ahead of boards, wetsuits and
+     helmets; board socks (board covers) are real gear and keep their
+     discount-decided place. */
+  const { categoryRailPicks } = loadPageCategoryRailSlice();
+  const nine = ["nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
+  const sale = (retailer, title, price, originalPrice) =>
+    ({ retailer, title, price, originalPrice, image: "img" });
+  const socks = sale("mainland", "Nike SB Everyday Elevated Skate Socks (3 Pack)", 5.20, 26); // -80%
+  const board = sale("ccs", "Resin Tint Hibiscus Longboard", 116.75, 285.58);                 // -59%
+  const wetsuit = sale("surfstation", "Xcel Axis 3/2mm Fullsuit Wetsuit", 114.08, 350.80);    // -67%
+  const boardSock = sale("parrot", "Veia Explorer Surfboard Sock", 30, 60);                   // -50%, real gear
+  const picks = categoryRailPicks(nine, [socks, board, wetsuit, boardSock], [], new Set(), 12,
+    { demoteSockSales: true });
+  const order = picks.map(p => p.title);
+  if (order.indexOf(socks.title) < order.indexOf(board.title))
+    throw new Error("a sale sock led ahead of a sale board");
+  if (order.indexOf(socks.title) < order.indexOf(wetsuit.title))
+    throw new Error("a sale sock led ahead of a sale wetsuit");
+  if (order.indexOf(boardSock.title) > order.indexOf(socks.title))
+    throw new Error("a board sock was demoted with the foot socks");
+  /* Without the flag, discount decides as before -- the flag changes
+     nothing for other rails. */
+  const plain = categoryRailPicks(nine, [socks, board], [], new Set(), 12);
+  eq(plain[0].title, socks.title, "the sock flag leaked into other rails");
+});
+
 check("the category rail is wired: config, lazy paint, honest cards", () => {
   const src = HOME_SRC();
   /* The pilot entry names its nine stores and its department door. */
@@ -11073,8 +11101,13 @@ check("the nine shops carry honest delivery timing on both surfaces", () => {
 checkAsync("the Surf & Skate predicate matches between module and page over real catalogues", async () => {
   const { isSurfSkate: moduleFn } = await import(root("scripts/lib/surfskate.js"));
   const html = HOME_SRC();
-  const start = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)");
-  if (start < 0) throw new Error("the page's isSurfSkate mirror is missing");
+  /* The mirror opens with the toy-grade gate (2026-09-26, Danny):
+     isSurfSkate refuses toy-aisle character boards before anything
+     else, so the slice starts at the toy block, not the surf block. */
+  const start = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  if (start < 0) throw new Error("the page's isToyGradeSkate mirror is missing");
+  if (html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", start) < 0)
+    throw new Error("the page's isSurfSkate mirror is missing");
   const end = html.indexOf("function itemBelongsToDepartment", start);
   const js = html.slice(html.lastIndexOf("/* ===", start), end);
   const pageFn = new Function(`${js}; return isSurfSkate;`)();
@@ -11101,6 +11134,157 @@ checkAsync("the Surf & Skate predicate matches between module and page over real
   if (grand !== 12971) throw new Error(`grand total ${grand}, expected 12971`);
 });
 
+/* TOY-GRADE SKATEBOARDS (2026-09-26, Danny): character-licensed toy
+   boards belong in Juguetes; Surf & Skate carries only real,
+   professional-caliber gear. The detector is deliberately narrow —
+   the pins below are real false positives the catalogue produced. */
+checkAsync("the toy-grade skate detector matches between module and page over real catalogues", async () => {
+  const { isToyGradeSkate: moduleFn } = await import(root("scripts/lib/toys.js"));
+  const html = HOME_SRC();
+  const start = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  if (start < 0) throw new Error("the page's isToyGradeSkate mirror is missing");
+  const nextBlock = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", start);
+  if (nextBlock < 0) throw new Error("the surf/skate mirror block moved");
+  const js = html.slice(html.lastIndexOf("/* ===", start), html.lastIndexOf("/*", nextBlock));
+  const pageFn = new Function(`${js}; return isToyGradeSkate;`)();
+  /* 11 toy-aisle character boards in Dick's (Sakar/Barbie/Hot Wheels/
+     Minecraft/Sonic 31" completes), measured 2026-09-26; zero in the
+     nine surf shops and zero in the department cache. */
+  const shopFlags = {};
+  for (const k of [...SURF9, "dicks"]) {
+    const items = surf9Catalog(k);
+    shopFlags[k] = 0;
+    for (const p of items) {
+      const m = !!moduleFn(p), g = !!pageFn(p);
+      if (m !== g) throw new Error(`module/page disagree on ${k}: ${surf9Name(p).slice(0, 50)}`);
+      if (m) shopFlags[k]++;
+    }
+  }
+  if (shopFlags.dicks !== 11) throw new Error(`dicks: ${shopFlags.dicks} toy-grade boards, expected 11`);
+  for (const k of SURF9)
+    if (shopFlags[k] !== 0) throw new Error(`${k}: ${shopFlags[k]} toy-grade boards, expected 0`);
+});
+
+checkAsync("the toy-grade detector flags the toy aisle and spares real gear", async () => {
+  const { isToyGradeSkate } = await import(root("scripts/lib/toys.js"));
+  const dicks = surf9Catalog("dicks");
+  const byName = (sub) => dicks.find(p => surf9Name(p).includes(sub));
+  /* The 11: Sakar's licensed toy completes and the character brands. */
+  for (const sub of ["Sonic Shadow", "Sonic Lenticular", "Barbie Lenticular", "Monster Jam",
+      "Hot Wheels Jam", "Minecraft 31", "Barbie 31", "Sonic Stepup",
+      "Signature Series 3", "Series 1 Skateboard", "Series 2 Skateboard"]) {
+    const p = byName(sub);
+    if (!p) throw new Error(`toy board missing from catalogue: ${sub}`);
+    if (!isToyGradeSkate(p)) throw new Error(`toy board not flagged: ${surf9Name(p).slice(0, 60)}`);
+  }
+  /* Real gear the catalogue proves must never be exiled to Toys. */
+  const ccs = surf9Catalog("ccs");
+  const island = surf9Catalog("islandwatersports");
+  const mustStay = [
+    byName("Tony Hawk 31\u201d Series 4 Skateboard"),           // Tony Hawk's own brand, not Sakar's license
+    byName("Retrospec Quip"),                                    // real cruiser brand
+    byName("Retrospec Alameda"),                                 // real complete brand
+    byName("Scout Bike and Skate Helmet"),                       // protective gear, not a board
+    ccs.find(p => surf9Name(p).includes("Spanky Jr")),            // pro skater nickname, not a kid's toy
+    ccs.find(p => surf9Name(p).includes("Toy Invasion")),        // Birdhouse pro graphic series
+    ccs.find(p => surf9Name(p).includes("DGK") && surf9Name(p).includes("Lenticular")), // pro collab deck
+    ccs.find(p => /CCS Catalog Kid Skateboard/.test(surf9Name(p))), // real skate-shop kid complete
+    island.find(p => /toy machine/i.test(surf9Name(p))),         // Toy Machine is a pro skate brand
+  ];
+  for (const p of mustStay) {
+    if (!p) throw new Error("a real-gear pin is missing from the catalogue");
+    if (isToyGradeSkate(p)) throw new Error(`real gear flagged as toy-grade: ${surf9Name(p).slice(0, 60)}`);
+  }
+});
+
+check("toy-grade boards are refused by Surf & Skate and claimed by Juguetes", () => {
+  const { itemBelongsToDepartment, isSurfSkate, isToyGradeSkate } = loadPageDepartmentSlice();
+  const dicks = surf9Catalog("dicks");
+  const toy = dicks.find(p => isToyGradeSkate(p));
+  if (!toy) throw new Error("no toy-grade board to route");
+  if (isSurfSkate(toy, "dicks")) throw new Error("Surf & Skate still claims a toy-grade board");
+  if (itemBelongsToDepartment(toy, "sporting_goods", "surf_skate", "dicks"))
+    throw new Error("the Surf & Skate department page still claims a toy-grade board");
+  if (!itemBelongsToDepartment(toy, "sporting_goods", "toys", "dicks"))
+    throw new Error("the Juguetes department page does not claim a toy-grade board");
+  if (itemBelongsToDepartment(toy, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the Deportes department page still claims a toy-grade board");
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs") && !isToyGradeSkate(p));
+  if (!deck) throw new Error("no real CCS deck to route");
+  if (!itemBelongsToDepartment(deck, "sporting_goods", "surf_skate", "ccs"))
+    throw new Error("the Surf & Skate department page lost a real deck");
+});
+
+check("Deportes refuses all surf/skate gear but keeps rollerblades and regular sports (2026-09-26, Danny)", () => {
+  const { itemBelongsToDepartment, isSurfSkate } = loadPageDepartmentSlice();
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs"));
+  if (!deck) throw new Error("no real surf/skate item to route");
+  if (itemBelongsToDepartment(deck, "sporting_goods", "sporting_goods", "ccs"))
+    throw new Error(`Deportes still lists surf/skate gear: ${surf9Name(deck).slice(0, 60)}`);
+  const blades = { title: "Rollerblade Macroblade 90 Men's Inline Skates", brand: "Rollerblade" };
+  if (isSurfSkate(blades, "dicks"))
+    throw new Error("rollerblades are being claimed as surf/skate");
+  if (!itemBelongsToDepartment(blades, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes lost rollerblades");
+  const ball = { title: "Wilson NCAA Replica Basketball", brand: "Wilson" };
+  if (!itemBelongsToDepartment(ball, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes lost regular sports");
+  /* Skate helmets are surf/skate protection (Danny 2026-09-26): a dual
+     "Bike and Skate" helmet leaves Deportes for Surf & Skate, while a
+     pure bike helmet stays in Deportes. */
+  const skateHelmet = { name: "Retrospec Kids' Scout Bike and Skate Helmet", title: "Retrospec Kids' Scout Bike and Skate Helmet", type: "BikeHelmets" };
+  if (!isSurfSkate(skateHelmet, "dicks"))
+    throw new Error("a Bike and Skate helmet is not claimed as surf/skate");
+  if (itemBelongsToDepartment(skateHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes still lists a skate helmet");
+  const bikeHelmet = { name: "Giro Fixture MIPS Bike Helmet", title: "Giro Fixture MIPS Bike Helmet", type: "BikeHelmets" };
+  if (isSurfSkate(bikeHelmet, "dicks"))
+    throw new Error("a pure bike helmet is claimed as surf/skate");
+  if (!itemBelongsToDepartment(bikeHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes lost pure bike helmets");
+});
+
+check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny)", () => {
+  const html = HOME_SRC();
+  const rt0 = html.indexOf("function rawTitleOf(item){");
+  if (rt0 < 0) throw new Error("rawTitleOf moved");
+  const rt1 = html.indexOf("}", html.indexOf("productName", rt0)) + 1;
+  const t0 = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  const t1 = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", t0);
+  const toyJs = html.slice(html.lastIndexOf("/* ===", t0), html.lastIndexOf("/*", t1));
+  const j0 = html.indexOf("const TOY_KEYWORD_RX");
+  const j1 = html.indexOf("/* Pool-safe extended sizes", j0);
+  if (j0 < 0 || j1 < 0) throw new Error("the JUGUETES block moved");
+  const isToy = new Function(
+    html.slice(rt0, rt1) + ";" + toyJs + ";" + html.slice(j0, j1) + "; return isToy;")();
+  const yes = [
+    [{ title: "Jumbo Baby Animal Plush", brand: "Jumbo" }, "bebe"],
+    [{ title: "LEGO Donkey Kong Bundle", brand: "LEGO" }, "juguetes"],
+    [{ title: 'Barbie 31" Skateboard', brand: "Barbie", type: "SkateboardsLongboards" }, "sporting_goods"],
+    [{ title: "XBOX Series X: Gaming Console, 1TB SSD", brand: "" }, "electronics"],
+  ];
+  const no = [
+    [{ title: "Berkshire Ultra Plush Throw", brand: "Berkshire" }, "hogar"],
+    [{ title: "Berkshire Herringbone Plush Blanket", brand: "Berkshire" }, "hogar"],
+    [{ title: "The Big One Oversized Supersoft Plush Throw Blanket", brand: "Kohl's" }, "kids"],
+    [{ title: "Juniors' Mighty Fine Plush Halloween Pants", brand: "" }, "clothing"],
+    [{ title: "Men's Nintendo The Legend of Zelda Link Sword Graphic Tee", brand: "Kohl's" }, "men"],
+    [{ title: "Mainstays Body Pillowcase – Cozy Plush – Blush Pink – 20\"x52\" – 1 Pack", brand: "" }, "home_decor"],
+    [{ title: "Monster 8K HDMI Cable 4ft, Ultra High Speed HDMI 2.1 Cord with LED Connectors, 48Gbps, 4K 144Hz Gaming, HDR for PS5, Xbox, TV", brand: "" }, "electronics"],
+    [{ title: "Waci Plush Kids Hooded Towel", brand: "" }, "kids"],
+    [{ title: "Herschel Supply x LEGO Classic Backpack - Abstract Bricks", brand: "Herschel" }, "clothing"],
+    [{ title: "ARIANA GRANDE LOVENOTES Plush Vanilla Eau de Parfum", brand: "Ariana Grande" }, "beauty"],
+    [{ title: "BROWN GIRL JANE Halo Limited-Edition Barbie x BROWN GIRL Jane Eau de Parfum", brand: "Brown Girl Jane" }, "beauty"],
+    [{ title: "VICTORIA'S SECRET Luxe Plush Closed-Toe Slippers", brand: "Victoria's Secret" }, "clothing"],
+  ];
+  for (const [item, bucket] of yes)
+    if (!isToy(item, "costco", bucket)) throw new Error(`not claimed as a toy: ${item.title}`);
+  for (const [item, bucket] of no)
+    if (isToy(item, "costco", bucket)) throw new Error(`bedding/apparel claimed as a toy: ${item.title}`);
+});
+
 checkAsync("the surf_skate department answers through the module's itemBelongsToDepartment", async () => {
   const deptMap = await import(root("scripts/lib/department-map.js"));
   const { isSurfSkate } = await import(root("scripts/lib/surfskate.js"));
@@ -11116,6 +11300,47 @@ checkAsync("the surf_skate department answers through the module's itemBelongsTo
   const tee = ccs.find(p => !isSurfSkate(p, "ccs"));
   if (tee && deptMap.itemBelongsToDepartment(tee, "clothing", "surf_skate", "ccs"))
     throw new Error(`Surf & Skate claimed non-gear: ${surf9Name(tee).slice(0, 50)}`);
+});
+
+checkAsync("the sporting_goods department refuses toy-grade boards in the module too (2026-09-26, Danny)", async () => {
+  const deptMap = await import(root("scripts/lib/department-map.js"));
+  const { isToyGradeSkate } = await import(root("scripts/lib/toys.js"));
+  const dicks = surf9Catalog("dicks");
+  const toy = dicks.find(p => isToyGradeSkate(p));
+  if (!toy) throw new Error("no toy-grade board to route");
+  if (deptMap.itemBelongsToDepartment(toy, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module still lists a toy-grade board in Deportes");
+});
+
+checkAsync("the module's Deportes refuses all surf/skate gear but keeps rollerblades and regular sports (2026-09-26, Danny)", async () => {
+  const deptMap = await import(root("scripts/lib/department-map.js"));
+  const { isSurfSkate } = await import(root("scripts/lib/surfskate.js"));
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs"));
+  if (!deck) throw new Error("no real surf/skate item to route");
+  if (deptMap.itemBelongsToDepartment(deck, "sporting_goods", "sporting_goods", "ccs"))
+    throw new Error(`the module still lists surf/skate gear in Deportes: ${surf9Name(deck).slice(0, 60)}`);
+  const blades = { title: "Rollerblade Macroblade 90 Men's Inline Skates", brand: "Rollerblade" };
+  if (isSurfSkate(blades, "dicks"))
+    throw new Error("the module claims rollerblades as surf/skate");
+  if (!deptMap.itemBelongsToDepartment(blades, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module lost rollerblades in Deportes");
+  const ball = { title: "Wilson NCAA Replica Basketball", brand: "Wilson" };
+  if (!deptMap.itemBelongsToDepartment(ball, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module lost regular sports in Deportes");
+  /* Skate helmets are surf/skate protection (Danny 2026-09-26): a dual
+     "Bike and Skate" helmet leaves Deportes for Surf & Skate, while a
+     pure bike helmet stays in Deportes. */
+  const skateHelmet = { name: "Retrospec Kids' Scout Bike and Skate Helmet", title: "Retrospec Kids' Scout Bike and Skate Helmet", type: "BikeHelmets" };
+  if (!isSurfSkate(skateHelmet, "dicks"))
+    throw new Error("the module does not claim a Bike and Skate helmet as surf/skate");
+  if (deptMap.itemBelongsToDepartment(skateHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module still lists a skate helmet in Deportes");
+  const bikeHelmet = { name: "Giro Fixture MIPS Bike Helmet", title: "Giro Fixture MIPS Bike Helmet", type: "BikeHelmets" };
+  if (isSurfSkate(bikeHelmet, "dicks"))
+    throw new Error("the module claims a pure bike helmet as surf/skate");
+  if (!deptMap.itemBelongsToDepartment(bikeHelmet, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module lost pure bike helmets in Deportes");
 });
 
 check("the Surf & Skate department cover exists and is a real image", () => {
