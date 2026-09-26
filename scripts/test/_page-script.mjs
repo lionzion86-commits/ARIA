@@ -643,6 +643,45 @@ export function loadPageCarouselSlice() {
   return sandbox.__exports;
 }
 
+/* The carousel CARD, rendered in a sandbox. carouselCardHTML is the one
+   component behind every window-shopping rail (store landing, aisle
+   landing, feed); Danny's 2026-09-24 QA caught that sale items showed no
+   discount badge and no struck original on it. The card's dependencies
+   (openers, URL helpers, price formatters) are stubbed — the test pins the
+   discount logic, not the formatting. */
+export function loadPageCarouselCardSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("function carouselCardHTML(item, retailer){");
+  const to = html.indexOf("/* THE RAIL ITSELF", from);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html carousel-card markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = {
+    console,
+    productCardOpenExpr: () => "OPEN",
+    upgradeImageUrl: (s) => s,
+    safeUrl: (s) => s,
+    cardPhotoHTML: (src) => `<img src="${src}">`,
+    imageRetryUrl: (s) => s,
+    escapeHtml: (s) => String(s),
+    displayPriceUsd: (n) => n,
+    fmtUSD: (n) => "$" + Number(n).toFixed(2),
+    fmtPriceLabel: (n) => "$" + Number(n).toFixed(2),
+    discountPct: (p) => Math.round((1 - p.price / p.originalPrice) * 100),
+    brandEyebrowHTML: () => "",
+    solesUnderHTML: () => "",
+    weightLabelHTML: () => "",
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { carouselCardHTML };",
+    sandbox,
+    { filename: "index.html#carousel-card" },
+  );
+  return sandbox.__exports;
+}
+
 /* THE HOME ROW'S RUNNING ORDER, on its own. A plain array of keys, so
    this loads the declaration and nothing else -- homeRowTiles() needs
    the department cache and belongs to the browser suite. What the node

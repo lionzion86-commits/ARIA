@@ -9263,6 +9263,10 @@ function carouselCardHTML(item, retailer){
   const taxed = displayPriceUsd(price);
   const original = Number(it.originalPrice);
   const hasOriginal = Number.isFinite(original) && hasPrice && original > price;
+  /* THE STRUCK ORIGINAL (PR #52, 2026-09-24). The badge says how much
+     off; the struck price says off WHAT — Danny's QA: a -78% badge
+     means nothing next to a bare "$32.99". Same #F4C463 sale colour
+     as the badge, struck in muted grey like the Ofertas card. */
   const badgeHTML = hasOriginal
     ? `<span class="absolute top-3 left-3 text-[13px] font-extrabold px-2.5 py-1 rounded-full" style="background:#F4C463; color:var(--navy)">-${discountPct(it)}%</span>`
     : '';
@@ -9275,7 +9279,7 @@ function carouselCardHTML(item, retailer){
       <div class="p-4">
         ${brandEyebrowHTML(it.brand, { cls: 'text-[10px] mb-0.5' })}
         <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(title)}</div>
-        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(taxed) : 'Ver detalle'}</div>
+        <div class="text-[16px] font-extrabold tabular mt-1.5" style="color:var(--navy)">${hasPrice ? fmtPriceLabel(taxed) : 'Ver detalle'}${hasOriginal ? `<span class="text-[13px] tabular line-through font-normal ml-2" style="color:#9AA3B5">${fmtUSD(displayPriceUsd(original))}</span>` : ''}</div>
         ${hasPrice ? solesUnderHTML(taxed, 'text-[11px] tabular mt-0.5') : ''}
         ${hasPrice ? weightLabelHTML(title, 'text-[11px] tabular mt-0.5') : ''}
       </div>
