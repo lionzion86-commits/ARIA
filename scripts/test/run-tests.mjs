@@ -32,6 +32,7 @@ import * as deptMap from "../lib/department-map.js";
 import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
 import { inkCoverage, pngShape } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
+import * as rockautoDirect from "../lib/rockauto-direct.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import * as synonyms from "../lib/search-synonyms.js";
@@ -68,6 +69,23 @@ function check(name, fn) {
   } catch (err) {
     failures.push(`${name}\n      ${err.message}`);
   }
+}
+
+/* check() does not await — an async fn's rejection would slip past it.
+   checkAsync collects the promise; every entry is awaited before the
+   summary, so a hung or rejected chain still fails the suite. */
+const pendingAsync = [];
+function checkAsync(name, fn) {
+  pendingAsync.push(
+    (async () => {
+      try {
+        await fn();
+        passed++;
+      } catch (err) {
+        failures.push(`${name}\n      ${err.message}`);
+      }
+    })(),
+  );
 }
 
 function eq(actual, expected, what) {
@@ -894,7 +912,11 @@ const EXPECTED_EVERYDAY_ORDER = [
   /* COSTCO + SAM'S CLUB (2026-09-26): real catalogs wired (1,569 + 120
      products), both browse-true general retailers. */
   "costco", "samsclub",
-  "macys", "oldnavy", "target", "walmart",
+  "macys", "oldnavy",
+  /* GYM BRANDS (2026-09-26, Danny): browse-able file-backed catalogues
+     (gymrat-catalog.json). Apparel cluster, after Old Navy. */
+  "youngla", "gymshark", "alphalete",
+  "target", "walmart",
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
@@ -5063,7 +5085,7 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
      directly under the Ofertas rail, ahead of the store rails.
 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
-     between the seven rails and Categorías -- the rest of the mall
+     between the eight rails and Categorías -- the rest of the mall
      directory as one logo strip, with a way into the full 22-store
      Tiendas directory.
 
@@ -5083,11 +5105,11 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Gymshark > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
-    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
@@ -5095,14 +5117,14 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
 
 check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
-     scroll order now -- deals, the seven store rails in mall order,
+     scroll order now -- deals, the eight store rails in mall order,
      departments. The Tiendas chips rail is superseded by the rails.
      2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band (logo, "Compra
      en Estados Unidos / Te lo llevamos a Perú", search) sits directly
      under the Ofertas rail, ahead of the store rails.
 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
-     between the seven rails and Categorías on the laptop too.
+     between the eight rails and Categorías on the laptop too.
 
      2026-09-26, DANNY'S HOMEPAGE ORDER V3: same reorder as the phone --
      Aria Auto house banner under the brand band, six compact rails, the
@@ -5115,17 +5137,17 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Gymshark > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
-    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
-check("Todas las otras tiendas carries the rest of the directory, not the seven", () => {
+check("Todas las otras tiendas carries the rest of the directory, not the eight", () => {
   /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the seven rails
      and Categorías shows every active retailer that is NOT a featured
      rail store, painted from the RETAILERS registry (never hardcoded),
@@ -5140,7 +5162,7 @@ check("Todas las otras tiendas carries the rest of the directory, not the seven"
   // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
   const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
   if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
-  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the seven featured rail stores");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the eight featured rail stores");
   if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
@@ -5194,9 +5216,13 @@ check("the deals rail is the Ofertas feed, sorted by discount, never a second li
   if (!/saleItemsCache/.test(js)) throw new Error("the rail no longer reads the feed's own set");
   if (/loadDepartmentCache|departmentItems|fetch\(/.test(js)) throw new Error("the rail is building its own list of deals");
 
-  // Biggest discount first -- "80% off first" is the brief.
-  if (!/\.sort\(\(a, b\) => discountPct\(b\) - discountPct\(a\)\)/.test(js)) {
-    throw new Error("the rail is no longer sorted by discount, descending");
+  /* LEAD BRANDS FIRST (2026-09-26, Danny): "80% off first" is still the
+     brief WITHIN a brand, but the brands that pull lead the rail --
+     Victoria's Secret, Sephora, Macy's, Gymshark, YoungLA -- so Gym Rat
+     sale sits toward the front next to Victoria's Secret. If this ever
+     regresses to pure discount sort, that is a decision, not drift. */
+  if (!/\.sort\(\(a, b\) => \(ofertasLeadRank\(a\) - ofertasLeadRank\(b\)\) \|\| \(discountPct\(b\) - discountPct\(a\)\)\)/.test(js)) {
+    throw new Error("the rail is no longer lead-brand ordered (lead rank, then discount)");
   }
   /* ...and then ONE STORE PER CARD across the opening run, so the rail
      cannot lead on three near-identical markdowns from one shop. The
@@ -5301,6 +5327,51 @@ check("a store rail curates its own shelf: sale first, Ofertas deprioritised, fe
   eq(storeRailPicks("macys", [], [], new Set()).length, 0, "an empty store broke the curation");
 });
 
+check("the Gymshark rail opens on a model shot, socks second", () => {
+  const { storeRailPicks } = loadPageStoreRailSlice();
+  const sale = (retailer, title, price, originalPrice, type) =>
+    ({ retailer, title, price, originalPrice, image: "img", ...(type ? { type } : {}) });
+
+  /* The sock rack must never be the opener: the first apparel card --
+     Gymshark shoots apparel on models -- takes card one, the cheap
+     big-discount socks take card two, everything after keeps order. */
+  const items = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14),
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Reset Pink", 4.2, 14),
+    sale("gymshark", "Woven Shorts \u2014 Indigo Purple", 10.2, 34),
+    sale("gymshark", "Power T-Shirt \u2014 White/Brand Blue", 14.4, 36),
+  ];
+  const picks = storeRailPicks("gymshark", items, [], new Set());
+  eq(picks[0].title, "Woven Shorts \u2014 Indigo Purple", "the Gymshark opener is not apparel");
+  eq(picks[1].title, "Comfy Rest Day Socks \u2014 Stone Beige", "the socks are not card two");
+  eq(picks.slice(2).map(p => p.title).join(),
+    "Comfy Rest Day Socks \u2014 Reset Pink,Power T-Shirt \u2014 White/Brand Blue",
+    "the tail of the rail moved");
+
+  /* An explicit apparel category is authoritative even when the name is
+     accessory-adjacent. */
+  const typed = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14, "WOMENS_ACCESSORIES_SOCKS_LONG"),
+    sale("gymshark", "Woven Shorts \u2014 Indigo Purple", 10.2, 34, "WOMENS_APPAREL_SHORTS_LOOSE"),
+  ];
+  eq(storeRailPicks("gymshark", typed, [], new Set())[0].title,
+    "Woven Shorts \u2014 Indigo Purple", "the apparel type did not win the opener");
+
+  /* No apparel on the shelf: the order is left exactly as-is. */
+  const socksOnly = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14),
+    sale("gymshark", "Crew Socks 3 Pack", 8, 16),
+  ];
+  eq(storeRailPicks("gymshark", socksOnly, [], new Set()).map(p => p.title).join(),
+    "Comfy Rest Day Socks \u2014 Stone Beige,Crew Socks 3 Pack",
+    "a socks-only shelf got reordered");
+
+  /* Other stores are untouched by the Gymshark lead. */
+  const macys = storeRailPicks("macys",
+    [sale("macys", "coat", 50, 100), sale("macys", "dress", 20, 100)], [], new Set());
+  eq(macys.map(p => p.title).join(), "dress,coat", "a non-Gymshark rail changed order");
+});
+
 check("the store rails reuse the page's own cards, feeds and registry", () => {
   const railAnchor = shopfrontSrc.indexOf("STORE RAILS -- THE MALL, NOT THE DIRECTORY");
   const rails = shopfrontSrc.slice(
@@ -5308,12 +5379,13 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
   if (!rails) throw new Error("the store rails' code is gone");
-  /* The seven window displays, in mall order: aspirational first, the way
-     the RETAILERS registry is ordered. */
+  /* The eight window displays, in mall order: Victoria's Secret first,
+     Gymshark right under it (2026-09-26, Danny -- most-known gym brand in
+     Peru), then Sephora, the way the RETAILERS registry is ordered. */
   const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
   if (!m) throw new Error("STORE_RAIL_STORES is gone");
-  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,sephora,macys,footlocker,ssense,dicks,costco",
-    "the store rails are not the seven agreed stores in mall order");
+  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,gymshark,sephora,macys,footlocker,ssense,dicks,costco",
+    "the store rails are not the eight agreed stores in mall order");
   /* The same card every other rail draws -- a second card component is
      how the rails drift apart. */
   if (!/railCardHTML\(p,/.test(rails)) throw new Error("a store rail grew its own card");
@@ -5445,7 +5517,7 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
    Party City (518 products), Sam's Club (120) and Costco (1,569) arrive
    as catalog files. Party City is deliberately NOT a registered store --
    it only surfaces inside this vertical, badged "Party City" by name.
-   Costco is the seventh featured store rail; Sam's Club rides the
+   Costco is the eighth featured store rail; Sam's Club rides the
    other-stores strip (browse-true, search-false).
    ================================================================== */
 group("Fiestas y Eventos: the party vertical");
@@ -8191,13 +8263,16 @@ check("every store rail keeps its branded header, on all three surfaces", () => 
   }
 });
 
-check("the seven rails stand in mall order on all three surfaces", () => {
+check("the eight rails stand in mall order on all three surfaces", () => {
   /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
      phone's shopfront, the laptop's shopfront, and the Tiendas page's
      vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
      mall stops feeling like one mall. */
   const src = HOME_SRC();
-  const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
+  /* GYMSHARK BETWEEN VICTORIA'S SECRET AND SEPHORA (2026-09-26, Danny):
+     eight rails, one order on the phone, the laptop, and the Tiendas
+     vitrinas. */
+  const want = ["victoriassecret", "gymshark", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
     ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
@@ -8205,7 +8280,7 @@ check("the seven rails stand in mall order on all three surfaces", () => {
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
     const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
-    eq(found.join(","), want.join(","), `${name} does not carry the seven rails in mall order`);
+    eq(found.join(","), want.join(","), `${name} does not carry the eight rails in mall order`);
   }
 });
 
@@ -8312,7 +8387,11 @@ check("the home row is the shortlist, and every department it drops is still on 
      against a list of names, so a department added tomorrow is covered
      without anyone remembering to add it. */
   const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
-  const expected = ["beauty", "curvy", "women", "men", "shoes"];
+  /* GYM RAT (2026-09-26, Danny): added as an identity destination
+     like Curvy and Aria Beauty — deliberate, per the test's own rule. */
+  /* 2026-09-26, Danny: Gym Rat second (before Curvy); Curvy last —
+     smallest target demographic, deprioritized in placement. */
+  const expected = ["beauty", "gym_rat", "women", "men", "shoes", "curvy"];
   if (HOME_ROW_DEPARTMENTS.join() !== expected.join()) {
     throw new Error(
       `the home row is [${HOME_ROW_DEPARTMENTS.join(", ")}], expected [${expected.join(", ")}] — ` +
@@ -9926,7 +10005,269 @@ check("the scrape backend keeps dev diagnostics out of the production error", ()
   if (!/devNote/.test(src)) throw new Error("devNote missing for dev-flagged requests");
 });
 
+/* ------------------------------------------------------------------
+   ROCKAUTO DIRECT HTTP FALLBACK (2026-09-26) — the zero-Apify live
+   scrape. The chain is pure + fetch-injected in
+   scripts/lib/rockauto-direct.js, so every step is unit-testable
+   without touching the network. Fixtures below mirror the real
+   RockAuto markup verified live on 2026-09-26 (selectors, the
+   &amp;-encoded category slugs, the lazy nav tree).
+   ------------------------------------------------------------------ */
+group("rockauto direct HTTP fallback (zero-Apify)");
+
+const RA_GLOSSARY = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
+const RA_ENTRIES = rockautoDirect.glossaryToPairs(RA_GLOSSARY);
+
+const RA_CATALOG_FIXTURE = [
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.3l+l4+electric,1444951">1.3L L4 Electric</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952">1.8L L4</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,2.0l+l4,1444957">2.0L L4</a>',
+].join("\n");
+const RA_NODE_FIXTURE = [
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,engine">Engine</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air">Fuel &amp; Air</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,brake+&amp;+wheel+hub">Brake &amp; Wheel Hub</a>',
+].join("\n");
+const RA_CATEGORY_FIXTURE = [
+  '<a class="navlabellink nvoffset nimportant" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air,air+filter,6192">Air Filter</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air,fuel+filter,6205">Fuel Filter</a>',
+].join("\n");
+const RA_LISTINGS_FIXTURE = [
+  '<div id="listingcontainer[8]" class="mtf-outer-list listing-container-c compact-mobile">',
+  '<span id="dprice[8][v]">$4.12</span>',
+  '<b><span class="listing-final-manufacturer no-text-select">FRAM</span></b> ',
+  '<span class="listing-final-partnumber no-text-select" id="vew_partnumber[8]">CA10165</span>',
+  '<img id="inlineimg[8]" class=" listing-inline-image" src="/info/915/CA10165_Front__ra_m.jpg" alt="Part image"/>',
+  "</div>",
+  '<div id="listingcontainer[9]" class="mtf-outer-list listing-container-c compact-mobile">',
+  '<span id="dprice[9][v]">$8.99</span>',
+  '<b><span class="listing-final-manufacturer no-text-select">WIX</span></b> ',
+  '<span class="listing-final-partnumber no-text-select" id="vew_partnumber[9]">49744</span>',
+  '<img id="inlineimg[9]" class=" listing-inline-image" src="/info/99/49744_ra_m.jpg" alt="Part image"/>',
+  "</div>",
+].join("\n");
+
+const RA_CATALOG_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic";
+const RA_NODE_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952";
+const RA_CATEGORY_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&+air";
+const RA_PARTTYPE_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&+air,air+filter,6192";
+
+function raFixtureFetch(pages, counter) {
+  return async (url) => {
+    counter.count++;
+    return pages.get(url) ?? null;
+  };
+}
+
+check("the server translator matches the browser translator on the acceptance terms", () => {
+  const { translatePartQuery } = loadPageAutoGlossarySlice();
+  for (const q of ["filtro de aire", "bujía", "BUJIAS", "pastilla de freno", "faja de distribución", "correa de accesorios"]) {
+    eq(
+      rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, q),
+      translatePartQuery(q),
+      `server/browser parity for "${q}"`,
+    );
+  }
+  eq(rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, "filtro de aire"), "engine air filter", "filtro de aire");
+  eq(rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, "bujía"), "spark plug", "bujía");
+});
+
+check("engine links parse with node ids and the volume engine wins over hybrid", () => {
+  const engines = rockautoDirect.parseEngineLinks(RA_CATALOG_FIXTURE, RA_CATALOG_URL);
+  eq(engines.length, 3, "engine count");
+  eq(engines[1].nodeId, "1444952", "node id");
+  const picked = rockautoDirect.pickEngine(engines);
+  eq(picked.label, "1.8L L4", "hybrid skipped");
+  eq(picked.url, RA_NODE_URL, "node url");
+});
+
+check("category slugs keep their & and resolve to the curated category", () => {
+  const cats = rockautoDirect.parseCategoryLinks(RA_NODE_FIXTURE, RA_NODE_URL);
+  eq(cats.length, 3, "category count");
+  const fuel = cats.find((c) => /fuel/i.test(c.name));
+  eq(fuel.url, RA_CATEGORY_URL, "full slug with & preserved");
+  const matched = rockautoDirect.matchCategory(cats, "engine air filter");
+  eq(matched.name, "Fuel & Air", "engine air filter -> Fuel & Air, not Engine");
+});
+
+check("part-type links resolve the translated term to the verified part type", () => {
+  const pts = rockautoDirect.parsePartTypeLinks(RA_CATEGORY_FIXTURE, RA_CATEGORY_URL);
+  eq(pts.length, 2, "part-type count");
+  const matched = rockautoDirect.matchPartType(pts, "engine air filter");
+  eq(matched.name, "Air Filter", "part-type name");
+  eq(matched.url, RA_PARTTYPE_URL, "part-type url (id 6192, parsed not guessed)");
+});
+
+check("listings parse brand, part number, raw price and image — the canary shape", () => {
+  const items = rockautoDirect.parseListings(RA_LISTINGS_FIXTURE);
+  eq(items.length, 2, "listing count");
+  eq(items[0].brand, "FRAM", "brand");
+  eq(items[0].partNumber, "CA10165", "part number");
+  eq(items[0].priceUsd, 4.12, "raw USD price (no markup — the page applies 1.07 x 1.24)");
+  eq(items[0].imagePath, "/info/915/CA10165_Front__ra_m.jpg", "relative image path");
+  for (const it of items) {
+    if (!it.brand || !it.partNumber || !(it.priceUsd > 0) || !it.imagePath)
+      throw new Error(`incomplete listing: ${JSON.stringify(it)}`);
+  }
+});
+
+check("the cache key normalizes case, accents and whitespace", () => {
+  const a = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", "filtro de aire");
+  const b = rockautoDirect.rockautoCacheKey("2010", "honda", "civic", "Filtro  de Aire");
+  eq(a, b, "same search, one key");
+  eq(a, "2010|honda|civic|filtro de aire", "key shape mirrors autoPartCacheKey");
+  const c = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", "bujía");
+  if (a === c) throw new Error("different queries share a key");
+});
+
+checkAsync("the full chain resolves filtro de aire to live listings", async () => {
+  const counter = { count: 0 };
+  const pages = new Map([
+    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
+    [RA_NODE_URL, RA_NODE_FIXTURE],
+    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
+    [RA_PARTTYPE_URL, RA_LISTINGS_FIXTURE],
+  ]);
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Honda",
+    model: "Civic",
+    query: "filtro de aire",
+    entries: RA_ENTRIES,
+    fetchHtml: raFixtureFetch(pages, counter),
+    courtesyDelayMs: 0,
+  });
+  if (!r.ok) throw new Error(`chain failed: ${r.miss}`);
+  eq(r.translatedQuery, "engine air filter", "translated query");
+  eq(r.engine, "1.8L L4", "engine label for the card");
+  eq(r.category, "Fuel & Air", "category");
+  eq(r.partType, "Air Filter", "part type");
+  eq(r.items.length, 2, "items");
+  eq(r.items[0].priceUsd, 4.12, "price is raw USD");
+  eq(counter.count, 4, "four RockAuto requests");
+});
+
+checkAsync("a cache hit performs zero RockAuto requests on the second identical search", async () => {
+  const counter = { count: 0 };
+  const pages = new Map([
+    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
+    [RA_NODE_URL, RA_NODE_FIXTURE],
+    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
+    [RA_PARTTYPE_URL, RA_LISTINGS_FIXTURE],
+  ]);
+  // Mirrors the function: Blobs-backed, keyed {year}|{make}|{model}|{spanish-query}.
+  const cache = new Map();
+  const search = async (query) => {
+    const key = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", query);
+    if (cache.has(key)) return { ...cache.get(key), cached: true };
+    const r = await rockautoDirect.runRockautoLiveChain({
+      year: "2010",
+      make: "Honda",
+      model: "Civic",
+      query,
+      entries: RA_ENTRIES,
+      fetchHtml: raFixtureFetch(pages, counter),
+      courtesyDelayMs: 0,
+    });
+    if (r.ok) cache.set(key, r);
+    return { ...r, cached: false };
+  };
+  const first = await search("filtro de aire");
+  if (!first.ok || first.cached) throw new Error("first search should miss the cache and run the chain");
+  eq(counter.count, 4, "first search runs the chain");
+  const second = await search("Filtro  de Aire");
+  if (!second.ok || !second.cached) throw new Error("second search should hit the cache");
+  eq(counter.count, 4, "second identical search: zero RockAuto requests");
+  eq(second.items.length, first.items.length, "cached items served");
+});
+
+checkAsync("a hanging RockAuto degrades to a timeout miss, never a hung function", async () => {
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Honda",
+    model: "Civic",
+    query: "filtro de aire",
+    entries: RA_ENTRIES,
+    fetchHtml: () => new Promise(() => {}),
+    courtesyDelayMs: 0,
+    deadlineMs: 120,
+  });
+  eq(r.ok, false, "not ok");
+  eq(r.miss, "timeout", "miss reason");
+});
+
+checkAsync("a vehicle with no engine options is a graceful catalog miss", async () => {
+  const counter = { count: 0 };
+  const hiluxCatalog = "https://www.rockauto.com/en/catalog/toyota,2010,hilux";
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Toyota",
+    model: "Hilux",
+    query: "filtro de aire",
+    entries: RA_ENTRIES,
+    fetchHtml: raFixtureFetch(new Map([[hiluxCatalog, "<html><body>no engines here</body></html>"]]), counter),
+    courtesyDelayMs: 0,
+  });
+  eq(r.ok, false, "not ok");
+  eq(r.miss, "no-engine", "miss reason");
+  eq(counter.count, 1, "one request, then the friendly empty state");
+});
+
+checkAsync("an unknown part type is a graceful miss, not an exception", async () => {
+  const counter = { count: 0 };
+  const pages = new Map([
+    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
+    [RA_NODE_URL, RA_NODE_FIXTURE],
+    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
+  ]);
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Honda",
+    model: "Civic",
+    query: "espejo retrovisor cuántico",
+    entries: RA_ENTRIES,
+    fetchHtml: raFixtureFetch(pages, counter),
+    courtesyDelayMs: 0,
+  });
+  eq(r.ok, false, "not ok");
+  if (!["no-category", "no-part-type"].includes(r.miss)) throw new Error(`unexpected miss: ${r.miss}`);
+});
+
+check("the live-search function keeps prices raw — the 24% margin belongs to the page", () => {
+  const src = readFileSync(root("netlify/functions/rockauto-live-search.js"), "utf8");
+  if (/1\.24|1\.07|SALES_TAX_RATE|LIVE_PRICE_MARKUP/.test(src))
+    throw new Error("the function is applying the markup — that belongs to normalizeLiveItem");
+  if (!/price: it\.priceUsd/.test(src)) throw new Error("raw USD price not passed through");
+});
+
+check("RockAuto images are proxied, never hotlinked", () => {
+  const src = readFileSync(root("netlify/functions/rockauto-live-search.js"), "utf8");
+  if (!/rockauto-image\?u=/.test(src)) throw new Error("listings do not route images through the proxy");
+  if (/https:\/\/www\.rockauto\.com\/info\//.test(src)) throw new Error("raw /info/ hotlink leaked into the client payload");
+  const proxy = readFileSync(root("netlify/functions/rockauto-image.js"), "utf8");
+  if (!/const ALLOWED =/.test(proxy) || !/\(info\|catalog\)/.test(proxy))
+    throw new Error("proxy path allowlist missing");
+});
+
+check("the client routes RockAuto to the direct function with a 30s start timeout", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/if \(sourceKey === 'rockauto'\) return searchRockautoLive\(vehicle, query, maxItems\);/.test(html))
+    throw new Error("searchAutoSource does not branch RockAuto to the direct function");
+  if (!/fetchWithStartTimeout\('\/\.netlify\/functions\/rockauto-live-search'/.test(html))
+    throw new Error("rockautoLiveSearch does not use the 30s start timeout");
+});
+
+check("every RockAuto live failure degrades to the honest pending block", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/miss\.sourceNotConnected = true;/.test(html) || !/fail\.sourceNotConnected = true;/.test(html))
+    throw new Error("rockauto failures do not flag sourceNotConnected");
+  if (!/pendingNote: 'Estamos ampliando nuestro catálogo de repuestos/.test(html))
+    throw new Error("the pending block does not carry the required shopper message");
+});
+
 /* ------------------------------------------------------------------ */
+await Promise.all(pendingAsync);
+
 /* ============================================================
    SEO INDEXABILITY (2026-09-26). Google told a shopper in Lima the
    domain "doesn't appear to operate as an active online store" —
@@ -10003,6 +10344,191 @@ check("Search Console verification hook is present (placeholder until Danny past
   const html = readFileSync(root("index.html"), "utf8");
   if (!/<meta name="google-site-verification" content="[^"]+">/.test(html))
     throw new Error("google-site-verification meta missing");
+});
+
+
+group("Gym Rat: Danny's 2026-09-26 direction");
+
+const gymratCatalog = JSON.parse(readFileSync(root("gymrat-catalog.json"), "utf8"));
+const gymratItems = [];
+for (const [retailer, r] of Object.entries(gymratCatalog.retailers || {})) {
+  for (const d of Object.values(r.departments || {})) {
+    for (const item of (Array.isArray(d) ? d : d?.items || [])) gymratItems.push({ retailer, item });
+  }
+}
+
+check("the gym brands are registered and browsable in both mirrors", () => {
+  /* The Macy's / Lane Bryant pattern: a committed catalogue, no actor --
+     browse: true, search: false, in both registries or the brand's pills,
+     rail, storefront and Ofertas entries silently disagree. */
+  const src = readFileSync(root("index.html"), "utf8");
+  for (const [key, label] of [["youngla", "YoungLA"], ["gymshark", "Gymshark"], ["alphalete", "Alphalete"]]) {
+    const row = new RegExp(key + ":\\s*\\{[^}]*\\}").exec(src);
+    if (!row) throw new Error(`${key} is not in index.html's RETAILERS`);
+    if (!/browse:\s*true/.test(row[0])) throw new Error(`${key} is not browsable`);
+    if (!/search:\s*false/.test(row[0])) throw new Error(`${key} must not join the live search fan-out (no actor)`);
+    const mirror = retailers.RETAILERS[key];
+    if (!mirror) throw new Error(`${key} is missing from scripts/lib/retailers.js`);
+    eq(mirror.label, label, `${key} mirror label drifted`);
+    eq(mirror.browse, true, `${key} mirror browse flag drifted`);
+    eq(mirror.search, false, `${key} mirror search flag drifted`);
+  }
+});
+
+check("zero shoes reach the Gym Rat feed, from any retailer", () => {
+  /* DANNY (2026-09-26): Gym Rat is gym clothing + gym accessories -- shoes
+     live in Zapatos / Foot Locker only. The guard sits in
+     itemBelongsToDepartment past the bucket match, so even a footwear
+     item filed under a gymrat bucket is refused. This runs the real
+     filter over the real committed catalogue, retailer by retailer. */
+  const { isFootwear } = loadPageFootwearSlice();
+  const rendered = gymratItems.filter(({ retailer, item }) =>
+    deptMap.itemBelongsToDepartment(item, "gym_rat", "gym_rat", retailer));
+  if (!rendered.length) throw new Error("nothing renders in Gym Rat -- the filter is measuring nothing");
+  const shoes = rendered.filter(({ retailer, item }) => isFootwear(item, retailer));
+  if (shoes.length) {
+    throw new Error(`${shoes.length} footwear items render in Gym Rat, e.g. ` +
+      shoes.slice(0, 3).map(s => s.item.name || s.item.title).join(" | "));
+  }
+});
+
+check("no Foot Locker shoe can enter Gym Rat through the old retailer rule", () => {
+  /* The old rule admitted Foot Locker athletic shoes via the retailer;
+     Danny killed it. A Foot Locker shoe must not belong to gym_rat. The
+     positive control keeps the test honest: gym apparel still belongs. */
+  const { isFootwear } = loadPageFootwearSlice();
+  const shoe = { name: "Nike Air Force 1 '07", type: "Athletic Shoes", brand: "Nike" };
+  if (!isFootwear(shoe, "footlocker")) throw new Error("the shoe fixture is not a shoe -- the test is measuring nothing");
+  if (deptMap.itemBelongsToDepartment(shoe, "gym_rat", "gym_rat", "footlocker")) {
+    throw new Error("a Foot Locker shoe still belongs to gym_rat");
+  }
+  const legging = { name: "Seamless Leggings", type: "Bottoms>Leggings", brand: "Gymshark" };
+  if (isFootwear(legging, "gymshark")) throw new Error("the apparel fixture reads as footwear -- the test is measuring nothing");
+  if (!deptMap.itemBelongsToDepartment(legging, "gym_rat", "gym_rat", "gymshark")) {
+    throw new Error("gym apparel no longer belongs to gym_rat");
+  }
+});
+
+check("Gym Rat lists YoungLA first, Gymshark heavy second, Alphalete third", () => {
+  /* DANNY (2026-09-26): most-known brands first. One reorder drives the
+     pill row and the product grid, both of which read byRetailer in
+     insertion order. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const m = src.match(/DEPARTMENT_RETAILER_ORDER = \{[^}]*gym_rat:\s*\[([^\]]+)\]/);
+  if (!m) throw new Error("DEPARTMENT_RETAILER_ORDER.gym_rat is gone");
+  eq(m[1].replace(/['\s]/g, ""), "youngla,gymshark,alphalete", "Gym Rat brand order drifted");
+});
+
+check("Gym Rat leads with hero apparel -- accessories never open the section", () => {
+  /* DANNY (2026-09-26): the front of Gym Rat is hero gym apparel (leggings,
+     shorts, joggers, tops, sports bras, hoodies) -- socks and keychains are
+     fine deeper in the grid, never the lead. Runs the real rank over the
+     real committed catalogue: the first 12 of the default order must all
+     be apparel. */
+  const { gymRatLeadRank, gymRatIsAccessory } = loadPageDealSpreadSlice();
+  const rendered = gymratItems
+    .filter(({ retailer, item }) => deptMap.itemBelongsToDepartment(item, "gym_rat", "gym_rat", retailer))
+    .map(({ item }) => item);
+  if (!rendered.length) throw new Error("nothing renders in Gym Rat -- the test is measuring nothing");
+  const acc = rendered.filter(gymRatIsAccessory);
+  if (!acc.length) throw new Error("no accessories classified -- the rank is measuring nothing");
+  if (acc.length >= rendered.length) throw new Error("everything reads as an accessory -- the rank is broken");
+  /* The page's default comparator: lead rank first, price inside each band.
+     2503 apparel items sort ahead of every accessory whatever the tiebreak. */
+  const price = (p) => { const n = Number(p.price); return Number.isFinite(n) && n > 0 ? n : Infinity; };
+  const sorted = [...rendered].sort((a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || (price(a) - price(b)));
+  const bad = sorted.slice(0, 12).filter(gymRatIsAccessory);
+  if (bad.length) {
+    throw new Error(`${bad.length} accessories lead Gym Rat, e.g. ` +
+      bad.slice(0, 3).map(p => p.name || p.title).join(" | "));
+  }
+  /* Nothing removed: the grid still holds every item, accessories included. */
+  eq(sorted.length, rendered.length, "the lead sort dropped items");
+  eq(sorted.filter(gymRatIsAccessory).length, acc.length, "accessories went missing from the grid");
+});
+
+check("the Gym Rat lead is wired into the department sort, explicit sorts bypass it", () => {
+  /* The lead only governs the default view: a shopper who explicitly picks
+     a price sort gets exactly that order (catalogSortTouched), and the flag
+     resets on every navigation into a catalogue view. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/isGymRat && !catalogSortTouched/.test(src)) throw new Error("the gym_rat lead is not in the department sort");
+  if (!/function onCatalogSortChange\(\)\{ catalogSortTouched = true;/.test(src)) {
+    throw new Error("an explicit sort choice does not set catalogSortTouched");
+  }
+  if (!/catalogSortTouched = false; \/\/ a fresh section opens on the default sort/.test(src)) {
+    throw new Error("catalogSortTouched is never reset on navigation");
+  }
+  if (!/onchange="onCatalogSortChange\(\)"/.test(src)) throw new Error("the sort dropdown is not wired to onCatalogSortChange");
+});
+
+check("Gymshark sits between Victoria's Secret and Sephora on all three surfaces", () => {
+  /* DANNY (2026-09-26): Gymshark -- the most-known gym brand in Peru right
+     now -- sits right under Victoria's Secret and above Sephora: on the
+     phone, the laptop, and the Tiendas vitrinas. No rail was removed to
+     make room. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/const STORE_RAIL_STORES = \[\s*'victoriassecret',\s*'gymshark',\s*'sephora'/.test(src)) {
+    throw new Error("STORE_RAIL_STORES is not victoriassecret, gymshark, sephora");
+  }
+  for (const id of ["mStoreRail-gymshark", "dStoreRail-gymshark", "tStoreRail-gymshark"]) {
+    eq((src.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is not declared exactly once`);
+  }
+  /* DOM adjacency: the Gymshark section directly follows the Victoria's
+     Secret section and directly precedes the Sephora section, per surface. */
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]) {
+    const ids = [...src.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
+    const i = ids.indexOf("gymshark");
+    if (i < 0) throw new Error(`${prefix}-gymshark is missing`);
+    eq(ids[i - 1], "victoriassecret", `${prefix}: Gymshark is not under Victoria's Secret`);
+    eq(ids[i + 1], "sephora", `${prefix}: Gymshark is not above Sephora`);
+  }
+});
+
+check("ofertasLeadSort leads with the pull brands, discount deciding within", () => {
+  /* DANNY (2026-09-26): the lead sells the section. Victoria's Secret,
+     Sephora, Macy's, Gymshark, YoungLA go first -- so Gym Rat sale sits
+     toward the front next to Victoria's Secret -- and discount decides
+     within each brand. */
+  const { ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N } = loadPageDealSpreadSlice();
+  eq(OFERTAS_LEAD_BRANDS.join(","), "victoriassecret,sephora,macys,gymshark,youngla", "lead brand order drifted");
+  const deal = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice });
+  const items = [
+    deal("target", "Target Towels", 10, 100),                    // 90% off, not a lead brand
+    deal("gymshark", "Gymshark Leggings", 90, 100),              // 10% off, lead brand
+    deal("victoriassecret", "VS Lotion", 50, 100),               // 50% off
+    deal("victoriassecret", "VS Mist", 20, 100),                 // 80% off, same brand
+  ];
+  const sorted = ofertasLeadSort(items);
+  eq(sorted.map(d => d.title).join(","), "VS Mist,VS Lotion,Gymshark Leggings,Target Towels",
+    "lead brands do not lead, or discount does not decide within a brand");
+  eq(ofertasLeadRank({ retailer: "target" }) > ofertasLeadRank({ retailer: "youngla" }), true,
+    "a non-lead brand outranks a lead brand");
+});
+
+check("ofertasLeadSort holds heavy coats and near-duplicates out of the lead, and drops nothing", () => {
+  /* DANNY (2026-09-26): Peru heads into summer -- heavy coats never lead
+     (the sierra still gets cold, so they stay in the grid). And the
+     three-near-identical-Macy's-coats lesson: one normalized title per
+     lead. Nothing is ever removed, only reordered. */
+  const { ofertasLeadSort, OFERTAS_LEAD_N } = loadPageDealSpreadSlice();
+  const deal = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice });
+  const items = [];
+  for (let i = 0; i < OFERTAS_LEAD_N; i++) {
+    items.push(deal("sephora", `Sephora Find ${i}`, 50, 100));
+  }
+  items.push(deal("macys", "Women's Hooded Puffer Coat", 10, 100));       // 90% off coat
+  items.push(deal("macys", "Women's Oversized Hooded Sweatshirt", 30, 100));
+  items.push(deal("macys", "Women's Hooded Oversized Sweatshirt", 40, 100)); // near-duplicate, weaker discount
+  const sorted = ofertasLeadSort(items);
+  eq(sorted.length, items.length, "ofertasLeadSort dropped a product");
+  const titles = sorted.map(d => d.title);
+  eq(new Set(titles).size, titles.length, "ofertasLeadSort duplicated a product");
+  const coatIdx = titles.indexOf("Women's Hooded Puffer Coat");
+  if (coatIdx < OFERTAS_LEAD_N) throw new Error(`a heavy coat leads at index ${coatIdx}`);
+  const dupIdx = titles.indexOf("Women's Hooded Oversized Sweatshirt");
+  if (dupIdx < OFERTAS_LEAD_N) throw new Error(`a near-duplicate leads at index ${dupIdx}`);
+  if (!titles.includes("Women's Oversized Hooded Sweatshirt")) throw new Error("the stronger duplicate went missing");
 });
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
