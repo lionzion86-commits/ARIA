@@ -10598,10 +10598,49 @@ async function runOnDemandSearch(retailer, query){
     onDemandRuns.set(key, { status: 'done', items: normalized, error: null });
     absorbOnDemandResults(retailer, q, normalized);
   } catch (err) {
-    onDemandRuns.set(key, { status: 'error', items: [], error: err.message });
-    showToast(err.message || 'No pudimos completar la búsqueda en la tienda.');
+    /* Never toast a raw backend diagnostic: an unwired store becomes the
+       friendly "not connected yet" line, never the actor-configuration
+       note from the server. */
+    const rawMsg = (err && err.message) || '';
+    const safeMsg = (err && err.sourceNotConnected) || DEV_DIAGNOSTIC_RE.test(rawMsg)
+      ? 'Esta tienda aún no está conectada — prueba con otra.'
+      : (rawMsg || 'No pudimos completar la búsqueda en la tienda.');
+    onDemandRuns.set(key, { status: 'error', items: [], error: safeMsg });
+    showToast(safeMsg);
   }
   renderOnDemandSurface(q, retailer);
+}
+
+/* SHOPPER-SAFE SCRAPE ERRORS.
+   The scrape backend answers some requests with raw diagnostics meant for
+   us — e.g. `Retailer "rockauto" has no Apify actor configured yet — see
+   the TO FINISH THE INTEGRATION note in apify-scrape-start.js`. Those must
+   NEVER reach the shopper. The backend flags that case with
+   `pendingIntegration: true`; throwIfNotConnected rethrows it as a coded
+   SOURCE_NOT_CONNECTED error, and every renderer below maps the coded
+   error (or any message matching DEV_DIAGNOSTIC_RE) to the friendly
+   "we're expanding the catalog" state instead of the raw text. */
+const DEV_DIAGNOSTIC_RE = /no Apify actor configured|TO FINISH THE INTEGRATION|FIXME:|\bTODO:/i;
+function asSourceNotConnected(cause){
+  const e = new Error('SOURCE_NOT_CONNECTED');
+  e.sourceNotConnected = true;
+  e.cause = cause;
+  return e;
+}
+function throwIfNotConnected(startData, startRes){
+  if (startData && startData.pendingIntegration) throw asSourceNotConnected(new Error(startData.error || 'pendingIntegration'));
+  if (!startRes.ok && startData && DEV_DIAGNOSTIC_RE.test(startData.error || '')) throw asSourceNotConnected(new Error(startData.error));
+}
+/* A start call that cannot hang forever: without the timeout, a stalled
+   fetch leaves the section's skeleton pulsing indefinitely. */
+async function fetchWithStartTimeout(url, opts, ms){
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms || 30000);
+  try {
+    return await fetch(url, Object.assign({}, opts, { signal: ctrl.signal }));
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 /* Start + poll, with the on-demand flag that turns on the server's cache
@@ -10612,12 +10651,13 @@ async function scrapeRetailerOnDemand(retailer, query){
      search: an on-demand run COSTS MONEY. Sending "celular" to Old Navy
      buys an empty dataset at full price, and the shopper who pressed the
      button waits ninety seconds to be told there is nothing there. */
-  const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
+  const startRes = await fetchWithStartTimeout('/.netlify/functions/apify-scrape-start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ retailer, query: translateSearchQuery(query), maxItems: ON_DEMAND_MAX_ITEMS, onDemand: true }),
   });
   const startData = await startRes.json();
+  throwIfNotConnected(startData, startRes);
   if (startRes.status === 429) throw new Error(startData.error || 'Ya tienes búsquedas en curso.');
   if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda en la tienda');
   if (startData.cached) return startData.items || [];
@@ -14463,12 +14503,13 @@ async function scrapeRetailer(retailer, query, maxItems, department){
      at this boundary is what makes the rule site-wide rather than a
      thing each new entry point has to remember — see the ES→EN table
      further up. An unrecognised query passes through exactly as typed. */
-  const startRes = await fetch('/.netlify/functions/apify-scrape-start', {
+  const startRes = await fetchWithStartTimeout('/.netlify/functions/apify-scrape-start', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ retailer, query: translateSearchQuery(query), maxItems, ...(department ? { department } : {}) }),
   });
   const startData = await startRes.json();
+  throwIfNotConnected(startData, startRes);
   if (!startRes.ok) throw new Error(startData.error || 'No se pudo iniciar la búsqueda');
   /* FAIL FAST ON A SUCCESS THAT ISN'T ONE. A 200 carrying no runId --
      a proxy's empty body, a half-deployed function -- used to be polled
@@ -15024,75 +15065,88 @@ function autoPartCacheKey(vehicle, query){
    typing English, a part number, or a brand still searches for exactly
    what they typed.
    ============================================================ */
+/* ==== GLOSSARY-BLOCK-START — GENERATED from scripts/lib/es-en-parts-glossary.json (v1.1.0).
+      DO NOT HAND-EDIT. Edit the JSON and re-run: node scripts/build-parts-glossary-inline.mjs
+      This glossary is SHARED INFRASTRUCTURE: the future Aria AI assistant imports the same
+      JSON file as-is for part-name translation and recognition. Do not rebuild it as a
+      duplicate list anywhere else. ==== */
 const AUTO_PART_TERMS_ES_EN = [
   ['pastillas de freno', 'brake pads'],
   ['balatas de freno', 'brake pads'],
   ['balatas', 'brake pads'],
+  ['pastilla de freno', 'brake pad'],
   ['discos de freno', 'brake rotors'],
   ['disco de freno', 'brake rotor'],
   ['rotor de freno', 'brake rotor'],
   ['zapatas de freno', 'brake shoes'],
   ['mordaza de freno', 'brake caliper'],
-  ['cal\u00edper de freno', 'brake caliper'],
-  ['l\u00edquido de frenos', 'brake fluid'],
+  ['calíper de freno', 'brake caliper'],
+  ['líquido de frenos', 'brake fluid'],
+  ['cilindro maestro', 'master cylinder'],
   ['filtro de aire de cabina', 'cabin air filter'],
   ['filtro de cabina', 'cabin air filter'],
-  ['filtro de habit\u00e1culo', 'cabin air filter'],
+  ['filtro de habitáculo', 'cabin air filter'],
   ['filtro de aceite', 'oil filter'],
   ['filtro de aire', 'engine air filter'],
   ['filtro de combustible', 'fuel filter'],
   ['aceite de motor', 'motor oil'],
-  ['buj\u00edas de encendido', 'spark plugs'],
-  ['buj\u00edas', 'spark plugs'],
+  ['refrigerante', 'coolant'],
+  ['anticongelante', 'antifreeze'],
+  ['bujías', 'spark plugs'],
+  ['bujías de encendido', 'spark plugs'],
+  ['bujía', 'spark plug'],
   ['bobina de encendido', 'ignition coil'],
-  ['bater\u00eda', 'car battery'],
+  ['batería', 'car battery'],
   ['alternador', 'alternator'],
   ['motor de arranque', 'starter motor'],
   ['marcha', 'starter motor'],
-  ['radiador', 'radiator'],
-  ['bomba de agua', 'water pump'],
-  ['bomba de gasolina', 'fuel pump'],
-  ['termostato', 'thermostat'],
-  ['refrigerante', 'coolant'],
-  ['anticongelante', 'antifreeze'],
-  ['correa de distribuci\u00f3n', 'timing belt'],
-  ['correa de tiempo', 'timing belt'],
-  ['correa serpentina', 'serpentine belt'],
-  ['correa de accesorios', 'serpentine belt'],
-  ['amortiguadores', 'shock absorbers'],
-  ['amortiguador', 'shock absorber'],
-  ['brazo de control', 'control arm'],
-  ['r\u00f3tula', 'ball joint'],
-  ['terminal de direcci\u00f3n', 'tie rod end'],
-  ['eje homocin\u00e9tico', 'cv axle'],
-  ['junta homocin\u00e9tica', 'cv joint'],
-  ['rodamiento de rueda', 'wheel bearing'],
-  ['balero de rueda', 'wheel bearing'],
-  ['limpiaparabrisas', 'windshield wiper blades'],
-  ['plumillas', 'windshield wiper blades'],
-  ['escobillas', 'windshield wiper blades'],
-  ['espejo lateral', 'side mirror'],
-  ['espejo retrovisor', 'rearview mirror'],
-  ['parrilla', 'grille'],
   ['faro delantero', 'headlight'],
   ['faros', 'headlights'],
   ['calavera', 'tail light'],
   ['luz trasera', 'tail light'],
   ['foco', 'light bulb'],
+  ['direccional', 'turn signal'],
+  ['radiador', 'radiator'],
+  ['bomba de agua', 'water pump'],
+  ['termostato', 'thermostat'],
+  ['tapa de radiador', 'radiator cap'],
+  ['bomba de gasolina', 'fuel pump'],
+  ['catalizador', 'catalytic converter'],
   ['silenciador', 'muffler'],
   ['escape', 'exhaust'],
-  ['catalizador', 'catalytic converter'],
+  ['correa de distribución', 'timing belt'],
+  ['correa de tiempo', 'timing belt'],
+  ['faja de distribución', 'timing belt'],
+  ['correa serpentina', 'serpentine belt'],
+  ['correa de accesorios', 'serpentine belt'],
+  ['faja de accesorios', 'serpentine belt'],
+  ['amortiguadores', 'shock absorbers'],
+  ['amortiguador', 'shock absorber'],
+  ['brazo de control', 'control arm'],
+  ['rótula', 'ball joint'],
+  ['rodamiento de rueda', 'wheel bearing'],
+  ['balero de rueda', 'wheel bearing'],
+  ['eje homocinético', 'cv axle'],
+  ['junta homocinética', 'cv joint'],
+  ['terminal de dirección', 'tie rod end'],
   ['embrague', 'clutch kit'],
   ['clutch', 'clutch kit'],
+  ['limpiaparabrisas', 'windshield wiper blades'],
+  ['plumillas', 'windshield wiper blades'],
+  ['escobillas', 'windshield wiper blades'],
+  ['parabrisas', 'windshield'],
+  ['espejo lateral', 'side mirror'],
+  ['espejo retrovisor', 'rearview mirror'],
+  ['parrilla', 'grille'],
   ['llantas', 'tires'],
+  ['neumáticos', 'tires'],
   ['llanta', 'tire'],
-  ['neum\u00e1ticos', 'tires'],
-  ['neum\u00e1tico', 'tire'],
-  ['tapa de radiador', 'radiator cap'],
-  ['sensor de ox\u00edgeno', 'oxygen sensor'],
+  ['neumático', 'tire'],
+  ['sensor de oxígeno', 'oxygen sensor'],
   ['sensor de oxigeno', 'oxygen sensor'],
-  ['cilindro maestro', 'master cylinder'],
 ].sort((a, b) => b[0].length - a[0].length);
+/* ==== GLOSSARY-BLOCK-END ==== */
+
 
 // Accent- and case-insensitive, so "bujias" works as well as "buj\u00edas".
 const deaccent = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -15939,8 +15993,14 @@ function axleSelectorHTML(blockId){
 function renderAutoPartBlock(label, result, query, sourceKey){
   const header = `<div class="mb-3">${autoSourceBadgeHTML(sourceKey || label, 22)}</div>`;
   if (!result.ok){
+    /* Defense in depth: even if a raw backend diagnostic arrives here as
+       result.error, the shopper sees the friendly line, never the note. */
+    const rawErr = result.error || 'Error al consultar';
+    const safeErr = DEV_DIAGNOSTIC_RE.test(rawErr)
+      ? 'Estamos ampliando nuestro catálogo de repuestos — vuelve pronto.'
+      : rawErr;
     return `<div class="mb-6">${header}
-      <div class="text-[12px]" style="color:#C0392B">${escapeHtml(result.error || 'Error al consultar')}</div>
+      <div class="text-[12px]" style="color:#C0392B">${escapeHtml(safeErr)}</div>
     </div>`;
   }
   const vehicle = selectedVehicle;
@@ -16071,7 +16131,13 @@ async function searchAutoParts(){
       autoConfirmedBySource.set(source.id, confirmed);
       blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
     } catch (err) {
-      blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: false, error: err.message }, query, source.id);
+      /* A source whose scraper was never wired up (RockAuto today) is not
+         an error the shopper can act on — it gets the same honest
+         "connecting the catalog" block as a pending source, never the raw
+         backend diagnostic. */
+      blockEl.innerHTML = (err && (err.sourceNotConnected || DEV_DIAGNOSTIC_RE.test(err.message || '')))
+        ? autoPendingBlockHTML({ ...source, pendingNote: 'Estamos ampliando nuestro catálogo de repuestos — vuelve pronto.' }, selectedVehicle, query)
+        : renderAutoPartBlock(source.label, { ok: false, error: err.message }, query, source.id);
     }
     renderAutoComparison(query);
   }));

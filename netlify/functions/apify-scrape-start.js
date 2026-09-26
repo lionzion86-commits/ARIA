@@ -350,6 +350,20 @@ const RETAILER_CONFIG = {
 
 const DEFAULT_MAX_ITEMS = 20;
 
+/* Dev-only diagnostics. Actor names, file references and integration
+   notes ride in `devNote`, which is attached ONLY for preview or
+   explicitly dev-flagged requests — shoppers on production never see
+   them. The client keys its friendly empty states off the stable
+   `pendingIntegration` boolean, never off message text. */
+function isDevRequest(event) {
+  const h = (event && event.headers) || {};
+  const host = String(h.origin || h.referer || h.Referer || "");
+  if (/deploy-preview|netlify\.app|localhost|127\.0\.0\.1/i.test(host)) return true;
+  const qs = (event && event.queryStringParameters) || {};
+  const flag = String(qs.dev || qs.debug || "");
+  return flag === "1" || flag === "true";
+}
+
 export async function handler(event) {
   connectLambda(event);
   const headers = {
@@ -380,16 +394,20 @@ export async function handler(event) {
          so is the difference between an operator fixing it in two lines
          and an operator hunting for a bug that is not there. */
       const known = retailerFor(retailer);
+      const devNote = isDevRequest(event)
+        ? `Retailer "${retailer}" (${known ? known.label : "unknown"}) has no Apify actor configured yet — see the TO FINISH THE INTEGRATION note in apify-scrape-start.js.`
+        : undefined;
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({
           error: known
-            ? `Retailer "${retailer}" (${known.label}) has no Apify actor configured yet — see the TO FINISH THE INTEGRATION note in apify-scrape-start.js.`
+            ? `Retailer "${retailer}" is not connected yet.`
             : `Unsupported or unconfigured retailer: "${retailer}". Supported: ${Object.keys(RETAILER_CONFIG)
                 .filter((k) => RETAILER_CONFIG[k])
                 .join(", ")}`,
           pendingIntegration: Boolean(known),
+          ...(devNote ? { devNote } : {}),
         }),
       };
     }
