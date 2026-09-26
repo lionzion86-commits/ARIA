@@ -1560,7 +1560,30 @@
 
     <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#E21836">New Balance</span>
+        <button onclick="openStore('newbalance')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
+        </span>
+        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1574,15 +1597,6 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#E21836">New Balance</span>
-        <button onclick="openStore('newbalance')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -1629,20 +1643,6 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
-        </span>
-        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
          picker and the Costco zone -- the catalogue's top clothing brands
@@ -1888,7 +1888,34 @@
     </section>
 
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+              style="background:#E21836">New Balance</span>
+          <button onclick="openStore('newbalance')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1903,17 +1930,6 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-              style="background:#E21836">New Balance</span>
-          <button onclick="openStore('newbalance')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
@@ -1968,22 +1984,6 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
-        </span>
-          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
@@ -8381,7 +8381,7 @@ function renderMobileDealsRail(){
 /* RELIABLE-FIRST (2026-09-26, Danny): the window displays lead with the strongest shippers.
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE anchors the end: browsable and honest, but red-tier and slow. */
-const STORE_RAIL_STORES = ['footlocker', 'newbalance', 'sephora', 'macys', 'kohls', 'dicks', 'victoriassecret', 'costco', 'bhphoto', 'gymshark', 'ssense', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'footlocker', 'sephora', 'macys', 'kohls', 'dicks', 'costco', 'bhphoto', 'gymshark', 'ssense', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
