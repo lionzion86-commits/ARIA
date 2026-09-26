@@ -90,7 +90,7 @@ export const RETAILERS = {
     tagline: "Shapewear, ropa interior y loungewear",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   revolve: {
     key: "revolve",
@@ -100,7 +100,7 @@ export const RETAILERS = {
     tagline: "Moda contemporánea y de diseñador",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   ulta: {
     key: "ulta",
@@ -122,7 +122,8 @@ export const RETAILERS = {
     kind: "general",
     catalog: "beauty",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.",
   },
   /* ============================================================
      MACY'S (2026-09-22) — THE FIRST BROWSE-WITHOUT-SCRAPE STORE
@@ -264,7 +265,8 @@ export const RETAILERS = {
     tagline: "Lentes de sol de marca",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Descartada por Danny (2026-09-25). Sin pull.",
   },
   dyson: {
     key: "dyson",
@@ -274,7 +276,8 @@ export const RETAILERS = {
     tagline: "Secadoras, aspiradoras y purificadores",
     kind: "general",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.",
   },
   macys: {
     key: "macys",
@@ -376,7 +379,8 @@ export const RETAILERS = {
     kind: "general",
     tier: "luxury",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Reintentar tras el reset del 16-oct.",
   },
   miumiu: {
     key: "miumiu",
@@ -387,7 +391,7 @@ export const RETAILERS = {
     kind: "general",
     tier: "luxury",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    browse: true,
   },
   goldengoose: {
     key: "goldengoose",
@@ -398,7 +402,8 @@ export const RETAILERS = {
     kind: "general",
     tier: "luxury",
     search: false,
-    pendingNote: "Conectando el catálogo",
+    retired: true,
+    retiredNote: "Pull pendiente: sin saldo Apify (tope mensual alcanzado 2026-09-25). Actor probado; deep pull listo tras el reset del 16-oct.",
   },
   /* Listed but not sold: these were integrated once and turned off for
      real reasons (cost, and Nordstrom's bot protection returning zero
