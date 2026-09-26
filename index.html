@@ -6993,12 +6993,28 @@ function synonymWholeWordOnly(t){
   return !!g && String(t || '').length <= 3;
 }
 
+/* PREFIXES ARE PLURALS, NOTHING ELSE (2026-09-26).
+
+   REPORTED LIVE by Danny: "chompa" and "buzo" both surfaced a cooling
+   pillowcase -- "AZXY 2-Pack Cooling Pillowcases for Hot Sleepers ...
+   Anti-Sweat Breathable". The reverse shortcut let "sweater" and
+   "sweatshirt" match the 5-letter word "sweat": a body-fluid noun, not
+   the garment. The shortcut exists for plurals -- "vitamin" finding
+   "vitamins" and "vitamins" finding "vitamin" -- so the extra letters now
+   have to BE a plural: "s" or "es". "sweater" is "sweat"+"er" and no
+   longer matches; "vitamins", "dresses" and "hoodies" still do. */
+function isPluralExtension(shorter, longer){
+  if (longer.length <= shorter.length || !longer.startsWith(shorter)) return false;
+  const rest = longer.slice(shorter.length);
+  return rest === 's' || rest === 'es';
+}
+
 function catalogTokenHitsOne(words, t){
   if (words.has(t)) return true;
   if (synonymWholeWordOnly(t)) return false;
   for (const w of words){
-    if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) return true;
-    if (w.length >= 4 && t.length > w.length && t.startsWith(w)) return true;
+    if (t.length >= CATALOG_MIN_PREFIX && isPluralExtension(t, w)) return true;
+    if (w.length >= 4 && isPluralExtension(w, t)) return true;
   }
   return false;
 }

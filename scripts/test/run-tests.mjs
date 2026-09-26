@@ -7035,6 +7035,30 @@ group("Search answers from the catalogue first");
     if (cs.catalogTokenHits(new Set(["de"]), ["desodorante"]) !== 0) throw new Error("a 2-letter word matched a long token");
   });
 
+  check("a pillowcase that says \"sweat\" never answers a sweater query", () => {
+    /* REPORTED LIVE 2026-09-26 by Danny: "chompa" and "buzo" both
+       surfaced "AZXY 2-Pack Cooling Pillowcases for Hot Sleepers ...
+       Anti-Sweat Breathable" -- the reverse prefix shortcut let
+       "sweater" and "sweatshirt" match the word "sweat". Prefixes are
+       plurals only now, so the bedding stays out while the real
+       garments still answer. */
+    const pool = [
+      P("AZXY 2-Pack Cooling Pillowcases for Hot Sleepers, Anti-Sweat Breathable", ""),
+      P("Women's Cotton Colorblock Curved-Hem Sweater", "Style & Co"),
+      P("Men's EcoSmart Fleece Hoodie Sweatshirt", "Hanes"),
+    ];
+    for (const q of ["sweater", "sweatshirt", "hoodie"]) {
+      const titles = cs.rankCatalogMatches(pool, q, {}).items.map((i) => i.title);
+      if (titles.some((t) => /pillowcase/i.test(t)))
+        throw new Error(`"${q}" returned a pillowcase`);
+    }
+    // ...and the garments each query is actually about still answer.
+    const sweaters = cs.rankCatalogMatches(pool, "sweater", {}).items.map((i) => i.title);
+    if (!sweaters.some((t) => /sweater/i.test(t))) throw new Error('"sweater" lost the real sweaters');
+    const hoodies = cs.rankCatalogMatches(pool, "hoodie", {}).items.map((i) => i.title);
+    if (!hoodies.some((t) => /sweatshirt/i.test(t))) throw new Error('"hoodie" lost the real sweatshirts');
+  });
+
   check("matching every token outranks matching some, and a brand hit outranks a title hit", () => {
     const toks = cs.searchTokens("nike shorts");
     const both = P("Pro 3in Shorts", "Nike");
