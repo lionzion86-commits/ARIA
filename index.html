@@ -10613,9 +10613,8 @@ async function runOnDemandSearch(retailer, query){
 
 /* SHOPPER-SAFE SCRAPE ERRORS.
    The scrape backend answers some requests with raw diagnostics meant for
-   us — e.g. `Retailer "rockauto" has no Apify actor configured yet — see
-   the TO FINISH THE INTEGRATION note in apify-scrape-start.js`. Those must
-   NEVER reach the shopper. The backend flags that case with
+   us (unwired-retailer notes naming actors and integration files). Those
+   must NEVER reach the shopper. The backend flags that case with
    `pendingIntegration: true`; throwIfNotConnected rethrows it as a coded
    SOURCE_NOT_CONNECTED error, and every renderer below maps the coded
    error (or any message matching DEV_DIAGNOSTIC_RE) to the friendly
