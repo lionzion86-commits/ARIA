@@ -613,7 +613,7 @@ export function loadPageStoreRailSlice() {
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks };",
+    html.slice(from, to) + "\n;globalThis.__exports = { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks, COSTCO_CAROUSEL_MAX, costcoCuratedItems, costcoBucketOf, costcoTreasureRank };",
     sandbox,
     { filename: "index.html#storeRail" },
   );

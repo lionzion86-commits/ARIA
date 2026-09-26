@@ -5070,16 +5070,23 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
      (2026-09-26, DANNY'S HOMEPAGE ORDER V2: the photo hero opens the
      page again -- "Todo USA ahora en Lima" is the strong message that
      hits you the moment you walk in. The 2026-09-25 order holds after
-     it, with the Costco rail and the Fiestas y Eventos vertical.) */
+     it, with the Costco rail and the Fiestas y Eventos vertical.
+
+     2026-09-26, DANNY'S HOMEPAGE ORDER V3: the Aria Auto house banner
+     sits under the ARIA brand band and above the store rails (the
+     logo/branding moment lands first, then the black banner, then the
+     Victoria's Secret rails). The six fashion rails read compact, a
+     clothing-brand strip ("Marcas") separates them from the Costco
+     treasure-hunt section, and Fiestas y Eventos follows Costco.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
+  const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
@@ -5095,7 +5102,11 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
      under the Ofertas rail, ahead of the store rails.
 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
-     between the seven rails and Categorías on the laptop too. */
+     between the seven rails and Categorías on the laptop too.
+
+     2026-09-26, DANNY'S HOMEPAGE ORDER V3: same reorder as the phone --
+     Aria Auto house banner under the brand band, six compact rails, the
+     "Marcas" brand strip, then the Costco treasure-hunt section. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
     shopfrontSrc.indexOf('id="whyUs"'),
@@ -5104,10 +5115,10 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
+  const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
     ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
@@ -5508,26 +5519,95 @@ check("Costco and Sam's Club are registered stores; Party City is not", () => {
 });
 
 check("Costco's rail renders real picks with price and photo", () => {
-  const { storeRailPicks } = loadPageStoreRailSlice();
+  const { storeRailPicks, costcoBucketOf } = loadPageStoreRailSlice();
   const costco = fiestaEnvelopes().costco;
   // Raw-level pool the way the page's relatedPool builds it: title,
-  // price and image present, retailer attached.
+  // price and image present, retailer attached, departments stamped.
   const pool = [];
   for (const [dept, entry] of Object.entries(costco.departments || {})) {
     for (const raw of entry.items || []) {
       const title = raw.title || raw.name || "";
       const price = Number(raw.price);
       const image = raw.image || raw.imageUrl || "";
-      if (title && Number.isFinite(price) && price > 0 && image) pool.push({ retailer: "costco", title, price, image });
+      if (title && Number.isFinite(price) && price > 0 && image)
+        pool.push({ retailer: "costco", title, price, image, brand: raw.brand || "", departments: [dept] });
     }
   }
   if (!pool.length) throw new Error("the costco catalog yielded no pool items");
   const picks = storeRailPicks("costco", [], pool, new Set());
   if (!picks.length) throw new Error("Costco's rail rendered nothing");
+  if (picks.length > 12) throw new Error("Costco's rail overflows its twelve-card shelf");
   for (const p of picks) {
     if (p.retailer !== "costco") throw new Error("Costco's rail picked another store's product");
     if (!(p.price > 0) || !p.image) throw new Error("a Costco pick has no price or no photo");
+    if (costcoBucketOf(p) === "dulces") throw new Error("candy reached Costco's rail");
   }
+  // The treasure hunt leads with electronics on the real catalogue.
+  if (costcoBucketOf(picks[0]) !== "electronica")
+    throw new Error("Costco's rail does not lead with electronics");
+});
+
+check("Costco's curation ranks electronics, finds, clothes, home -- never candy", () => {
+  /* 2026-09-26, DANNY'S CALL: Costco is a treasure hunt, not a brand
+     directory. Electronics first, then the interesting finds (gadgets,
+     gemstone boxes, quirky discoveries), then clothes, then home, then
+     everything else. Candy belongs in Fiestas y Eventos, never here. */
+  const { costcoCuratedItems, costcoBucketOf, COSTCO_CAROUSEL_MAX } = loadPageStoreRailSlice();
+  const mk = (title, departments, extra = {}) => ({
+    retailer: "costco", title, price: 29.99,
+    image: "https://img/" + title.replace(/\W+/g, "_"),
+    brand: "", departments, ...extra,
+  });
+  const items = [
+    mk("Juguete de peluche", ["juguetes"]),
+    mk("Chocolate belga surtido", ["dulces"]),
+    mk("Sofá seccional de tela", ["hogar"]),
+    mk("Camisa de vestir", ["bebe"]),
+    mk("Caja de gemas coleccionables", ["hogar"]),
+    mk("Laptop 15 pulgadas", ["electronica"]),
+    mk("Audífonos bluetooth", ["belleza"]),
+    mk("Toallas de baño", ["hogar"]),
+    mk("Sin precio", ["electronica"], { price: 0 }),
+    mk("Sin foto", ["electronica"], { image: "" }),
+    mk("Otra tienda", ["electronica"], { retailer: "samsclub" }),
+    mk("Laptop 15 pulgadas", ["electronica"]), // duplicate collapses
+  ];
+  const out = costcoCuratedItems(items);
+  const titles = out.map(p => p.title);
+  if (titles.includes("Chocolate belga surtido")) throw new Error("candy entered the curation");
+  if (titles.includes("Sin precio") || titles.includes("Sin foto") || titles.includes("Otra tienda"))
+    throw new Error("the curation kept an unrenderable or foreign item");
+  eq(titles.filter(t => t === "Laptop 15 pulgadas").length, 1, "the duplicate collapsed");
+  const rankOf = (t) => titles.indexOf(t);
+  if (!(rankOf("Laptop 15 pulgadas") < rankOf("Caja de gemas coleccionables")))
+    throw new Error("electronics do not lead the treasure finds");
+  if (!(rankOf("Audífonos bluetooth") < rankOf("Camisa de vestir")))
+    throw new Error("finds do not beat clothes");
+  if (!(rankOf("Camisa de vestir") < rankOf("Sofá seccional de tela")))
+    throw new Error("clothes do not beat home");
+  if (!(rankOf("Sofá seccional de tela") < rankOf("Juguete de peluche")))
+    throw new Error("home does not beat the rest");
+  if (out.length > COSTCO_CAROUSEL_MAX) throw new Error("the curation overflows its carousel");
+  eq(costcoBucketOf({ departments: ["Dulces y Chocolates"] }), "dulces", "bucket detection");
+  eq(costcoBucketOf({ department: "Electrónica" }), "electronica", "singular department field");
+});
+
+check("Costco's storefront never shows the brand-directory fallback", () => {
+  /* 2026-09-26, DANNY'S QA: "Costco says sin categoría, busca por
+     marca... that doesn't make any sense." The storefront special-case
+     returns before the generic deptEntries fallback, so the
+     "Sin categorías por ahora — busca por marca" copy can never render
+     for Costco. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const special = html.indexOf("COSTCO'S STOREFRONT IS A TREASURE HUNT");
+  const fallback = html.indexOf("if (!deptEntries.length){");
+  if (special < 0) throw new Error("the Costco storefront special-case is gone");
+  if (fallback < 0) throw new Error("the generic fallback moved -- update this check");
+  if (!(special < fallback)) throw new Error("the Costco special-case does not pre-empt the fallback");
+  const block = html.slice(special, fallback);
+  if (!/costcoCuratedItems/.test(block)) throw new Error("the storefront does not curate");
+  if (/storeBrandPanelHTML/i.test(block)) throw new Error("the brand panel leaked into Costco's storefront");
+  if (/Sin categorías por ahora/.test(block)) throw new Error("the fallback copy leaked into Costco's storefront");
 });
 
 check("every Fiestas sub-rail has a non-empty product set", () => {
@@ -5581,6 +5661,77 @@ check("Party City cards badge the store by name, without a storefront", () => {
   eq(FIESTAS_RETAILER_LABEL.partycity, "Party City", "the Party City display name");
   // And nothing in the page routes to a Party City storefront.
   if (/openStore\(\s*['"]partycity['"]\)/.test(shopfrontSrc)) throw new Error("something opens a partycity storefront");
+});
+
+check("the Aria Auto house banner sits under the brand band, on both breakpoints", () => {
+  /* 2026-09-26, DANNY'S CALL (final position): the logo/branding moment
+     lands first, then the black banner, then the Victoria's Secret
+     rails -- at the very top it would read like the page title. One
+     bold statement, no product carousel. Danny's copy: relatable
+     promise first, RockAuto/Advance as the trust kicker. The CTA opens
+     the Aria Auto vertical. (Supersedes PR #92's between-Fiestas slot.) */
+  const html = readFileSync(root("index.html"), "utf8");
+  const banners = [...html.matchAll(/<section[^>]*aria-label="Aria Auto"[^>]*>([\s\S]*?)<\/section>/g)];
+  eq(banners.length, 2, "one Aria Auto banner per breakpoint");
+  for (const [, body] of banners) {
+    for (const phrase of ["Aria Auto", "Repuestos para tu auto a una fracci", "frenos, filtros, amortiguadores",
+        "Abastecido por RockAuto", "Advance Auto Parts", "Encuentra tu repuesto"]) {
+      if (!body.includes(phrase)) throw new Error(`the banner lost its copy: ${phrase}`);
+    }
+    if (!/openAriaAuto\(\);return false;/.test(body)) throw new Error("the banner CTA does not open Aria Auto");
+    if (!/ariaAutoCta/.test(body)) throw new Error("the banner CTA lost its amber button styling");
+  }
+  // Dark automotive styling exists, and the banner never wears the navy rail band.
+  if (!/\.ariaAutoBanner\{/.test(html)) throw new Error("the banner lost its dark styling");
+  for (const [tag] of banners) {
+    if (/ariaNavyBand/.test(tag)) throw new Error("the auto banner wears the navy rail language");
+  }
+  // Position: after the brand band, before the first store rail, on both breakpoints.
+  for (const [startMark, railId] of [["<div id=\"homeView\"", "mStoreRail-victoriassecret"],
+      ["<div id=\"desktopShopfront\"", "dStoreRail-victoriassecret"]]) {
+    const start = html.indexOf(startMark);
+    const band = html.indexOf('aria-label="Compra en Estados Unidos"', start);
+    const banner = html.indexOf('aria-label="Aria Auto"', start);
+    const rail = html.indexOf(`id="${railId}"`, start);
+    if (!(band > 0 && banner > band && rail > banner))
+      throw new Error("the Aria Auto banner is not under the brand band");
+  }
+});
+
+check("the brand strip exists on both breakpoints and tiles into brand pages", () => {
+  /* 2026-09-26, DANNY'S HOMEPAGE ORDER V3: the eye-catcher between the
+     store picker and the Costco zone -- the catalogue's top clothing
+     brands as one swipeable row. */
+  const html = readFileSync(root("index.html"), "utf8");
+  for (const id of ["mBrandStrip", "dBrandStrip"]) {
+    if (!html.includes(`id="${id}" data-brand-strip`)) throw new Error(`${id} lost its strip row`);
+  }
+  if (!/function brandStripBrands\(\)/.test(html)) throw new Error("brandStripBrands is gone");
+  if (!/function initBrandStrip\(\)/.test(html)) throw new Error("initBrandStrip is gone");
+  // Tiles open the brand's catalogue page, not a search.
+  if (!/openCatalog\('brand',/.test(html)) throw new Error("brand tiles do not open brand pages");
+  // The strip is painted next to the store rails on boot.
+  if (!/initStoreRails\(\); initBrandStrip\(\)/.test(html)) throw new Error("the brand strip is not painted on boot");
+});
+
+check("the six fashion rails are compact; Costco's section is full-size", () => {
+  /* 2026-09-26, DANNY: the six rails read as a store picker, not six
+     full features -- slightly smaller cards. Costco's own section keeps
+     the full-size cards. */
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/\.storeRailCompact \[data-store-rail-card\]/.test(html))
+    throw new Error("the compact-rail CSS is gone");
+  for (const startMark of ['<div id="homeView"', '<div id="desktopShopfront"']) {
+    const start = html.indexOf(startMark);
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+      const sec = html.indexOf(`data-store-rail="${key}"`, start);
+      const tag = html.slice(sec, html.indexOf(">", sec));
+      if (!/storeRailCompact/.test(tag)) throw new Error(`${key} lost its compact class`);
+    }
+    const csec = html.indexOf('data-store-rail="costco"', start);
+    const ctag = html.slice(csec, html.indexOf(">", csec));
+    if (/storeRailCompact/.test(ctag)) throw new Error("Costco's section shrank with the picker");
+  }
 });
 
 
