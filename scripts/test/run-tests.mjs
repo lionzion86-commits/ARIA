@@ -5742,6 +5742,13 @@ check("every brand-strip logo resolves to a real, loadable asset", () => {
   for (const key of ["hugo", "vetements", "jordan", "calvinklein", "tomford"]) {
     if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
   }
+  // Third wave, 2026-09-26: every remaining text-only tile except the two
+  // Macy's private labels (bariii, styleco), which have no published mark.
+  for (const key of ["ourlegacy", "y3", "sacai", "entirestudios", "adriannapapell",
+      "xscape", "kikokostadinov", "paulsmith", "studionicholson", "we11done",
+      "kasper", "rickowensdrkshdw", "luudan", "incinternationalconcepts"]) {
+    if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
+  }
 });
 
 check("the six fashion rails are compact; Costco's section is full-size", () => {
