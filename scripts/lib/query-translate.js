@@ -156,9 +156,8 @@ export const ES_EN_WORDS = {
   ordenador: "computer",
   tableta: "tablet",
   pantalla: "monitor",
-  televisor: "tv",
-  television: "tv",
-  tele: "tv",
+  /* No TV aliases (2026-09-26, Danny): televisions and mounts are banned
+     outright — the glossary must not route shoppers toward them. */
   audifono: "headphones",
   auricular: "headphones",
   parlante: "speaker",
