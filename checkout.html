@@ -58,6 +58,8 @@
   .gridCustomer{ grid-area:customer; }
   .gridShipping{ grid-area:shipping; }
   .gridDestination{ grid-area:destination; }
+  /* CÓMO FUNCIONA TU ENVÍO strip (2026-09-26): same gold hairline as index.html. */
+  .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
 </style>
 </head>
 <body class="antialiased">
@@ -85,6 +87,9 @@
       <h1 class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em]" style="color:var(--navy)">Paga tu envío</h1>
       <p class="text-[13.5px] leading-relaxed mt-1.5 max-w-[62ch]" style="color:#5B6478">Completa tus datos, la dirección de entrega en Perú y el peso del paquete. Calculamos el total al instante.</p>
     </div>
+
+    <!-- CÓMO FUNCIONA TU ENVÍO (2026-09-26) — filled by renderCheckoutExplainer. -->
+    <div id="checkoutExplainerWrap" class="mb-7"></div>
 
     <form id="checkoutForm" novalidate>
         <div class="gridProduct">
@@ -117,6 +122,8 @@
              in DOM order. -->
         <aside class="gridSummary bg-white border rounded-3xl p-5 sm:p-6 space-y-4" style="border-color:var(--line)">
           <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Resumen del pedido</h2>
+          <!-- DELIVERY TRANSPARENCY (2026-09-26): per-store Miami ranges, set by renderDeliverySummary. -->
+          <div id="deliverySummaryWrap"></div>
           <div class="space-y-2.5 text-[13.5px]" style="color:#5B6478">
             <div class="flex items-start justify-between gap-2">
               <span class="flex flex-col">
@@ -481,6 +488,9 @@
            SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN, smallOrderFeePen,
            SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE } from './weight-data.js';
   import { RETAILER_LABELS, RETAILER_COLORS, RETAILER_LOGOS } from './scripts/lib/retailers.js';
+  /* DELIVERY TRANSPARENCY (2026-09-26): the researched Miami-transit dataset. */
+  import { deliveryFor, miamiRangeEs, slowestDeliveryKey,
+           MIAMI_TO_DOOR_MIN, MIAMI_TO_DOOR_MAX } from './scripts/lib/retailer-delivery.js';
   import { MAX_FRAGRANCES_PER_SHIPMENT, fragranceLimitState } from './scripts/lib/beauty-weight.js';
   import { SUPPORT_LINKS } from './scripts/lib/support.js';
 
@@ -1222,6 +1232,55 @@
     descInput.value = description;
     descInput.disabled = true;
   }
+
+  /* DELIVERY TRANSPARENCY (2026-09-26). One store: one delivery line.
+     Several: one row per store, the slowest emphasised, then the
+     Miami-to-door leg. The slowest store sets the visible expectation —
+     and is exactly why the $8 separate-package option exists. */
+  function renderDeliverySummary(){
+    const wrap = document.getElementById('deliverySummaryWrap');
+    const keys = [...new Set(cart.map(it => String(it.retailer || '').toLowerCase()))]
+      .filter(k => deliveryFor(k));
+    if (!keys.length){ wrap.innerHTML = ''; return; }
+    const slowest = slowestDeliveryKey(keys);
+    const rows = keys.map(k => {
+      const hot = keys.length > 1 && k === slowest;
+      return `<div class="flex items-baseline justify-between gap-3 py-0.5">
+        <span class="text-[12.5px]" style="color:#5B6478">${escapeHtmlLocal(RETAILER_LABELS[k] || k)}</span>
+        <span class="text-[12.5px] tabular ${hot ? 'font-extrabold' : 'font-semibold'}" style="color:${hot ? 'var(--navy)' : '#5B6478'}">${miamiRangeEs(deliveryFor(k))}</span>
+      </div>`;
+    }).join('');
+    wrap.innerHTML = `<div class="rounded-2xl border px-3.5 py-3" style="border-color:var(--line); background:#F7F9FD">
+      <div class="text-[11px] font-extrabold uppercase tracking-wide mb-1" style="color:var(--navy)">Tiempos de entrega</div>
+      ${rows}
+      <div class="text-[12px] mt-1.5 pt-1.5 font-semibold" style="color:var(--navy); border-top:1px solid var(--line)">De Miami a tu puerta: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</div>
+      ${keys.length > 1 ? `<div class="text-[11.5px] mt-1 leading-snug" style="color:#8A93A8">Tu pedido sale de Miami cuando llegue lo de ${escapeHtmlLocal(RETAILER_LABELS[slowest] || slowest)}.</div>` : ''}
+    </div>`;
+  }
+  renderDeliverySummary();
+
+  /* CÓMO FUNCIONA TU ENVÍO (2026-09-26): the two-leg explainer, same copy
+     as the homepage strip (see shippingExplainerHTML in index.html). */
+  (function renderCheckoutExplainer(){
+    const el = document.getElementById('checkoutExplainerWrap');
+    if (!el) return;
+    el.innerHTML = `<section aria-label="Cómo funciona tu envío" class="relative overflow-hidden rounded-3xl" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+      <div class="ariaGoldHair"></div>
+      <div class="px-5 py-6 sm:px-8">
+        <h2 class="text-[18px] font-extrabold tracking-[-0.01em]" style="color:#fff">Cómo funciona tu envío</h2>
+        <div class="grid sm:grid-cols-2 gap-4 mt-4">
+          <div class="rounded-2xl p-4" style="background:rgba(255,255,255,.06); border:1px solid rgba(244,196,99,.35)">
+            <div class="text-[13.5px] font-extrabold" style="color:#F4C463">1 · Tienda en EE. UU. &#8594; Miami</div>
+            <p class="text-[13px] leading-relaxed mt-1.5" style="color:rgba(255,255,255,.85)">Compramos tu pedido en la tienda y lo llevamos a nuestro almacén en Miami. El tiempo varía por tienda y lo ves en cada producto antes de pagar.</p>
+          </div>
+          <div class="rounded-2xl p-4" style="background:rgba(255,255,255,.06); border:1px solid rgba(244,196,99,.35)">
+            <div class="text-[13.5px] font-extrabold" style="color:#F4C463">2 · Miami &#8594; tu puerta</div>
+            <p class="text-[13px] leading-relaxed mt-1.5" style="color:rgba(255,255,255,.85)">De Miami a tu puerta en Perú: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</p>
+          </div>
+        </div>
+      </div>
+    </section>`;
+  })();
 
   renderSummary();
   initFxRates();

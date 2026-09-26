@@ -30,7 +30,7 @@
 // matters more than the duplication it removes — a shopper getting a
 // different Aria depending on whether streaming worked today is the
 // failure this shares a module to prevent.
-import { chatRequestBody, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -56,7 +56,10 @@ export async function handler(event) {
     });
 
     const chatData = await chatResponse.json();
-    const reply = chatData?.choices?.[0]?.message?.content;
+    // Dictated punctuation words ("comma", "punto") must never reach the
+    // shopper as words — sanitizeSpokenPunctuation turns them into the
+    // marks they mean, so the bubble, the voice and the history all agree.
+    const reply = sanitizeSpokenPunctuation(chatData?.choices?.[0]?.message?.content);
     if (!reply) {
       return { statusCode: 502, headers, body: JSON.stringify({ error: "No reply from model" }) };
     }

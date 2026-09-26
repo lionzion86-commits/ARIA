@@ -69,22 +69,10 @@ export const AUTO_SOURCES = {
      shopper as "RockAuto has no parts for your car" — a lie, and exactly
      the kind this section is being fixed to stop telling. Step 2 and
      step 3 of ADDING A PARTS SOURCE above are the whole remaining task. */
-  /* ROCKAUTO (2026-09-20, per the brief; live 2026-09-24). Deep catalogue,
-     competitive prices, a real YMM selector, and a site that does not fight
-     scrapers. Went live as Aria Auto's second source with a verified
-     2,490-row cache (1,013 unique parts, 97% imaged) served from
-     auto-cache.json — the part-number and brand indexes are consulted
-     before any paid live scrape, so `search: true` is cache-backed, not a
-     guessed actor. */
-  rockauto: {
-    key: "rockauto",
-    label: "RockAuto",
-    color: "#303090",
-    logo: "logos/rockauto.png",
-    search: true,
-    fitmentData: "yes",
-    note: "Catálogo profundo con fotos y listas de compatibilidad por pieza.",
-  },
+  /* ROCKAUTO — REMOVED 2026-09-26 (Danny's call: "a liability waiting to happen").
+     Row deleted from the source registry; its cache entries were deleted
+     from auto-cache.json. Advance Auto Parts is the planned replacement. */
+
   /* ADVANCE AUTO PARTS — conditional per the brief: probe it, onboard it
      only if the scrape comes back clean, and skip it silently otherwise
      rather than blocking the fix.

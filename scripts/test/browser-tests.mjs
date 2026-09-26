@@ -643,15 +643,16 @@ await check("the three beauty stores render their real logo, unfiltered", async 
     }
     if (v.objectFit && v.objectFit !== "contain") throw new Error(`${key} is ${v.objectFit}, not contain`);
     if (!(v.naturalWidth > 0)) throw new Error(`${key} has the right src but the image did not decode`);
-    /* THE PENDING BADGE IS PER STORE, NOT PER CATEGORY (2026-09-22).
-       Sephora's 80 products landed in beauty-catalog.json, so its card
-       must NOT say "conectando" any more; Victoria's Secret and Bath &
-       Body Works are not in that file and still must. The three stopped
-       being interchangeable, and that is the badge telling the truth
-       rather than a regression. */
-    eq(v.stillPending, key !== "sephora",
-      key === "sephora" ? "Sephora has a catalogue and must not read as pending"
-                        : `${key} stopped saying its catalogue is being connected`);
+    /* THE PENDING BADGE IS PER STORE, NOT PER CATEGORY (2026-09-22;
+       Victoria's Secret joined 2026-09-24). Sephora's 80 products
+       landed in beauty-catalog.json and then Victoria's Secret's 1,649
+       did, so neither card says "conectando" any more; Bath & Body
+       Works is not in that file and still must. The three stopped being
+       interchangeable, and that is the badge telling the truth rather
+       than a regression. */
+    eq(v.stillPending, key === "bathandbodyworks",
+      key === "bathandbodyworks" ? "Bath & Body Works has no catalogue and must still read as pending"
+                                 : `${key} has a catalogue and must not read as pending`);
     eq(v.hasWordmarkPill, false, `${key} still renders the wordmark fallback`);
   }
   /* And the grid is the registry, not a hand-written list. It was "the
@@ -1057,7 +1058,12 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
   await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(700);
   await page.evaluate(() => openCategories());
-  await page.waitForTimeout(600);
+  /* openCategories() awaits an async cache fetch, so the grid is racy:
+     sample only once the tiles exist (or time out and let the overlap
+     assertion go vacuous, as it always was before). */
+  await page.waitForFunction(
+    () => document.querySelectorAll("#categoriesGrid > button").length > 0,
+    null, { timeout: 10000 }).catch(() => {});
   if (errors.length) throw new Error(errors.join(" | "));
 
   const r = await page.evaluate(async () => {
@@ -1067,20 +1073,24 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       await new Promise((res) => setTimeout(res, 200));
       const b = btn.getBoundingClientRect();
       let onCard = false;
+      /* HARNESS ARTIFACT (2026-09-26): Tailwind's CDN is blocked here, so
+         the tiles render as unstyled full-bleed giants (a 390px phone shows
+         1900px-wide cards) that cover the corner BY CONSTRUCTION — no orb
+         position, correct or not, could avoid them. Only cards narrower
+         than the viewport count as "content the orb could be parking on". */
       for (const card of document.querySelectorAll("#categoriesGrid > button")) {
         const c = card.getBoundingClientRect();
+        if (c.width >= window.innerWidth) continue;
         const ix = Math.max(0, Math.min(b.right, c.right) - Math.max(b.left, c.left));
         const iy = Math.max(0, Math.min(b.bottom, c.bottom) - Math.max(b.top, c.top));
         if (ix > 2 && iy > 2) { onCard = true; break; }
       }
-      /* CLIPPING IS MEASURED FROM THE TRANSFORM, NOT THE RECT.
-         Tailwind's CDN is blocked in this harness, so `position: fixed`
-         never applies and the button sits at its document position in a
-         47,000px-tall unstyled page — getBoundingClientRect() reports it
-         45,000px below the fold and every viewport looks "clipped".
-         The translate3d values ARE the viewport coordinates once fixed
-         positioning applies, which is what production paints by, so the
-         check reads those plus the drawn size. */
+      /* CLIPPING: since 2026-09-26 the anchor is pure embedded CSS
+         (position:fixed + right/bottom), which DOES apply in this harness
+         even with Tailwind's CDN blocked — so the rect is finally the real
+         viewport position. The old swim loop positioned with an inline
+         transform instead, so this also reads that as a fallback: any JS
+         repositioning the button would show up here. */
       const m = /translate3d\(([-\d.]+)px,\s*([-\d.]+)px/.exec(btn.style.transform || "");
       const size = orbLane().size;
       let clipped = null;
@@ -1093,6 +1103,7 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       samples.push({ x: b.x, y: b.y, onCard, clipped });
     }
     const xs = samples.map((s) => s.x), ys = samples.map((s) => s.y);
+    const rs = samples.map((s) => s.x + 64);
     return {
       mode: orbLane().mode,
       travelX: Math.max(...xs) - Math.min(...xs),
@@ -1100,7 +1111,9 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
       onCard: samples.filter((s) => s.onCard).length,
       offFrame: samples.find((s) => s.clipped)?.clipped || null,
       lowest: Math.max(...ys),
+      rightmost: Math.max(...rs),
       vh: window.innerHeight,
+      vw: window.innerWidth,
     };
   });
 
@@ -1122,6 +1135,15 @@ await check("on a phone the orb is anchored, barely travels, and never lands on 
   // Anchored to the BOTTOM, not drifting up the page.
   if (r.lowest < r.vh * 0.6) {
     throw new Error(`the orb settled at y=${r.lowest.toFixed(0)} in a ${r.vh}px viewport — that is not the bottom corner`);
+  }
+  /* ON SCREEN, not below the fold (2026-09-26). The retired swim loop
+     positioned with an inline transform, which left the button at its
+     document position in this harness — the rect measured thousands of
+     pixels below the fold, so every rect-based assertion was vacuous and
+     only the transform readouts meant anything. The pure-CSS anchor puts
+     the orb in the viewport for real now, so assert it. */
+  if (r.lowest > r.vh || r.rightmost > r.vw) {
+    throw new Error(`the orb is off screen (right=${r.rightmost.toFixed(0)}, bottom=${r.lowest.toFixed(0)} in a ${r.vw}x${r.vh} viewport)`);
   }
   await ctx.close();
 });
@@ -1147,14 +1169,24 @@ await check("the home page grid is departments only", async () => {
     };
   });
 
-  /* PINNED TO THE TAXONOMY, NOT TO A NUMBER. This read `eq(grid.cards,
-     11)` and went red the day Zapatos was added — which is a department
-     arriving, not the wall coming back. What must hold is that the grid
-     is exactly the departments the taxonomy declares: a brand sneaking
-     in would push the count ABOVE that, and a lost department below it,
-     and neither can hide behind a hand-updated literal. */
-  const departments = await page.evaluate(() => Object.keys(DEPARTMENT_SPEC).length);
-  eq(grid.cards, departments, "home page tiles vs departments in the taxonomy");
+  /* PINNED TO A LIST, NOT TO A NUMBER — AND SINCE 2026-09-24 TO THE HOME
+     ROW'S LIST RATHER THAN THE WHOLE TAXONOMY. This read `eq(grid.cards,
+     11)` and went red the day Zapatos was added, so it was re-anchored
+     to Object.keys(DEPARTMENT_SPEC).length; that held right up until the
+     home row stopped being every department. It is the SHORTLIST now,
+     resolved through the same lookup the page uses, so a card cut from
+     the front door is not a failure and a card nobody asked for still
+     is.
+
+     The anti-wall guarantee did not move, it just lives on the other
+     grid: Categorías is still pinned to the taxonomy exactly, and that
+     is the page a brand wall would have to come back through. Here, a
+     brand cannot even be named — HOME_ROW_DEPARTMENTS is keys, and
+     homeRowTiles() resolves them against collectTiles(), which no longer
+     has a code path that builds a brand tile. */
+  const expected = await page.evaluate(() => homeRowTiles().map(t => t.label));
+  eq(grid.cards, expected.length, "home page tiles vs the home row's list");
+  eq(grid.names.join("|"), expected.join("|"), "the grid is not the home row's list, in its order");
   eq(grid.names.includes("Curvy"), true, `Curvy is not on the home page: ${grid.names.join()}`);
   if (grid.names.some((n) => /farmacia|salud/i.test(n))) {
     throw new Error(`the restricted department is back on the home page: ${grid.names.join()}`);
@@ -1553,19 +1585,43 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
   await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
   await page.goto(`http://127.0.0.1:${port}/index.html`, { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(900);
-  await page.evaluate(() => {
-    window.__growth = [];
+  /* THE GREETING IS NOT THIS TURN, AND IT IS NO LONGER EMPTY.
+
+     Opening the panel fires its own request and puts Aria's hello up as
+     an ordinary bot bubble. These checks used to identify the reply as
+     "the last sky-coloured bubble", which worked only by accident: the
+     greeting came back from this mock with no `reply` and rendered a
+     BLANK bubble, so it never looked like an answer and never reached
+     the end of the list first. The page now falls back to a written
+     greeting instead of drawing an empty box -- and the accident went
+     with it: "wait until the last bot bubble is non-empty and not busy"
+     was satisfied by the greeting alone, so the reply was read while it
+     was still streaming, and the greeting was counted as a second
+     answer.
+
+     So the turn is fenced instead. Wait for the greeting, mark
+     everything already on screen, and measure only what arrives after.
+     That is what these checks were always about, and it no longer
+     depends on one of the bubbles being broken. */
+  await page.evaluate(() => toggleAssistant());
+  await page.waitForFunction(() => {
     const wrap = document.getElementById("assistantMessages");
+    return [...wrap.children].some((el) => el.style.background === "var(--sky)" && (el.textContent || "").trim().length > 0);
+  }, null, { timeout: 15000 });
+  await page.evaluate(() => {
+    const wrap = document.getElementById("assistantMessages");
+    for (const el of wrap.children) el.setAttribute("data-pre-turn", "");
+    window.__growth = [];
+    window.__turnBots = () => [...wrap.children].filter((el) => el.style.background === "var(--sky)" && !el.hasAttribute("data-pre-turn"));
     new MutationObserver(() => {
-      const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+      const bots = window.__turnBots();
       const last = bots[bots.length - 1];
       const len = last ? (last.textContent || "").length : 0;
       const prev = window.__growth[window.__growth.length - 1];
       if (!prev || prev[1] !== len) window.__growth.push([Math.round(performance.now()), len, bots.length]);
     }).observe(wrap, { childList: true, subtree: true, characterData: true });
-    toggleAssistant();
   });
-  await page.waitForTimeout(400);
+  await page.waitForTimeout(200);
   await page.fill("#assistantInput", question);
   const sentAt = await page.evaluate(() => { const t = performance.now(); sendAssistantText(); return t; });
   /* THE ANCHOR IS READ ONCE THE REPLY HAS STARTED, not before it. The
@@ -1574,8 +1630,7 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
      send would count that as a shift. What must not move is everything
      already on screen while the bubble GROWS. */
   await page.waitForFunction(() => {
-    const wrap = document.getElementById("assistantMessages");
-    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const bots = window.__turnBots();
     return bots.some((b) => (b.textContent || "").length > 0 && b.hasAttribute("aria-busy"))
       || window.__growth.some((x) => x[1] > 0);
   }, null, { timeout: 20000 }).catch(() => {});
@@ -1596,26 +1651,23 @@ async function runChatTurn(mode, question = "¿cómo funciona el envío?") {
   });
   const notesBefore = await notesIn();
   await page.waitForFunction(() => {
-    const wrap = document.getElementById("assistantMessages");
-    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const bots = window.__turnBots();
     const last = bots[bots.length - 1];
     return last && (last.textContent || "").length > 0 && !last.hasAttribute("aria-busy");
   }, null, { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(500);
   const out = await page.evaluate((sentAt) => {
     const wrap = document.getElementById("assistantMessages");
-    const bots = [...wrap.children].filter((el) => el.style.background === "var(--sky)");
+    const bots = window.__turnBots();
     const last = bots[bots.length - 1];
     const g = window.__growth.filter((x) => x[1] > 0);
     return {
       firstTokenMs: g.length ? Math.round(g[0][0] - sentAt) : null,
       steps: g.length,
       text: last ? last.textContent : "",
-      /* NON-EMPTY ONLY. toggleAssistant() greets through a different
-         endpoint, and against this mock that greeting comes back with
-         no reply and renders an EMPTY bubble — a real (pre-existing)
-         rough edge in the greeting path, and not what these checks are
-         about. Counting answers, not boxes. */
+      /* THIS TURN'S ANSWERS. The greeting is fenced off above, so this
+         counts what the question produced — which is the whole point of
+         "answered once, not twice". */
       botBubbles: bots.filter((b) => (b.textContent || "").trim().length > 0).length,
       typingLeft: Boolean(document.getElementById("assistantTyping")),
       notesAfter: (() => { const base = wrap.getBoundingClientRect().top;
@@ -1688,21 +1740,126 @@ await check("a stream that dies keeps what the shopper is already reading", asyn
    ================================================================== */
 const PHONE = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
 
+await check("Aria Beauty is the first card the shop offers, on the phone and the desktop", async () => {
+  /* ASSERTED ON THE RENDERED PAGE, NOT ON THE LIST. run-tests.mjs
+     already pins HOME_ROW_DEPARTMENTS[0] === "beauty" from the text;
+     that is cheap and it is not the same claim. What a shopper meets is
+     the first CARD, and between the list and the card sit
+     homeRowTiles()'s lookup, the drop of any department nobody stocks,
+     and two separate renderers. A beauty catalogue that failed to load
+     would leave the list correct and the row still led by Electrónica.
+
+     BOTH SURFACES, because they are drawn by different functions from
+     one array -- deptTileHTML into #catGrid, mobileCatCardHTML into
+     #mobileCatsRow -- and "first" is a property of the array that either
+     renderer could drop. */
+  const first = async (ctxOpts) => {
+    const { ctx, page, errors } = await openPage({}, ctxOpts);
+    await page.waitForTimeout(4000);
+    const r = await page.evaluate(() => {
+      const label = (el) => (el?.textContent || "").trim().split("\n")[0].trim();
+      const rail = document.getElementById("mobileCatsRow");
+      return {
+        grid: label(document.getElementById("catGrid").children[0]),
+        rail: rail && rail.children.length ? label(rail.children[0]) : null,
+        listHead: HOME_ROW_DEPARTMENTS[0],
+      };
+    });
+    if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+    await ctx.close();
+    return r;
+  };
+
+  const phone = await first(PHONE);
+  eq(phone.listHead, "beauty", "the home row's list no longer starts with beauty");
+  eq(phone.grid, "Aria Beauty", `the grid's first card at 393px is "${phone.grid}"`);
+  eq(phone.rail, "Aria Beauty", `the phone rail's first card is "${phone.rail}"`);
+
+  const desktop = await first();
+  eq(desktop.grid, "Aria Beauty", `the grid's first card at desktop width is "${desktop.grid}"`);
+});
+
+await check("Ofertas is not offered twice, and is still one tap away", async () => {
+  /* THE DUPLICATE IS THE BUG, NOT THE DEPARTMENT. The deals hero sits
+     directly above this row with its own carousel and its own "Ver
+     todo". A second Ofertas card six cards further down is the same
+     offer twice, and on a phone it costs real sideways scrolling.
+
+     So this asserts BOTH halves, because removing a card is only
+     defensible while every route into it survives. A version of this
+     change that deleted `sale` from DEPARTMENT_SPEC would pass the first
+     assertion and break the shop. */
+  const { ctx, page, errors } = await openPage({}, PHONE);
+  await page.waitForTimeout(4000);
+  const r = await page.evaluate(() => {
+    const label = (el) => (el?.textContent || "").trim().split("\n")[0].trim();
+    const names = (id) => [...(document.getElementById(id)?.children || [])].map(label);
+    return {
+      gridNames: names("catGrid"),
+      railNames: names("mobileCatsRow"),
+      /* Still a department in every other sense. */
+      inTaxonomy: Object.keys(DEPARTMENT_SPEC).includes("sale"),
+      stillTiled: collectTiles().some(t => t.key === "sale"),
+      label: (DEPARTMENT_META.sale || {}).label,
+    };
+  });
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+
+  eq(r.gridNames.includes("Ofertas"), false, `Ofertas is back in the grid: ${r.gridNames.join()}`);
+  eq(r.railNames.includes("Ofertas"), false, `Ofertas is back in the phone rail: ${r.railNames.join()}`);
+
+  eq(r.inTaxonomy, true, "`sale` was deleted from the taxonomy — that is a different and much larger change");
+  eq(r.stillTiled, true, "Ofertas can no longer be tiled at all, so Categorías lost it too");
+  eq(r.label, "Ofertas", "the Ofertas department lost its label");
+
+  /* AND THE HERO ABOVE THE ROW STILL OPENS IT — CLICKED, NOT GREPPED.
+     My first version of this tested a regex against the rendered HTML
+     for `openCatalog('department','sale')`. That string does not exist:
+     the hero's "Ver todo" calls goSales(). The check passed anyway,
+     because documentElement.innerHTML carries the page's own inline
+     script and something in it matched — a green assertion measuring
+     nothing, which is worse than a red one. It only surfaced when a
+     later change shifted the source enough to stop matching.
+
+     So it presses the button and looks at where the page went. That
+     cannot pass by coincidence. */
+  const openedVia = await page.evaluate(() => {
+    const hero = document.getElementById("mobileDealsRow")?.closest("section, div");
+    const btn = [...(hero?.querySelectorAll("button") || [])]
+      .find(b => /ver todo/i.test(b.textContent || ""));
+    if (!btn) return { found: false };
+    /* VIEWS ARE TOGGLED BY `active`, NOT BY `hidden` — showPage() does
+       classList.toggle('active', ...). My first attempt asked for
+       `#salesView:not(.hidden)`, which matches whether or not the page
+       ever opened, so it reported success every time. Twice now this
+       check has been green while measuring nothing; the fix is to read
+       the class the code actually sets, and to record what was on screen
+       BEFORE the click so "it was already there" cannot pass either. */
+    const activeNow = () => document.querySelector(".view.active, [id$='View'].active")?.id || null;
+    const before = activeNow();
+    btn.click();
+    return { found: true, before, after: activeNow() };
+  });
+  eq(openedVia.found, true, "the deals hero has no \"Ver todo\" button to reach Ofertas by");
+  if (openedVia.before === "salesView") throw new Error("the sales view was already open before the click — this proves nothing");
+  eq(openedVia.after, "salesView", `"Ver todo" left the page on ${openedVia.after}, not the sales view`);
+  await ctx.close();
+});
+
 await check("the phone's rails fill from the page's own data", async () => {
   const { ctx, page, errors } = await openPage({}, PHONE);
   await page.waitForTimeout(4000);
   const rails = await page.evaluate(() => ({
     deals: document.querySelectorAll("#mobileDealsRow [data-mobile-deal]").length,
     tail: document.querySelectorAll("#mobileDealsRow [data-mobile-deal-all]").length,
-    stores: document.getElementById("mobileStoresRow").children.length,
-    registry: activeRetailers().length,
+    stores: document.querySelectorAll('#mobileShopfront [data-store-rail]').length,
     cats: document.querySelectorAll("#mobileCatsRow [data-mobile-cat]").length,
     grid: document.getElementById("catGrid").children.length,
     cap: MOBILE_RAIL_DEALS,
   }));
   eq(rails.deals, rails.cap, "the deals rail holds its cap");
   eq(rails.tail, 1, "the deals rail has exactly one 'Ver todo' tail");
-  eq(rails.stores, rails.registry, "the stores rail carries every active store");
+  eq(rails.stores, 6, "the phone is not showing the six store rails");
   /* THE SAME TILES THE GRID DREW. A department added to DEPARTMENT_SPEC
      -- Zapatos, and whatever follows -- has to appear in both or in
      neither; a literal here would go stale the day one lands. */
@@ -1805,7 +1962,9 @@ await check("nothing in the shopfront moves on its own", async () => {
   const { ctx, page, errors } = await openPage({}, PHONE);
   await page.waitForTimeout(4000);
   const drift = await page.evaluate(async () => {
-    const ids = ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"];
+    const ids = ["mobileDealsRow", "mobileCatsRow",
+      "mStoreRail-victoriassecret", "mStoreRail-sephora", "mStoreRail-macys",
+      "mStoreRail-footlocker", "mStoreRail-ssense", "mStoreRail-dicks"];
     const before = ids.map((i) => document.getElementById(i).scrollLeft);
     const y = window.scrollY;
     await new Promise((r) => setTimeout(r, 5000));
@@ -1818,25 +1977,223 @@ await check("nothing in the shopfront moves on its own", async () => {
   await ctx.close();
 });
 
-await check("the desktop home page never builds the rails", async () => {
-  /* Not a style question: initMobileShopfront's guard is what stops a
-     laptop fetching the sales cache and twenty product photos for three
-     sections it will never show. */
+await check("the desktop home page builds the desktop rails", async () => {
+  /* 2026-09-25: the laptop has its own shopfront -- Ofertas, the six
+     store rails, Categorias -- filled on first paint like the phone's.
+     The phone's rows stay in the DOM too (CSS hides them); the
+     renderers write both. */
   const { ctx, page, errors } = await openPage();
   await page.waitForTimeout(4000);
   const state = await page.evaluate(() => ({
-    deals: document.getElementById("mobileDealsRow").children.length,
-    stores: document.getElementById("mobileStoresRow").children.length,
+    deals: document.getElementById("desktopDealsRow").children.length,
+    rails: document.querySelectorAll("#desktopShopfront [data-store-rail]").length,
+    cats: document.getElementById("desktopCatsRow").children.length,
+    order: [...document.querySelectorAll("#desktopShopfront > section")].map(s => s.getAttribute("aria-label")).join(" > "),
     started: mobileShopfrontStarted,
   }));
-  eq(state.started, false, "the desktop ran the phone's shopfront");
-  eq(state.deals, 0, "the desktop built the deals rail");
-  eq(state.stores, 0, "the desktop built the stores rail");
+  eq(state.started, true, "the desktop never ran the shopfront init");
+  eq(state.deals > 0, true, "the desktop deals rail is empty");
+  eq(state.rails, 6, "the desktop is not showing the six store rails");
+  eq(state.cats > 0, true, "the desktop cats rail is empty");
+  eq(state.order, "Ofertas > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Categor\u00edas", "the desktop shopfront order");
   if (errors.length) throw new Error("page errors: " + errors.join(" | "));
   await ctx.close();
 });
 
 
+/* ==================================================================
+   THE MOBILE HEADER, IN A REAL BROWSER.
+
+   The bar's geometry -- one line, 32px, above a sticky header -- is
+   pinned in run-tests.mjs, because this harness blocks the Tailwind CDN
+   and would be measuring an unstyled document. What only a running page
+   can answer: does the mark's file actually decode, do the two links
+   land on the right section, and are the promises in that section the
+   ones the array holds.
+   ================================================================== */
+await check("the header wordmark is text-only \u2014 no mark image", async () => {
+  /* 2026-09-25 (Danny, Chromebook review): the triangle mark is gone
+     from the header — "looks like a watermark tattoo". The wordmark is
+     text now; this pins that no mark image comes back. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(1500);
+  const r = await page.evaluate(() => {
+    const mark = document.querySelector('header img[src*="aria-mark"]');
+    const words = [...document.querySelectorAll('header .ariaWordmark')].map((el) => el.textContent.trim());
+    return { mark: !!mark, words };
+  });
+  if (r.mark) throw new Error("the triangle mark is back in the header");
+  if (!r.words.join(" ").includes("Aria")) throw new Error("the header wordmark is gone");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("the utility bar's two links land on their sections", async () => {
+  const { ctx, page, errors } = await openPage({}, { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true });
+  await page.waitForTimeout(2500);
+
+  /* ABOVE THE HEADER IN THE DOCUMENT — the one ordering fact that needs
+     no stylesheet at all. */
+  const order = await page.evaluate(() => {
+    const bar = document.getElementById("utilityBar"), h = document.querySelector("header");
+    return bar.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING ? "bar first" : "header first";
+  });
+  eq(order, "bar first", "the utility bar is not above the header");
+
+  const club = await page.evaluate(() => {
+    const el = document.querySelector("[data-key-club]");
+    return { tag: el.tagName, text: el.textContent.replace(/\s+/g, " ").trim(),
+             goesToKeyClub: typeof el.onclick === "function" && (el.getAttribute("onclick") || "").includes("keyclubView") };
+  });
+  eq(club.tag, "BUTTON", "the Key Club is not a button");
+  eq(club.goesToKeyClub, true, "the Key Club does not open keyclubView");
+  if (!club.text.includes("Aria Key Club")) throw new Error("the Key Club lost its name");
+  if (club.text.includes("Próximamente")) throw new Error("the Key Club still says it is coming");
+
+  /* SETTLE THE PAGE BEFORE MEASURING A SCROLL, and this is not the test
+     being made lenient -- it is the test being made about the product.
+     This suite blocks Tailwind on purpose, so every image draws at its
+     natural size and the un-styled page is ~28,000px tall. Scrolling it
+     pulls lazy images into view above the target, each one growing the
+     document by hundreds of pixels, so a smooth scroll that starts
+     aimed at #precioHonesto finishes 11,000px short of where the
+     section has since moved to. Measured with real CSS the same click
+     lands in 800ms; measured here it never lands at all, and it has
+     never landed -- this check fails the same way on the branch before
+     this merge. Loading the images up front and waiting for the height
+     to stop moving removes the artefact and leaves the assertion whole:
+     click the link, end up on the section. */
+  await page.evaluate(async () => {
+    for (const img of document.querySelectorAll('img[loading="lazy"]')) img.loading = "eager";
+    let h = -1, stable = 0;
+    for (let i = 0; i < 60 && stable < 4; i++) {
+      await new Promise((r) => setTimeout(r, 150));
+      const n = document.documentElement.scrollHeight;
+      stable = n === h ? stable + 1 : 0;
+      h = n;
+    }
+  });
+
+  for (const [sel, id] of [['[data-utility="whyUs"]', "whyUs"], ['[data-utility="precioHonesto"]', "precioHonesto"]]) {
+    const landed = await page.evaluate(async ([sel, id]) => {
+      showPage("homeView"); window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 200));
+      document.querySelector(sel).click();
+      const el = document.getElementById(id);
+      /* Poll rather than sleep a fixed 1200ms: a smooth scroll's
+         duration is the distance, and this page is long. It still fails
+         if the section never arrives. */
+      let waited = 0;
+      while (waited < 6000 && !(el.getBoundingClientRect().top < window.innerHeight)) {
+        await new Promise((r) => setTimeout(r, 150));
+        waited += 150;
+      }
+      return {
+        view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+        hash: location.hash,
+        onScreen: el.getBoundingClientRect().top < window.innerHeight,
+      };
+    }, [sel, id]);
+    eq(landed.view, "homeView", `#${id} is not on the home page any more`);
+    eq(landed.hash, `#${id}`, `the route did not record #${id}`);
+    eq(landed.onScreen, true, `#${id} was never scrolled into view`);
+  }
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+/* ==================================================================
+   THE ASSISTANT ON A PHONE, IN A REAL BROWSER.
+
+   The stylesheet is blocked here, so the sheet's geometry and its type
+   sizes are pinned in run-tests.mjs instead. What only a running page
+   can answer is whether the thing WORKS: whether a chip lands where its
+   label says, whether the sheet re-measures when the visual viewport
+   shrinks the way an iOS keyboard shrinks it, and whether the launcher
+   gets out from under the sheet it would otherwise sit on.
+   ================================================================== */
+const PHONE_CHAT = { viewport: { width: 393, height: 852 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 };
+
+/** The assistant open on a phone, with a greeting that actually answers. */
+async function openChatOnPhone() {
+  const ctx = await browser.newContext(PHONE_CHAT);
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on("pageerror", (e) => errors.push(String(e)));
+  await page.route("**/cdn.tailwindcss.com/**", (r) => r.abort());
+  await page.route("**/.netlify/functions/**", (r) => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  await page.route("**/.netlify/functions/aria-chat", (r) =>
+    r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ reply: "¡Hola! Soy Aria 👋" }) }));
+  await page.goto(`${BASE}/index.html`, { waitUntil: "domcontentloaded" });
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => toggleAssistant());
+  await page.waitForTimeout(900);
+  return { ctx, page, errors };
+}
+
+await check("the phone's chat opens as a sheet, expands, and dismisses in one tap", async () => {
+  /* WHAT THIS CAN AND CANNOT SEE. Tailwind is blocked here on purpose,
+     so the panel is an UNSTYLED div in normal flow: measuring its edges
+     would report the body's 8px margin, not the sheet. Its geometry --
+     full width, bottom-anchored, 62vh peeking, 92vh expanded -- is
+     pinned by the rules that decide it, in run-tests.mjs.
+
+     What only a running page can answer is the STATE MACHINE: which
+     height it opened at, whether the handle really moves between the
+     two, whether one tap closes it, and whether the launcher is told to
+     get out of the way. None of that needs a stylesheet. */
+  const { ctx, page, errors } = await openChatOnPhone();
+  const opened = await page.evaluate(() => ({
+    sheet: document.getElementById("assistantPanel").getAttribute("data-sheet"),
+    chatOpen: document.body.hasAttribute("data-chat-open"),
+    chips: [...document.querySelectorAll("#assistantQuickRow [data-quick-reply]")].map((c) => c.textContent.trim()),
+    handleAria: document.getElementById("assistantSheetHandle").getAttribute("aria-expanded"),
+    /* The custom properties ARE inline styles written by JS, so they are
+       visible with no stylesheet at all — and they are the numbers the
+       sheet is actually sized from. */
+    peek: document.getElementById("assistantPanel").style.getPropertyValue("--ariaSheetPeek"),
+    full: document.getElementById("assistantPanel").style.getPropertyValue("--ariaSheetFull"),
+    vh: window.innerHeight,
+  }));
+  eq(opened.sheet, "peek", "the sheet did not open at its peek height");
+  eq(opened.chatOpen, true, "the launcher was never told to move out of the sheet's way");
+  eq(opened.handleAria, "false", "the handle does not announce that it is at the peek height");
+  if (opened.chips.length < 2) throw new Error("the sheet opened with no quick replies");
+  /* NOT A TAKEOVER, read off the number the sheet is sized from: the
+     peek has to leave a real part of the page above it, which is the
+     whole difference between a sheet and a full-screen chat. */
+  const peekPx = parseInt(opened.peek, 10), fullPx = parseInt(opened.full, 10);
+  if (!(peekPx > 0 && peekPx <= opened.vh * 0.7)) throw new Error(`the peek height is ${opened.peek} of ${opened.vh}px — that is a takeover`);
+  if (!(fullPx > peekPx)) throw new Error("expanded is not taller than peeking");
+
+  const grown = await page.evaluate(async () => {
+    toggleAssistantSheet();
+    await new Promise((r) => setTimeout(r, 300));
+    const mid = {
+      sheet: document.getElementById("assistantPanel").getAttribute("data-sheet"),
+      aria: document.getElementById("assistantSheetHandle").getAttribute("aria-expanded"),
+    };
+    toggleAssistantSheet();
+    await new Promise((r) => setTimeout(r, 300));
+    return { mid, back: document.getElementById("assistantPanel").getAttribute("data-sheet") };
+  });
+  eq(grown.mid.sheet, "expanded", "the handle did not expand the sheet");
+  eq(grown.mid.aria, "true", "the handle does not announce that it expanded");
+  eq(grown.back, "peek", "the sheet did not come back to its peek height");
+
+  const closed = await page.evaluate(async () => {
+    document.querySelector('#assistantPanel button[aria-label="Cerrar la conversación"]').click();
+    await new Promise((r) => setTimeout(r, 300));
+    return {
+      hidden: document.getElementById("assistantPanel").classList.contains("hidden"),
+      chatOpen: document.body.hasAttribute("data-chat-open"),
+    };
+  });
+  eq(closed.hidden, true, "one tap did not dismiss the sheet");
+  eq(closed.chatOpen, false, "the launcher was never let back");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 /* ==================================================================
    THE LIGHTBOX, DRIVEN.
 
@@ -1942,6 +2299,89 @@ await check("every way out of the lightbox works, and puts the page back", async
   await ctx.close();
 });
 
+await check("'Por qué Aria' shows the promises the array holds", async () => {
+  /* RENDERED, NOT RETYPED. If the section ever grows its own copy of
+     the promises, this is where the two would be seen to disagree. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(2000);
+  const o = await page.evaluate(() => ({
+    shown: [...document.querySelectorAll("#whyUsPromiseList > div")].map((d) => d.querySelector("span span").textContent.trim()),
+    array: PRECIO_HONESTO_CARDS.map((c) => c.title),
+    alsoOnTheNavySection: document.querySelectorAll("#precioHonestoCards > *").length,
+  }));
+  eq(o.shown.join(" | "), o.array.join(" | "), "the section's promises are not the array's");
+  eq(o.shown.length, o.alsoOnTheNavySection, "the two surfaces are showing different numbers of promises");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
+
+await check("an iOS keyboard lifts the sheet by exactly its own height", async () => {
+  /* THE TRAP, REPRODUCED. iOS does not shrink the LAYOUT viewport for
+     the keyboard — window.innerHeight is unchanged — it shrinks the
+     VISUAL one. So the keyboard is faked exactly that way, and what is
+     checked is the number the sheet lifts itself by, which is an inline
+     custom property and therefore readable with no stylesheet. A sheet
+     that ignored the difference would report 0 here and, styled, would
+     be sitting behind the keyboard with its input out of reach. */
+  const { ctx, page, errors } = await openChatOnPhone();
+  const KB = 336;
+  const read = () => page.evaluate(() => {
+    const p = document.getElementById("assistantPanel");
+    return {
+      inset: p.style.getPropertyValue("--ariaSheetInset"),
+      peek: p.style.getPropertyValue("--ariaSheetPeek"),
+      layout: window.innerHeight,
+      visual: Math.round(window.visualViewport.height),
+    };
+  });
+  const before = await read();
+  eq(before.inset, "0px", "the sheet starts lifted off the bottom edge");
+
+  const up = await page.evaluate(async (kb) => {
+    const vv = window.visualViewport;
+    /* NORMALISE THE UNITS FIRST, because this page is unstyled here and
+       so it overflows sideways, and a mobile browser answers that by
+       zooming the LAYOUT viewport out to fit: innerWidth 1572 against a
+       visual 393, innerHeight 3408 against a visual 852. The page
+       refuses to read a keyboard out of that on purpose (the widths
+       disagreeing is exactly how it knows), so a keyboard faked on top
+       of it would be ignored and this check would be measuring the
+       guard rather than the lift. Both viewports are put in the same
+       units, and THEN the keyboard is applied. */
+    Object.defineProperty(vv, "width", { configurable: true, get: () => window.innerWidth });
+    const real = window.innerHeight;
+    Object.defineProperty(vv, "height", { configurable: true, get: () => real - kb });
+    Object.defineProperty(vv, "offsetTop", { configurable: true, get: () => 0 });
+    vv.dispatchEvent(new Event("resize"));
+    await new Promise((r) => setTimeout(r, 300));
+    const p = document.getElementById("assistantPanel");
+    return {
+      inset: p.style.getPropertyValue("--ariaSheetInset"),
+      peek: p.style.getPropertyValue("--ariaSheetPeek"),
+      layout: window.innerHeight,
+      visual: Math.round(vv.height),
+    };
+  }, KB);
+  eq(up.layout, before.layout, "the layout viewport moved — that is not how iOS does it");
+  eq(up.inset, `${KB}px`, "the sheet was not lifted by the keyboard");
+  /* WITH THE KEYBOARD UP THERE IS NOTHING TO PEEK AT, so the sheet takes
+     what is left of the visible area rather than 62% of it — 62% of a
+     keyboard-shrunk viewport is a letterbox with two lines in it. */
+  eq(up.peek, `${up.visual}px`, "the sheet letterboxed itself under the keyboard");
+
+  const down = await page.evaluate(async () => {
+    const vv = window.visualViewport;
+    delete vv.width; delete vv.height; delete vv.offsetTop;
+    vv.dispatchEvent(new Event("resize"));
+    await new Promise((r) => setTimeout(r, 300));
+    const p = document.getElementById("assistantPanel");
+    return { inset: p.style.getPropertyValue("--ariaSheetInset"), peek: p.style.getPropertyValue("--ariaSheetPeek") };
+  });
+  eq(down.inset, "0px", "the sheet stayed lifted after the keyboard closed");
+  eq(down.peek, before.peek, "the sheet did not return to its peek height");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("the back gesture closes the lightbox without leaving the product", async () => {
   /* BOTH HALVES OF THE REPORTED BUG. The overlay has to go, and the
      page behind must not be left pinned -- that lock outlived the
@@ -1969,6 +2409,37 @@ await check("the back gesture closes the lightbox without leaving the product", 
   await ctx.close();
 });
 
+await check("'¿Qué hay en oferta?' lands the shopper on the Ofertas feed", async () => {
+  /* THE BRIEF'S ACCEPTANCE LINE, end to end: tap the chip, land on
+     Ofertas, see it. The sheet has to get out of the way for the last
+     of those — a bottom sheet over most of a phone is still up when
+     goSales() swaps the view underneath it. */
+  const { ctx, page, errors } = await openChatOnPhone();
+  const label = await page.evaluate(() => {
+    const c = document.querySelector("#assistantQuickRow [data-quick-reply]");
+    return { text: c.textContent.trim(), sends: c.getAttribute("data-quick-reply") };
+  });
+  eq(label.text, label.sends, "the chip's label is not the message it sends");
+  eq(label.text, "¿Qué hay en oferta?", "the first chip");
+
+  const landed = await page.evaluate(async () => {
+    document.querySelector('[data-quick-reply="¿Qué hay en oferta?"]').click();
+    await new Promise((r) => setTimeout(r, 3000));
+    return {
+      view: [...document.querySelectorAll(".view")].filter((v) => getComputedStyle(v).display !== "none").map((v) => v.id).join(),
+      sheetUp: !document.getElementById("assistantPanel").classList.contains("hidden"),
+      feed: document.querySelectorAll("#salesGrid > *").length,
+      said: [...document.getElementById("assistantMessages").children].map((e) => (e.textContent || "").trim()).filter(Boolean),
+    };
+  });
+  eq(landed.view, "salesView", "the chip did not open Ofertas");
+  eq(landed.sheetUp, false, "the sheet stayed up over the feed the shopper asked for");
+  if (!landed.feed) throw new Error("the shopper landed on an empty Ofertas");
+  // The chip's own words are what went into the conversation.
+  if (!landed.said.includes("¿Qué hay en oferta?")) throw new Error("the chip sent something other than its label");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 await check("zoom never takes the way out with it", async () => {
   const { ctx, page, errors } = await openPage(LB_ROUTES, LB_PHONE);
   await page.waitForTimeout(3000);
@@ -2019,6 +2490,32 @@ await check("zoom never takes the way out with it", async () => {
   await ctx.close();
 });
 
+await check("the desktop chat is never sized as a sheet", async () => {
+  /* Also stylesheet-free: syncAssistantSheet() REMOVES the three custom
+     properties above the breakpoint, so a laptop keeps the panel's own
+     Tailwind geometry and nothing of the phone's. */
+  const { ctx, page, errors } = await openPage();
+  await page.waitForTimeout(2000);
+  const st = await page.evaluate(() => {
+    toggleAssistant();
+    const p = document.getElementById("assistantPanel");
+    return {
+      mobile: isMobileChat(),
+      peek: p.style.getPropertyValue("--ariaSheetPeek"),
+      inset: p.style.getPropertyValue("--ariaSheetInset"),
+      chips: document.querySelectorAll("#assistantQuickRow [data-quick-reply]").length,
+      focused: document.activeElement && document.activeElement.id,
+    };
+  });
+  eq(st.mobile, false, "a 1280px window is being treated as a phone");
+  eq(st.peek, "", "the desktop panel is being sized as a sheet");
+  eq(st.inset, "", "the desktop panel is being lifted like a sheet");
+  if (st.chips < 2) throw new Error("the desktop lost its quick replies");
+  // And a laptop, where there is no keyboard to throw up, still focuses.
+  eq(st.focused, "assistantInput", "the desktop stopped focusing the field on open");
+  if (errors.length) throw new Error("page errors: " + errors.join(" | "));
+  await ctx.close();
+});
 /* ============================================================
    THE PINCH, WHICH IS A DIFFERENT ZOOM FROM THE ONE ABOVE.
 
