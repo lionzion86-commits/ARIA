@@ -275,7 +275,38 @@
                    rgba(4,12,28,0.72) 0%,
                    rgba(4,12,28,0.80) 46%,
                    rgba(4,12,28,0.93) 100%) }
-  #whyUs > .relative{ position:relative; z-index:2 }
+    /* STORY TEASER SCRIM -- LIGHTER (2026-09-25, Danny's iPhone QA, pass 2):
+     the standard 0.72->0.93 scrim above crushed the teaser text on his
+     phone ("can't see the words"). The teaser gets its OWN scrim: much
+     lighter and bottom-weighted, so the girl shows through and the
+     white type does the work against the dark night photo. The standard
+     scrim stays exactly as it is -- its contrast math is documented
+     above and still stands for #whyUs. */
+  .ariaStoryScrim{ position:absolute; inset:0; z-index:1; pointer-events:none;
+                   background:linear-gradient(180deg,
+                     rgba(4,12,28,0.32) 0%,
+                     rgba(4,12,28,0.42) 45%,
+                     rgba(4,12,28,0.60) 100%) }
+  /* POP PASS (2026-09-25, Danny's iPhone QA pass 3): the photo brightness
+     is settled -- he likes it. The letters do the work now. Layered
+     text-shadow so every letter lifts off the night photo; gold elements
+     get a warm gold-tinted glow of their own. Scrim stays light -- the
+     suite pins .ariaStoryScrim stops <= 0.40/0.65, so pop comes from the
+     type, never from darkening the scrim. (Manrope tops out at 800 in our
+     font bundle, so the headline keeps font-extrabold and gets its pop
+     from size + shadow instead of a 900 weight.) */
+  .ariaStoryTeaser{ position:relative; z-index:2;
+                   text-shadow:0 2px 12px rgba(0,0,0,.65), 0 0 2px rgba(0,0,0,.8) }
+  /* CLICK FIX (2026-09-25, Danny's iPhone QA): the scrim's z-index:1 sat above the
+     z-index:auto content and swallowed every tap on 'Lee la historia completa ->'.
+     The scrim is pointer-events:none now and the content rides at z-index:2. */
+  /* BODY BRIGHTNESS NUDGE (2026-09-25): the body paragraph read a touch dark next
+     to the headline -- the inherited dark halo was doing it. Soften the halo on
+     the paragraph only; headline, kicker, quote and photo stay exactly as they are. */
+  .ariaStoryTeaser p{ text-shadow:0 1px 8px rgba(0,0,0,.45) }
+  .ariaStoryTeaser .ariaKicker{ font-size:12.5px;
+     text-shadow:0 0 14px rgba(244,196,99,.55), 0 1px 6px rgba(0,0,0,.7) }
+#whyUs > .relative{ position:relative; z-index:2 }
   /* Glass, not a white box: the photograph stays visible THROUGH the
      promise rather than being covered by it. The border is what keeps
      the edge readable where the backdrop-filter is unsupported. */
@@ -1481,25 +1512,53 @@
            WORD FOR WORD FROM #aboutView, deliberately. The full page is
            still there and still the canonical telling; this is its first
            lines, so the two cannot come to say different things about
-           where the name came from. -->
-      <div>
-        <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
-          <div>
-            <div class="ariaKicker ariaKicker--onLight mb-3">La historia</div>
-            <h3 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:var(--navy)">
-              Aria lleva el nombre de mi hija.
-            </h3>
-          </div>
-          <div class="max-w-[62ch]">
-            <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4" style="color:#3D4759">
-              Nació como una promesa: que ningún peruano vuelva a pagar de más
-              — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
-              compra en una tienda en Estados Unidos.
-            </p>
-            <blockquote class="ariaPullQuote text-[17px] sm:text-[19px] my-5" style="color:var(--navy)">
-              que el precio que ves sea el precio que pagas.
-            </blockquote>
-            <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:var(--blue)">Lee la historia completa →</button>
+           where the name came from.
+           AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper
+           treatment ("looks like PowerPoint" between the two navy blocks).
+           The teaser below now rides the balcony-night photograph under
+           the standard navy scrim with white/gold type -- the collision
+           this comment guarded against stays guarded: no dark type ever
+           sits on the dark scrim. -->
+      <!-- STORY TEASER ON THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA):
+           the paper teaser sitting between two navy blocks read "like
+           PowerPoint". It now rides the approved balcony-night photograph
+           (the girl with the Aria box -- same file as the full story page)
+           under the standard navy scrim, white type. Copy stays WORD FOR
+           WORD from #aboutView; only the treatment changed. All type on
+           the photograph is white/gold -- never navy-on-dark.
+           AMENDMENT 2026-09-25 pass 2: Danny's iPhone QA found the standard
+           0.72->0.93 scrim crushed the text ("can't see the words"). The
+           teaser now rides its OWN lighter bottom-weighted scrim
+           (.ariaStoryScrim, 0.32->0.60) with pure-white type plus a soft
+           text shadow; #whyUs above keeps the standard scrim. Copy still
+           WORD FOR WORD.
+           AMENDMENT 2026-09-25 pass 3: photo brightness is settled (Danny
+           likes it); the LETTERS got the pop -- layered glow text-shadow,
+           larger headline, semibold body, gold glow on kicker and link,
+           pull quote bumped. Scrim untouched. -->
+      <div class="relative overflow-hidden rounded-3xl">
+        <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
+             style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
+        <div class="ariaStoryScrim" aria-hidden="true"></div>
+        <div class="relative px-5 sm:px-8 py-12 sm:py-16 ariaStoryTeaser">
+          <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
+            <div>
+              <div class="ariaKicker mb-3">La historia</div>
+              <h3 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:#fff">
+                Aria lleva el nombre de mi hija.
+              </h3>
+            </div>
+            <div class="max-w-[62ch]">
+              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4 font-semibold" style="color:#fff">
+                Nació como una promesa: que ningún peruano vuelva a pagar de más
+                — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
+                compra en una tienda en Estados Unidos.
+              </p>
+              <blockquote class="ariaPullQuote text-[18px] sm:text-[20px] my-5" style="color:#fff">
+                que el precio que ves sea el precio que pagas.
+              </blockquote>
+              <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:#F4C463; text-shadow:0 0 12px rgba(244,196,99,.5), 0 1px 4px rgba(0,0,0,.7)">Lee la historia completa →</button>
+            </div>
           </div>
         </div>
       </div>

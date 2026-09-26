@@ -5557,7 +5557,12 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
 
      So they moved one section down, to #whyUsStory, which keeps the
      paper they were designed against. The order that MATTERS is intact:
-     what you get, the guarantee behind it, then who is promising it. */
+     what you get, the guarantee behind it, then who is promising it.
+
+     AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper teaser
+     ("like PowerPoint" between the two navy blocks). The teaser itself
+     now rides the balcony-night photograph under the standard scrim with
+     white/gold type; the section around it keeps its paper background. */
   const reasonsAt = why.indexOf("ariaWhyPromise");
   const promisesAt = why.indexOf('id="whyUsPromises"');
   const storyAt = why.indexOf(">La historia<");
@@ -5568,14 +5573,52 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
     throw new Error("the run is no longer reasons -> guarantee -> story");
   }
 
-  /* AND THE STORY IS ON PAPER, which is the one thing a naive merge got
-     wrong. Navy headings and #3D4759 body over the explainer's scrim is
-     the failure this assertion exists to catch. */
+  /* THE TEASER RIDES THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA): the
+     paper teaser sitting between two navy blocks read "like PowerPoint".
+     It now uses the approved balcony-night photograph (the girl with the
+     Aria box, same file as the full story page) under the standard navy
+     scrim, white type. The failure this assertion exists to catch is
+     unchanged in spirit: no dark type on the dark scrim. */
   const storyAtIdx = why.indexOf('id="whyUsStory"');
   if (storyAtIdx < 0) throw new Error("#whyUsStory is gone — the story is back inside the photograph");
   if (storyAtIdx < why.indexOf("ariaWhyPhoto")) throw new Error("the story section sits above the photograph");
   if (!/background:var\(--paper\)/.test(why.slice(storyAtIdx, storyAtIdx + 400))) {
-    throw new Error("#whyUsStory lost its paper background — navy type on a dark scrim");
+    throw new Error("#whyUsStory lost its paper section background");
+  }
+  const teaserStart = why.indexOf("STORY TEASER ON THE PHOTOGRAPH");
+  const teaserEnd = why.indexOf("showPage('aboutView')", teaserStart);
+  if (teaserStart < 0 || teaserEnd < 0) throw new Error("the story teaser is gone");
+  const teaser = why.slice(teaserStart, teaserEnd);
+  if (!/balcony-night\.jpg/.test(teaser)) throw new Error("the story teaser lost its photograph");
+  if (!/ariaStoryScrim/.test(teaser)) throw new Error("the story teaser lost its light scrim");
+  if (/class="ariaWhyScrim"/.test(teaser)) throw new Error("the teaser is back on the heavy #whyUs scrim -- unreadable");
+  /* THE TEASER SCRIM STAYS LIGHT (2026-09-25, Danny's iPhone QA, pass 2):
+     the 0.72->0.93 standard scrim crushed the text on his phone. The
+     teaser's own scrim must stay well under the standard's stops. */
+  const scrimAt = hdrSrc.indexOf(".ariaStoryScrim{");
+  if (scrimAt < 0) throw new Error("the .ariaStoryScrim rule is gone");
+  const scrimCss = hdrSrc.slice(scrimAt, scrimAt + 700);
+  const stops = [...scrimCss.matchAll(/rgba\(4,12,28,([0-9.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 3) throw new Error("the story scrim lost its gradient stops");
+  if (stops[0] > 0.40 || stops[stops.length - 1] > 0.65) {
+    throw new Error("the story scrim got heavy again (" + stops.join("->") + ") -- Danny's contrast fix regressed");
+  }
+  if (/ariaKicker--onLight|var\(--navy\)|#3D4759/.test(teaser)) {
+    throw new Error("dark type on the photograph — unreadable");
+  }
+
+  /* THE TEASER LINK IS TAPPABLE (2026-09-25, Danny's iPhone QA): the scrim's
+     z-index:1 sat above the z-index:auto content and swallowed every tap on
+     "Lee la historia completa ->". The scrim must never intercept pointer
+     events, and the content must ride above it. */
+  if (!/\.ariaStoryScrim\{[^}]*pointer-events\s*:\s*none/.test(hdrSrc)) {
+    throw new Error("the story scrim can intercept taps - the teaser link is dead");
+  }
+  if (!/\.ariaStoryTeaser\{[^}]*z-index\s*:\s*2/.test(hdrSrc)) {
+    throw new Error("the teaser content is not above the scrim - the link may not receive taps");
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) {
+    throw new Error("the teaser link no longer opens the full story");
   }
 
   /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
