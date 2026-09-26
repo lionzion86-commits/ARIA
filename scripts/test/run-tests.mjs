@@ -32,6 +32,7 @@ import * as deptMap from "../lib/department-map.js";
 import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
 import { inkCoverage, pngShape } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
+import * as rockautoDirect from "../lib/rockauto-direct.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
 import * as synonyms from "../lib/search-synonyms.js";
@@ -68,6 +69,23 @@ function check(name, fn) {
   } catch (err) {
     failures.push(`${name}\n      ${err.message}`);
   }
+}
+
+/* check() does not await — an async fn's rejection would slip past it.
+   checkAsync collects the promise; every entry is awaited before the
+   summary, so a hung or rejected chain still fails the suite. */
+const pendingAsync = [];
+function checkAsync(name, fn) {
+  pendingAsync.push(
+    (async () => {
+      try {
+        await fn();
+        passed++;
+      } catch (err) {
+        failures.push(`${name}\n      ${err.message}`);
+      }
+    })(),
+  );
 }
 
 function eq(actual, expected, what) {
@@ -9752,7 +9770,268 @@ check("the scrape backend keeps dev diagnostics out of the production error", ()
   if (!/devNote/.test(src)) throw new Error("devNote missing for dev-flagged requests");
 });
 
+/* ------------------------------------------------------------------
+   ROCKAUTO DIRECT HTTP FALLBACK (2026-09-26) — the zero-Apify live
+   scrape. The chain is pure + fetch-injected in
+   scripts/lib/rockauto-direct.js, so every step is unit-testable
+   without touching the network. Fixtures below mirror the real
+   RockAuto markup verified live on 2026-09-26 (selectors, the
+   &amp;-encoded category slugs, the lazy nav tree).
+   ------------------------------------------------------------------ */
+group("rockauto direct HTTP fallback (zero-Apify)");
+
+const RA_GLOSSARY = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
+const RA_ENTRIES = rockautoDirect.glossaryToPairs(RA_GLOSSARY);
+
+const RA_CATALOG_FIXTURE = [
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.3l+l4+electric,1444951">1.3L L4 Electric</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952">1.8L L4</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,2.0l+l4,1444957">2.0L L4</a>',
+].join("\n");
+const RA_NODE_FIXTURE = [
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,engine">Engine</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air">Fuel &amp; Air</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,brake+&amp;+wheel+hub">Brake &amp; Wheel Hub</a>',
+].join("\n");
+const RA_CATEGORY_FIXTURE = [
+  '<a class="navlabellink nvoffset nimportant" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air,air+filter,6192">Air Filter</a>',
+  '<a class="navlabellink nvoffset nnormal" href="/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&amp;+air,fuel+filter,6205">Fuel Filter</a>',
+].join("\n");
+const RA_LISTINGS_FIXTURE = [
+  '<div id="listingcontainer[8]" class="mtf-outer-list listing-container-c compact-mobile">',
+  '<span id="dprice[8][v]">$4.12</span>',
+  '<b><span class="listing-final-manufacturer no-text-select">FRAM</span></b> ',
+  '<span class="listing-final-partnumber no-text-select" id="vew_partnumber[8]">CA10165</span>',
+  '<img id="inlineimg[8]" class=" listing-inline-image" src="/info/915/CA10165_Front__ra_m.jpg" alt="Part image"/>',
+  "</div>",
+  '<div id="listingcontainer[9]" class="mtf-outer-list listing-container-c compact-mobile">',
+  '<span id="dprice[9][v]">$8.99</span>',
+  '<b><span class="listing-final-manufacturer no-text-select">WIX</span></b> ',
+  '<span class="listing-final-partnumber no-text-select" id="vew_partnumber[9]">49744</span>',
+  '<img id="inlineimg[9]" class=" listing-inline-image" src="/info/99/49744_ra_m.jpg" alt="Part image"/>',
+  "</div>",
+].join("\n");
+
+const RA_CATALOG_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic";
+const RA_NODE_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952";
+const RA_CATEGORY_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&+air";
+const RA_PARTTYPE_URL = "https://www.rockauto.com/en/catalog/honda,2010,civic,1.8l+l4,1444952,fuel+&+air,air+filter,6192";
+
+function raFixtureFetch(pages, counter) {
+  return async (url) => {
+    counter.count++;
+    return pages.get(url) ?? null;
+  };
+}
+
+check("the server translator matches the browser translator on the acceptance terms", () => {
+  const { translatePartQuery } = loadPageAutoGlossarySlice();
+  for (const q of ["filtro de aire", "bujía", "BUJIAS", "pastilla de freno", "faja de distribución", "correa de accesorios"]) {
+    eq(
+      rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, q),
+      translatePartQuery(q),
+      `server/browser parity for "${q}"`,
+    );
+  }
+  eq(rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, "filtro de aire"), "engine air filter", "filtro de aire");
+  eq(rockautoDirect.translatePartQueryEsEn(RA_ENTRIES, "bujía"), "spark plug", "bujía");
+});
+
+check("engine links parse with node ids and the volume engine wins over hybrid", () => {
+  const engines = rockautoDirect.parseEngineLinks(RA_CATALOG_FIXTURE, RA_CATALOG_URL);
+  eq(engines.length, 3, "engine count");
+  eq(engines[1].nodeId, "1444952", "node id");
+  const picked = rockautoDirect.pickEngine(engines);
+  eq(picked.label, "1.8L L4", "hybrid skipped");
+  eq(picked.url, RA_NODE_URL, "node url");
+});
+
+check("category slugs keep their & and resolve to the curated category", () => {
+  const cats = rockautoDirect.parseCategoryLinks(RA_NODE_FIXTURE, RA_NODE_URL);
+  eq(cats.length, 3, "category count");
+  const fuel = cats.find((c) => /fuel/i.test(c.name));
+  eq(fuel.url, RA_CATEGORY_URL, "full slug with & preserved");
+  const matched = rockautoDirect.matchCategory(cats, "engine air filter");
+  eq(matched.name, "Fuel & Air", "engine air filter -> Fuel & Air, not Engine");
+});
+
+check("part-type links resolve the translated term to the verified part type", () => {
+  const pts = rockautoDirect.parsePartTypeLinks(RA_CATEGORY_FIXTURE, RA_CATEGORY_URL);
+  eq(pts.length, 2, "part-type count");
+  const matched = rockautoDirect.matchPartType(pts, "engine air filter");
+  eq(matched.name, "Air Filter", "part-type name");
+  eq(matched.url, RA_PARTTYPE_URL, "part-type url (id 6192, parsed not guessed)");
+});
+
+check("listings parse brand, part number, raw price and image — the canary shape", () => {
+  const items = rockautoDirect.parseListings(RA_LISTINGS_FIXTURE);
+  eq(items.length, 2, "listing count");
+  eq(items[0].brand, "FRAM", "brand");
+  eq(items[0].partNumber, "CA10165", "part number");
+  eq(items[0].priceUsd, 4.12, "raw USD price (no markup — the page applies 1.07 x 1.24)");
+  eq(items[0].imagePath, "/info/915/CA10165_Front__ra_m.jpg", "relative image path");
+  for (const it of items) {
+    if (!it.brand || !it.partNumber || !(it.priceUsd > 0) || !it.imagePath)
+      throw new Error(`incomplete listing: ${JSON.stringify(it)}`);
+  }
+});
+
+check("the cache key normalizes case, accents and whitespace", () => {
+  const a = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", "filtro de aire");
+  const b = rockautoDirect.rockautoCacheKey("2010", "honda", "civic", "Filtro  de Aire");
+  eq(a, b, "same search, one key");
+  eq(a, "2010|honda|civic|filtro de aire", "key shape mirrors autoPartCacheKey");
+  const c = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", "bujía");
+  if (a === c) throw new Error("different queries share a key");
+});
+
+checkAsync("the full chain resolves filtro de aire to live listings", async () => {
+  const counter = { count: 0 };
+  const pages = new Map([
+    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
+    [RA_NODE_URL, RA_NODE_FIXTURE],
+    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
+    [RA_PARTTYPE_URL, RA_LISTINGS_FIXTURE],
+  ]);
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Honda",
+    model: "Civic",
+    query: "filtro de aire",
+    entries: RA_ENTRIES,
+    fetchHtml: raFixtureFetch(pages, counter),
+    courtesyDelayMs: 0,
+  });
+  if (!r.ok) throw new Error(`chain failed: ${r.miss}`);
+  eq(r.translatedQuery, "engine air filter", "translated query");
+  eq(r.engine, "1.8L L4", "engine label for the card");
+  eq(r.category, "Fuel & Air", "category");
+  eq(r.partType, "Air Filter", "part type");
+  eq(r.items.length, 2, "items");
+  eq(r.items[0].priceUsd, 4.12, "price is raw USD");
+  eq(counter.count, 4, "four RockAuto requests");
+});
+
+checkAsync("a cache hit performs zero RockAuto requests on the second identical search", async () => {
+  const counter = { count: 0 };
+  const pages = new Map([
+    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
+    [RA_NODE_URL, RA_NODE_FIXTURE],
+    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
+    [RA_PARTTYPE_URL, RA_LISTINGS_FIXTURE],
+  ]);
+  // Mirrors the function: Blobs-backed, keyed {year}|{make}|{model}|{spanish-query}.
+  const cache = new Map();
+  const search = async (query) => {
+    const key = rockautoDirect.rockautoCacheKey("2010", "Honda", "Civic", query);
+    if (cache.has(key)) return { ...cache.get(key), cached: true };
+    const r = await rockautoDirect.runRockautoLiveChain({
+      year: "2010",
+      make: "Honda",
+      model: "Civic",
+      query,
+      entries: RA_ENTRIES,
+      fetchHtml: raFixtureFetch(pages, counter),
+      courtesyDelayMs: 0,
+    });
+    if (r.ok) cache.set(key, r);
+    return { ...r, cached: false };
+  };
+  const first = await search("filtro de aire");
+  if (!first.ok || first.cached) throw new Error("first search should miss the cache and run the chain");
+  eq(counter.count, 4, "first search runs the chain");
+  const second = await search("Filtro  de Aire");
+  if (!second.ok || !second.cached) throw new Error("second search should hit the cache");
+  eq(counter.count, 4, "second identical search: zero RockAuto requests");
+  eq(second.items.length, first.items.length, "cached items served");
+});
+
+checkAsync("a hanging RockAuto degrades to a timeout miss, never a hung function", async () => {
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Honda",
+    model: "Civic",
+    query: "filtro de aire",
+    entries: RA_ENTRIES,
+    fetchHtml: () => new Promise(() => {}),
+    courtesyDelayMs: 0,
+    deadlineMs: 120,
+  });
+  eq(r.ok, false, "not ok");
+  eq(r.miss, "timeout", "miss reason");
+});
+
+checkAsync("a vehicle with no engine options is a graceful catalog miss", async () => {
+  const counter = { count: 0 };
+  const hiluxCatalog = "https://www.rockauto.com/en/catalog/toyota,2010,hilux";
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Toyota",
+    model: "Hilux",
+    query: "filtro de aire",
+    entries: RA_ENTRIES,
+    fetchHtml: raFixtureFetch(new Map([[hiluxCatalog, "<html><body>no engines here</body></html>"]]), counter),
+    courtesyDelayMs: 0,
+  });
+  eq(r.ok, false, "not ok");
+  eq(r.miss, "no-engine", "miss reason");
+  eq(counter.count, 1, "one request, then the friendly empty state");
+});
+
+checkAsync("an unknown part type is a graceful miss, not an exception", async () => {
+  const counter = { count: 0 };
+  const pages = new Map([
+    [RA_CATALOG_URL, RA_CATALOG_FIXTURE],
+    [RA_NODE_URL, RA_NODE_FIXTURE],
+    [RA_CATEGORY_URL, RA_CATEGORY_FIXTURE],
+  ]);
+  const r = await rockautoDirect.runRockautoLiveChain({
+    year: "2010",
+    make: "Honda",
+    model: "Civic",
+    query: "espejo retrovisor cuántico",
+    entries: RA_ENTRIES,
+    fetchHtml: raFixtureFetch(pages, counter),
+    courtesyDelayMs: 0,
+  });
+  eq(r.ok, false, "not ok");
+  if (!["no-category", "no-part-type"].includes(r.miss)) throw new Error(`unexpected miss: ${r.miss}`);
+});
+
+check("the live-search function keeps prices raw — the 24% margin belongs to the page", () => {
+  const src = readFileSync(root("netlify/functions/rockauto-live-search.js"), "utf8");
+  if (/1\.24|1\.07|SALES_TAX_RATE|LIVE_PRICE_MARKUP/.test(src))
+    throw new Error("the function is applying the markup — that belongs to normalizeLiveItem");
+  if (!/price: it\.priceUsd/.test(src)) throw new Error("raw USD price not passed through");
+});
+
+check("RockAuto images are proxied, never hotlinked", () => {
+  const src = readFileSync(root("netlify/functions/rockauto-live-search.js"), "utf8");
+  if (!/rockauto-image\?u=/.test(src)) throw new Error("listings do not route images through the proxy");
+  if (/https:\/\/www\.rockauto\.com\/info\//.test(src)) throw new Error("raw /info/ hotlink leaked into the client payload");
+  const proxy = readFileSync(root("netlify/functions/rockauto-image.js"), "utf8");
+  if (!/const ALLOWED =/.test(proxy) || !/\(info\|catalog\)/.test(proxy))
+    throw new Error("proxy path allowlist missing");
+});
+
+check("the client routes RockAuto to the direct function with a 30s start timeout", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/if \(sourceKey === 'rockauto'\) return searchRockautoLive\(vehicle, query, maxItems\);/.test(html))
+    throw new Error("searchAutoSource does not branch RockAuto to the direct function");
+  if (!/fetchWithStartTimeout\('\/\.netlify\/functions\/rockauto-live-search'/.test(html))
+    throw new Error("rockautoLiveSearch does not use the 30s start timeout");
+});
+
+check("every RockAuto live failure degrades to the honest pending block", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/miss\.sourceNotConnected = true;/.test(html) || !/fail\.sourceNotConnected = true;/.test(html))
+    throw new Error("rockauto failures do not flag sourceNotConnected");
+  if (!/pendingNote: 'Estamos ampliando nuestro catálogo de repuestos/.test(html))
+    throw new Error("the pending block does not carry the required shopper message");
+});
+
 /* ------------------------------------------------------------------ */
+await Promise.all(pendingAsync);
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

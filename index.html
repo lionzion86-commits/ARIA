@@ -15349,6 +15349,49 @@ function autoSourceBadgeHTML(key, heightPx = 22){
    per-source facts are the registry row and the actor config in
    apify-scrape-start.js. That is what makes adding RockAuto data entry
    rather than code. */
+/* ROCKAUTO DIRECT LIVE SEARCH (2026-09-26) — the zero-Apify fallback.
+   Danny: "Yes, scrape it directly for free for sure." POSTs { year, make,
+   model, query } to the server function, which runs the 4-request
+   RockAuto chain (catalog -> node -> category -> part type -> listings),
+   parses brand / part number / price / image, and caches by
+   {year}|{make}|{model}|{spanish-query} for 7 days. A cache hit costs
+   zero RockAuto requests.
+
+   ANY failure — catalog miss, timeout, fetch failure, rate limit —
+   throws with sourceNotConnected, so the block renders the honest
+   "Estamos ampliando nuestro catálogo de repuestos" pending state.
+   RockAuto diagnostics never reach the shopper. */
+async function rockautoLiveSearch(vehicle, query){
+  const res = await fetchWithStartTimeout('/.netlify/functions/rockauto-live-search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      year: vehicle.year, make: vehicle.make, model: vehicle.model,
+      query: String(query || ''),
+    }),
+  }, 30000);
+  if (!res || !res.ok) throw new Error('rockauto-live: bad response');
+  return res.json();
+}
+
+async function searchRockautoLive(vehicle, query, maxItems){
+  let data;
+  try {
+    data = await rockautoLiveSearch(vehicle, query);
+  } catch (err){
+    const fail = new Error(`rockauto-live fetch failed: ${err && err.message ? err.message : err}`);
+    fail.sourceNotConnected = true;
+    throw fail;
+  }
+  if (!data || data.ok === false || !Array.isArray(data.items) || !data.items.length){
+    const miss = new Error(`rockauto-live miss: ${data && data.miss ? data.miss : 'empty'}`);
+    miss.sourceNotConnected = true;
+    throw miss;
+  }
+  const n = Number(maxItems) > 0 ? Number(maxItems) : data.items.length;
+  return data.items.slice(0, n).map((it) => normalizeAutoPartItem('rockauto', it));
+}
+
 async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   const cache = await loadAutoCache();
   const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
@@ -15360,6 +15403,11 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   if (indexed.length) return indexed;
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
+  /* ROCKAUTO DIRECT (2026-09-26): the Apify actor path is replaced by the
+     free server-side chain. Triggered only on an Aria Auto cache miss,
+     after the vehicle and the Spanish query are known — same contract as
+     every other source's live path. */
+  if (sourceKey === 'rockauto') return searchRockautoLive(vehicle, query, maxItems);
   const rawItems = await scrapeRetailer(sourceKey, combined, maxItems);
   return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
 }
