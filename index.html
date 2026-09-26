@@ -13106,7 +13106,11 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
   pushRoute({ view: 'productView', retailer, name });
   pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg, brand: String(opts?.brand || '').trim() };
 
-  document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
+  /* THE STORE DOORWAY (2026-09-25, Danny): the badge slot is the door
+     into the product's own store — logo + name, one obvious tap,
+     from every section, because the key comes from the product
+     itself. See storeDoorwayHTML(). */
+  document.getElementById('productViewBadge').innerHTML = storeDoorwayHTML(retailer);
   /* DELIVERY TRANSPARENCY (2026-09-26): timing before the buy box. */
   document.getElementById('productViewDelivery').textContent = storeDeliveryLineEs(retailer) || '';  /* The designer, above the product. textContent, never innerHTML: this
      string comes from a retailer's catalogue. Emptied when there is no
@@ -13714,6 +13718,22 @@ function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retir
    PER-STORE AMBIENT THEMES (2026-09-24) — full rollout: every carried
    store gets a brand-grounded ambient (PR #49). Each row's `glow` is
    the brand's signature colour, used for the ambient's light.
+   THE PRODUCT PAGE'S DOORWAY INTO ITS STORE — MIRROR of
+   storeDoorFor() in scripts/lib/retailers.js (2026-09-25, Danny).
+
+   Universal: the door resolves from the PRODUCT's own store field,
+   never from browsing context. Auto-kind retailers open the Aria
+   Auto workshop; every other known store opens its storefront.
+   Retired rows and unknown keys resolve to null.
+   ============================================================ */
+function storeDoorFor(key){
+  const r = retailerFor(key);
+  if (!r || r.retired) return null;
+  return { key: r.key, action: r.kind === 'auto' ? 'auto' : 'store' };
+}
+/* END OF THE STORE DOOR MIRROR */
+/* ============================================================
+   PER-STORE AMBIENT THEMES (2026-09-24) — pilot: Victoria's Secret.
 
    A retailer listed here gets a moody, brand-lit backdrop on its
    storefront views: storeView, catalogView and storeResultsView whenever
@@ -13872,6 +13892,41 @@ function retailerBadgeHTML(retailer, heightPx = 28){
   // max-width of 4x the height used to squash it horizontally rather than
   // scale it. Contain keeps every logo in proportion at any size.
   return `<img src="${logoFile}" alt="${escapeHtml(label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle" onerror="handleLogoError(this, '${escapeHtml(retailer)}')">`;
+}
+
+/* THE STORE DOORWAY (2026-09-25, Danny). The product page's store
+   attribution IS the door into the store: logo + name, one obvious
+   tap, from every section — the key comes from the product itself,
+   so a shirt opened from Big and Tall and the same shirt opened from
+   Curvy each open their own store. A store whose catalogue is still
+   being connected opens its storefront page, which says so plainly —
+   a door, never a dead end. Unknown/retired keys keep the plain
+   badge instead of a button to nowhere. Navy/gold, no gray pills. */
+function storeDoorwayHTML(retailer){
+  const door = storeDoorFor(retailer);
+  if (!door) return retailerBadgeHTML(retailer);
+  const label = LIVE_RETAILER_LABEL[door.key] || retailer || 'Tienda';
+  const cta = door.action === 'auto' ? 'Abrir Aria Auto' : 'Ir a la tienda';
+  return `<button type="button" onclick="openStoreDoor('${jsAttr(door.key)}')"`
+    + ` class="w-full text-left bg-white border rounded-2xl pl-4 pr-3 py-3 flex items-center gap-3 focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)] active:scale-[0.99]"`
+    + ` style="border-color:var(--line)" aria-label="${cta}: ${escapeHtml(label)}">`
+    + retailerBadgeHTML(retailer, 36)
+    + `<span class="flex-1 min-w-0">`
+    + `<span class="block text-[15px] font-extrabold truncate" style="color:var(--navy)">${escapeHtml(label)}</span>`
+    + `</span>`
+    + `<span class="inline-flex items-center gap-1 text-[13px] font-extrabold whitespace-nowrap" style="color:var(--blue)">${cta}`
+    + `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="3" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`
+    + `</span></button>`;
+}
+
+/* Opens the product page's store doorway: the Aria Auto workshop for
+   auto-kind retailers, the storefront for everyone else — the same
+   doors the store tiles use, so the router already knows them. */
+function openStoreDoor(key){
+  const door = storeDoorFor(key);
+  if (!door) return;
+  if (door.action === 'auto'){ openAriaAuto(door.key); return; }
+  openStore(door.key);
 }
 
 // Real retailers actually wired up for general shopping (excludes

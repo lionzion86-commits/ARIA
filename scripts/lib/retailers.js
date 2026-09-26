@@ -644,6 +644,26 @@ export function isBeautyRetailer(key) {
   return retailerFor(key)?.catalog === "beauty";
 }
 
+/**
+ * THE PRODUCT PAGE'S DOORWAY INTO ITS STORE (2026-09-25, Danny's rule:
+ * universal — every product page, every section, opens its own store).
+ *
+ * The door resolves from the PRODUCT's own store field, never from the
+ * browsing context: a shirt opened from Big and Tall and the same shirt
+ * opened from Curvy each resolve to their own store. Auto-kind
+ * retailers (AutoZone, RockAuto) open the Aria Auto workshop; every
+ * other known store opens its storefront through openStore(), which
+ * says plainly "Catálogo en preparación" while a catalogue is still
+ * being connected — a door, never a dead end. Retired rows and unknown
+ * keys resolve to null, and the product page keeps the plain badge
+ * instead of a button to nowhere.
+ */
+export function storeDoorFor(key) {
+  const r = retailerFor(key);
+  if (!r || r.retired) return null;
+  return { key: r.key, action: r.kind === "auto" ? "auto" : "store" };
+}
+
 /* The flat maps the older call sites still want, derived from the rows
    above so they can never drift from them. */
 export const RETAILER_LABELS = Object.fromEntries(Object.values(RETAILERS).map((r) => [r.key, r.label]));
