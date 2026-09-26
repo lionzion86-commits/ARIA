@@ -236,9 +236,10 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
      department's only other signal. Gated on isFootwear so a
      "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
   if (deptKey === "sporting_goods" && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(titleOf(item))) return false;
-  /* Toy-aisle character skateboards are Juguetes-only (2026-09-26,
-     Danny): Deportes refuses them the same way Surf & Skate does. */
-  if (deptKey === "sporting_goods" && isToyGradeSkate(item)) return false;
+  /* DEPORTES (2026-09-26, Danny): no skate, no surf — all skate and surf
+     gear lives only in Surf & Skate. Deportes keeps rollerblades and the
+     regular sports (soccer, basketball, tennis, ping pong, ...). */
+  if (deptKey === "sporting_goods" && (isSurfSkate(item, retailer) || isToyGradeSkate(item))) return false;
   /* Curvy is a filter over apparel, the way Ofertas is a filter over
      everything — not a category a retailer scrapes into. Kids never;
      otherwise the retailer's own size list decides, via

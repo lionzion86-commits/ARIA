@@ -11216,6 +11216,23 @@ check("toy-grade boards are refused by Surf & Skate and claimed by Juguetes", ()
     throw new Error("the Surf & Skate department page lost a real deck");
 });
 
+check("Deportes refuses all surf/skate gear but keeps rollerblades and regular sports (2026-09-26, Danny)", () => {
+  const { itemBelongsToDepartment, isSurfSkate } = loadPageDepartmentSlice();
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs"));
+  if (!deck) throw new Error("no real surf/skate item to route");
+  if (itemBelongsToDepartment(deck, "sporting_goods", "sporting_goods", "ccs"))
+    throw new Error(`Deportes still lists surf/skate gear: ${surf9Name(deck).slice(0, 60)}`);
+  const blades = { title: "Rollerblade Macroblade 90 Men's Inline Skates", brand: "Rollerblade" };
+  if (isSurfSkate(blades, "dicks"))
+    throw new Error("rollerblades are being claimed as surf/skate");
+  if (!itemBelongsToDepartment(blades, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes lost rollerblades");
+  const ball = { title: "Wilson NCAA Replica Basketball", brand: "Wilson" };
+  if (!itemBelongsToDepartment(ball, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("Deportes lost regular sports");
+});
+
 check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny)", () => {
   const html = HOME_SRC();
   const rt0 = html.indexOf("function rawTitleOf(item){");
@@ -11280,6 +11297,24 @@ checkAsync("the sporting_goods department refuses toy-grade boards in the module
   if (!toy) throw new Error("no toy-grade board to route");
   if (deptMap.itemBelongsToDepartment(toy, "sporting_goods", "sporting_goods", "dicks"))
     throw new Error("the module still lists a toy-grade board in Deportes");
+});
+
+checkAsync("the module's Deportes refuses all surf/skate gear but keeps rollerblades and regular sports (2026-09-26, Danny)", async () => {
+  const deptMap = await import(root("scripts/lib/department-map.js"));
+  const { isSurfSkate } = await import(root("scripts/lib/surfskate.js"));
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs"));
+  if (!deck) throw new Error("no real surf/skate item to route");
+  if (deptMap.itemBelongsToDepartment(deck, "sporting_goods", "sporting_goods", "ccs"))
+    throw new Error(`the module still lists surf/skate gear in Deportes: ${surf9Name(deck).slice(0, 60)}`);
+  const blades = { title: "Rollerblade Macroblade 90 Men's Inline Skates", brand: "Rollerblade" };
+  if (isSurfSkate(blades, "dicks"))
+    throw new Error("the module claims rollerblades as surf/skate");
+  if (!deptMap.itemBelongsToDepartment(blades, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module lost rollerblades in Deportes");
+  const ball = { title: "Wilson NCAA Replica Basketball", brand: "Wilson" };
+  if (!deptMap.itemBelongsToDepartment(ball, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module lost regular sports in Deportes");
 });
 
 check("the Surf & Skate department cover exists and is a real image", () => {
