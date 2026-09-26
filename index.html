@@ -16468,6 +16468,48 @@ function mergeCarts(localCart, serverCart){
 }
 
 /* ============================================================
+   CART QUANTITY HEALING (2026-09-26, live money bug).
+
+   INCIDENT: before PR #89, mergeCarts() summed quantities on matching
+   keys. For a logged-in shopper the server cart is an exact mirror of
+   the localStorage cart (cart-save overwrites it after every mutation),
+   so every page load doubled every line: 1 -> 2 -> 4 -> ... -> 256
+   after 8 loads. The live report: two lines at qty 256 (2^8) and a
+   $26,145 declared value.
+
+   PR #89 fixed the cause - the merge is now max(), which is idempotent
+   and can never double. But max() is monotonic: it can never REDUCE an
+   already-inflated quantity either. max(256, 256) is 256 on every load,
+   in localStorage and in the server cart, forever. Nothing else in this
+   file repairs quantities (repairCartWeights only fixes weights).
+
+   This is the healing pass. Fingerprint: the ONLY way a line reaches an
+   exact power of two >= 64 is repeated doubling. The cart UI's sole
+   quantity control is a +1 stepper, so no shopper hand-builds 64, 128
+   or 256 of anything - and 64+ identical sized garments (the incident
+   lines were one size-10 shoe and one size-M panty) are never a real
+   order. Smaller powers of two (2-32) are deliberately left alone:
+   they can be genuine bulk buys (party supplies), and we never silently
+   rewrite a plausible cart.
+
+   Runs inside initCart on every load; healed lines are saved back to
+   localStorage and synced to the server, exactly like the weight repair.
+   ============================================================ */
+function isDoubledQty(qty){
+  return Number.isInteger(qty) && qty >= 64 && (qty & (qty - 1)) === 0;
+}
+
+function repairDoubledQuantities(list){
+  let repaired = 0;
+  const cart = list.map((it) => {
+    if (!isDoubledQty(Number(it.qty))) return it;
+    repaired += 1;
+    return { ...it, qty: 1 };
+  });
+  return { cart, repaired };
+}
+
+/* ============================================================
    CART WEIGHT REPAIR — money, not cosmetics.
 
    BUG (2026-09-18, live): a fireplace TV stand in the cart showed
@@ -16508,6 +16550,13 @@ async function initCart(){
       syncCartToServer();
     }
   }
+  // Heal carts corrupted by the pre-#89 load-doubling bug (see
+  // repairDoubledQuantities above): max() stops new doublings but can
+  // never shrink a 256 back to 1, so without this the corruption is
+  // permanent in localStorage and in the server cart.
+  const healed = repairDoubledQuantities(cart);
+  cart = healed.cart;
+  if (healed.repaired){ saveCartLocal(); syncCartToServer(); }
   const fixed = repairCartWeights(cart);
   cart = fixed.cart;
   if (fixed.changed){ saveCartLocal(); syncCartToServer(); }
