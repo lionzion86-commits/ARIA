@@ -7122,16 +7122,27 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
   return s;
 }
 
-/* A product is a real fin product when its title carries a whole-word
-   fin/fins/flipper/flippers, or its catalogue puts it in a fins
-   department. catalogWordsOf is already whole-word tokenised, so a set
-   hit IS the word-boundary check -- "Fine Lines" can never qualify. */
-const FIN_PRODUCT_WORDS = ['fin', 'fins', 'flipper', 'flippers'];
+/* A product is a real fin product when "fin" is the product itself,
+   not a design word. REPORTED LIVE 2026-09-26 (round 3): SSENSE "Black
+   Whale Fin Snap-On Denim Cargo Pants" slipped through on whole-word
+   "Fin" -- a whale-fin design detail on pants, not flippers. Three
+   gates, any one passes:
+   1. Plural "fins"/"flipper(s)" in the title -- the product IS fins.
+   2. "fin" as the product noun: "fin set", "fin snorkel(ing)",
+      "swim fin", "dive/diving fin", "fin pack", "snorkel fin".
+   3. Catalogue context: the item's department is swim/dive/snorkel/
+      sporting (Dick's buckets all dive gear under sporting_goods, so a
+      bare "fin" there is still dive gear). "Whale Fin ... Pants" fails
+   all three -- bare "fin", no product phrase, apparel department. */
+const FIN_PRODUCT_PLURAL = /\bfins\b|\bflippers?\b/i;
+const FIN_PRODUCT_PHRASES = /\bfin (?:sets?|snorkel(?:ing)?|pack)\b|\bswim fins?\b|\bdiv(?:e|ing) fins?\b|\bsnorkel fins?\b/i;
+const FIN_CONTEXT_DEPTS = /(?:swim|dive|snorkel|sport)/i;
 function isRealFinProduct(item){
-  const words = catalogWordsOf(item);
-  if (FIN_PRODUCT_WORDS.some((w) => words.has(w))) return true;
+  const title = String((item && (item.title || item.name)) || '');
+  if (FIN_PRODUCT_PLURAL.test(title)) return true;
+  if (FIN_PRODUCT_PHRASES.test(title)) return true;
   const depts = (item && item.departments) || [];
-  return depts.some((d) => /\bfins?\b|\bflippers?\b/i.test(String(d)));
+  return depts.some((d) => FIN_CONTEXT_DEPTS.test(String(d)));
 }
 
 /* THE QUERIES THAT MEAN ONLY FLIPPERS (2026-09-26, Danny): "aletas"

@@ -7316,13 +7316,17 @@ group("search synonyms: one concept, many words");
       throw new Error('"sneakers" did not find "Shoes"');
   });
 
-  check("\"aletas\" means ONLY flippers -- strict, no junk", () => {
+  check("\"aletas\" means ONLY flippers -- strict, no junk, no pants", () => {
     /* REPORTED LIVE 2026-09-26, refined same day by Danny: "aletas" is
        flippers and nothing else. The preview returned a serum "for Fine
        Lines and Wrinkles" and a "Walnut Wood Finish" frame because the
-       3-letter "fin" took the prefix shortcut. Two rules now: short
-       concept words match whole words only, and a fins-only query is
-       answered exclusively by real fin products. */
+       3-letter "fin" took the prefix shortcut. Round 3: SSENSE "Black
+       Whale Fin Snap-On Denim Cargo Pants" slipped through on whole-word
+       "Fin" -- a whale-fin design detail on pants, not flippers. Two
+       rules now: short concept words match whole words only, and a
+       fins-only query is answered exclusively by real fin products --
+       "fin" must be the product itself (plural, or a fin-as-noun phrase),
+       not a design word. */
     const pool = [
       P("Speedo Adult Adventure Mask, Snorkel & Fin Set", "Speedo"),
       P("Speedo Adult Mask, Snorkel, and Fin Set", "Speedo"),
@@ -7330,28 +7334,41 @@ group("search synonyms: one concept, many words");
       P("The Ordinary Matrixyl 10% + Hyaluronic Acid for Fine Lines and Wrinkles", "The Ordinary"), // "fine" junk
       P("Mainstays 4 x 6 Picture Frame, Walnut Wood Finish", "Mainstays"), // "finish" junk
       P("Final Clearance Swim Goggles", "Speedo"), // "final" junk
+      P("Black Whale Fin Snap-On Denim Cargo Pants", "NULLUS", "ssense"), // REGRESSION 2026-09-26: pants, not flippers
       P("Cotton T-Shirt", "Hanes"), // control: not fins
     ];
-    const isFinTitle = (t) => /\b(?:fin|fins|flipper|flippers)\b/i.test(t);
+    // Mirror of the page's isRealFinProduct gates (plural / fin-as-noun
+    // phrase). Department context is covered by the separate check below.
+    const isRealFin = (t) =>
+      /\bfins\b|\bflippers?\b/i.test(t) ||
+      /\bfin (?:sets?|snorkel(?:ing)?|pack)\b|\bswim fins?\b|\bdiv(?:e|ing) fins?\b|\bsnorkel fins?\b/i.test(t);
     const seen = [];
     for (const q of ["aletas", "aleta", "fins", "fin", "flipper", "flippers"]) {
       const { items } = cs.rankCatalogMatches(pool, q, {});
       const titles = items.map((i) => i.title);
       seen.push(JSON.stringify(titles));
-      // The three real fin sets come back, first.
-      eq(titles.filter(isFinTitle).length, 3, `"${q}" real fin count`);
-      eq(titles.slice(0, 3).every(isFinTitle), true, `"${q}" fin sets first`);
+      // Exactly the three real fin sets come back, nothing else.
+      eq(titles.filter(isRealFin).length, 3, `"${q}" real fin count`);
+      eq(titles.length, 3, `"${q}" result count`);
+      if (titles.includes("Black Whale Fin Snap-On Denim Cargo Pants"))
+        throw new Error(`"${q}" returned PANTS for a flippers query`);
       // EVERY result is a real fin product -- no junk, no control.
       for (const t of titles) {
-        if (!isFinTitle(t)) throw new Error(`"${q}" leaked non-fin product: ${t}`);
+        if (!isRealFin(t)) throw new Error(`"${q}" leaked non-fin product: ${t}`);
       }
     }
     for (const sig of seen) eq(sig, seen[0], "identical result set and order");
-    // The full phrase the dad typed: strict too.
-    const phrase = cs.rankCatalogMatches(pool, "aletas de buceo", {}).items.map((i) => i.title);
+    // The full phrase the dad typed: production translates first
+    // (catalogSearch: translateQuery -> rankCatalogMatches), so the test
+    // mirrors that path -- "aletas de buceo" ranks as "diving fins".
+    const translated = pageQuery.translateQuery("aletas de buceo").query;
+    eq(translated, "diving fins", "phrase translation");
+    const phrase = cs.rankCatalogMatches(pool, translated, {}).items.map((i) => i.title);
     if (!phrase.some((t) => /fin set/i.test(t))) throw new Error('"aletas de buceo" missed the fin sets');
+    if (phrase.includes("Black Whale Fin Snap-On Denim Cargo Pants"))
+      throw new Error('"aletas de buceo" returned PANTS for a flippers query');
     for (const t of phrase) {
-      if (!isFinTitle(t)) throw new Error(`"aletas de buceo" leaked non-fin product: ${t}`);
+      if (!isRealFin(t)) throw new Error(`"aletas de buceo" leaked non-fin product: ${t}`);
     }
     // Word boundary at the unit level: "fin" never matches fine/finish/final.
     const junkWords = cs.catalogWordsOf(P("for Fine Lines and Wrinkles Wood Finish Final", ""));
@@ -7359,6 +7376,19 @@ group("search synonyms: one concept, many words");
     // But the exact word still hits.
     const finWords = cs.catalogWordsOf(P("Mask, Snorkel & Fin Set", "Speedo"));
     eq(cs.catalogTokenHits(finWords, ["fin"]), 1, '"fin" must still hit "Fin Set"');
+  });
+
+  check("bare 'fin' qualifies only with dive context", () => {
+    /* Round 3, production path: Dick's buckets all dive gear under
+       sporting_goods, so a bare "fin" there is dive gear even without a
+       fin-as-noun phrase. The SSENSE pants sit in an apparel department,
+       so bare "Fin" there is a design word. */
+    const bareFinDive = { title: "Aqua Lung SlingShot Fin", brand: "Aqua Lung", retailer: "dicks", price: 120, departments: ["sporting_goods"] };
+    const bareFinApparel = { title: "Black Whale Fin Snap-On Denim Cargo Pants", brand: "NULLUS", retailer: "ssense", price: 326, departments: ["men"] };
+    const r1 = cs.rankCatalogMatches([bareFinDive], "aletas", {}).items.map((i) => i.title);
+    eq(r1.length, 1, "sporting-goods bare 'fin' qualifies");
+    const r2 = cs.rankCatalogMatches([bareFinApparel], "aletas", {}).items;
+    eq(r2.length, 0, "apparel bare 'fin' excluded");
   });
 
   check("other groups behave the same way", () => {
