@@ -47,6 +47,33 @@ export function loadPageWeightSlice() {
   return sandbox.__exports;
 }
 
+/* THE CATEGORY RAILS' CURATION, on its own. categoryRailPicks is written
+   self-contained (no page functions) precisely so this slice can run
+   it in a vm: sale-first across the category's stores, Ofertas-
+   deprioritised, featured fill. */
+export function loadPageCategoryRailSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("CATEGORY_RAIL_PICKS:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("CATEGORY_RAIL_PICKS:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html category-rail markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { CATEGORY_RAIL_SALE, CATEGORY_RAIL_TOTAL, categoryRailPicks };",
+    sandbox,
+    { filename: "index.html#categoryRail" },
+  );
+  return sandbox.__exports;
+}
+
 const AUTO_GLOSSARY_START = "/* ==== GLOSSARY-BLOCK-START";
 const AUTO_GLOSSARY_END = "\n/* ============================================================\n   ARIA AUTO'S PARTS SOURCES";
 

@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5276,7 +5276,7 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Surf & Skate > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5309,7 +5309,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Surf & Skate > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5544,6 +5544,7 @@ check("the Gymshark rail opens on a model shot, socks second", () => {
     [sale("macys", "coat", 50, 100), sale("macys", "dress", 20, 100)], [], new Set());
   eq(macys.map(p => p.title).join(), "dress,coat", "a non-Gymshark rail changed order");
 });
+
 
 check("the store rails reuse the page's own cards, feeds and registry", () => {
   const railAnchor = shopfrontSrc.indexOf("STORE RAILS -- THE MALL, NOT THE DIRECTORY");
@@ -8757,30 +8758,208 @@ check("every store rail keeps its branded header, on all three surfaces", () => 
   }
 });
 
-check("the twenty rails stand in mall order on all three surfaces", () => {
+check("the rails stand in mall order: category-first on the shopfronts, per-store in Tiendas", () => {
 
-  /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
-     phone's shopfront, the laptop's shopfront, and the Tiendas page's
-     vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
-     mall stops feeling like one mall. */
+  /* 2026-09-26, DANNY: the nine surf/skate store rails leave the front
+     page. One mixed "Surf & Skate" category carousel replaces them on
+     the phone and the laptop; the Tiendas vitrinas keep all twenty
+     store rails. */
   const src = HOME_SRC();
-  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): twenty rails, one
-     order on the phone, the laptop, and the Tiendas vitrinas -- the
-     eleven from the 4-store batch plus the nine surf/skate/spearfishing
-     shops. */
-  const want = ["footlocker", "newbalance", "sephora", "macys", "kohls", "dicks", "victoriassecret", "costco", "bhphoto", "gymshark", "ssense",
-    "nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
+  const eleven = ["footlocker", "newbalance", "sephora", "macys", "kohls", "dicks", "victoriassecret", "costco", "bhphoto", "gymshark", "ssense"];
+  const nine = ["nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
+  const twenty = [...eleven, ...nine];
 
-  for (const [name, prefix, from, to] of [
-    ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
-    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
-    ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
+  for (const [name, prefix, rowPrefix, from, to] of [
+    ["the phone's shopfront", "mStoreRail", "mCategoryRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
+    ["the laptop's shopfront", "dStoreRail", "dCategoryRail", 'id="desktopShopfront"', 'id="whyUs"'],
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
     const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
-    eq(found.join(","), want.join(","), `${name} does not carry the twenty rails in mall order`);
-
+    eq(found.join(","), eleven.join(","), `${name} does not carry the eleven store rails in mall order`);
+    /* Exactly one category rail, and it is Surf & Skate. */
+    const cats = [...seg.matchAll(new RegExp(`id="${rowPrefix}-([a-z_]+)"`, "g"))].map(m => m[1]);
+    eq(cats.join(","), "surf_skate", `${name} does not carry exactly the Surf & Skate category rail`);
+    /* None of the nine surf/skate stores keeps its own rail here. */
+    for (const k of nine){
+      if (seg.includes(`data-store-rail="${k}"`)) throw new Error(`${name} still shows a ${k} store rail`);
+    }
   }
+
+  /* The Tiendas vitrinas keep all twenty store rails in mall order. */
+  const tseg = stripHtmlComments(forwardSlice(src, 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa', "the Tiendas vitrinas"));
+  const tfound = [...tseg.matchAll(/id="tStoreRail-([a-z]+)"/g)].map(m => m[1]);
+  eq(tfound.join(","), twenty.join(","), "the Tiendas vitrinas do not carry the twenty rails in mall order");
+});
+
+check("the Surf & Skate category rail mixes stores, sale-first", () => {
+  /* 2026-09-26, DANNY: one Surf & Skate carousel on the front page
+     replaces the nine individual store rails. Markdowns lead (discount
+     deciding), mixed across the nine stores; featured picks fill. */
+  const { CATEGORY_RAIL_SALE, CATEGORY_RAIL_TOTAL, categoryRailPicks } = loadPageCategoryRailSlice();
+  const nine = ["nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
+  const sale = (retailer, title, price, originalPrice) =>
+    ({ retailer, title, price, originalPrice, image: "img" });
+  const plain = (retailer, title, price) => ({ retailer, title, price, image: "img" });
+
+  /* Sale items lead, biggest discount first, across stores. */
+  const picks = categoryRailPicks(nine,
+    [sale("ccs", "deck A", 40, 100), sale("valsurf", "deck B", 30, 100), sale("mainland", "deck C", 90, 100)],
+    [plain("ccs", "wax", 5)], new Set());
+  eq(picks.slice(0, 3).map(p => p.title).join(), "deck B,deck A,deck C",
+    "the sale lead is not discount-ordered");
+  eq(new Set(picks.slice(0, 3).map(p => p.retailer)).size, 3,
+    "the sale lead is not mixed across stores");
+  eq(picks[3].title, "wax", "the featured fill did not follow the sale lead");
+
+  /* A store outside the category never appears. */
+  const outsiders = categoryRailPicks(nine,
+    [sale("macys", "dress", 20, 100)], [plain("sephora", "perfume", 50)], new Set());
+  eq(outsiders.length, 0, "a non-category store leaked into the rail");
+
+  /* Dedup, price/image gates, shelf cap. */
+  const dupes = categoryRailPicks(nine,
+    [sale("ccs", "deck", 40, 100), sale("ccs", "deck", 40, 100),
+     { retailer: "ccs", title: "noimg", price: 40, originalPrice: 100 },
+     sale("ccs", "free", 0, 100)],
+    [], new Set());
+  eq(dupes.filter(p => p.title === "deck").length, 1, "a duplicate sale item rode twice");
+  eq(dupes.some(p => p.title === "noimg"), false, "an imageless item made the shelf");
+  const many = [];
+  for (let i = 0; i < 40; i++) many.push(plain("ccs", "item" + i, 10 + i));
+  eq(categoryRailPicks(nine, [], many, new Set()).length <= CATEGORY_RAIL_TOTAL, true,
+    "the category shelf overran its length");
+
+  /* The sale lead caps at CATEGORY_RAIL_SALE even when more markdowns exist. */
+  const lots = [];
+  for (let i = 0; i < 20; i++) lots.push(sale("ccs", "sale" + i, 50, 100));
+  const capped = categoryRailPicks(nine, lots, [plain("ccs", "fill", 10)], new Set());
+  eq(capped.filter(p => p.title.startsWith("sale")).length <= CATEGORY_RAIL_SALE, true,
+    "the sale lead ignored its cap");
+
+  /* Fail closed. */
+  eq(categoryRailPicks(nine, [], [], new Set()).length, 0, "an empty category broke the curation");
+  eq(categoryRailPicks([], [], [], new Set()).length, 0, "no stores broke the curation");
+});
+
+check("the category rail is wired: config, lazy paint, honest cards", () => {
+  const src = HOME_SRC();
+  /* The pilot entry names its nine stores and its department door. */
+  const cfg = forwardSlice(src, "const CATEGORY_RAILS = [", "];", "CATEGORY_RAILS");
+  if (!/key: 'surf_skate'/.test(cfg)) throw new Error("CATEGORY_RAILS lost the surf_skate entry");
+  if (!/stores: SURFSKATE_RAIL_STORES/.test(cfg)) throw new Error("the category rail is not fed by SURFSKATE_RAIL_STORES");
+  if (!/openCatalog\('department','surf_skate'\)/.test(cfg))
+    throw new Error("the category rail's door does not open the Surf & Skate department");
+  const stores = forwardSlice(src, "const SURFSKATE_RAIL_STORES = [", "];", "SURFSKATE_RAIL_STORES");
+  for (const k of ["nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"])
+    if (!stores.includes(`'${k}'`)) throw new Error(`SURFSKATE_RAIL_STORES lost ${k}`);
+  /* The lazy painter watches the category rows through the same
+     IntersectionObserver as the store rails. */
+  const init = forwardSlice(src, "function initStoreRails(){", "function mobileCatCardHTML(", "initStoreRails");
+  if (!/\[data-category-rail-row\]/.test(init))
+    throw new Error("initStoreRails is not watching the category rail rows");
+  if (!/paintCategoryRail/.test(init))
+    throw new Error("initStoreRails never paints a category rail");
+  /* Danny's rule: every category card shows brand AND store. railCardHTML
+     is the shared card -- pin both halves at the source. */
+  const card = forwardSlice(src, "function railCardHTML(p, onclick, attr){", "\n}\n", "railCardHTML");
+  if (!/retailerBadgeHTML\(p\.retailer/.test(card))
+    throw new Error("a rail card stopped showing the store");
+  if (!/brandEyebrowHTML\(p\.brand/.test(card))
+    throw new Error("a rail card stopped showing the brand");
+});
+
+check("store rail names truncate instead of overlapping Ver tienda", () => {
+  /* 2026-09-26, DANNY'S IPHONE QA: "MAINLAND SKATE & SURF" overlapped the
+     "Ver tienda" link at phone widths. Every rail header's store name
+     must truncate with an ellipsis and let the link keep its space. */
+  const src = stripHtmlComments(readFileSync(root("index.html"), "utf8"));
+  const sections = [...src.matchAll(/<section[^>]*data-store-rail="([a-z]+)"[^>]*>([\s\S]*?)<\/section>/g)];
+  if (sections.length < 20) throw new Error(`expected at least 20 store rail sections, found ${sections.length}`);
+  for (const [, key, body] of sections) {
+    /* The pill-style headers (New Balance, Kohl's, Dick's, B&H, Gymshark)
+       carry the short name as the pill itself -- nothing to truncate. */
+    const name = body.match(/<span class="([^"]*)"[^>]*>[^<]*<\/span>\s*<\/span>\s*<button[^>]*>Ver tienda/);
+    if (!name) continue;
+    const cls = name[1];
+    if (!/\btruncate\b/.test(cls))
+      throw new Error(`${key}: the store name does not truncate (${cls})`);
+    if (!/\bmin-w-0\b/.test(cls))
+      throw new Error(`${key}: the store name cannot shrink inside its flex row (${cls})`);
+  }
+  /* And the two new category headers ship truncated too. */
+  for (const m of src.matchAll(/data-category-rail="surf_skate"[\s\S]*?class="([^"]*text-\[[^\]]+\][^"]*)"[^>]*>Surf &amp; Skate/g)) {
+    if (!/\btruncate\b/.test(m[1])) throw new Error("the Surf & Skate header does not truncate");
+  }
+});
+
+check("the Surf & Skate department page carries the per-store rails", () => {
+  /* 2026-09-26, DANNY: the nine stores keep their own carousels INSIDE
+     the Surf & Skate department page, under two mixed rails. */
+  const src = HOME_SRC();
+  if (!/function surfSkateDeptRailsHTML\(byRetailer\)/.test(src))
+    throw new Error("surfSkateDeptRailsHTML is gone");
+  const fn = forwardSlice(src, "function surfSkateDeptRailsHTML(byRetailer){", "\n}\n", "surfSkateDeptRailsHTML");
+  if (!/SURFSKATE_RAIL_STORES/.test(fn)) throw new Error("the department rails lost their store list");
+  if (!/ss-ofertas/.test(fn) || !/ss-destacados/.test(fn))
+    throw new Error("the department lost a mixed rail");
+  if (!/storeRailPicks\(key, all, all/.test(fn))
+    throw new Error("the per-store department rails are not sale-led");
+  /* The landing actually renders them, only for Surf & Skate, only
+     unfiltered. */
+  const feed = forwardSlice(src, "function renderCatalogFeed(){", "function storeCardHTML(r){", "renderCatalogFeed");
+  if (!/catalogState\.key === 'surf_skate'[^;]*surfSkateDeptRailsHTML\(byRetailer\)/.test(feed))
+    throw new Error("renderCatalogFeed does not mount the Surf & Skate rails");
+});
+
+checkAsync("fetchWithTimeout turns a stalled fetch into a miss", async () => {
+  /* 2026-09-26, DANNY'S IPHONE QA: the rails stayed header-only because a
+     fetch hung on a bad signal with no deadline. The helper aborts past
+     its deadline so the page paints from partial data instead of never
+     painting. */
+  const src = HOME_SRC();
+  const from = src.indexOf("const FETCH_DEADLINE_MS");
+  const to = src.indexOf("function loadDepartmentCache(){");
+  if (from < 0 || to < 0 || to <= from) throw new Error("fetchWithTimeout moved -- update this test");
+  const calls = [];
+  const sandbox = {
+    console,
+    window: { AbortController: globalThis.AbortController },
+    setTimeout: (fn, ms) => { calls.push({ fn, ms }); return 1; },
+    clearTimeout: () => {},
+    fetch: (url, opts = {}) => new Promise((resolve, reject) => {
+      const signal = opts.signal;
+      if (signal) {
+        if (signal.aborted) return reject(new Error("aborted"));
+        signal.addEventListener("abort", () => reject(Object.assign(new Error("aborted"), { name: "AbortError" })));
+      }
+      /* never resolves on its own -- the deadline must kill it */
+    }),
+    AbortController: globalThis.AbortController,
+  };
+  const vm = await import("node:vm");
+  vm.createContext(sandbox);
+  vm.runInContext(src.slice(from, to) + "\n;globalThis.__exports = { fetchWithTimeout, FETCH_DEADLINE_MS };", sandbox);
+  const { fetchWithTimeout } = sandbox.__exports;
+  /* A hung fetch rejects once the stubbed timer fires. */
+  const p = fetchWithTimeout("/x.json", 50);
+  let settled = null;
+  p.then(() => { settled = "resolved"; }, (e) => { settled = "rejected:" + e.name; });
+  eq(calls.length, 1, "no deadline was armed");
+  eq(calls[0].ms, 50, "the deadline ignored its argument");
+  calls[0].fn(); /* fire the abort */
+  await new Promise(r => setTimeout(r, 10));
+  if (settled !== "rejected:AbortError") throw new Error(`a hung fetch did not abort, settled=${settled}`);
+  /* A healthy fetch passes through untouched. */
+  sandbox.fetch = () => Promise.resolve({ ok: true });
+  const res = await fetchWithTimeout("/y.json", 50);
+  eq(res.ok, true, "a healthy fetch did not pass through");
+  /* And the rail path actually uses it: the sales-cache fetch that used
+     to hang the rails, plus the catalogue fetches. */
+  for (const needle of [
+    "fetchWithTimeout('/.netlify/functions/sales-cache'",
+    "fetchWithTimeout('/department-cache.json'",
+    "CATALOGUE_FILES.map(url => fetchWithTimeout(url",
+  ]) if (!src.includes(needle)) throw new Error(`the rail path does not use the deadline: ${needle}`);
 });
 
 check("the store rails paint lazily below the fold", () => {
