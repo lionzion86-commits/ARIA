@@ -5542,16 +5542,26 @@ check("Costco's rail renders real picks with price and photo", () => {
     if (!(p.price > 0) || !p.image) throw new Error("a Costco pick has no price or no photo");
     if (costcoBucketOf(p) === "dulces") throw new Error("candy reached Costco's rail");
   }
-  // The treasure hunt leads with electronics on the real catalogue.
-  if (costcoBucketOf(picks[0]) !== "electronica")
-    throw new Error("Costco's rail does not lead with electronics");
+  // DANNY'S WOMEN-SHOPPER LENS (2026-09-26): the rail leads with cozy
+  // home (textiles, then plush/decor) on the real catalogue -- never a
+  // TV mount, cable or other tech accessory.
+  const { costcoTreasureRank } = loadPageStoreRailSlice();
+  if (costcoTreasureRank(picks[0]) > -2)
+    throw new Error("Costco's rail does not lead with cozy home: " + picks[0].title);
+  const BORING = /(wall\smount|tv\smount|\bmount\b|mounting|soporte|cable\smanagement|\bhdmi\b|\bcables?\b|adaptador|\badapter\b)/i;
+  for (const p of picks.slice(0, 6))
+    if (BORING.test(`${p.title} ${p.brand || ""}`))
+      throw new Error("a tech accessory leads Costco's rail: " + p.title);
 });
 
-check("Costco's curation ranks electronics, finds, clothes, home -- never candy", () => {
-  /* 2026-09-26, DANNY'S CALL: Costco is a treasure hunt, not a brand
-     directory. Electronics first, then the interesting finds (gadgets,
-     gemstone boxes, quirky discoveries), then clothes, then home, then
-     everything else. Candy belongs in Fiestas y Eventos, never here. */
+check("Costco's curation ranks cozy home first, boring tech last -- never candy", () => {
+  /* 2026-09-26, DANNY'S CALL: the Costco shopper is women. Home textiles
+     (throws, blankets, bedding, pillows) lead, then plush/decor, then
+     kitchen, then beauty, then the interesting finds (gadgets, quirky
+     discoveries), then clothes, then small electronics, then everything
+     else. Boring tech accessories (TV mounts, cables) and freight
+     furniture sink to the back -- both stay shoppable, neither leads.
+     Candy belongs in Fiestas y Eventos, never here. */
   const { costcoCuratedItems, costcoBucketOf, COSTCO_CAROUSEL_MAX } = loadPageStoreRailSlice();
   const mk = (title, departments, extra = {}) => ({
     retailer: "costco", title, price: 29.99,
@@ -5559,14 +5569,21 @@ check("Costco's curation ranks electronics, finds, clothes, home -- never candy"
     brand: "", departments, ...extra,
   });
   const items = [
-    mk("Juguete de peluche", ["juguetes"]),
-    mk("Chocolate belga surtido", ["dulces"]),
-    mk("Sofá seccional de tela", ["hogar"]),
-    mk("Camisa de vestir", ["bebe"]),
-    mk("Caja de gemas coleccionables", ["hogar"]),
-    mk("Laptop 15 pulgadas", ["electronica"]),
-    mk("Audífonos bluetooth", ["belleza"]),
-    mk("Toallas de baño", ["hogar"]),
+    mk("Juguete de peluche", ["juguetes"]),              // plush, rank -2
+    mk("Chocolate belga surtido", ["dulces"]),            // excluded: candy
+    mk("Sofá seccional de tela", ["hogar"]),              // freight furniture, rank 7
+    mk("Camisa de vestir", ["bebe"]),                     // apparel, rank 2
+    mk("Caja de gemas coleccionables", ["hogar"]),        // treasure find, rank 1
+    mk("Laptop 15 pulgadas", ["electronica"]),            // hero electronics, rank 3
+    mk("Audífonos bluetooth", ["belleza"]),               // beauty bucket beats the audio keyword, rank 0
+    mk("Funda de almohada decorativa", ["hogar"]),        // home textile, rank -3
+    mk("Vela aromática de vainilla", ["hogar"]),          // decor, rank -2
+    mk("Batería de cocina antiadherente", ["hogar"]),    // kitchen, rank -1
+    mk("Soporte de pared para TV 55 pulg", ["electronica"]), // boring tech, rank 6
+    mk("Cable HDMI 8K 3 metros", ["electronica"]),        // boring tech, rank 6
+    mk("Toallas de baño", ["hogar"]),                     // ordinary home, rank 5
+    mk("Manta para bebé", ["bebe"]),                      // home textile beats the baby bucket, rank -3
+    mk("Mountain Bouquet", ["hogar"]),                    // flowers, NOT a TV mount -- rank -2, never 6
     mk("Sin precio", ["electronica"], { price: 0 }),
     mk("Sin foto", ["electronica"], { image: "" }),
     mk("Otra tienda", ["electronica"], { retailer: "samsclub" }),
@@ -5579,19 +5596,38 @@ check("Costco's curation ranks electronics, finds, clothes, home -- never candy"
     throw new Error("the curation kept an unrenderable or foreign item");
   eq(titles.filter(t => t === "Laptop 15 pulgadas").length, 1, "the duplicate collapsed");
   const rankOf = (t) => titles.indexOf(t);
-  if (!(rankOf("Laptop 15 pulgadas") < rankOf("Caja de gemas coleccionables")))
-    throw new Error("electronics do not lead the treasure finds");
-  if (!(rankOf("Audífonos bluetooth") < rankOf("Camisa de vestir")))
+  // the lead: home textiles, ahead of everything
+  if (!(rankOf("Funda de almohada decorativa") < rankOf("Juguete de peluche")))
+    throw new Error("home textiles do not lead the plush");
+  if (!(rankOf("Manta para bebé") < rankOf("Vela aromática de vainilla")))
+    throw new Error("a blanket does not beat decor");
+  // plush and decor ahead of kitchen, kitchen ahead of beauty
+  if (!(rankOf("Vela aromática de vainilla") < rankOf("Batería de cocina antiadherente")))
+    throw new Error("decor does not beat kitchen");
+  if (!(rankOf("Mountain Bouquet") < rankOf("Batería de cocina antiadherente")))
+    throw new Error("a floral bouquet was treated as a TV mount");
+  if (!(rankOf("Batería de cocina antiadherente") < rankOf("Audífonos bluetooth")))
+    throw new Error("kitchen does not beat beauty");
+  // beauty ahead of finds, finds ahead of clothes, clothes ahead of electronics
+  if (!(rankOf("Audífonos bluetooth") < rankOf("Caja de gemas coleccionables")))
+    throw new Error("beauty does not beat the treasure finds");
+  if (!(rankOf("Caja de gemas coleccionables") < rankOf("Camisa de vestir")))
     throw new Error("finds do not beat clothes");
-  if (!(rankOf("Camisa de vestir") < rankOf("Sofá seccional de tela")))
-    throw new Error("clothes do not beat home");
-  if (!(rankOf("Sofá seccional de tela") < rankOf("Juguete de peluche")))
-    throw new Error("home does not beat the rest");
+  if (!(rankOf("Camisa de vestir") < rankOf("Laptop 15 pulgadas")))
+    throw new Error("clothes do not beat electronics");
+  if (!(rankOf("Laptop 15 pulgadas") < rankOf("Toallas de baño")))
+    throw new Error("hero electronics do not beat ordinary home");
+  // the back of the shelf: boring tech, then furniture -- both shoppable, neither leading
+  if (!(rankOf("Toallas de baño") < rankOf("Soporte de pared para TV 55 pulg")))
+    throw new Error("ordinary home does not beat a TV mount");
+  if (!(rankOf("Cable HDMI 8K 3 metros") < rankOf("Sofá seccional de tela")))
+    throw new Error("a cable does not beat freight furniture");
+  if (rankOf("Sofá seccional de tela") !== titles.length - 1)
+    throw new Error("freight furniture is not last");
   if (out.length > COSTCO_CAROUSEL_MAX) throw new Error("the curation overflows its carousel");
   eq(costcoBucketOf({ departments: ["Dulces y Chocolates"] }), "dulces", "bucket detection");
   eq(costcoBucketOf({ department: "Electrónica" }), "electronica", "singular department field");
 });
-
 check("Costco's storefront follows the standard store template", () => {
   /* 2026-09-26, DANNY'S QA: the Costco store page (tap "Ver tienda") must
      read like every other store page -- carousel first, then category
@@ -5703,10 +5739,11 @@ check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surfac
     throw new Error("withoutUnshippableItems is not wired into the load pipeline");
 });
 
-check("Costco's rail leads with a small shippable electronic, never a TV", () => {
-  /* 2026-09-26, DANNY'S QA: the shelf's lead card was a 65-inch TV.
-     With TVs filtered at the load boundary, the hero is the best small
-     electronic: projector, soundbar, laptop, phone, camera, drone. */
+check("Costco's rail leads with cozy home, never a TV", () => {
+  /* 2026-09-26, DANNY'S QA: the shelf's lead card used to be a 65-inch TV.
+     With TVs filtered at the load boundary and the women-shopper lens in
+     place, home textiles lead the rail; small electronics still rank, but
+     behind cozy home, decor, kitchen and beauty. */
   const { costcoCuratedItems } = loadPageStoreRailSlice();
   const mk = (title, departments, extra = {}) => ({
     retailer: "costco", title, price: 29.99,
@@ -5715,12 +5752,16 @@ check("Costco's rail leads with a small shippable electronic, never a TV", () =>
   });
   const items = [
     mk("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer", ["electronica"]),
+    mk("Manta tejida artesanal", ["hogar"]),
     mk("Camisa de vestir", ["bebe"]),
     mk("Toallas de baño", ["hogar"]),
   ];
   const out = costcoCuratedItems(items);
-  if (!/soundbar|proyector|projector/i.test(out[0].title))
-    throw new Error(`the hero is not a small electronic: ${out[0].title}`);
+  if (!/manta/i.test(out[0].title))
+    throw new Error(`the lead is not cozy home: ${out[0].title}`);
+  const titles = out.map(p => p.title);
+  if (!(titles.indexOf("Manta tejida artesanal") < titles.indexOf("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer")))
+    throw new Error("a soundbar leads cozy home");
 });
 
 check("every Fiestas sub-rail has a non-empty product set", () => {
