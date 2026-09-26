@@ -8841,6 +8841,34 @@ check("the Surf & Skate category rail mixes stores, sale-first", () => {
   eq(categoryRailPicks([], [], [], new Set()).length, 0, "no stores broke the curation");
 });
 
+check("Surf & Skate sale socks sort after real gear (2026-09-26, Danny)", () => {
+  /* Sales lead -- unless the sale is socks. A markdown on foot socks or
+     fin socks must not lead the tab ahead of boards, wetsuits and
+     helmets; board socks (board covers) are real gear and keep their
+     discount-decided place. */
+  const { categoryRailPicks } = loadPageCategoryRailSlice();
+  const nine = ["nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
+  const sale = (retailer, title, price, originalPrice) =>
+    ({ retailer, title, price, originalPrice, image: "img" });
+  const socks = sale("mainland", "Nike SB Everyday Elevated Skate Socks (3 Pack)", 5.20, 26); // -80%
+  const board = sale("ccs", "Resin Tint Hibiscus Longboard", 116.75, 285.58);                 // -59%
+  const wetsuit = sale("surfstation", "Xcel Axis 3/2mm Fullsuit Wetsuit", 114.08, 350.80);    // -67%
+  const boardSock = sale("parrot", "Veia Explorer Surfboard Sock", 30, 60);                   // -50%, real gear
+  const picks = categoryRailPicks(nine, [socks, board, wetsuit, boardSock], [], new Set(), 12,
+    { demoteSockSales: true });
+  const order = picks.map(p => p.title);
+  if (order.indexOf(socks.title) < order.indexOf(board.title))
+    throw new Error("a sale sock led ahead of a sale board");
+  if (order.indexOf(socks.title) < order.indexOf(wetsuit.title))
+    throw new Error("a sale sock led ahead of a sale wetsuit");
+  if (order.indexOf(boardSock.title) > order.indexOf(socks.title))
+    throw new Error("a board sock was demoted with the foot socks");
+  /* Without the flag, discount decides as before -- the flag changes
+     nothing for other rails. */
+  const plain = categoryRailPicks(nine, [socks, board], [], new Set(), 12);
+  eq(plain[0].title, socks.title, "the sock flag leaked into other rails");
+});
+
 check("the category rail is wired: config, lazy paint, honest cards", () => {
   const src = HOME_SRC();
   /* The pilot entry names its nine stores and its department door. */
@@ -11179,6 +11207,8 @@ check("toy-grade boards are refused by Surf & Skate and claimed by Juguetes", ()
     throw new Error("the Surf & Skate department page still claims a toy-grade board");
   if (!itemBelongsToDepartment(toy, "sporting_goods", "toys", "dicks"))
     throw new Error("the Juguetes department page does not claim a toy-grade board");
+  if (itemBelongsToDepartment(toy, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the Deportes department page still claims a toy-grade board");
   const ccs = surf9Catalog("ccs");
   const deck = ccs.find(p => isSurfSkate(p, "ccs") && !isToyGradeSkate(p));
   if (!deck) throw new Error("no real CCS deck to route");
@@ -11203,6 +11233,7 @@ check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny
     [{ title: "Jumbo Baby Animal Plush", brand: "Jumbo" }, "bebe"],
     [{ title: "LEGO Donkey Kong Bundle", brand: "LEGO" }, "juguetes"],
     [{ title: 'Barbie 31" Skateboard', brand: "Barbie", type: "SkateboardsLongboards" }, "sporting_goods"],
+    [{ title: "XBOX Series X: Gaming Console, 1TB SSD", brand: "" }, "electronics"],
   ];
   const no = [
     [{ title: "Berkshire Ultra Plush Throw", brand: "Berkshire" }, "hogar"],
@@ -11210,6 +11241,10 @@ check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny
     [{ title: "The Big One Oversized Supersoft Plush Throw Blanket", brand: "Kohl's" }, "kids"],
     [{ title: "Juniors' Mighty Fine Plush Halloween Pants", brand: "" }, "clothing"],
     [{ title: "Men's Nintendo The Legend of Zelda Link Sword Graphic Tee", brand: "Kohl's" }, "men"],
+    [{ title: "Mainstays Body Pillowcase – Cozy Plush – Blush Pink – 20\"x52\" – 1 Pack", brand: "" }, "home_decor"],
+    [{ title: "Monster 8K HDMI Cable 4ft, Ultra High Speed HDMI 2.1 Cord with LED Connectors, 48Gbps, 4K 144Hz Gaming, HDR for PS5, Xbox, TV", brand: "" }, "electronics"],
+    [{ title: "Waci Plush Kids Hooded Towel", brand: "" }, "kids"],
+    [{ title: "Herschel Supply x LEGO Classic Backpack - Abstract Bricks", brand: "Herschel" }, "clothing"],
   ];
   for (const [item, bucket] of yes)
     if (!isToy(item, "costco", bucket)) throw new Error(`not claimed as a toy: ${item.title}`);
@@ -11232,6 +11267,16 @@ checkAsync("the surf_skate department answers through the module's itemBelongsTo
   const tee = ccs.find(p => !isSurfSkate(p, "ccs"));
   if (tee && deptMap.itemBelongsToDepartment(tee, "clothing", "surf_skate", "ccs"))
     throw new Error(`Surf & Skate claimed non-gear: ${surf9Name(tee).slice(0, 50)}`);
+});
+
+checkAsync("the sporting_goods department refuses toy-grade boards in the module too (2026-09-26, Danny)", async () => {
+  const deptMap = await import(root("scripts/lib/department-map.js"));
+  const { isToyGradeSkate } = await import(root("scripts/lib/toys.js"));
+  const dicks = surf9Catalog("dicks");
+  const toy = dicks.find(p => isToyGradeSkate(p));
+  if (!toy) throw new Error("no toy-grade board to route");
+  if (deptMap.itemBelongsToDepartment(toy, "sporting_goods", "sporting_goods", "dicks"))
+    throw new Error("the module still lists a toy-grade board in Deportes");
 });
 
 check("the Surf & Skate department cover exists and is a real image", () => {

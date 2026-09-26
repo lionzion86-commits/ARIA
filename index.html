@@ -6647,6 +6647,9 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
      this department's only other signal. Gated on isFootwear so a
      "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
   if (deptKey === 'sporting_goods' && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(rawTitleOf(item))) return false;
+  /* Toy-aisle character skateboards are Juguetes-only (2026-09-26,
+     Danny): Deportes refuses them the same way Surf & Skate does. */
+  if (deptKey === 'sporting_goods' && isToyGradeSkate(item)) return false;
   /* Curvy is a filter over apparel, the way Ofertas is a filter over
      everything -- not a category a retailer scrapes into. */
   if (dept.extendedSizesOnly){
@@ -7399,7 +7402,7 @@ function railCardHTML(p, onclick, attr){
   return `<button onclick="${onclick}" ${attr}
     class="flex-shrink-0 w-[172px] text-left rounded-2xl overflow-hidden focus-ring"
     style="background:#fff">
-    <span class="relative block w-full h-[172px]" style="background:#fff">
+    <span class="relative block w-full h-[172px] overflow-hidden" style="background:#fff">
       ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) })}
       ${hasOriginal ? `<span class="absolute top-2 left-2 text-[13px] font-extrabold px-2 py-1 rounded-full"
         style="background:#F4C463; color:var(--navy)">-${pct}%</span>` : ''}
@@ -8565,6 +8568,9 @@ function costcoCuratedItems(items){
    labelled as most-sold. (Keep it that way: no calls to page functions.) */
 const CATEGORY_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
 const CATEGORY_RAIL_TOTAL = 12; // shelf length; fewer without apology
+/* Foot socks and fin socks only -- board socks (board covers) are real
+   surf gear and are never demoted. */
+const SURFSKATE_FOOT_SOCK_RX = /\b(skate socks?|fin socks?|neoprene socks?)\b/i;
 function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, opts){
   const keys = new Set((Array.isArray(retailerKeys) ? retailerKeys : []).map(k => String(k || '').toLowerCase()));
   const max = Number.isFinite(total) && total > 0 ? Math.floor(total) : CATEGORY_RAIL_TOTAL;
@@ -8577,6 +8583,14 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      order still decides within each gender. */
   const womenFirst = Boolean(opts && opts.womenFirst);
   const womanRank = (p) => (womenFirst && !railBucketGenderIs(p, 'women')) ? 1 : 0;
+  /* SURF & SKATE (2026-09-26, Danny): sales lead -- unless the sale is
+     socks. Foot socks and fin socks are minor accessories; a markdown on
+     them must not lead the tab ahead of boards, wetsuits and helmets, so
+     they sort after every other sale item. Board socks (board covers)
+     are real gear and keep their place. Opt-in per rail, like
+     womenFirst. */
+  const demoteSocks = Boolean(opts && opts.demoteSockSales);
+  const sockRank = (p) => (demoteSocks && SURFSKATE_FOOT_SOCK_RX.test(String((p && p.title) || ''))) ? 1 : 0;
   const seen = new Set();
   const sale = (Array.isArray(saleItems) ? saleItems : [])
     .filter(p => p && inSet(p) && p.image
@@ -8589,7 +8603,7 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
-      return (womanRank(a) - womanRank(b)) || (ao - bo) || (pct(b) - pct(a));
+      return (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
   const picks = sale.slice(0, CATEGORY_RAIL_SALE);
   const picked = new Set(picks.map(itemKey));
@@ -8684,7 +8698,7 @@ const TOY_KEYWORD_RX = /\b(lego|juguete|mu[ñn]eca|peluche|plush|barbie|hot whee
    blankets are bedding, not toys — and a gaming tee is clothing. The
    bucket-name path above is untouched: a real "juguetes" department
    stays a toy department. */
-const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|quilt|coverlet|mattress|pants|pajama|pijama|robe|slipper|socks|tee|t-shirt|hoodie|sweatshirt)\b/i;
+const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|pillowcase|quilt|coverlet|mattress|towel|pants|pajama|pijama|robe|slipper|socks|tee|t-shirt|hoodie|sweatshirt|backpack|lunch|pencil|wedge|cable|hdmi|charger)\b/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
@@ -8716,6 +8730,8 @@ const CATEGORY_RAILS = [
   { key: 'surf_skate', label: 'Surf & Skate', icon: '🏄', stores: SURFSKATE_RAIL_STORES,
     blurb: 'Tablas, skate y neopreno de 9 tiendas.',
     test: (p) => isSurfSkate(p, p.retailer),
+    /* Sales lead -- unless the sale is socks (2026-09-26, Danny). */
+    demoteSockSales: true,
     open: "openCatalog('department','surf_skate')" },
   { key: 'women', label: 'Moda Mujer', icon: '👗', stores: null, poolOnly: true,
     blurb: 'Moda de mujer, de todas las tiendas.',
@@ -8910,8 +8926,10 @@ function surfSkateDeptRailsHTML(byRetailer){
   const isSale = (p) => p && p.image && Number.isFinite(Number(p.price)) && Number(p.price) > 0
     && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price);
   const blocks = [];
-  /* The mixed markdown rail: sale items only, discount deciding. */
-  const ofertas = categoryRailPicks(SURFSKATE_RAIL_STORES, all, all, noKeys, CATEGORY_RAIL_TOTAL)
+  /* The mixed markdown rail: sale items only, discount deciding --
+     except socks, which sort after real gear (2026-09-26, Danny). */
+  const ofertas = categoryRailPicks(SURFSKATE_RAIL_STORES, all, all, noKeys, CATEGORY_RAIL_TOTAL,
+      { demoteSockSales: true })
     .filter(isSale);
   blocks.push(deptRailSectionHTML('ss-ofertas', 'Ofertas en Surf & Skate',
     deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos de las 9 tiendas'), ofertas));
@@ -8965,7 +8983,7 @@ function initStoreRails(){
       categoryRailsRendered[cat.key] = categoryRailPicks(stores,
         saleSrc.filter(test),
         (Array.isArray(pool) ? pool : []).filter(test),
-        ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst });
+        ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales });
     }
     /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
        The pills and the single rail render once the pool lands; an empty

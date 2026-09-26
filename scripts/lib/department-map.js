@@ -33,6 +33,9 @@ import { isFootwear } from "./footwear.js";
    item, not per bucket. Mirrors the index.html inline copy; the parity
    test compares them over the real catalogues. */
 import { isSurfSkate } from "./surfskate.js";
+/* TOY-GRADE SKATEBOARDS (2026-09-26, Danny): Juguetes-only -- Deportes
+   refuses them the same way Surf & Skate does. */
+import { isToyGradeSkate } from "./toys.js";
 import { isAutoPart } from "./autoparts.js";
 import { hasExtendedSizes } from "./sizes.js";
 
@@ -233,6 +236,9 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
      department's only other signal. Gated on isFootwear so a
      "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
   if (deptKey === "sporting_goods" && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(titleOf(item))) return false;
+  /* Toy-aisle character skateboards are Juguetes-only (2026-09-26,
+     Danny): Deportes refuses them the same way Surf & Skate does. */
+  if (deptKey === "sporting_goods" && isToyGradeSkate(item)) return false;
   /* Curvy is a filter over apparel, the way Ofertas is a filter over
      everything — not a category a retailer scrapes into. Kids never;
      otherwise the retailer's own size list decides, via
