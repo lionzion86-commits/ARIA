@@ -5087,7 +5087,7 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Gymshark > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Gymshark > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
@@ -5119,7 +5119,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Gymshark > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Victoria's Secret > Gymshark > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Marcas > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
@@ -5316,12 +5316,12 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
   if (!rails) throw new Error("the store rails' code is gone");
-  /* The eight window displays, in mall order: Gymshark leads (2026-09-26,
-     Danny -- most-known gym brand in Peru), aspirational first after it,
-     the way the RETAILERS registry is ordered. */
+  /* The eight window displays, in mall order: Victoria's Secret first,
+     Gymshark right under it (2026-09-26, Danny -- most-known gym brand in
+     Peru), then Sephora, the way the RETAILERS registry is ordered. */
   const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
   if (!m) throw new Error("STORE_RAIL_STORES is gone");
-  eq(m[1].replace(/['\s]/g, ""), "gymshark,victoriassecret,sephora,macys,footlocker,ssense,dicks,costco",
+  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,gymshark,sephora,macys,footlocker,ssense,dicks,costco",
     "the store rails are not the eight agreed stores in mall order");
   /* The same card every other rail draws -- a second card component is
      how the rails drift apart. */
@@ -8052,9 +8052,10 @@ check("the eight rails stand in mall order on all three surfaces", () => {
      vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
      mall stops feeling like one mall. */
   const src = HOME_SRC();
-  /* GYMSHARK LEADS (2026-09-26, Danny): eight rails, one order on the
-     phone, the laptop, and the Tiendas vitrinas. */
-  const want = ["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
+  /* GYMSHARK BETWEEN VICTORIA'S SECRET AND SEPHORA (2026-09-26, Danny):
+     eight rails, one order on the phone, the laptop, and the Tiendas
+     vitrinas. */
+  const want = ["victoriassecret", "gymshark", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
     ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
@@ -9939,16 +9940,69 @@ check("Gym Rat lists YoungLA first, Gymshark heavy second, Alphalete third", () 
   eq(m[1].replace(/['\s]/g, ""), "youngla,gymshark,alphalete", "Gym Rat brand order drifted");
 });
 
-check("Gymshark leads the store rails on all three surfaces", () => {
-  /* DANNY (2026-09-26): Gymshark -- the most-known gym brand in Peru right
-     now -- is the first store rail, on the phone, the laptop, and the
-     Tiendas vitrinas. No rail was removed to make room. */
+check("Gym Rat leads with hero apparel -- accessories never open the section", () => {
+  /* DANNY (2026-09-26): the front of Gym Rat is hero gym apparel (leggings,
+     shorts, joggers, tops, sports bras, hoodies) -- socks and keychains are
+     fine deeper in the grid, never the lead. Runs the real rank over the
+     real committed catalogue: the first 12 of the default order must all
+     be apparel. */
+  const { gymRatLeadRank, gymRatIsAccessory } = loadPageDealSpreadSlice();
+  const rendered = gymratItems
+    .filter(({ retailer, item }) => deptMap.itemBelongsToDepartment(item, "gym_rat", "gym_rat", retailer))
+    .map(({ item }) => item);
+  if (!rendered.length) throw new Error("nothing renders in Gym Rat -- the test is measuring nothing");
+  const acc = rendered.filter(gymRatIsAccessory);
+  if (!acc.length) throw new Error("no accessories classified -- the rank is measuring nothing");
+  if (acc.length >= rendered.length) throw new Error("everything reads as an accessory -- the rank is broken");
+  /* The page's default comparator: lead rank first, price inside each band.
+     2503 apparel items sort ahead of every accessory whatever the tiebreak. */
+  const price = (p) => { const n = Number(p.price); return Number.isFinite(n) && n > 0 ? n : Infinity; };
+  const sorted = [...rendered].sort((a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || (price(a) - price(b)));
+  const bad = sorted.slice(0, 12).filter(gymRatIsAccessory);
+  if (bad.length) {
+    throw new Error(`${bad.length} accessories lead Gym Rat, e.g. ` +
+      bad.slice(0, 3).map(p => p.name || p.title).join(" | "));
+  }
+  /* Nothing removed: the grid still holds every item, accessories included. */
+  eq(sorted.length, rendered.length, "the lead sort dropped items");
+  eq(sorted.filter(gymRatIsAccessory).length, acc.length, "accessories went missing from the grid");
+});
+
+check("the Gym Rat lead is wired into the department sort, explicit sorts bypass it", () => {
+  /* The lead only governs the default view: a shopper who explicitly picks
+     a price sort gets exactly that order (catalogSortTouched), and the flag
+     resets on every navigation into a catalogue view. */
   const src = readFileSync(root("index.html"), "utf8");
-  if (!/const STORE_RAIL_STORES = \[\s*'gymshark'/.test(src)) {
-    throw new Error("gymshark does not lead STORE_RAIL_STORES");
+  if (!/isGymRat && !catalogSortTouched/.test(src)) throw new Error("the gym_rat lead is not in the department sort");
+  if (!/function onCatalogSortChange\(\)\{ catalogSortTouched = true;/.test(src)) {
+    throw new Error("an explicit sort choice does not set catalogSortTouched");
+  }
+  if (!/catalogSortTouched = false; \/\/ a fresh section opens on the default sort/.test(src)) {
+    throw new Error("catalogSortTouched is never reset on navigation");
+  }
+  if (!/onchange="onCatalogSortChange\(\)"/.test(src)) throw new Error("the sort dropdown is not wired to onCatalogSortChange");
+});
+
+check("Gymshark sits between Victoria's Secret and Sephora on all three surfaces", () => {
+  /* DANNY (2026-09-26): Gymshark -- the most-known gym brand in Peru right
+     now -- sits right under Victoria's Secret and above Sephora: on the
+     phone, the laptop, and the Tiendas vitrinas. No rail was removed to
+     make room. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/const STORE_RAIL_STORES = \[\s*'victoriassecret',\s*'gymshark',\s*'sephora'/.test(src)) {
+    throw new Error("STORE_RAIL_STORES is not victoriassecret, gymshark, sephora");
   }
   for (const id of ["mStoreRail-gymshark", "dStoreRail-gymshark", "tStoreRail-gymshark"]) {
     eq((src.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is not declared exactly once`);
+  }
+  /* DOM adjacency: the Gymshark section directly follows the Victoria's
+     Secret section and directly precedes the Sephora section, per surface. */
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]) {
+    const ids = [...src.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
+    const i = ids.indexOf("gymshark");
+    if (i < 0) throw new Error(`${prefix}-gymshark is missing`);
+    eq(ids[i - 1], "victoriassecret", `${prefix}: Gymshark is not under Victoria's Secret`);
+    eq(ids[i + 1], "sephora", `${prefix}: Gymshark is not above Sephora`);
   }
 });
 
