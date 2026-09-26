@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5000,24 +5000,36 @@ const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
-check("the shopfront opens the home page: Ofertas is the first thing", () => {
+check("the photo hero opens the home page, shopfront follows", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* THIS RULE CHANGED ON 2026-09-25, DELIBERATELY, AT DANNY'S WORD.
-     It used to read: nothing but the photographic hero comes before
-     the shopfront. Danny's verdict on his phone: the brand statement
-     ("Compra en Estados Unidos / Te lo llevamos a Perú") sat eight
-     carousels down and the deals were not the first thing the eye
-     met. The photographic hero moved below the rails; the shopfront
-     is the FIRST child of #homeView again, and the Ofertas rail is the
-     first section inside it. One element above the rails -- hero or
-     anything else -- fails, which is what this check guards. */
+  /* THIS RULE CHANGED ON 2026-09-26, DELIBERATELY, AT DANNY'S WORD.
+     2026-09-25 had it: the shopfront is the FIRST child of #homeView
+     and the Ofertas rail is the first section inside it -- deals first
+     because that is what stops the scroll. On iPhone review Danny
+     reversed it: "Todo USA ahora en Lima" is the strong opening message
+     and it should hit you the moment you walk in, like it originally
+     did. The photographic hero is the FIRST child of #homeView again,
+     the shopfront follows it, and the Ofertas rail stays the first
+     section inside the shopfront. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
   const first = tags[0] || "";
-  if (!first.startsWith('<div id="mobileShopfront"')) {
-    throw new Error(`the first thing in #homeView is not the shopfront: ${first.slice(0, 70)}`);
+  if (!first.startsWith('<section class="ariaHero"')) {
+    throw new Error(`the first thing in #homeView is not the photo hero: ${first.slice(0, 70)}`);
+  }
+  if (!first.includes('aria-label="Todo USA ahora en Lima"')) {
+    throw new Error("the photo hero lost its aria-label");
+  }
+  const second = (() => {
+    const heroOpen = body.indexOf('<section class="ariaHero"');
+    const heroClose = body.indexOf("</section>", heroOpen) + "</section>".length;
+    const after = body.slice(heroClose);
+    return (after.match(/<(?!!--)[a-zA-Z][^>]*>/) || [])[0] || "";
+  })();
+  if (!second.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`the shopfront does not follow the hero: ${second.slice(0, 70)}`);
   }
   const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
   if (firstSection !== "Ofertas") {
@@ -5033,7 +5045,7 @@ check("the shopfront opens the home page: Ofertas is the first thing", () => {
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
+check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5053,9 +5065,18 @@ check("Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
      between the seven rails and Categorías -- the rest of the mall
      directory as one logo strip, with a way into the full 22-store
-     Tiendas directory.) */
-  const order = [...shopfront.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the shopfront's scroll order");
+     Tiendas directory.
+
+     (2026-09-26, DANNY'S HOMEPAGE ORDER V2: the photo hero opens the
+     page again -- "Todo USA ahora en Lima" is the strong message that
+     hits you the moment you walk in. The 2026-09-25 order holds after
+     it, with the Costco rail and the Fiestas y Eventos vertical.) */
+  const homeSlice = shopfrontSrc.slice(
+    shopfrontSrc.indexOf('<div id="homeView"'),
+    shopfrontSrc.indexOf('<div id="desktopShopfront"'),
+  );
+  const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
@@ -5077,7 +5098,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
      between the seven rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
-    shopfrontSrc.indexOf('class="ariaHero"'),
+    shopfrontSrc.indexOf('id="whyUs"'),
   );
   if (!desk) throw new Error("there is no desktop shopfront");
   const open = desk.slice(0, desk.indexOf(">") + 1);
@@ -7854,7 +7875,7 @@ check("the seven rails stand in mall order on all three surfaces", () => {
   const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
-    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'class="ariaHero"'],
+    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
     ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
@@ -9214,6 +9235,203 @@ check("one poison record cannot empty the search pool", () => {
   const pool = src.slice(src.indexOf("async function relatedPool(){"), src.indexOf("/* ============================================================\n   CATALOG-FIRST SEARCH"));
   if (!/try \{ it = normalizeLiveItem/.test(pool)) {
     throw new Error("relatedPool does not isolate a throwing record");
+  }
+});
+
+/* ============================================================
+   CART MERGE IDEMPOTENCE (2026-09-26, live bug): for a logged-in shopper
+   the server cart is an exact mirror of the localStorage cart, so the old
+   sum-on-match merge doubled every line on every page load. mergeCarts
+   now unions by cartItemKey with qty = max() — reloads can never change
+   quantities, genuine cross-device adds still union.
+   ============================================================ */
+const pageCart = loadPageCartSlice();
+const cartKey = (retailer, title, size, qty) => ({ retailer, title, selectedSize: size, qty });
+
+check("a logged-in reload never changes quantities", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 1, "line count");
+  eq(merged[0].qty, 1, "qty after reload");
+});
+
+check("cross-device adds still union without doubling", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1), cartKey("Adidas", "Samba", "9", 2)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 2, "line count");
+  eq(merged.find((it) => it.retailer === "Nike").qty, 1, "Nike qty");
+  eq(merged.find((it) => it.retailer === "Adidas").qty, 2, "Adidas qty");
+});
+
+check("divergent quantities keep the larger side", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 3)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 1, "line count");
+  eq(merged[0].qty, 3, "qty keeps the larger side");
+});
+
+check("the page merge cannot sum quantities", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("function mergeCarts(localCart, serverCart){"), src.indexOf("CART WEIGHT REPAIR"));
+  if (/\.qty\s*\+=\s*it\.qty/.test(fn)) {
+    throw new Error("mergeCarts still sums quantities on matching keys");
+  }
+  if (!/Math\.max\(/.test(fn)) {
+    throw new Error("mergeCarts does not take the max quantity on matching keys");
+  }
+});
+
+/* ============================================================
+   GUÍA DE TALLAS (2026-09-26): brand- and region-aware size guide.
+   A Nike L, a Zara L and a Peruvian-market L are different garments,
+   so the guide resolves per brand (curated tables transcribed from
+   each brand's own published chart — never invented) and falls back
+   to a clearly labeled general-reference table for unknown brands.
+   ============================================================ */
+const pageSizeGuide = loadPageSizeGuideSlice();
+
+check("a Nike shoe resolves to the Nike shoe table", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Nike", "Nike Air Force 1", "shoe");
+  eq(g.title, "Guía de tallas — Nike", "header");
+  eq(g.isGeneral, false, "isGeneral");
+  eq(g.activeTab, "shoes", "default tab for shoes");
+  const tab = g.getTab("shoes");
+  if (!tab.cols.some((c) => /largo del pie/i.test(c))) {
+    throw new Error("Nike shoe table has no foot-length column");
+  }
+  if (!tab.rows.some((r) => r[0] === "9" && r[2] === "27")) {
+    throw new Error("Nike shoe table is missing the US 9 → 27 cm row");
+  }
+});
+
+check("an unknown brand resolves to the general table", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Zara", "Vestido floral", "clothing");
+  eq(g.title, "Guía de tallas — tabla general", "fallback header");
+  eq(g.isGeneral, true, "isGeneral");
+  eq(g.activeTab, "womens", "default tab");
+});
+
+check("the brand header names the brand when one is curated", () => {
+  eq(pageSizeGuide.resolveSizeGuide("Lane Bryant", "Blusa", "clothing").title, "Guía de tallas — Lane Bryant", "Lane Bryant header");
+  eq(pageSizeGuide.resolveSizeGuide("Cacique", "Brasier", "clothing").title, "Guía de tallas — Lane Bryant", "Cacique resolves to Lane Bryant");
+  eq(pageSizeGuide.resolveSizeGuide("adidas", "Remera", "clothing").title, "Guía de tallas — adidas", "adidas header");
+});
+
+check("women's clothing guides include 1X through 5X", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Lane Bryant", "Vestido", "clothing");
+  const rows = g.getTab("womens").rows.map((r) => r[0]);
+  for (const want of ["1X", "2X", "3X", "4X", "5X"]) {
+    if (!rows.includes(want)) throw new Error(`Lane Bryant womens table is missing ${want}`);
+  }
+});
+
+check("every curated brand table ships with a non-empty source URL", () => {
+  for (const brand of pageSizeGuide.SIZE_GUIDE_BRANDS) {
+    if (!/^https?:\/\//.test(brand.source || "")) {
+      throw new Error(`${brand.display} has no source URL`);
+    }
+    for (const id of Object.keys(brand.tabs)) {
+      const tab = brand.tabs[id];
+      if (!tab.cols.length || !tab.rows.length) {
+        throw new Error(`${brand.display} tab ${id} is empty`);
+      }
+    }
+  }
+});
+
+check("size tables are region-aware: UK/UE equivalents plus cm body measurements", () => {
+  const nike = pageSizeGuide.resolveSizeGuide("Nike", "Remera", "clothing").getTab("womens");
+  for (const need of ["UK", "UE"]) {
+    if (!nike.cols.some((c) => c === need)) throw new Error(`Nike womens table has no ${need} column`);
+  }
+  if (!nike.cols.some((c) => /cm/i.test(c))) throw new Error("Nike womens table has no cm column");
+  const general = pageSizeGuide.resolveSizeGuide("", "Remera", "clothing").getTab("womens");
+  if (!general.cols.some((c) => c === "UK") || !general.cols.some((c) => c === "UE")) {
+    throw new Error("general womens table has no UK/UE columns");
+  }
+});
+
+check("the guide link lives inside the size picker and the modal closes three ways", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const wrap = src.slice(src.indexOf('id="productSizeWrap"'), src.indexOf('id="addToCartBtn"'));
+  if (!/id="sizeGuideLink"/.test(wrap)) {
+    throw new Error("Guía de tallas link is not inside #productSizeWrap");
+  }
+  if (!/id="sizeGuideBackdrop"[\s\S]*?onclick="if\(event\.target===this\)closeSizeGuide\(\)"/.test(src)) {
+    throw new Error("backdrop does not close the size guide on tap");
+  }
+  const escFn = src.slice(src.indexOf("function sizeGuideEscHandler"), src.indexOf("}", src.indexOf("function sizeGuideEscHandler")) + 1);
+  if (!/key\s*===\s*['"]Escape['"]/.test(escFn)) {
+    throw new Error("Escape does not close the size guide");
+  }
+  if (!/Las tallas son referenciales y pueden variar según la marca y el modelo\./.test(src)) {
+    throw new Error("the reference disclaimer is missing");
+  }
+  if (!/Cómo medir el cuerpo/.test(src)) {
+    throw new Error("the body-measuring guidance is missing");
+  }
+});
+
+check("opening the guide cannot disturb the shopper's chosen size", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("function openSizeGuide(){"), src.indexOf("function sizeGuideTab("));
+  if (/productSizeSelect/.test(fn)) {
+    throw new Error("openSizeGuide touches the size select");
+  }
+  const closer = src.slice(src.indexOf("function closeSizeGuide(){"), src.indexOf("function sizeGuideEscHandler("));
+  if (/productSizeSelect/.test(closer)) {
+    throw new Error("closeSizeGuide touches the size select");
+  }
+});
+
+check("the product page shows a continue-to-cart line whenever the cart holds items", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  // The line lives directly under the buy button and taps straight into the cart.
+  const btnZone = src.slice(src.indexOf('id="addToCartBtn"'), src.indexOf('id="productNoPriceNote"'));
+  if (!/id="continueToCartBtn"[^>]*onclick="openCart\(\)"/.test(btnZone)) {
+    throw new Error("continueToCartBtn is not directly under #addToCartBtn or does not open the cart");
+  }
+  if (!/class="[^"]*\bhidden\b/.test(btnZone)) {
+    throw new Error("continueToCartBtn does not start hidden in the markup");
+  }
+  // The success path of addToCartFromProduct() raises it with the live count.
+  const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("function retailerFor("));
+  if (!/showContinueToCart\(\)/.test(fn)) {
+    throw new Error("addToCartFromProduct does not show the continue-to-cart line on success");
+  }
+  // A fresh product render DRIVES the line off the cart count (Danny's iPhone QA
+  // 2026-09-26: hiding it on every render made it vanish on navigation even with
+  // items in the cart). It must sync, never unconditionally wipe.
+  const buyable = src.slice(src.indexOf("function setProductBuyable(hasPrice){"), src.indexOf("function addToCartFromProduct(){"));
+  if (!/refreshContinueToCart\(ctc\)/.test(buyable)) {
+    throw new Error("setProductBuyable does not sync the continue-to-cart line to the cart count");
+  }
+  if (/ctc\.classList\.add\('hidden'\)/.test(buyable)) {
+    throw new Error("setProductBuyable still wipes the continue-to-cart line on every render");
+  }
+  // Every cart mutation funnels through renderCartBadge(), which syncs the line
+  // unconditionally — it must APPEAR from here too, not only refresh while visible.
+  const badge = src.slice(src.indexOf("function renderCartBadge(){"), src.indexOf("function addToCart(item){"));
+  if (!/if \(ctc\) refreshContinueToCart\(ctc\);/.test(badge)) {
+    throw new Error("renderCartBadge does not unconditionally sync the continue-to-cart line");
+  }
+  if (/contains\('hidden'\)\) refreshContinueToCart/.test(badge)) {
+    throw new Error("renderCartBadge still only refreshes the line while it is visible");
+  }
+  // The sync never paints a cart that has not finished loading.
+  const sync = src.slice(src.indexOf("function refreshContinueToCart(el){"), src.indexOf("function showContinueToCart(){"));
+  if (!/cartLoaded \? cartCount\(\) : 0/.test(sync)) {
+    throw new Error("refreshContinueToCart does not guard on cartLoaded");
+  }
+  // Spanish-first copy with a real count, singular and plural.
+  if (!/Continuar al carrito/.test(src)) {
+    throw new Error("the continue-to-cart copy is missing");
+  }
+  if (!/1 art\u00edculo/.test(src) || !/art\u00edculos/.test(src)) {
+    throw new Error("the continue-to-cart line has no singular/plural count copy");
   }
 });
 

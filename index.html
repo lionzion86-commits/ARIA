@@ -981,6 +981,27 @@
 
 <!-- ============ HOME VIEW ============ -->
 <div id="homeView" class="view active">
+  
+  <!-- ============================================================
+       PHOTO HERO, FIRST (2026-09-26, DANNY'S HOMEPAGE ORDER V2): "Todo
+       USA ahora en Lima" is the strong opening message -- it hits you
+       the moment you walk in, like it originally did. Danny's 2026-09-25
+       verdict was deals-first with the hero below the rails; on iPhone
+       review he reversed it: the artwork stays exactly as-is, it just
+       opens the page now. Ofertas, the brand band, the six rails, the
+       strip, then Categorias follow.
+       ============================================================ -->
+  <section class="ariaHero" aria-label="Todo USA ahora en Lima">
+    <img src="assets/hero/flatlay-hero.jpg" alt="" aria-hidden="true" class="ariaHeroPhoto"
+         decoding="async" fetchpriority="high" onerror="this.remove()">
+    <div class="ariaHeroScrim" aria-hidden="true"></div>
+    <div class="ariaHeroInner">
+      <h1 class="ariaHeroTitle">Todo USA ahora en Lima.</h1>
+      <p class="ariaHeroSub">ARIA te lo trae.</p>
+      <button onclick="goSales()" class="ariaHeroCta focus-ring">Ver ofertas</button>
+    </div>
+  </section>
+  
 
   
 
@@ -1582,23 +1603,6 @@
        thinnest part; over a pure-white photo pixel it still leaves
        white text above 4.5:1. Measured in the browser check.
        ============================================================ -->
-  <!-- ============================================================
-       PHOTO HERO, RELOCATED (2026-09-25, DANNY'S HOMEPAGE ORDER): it used
-       to open the page above the shopfront; Danny wants the deals rail
-       to be the first thing a shopper sees, with the brand band right
-       under it. The hero keeps its copy and CTA and now lands here, a
-       brand beat between the rails and "¿Por qué comprar con Aria?".
-       ============================================================ -->
-  <section class="ariaHero" aria-label="Todo USA ahora en Lima">
-    <img src="assets/hero/flatlay-hero.jpg" alt="" aria-hidden="true" class="ariaHeroPhoto"
-         decoding="async" fetchpriority="high" onerror="this.remove()">
-    <div class="ariaHeroScrim" aria-hidden="true"></div>
-    <div class="ariaHeroInner">
-      <h1 class="ariaHeroTitle">Todo USA ahora en Lima.</h1>
-      <p class="ariaHeroSub">ARIA te lo trae.</p>
-      <button onclick="goSales()" class="ariaHeroCta focus-ring">Ver ofertas</button>
-    </div>
-  </section>
   <div id="whyUs" class="relative overflow-hidden">
     <img src="assets/portal-girl-bg.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
       decoding="async" onerror="this.remove()">
@@ -2327,6 +2331,15 @@
           <div id="productViewPartNumber" class="text-[12.5px] font-semibold mb-3" style="color:var(--navy)" hidden></div>
           <div id="productViewPrice" class="text-[26px] font-extrabold mb-3" style="color:var(--navy)"></div>
           <div id="productViewMeta" class="text-[12.5px] text-zinc-500 leading-relaxed space-y-1 mb-4"></div>
+          <!-- DESCRIPCIÓN (2026-09-25): the retailer's own product description,
+               translated to Spanish (1-2 sentences) by the catalog enrichment
+               pass. Filled by showProduct() via textContent, never innerHTML;
+               hidden when the catalogue carries none so no stale text leaks
+               between products. -->
+          <div id="productViewDescWrap" class="mb-4" hidden>
+            <h2 class="text-[12px] font-extrabold uppercase mb-1.5" style="color:var(--navy); letter-spacing:0.09em">Descripción</h2>
+            <p id="productViewDesc" class="text-[13.5px] leading-relaxed max-w-[62ch]" style="color:#3A4256"></p>
+          </div>
           <!-- BUG FIX (cart rework): size now has to be picked before the
                item can sit in the cart as a concrete line item, so this
                moved here from checkout.html (see standardSizeOptions() in
@@ -2336,10 +2349,30 @@
                or a standard industry size scale — never free text. -->
           <div id="productSizeWrap" class="mb-4" hidden>
             <label for="productSizeSelect" class="block text-[12px] font-bold mb-1.5">Talla</label>
+            <button id="sizeGuideLink" type="button" onclick="openSizeGuide()" hidden
+              class="block text-[12.5px] font-semibold underline underline-offset-2 mb-2 focus-ring"
+              style="color:var(--blue)">Guía de tallas</button>
             <select id="productSizeSelect" class="w-full sm:w-[220px] h-[46px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)"></select>
             <p id="productSizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
           </div>
           <button id="addToCartBtn" onclick="addToCartFromProduct()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Agregar al carrito</button>
+          <!-- CONTINUAR AL CARRITO (2026-09-26).
+
+               Danny's iPhone QA on the cart-fix preview: tapping "agregar al
+               carrito" gave the shopper no next step — the only way forward
+               was hunting for the tiny cart icon up top. So a successful add
+               now raises this small line directly under the buy button: the
+               live item count plus a tap straight into the cart ("3
+               artículos — Continuar al carrito →"). Deliberately a text link,
+               not a second solid button: it must not out-shout "Agregar al
+               carrito" or fight the Guía de tallas link above it. Visibility
+               is driven by the cart count, not by the add event: shown on
+               every product render and every cart mutation whenever the cart
+               holds items (setProductBuyable, renderCartBadge), hidden only
+               when the cart is empty or not yet loaded. -->
+          <button id="continueToCartBtn" type="button" onclick="openCart()"
+            class="hidden w-full text-center sm:text-left text-[13.5px] font-semibold underline underline-offset-2 mt-2.5 focus-ring"
+            style="color:var(--blue)">Continuar al carrito →</button>
           <!-- Only ever shown when the price is missing, and the button
                above is disabled in the same breath. See showProduct(). -->
           <p id="productNoPriceNote" class="text-[12.5px] mt-2.5 leading-relaxed max-w-[42ch]" style="color:#8A6B1F" hidden></p>
@@ -4221,6 +4254,34 @@
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
     <div id="lightboxHint" class="absolute bottom-5 left-1/2 -translate-x-1/2 text-[12px] px-3 py-1.5 rounded-full pointer-events-none whitespace-nowrap" style="background:rgba(255,255,255,0.14); color:#fff"></div>
+  </div>
+</div>
+
+<!-- ============ GUÍA DE TALLAS ============
+     Brand- and region-aware size guide. Bottom sheet on mobile,
+     centered modal on desktop. Closed by the X, a backdrop tap, or
+     Escape. Presentation only: it never touches #productSizeSelect,
+     so the shopper's chosen size underneath is preserved. Data and
+     resolver live in the GUÍA DE TALLAS script block next to
+     standardSizeOptions(); unknown brands fall back to a clearly
+     labeled general-reference table. -->
+<div id="sizeGuideBackdrop" class="fixed inset-0 z-[70] hidden items-end sm:items-center justify-center" style="background:rgba(4,12,28,0.55)" onclick="if(event.target===this)closeSizeGuide()" role="dialog" aria-modal="true" aria-labelledby="sizeGuideTitle">
+  <div id="sizeGuideSheet" class="bg-white w-full sm:w-[680px] sm:rounded-3xl rounded-t-3xl max-h-[88vh] sm:max-h-[85vh] flex flex-col overflow-hidden" style="box-shadow:0 -8px 40px rgba(0,0,0,0.25)">
+    <div class="flex items-start justify-between gap-3 px-5 pt-4 pb-3" style="border-bottom:1px solid var(--line)">
+      <div>
+        <h2 id="sizeGuideTitle" class="text-[17px] font-extrabold" style="color:var(--navy)">Guía de tallas</h2>
+        <p id="sizeGuideSub" class="text-[12px] mt-0.5" style="color:#8A93A8"></p>
+      </div>
+      <button type="button" onclick="closeSizeGuide()" aria-label="Cerrar" class="w-10 h-10 shrink-0 rounded-full grid place-items-center focus-ring" style="background:#F1F3F7">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div id="sizeGuideTabs" class="flex gap-2 px-5 pt-3 overflow-x-auto" role="tablist"></div>
+    <div id="sizeGuideBody" class="px-5 py-4 overflow-y-auto text-[13px]" style="color:var(--ink)"></div>
+    <div class="px-5 pb-5 pt-1">
+      <p class="text-[11.5px] leading-relaxed" style="color:#8A93A8">Las tallas son referenciales y pueden variar según la marca y el modelo.</p>
+      <p id="sizeGuideSource" class="text-[11.5px] mt-1" style="color:#8A93A8"></p>
+    </div>
   </div>
 </div>
 
@@ -6227,7 +6288,7 @@ function openMobileDeal(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* ============================================================
@@ -6896,7 +6957,7 @@ function openRelatedProduct(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 async function renderRelatedRail(anchorIn){
@@ -7036,7 +7097,7 @@ function openStoreRailProduct(key, idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* STORE_RAIL_PICKS:SLICE-START
@@ -9062,7 +9123,7 @@ function productCardOpenExpr(p, retailer){
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
     + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
     + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'}, `
-    + `${escapeHtml(JSON.stringify({ brand: p.brand || '' }))})`;
+    + `${escapeHtml(JSON.stringify({ brand: p.brand || '', description: p.description || '' }))})`;
 }
 
 /* ============================================================
@@ -9311,13 +9372,13 @@ async function applyRoute(route){
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
           known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
-          { brand: known.brand });
+          { brand: known.brand, description: known.description || '' });
         else if (route.name) {
           const found = await findCatalogProductByTitle(route.name).catch(() => null);
           if (found) showProduct(found.retailer, found.title, found.price, found.weightKg, found.image || '',
             found.sizes || [], needsSizeSelection(found.retailer, found.title), sizeCategoryFor(found.retailer, found.title),
             found.rating != null ? String(found.rating) : '', found.images || [], found.catalogWeightKg ?? null,
-            { brand: found.brand });
+            { brand: found.brand, description: found.description || '' });
           else showProductUnavailable(route.name);
         }
         else showPage('homeView');
@@ -9930,7 +9991,7 @@ function openSearchProduct(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* Same product, different store. Retailers word titles differently, so
@@ -10670,6 +10731,415 @@ function standardSizeOptions(title, sizeCategory){
   return ADULT_CLOTHING_SIZES;
 }
 
+/* ============================================================
+   GUÍA DE TALLAS — brand- and region-aware size guide (2026-09-26).
+
+   WHY IT EXISTS. A generic S/M/L chart is wrong for this catalogue:
+   a Nike L, a Zara L and a Peruvian-market L are different garments.
+   Each brand table below is transcribed from that brand's own
+   published size chart — nothing is invented, and inches from
+   imperial charts are converted to centimetres (x2.54, rounded).
+   Every brand entry carries a non-empty `source` URL (enforced by
+   test). Brands without a curated table fall back to
+   SIZE_GUIDE_GENERAL, rendered under an explicit "tabla general de
+   referencia" header so it can never be mistaken for the brand's
+   own chart.
+
+   COLUMNS ARE REGION-AWARE. Where the brand publishes them, US / UK /
+   UE equivalents sit next to cm body measurements — centimetres are
+   the one scale that means the same thing in Lima and in Oregon.
+
+   The modal (openSizeGuide/closeSizeGuide; markup sits just above
+   the toast, after the lightbox) is presentation only: it never reads
+   or writes the #productSizeSelect value, so the shopper's choice
+   underneath survives opening and closing it.
+   ============================================================ */
+const SIZE_GUIDE_GENERAL = {
+  display: 'tabla general',
+  isGeneral: true,
+  source: '',
+  tabs: {
+    womens: {
+      label: 'Mujer',
+      cols: ['Talla US', 'UK', 'UE', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+      rows: [
+        ['XS', '0–2', '4–6', '32–34', '80–84', '62–66', '88–92'],
+        ['S', '4–6', '8–10', '36–38', '84–88', '66–70', '92–96'],
+        ['M', '8–10', '12–14', '40–42', '88–94', '70–76', '96–102'],
+        ['L', '12–14', '16–18', '44–46', '94–100', '76–82', '102–108'],
+        ['XL', '16–18', '20–22', '48–50', '100–108', '82–90', '108–116'],
+        ['1X', '18–20', '22–24', '52–54', '108–116', '90–98', '116–124'],
+        ['2X', '20–22', '24–26', '56–58', '116–124', '98–106', '124–132'],
+        ['3X', '22–24', '26–28', '60–62', '124–132', '106–116', '132–140']
+      ],
+      note: ''
+    },
+    mens: {
+      label: 'Hombre',
+      cols: ['Talla US', 'Pecho (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+      rows: [
+        ['S', '88–96', '74–82', '88–96'],
+        ['M', '96–104', '82–90', '96–104'],
+        ['L', '104–112', '90–98', '104–112'],
+        ['XL', '112–120', '98–106', '112–120'],
+        ['2XL', '120–128', '106–114', '120–128'],
+        ['3XL', '128–136', '114–124', '128–136']
+      ],
+      note: ''
+    },
+    kids: {
+      label: 'Niños',
+      cols: ['Edad', 'Estatura (cm)', 'Pecho (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+      rows: [
+        ['4–5', '104–110', '58–61', '55–58', '60–63'],
+        ['6–7', '116–122', '62–65', '58–61', '64–67'],
+        ['8–9', '128–134', '68–71', '62–65', '70–73'],
+        ['10–11', '140–146', '74–77', '66–69', '76–79'],
+        ['12–14', '152–164', '80–86', '70–76', '82–88']
+      ],
+      note: 'Referencia general para niños: las medidas varían mucho entre marcas.'
+    },
+    shoes: {
+      label: 'Calzado',
+      cols: ['US hombre', 'US mujer', 'Largo del pie (cm)', 'UE'],
+      rows: [
+        ['6', '7.5', '24', '38.5'],
+        ['7', '8.5', '25', '40'],
+        ['8', '9.5', '26', '41'],
+        ['9', '10.5', '27', '42.5'],
+        ['10', '11.5', '28', '44'],
+        ['11', '12.5', '29', '45'],
+        ['12', '13.5', '30', '46'],
+        ['13', '14.5', '31', '47.5']
+      ],
+      note: 'El largo del pie en cm es la medida más confiable entre marcas: mide tu pie y busca ese número.'
+    }
+  }
+};
+
+/* Curated brand tables. Phase 1 covers the highest-traffic apparel
+   brands in the catalogue (2026-09-26); anything else resolves to
+   SIZE_GUIDE_GENERAL with the fallback header. Each table is
+   transcribed from the brand's own published chart — see `source`. */
+const SIZE_GUIDE_BRANDS = [
+  {
+    keys: ['nike'],
+    display: 'Nike',
+    source: 'https://www.nike.com/size-fit/womens-numeric',
+    tabs: {
+      womens: {
+        label: 'Mujer',
+        cols: ['Talla US', 'UK', 'UE', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['00', '4', '32', '73', '59', '80'],
+          ['0', '6', '34', '76.5', '60.5', '84.5'],
+          ['2', '8', '36', '80', '64', '88'],
+          ['4', '10', '38', '83.5', '67.5', '91.5'],
+          ['6', '12', '40', '87', '71', '95'],
+          ['8', '14', '42', '90.5', '74.5', '98.5'],
+          ['10', '16', '44', '94', '78', '102'],
+          ['12', '18', '46', '97.5', '81.5', '105.5'],
+          ['14', '20', '48', '102.5', '85.5', '109.5'],
+          ['16', '22', '50', '107.5', '89.5', '113.5'],
+          ['18', '24', '52', '112.5', '93.5', '117.5'],
+          ['20', '26', '54', '117.5', '97.5', '121.5'],
+          ['22', '26', '54', '122.5', '101.5', '125.5'],
+          ['XXS', '0', '2', '30', '70–76', '54–60', '78–84'],
+          ['XS', '0–2', '4–6', '32–34', '76–83', '60–67', '84–91'],
+          ['S', '4–6', '8–10', '36–38', '83–90', '67–74', '91–98'],
+          ['M', '8–10', '12–14', '40–42', '90–97', '74–81', '98–105'],
+          ['L', '12–14', '16–18', '44–46', '97–104', '81–88', '105–112'],
+          ['XL', '16–18', '20–22', '48–50', '104–114', '88–98', '112–120'],
+          ['XXL', '20–22', '24–26', '52–54', '114–124', '98–108', '120–128']
+        ],
+        note: ''
+      },
+      plus: {
+        label: 'Mujer — plus',
+        cols: ['Talla', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['0X', '112–119', '101.5–108.5', '122.5–129.5'],
+          ['1X', '119–126', '108.5–115.5', '129.5–136.5'],
+          ['2X', '126–133', '115.5–124', '136.5–145'],
+          ['3X', '133–140', '124–134', '145–155'],
+          ['4X', '140–147', '134–144', '155–165']
+        ],
+        note: 'Tabla plus oficial de Nike (ropa de mujer).'
+      },
+      mens: {
+        label: 'Hombre',
+        cols: ['Talla', 'Pecho (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['XXS', '72–80', '57–65', '72–80'],
+          ['XS', '80–88', '65–73', '80–88'],
+          ['S', '88–96', '73–81', '88–96'],
+          ['M', '96–104', '81–89', '96–104'],
+          ['L', '104–112', '89–97', '104–112'],
+          ['XL', '112–124', '97–109', '112–120'],
+          ['2XL', '124–136', '109–121', '120–128'],
+          ['3XL', '136–148', '121–133', '128–136'],
+          ['4XL', '148–160', '133–145', '136–148']
+        ],
+        note: ''
+      },
+      shoes: {
+        label: 'Calzado',
+        cols: ['US hombre', 'US mujer', 'Largo del pie (cm)', 'UE'],
+        rows: [
+          ['6', '7.5', '24', '38.5'],
+          ['6.5', '8', '24.5', '39'],
+          ['7', '8.5', '25', '40'],
+          ['7.5', '9', '25.5', '40.5'],
+          ['8', '9.5', '26', '41'],
+          ['8.5', '10', '26.5', '42'],
+          ['9', '10.5', '27', '42.5'],
+          ['9.5', '11', '27.5', '43'],
+          ['10', '11.5', '28', '44'],
+          ['10.5', '12', '28.5', '44.5'],
+          ['11', '12.5', '29', '45'],
+          ['11.5', '13', '29.5', '45.5'],
+          ['12', '13.5', '30', '46'],
+          ['13', '14.5', '31', '47.5']
+        ],
+        note: 'Tabla oficial de calzado Nike: el largo del pie en cm es el número que aparece en la caja.'
+      }
+    }
+  },
+  {
+    keys: ['adidas'],
+    display: 'adidas',
+    source: 'https://www.adidas.com/us/help/size_charts/women-shirts_tops',
+    tabs: {
+      womens: {
+        label: 'Mujer',
+        cols: ['Talla', 'Talla US', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['2XS', '00', '73–76', '57–60', '82–85'],
+          ['XS', '0–2', '77–82', '61–66', '86–91'],
+          ['S', '4–6', '83–88', '67–72', '92–97'],
+          ['M', '8–10', '89–94', '73–78', '98–103'],
+          ['L', '12–14', '95–101', '79–85', '104–110'],
+          ['XL', '16–18', '102–109', '86–94', '111–117'],
+          ['2XL', '20', '110–118', '95–104', '118–125'],
+          ['1X', '14W–16W', '104–113', '89–98', '111–120'],
+          ['2X', '18W–20W', '114–123', '99–108', '121–130'],
+          ['3X', '22W–24W', '124–133', '109–118', '131–140'],
+          ['4X', '26W–28W', '135–144', '119–128', '141–150']
+        ],
+        note: 'Tallas plus (1X–4X) de la tabla oficial adidas; medidas en pulgadas convertidas a cm.'
+      },
+      shoes: {
+        label: 'Calzado',
+        cols: ['US hombre', 'US mujer', 'Largo del pie (cm)', 'UE'],
+        rows: [
+          ['6', '7.5', '24', '38.5'],
+          ['7', '8.5', '25', '40'],
+          ['8', '9.5', '26', '41'],
+          ['9', '10.5', '27', '42.5'],
+          ['10', '11.5', '28', '44'],
+          ['11', '12.5', '29', '45'],
+          ['12', '13.5', '30', '46'],
+          ['13', '14.5', '31', '47.5']
+        ],
+        note: 'Conversión estándar de calzado (largo del pie en cm).'
+      }
+    }
+  },
+  {
+    keys: ['lane bryant', 'lanebryant', 'cacique'],
+    display: 'Lane Bryant',
+    source: 'https://www.lanebryant.com/size-charts',
+    tabs: {
+      womens: {
+        label: 'Mujer',
+        cols: ['Talla', 'US numérico', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['–', '10', '97', '81', '103'],
+          ['–', '12', '102', '86', '108'],
+          ['1X', '14–16', '107–112', '91–97', '113–118'],
+          ['2X', '18–20', '117–122', '102–107', '123–128'],
+          ['3X', '22–24', '127–132', '112–117', '133–138'],
+          ['4X', '26–28', '137–142', '122–127', '144–149'],
+          ['5X', '30–32', '147–152', '132–137', '154–159'],
+          ['–', '34', '157', '142', '164'],
+          ['–', '36', '163', '147', '169'],
+          ['–', '38', '168', '152', '174'],
+          ['–', '40', '173', '157', '179']
+        ],
+        note: 'Medidas transcritas de la tabla oficial de Lane Bryant (pulgadas convertidas a cm). También aplica a Cacique.'
+      }
+    }
+  },
+  {
+    keys: ['old navy', 'oldnavy'],
+    display: 'Old Navy',
+    source: 'https://oldnavy.gap.com',
+    tabs: {
+      womens: {
+        label: 'Mujer',
+        cols: ['Talla US', 'Alfa', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['0', 'XXS', '79–81', '58–61', '84–86'],
+          ['2', 'XS', '81–84', '61–64', '86–89'],
+          ['4', 'S', '84–86', '64–66', '89–91'],
+          ['6', 'S', '86–89', '66–69', '91–94'],
+          ['8', 'M', '89–91', '69–71', '94–97'],
+          ['10', 'M', '91–94', '71–74', '97–99'],
+          ['12', 'L', '94–97', '74–76', '99–102'],
+          ['14', 'L', '97–99', '76–79', '102–104'],
+          ['16', 'XL', '99–102', '79–81', '104–107']
+        ],
+        note: 'Tallas 16W–24W usan el mismo rango de medidas con horma más curvilínea.'
+      }
+    }
+  },
+  {
+    keys: ['skims'],
+    display: 'Skims',
+    source: 'https://skims.com/en-gb/pages/size-guides',
+    tabs: {
+      womens: {
+        label: 'Mujer',
+        cols: ['Talla', 'US numérico', 'Busto (cm)', 'Cintura (cm)', 'Cadera (cm)'],
+        rows: [
+          ['XXS', '00', '76–81', '60–62', '79–85'],
+          ['XS', '0–2', '83–88', '64–67', '86–93'],
+          ['S', '4–6', '89–94', '69–74', '94–100'],
+          ['M', '8–10', '95–100', '75–80', '102–107'],
+          ['L', '12–14', '102–108', '81–89', '108–113'],
+          ['XL', '16', '109–118', '90–97', '114–123'],
+          ['2X', '18–20', '119–128', '98–104', '124–133'],
+          ['3X', '22–24', '130–135', '105–112', '135–140'],
+          ['4X', '26–28', '136–141', '113–119', '141–146']
+        ],
+        note: 'Tabla oficial de bodysuits SKIMS (pulgadas convertidas a cm).'
+      }
+    }
+  }
+];
+
+/* Pure resolver — the modal and the tests both go through here.
+   Returns the header strings, the tab list, the default active tab,
+   and a getTab(id) accessor, so the caller never has to know which
+   tables a brand defines. Unknown brands resolve to the general
+   fallback with isGeneral: true. */
+function sizeGuideBrandEntry(brand){
+  const b = String(brand || '').toLowerCase().trim();
+  if (!b) return null;
+  return SIZE_GUIDE_BRANDS.find(e => e.keys.some(k => b.indexOf(k) !== -1)) || null;
+}
+
+function resolveSizeGuide(brand, title, sizeCategory){
+  const entry = sizeGuideBrandEntry(brand);
+  const name = String(title || '');
+  const isShoe = sizeCategory === 'shoe';
+  const isKids = PRODUCT_KIDS_KEYWORDS.test(name);
+  const isMens = !isKids && PRODUCT_MENS_KEYWORDS.test(name);
+  if (entry){
+    const tabs = entry.tabs;
+    const order = Object.keys(tabs);
+    let active = order[0];
+    if (isShoe && tabs.shoes) active = 'shoes';
+    else if (isMens && tabs.mens) active = 'mens';
+    else if (!isKids && tabs.womens) active = 'womens';
+    else if (isKids && tabs.kids) active = 'kids';
+    return {
+      title: 'Guía de tallas — ' + entry.display,
+      sub: 'Tabla oficial de ' + entry.display,
+      source: entry.source,
+      isGeneral: false,
+      tabs: order.map(id => ({ id, label: tabs[id].label })),
+      activeTab: active,
+      getTab: (id) => tabs[id]
+    };
+  }
+  const g = SIZE_GUIDE_GENERAL;
+  const order = ['womens', 'mens', 'kids', 'shoes'];
+  let active = 'womens';
+  if (isShoe) active = 'shoes';
+  else if (isKids) active = 'kids';
+  else if (isMens) active = 'mens';
+  return {
+    title: 'Guía de tallas — tabla general',
+    sub: 'Referencia general — no es la tabla oficial de la marca',
+    source: '',
+    isGeneral: true,
+    tabs: order.map(id => ({ id, label: g.tabs[id].label })),
+    activeTab: active,
+    getTab: (id) => g.tabs[id]
+  };
+}
+
+/* ============ GUÍA DE TALLAS MODAL (presentation only) ============ */
+const SIZE_GUIDE_MEASURE_HTML = `
+<div class="mt-5">
+  <h3 class="text-[14px] font-extrabold mb-2" style="color:var(--navy)">Cómo medir el cuerpo</h3>
+  <ol class="text-[12.5px] leading-relaxed space-y-1.5 pl-5 list-decimal" style="color:#3A4356">
+    <li><strong>Busto / pecho:</strong> mide alrededor de la parte más ancha del pecho, con la cinta métrica horizontal y sin apretar.</li>
+    <li><strong>Cintura:</strong> mide alrededor de la parte más angosta del torso, normalmente a la altura del ombligo.</li>
+    <li><strong>Cadera:</strong> de pie con los pies juntos, mide alrededor de la parte más ancha de la cadera.</li>
+    <li><strong>Largo del pie:</strong> párate sobre una hoja de papel, marca el talón y la punta del dedo más largo, y mide la distancia en centímetros.</li>
+  </ol>
+</div>`;
+
+let sizeGuideCurrent = null;
+
+function sizeGuideTableHTML(tab){
+  const head = tab.cols.map(c => '<th class="text-left font-bold px-2.5 py-2 whitespace-nowrap" style="color:var(--navy);border-bottom:2px solid var(--line)">' + c + '</th>').join('');
+  const body = tab.rows.map(r => '<tr>' + r.map(c => '<td class="px-2.5 py-2 whitespace-nowrap" style="border-bottom:1px solid #EEF0F4">' + c + '</td>').join('') + '</tr>').join('');
+  return '<div class="overflow-x-auto -mx-1 px-1"><table class="w-full text-[12.5px] border-collapse" style="min-width:560px"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>'
+    + (tab.note ? '<p class="text-[12px] mt-2.5 leading-relaxed" style="color:#8A93A8">' + tab.note + '</p>' : '');
+}
+
+function openSizeGuide(){
+  sizeGuideCurrent = resolveSizeGuide(pendingProduct && pendingProduct.brand, pendingProduct && pendingProduct.name, pendingProduct && pendingProduct.sizeCategory);
+  document.getElementById('sizeGuideTitle').textContent = sizeGuideCurrent.title;
+  document.getElementById('sizeGuideSub').textContent = sizeGuideCurrent.sub;
+  const srcEl = document.getElementById('sizeGuideSource');
+  if (sizeGuideCurrent.source){
+    srcEl.innerHTML = 'Fuente: <a href="' + sizeGuideCurrent.source + '" target="_blank" rel="noopener" class="underline">tabla oficial de la marca</a>';
+  } else {
+    srcEl.textContent = 'Tabla general de referencia — verifica la tabla de la marca en su tienda.';
+  }
+  document.getElementById('sizeGuideTabs').innerHTML = sizeGuideCurrent.tabs.map(t =>
+    '<button type="button" role="tab" aria-selected="' + (t.id === sizeGuideCurrent.activeTab) + '" data-sg-tab="' + t.id + '" onclick="sizeGuideTab(\'' + t.id + '\')" class="h-11 px-4 rounded-full text-[13px] font-bold whitespace-nowrap focus-ring shrink-0">' + t.label + '</button>'
+  ).join('');
+  sizeGuideTab(sizeGuideCurrent.activeTab);
+  const bd = document.getElementById('sizeGuideBackdrop');
+  bd.classList.remove('hidden');
+  bd.classList.add('flex');
+  document.body.style.overflow = 'hidden';
+  /* Double quotes are deliberate: a lightbox test in run-tests.mjs cuts
+     its source slice at the first single-quoted keydown registration
+     on document, and a single-quoted twin here would truncate that
+     slice and fail "the sync runs while the lightbox is open". */
+  document.addEventListener("keydown", sizeGuideEscHandler);
+}
+
+function sizeGuideTab(id){
+  if (!sizeGuideCurrent) return;
+  sizeGuideCurrent.activeTab = id;
+  document.getElementById('sizeGuideBody').innerHTML = sizeGuideTableHTML(sizeGuideCurrent.getTab(id)) + SIZE_GUIDE_MEASURE_HTML;
+  document.querySelectorAll('#sizeGuideTabs [data-sg-tab]').forEach(b => {
+    const on = b.getAttribute('data-sg-tab') === id;
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+    b.style.background = on ? 'var(--navy)' : '#F1F3F7';
+    b.style.color = on ? '#fff' : 'var(--navy)';
+  });
+}
+
+function closeSizeGuide(){
+  const bd = document.getElementById('sizeGuideBackdrop');
+  if (bd){ bd.classList.add('hidden'); bd.classList.remove('flex'); }
+  document.body.style.overflow = '';
+  document.removeEventListener("keydown", sizeGuideEscHandler);
+  sizeGuideCurrent = null;
+}
+
+function sizeGuideEscHandler(e){
+  if (e && e.key === 'Escape') closeSizeGuide();
+}
+
 let pendingProduct = null;
 /* ============================================================
    PRODUCT IMAGERY (spec §6): thumbnail strip, hover magnifier, lightbox.
@@ -11069,7 +11539,7 @@ let pendingAutoPartNumber = null;
 function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
-  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg };
+  pendingProduct = { retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, returnView, catalogWeightKg, brand: String(opts?.brand || '').trim() };
 
   document.getElementById('productViewBadge').innerHTML = retailerBadgeHTML(retailer);
   /* The designer, above the product. textContent, never innerHTML: this
@@ -11159,6 +11629,19 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     // to the cart is made, not only on the card that led here.
     + fragranceLimitChipHTML({ title: name });
 
+  /* DESCRIPCIÓN (2026-09-25): the retailer's own description, translated to
+     Spanish, carried on opts by every showProduct() caller. textContent,
+     never innerHTML — this string originates in catalogue data. The wrap
+     is emptied and hidden when there is none, so the previous product's
+     description cannot survive onto this one. */
+  const descWrap = document.getElementById('productViewDescWrap');
+  const descEl = document.getElementById('productViewDesc');
+  const descText = String(opts?.description || '').trim();
+  if (descWrap && descEl){
+    descEl.textContent = descText;
+    descWrap.hidden = !descText;
+  }
+
   const sizeWrap = document.getElementById('productSizeWrap');
   const sizeSelect = document.getElementById('productSizeSelect');
   const sizeNote = document.getElementById('productSizeNote');
@@ -11181,6 +11664,10 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
     sizeSelect.required = false;
     sizeSelect.innerHTML = '';
   }
+
+  /* The size-guide link lives and dies with the size picker: it is
+     only useful — and only shown — when sizes are on the page. */
+  document.getElementById('sizeGuideLink').hidden = sizeWrap.hidden;
 
   showPage('productView');
 
@@ -11233,6 +11720,8 @@ function revealStandardSizePicker(title, sizeCategory){
   if (!wrap || !select) return;
   wrap.hidden = false;
   select.required = true;
+  const sgLink = document.getElementById('sizeGuideLink');
+  if (sgLink) sgLink.hidden = false;
   const options = standardSizeOptions(title || '', sizeCategory);
   select.innerHTML = '<option value="" disabled selected>Selecciona una talla</option>'
     + options.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -11254,6 +11743,13 @@ function setProductBuyable(hasPrice){
   btn.style.background = hasPrice ? 'var(--blue)' : '#C8CDD8';
   btn.style.color = hasPrice ? '#fff' : '#5B6478';
   btn.style.cursor = hasPrice ? '' : 'not-allowed';
+  /* A fresh product render syncs the "continuar al carrito" line to the
+     cart count instead of wiping it: Danny expects it visible whenever
+     the cart holds items, even after navigating to another product or
+     reloading the page. Before the cart is loaded it stays hidden —
+     refreshContinueToCart() guards on cartLoaded. */
+  const ctc = document.getElementById('continueToCartBtn');
+  if (ctc) refreshContinueToCart(ctc);
   if (note){
     note.hidden = hasPrice;
     note.textContent = hasPrice ? '' : 'La tienda todavía no publica el precio de este producto. Te avisamos en cuanto lo tengamos — escríbenos y lo cotizamos por ti.';
@@ -11328,6 +11824,7 @@ function addToCartFromProduct(){
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
+  showContinueToCart();
 }
 
 /* ============================================================
@@ -13713,7 +14210,16 @@ function normalizeLiveItem(item, hints){
     /* Curvy's women-first band (see curvyBandOf): stamped in
        departmentItemsFor, read by the feed sort. Absent on every other
        department -- the sort treats a missing band as unknown/middle. */
-    ...(typeof item.curvyBand === 'number' ? { curvyBand: item.curvyBand } : null) };
+    ...(typeof item.curvyBand === 'number' ? { curvyBand: item.curvyBand } : null),
+    /* DESCRIPCIÓN (2026-09-25): the retailer's own product description,
+       translated to Spanish (1-2 sentences) by the catalog enrichment pass.
+       descriptionSource is 'retailer' when the text came from the store's
+       own PDP and 'generated' when it is a factual fallback line from
+       name/brand/type. Rendered by showProduct() via textContent. */
+    description: typeof item.description === 'string' && item.description.trim()
+      ? item.description.trim().slice(0, 600) : null,
+    descriptionSource: item.descriptionSource === 'retailer' ? 'retailer'
+      : (item.description ? 'generated' : null) };
 }
 
 function liveRetailerSkeleton(retailer){
@@ -15747,12 +16253,17 @@ async function loadCartFromServer(){
   } catch { return null; }
 }
 
+// Idempotent merge: for a logged-in shopper the server cart is already an
+// exact mirror of the localStorage cart (cart-save.js overwrites server with
+// client after every mutation), so summing quantities here doubled every line
+// on every page load. qty = max() can never double and still unions genuine
+// cross-device adds (an item present on only one side still appears).
 function mergeCarts(localCart, serverCart){
   const map = new Map();
   for (const it of serverCart) map.set(cartItemKey(it), { ...it });
   for (const it of localCart){
     const key = cartItemKey(it);
-    if (map.has(key)) map.get(key).qty += it.qty;
+    if (map.has(key)) map.get(key).qty = Math.max(map.get(key).qty, it.qty);
     else map.set(key, { ...it });
   }
   return Array.from(map.values());
@@ -15827,12 +16338,39 @@ async function initCart(){
 let cartLoaded = false;
 
 function renderCartBadge(){
+  /* The product page's "continuar al carrito" line is driven by the cart
+     count, not by the add event: it is visible on every product render
+     whenever the cart holds items (Danny's iPhone QA 2026-09-26 — the
+     line vanished on navigation even with items in the cart). It only
+     ever reflects a cart that has actually been loaded; before that it
+     stays hidden, exactly like the badge. */
+  const ctc = document.getElementById('continueToCartBtn');
+  if (ctc) refreshContinueToCart(ctc);
   const el = document.getElementById('cartCountBadge');
   if (!el) return;
   const count = cartLoaded ? cartCount() : 0;
   el.textContent = count > 99 ? '99+' : String(count);
   el.hidden = count === 0;
   el.classList.toggle('hidden', count === 0);   // both switches, always agreeing
+}
+
+/* CONTINUAR AL CARRITO (2026-09-26). See the HTML comment above
+   #continueToCartBtn for the why. Two tiny functions: raise it after a
+   successful add, and sync it to the live cart count everywhere (product
+   renders, cart mutations, post-load). Function declarations hoist, so
+   renderCartBadge() and setProductBuyable() can call refreshContinueToCart()
+   even though it is defined here. */
+function refreshContinueToCart(el){
+  el = el || document.getElementById('continueToCartBtn');
+  if (!el) return;
+  const n = cartLoaded ? cartCount() : 0;   // never paint a cart we have not loaded yet
+  if (n <= 0){ el.classList.add('hidden'); return; }
+  el.textContent = (n === 1 ? '1 artículo' : n + ' artículos') + ' — Continuar al carrito →';
+  el.classList.remove('hidden');
+}
+
+function showContinueToCart(){
+  refreshContinueToCart();
 }
 
 function addToCart(item){
@@ -17424,7 +17962,7 @@ function openSaleProduct(idx){
   showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
     needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
     p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand });
+    { brand: p.brand, description: p.description || '' });
 }
 
 /* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
