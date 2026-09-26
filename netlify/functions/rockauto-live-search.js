@@ -122,26 +122,6 @@ export async function handler(event) {
   // Blobs context before any getStore() — ours or the lease helper's.
   try { connectLambda(event); } catch { /* cache/lease degrade gracefully */ }
 
-  // TEMPORARY DIAGNOSTIC (remove before merge)
-  try {
-    const rawUrl = event.rawUrl || event.path || "";
-    if (rawUrl.includes("diag=blobs2")) {
-      const report = { writeOk: false, readBackOk: false, writeError: null, readError: null };
-      try {
-        const store = getStore("rockauto-live");
-        await store.setJSON("__diag_probe2__", { t: Date.now() });
-        report.writeOk = true;
-      } catch (e) { report.writeError = String((e && e.message) || e).slice(0, 300); }
-      try {
-        const store = getStore("rockauto-live");
-        const back = await store.get("__diag_probe2__", { type: "json" });
-        report.readBackOk = !!(back && back.t);
-        await store.delete("__diag_probe2__").catch(() => {});
-      } catch (e) { report.readError = String((e && e.message) || e).slice(0, 300); }
-      return json(200, { diag: "blobs2", ...report });
-    }
-  } catch { /* fall through */ }
-
   if (event.httpMethod !== "POST") return json(405, { ok: false });
 
   let body = {};
