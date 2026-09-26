@@ -1162,6 +1162,19 @@
       </div>
     </section>
 
+    <!-- STORE RAIL: GYMSHARK (2026-09-26, Danny). The gym brand leads the rails — most-known
+         gym brand in Peru right now. Sale + featured picks from the Gym Rat catalog's Gymshark
+         shelf; the header opens the full Gymshark store. No logo file: the wordmark pill on the
+         brand colour is the designed treatment, same as Dick's. -->
+    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+        <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
     <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
     <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -1450,6 +1463,18 @@
       </div>
     </section>
 
+    <!-- STORE RAIL: GYMSHARK (desktop, 2026-09-26, Danny). Same shelf as the phone, wider stance. -->
+    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+          <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
     <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
@@ -2911,6 +2936,23 @@
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
     </div>
+    <!-- VITRINA: GYMSHARK (2026-09-26, Danny). First vitrina, same shelf as the
+         homepage rails -- the most-known gym brand in Peru leads the Tiendas
+         vitrinas too. No logo file: the black wordmark pill is the designed
+         treatment, same as the homepage rail. Painted by initStoreRails. -->
+    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none" style="background:#000000">Gymshark</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Gymshark</span>
+        </span>
+          <button onclick="openStore('gymshark')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
     <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -5406,9 +5448,9 @@ const DEPARTMENT_SPEC = {
      category: the apparel is the same apparel, and what makes it this
      department is the size run the retailer publishes for it. */
   curvy:           { category: 'apparel', extendedSizesOnly: true },
-  /* GYM RAT (2026-09-26). The gym brands file everything under a
-     gym_rat bucket (category 'gymrat'); Foot Locker contributes its
-     athletic shoes via the retailer rule in itemBelongsToDepartment. */
+  /* GYM RAT (2026-09-26, Danny). The gym brands file everything under a
+     gym_rat bucket (category 'gymrat'): gym clothing + gym accessories.
+     Zero shoes — shoes live in Zapatos / Foot Locker only. */
   gym_rat:         { category: 'gymrat' },
   /* BEAUTY (2026-09-20). No retailer supplies a beauty bucket yet —
      Sephora and Victoria's Secret are real stores whose scrapers are
@@ -5708,12 +5750,12 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (!dept) return false;
   if (dept.onSaleOnly) return rawItemOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
-  /* GYM RAT (2026-09-26, Danny): Foot Locker's athletic shoes belong here
-     too — the store is the signal, same as Zapatos. Apparel buckets from
-     the gym brands match via the 'gymrat' category below. */
-  if (deptKey === 'gym_rat' && retailer === 'footlocker') return isFootwear(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* GYM RAT (2026-09-26, Danny): zero shoes — shoes live in Zapatos /
+     Foot Locker only. Gym Rat is gym clothing + gym accessories (bags,
+     belts, etc.) from the gym brands' gymrat buckets. */
+  if (deptKey === 'gym_rat' && isFootwear(item, retailer)) return false;
   /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
      the retailers' sporting_goods buckets carry them, and the bucket is
      this department's only other signal. Gated on isFootwear so a
@@ -6288,11 +6330,16 @@ const HOME_ROW_DEPARTMENTS = [
      destination for the core shopper, so it is the first thing the row
      offers rather than the tenth. */
   'beauty',
-  'curvy',
+  /* GYM RAT SECOND (2026-09-26, Danny): the gym-culture identity
+     destination goes right after Beauty, before Curvy. */
   'gym_rat',
   'women',
   'men',
   'shoes',
+  /* CURVY LAST (2026-09-26, Danny): one of the smallest target
+     demographics — stays on the row and stays filled, but deprioritized
+     in placement. */
+  'curvy',
 ];
 
 /* ============================================================
@@ -7151,6 +7198,49 @@ function spreadDealsByStore(sorted, lead){
   return first.concat(held);
 }
 
+/* OFERTAS FRONT (2026-09-26, Danny): the lead sells the section.
+   Brands that pull go first — Victoria's Secret, Sephora, Macy's,
+   Gymshark, YoungLA — so Gym Rat sale items sit toward the front next
+   to Victoria's Secret. Discount decides within each brand.
+   - Near-identical products never stack in the lead (the three-Macy's-
+     coats lesson): one normalized title per lead.
+   - Heavy coats don't lead — Peru's summer is coming — but they stay in
+     the grid (the sierra still gets cold).
+   Explicit price sorts are the shopper's own question and are untouched;
+   this only shapes the default "Mayor descuento" order. */
+const OFERTAS_LEAD_BRANDS = ['victoriassecret', 'sephora', 'macys', 'gymshark', 'youngla'];
+const OFERTAS_LEAD_N = 12;
+const OFERTAS_COAT_RX = /puffer|parka|\bcoat\b|down jacket|abrigo|chamarra|plumas/i;
+function ofertasLeadRank(p){
+  const i = OFERTAS_LEAD_BRANDS.indexOf(String(p.retailer || '').toLowerCase());
+  return i === -1 ? OFERTAS_LEAD_BRANDS.length : i;
+}
+/* Normalized-title key for near-duplicate detection: lowercase, strip
+   gender/fit/collar words and punctuation so "Women's Hooded Stand
+   Collar Puffer Coat" and "Women's Collar Hooded Puffer Coat" collide. */
+function ofertasTitleKey(title){
+  return String(title || '').toLowerCase()
+    .replace(/women'?s|men'?s|kids?|unisex/g, ' ')
+    .replace(/hooded|stand|collar|sleeve|long|short|zip|oversized|regular|slim|fit|with|sin|con/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+function ofertasLeadSort(items){
+  const byDiscount = [...items].sort((a, b) => discountPct(b) - discountPct(a));
+  const lead = [], rest = [], seen = new Set();
+  for (const p of byDiscount){
+    if (lead.length >= OFERTAS_LEAD_N){ rest.push(p); continue; }
+    if (OFERTAS_COAT_RX.test(String(p.title || ''))){ rest.push(p); continue; }
+    const k = ofertasTitleKey(p.title);
+    if (k && seen.has(k)){ rest.push(p); continue; }
+    seen.add(k);
+    lead.push(p);
+  }
+  /* Lead order: lead brands first, discount deciding within each brand.
+     The rest keeps pure discount order — nothing is dropped. */
+  lead.sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
+  return lead.concat(rest);
+}
+
 /* BIGGEST DISCOUNT FIRST, which is the whole brief: "80% off first".
    Sorted here rather than trusting the feed's own order, because the
    feed defaults to cheapest door-to-door and this rail is answering a
@@ -7159,7 +7249,7 @@ function renderMobileDealsRail(){
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
-    .sort((a, b) => discountPct(b) - discountPct(a));
+    .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
   const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
   /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
@@ -7215,10 +7305,12 @@ function renderMobileDealsRail(){
    the viewport, through one IntersectionObserver. No timers, no
    autoplay -- the rails never move on their own.
    ============================================================ */
-/* The seven window displays, in mall order: aspirational first, the way
+/* The window displays, in mall order: aspirational first, the way
    the RETAILERS registry itself is ordered. Costco (2026-09-25) is the
-   seventh rail: the warehouse club's bulk prices belong in the window row. */
-const STORE_RAIL_STORES = ['victoriassecret', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks', 'costco'];
+   warehouse club's bulk prices in the window row. GYMSHARK LEADS
+   (2026-09-26, Danny): the most-known gym brand in Peru right now gets
+   the first window; its shelf is the Gym Rat catalogue's Gymshark picks. */
+const STORE_RAIL_STORES = ['gymshark', 'victoriassecret', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks', 'costco'];
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
 
@@ -7479,6 +7571,13 @@ async function initBrandStrip(){
    is the display name for the one unregistered retailer the site
    surfaces. */
 const FIESTAS_RETAILER_LABEL = { partycity: 'Party City' };
+/* GYM RAT BRAND ORDER (2026-09-26, Danny): most-known brands first —
+   YoungLA leads, Gymshark follows with heavy presence, Alphalete third.
+   The pill row and the product grid both read byRetailer in insertion
+   order, so one reorder drives both. */
+const DEPARTMENT_RETAILER_ORDER = {
+  gym_rat: ['youngla', 'gymshark', 'alphalete'],
+};
 /* Inside Costco's mixed 'fiesta' bucket, the Menaje rail keeps only the
    tableware. Matched on the English title, the way the search does. */
 const FIESTAS_TABLEWARE_RX = /plate|cutlery|cup|napkin|bowl|utensil|tray|tablecover|straw|fork|spoon|knife/i;
@@ -7980,11 +8079,22 @@ async function openCatalog(kind, key, opts = {}){
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
   }
+  /* Per-department retailer display order (DEPARTMENT_RETAILER_ORDER):
+     the pill row and the product grid both read this map in insertion
+     order, so reordering here drives both. Retailers not named in the
+     order keep their relative order after the named ones. */
+  let orderedRetailers = byRetailer;
+  const retailerOrder = kind === 'department' ? DEPARTMENT_RETAILER_ORDER[key] : null;
+  if (retailerOrder){
+    orderedRetailers = new Map();
+    for (const r of retailerOrder) if (byRetailer.has(r)) orderedRetailers.set(r, byRetailer.get(r));
+    for (const [r, items] of byRetailer) if (!orderedRetailers.has(r)) orderedRetailers.set(r, items);
+  }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
   // A new category is a new question: the budget does not follow you into
   // it, for the same reason the search term does not.
-  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
   renderCatalogFeed();
 }
 
@@ -12265,6 +12375,13 @@ const RETAILERS = {
      names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
   oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
+  /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's pattern:
+     browse: true, search: false. The Gym Rat catalogues (gymrat-catalog.json) are
+     committed files; they power the Gym Rat department, its brand pills, the
+     Gymshark home rail, and Ofertas via fileBackedDeals. Apparel cluster, after Old Navy. Mirrors scripts/lib/retailers.js. */
+  youngla:         { key: 'youngla',         label: 'YoungLA',          color: '#000000', tagline: 'Ropa de gym — oversize y streetwear',                 kind: 'general', search: false, browse: true },
+  gymshark:        { key: 'gymshark',        label: 'Gymshark',         color: '#000000', tagline: 'Ropa de gym — leggings, tops y conjuntos',            kind: 'general', search: false, browse: true },
+  alphalete:       { key: 'alphalete',       label: 'Alphalete',        color: '#000000', tagline: 'Ropa de gym premium',                                kind: 'general', search: false, browse: true },
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
@@ -18524,7 +18641,7 @@ function renderSalesGrid(){
   // Price sorts rank by what the shopper actually pays at the door, not
   // by the product price — see doorToDoorUsd(). Discount stays a
   // discount: it is a claim about the markdown, not about the total.
-  if (sortBy === 'discount') items.sort((a, b) => discountPct(b) - discountPct(a));
+  if (sortBy === 'discount') items = ofertasLeadSort(items);
   else items.sort(byDoorToDoor(sortBy));
 
   salesRendered = items;

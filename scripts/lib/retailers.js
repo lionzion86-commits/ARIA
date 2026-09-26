@@ -372,6 +372,39 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's
+     pattern: browse: true, search: false. The Gym Rat catalogues
+     (gymrat-catalog.json) are committed files. They power the Gym Rat
+     department, its brand pills, the Gymshark home rail, and Ofertas via
+     fileBackedDeals. Apparel cluster, after Old Navy. Mirrors the index.html rows;
+     the page is a plain <script> and cannot import. */
+  youngla: {
+    key: "youngla",
+    label: "YoungLA",
+    color: "#000000",
+    tagline: "Ropa de gym — oversize y streetwear",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  gymshark: {
+    key: "gymshark",
+    label: "Gymshark",
+    color: "#000000",
+    tagline: "Ropa de gym — leggings, tops y conjuntos",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  alphalete: {
+    key: "alphalete",
+    label: "Alphalete",
+    color: "#000000",
+    tagline: "Ropa de gym premium",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   target: {
     key: "target",
     label: "Target",
