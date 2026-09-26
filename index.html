@@ -16732,6 +16732,43 @@ function autoSourceBadgeHTML(key, heightPx = 22){
    rather than code. (RockAuto was removed 2026-09-26, Danny's call.) */
 /* ROCKAUTO LIVE SEARCH — REMOVED 2026-09-26 with the source (Danny's call).
    The zero-Apify fallback and its server function are retired with it. */
+/* KEYWORD FALLBACK ACROSS THE FREE CACHE (2026-09-24). The exact
+   year|make|model|query key only exists for pre-cached combinations — a
+   2019 Sonata asking for "filtro de aceite" has no exact key, and without
+   this step the search jumped straight to a paid live scrape (slow, and a
+   guaranteed "No se pudo iniciar la búsqueda" for sources with no live
+   actor, like RockAuto). The cache holds thousands of real parts per
+   part type across other vehicles, so scan those first: instant and free.
+   Same-make vehicles sort first (an Elantra oil filter is a closer guess
+   for a Sonata than an F-150's). Fitment stays honest downstream —
+   renderAutoPartBlock shows the unconfirmed-fit line for sources without
+   compatibility data, and the "nada que calce" branch for sources whose
+   lists rule the vehicle out. */
+function searchAutoCacheKeyword(cache, sourceKey, vehicle, query){
+  const partSearches = cache?.partSearches;
+  if (!partSearches) return [];
+  const q = String(query || '').trim().toLowerCase();
+  if (!q) return [];
+  const suffix = '|' + q;
+  const makeNeedle = vehicle ? '|' + String(vehicle.make).toLowerCase() + '|' : null;
+  const sameMake = [], other = [];
+  const seen = new Set();
+  for (const key of Object.keys(partSearches)){
+    const kl = key.toLowerCase();
+    if (!kl.endsWith(suffix)) continue;
+    const arr = partSearches[key]?.[sourceKey];
+    if (!Array.isArray(arr)) continue;
+    const bucket = (makeNeedle && kl.includes(makeNeedle)) ? sameMake : other;
+    for (const raw of arr){
+      const id = String(raw.part_number || raw.partNumber || raw.item_id || raw.title || '');
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      bucket.push(raw);
+    }
+  }
+  return sameMake.concat(other).slice(0, 12).map(raw => normalizeAutoPartItem(sourceKey, raw));
+}
+
 async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   const cache = await loadAutoCache();
   const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
@@ -16741,6 +16778,14 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
      prebuilt part-number and brand indexes before any paid live scrape. */
   const indexed = searchAutoIndex(cache, sourceKey, vehicle, query);
   if (indexed.length) return indexed;
+  /* KEYWORD FALLBACK (2026-09-24): no exact vehicle+query entry — scan the
+     free cache for this part type across vehicles before any paid call. */
+  const kwFallback = searchAutoCacheKeyword(cache, sourceKey, vehicle, query);
+  if (kwFallback.length) return kwFallback;
+  /* RockAuto has no live-scrape actor configured (see AUTO_SOURCES): a
+     live call can only throw "No se pudo iniciar la búsqueda". Return the
+     honest empty state instead of a fake error. */
+  if (sourceKey === 'rockauto') return [];
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
   /* (RockAuto's live branch was removed with the source 2026-09-26, Danny's call.) */
@@ -16757,18 +16802,29 @@ function searchAutoIndex(cache, sourceKey, vehicle, query){
   if (!q) return [];
   const prefix = `${vehicle.year}|${vehicle.make}|${vehicle.model}|`.toLowerCase();
   const pnKey = q.replace(/[^a-z0-9]/g, '');
-  const tuples = (pnKey && cache.partNumberIndex?.[pnKey]) || cache.brandIndex?.[q] || [];
+  const pnTuples = (pnKey && cache.partNumberIndex?.[pnKey]) || [];
+  const tuples = pnTuples.length ? pnTuples : cache.brandIndex?.[q] || [];
   const out = [];
   const seen = new Set();
-  for (const [key, source, idx] of tuples){
-    if (source !== sourceKey) continue;
-    if (!String(key).toLowerCase().startsWith(prefix)) continue;
-    const raw = cache.partSearches?.[key]?.[source]?.[idx];
-    if (!raw || seen.has(raw)) continue;
-    seen.add(raw);
-    out.push(normalizeAutoPartItem(sourceKey, raw));
-    if (out.length >= 12) break;
-  }
+  const collect = (ignoreVehicle) => {
+    for (const [key, source, idx] of tuples){
+      if (source !== sourceKey) continue;
+      if (!ignoreVehicle && !String(key).toLowerCase().startsWith(prefix)) continue;
+      const raw = cache.partSearches?.[key]?.[source]?.[idx];
+      if (!raw || seen.has(raw)) continue;
+      seen.add(raw);
+      out.push(normalizeAutoPartItem(sourceKey, raw));
+      if (out.length >= 12) return;
+    }
+  };
+  collect(false);
+  /* A part number names the part itself, not the vehicle it was cached
+     under — D2076 is the same Duralast pad whether we indexed it from a
+     Camry or a Corolla search. If nothing is cached for THIS vehicle,
+     show the part from wherever we have it (fitment stays honestly
+     unconfirmed downstream) rather than firing a paid live scrape.
+     Brands stay vehicle-scoped: "Bosch" is not one part. */
+  if (!out.length && pnTuples.length) collect(true);
   return out;
 }
 
