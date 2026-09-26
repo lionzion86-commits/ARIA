@@ -84,16 +84,24 @@ export const AUTO_SOURCES = {
      `search: false` keeps it out of the fan-out, and an unprobed source
      is not presented to a shopper. Run the probe, and if it returns real
      items, flip the flag. NAPA is the same shape when its turn comes. */
+  /* ADVANCE AUTO PARTS (2026-09-26) — the probe came back as a catalogue:
+     advanceauto-catalog.json (120 brake parts with real converted weights)
+     is committed at repo root. `browse: true` says the catalogue is real;
+     `search: false` says no live actor is wired up. Fitment search stays
+     AutoZone-only: the catalogue carries no vehicle-compatibility data and
+     makes no fitment claim — the part number is the buyer's check. Its Aria
+     Auto block is the catalog-backed Destacados shelf, never the YMM search.
+     Mirrors the index.html AUTO_SOURCES row. */
   advanceauto: {
     key: "advanceauto",
     label: "Advance Auto Parts",
-    color: "#D5001C",
+    color: "#EA1927",
     logo: null,
     search: false,
-    fitmentData: "unknown",
-    probe: "not-run",
-    pendingNote: "Por evaluar",
-    note: "Onboarding condicional: solo si el scrape responde limpio.",
+    browse: true,
+    fitmentData: "none",
+    probe: "catalog",
+    note: "Catálogo de frenos; el calce se confirma con el número de parte.",
   },
   /* O'REILLY IS OUT, and stays out. Danny tried it: the site declines
      scraper requests. Kept as a row so nobody spends another afternoon
