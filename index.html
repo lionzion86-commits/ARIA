@@ -3428,6 +3428,66 @@
   </section>
 </div>
 
+<!-- ============ RESTRICCIONES VIEW ============ -->
+<!-- ADDED 2026-09-26 (Danny): customer-facing import-restriction chart. -->
+<!-- Toy and food per-order limits in plain language. -->
+<div id="restrictionsView" class="view">
+
+  <section class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
+    <div class="max-w-[1120px] mx-auto px-5 py-14 sm:py-16">
+      <div class="max-w-[62ch]">
+        <div class="ariaKicker mb-4">L&iacute;mites claros</div>
+        <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
+          Restricciones de <span style="color:#F4C463">importaci&oacute;n</span>
+        </h1>
+        <p class="text-[15px] sm:text-[16.5px] leading-relaxed" style="color:#AFBBD6">
+          Algunas categor&iacute;as tienen l&iacute;mites por pedido, por normas de aduana. Ac&aacute; est&aacute; todo, sin letra peque&ntilde;a.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section style="background:var(--paper)">
+    <div class="max-w-[1120px] mx-auto px-5 py-16 sm:py-20">
+      <div class="grid gap-5 max-w-[820px]">
+        <article class="ariaCard ariaCard--light p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1">
+            <h3 class="text-[17px] font-extrabold tracking-[-0.01em] mb-1.5" style="color:var(--navy)">Juguetes para 13 a&ntilde;os o m&aacute;s</h3>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Figuras coleccionables, juegos de mesa, sets de construcci&oacute;n y m&aacute;s.</p>
+          </div>
+          <div class="shrink-0 rounded-2xl px-6 py-3.5 text-center" style="background:#E9F7EE">
+            <div class="text-[15px] font-extrabold" style="color:#1E7A3C">Sin l&iacute;mite</div>
+            <div class="text-[12px]" style="color:#4A5568">pide todos los que quieras</div>
+          </div>
+        </article>
+        <article class="ariaCard ariaCard--light p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1">
+            <h3 class="text-[17px] font-extrabold tracking-[-0.01em] mb-1.5" style="color:var(--navy)">Juguetes para menores de 13 a&ntilde;os</h3>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">Juguetes para ni&ntilde;os y ni&ntilde;as menores de 13.</p>
+          </div>
+          <div class="shrink-0 rounded-2xl px-6 py-3.5 text-center" style="background:#FDF3E3">
+            <div class="text-[15px] font-extrabold" style="color:#8A5A00">M&aacute;ximo 6 por persona</div>
+            <div class="text-[12px]" style="color:#4A5568">por pedido</div>
+          </div>
+        </article>
+        <article class="ariaCard ariaCard--light p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+          <div class="flex-1">
+            <h3 class="text-[17px] font-extrabold tracking-[-0.01em] mb-1.5" style="color:var(--navy)">Alimentos y bebidas</h3>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">T&eacute;, caf&eacute;, chocolates, snacks y m&aacute;s.</p>
+          </div>
+          <div class="shrink-0 rounded-2xl px-6 py-3.5 text-center" style="background:#FDF3E3">
+            <div class="text-[15px] font-extrabold" style="color:#8A5A00">M&aacute;ximo 6 por persona</div>
+            <div class="text-[12px]" style="color:#4A5568">por pedido</div>
+          </div>
+        </article>
+      </div>
+      <p class="text-[13px] leading-relaxed mt-8 max-w-[70ch]" style="color:#6B7487">
+        Los l&iacute;mites aplican por persona y por pedido, seg&uacute;n las normas de aduana. &iquest;Necesitas cantidades mayores? Haz un pedido adicional o escr&iacute;benos a <a href="mailto:contacto@ariashop.pe" class="font-semibold" style="color:var(--navy)">contacto@ariashop.pe</a> y lo coordinamos.
+      </p>
+    </div>
+  </section>
+</div>
 <!-- ============ RETURNS VIEW ============ -->
 <!-- ============ DEVOLUCIONES ============ -->
 <!-- REBUILT 2026-09-19 in the Precio Honesto language. Copy unchanged:
@@ -4062,6 +4122,7 @@
         <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="font-semibold hover:text-[color:var(--navy)] transition" style="color:var(--navy)">Precio Honesto</a>
         <a href="#" onclick="showPage('aboutView');return false;" class="hover:text-[color:var(--navy)] transition">Nosotros</a>
         <a href="#" onclick="showPage('returnsView');return false;" class="hover:text-[color:var(--navy)] transition">Devoluciones</a>
+        <a href="#" onclick="showPage('restrictionsView');return false;" class="hover:text-[color:var(--navy)] transition">Restricciones</a>
         <a href="#" onclick="showPage('keyclubView');return false;" class="hover:text-[color:var(--navy)] transition">Aria Key Club</a>
         <a href="#" onclick="showPage('termsView');return false;" class="hover:text-[color:var(--navy)] transition">Términos</a>
         <a data-support="general" href="mailto:contacto@ariashop.pe" class="hover:text-[color:var(--navy)] transition">contacto@ariashop.pe</a>
@@ -9968,7 +10029,7 @@ function catalogShowMore(){
 }
 
 
-const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','keyclubView','termsView','adminView'];
+const ALL_VIEWS = ['homeView','resultsView','catalogView','storeView','storeResultsView','productView','cartView','salesView','categoriesView','howView','storesView','ariaAutoView','aboutView','returnsView','restrictionsView','keyclubView','termsView','adminView'];
 
 /* ============================================================
    ROUTING / BROWSER HISTORY
@@ -10252,7 +10313,7 @@ function initRouter(){
 // product, department, store, ofertas) pushes its own route from its own
 // entry function, where the query/product/department is known. Routing
 // these here beats editing two dozen onclick attributes.
-const STATIC_ROUTE_VIEWS = new Set(['howView', 'storesView', 'aboutView', 'returnsView', 'keyclubView', 'termsView', 'adminView']);
+const STATIC_ROUTE_VIEWS = new Set(['howView', 'storesView', 'aboutView', 'returnsView', 'restrictionsView', 'keyclubView', 'termsView', 'adminView']);
 
 /* Gold marks the section you are actually in — one link at a time, and
    only ever one. Called from showPage() so every entry point (nav click,
