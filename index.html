@@ -8698,7 +8698,7 @@ const TOY_KEYWORD_RX = /\b(lego|juguete|mu[ñn]eca|peluche|plush|barbie|hot whee
    blankets are bedding, not toys — and a gaming tee is clothing. The
    bucket-name path above is untouched: a real "juguetes" department
    stays a toy department. */
-const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|pillowcase|quilt|coverlet|mattress|towel|pants|pajama|pijama|robe|slipper|socks|tee|t-shirt|hoodie|sweatshirt|backpack|lunch|pencil|wedge|cable|hdmi|charger)\b/i;
+const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|pillowcase|quilt|coverlet|mattress|towel|pants|pajama|pijama|robe|slipper|slippers|socks|tee|t-shirt|hoodie|sweatshirt|backpack|lunch|pencil|wedge|cable|hdmi|charger|perfume|parfum|cologne|fragrance)\b|\beau\s+de\s+parfum/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;

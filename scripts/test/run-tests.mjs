@@ -11245,6 +11245,9 @@ check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny
     [{ title: "Monster 8K HDMI Cable 4ft, Ultra High Speed HDMI 2.1 Cord with LED Connectors, 48Gbps, 4K 144Hz Gaming, HDR for PS5, Xbox, TV", brand: "" }, "electronics"],
     [{ title: "Waci Plush Kids Hooded Towel", brand: "" }, "kids"],
     [{ title: "Herschel Supply x LEGO Classic Backpack - Abstract Bricks", brand: "Herschel" }, "clothing"],
+    [{ title: "ARIANA GRANDE LOVENOTES Plush Vanilla Eau de Parfum", brand: "Ariana Grande" }, "beauty"],
+    [{ title: "BROWN GIRL JANE Halo Limited-Edition Barbie x BROWN GIRL Jane Eau de Parfum", brand: "Brown Girl Jane" }, "beauty"],
+    [{ title: "VICTORIA'S SECRET Luxe Plush Closed-Toe Slippers", brand: "Victoria's Secret" }, "clothing"],
   ];
   for (const [item, bucket] of yes)
     if (!isToy(item, "costco", bucket)) throw new Error(`not claimed as a toy: ${item.title}`);
