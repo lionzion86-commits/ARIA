@@ -43,7 +43,32 @@ export function loadPageWeightSlice() {
     console,
   };
   vm.createContext(sandbox);
-  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  return sandbox.__exports;
+}
+
+const AUTO_GLOSSARY_START = "/* ==== GLOSSARY-BLOCK-START";
+const AUTO_GLOSSARY_END = "\n/* ============================================================\n   ARIA AUTO'S PARTS SOURCES";
+
+/* The shared ES->EN parts glossary (generated from
+   scripts/lib/es-en-parts-glossary.json) and its lookup, on their own.
+   The JSON is the canonical module — the future Aria AI assistant imports
+   it directly; this slice proves the browser's inline copy matches it. */
+export function loadPageAutoGlossarySlice() {
+  const html = readFileSync(INDEX, "utf8").replace(/\r\n/g, "\n");
+  const from = html.indexOf(AUTO_GLOSSARY_START);
+  const to = html.indexOf(AUTO_GLOSSARY_END, from);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html auto-glossary slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { AUTO_PART_TERMS_ES_EN, translatePartQuery };",
+    sandbox,
+    { filename: "index.html#auto-glossary" },
+  );
   return sandbox.__exports;
 }
 
@@ -147,7 +172,7 @@ export function loadPageSubcategorySlice() {
 }
 
 const QUERY_START = "/** Lowercase, strip accents, collapse whitespace. */";
-const QUERY_END = "function searchFor(q){";
+const QUERY_END = "function searchFor(q, which){";
 
 /** The Spanish→English query table and its lookup, on their own. */
 export function loadPageQuerySlice() {
@@ -252,10 +277,14 @@ export function loadPageEnvelopeSlice() {
   if (from < 0 || to < 0 || to <= from) {
     throw new Error("index.html envelope slice markers moved — update scripts/test/_page-script.mjs");
   }
+  /* normalizeCatalogueEnvelope leans on aliasEnvelopeTitles, defined just
+     above the slice start -- pulled in by name so the slice keeps working
+     without dragging the whole catalogue section along. */
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope };",
+    extractNamedFunction(html, "aliasEnvelopeTitles") + "\n" +
+    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope, isShippableItem, withoutUnshippableItems };",
     sandbox,
     { filename: "index.html#envelope" },
   );
@@ -310,6 +339,44 @@ export function loadPageBrandSlice() {
   return sandbox.__exports;
 }
 
+/* ============================================================
+   THE CHAT'S ROUTING TABLES.
+
+   Three literals decide where a quick-reply chip's text goes:
+   ARIA_QUICK_REPLIES (what the chips say, which IS what they send),
+   SALE_KEYWORDS (the local shortcut straight to the Ofertas feed) and
+   CHAT_NON_SHOPPING_RE (what keeps a question out of a live
+   multi-retailer PRODUCT search that runs for half a minute).
+
+   Loaded rather than string-matched so the tests can RUN them: a chip
+   that would drop a shopper into a thirty-second search for the words
+   "Rastrear mi pedido" is not something a grep for the chip's label
+   would ever notice.
+   ============================================================ */
+const CHAT_ROUTE_START = "const ARIA_QUICK_REPLIES = [";
+const CHAT_ROUTE_END = "async function runAssistantBrain(";
+
+export function loadPageChatRoutingSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const qFrom = html.indexOf(CHAT_ROUTE_START);
+  const kFrom = html.indexOf("const SALE_KEYWORDS = [");
+  const kTo = html.indexOf(CHAT_ROUTE_END);
+  const nFrom = html.indexOf("const CHAT_NON_SHOPPING_RE = ");
+  if (qFrom < 0 || kFrom < 0 || kTo < 0 || nFrom < 0 || kTo <= kFrom) {
+    throw new Error("index.html chat-routing markers moved — update scripts/test/_page-script.mjs");
+  }
+  const src = [
+    html.slice(qFrom, html.indexOf("];", qFrom) + 2),
+    html.slice(kFrom, kTo),
+    html.slice(nFrom, html.indexOf("\n", nFrom)),
+  ].join("\n");
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    src + "\n;globalThis.__exports = { ARIA_QUICK_REPLIES, SALE_KEYWORDS, CHAT_NON_SHOPPING_RE };",
+    sandbox, { filename: "index.html#chat-routing" });
+  return sandbox.__exports;
+}
 /* The footwear detector. Pure string work over an item, so it loads
    without the cache the department read needs around it. */
 const SHOE_START = "const FOOTWEAR_TYPE =";
@@ -345,7 +412,18 @@ export function loadPageDealSpreadSlice() {
   }
   const sandbox = { console };
   vm.createContext(sandbox);
-  vm.runInContext(html.slice(from, to) + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD };",
+  /* OFERTAS LEAD (2026-09-26, Danny): the lead-brand sort ships in the
+     same slice as the spread, so its behaviour is tested, not just its
+     source text. */
+  /* ofertasLeadSort leans on the page's own discountPct -- the slice
+     carries that one-liner along so the sort runs for real. */
+  const dpctStart = html.indexOf("function discountPct(p){");
+  const dpctEnd = html.indexOf("\n", dpctStart);
+  if (dpctStart < 0 || dpctEnd < 0) {
+    throw new Error("index.html discountPct moved — update scripts/test/_page-script.mjs");
+  }
+  vm.runInContext(html.slice(from, to) + "\n" + html.slice(dpctStart, dpctEnd)
+    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory };",
     sandbox, { filename: "index.html#deal-spread" });
   return sandbox.__exports;
 }
@@ -392,7 +470,7 @@ export function loadPageCatalogSearchSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     html.slice(from, to) +
-      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT, SEARCH_SYNONYM_GROUPS, synonymGroupOf, synonymsOf, canonicalizeToken, canonicalizeTokens };",
+      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT, SEARCH_SYNONYM_GROUPS, synonymGroupOf, synonymsOf, canonicalizeToken, canonicalizeTokens, expandBrandAliases, retailerIntentFor, retailerNameTokens, BRAND_ALIASES };",
     sandbox,
     { filename: "index.html#catalog-search" },
   );
@@ -450,6 +528,101 @@ export function loadPageCurvySlice() {
   return sandbox.__exports;
 }
 
+/* Curvy's women-first band, on its own. curvyBandOf() reads genderOfItem(),
+   which reads the gender markers, the brand rule and BUCKET_SPEC -- all
+   scattered across the page -- so this assembles the dependency chain
+   piece by piece rather than trusting one marker span. Each piece is
+   captured by declaration: a `const X = /.../;` runs to its semicolon, a
+   braced body runs to its matching close brace (none of these bodies
+   carries a brace inside a string, so a plain counter is exact). */
+export function loadPageCurvyBandSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  function grab(name) {
+    const m = new RegExp(`(?:const|function)\\s+${name}\\b`).exec(html);
+    if (!m) throw new Error(`index.html: ${name} not found — update scripts/test/_page-script.mjs`);
+    const i = m.index;
+    const eq = html.indexOf("=", i);
+    const brace = html.indexOf("{", i);
+    if (/^const\s/.test(html.slice(i, i + 6)) && eq > 0 && (brace < 0 || eq < brace)) {
+      let j = eq + 1;
+      while (/\s/.test(html[j])) j++;
+      if (html[j] === "{") { /* object const: fall through to brace matching */ }
+      else {
+        const semi = html.indexOf(";", j);
+        if (semi < 0) throw new Error(`index.html: ${name} unterminated`);
+        return html.slice(i, semi + 1);
+      }
+    }
+    let depth = 0, instr = null, k = brace;
+    for (; k < html.length; k++) {
+      const c = html[k];
+      if (instr) {
+        if (c === instr && html[k - 1] !== "\\") instr = null;
+        continue;
+      }
+      if (c === "'" || c === '"' || c === "`") { instr = c; continue; }
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) break; }
+    }
+    if (depth !== 0) throw new Error(`index.html: ${name} braces unbalanced`);
+    let end = k + 1;
+    while (end < html.length && /\s/.test(html[end])) end++;
+    if (html[end] === ";") end++;
+    return html.slice(i, end);
+  }
+  const parts = [
+    "BUCKET_SPEC", "KID_MARKER", "WOMEN_MARKER", "MEN_MARKER",
+    "rawTitleOf", "genderFromTitle", "brandOf", "PINK_BRAND",
+    "genderOfItem", "curvyBandOf",
+  ].map(grab);
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    parts.join("\n") +
+      "\n;globalThis.__exports = { curvyBandOf, genderOfItem };",
+    sandbox,
+    { filename: "index.html#curvy-band" },
+  );
+  return sandbox.__exports;
+}
+
+
+/* The department read chain, on its own. departmentItemsFor() is what
+   turns a retailer's raw buckets into the category sections a store page
+   shows -- so Costco's standard-template storefront is settled by
+   execution over the real catalogue, not by reading BUCKET_SPEC.
+   Marker-sliced verbatim (DEPARTMENT_CHAIN:SLICE-START/END in index.html),
+   the way the fiestas slice works: brace-counting extraction chokes on
+   apostrophes inside the region's own comments (2026-09-26). The four
+   far-away consts the chain reads are single-line declarations, lifted by
+   line match so the slice needs no second region. Pure -- the region is
+   kept free of DOM, network and page calls by the marker comment. */
+export function loadPageDepartmentSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("DEPARTMENT_CHAIN:SLICE-START");
+  const from = html.lastIndexOf("/*", marker);
+  const endMarker = html.indexOf("DEPARTMENT_CHAIN:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html department-chain markers moved -- update scripts/test/_page-script.mjs");
+  }
+  const line = (name) => {
+    const m = html.match(new RegExp(`^const ${name} = [^\\n]+;`, "m"));
+    if (!m) throw new Error(`index.html lost const ${name} -- update scripts/test/_page-script.mjs`);
+    return m[0];
+  };
+  const prelude = ["MIN_DISCOUNT_PCT", "KID_MARKER", "WOMEN_MARKER", "MEN_MARKER"].map(line).join("\n");
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    prelude + "\n" + html.slice(from, to) +
+      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC };",
+    sandbox,
+    { filename: "index.html#department" },
+  );
+  return sandbox.__exports;
+}
+
 /* The carousel selection mirror: the pure pick/mix functions index.html
    carries line-for-line from scripts/lib/carousel.js. Pure — no DOM. */
 export function loadPageCarouselSlice() {
@@ -466,6 +639,166 @@ export function loadPageCarouselSlice() {
       "\n;globalThis.__exports = { CAROUSEL_MAX, CAROUSEL_MIN_ITEMS, carouselItemKey, carouselHasPhoto, carouselPickItems, carouselMixItems };",
     sandbox,
     { filename: "index.html#carousel" },
+  );
+  return sandbox.__exports;
+}
+
+/* THE HOME ROW'S RUNNING ORDER, on its own. A plain array of keys, so
+   this loads the declaration and nothing else -- homeRowTiles() needs
+   the department cache and belongs to the browser suite. What the node
+   suite can settle from the text is the part that goes wrong silently:
+   a key here that no longer names a department renders nothing, and the
+   card just quietly stops appearing. */
+export function loadPageHomeRowSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const HOME_ROW_DEPARTMENTS = [");
+  const to = html.indexOf("function homeRowTiles(");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html home-row markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { HOME_ROW_DEPARTMENTS };",
+    sandbox,
+    { filename: "index.html#homeRow" },
+  );
+  return sandbox.__exports;
+}
+
+/* THE STORE RAILS' CURATION, on its own. storeRailPicks is written
+   self-contained (no page functions) precisely so this slice can run
+   it in a vm: sale-first, Ofertas-deprioritised, featured fill. */
+export function loadPageStoreRailSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("STORE_RAIL_PICKS:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("STORE_RAIL_PICKS:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html store-rail markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks, COSTCO_CAROUSEL_MAX, costcoCuratedItems, costcoBucketOf, costcoTreasureRank };",
+    sandbox,
+    { filename: "index.html#storeRail" },
+  );
+  return sandbox.__exports;
+}
+
+/* CURVY'S STORE CARDS, on their own. curvyStoreCards is written
+   self-contained (pure: byRetailer in, ordered list out) precisely so
+   this slice can run it in a vm. */
+export function loadPageCurvyStoreCardsSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("CURVY_STORE_CARDS:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("CURVY_STORE_CARDS:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html curvy-store-cards markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { CURVY_STORE_LEAD_ORDER, curvyStoreCards };",
+    sandbox,
+    { filename: "index.html#curvyStoreCards" },
+  );
+  return sandbox.__exports;
+}
+
+/* The Fiestas vertical's pure wiring: shelf config + the raw-item
+   selector. fiestasItemsFor leans on two tiny pure helpers defined
+   elsewhere in the page (notQuarantined, rawTitleOf); they are pulled in
+   by name so the slice stays a faithful copy of the page's logic.
+   fiestasRailPicks is NOT in the slice -- it needs normalizeLiveItem's
+   weight closure, which is not vm-friendly. */
+function extractNamedFunction(html, name) {
+  const start = html.indexOf("function " + name + "(");
+  if (start < 0) throw new Error("index.html lost function " + name + " -- update scripts/test/_page-script.mjs");
+  const rest = html.slice(start);
+  const m = rest.match(/\n(?=function |const |let |var )/);
+  return m ? rest.slice(0, m.index + 1) : rest;
+}
+
+export function loadPageFiestasSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("FIESTAS_PICK:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("FIESTAS_PICK:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html fiestas-pick markers moved -- update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    extractNamedFunction(html, "notQuarantined") + "\n" +
+    extractNamedFunction(html, "rawTitleOf") + "\n" +
+    html.slice(from, to) +
+    "\n;globalThis.__exports = { FIESTAS_RETAILER_LABEL, FIESTAS_TABLEWARE_RX, FIESTAS_VARIETY_RX, FIESTAS_RAIL_TOTAL, FIESTAS_RAILS, fiestasItemsFor };",
+    sandbox,
+    { filename: "index.html#fiestasPick" },
+  );
+  return sandbox.__exports;
+}
+/* THE CART MERGE, on its own. mergeCarts + cartItemKey are pure functions;
+   the slice runs them so the idempotence rule ("reload must never change
+   quantities") is settled by execution, not by reading the code. */
+export function loadPageSizeGuideSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const SIZE_GUIDE_GENERAL = {");
+  const to = html.indexOf("let pendingProduct = null;");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html size-guide markers moved — update scripts/test/_page-script.mjs");
+  }
+  /* The resolver leans on the two gender keyword regexes declared just
+     above standardSizeOptions; pull those single lines in so the slice
+     stays self-contained without dragging the whole size region. */
+  const kidsAt = html.indexOf("const PRODUCT_KIDS_KEYWORDS =");
+  const mensAt = html.indexOf("const PRODUCT_MENS_KEYWORDS =");
+  const kidsLine = html.slice(kidsAt, html.indexOf("\n", kidsAt) + 1);
+  const mensLine = html.slice(mensAt, html.indexOf("\n", mensAt) + 1);
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    kidsLine + mensLine + html.slice(from, to) +
+      "\n;globalThis.__exports = { SIZE_GUIDE_GENERAL, SIZE_GUIDE_BRANDS, resolveSizeGuide, sizeGuideBrandEntry };",
+    sandbox,
+    { filename: "index.html#size-guide" },
+  );
+  return sandbox.__exports;
+}
+
+export function loadPageCartSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const CART_STORAGE_KEY = 'aria_cart_v1';");
+  const endMarker = html.indexOf("CART WEIGHT REPAIR");
+  const to = html.lastIndexOf("/*", endMarker);
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html cart markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { cartItemKey, mergeCarts, repairImplausibleQuantities, isImplausibleQty, normalizeCartQty };",
+    sandbox,
+    { filename: "index.html#cart" },
   );
   return sandbox.__exports;
 }
