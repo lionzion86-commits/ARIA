@@ -1692,6 +1692,7 @@
             style="background:#000000">Gymshark</span>
         <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
       </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
@@ -2089,6 +2090,7 @@
             style="background:#000000">Gymshark</span>
           <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
         <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -3672,6 +3674,7 @@
         </span>
           <button onclick="openStore('gymshark')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
         <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
@@ -6622,14 +6625,22 @@ function genderOfItem(item, bucketName){
 }
 
 function rawItemOnSale(item){
+  /* SHOPIFY COMPARE-AT (2026-09-26, Danny): mirrors the normalizeLiveItem
+     rule -- a merchant-published compareAt above the selling price is the
+     retailer's own sale report on Shopify catalogue scrapes. */
+  const rawPriceFirst = Number(item.price ?? item.effectivePrice ?? item.currentPrice ?? item.salePrice);
+  const rawCompareAt = item?.compareAt;
+  const rawCompareAtNum = typeof rawCompareAt === 'number' ? rawCompareAt
+    : (typeof rawCompareAt === 'string' ? parseFloat(String(rawCompareAt).replace(/[^0-9.]/g, '')) : NaN);
   const flag = item?.onSale === true || item?.isOnSale === true
     || (typeof item?.savingsAmount === 'number' && item.savingsAmount > 0)
     || (typeof item?.savingsPercent === 'number' && item.savingsPercent > 0)
     || (typeof item?.percentageOff === 'number' && item.percentageOff > 0)
-    || (typeof item?.percentOff === 'number' && item.percentOff > 0);
+    || (typeof item?.percentOff === 'number' && item.percentOff > 0)
+    || (Number.isFinite(rawCompareAtNum) && Number.isFinite(rawPriceFirst) && rawCompareAtNum > rawPriceFirst);
   if (!flag) return false;
-  const price = Number(item.price ?? item.effectivePrice ?? item.currentPrice ?? item.salePrice);
-  const original = Number(item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice);
+  const price = rawPriceFirst;
+  const original = Number(item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice ?? item.compareAt);
   if (!Number.isFinite(price) || !Number.isFinite(original) || original <= price) return false;
   return Math.round((1 - price / original) * 100) >= MIN_DISCOUNT_PCT;
 }
@@ -16708,12 +16719,22 @@ function normalizeLiveItem(item, hints){
   // regularPrice/percentageOff) and Foot Locker (onSale/originalPrice/
   // percentOff) payloads. Never fabricated: if none of these fields are
   // present, onSale stays false and originalPrice null.
+  /* SHOPIFY COMPARE-AT (2026-09-26, Danny): the Shopify catalogue scrapes
+     (CCS, Surf Station, Quiet Storm, ...) express a sale purely as
+     compareAt > price -- that IS Shopify's native sale signal, the
+     merchant-published "compare at" price. It joins the original-price
+     chain and counts as the retailer's own sale report, so genuine surf
+     & skate markdowns lead the rails instead of hiding as featured. */
+  const rawCompareAt = item.compareAt;
+  const rawCompareAtNum = typeof rawCompareAt === 'number' ? rawCompareAt
+    : (typeof rawCompareAt === 'string' ? parseFloat(rawCompareAt.replace(/[^0-9.]/g, '')) : NaN);
   const onSaleFlag = item.onSale === true || item.isOnSale === true
     || (typeof item.savingsAmount === 'number' && item.savingsAmount > 0)
     || (typeof item.savingsPercent === 'number' && item.savingsPercent > 0)
     || (typeof item.percentageOff === 'number' && item.percentageOff > 0)
-    || (typeof item.percentOff === 'number' && item.percentOff > 0);
-  const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice;
+    || (typeof item.percentOff === 'number' && item.percentOff > 0)
+    || (Number.isFinite(rawCompareAtNum) && Number.isFinite(rawPrice) && rawCompareAtNum > rawPrice);
+  const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice ?? item.compareAt;
   const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
   // A real markdown, AND a big enough one to be worth showing. The
   // percentage is computed from the raw retailer prices — SALES_TAX_RATE
