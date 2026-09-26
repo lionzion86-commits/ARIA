@@ -275,7 +275,38 @@
                    rgba(4,12,28,0.72) 0%,
                    rgba(4,12,28,0.80) 46%,
                    rgba(4,12,28,0.93) 100%) }
-  #whyUs > .relative{ position:relative; z-index:2 }
+    /* STORY TEASER SCRIM -- LIGHTER (2026-09-25, Danny's iPhone QA, pass 2):
+     the standard 0.72->0.93 scrim above crushed the teaser text on his
+     phone ("can't see the words"). The teaser gets its OWN scrim: much
+     lighter and bottom-weighted, so the girl shows through and the
+     white type does the work against the dark night photo. The standard
+     scrim stays exactly as it is -- its contrast math is documented
+     above and still stands for #whyUs. */
+  .ariaStoryScrim{ position:absolute; inset:0; z-index:1; pointer-events:none;
+                   background:linear-gradient(180deg,
+                     rgba(4,12,28,0.32) 0%,
+                     rgba(4,12,28,0.42) 45%,
+                     rgba(4,12,28,0.60) 100%) }
+  /* POP PASS (2026-09-25, Danny's iPhone QA pass 3): the photo brightness
+     is settled -- he likes it. The letters do the work now. Layered
+     text-shadow so every letter lifts off the night photo; gold elements
+     get a warm gold-tinted glow of their own. Scrim stays light -- the
+     suite pins .ariaStoryScrim stops <= 0.40/0.65, so pop comes from the
+     type, never from darkening the scrim. (Manrope tops out at 800 in our
+     font bundle, so the headline keeps font-extrabold and gets its pop
+     from size + shadow instead of a 900 weight.) */
+  .ariaStoryTeaser{ position:relative; z-index:2;
+                   text-shadow:0 2px 12px rgba(0,0,0,.65), 0 0 2px rgba(0,0,0,.8) }
+  /* CLICK FIX (2026-09-25, Danny's iPhone QA): the scrim's z-index:1 sat above the
+     z-index:auto content and swallowed every tap on 'Lee la historia completa ->'.
+     The scrim is pointer-events:none now and the content rides at z-index:2. */
+  /* BODY BRIGHTNESS NUDGE (2026-09-25): the body paragraph read a touch dark next
+     to the headline -- the inherited dark halo was doing it. Soften the halo on
+     the paragraph only; headline, kicker, quote and photo stay exactly as they are. */
+  .ariaStoryTeaser p{ text-shadow:0 1px 8px rgba(0,0,0,.45) }
+  .ariaStoryTeaser .ariaKicker{ font-size:12.5px;
+     text-shadow:0 0 14px rgba(244,196,99,.55), 0 1px 6px rgba(0,0,0,.7) }
+#whyUs > .relative{ position:relative; z-index:2 }
   /* Glass, not a white box: the photograph stays visible THROUGH the
      promise rather than being covered by it. The border is what keeps
      the edge readable where the backdrop-filter is unsupported. */
@@ -1505,25 +1536,53 @@
            WORD FOR WORD FROM #aboutView, deliberately. The full page is
            still there and still the canonical telling; this is its first
            lines, so the two cannot come to say different things about
-           where the name came from. -->
-      <div>
-        <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
-          <div>
-            <div class="ariaKicker ariaKicker--onLight mb-3">La historia</div>
-            <h3 class="text-[22px] sm:text-[27px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:var(--navy)">
-              Aria lleva el nombre de mi hija.
-            </h3>
-          </div>
-          <div class="max-w-[62ch]">
-            <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4" style="color:#3D4759">
-              Nació como una promesa: que ningún peruano vuelva a pagar de más
-              — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
-              compra en una tienda en Estados Unidos.
-            </p>
-            <blockquote class="ariaPullQuote text-[17px] sm:text-[19px] my-5" style="color:var(--navy)">
-              que el precio que ves sea el precio que pagas.
-            </blockquote>
-            <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:var(--blue)">Lee la historia completa →</button>
+           where the name came from.
+           AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper
+           treatment ("looks like PowerPoint" between the two navy blocks).
+           The teaser below now rides the balcony-night photograph under
+           the standard navy scrim with white/gold type -- the collision
+           this comment guarded against stays guarded: no dark type ever
+           sits on the dark scrim. -->
+      <!-- STORY TEASER ON THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA):
+           the paper teaser sitting between two navy blocks read "like
+           PowerPoint". It now rides the approved balcony-night photograph
+           (the girl with the Aria box -- same file as the full story page)
+           under the standard navy scrim, white type. Copy stays WORD FOR
+           WORD from #aboutView; only the treatment changed. All type on
+           the photograph is white/gold -- never navy-on-dark.
+           AMENDMENT 2026-09-25 pass 2: Danny's iPhone QA found the standard
+           0.72->0.93 scrim crushed the text ("can't see the words"). The
+           teaser now rides its OWN lighter bottom-weighted scrim
+           (.ariaStoryScrim, 0.32->0.60) with pure-white type plus a soft
+           text shadow; #whyUs above keeps the standard scrim. Copy still
+           WORD FOR WORD.
+           AMENDMENT 2026-09-25 pass 3: photo brightness is settled (Danny
+           likes it); the LETTERS got the pop -- layered glow text-shadow,
+           larger headline, semibold body, gold glow on kicker and link,
+           pull quote bumped. Scrim untouched. -->
+      <div class="relative overflow-hidden rounded-3xl">
+        <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
+             style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
+        <div class="ariaStoryScrim" aria-hidden="true"></div>
+        <div class="relative px-5 sm:px-8 py-12 sm:py-16 ariaStoryTeaser">
+          <div class="grid md:grid-cols-[1fr_1.15fr] gap-8 md:gap-12 items-start max-w-[1000px]">
+            <div>
+              <div class="ariaKicker mb-3">La historia</div>
+              <h3 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.03em] leading-[1.12]" style="color:#fff">
+                Aria lleva el nombre de mi hija.
+              </h3>
+            </div>
+            <div class="max-w-[62ch]">
+              <p class="text-[14.5px] sm:text-[15.5px] leading-[1.75] mb-4 font-semibold" style="color:#fff">
+                Nació como una promesa: que ningún peruano vuelva a pagar de más
+                — ni a depender de favores, viajeros o casilleros opacos — por acceder a lo mismo que cualquiera
+                compra en una tienda en Estados Unidos.
+              </p>
+              <blockquote class="ariaPullQuote text-[18px] sm:text-[20px] my-5" style="color:#fff">
+                que el precio que ves sea el precio que pagas.
+              </blockquote>
+              <button onclick="showPage('aboutView')" class="text-[13.5px] font-bold focus-ring rounded" style="color:#F4C463; text-shadow:0 0 12px rgba(244,196,99,.5), 0 1px 4px rgba(0,0,0,.7)">Lee la historia completa →</button>
+            </div>
           </div>
         </div>
       </div>
@@ -5166,6 +5225,30 @@ function extendedSizesOf(item){
 }
 
 function hasExtendedSizes(item){ return extendedSizesOf(item).length > 0; }
+/* CURVY STORE CARDS (2026-09-25, Danny): the department opens with one wide
+   card per store that carries extended sizes -- Lane Bryant first (the
+   plus-size destination), then Old Navy, then Victoria's Secret, then the
+   rest by product count. CURVY_STORE_CARDS:SLICE-START
+
+   DERIVED FROM THE FEED, NEVER HARDCODED: the input is the catalog view's
+   own byRetailer map -- stores whose Curvy items the filters already
+   approved -- so a future catalog pull adds its card the moment its
+   products pass hasExtendedSizes, with no code change. A store with no
+   extended-size inventory gets no card, which is the honest state, not a
+   dead storefront. */
+const CURVY_STORE_LEAD_ORDER = ['lanebryant', 'oldnavy', 'victoriassecret'];
+function curvyStoreCards(byRetailer){
+  const leadRank = new Map(CURVY_STORE_LEAD_ORDER.map((k, i) => [k, i]));
+  return Array.from(byRetailer.entries())
+    .filter(([, items]) => Array.isArray(items) && items.length > 0)
+    .map(([key, items]) => ({ key, count: items.length }))
+    .sort((a, b) => {
+      const ra = leadRank.has(a.key) ? leadRank.get(a.key) : 1e9;
+      const rb = leadRank.has(b.key) ? leadRank.get(b.key) : 1e9;
+      return (ra - rb) || (b.count - a.count) || (a.key < b.key ? -1 : a.key > b.key ? 1 : 0);
+    });
+}
+/* CURVY_STORE_CARDS:SLICE-END */
 
 /* Biggest first, and printed the way a label prints it: a shopper
    scanning for "3X" should find it without translating our formatting. */
@@ -7264,6 +7347,40 @@ function catalogStoreChipsHTML(){
   </div>`;
 }
 
+/* The wide store cards that head Curvy (2026-09-25, Danny): one long
+   landscape card per store carrying extended sizes, led by Lane Bryant.
+   They drive the SAME filter the chips use -- setCatalogStore -- so card
+   and chip row always agree about what the grid shows; tapping the active
+   card clears back to all stores. */
+function curvyStoreCardsHTML(){
+  const { retailerFilter, byRetailer } = catalogState;
+  const stores = curvyStoreCards(byRetailer);
+  if (!stores.length) return '';
+  const card = ({ key, count }) => {
+    const r = retailerFor(key);
+    const label = r ? r.label : (LIVE_RETAILER_LABEL[key] || key);
+    const active = retailerFilter === key;
+    /* The store's mark on a white plate, the same zone discipline as the
+       Tiendas cards: a logo file gets contain-fit; a store with no file
+       (Lane Bryant today) gets its wordmark on its brand colour -- a
+       designed treatment, never a broken image. */
+    const mark = r && r.logo
+      ? `<img src="${r.logo}" alt="${escapeHtml(label)}" data-retailer="${escapeHtml(key)}" style="width:100%; max-height:46px; max-width:72%; object-fit:contain" onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">`
+      : `<span class="inline-flex items-center h-[26px] px-3 rounded-lg text-[12px] font-extrabold text-white text-center leading-tight" style="background:${r ? r.color : 'var(--navy)'}">${escapeHtml(label)}</span>`;
+    return `<button onclick="${active ? 'setCatalogStore(null)' : `setCatalogStore('${key}')`}" aria-pressed="${active}"
+      class="w-full rounded-2xl px-3 py-3 flex items-center gap-4 text-left focus-ring transition"
+      style="background:linear-gradient(135deg,#0B1B3A 0%,#16305F 55%,#0B1B3A 100%); border:2px solid ${active ? '#F4C463' : 'rgba(255,255,255,0.10)'}">
+      <span class="flex-shrink-0 inline-flex items-center justify-center rounded-xl bg-white px-2" style="width:104px; height:62px">${mark}</span>
+      <span class="flex-1 min-w-0">
+        <span class="block text-[16px] font-extrabold uppercase tracking-wide text-white truncate">${escapeHtml(label)}</span>
+        <span class="block text-[12.5px] font-semibold mt-0.5" style="color:#F4C463">${count} producto${count === 1 ? '' : 's'}</span>
+      </span>
+      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '&#10003;' : '&rsaquo;'}</span>
+    </button>`;
+  };
+  return `<div id="curvyStoreCards" class="flex flex-col gap-3 mb-5">${stores.map(card).join('')}</div>`;
+}
+
 /* SEARCH WITHIN A CATEGORY.
 
    BUG FIX (2026-09-20): this bar's input and button have both called
@@ -7866,6 +7983,7 @@ function renderCatalogFeed(){
     ${catalogSearchBarHTML()}
     ${splittable ? catalogAisleChipsHTML(grouped) : ''}
     ${catalogStoreChipsHTML()}
+    ${isCurvy ? curvyStoreCardsHTML() : ''}
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
@@ -10904,6 +11022,17 @@ const RETAILERS = {
      public identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
   dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
   pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
+  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. lanebryant-catalog.json (169 products,
+     ~153 with extended sizes) is committed at repo root and merged by
+     loadDepartmentCache like Macy's. This row was the missing piece the
+     catalog audit found: the file was fetched in CATALOGUE_FILES but the
+     retailer was never registered, so all 169 products were invisible in
+     Tiendas, Curvy, Ofertas and the brand panels. No logo file yet — the
+     wordmark pill on brand colour is the documented fallback, not a
+     broken state. Colour is Lane Bryant's brand red, from their public
+     identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
+  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
   sunglasshut:     { key: 'sunglasshut',     label: 'Sunglass Hut',      color: '#000000', logo: 'logos/sunglasshut.png', tagline: 'Lentes de sol de marca',                      kind: 'general', search: false, retired: true, retiredNote: 'Descartada por Danny (2026-09-25). Sin pull.' },
   dyson:           { key: 'dyson',           label: 'Dyson',             color: '#202020', logo: 'logos/dyson.png',      tagline: 'Secadoras, aspiradoras y purificadores',       kind: 'general', search: false, retired: true, retiredNote: 'Pull bloqueado por proteccion anti-bot Kasada (2026-09-25). Sustituto propuesto: SharkNinja.' },
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says

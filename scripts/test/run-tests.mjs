@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -888,6 +888,10 @@ check("index.html's registry mirror matches the module", () => {
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
   "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
+  /* LANE BRYANT (2026-09-25): registered at last -- the audit found its
+     169 products were invisible for want of this row. Apparel cluster,
+     after PacSun. */
+  "lanebryant",
   "sunglasshut", "dyson",
   "macys", "oldnavy", "target", "walmart",
 ];
@@ -1661,11 +1665,11 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      1200x631 banner and a square file share a tile without either being
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
-  /* Two when the homepage chip row existed (card + chip); one since the
-     store rails superseded it on 2026-09-25; two again since the "Todas
-     las otras tiendas" strip (2026-09-25) paints the same registry with
-     its own tiles -- every store-mark template obeys the zone rules. */
-  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
+  /* Three since the "Todas las otras tiendas" strip joined (2026-09-25):
+     the Tiendas card template, the Curvy card template, and the strip's
+     own tiles — every store-mark template obeys the zone rules, which the
+     loop below pins per template. */
+  if (imgs.length !== 3) throw new Error(`expected 3 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -5581,7 +5585,12 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
 
      So they moved one section down, to #whyUsStory, which keeps the
      paper they were designed against. The order that MATTERS is intact:
-     what you get, the guarantee behind it, then who is promising it. */
+     what you get, the guarantee behind it, then who is promising it.
+
+     AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper teaser
+     ("like PowerPoint" between the two navy blocks). The teaser itself
+     now rides the balcony-night photograph under the standard scrim with
+     white/gold type; the section around it keeps its paper background. */
   const reasonsAt = why.indexOf("ariaWhyPromise");
   const promisesAt = why.indexOf('id="whyUsPromises"');
   const storyAt = why.indexOf(">La historia<");
@@ -5592,14 +5601,52 @@ check("'Por qué Aria' leads with the reasons and carries the story", () => {
     throw new Error("the run is no longer reasons -> guarantee -> story");
   }
 
-  /* AND THE STORY IS ON PAPER, which is the one thing a naive merge got
-     wrong. Navy headings and #3D4759 body over the explainer's scrim is
-     the failure this assertion exists to catch. */
+  /* THE TEASER RIDES THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA): the
+     paper teaser sitting between two navy blocks read "like PowerPoint".
+     It now uses the approved balcony-night photograph (the girl with the
+     Aria box, same file as the full story page) under the standard navy
+     scrim, white type. The failure this assertion exists to catch is
+     unchanged in spirit: no dark type on the dark scrim. */
   const storyAtIdx = why.indexOf('id="whyUsStory"');
   if (storyAtIdx < 0) throw new Error("#whyUsStory is gone — the story is back inside the photograph");
   if (storyAtIdx < why.indexOf("ariaWhyPhoto")) throw new Error("the story section sits above the photograph");
   if (!/background:var\(--paper\)/.test(why.slice(storyAtIdx, storyAtIdx + 400))) {
-    throw new Error("#whyUsStory lost its paper background — navy type on a dark scrim");
+    throw new Error("#whyUsStory lost its paper section background");
+  }
+  const teaserStart = why.indexOf("STORY TEASER ON THE PHOTOGRAPH");
+  const teaserEnd = why.indexOf("showPage('aboutView')", teaserStart);
+  if (teaserStart < 0 || teaserEnd < 0) throw new Error("the story teaser is gone");
+  const teaser = why.slice(teaserStart, teaserEnd);
+  if (!/balcony-night\.jpg/.test(teaser)) throw new Error("the story teaser lost its photograph");
+  if (!/ariaStoryScrim/.test(teaser)) throw new Error("the story teaser lost its light scrim");
+  if (/class="ariaWhyScrim"/.test(teaser)) throw new Error("the teaser is back on the heavy #whyUs scrim -- unreadable");
+  /* THE TEASER SCRIM STAYS LIGHT (2026-09-25, Danny's iPhone QA, pass 2):
+     the 0.72->0.93 standard scrim crushed the text on his phone. The
+     teaser's own scrim must stay well under the standard's stops. */
+  const scrimAt = hdrSrc.indexOf(".ariaStoryScrim{");
+  if (scrimAt < 0) throw new Error("the .ariaStoryScrim rule is gone");
+  const scrimCss = hdrSrc.slice(scrimAt, scrimAt + 700);
+  const stops = [...scrimCss.matchAll(/rgba\(4,12,28,([0-9.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 3) throw new Error("the story scrim lost its gradient stops");
+  if (stops[0] > 0.40 || stops[stops.length - 1] > 0.65) {
+    throw new Error("the story scrim got heavy again (" + stops.join("->") + ") -- Danny's contrast fix regressed");
+  }
+  if (/ariaKicker--onLight|var\(--navy\)|#3D4759/.test(teaser)) {
+    throw new Error("dark type on the photograph — unreadable");
+  }
+
+  /* THE TEASER LINK IS TAPPABLE (2026-09-25, Danny's iPhone QA): the scrim's
+     z-index:1 sat above the z-index:auto content and swallowed every tap on
+     "Lee la historia completa ->". The scrim must never intercept pointer
+     events, and the content must ride above it. */
+  if (!/\.ariaStoryScrim\{[^}]*pointer-events\s*:\s*none/.test(hdrSrc)) {
+    throw new Error("the story scrim can intercept taps - the teaser link is dead");
+  }
+  if (!/\.ariaStoryTeaser\{[^}]*z-index\s*:\s*2/.test(hdrSrc)) {
+    throw new Error("the teaser content is not above the scrim - the link may not receive taps");
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) {
+    throw new Error("the teaser link no longer opens the full story");
   }
 
   /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
@@ -8722,6 +8769,70 @@ check("the feed sort actually reads the band on Curvy, and only on Curvy", () =>
    The page mirrors scripts/lib/carousel.js; both copies are pinned
    below, plus the wiring that puts a rail on each surface.
    ================================================================== */
+/* ==================================================================
+   CURVY STORE CARDS (2026-09-25, Danny).
+
+   The department opens with one wide card per store that carries
+   extended sizes -- Lane Bryant first (the plus-size destination), then
+   Old Navy, then Victoria's Secret, then the rest by product count. The
+   set is DERIVED from the feed's own byRetailer map, never hardcoded: a
+   future catalog pull adds its card the moment its products pass
+   hasExtendedSizes, with no code change.
+   ================================================================== */
+group("curvy store cards: one wide card per extended-size store");
+
+const curvyCards = loadPageCurvyStoreCardsSlice();
+
+check("lane bryant leads, then old navy, then victoria's secret, whatever the counts", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["oldnavy", new Array(500)],
+    ["victoriassecret", new Array(900)],
+    ["lanebryant", new Array(3)],
+    ["dicks", new Array(40)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "lanebryant,oldnavy,victoriassecret,dicks", "lead order broken");
+});
+
+check("non-lead stores sort by count, ties alphabetical", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["target", new Array(10)],
+    ["walmart", new Array(30)],
+    ["macys", new Array(30)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "macys,walmart,target", "count sort broken");
+});
+
+check("empty stores and empty feeds produce no cards", () => {
+  const { curvyStoreCards } = curvyCards;
+  eq(curvyStoreCards(new Map()).length, 0, "empty feed produced cards");
+  const keys = curvyStoreCards(new Map([["lanebryant", []], ["oldnavy", new Array(2)]])).map(s => s.key).join(",");
+  eq(keys, "oldnavy", "a store with zero items got a card");
+});
+
+check("lane bryant is registered and browsable in both mirrors", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const row = /lanebryant:\s*\{[^}]*\}/.exec(src);
+  if (!row) throw new Error("lanebryant is not in index.html's RETAILERS");
+  if (!/browse:\s*true/.test(row[0])) throw new Error("lanebryant is not browsable");
+  if (!/search:\s*false/.test(row[0])) throw new Error("lanebryant must not join the live search fan-out (no actor)");
+  const mirror = retailers.RETAILERS.lanebryant;
+  if (!mirror) throw new Error("lanebryant is missing from scripts/lib/retailers.js");
+  eq(mirror.label, "Lane Bryant", "mirror label drifted");
+  eq(mirror.browse, true, "mirror browse flag drifted");
+});
+
+check("the cards render only on the curvy department feed", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/\$\{isCurvy \? curvyStoreCardsHTML\(\) : ''\}/.test(src)) {
+    throw new Error("curvyStoreCardsHTML is not gated on the curvy feed");
+  }
+  if (!/function curvyStoreCardsHTML\(\)/.test(src)) throw new Error("curvyStoreCardsHTML is gone");
+});
+
 group("store carousels: window-shopping rails");
 
 {
