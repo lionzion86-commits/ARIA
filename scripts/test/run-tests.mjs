@@ -12,7 +12,7 @@
 
    Run it with:  node scripts/test/run-tests.mjs
    ============================================================ */
-import { readFileSync, existsSync, readdirSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
@@ -908,7 +908,12 @@ check("index.html's registry mirror matches the module", () => {
    AutoZone (kind auto) is not in the everyday tier. */
 const EXPECTED_EVERYDAY_ORDER = [
   "revolve", "target", "footlocker", "walmart", "sephora", "macys", "dicks",
-  "costco", "victoriassecret", "ulta", "pacsun", "oldnavy", "samsclub",
+  "costco", "victoriassecret", "ulta", "pacsun",
+  /* SURF & SKATE BATCH (2026-09-26, Danny): nine surf/skate/spearfishing
+     shops, registry order after PacSun. */
+  "nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation",
+  "mainland", "parrot", "ccs", "valsurf",
+  "oldnavy", "samsclub",
   "lanebryant", "alphalete", "youngla", "gymshark", "skims", "yesstyle"
 ];
 function everydayOrder(){
@@ -5257,7 +5262,7 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
@@ -5289,7 +5294,7 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
@@ -5533,11 +5538,12 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
   if (!rails) throw new Error("the store rails' code is gone");
   /* The eight window displays, reliable-first (2026-09-26, Danny): Foot
      Locker, Sephora, Macy's and Dick's lead -- the researched reliable
-     shippers -- then Victoria's Secret, Costco, Gymshark, SSENSE. */
+     shippers -- then Victoria's Secret, Costco, Gymshark, SSENSE, and the
+     nine surf/skate/spearfishing shops (2026-09-26, Danny). */
   const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
   if (!m) throw new Error("STORE_RAIL_STORES is gone");
-  eq(m[1].replace(/['\s]/g, ""), "footlocker,sephora,macys,dicks,victoriassecret,costco,gymshark,ssense",
-    "the store rails are not the eight agreed stores in mall order");
+  eq(m[1].replace(/['\s]/g, ""), "footlocker,sephora,macys,dicks,victoriassecret,costco,gymshark,ssense,nautilus,islandwatersports,quietstorm,surfworld,surfstation,mainland,parrot,ccs,valsurf",
+    "the store rails are not the seventeen agreed stores in mall order");
   /* The same card every other rail draws -- a second card component is
      how the rails drift apart. */
   if (!/railCardHTML\(p,/.test(rails)) throw new Error("a store rail grew its own card");
@@ -8641,15 +8647,17 @@ check("every store rail keeps its branded header, on all three surfaces", () => 
   }
 });
 
-check("the eight rails stand in mall order on all three surfaces", () => {
+check("the seventeen rails stand in mall order on all three surfaces", () => {
   /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
      phone's shopfront, the laptop's shopfront, and the Tiendas page's
      vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
      mall stops feeling like one mall. */
   const src = HOME_SRC();
-  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): eight rails, one order
-     on the phone, the laptop, and the Tiendas vitrinas. */
-  const want = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "gymshark", "ssense"];
+  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): seventeen rails, one
+     order on the phone, the laptop, and the Tiendas vitrinas -- the eight
+     originals plus the nine surf/skate/spearfishing shops. */
+  const want = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "gymshark", "ssense",
+    "nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
     ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
@@ -8657,7 +8665,7 @@ check("the eight rails stand in mall order on all three surfaces", () => {
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
     const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
-    eq(found.join(","), want.join(","), `${name} does not carry the eight rails in mall order`);
+    eq(found.join(","), want.join(","), `${name} does not carry the seventeen rails in mall order`);
   }
 });
 
@@ -10631,6 +10639,187 @@ check("the scrape backend keeps dev diagnostics out of the production error", ()
 
 
 /* ------------------------------------------------------------------ */
+
+
+
+
+
+/* ============================================================
+   NINE SURF/SKATE/SPEARFISHING SHOPS (2026-09-26, Danny)
+   Nautilus, Island Water Sports, Quiet Storm, Surf World, Surf
+   Station, Mainland, Parrot, CCS, Val Surf -- full Shopify
+   catalogues, the reusable Surf & Skate department, retailer
+   mirrors, delivery timing, dark logo plaques. Draft PR only. */
+
+const SURF9 = ["nautilus","islandwatersports","quietstorm","surfworld",
+  "surfstation","mainland","parrot","ccs","valsurf"];
+const surf9Catalog = (k) => {
+  /* Envelope: { retailers: { <key>: { departments: { <dept>: { items: [...] } } } } } */
+  const f = root(`${k}-catalog.json`);
+  if (!existsSync(f)) throw new Error(`${k}-catalog.json is missing`);
+  const data = JSON.parse(readFileSync(f, "utf8"));
+  if (Array.isArray(data)) return data;
+  const out = [];
+  for (const r of Object.values(data.retailers || {}))
+    for (const d of Object.values(r.departments || {}))
+      out.push(...(d.items || []));
+  return out;
+};
+const surf9Name = (p) => String(p.name || p.title || "");
+const WB = String.fromCharCode(92) + "b";  /* regex word boundary, built without escape ambiguity */
+const wordRx = (s) => new RegExp(WB + s + WB, "i");
+
+check("the nine surf/skate shops mirror between the module registry and the page", () => {
+  const mod = readFileSync(root("scripts/lib/retailers.js"), "utf8");
+  const html = HOME_SRC();
+  for (const k of SURF9) {
+    if (!wordRx(k).test(mod)) throw new Error(`${k} missing from scripts/lib/retailers.js`);
+    if (!wordRx(k).test(html)) throw new Error(`${k} missing from the index.html retailer registry`);
+    for (const prop of ["browse: true", "search: false", "logo:"]) {
+      const rx = new RegExp(k + ":\\s*\\{[^}]*" + prop.replace(":", "\\s*:"));
+      if (!rx.test(mod)) throw new Error(`${k} in retailers.js lacks "${prop}"`);
+      if (!rx.test(html)) throw new Error(`${k} in index.html lacks "${prop}"`);
+    }
+  }
+});
+
+check("the nine surf/skate shops have real logo files", () => {
+  const want = { nautilus: "logos/nautilus.png", islandwatersports: "logos/islandwatersports.svg",
+    quietstorm: "logos/quietstorm.png", surfworld: "logos/surfworld.png",
+    surfstation: "logos/surfstation.png", mainland: "logos/mainland.png",
+    parrot: "logos/parrot.png", ccs: "logos/ccs.png", valsurf: "logos/valsurf.png" };
+  const html = HOME_SRC();
+  for (const [k, p] of Object.entries(want)) {
+    if (!existsSync(root(p))) throw new Error(`${p} is missing`);
+    if (statSync(root(p)).size < 500) throw new Error(`${p} is suspiciously small`);
+    if (!html.includes(p)) throw new Error(`${k}'s logo path is not wired into index.html`);
+  }
+  if (!new RegExp("\\.storeRailPlaqueDark\\{").test(html)) throw new Error("the dark plaque style for white logos is missing");
+});
+
+check("the nine catalogues are loaded by the page and meet the floor rules", () => {
+  const html = HOME_SRC();
+  const usedRx = wordRx("used");
+  const boardsRx = new RegExp(WB + "used" + WB + "s?" + WB + "boards?" + WB, "i");
+  let total = 0;
+  for (const k of SURF9) {
+    if (!html.includes(`/${k}-catalog.json`)) throw new Error(`CATALOGUE_FILES omits /${k}-catalog.json`);
+    const items = surf9Catalog(k);
+    total += items.length;
+    for (const p of items) {
+      const nm = surf9Name(p);
+      const price = Number(p.price ?? 0);
+      if (!(price > 0)) throw new Error(`${k}: no positive price: ${nm.slice(0, 50)}`);
+      if (Number(p.weightKg) > 10) throw new Error(`${k}: weightKg > 10: ${nm.slice(0, 50)}`);
+      if (usedRx.test(nm)) throw new Error(`${k}: used item survived: ${nm.slice(0, 50)}`);
+      if (/gift\s*card/i.test(nm)) throw new Error(`${k}: gift card survived: ${nm.slice(0, 50)}`);
+      if (boardsRx.test(String(p.type || "") + " " + nm)) throw new Error(`${k}: used board survived: ${nm.slice(0, 50)}`);
+    }
+  }
+  if (total < 35000) throw new Error(`nine catalogues only hold ${total} items (expected ~39k)`);
+});
+
+check("the nine shops carry honest delivery timing on both surfaces", () => {
+  const mod = readFileSync(root("scripts/lib/retailer-delivery.js"), "utf8");
+  const html = HOME_SRC();
+  for (const k of SURF9) {
+    if (!new RegExp(k + ":\\s*\\{[^}]*miamiMin").test(mod)) throw new Error(`${k} missing from retailer-delivery.js`);
+    if (!new RegExp(k + ":\\s*\\{[^}]*miamiMin").test(html)) throw new Error(`${k} missing from index.html delivery timing`);
+  }
+});
+
+checkAsync("the Surf & Skate predicate matches between module and page over real catalogues", async () => {
+  const { isSurfSkate: moduleFn } = await import(root("scripts/lib/surfskate.js"));
+  const html = HOME_SRC();
+  const start = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)");
+  if (start < 0) throw new Error("the page's isSurfSkate mirror is missing");
+  const end = html.indexOf("function itemBelongsToDepartment", start);
+  const js = html.slice(html.lastIndexOf("/* ===", start), end);
+  const pageFn = new Function(`${js}; return isSurfSkate;`)();
+  /* Expected Surf & Skate matches per shop (predicate run 2026-09-26 over the
+     committed catalogues; Nautilus keeps its 18 real wetsuits/rashguards). */
+  const want = { nautilus: 18, islandwatersports: 1115, quietstorm: 33, surfworld: 1,
+    surfstation: 3126, mainland: 375, parrot: 709, ccs: 6767, valsurf: 827 };
+  const SPEAR_TYPES = new RegExp("(pesca submarina|arpones|aletas de buceo|m[aá]scaras|boyas|cuchillos de buceo|pesas y cinturones|guantes y botines|linternas de buceo)", "i");
+  let grand = 0;
+  for (const k of SURF9) {
+    const items = surf9Catalog(k);
+    let mod = 0;
+    for (const p of items) {
+      const m = !!moduleFn(p, k), g = !!pageFn(p, k);
+      if (m !== g) throw new Error(`module/page disagree on ${k}: ${surf9Name(p).slice(0, 50)}`);
+      if (m) mod++;
+      /* Spearfishing gear is never surf/skate -- it stays in Deportes. */
+      if (SPEAR_TYPES.test(String(p.type || "")) && m)
+        throw new Error(`spearfishing gear routed to Surf & Skate: ${surf9Name(p).slice(0, 50)}`);
+    }
+    grand += mod;
+    if (mod !== want[k]) throw new Error(`${k}: ${mod} surf/skate matches, expected ${want[k]}`);
+  }
+  if (grand !== 12971) throw new Error(`grand total ${grand}, expected 12971`);
+});
+
+checkAsync("the surf_skate department answers through the module's itemBelongsToDepartment", async () => {
+  const deptMap = await import(root("scripts/lib/department-map.js"));
+  const { isSurfSkate } = await import(root("scripts/lib/surfskate.js"));
+  if (!deptMap.DEPARTMENT_SPEC.surf_skate || !deptMap.DEPARTMENT_SPEC.surf_skate.surfSkateOnly)
+    throw new Error("DEPARTMENT_SPEC lacks the surf_skate entry");
+  const ccs = surf9Catalog("ccs");
+  const deck = ccs.find(p => isSurfSkate(p, "ccs"));
+  if (!deck) throw new Error("no CCS surf/skate item to test with");
+  for (const bucket of ["sporting_goods", "men", "clothing"]) {
+    if (!deptMap.itemBelongsToDepartment(deck, bucket, "surf_skate", "ccs"))
+      throw new Error(`Surf & Skate does not claim a deck from the ${bucket} bucket`);
+  }
+  const tee = ccs.find(p => !isSurfSkate(p, "ccs"));
+  if (tee && deptMap.itemBelongsToDepartment(tee, "clothing", "surf_skate", "ccs"))
+    throw new Error(`Surf & Skate claimed non-gear: ${surf9Name(tee).slice(0, 50)}`);
+});
+
+check("the Surf & Skate department cover exists and is a real image", () => {
+  const f = root("assets/category/surf_skate.jpg");
+  if (!existsSync(f)) throw new Error("assets/category/surf_skate.jpg is missing");
+  if (statSync(f).size < 20000) throw new Error("the surf_skate cover is suspiciously small");
+  if (!HOME_SRC().includes("assets/category/surf_skate.jpg")) throw new Error("the cover path is not wired into the page");
+});
+
+check("oversized freight flags ride on boards, SUPs and long spearguns", () => {
+  const boardRx = new RegExp(WB + "(surf|sup|paddle|longboard|speargun|pole|tabla|bodyboard|huevo|egg|fish|funboard|softtop|foam)" + WB, "i");
+  /* Board-family types are oversize by nature -- a shaper model name like
+     "Donald Takayama In The Pink" needs no title keyword to prove it.
+     Freediving long-fin blades are ~1m carbon: the normalizer flags
+     `long fin` on purpose, so aletas + long in the name is accepted. */
+  const boardTypeRx = new RegExp("(tablas de surf|longboards|sup|paddle surf|bodyboards|skimboards|arpones)", "i");
+  const longFinRx = new RegExp(WB + "long" + WB, "i");
+  const finTypeRx = new RegExp("(aletas|fins?)", "i");
+  let flagged = 0;
+  for (const k of ["surfstation", "islandwatersports", "nautilus"]) {
+    for (const p of surf9Catalog(k)) {
+      if (p.oversize) {
+        flagged++;
+        const nm = surf9Name(p);
+        const ty = String(p.type || "");
+        const ok = boardRx.test(nm + " " + ty) || boardTypeRx.test(ty) ||
+          (finTypeRx.test(ty) && longFinRx.test(nm));
+        if (!ok) throw new Error(`${k}: oversize flag on non-board: ${nm.slice(0, 50)}`);
+      }
+    }
+  }
+  if (flagged < 100) throw new Error(`only ${flagged} oversize flags (expected hundreds on board-heavy shops)`);
+});
+
+check("retailer-published extended sizes reach the catalogues for Curvy routing", () => {
+  const extRx = new RegExp(WB + "(2xl|xxl|3xl|xxxl)" + WB, "i");
+  let found = 0;
+  for (const k of SURF9) {
+    for (const p of surf9Catalog(k)) {
+      const sizes = p.availableSizes || [];
+      if (sizes.some(s => extRx.test(String(s)))) { found++; break; }
+    }
+  }
+  if (found < 3) throw new Error(`only ${found} shops publish extended sizes (Curvy needs real size runs)`);
+});
+
 await Promise.all(pendingAsync);
 
 /* ============================================================
@@ -11040,6 +11229,7 @@ check("TV stands stay: they are furniture, not televisions", () => {
     if (!okRx.test(name)) throw new Error(`${name} is not carved out as furniture`);
   }
 });
+
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);

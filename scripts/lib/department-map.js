@@ -28,6 +28,11 @@
 // three gendered pages at once.
 
 import { isFootwear } from "./footwear.js";
+/* SURF & SKATE (2026-09-26, Danny): the reusable surf/skate gear predicate.
+   Speaks for the Surf & Skate department the Zapatos way -- answered per
+   item, not per bucket. Mirrors the index.html inline copy; the parity
+   test compares them over the real catalogues. */
+import { isSurfSkate } from "./surfskate.js";
 
 // A department = one product category, optionally narrowed to a gender.
 export const DEPARTMENT_SPEC = {
@@ -78,6 +83,13 @@ export const DEPARTMENT_SPEC = {
      'gymrat'): gym clothing + gym accessories. Zero shoes — shoes live
      in Zapatos / Foot Locker only. */
   gym_rat:         { category: 'gymrat' },
+  /* SURF & SKATE (2026-09-26, Danny): surf/skate GEAR across the nine
+     surf-skate-spearfishing shops, the Zapatos way — a kind of item,
+     answered per item by isSurfSkate in scripts/lib/surfskate.js.
+     Apparel and swimwear from those shops stay out; spearfishing gear
+     stays in Pesca Submarina. Departments overlap: gear stays on its
+     store page too, exactly as Ofertas overlaps everything. */
+  surf_skate:      { anyCategory: true, surfSkateOnly: true },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -197,6 +209,10 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
   if (!dept) return false;
   if (dept.onSaleOnly) return isOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
+  /* SURF & SKATE (2026-09-26, Danny): a kind of item, not a bucket -- the
+     predicate decides, so a wetsuit from Parrot and a deck from CCS land
+     in Surf & Skate wherever their buckets filed them. */
+  if (dept.surfSkateOnly) return isSurfSkate(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
   /* GYM RAT (2026-09-26, Danny): zero shoes — shoes live in Zapatos /

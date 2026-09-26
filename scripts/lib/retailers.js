@@ -238,6 +238,111 @@ export const RETAILERS = {
     browse: true,
   },
   /* ============================================================
+     SURF & SKATE BATCH (2026-09-26, Danny) — nine real surf / skate /
+     spearfishing shops, full Shopify catalogues pulled the same day,
+     committed as *-catalog.json at repo root. The Macy's pattern:
+     browse: true, search: false (catalogue but no live actor). Every
+     row carries its real site logo in logos/; the three white logos
+     (Nautilus, Quiet Storm, Surf World) render on the dark plaque
+     variant in the rails. Colours are sampled from each shop's real
+     logo asset (see the sampling note in the batch report), except
+     Nautilus #213236 which is the shop's own header/theme colour.
+     Mirrors index.html; a parity test pins the two.
+     ============================================================ */
+  nautilus: {
+    key: "nautilus",
+    label: "Nautilus Spearfishing",
+    color: "#213236",
+    logo: "logos/nautilus.png",
+    logoDark: true,
+    tagline: "Pesca submarina — arpones y buceo",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  islandwatersports: {
+    key: "islandwatersports",
+    label: "Island Water Sports",
+    color: "#373435",
+    logo: "logos/islandwatersports.svg",
+    tagline: "Surf shop de Florida — tablas y playa",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  quietstorm: {
+    key: "quietstorm",
+    label: "Quiet Storm Surf Shop",
+    color: "#141414",
+    logo: "logos/quietstorm.png",
+    logoDark: true,
+    tagline: "Surf shop — tablas, skate y ropa",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  surfworld: {
+    key: "surfworld",
+    label: "Surf World",
+    color: "#00A9DC",
+    logo: "logos/surfworld.png",
+    logoDark: true,
+    tagline: "Surf shop Fort Lauderdale",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  surfstation: {
+    key: "surfstation",
+    label: "Surf Station",
+    color: "#111111",
+    logo: "logos/surfstation.png",
+    tagline: "Surf, skate y ropa desde 1984",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  mainland: {
+    key: "mainland",
+    label: "Mainland Skate & Surf",
+    color: "#0F6FEF",
+    logo: "logos/mainland.png",
+    tagline: "Skate shop — tablas y marcas",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  parrot: {
+    key: "parrot",
+    label: "Parrot Surf & Skate",
+    color: "#111111",
+    logo: "logos/parrot.png",
+    tagline: "Surf y skate — tablas y neopreno",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  ccs: {
+    key: "ccs",
+    label: "CCS",
+    color: "#2AADEB",
+    logo: "logos/ccs.png",
+    tagline: "El skate shop online",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  valsurf: {
+    key: "valsurf",
+    label: "Val Surf",
+    color: "#0F506F",
+    logo: "logos/valsurf.png",
+    tagline: "Surf y skate — 60 años",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  /* ============================================================
      ULTA AND YESSTYLE (2026-09-22) — the rest of beauty-catalog.json
 
      77 Ulta products and 40 YesStyle products arrived in the same file
