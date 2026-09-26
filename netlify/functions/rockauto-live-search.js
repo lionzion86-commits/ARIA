@@ -122,6 +122,21 @@ export async function handler(event) {
   // Blobs context before any getStore() — ours or the lease helper's.
   try { connectLambda(event); } catch { /* cache/lease degrade gracefully */ }
 
+  // TEMPORARY DIAGNOSTIC (remove before merge)
+  try {
+    const rawUrl = event.rawUrl || event.path || "";
+    if (rawUrl.includes("diag=blobs2")) {
+      return json(200, {
+        hasEventBlobs: typeof event.blobs !== "undefined",
+        eventBlobsLen: String(event.blobs || "").length,
+        hasDeployIdHeader: !!((event.headers || {})["x-nf-deploy-id"] || (event.headers || {})["X-Nf-Deploy-Id"]),
+        hasSiteIdHeader: !!((event.headers || {})["x-nf-site-id"] || (event.headers || {})["X-Nf-Site-Id"]),
+        hasEnvCtx: !!process.env.NETLIFY_BLOBS_CONTEXT,
+        headerKeys: Object.keys(event.headers || {}).filter((k) => k.toLowerCase().startsWith("x-nf")).slice(0, 10),
+      });
+    }
+  } catch { /* fall through */ }
+
   if (event.httpMethod !== "POST") return json(405, { ok: false });
 
   let body = {};
