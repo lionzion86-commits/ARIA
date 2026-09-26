@@ -146,6 +146,20 @@
   .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
   .ariaKicker--onLight{ color:var(--amber) }
   .ariaNavyBand{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
+  /* SEARCH RESULTS ON NAVY (2026-09-26, Danny): a results page is never
+     a plain white page -- "that white looks like shit and unfinished".
+     Same navy-band language as the store rails: the navy sits behind,
+     white product cards pop against it. Only text sitting directly on
+     the navy is recolored; every card keeps its own background. */
+  #resultsView{ background:linear-gradient(160deg, #0A1F44 0%, #0D2A5C 55%, #0A1F44 100%) }
+  #resultsView #prodName{ color:#fff }
+  #resultsView #prodSpec,
+  #resultsView #resultCount,
+  #resultsView #liveResultsWrap .text-zinc-500,
+  #resultsView #searchOnDemandWrap .text-zinc-500{ color:#AFBBD6 }
+  #resultsView aside{ color:#E4EAF8 }
+  #resultsView aside .text-zinc-600{ color:#B9C6E4 }
+  #resultsView #searchLiveWrap > div{ border:1px solid rgba(255,255,255,0.14) }
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
   /* STORE RAIL COMPACT (2026-09-26, Danny): the six fashion rails are a
      store picker, not six full features -- their cards read a touch
@@ -2121,10 +2135,10 @@
       </div>
     </div>
 
+    <!-- 2026-09-26, Danny: the hero product image is gone -- it showed a
+         meaningless picture (a metallic heart-hands) that read as site art
+         and confused shoppers. The header is text-only now. -->
     <div class="rounded-2xl border p-5 flex flex-col sm:flex-row items-center gap-6 mb-6" style="border-color:var(--line); background:#fff">
-      <div class="w-[110px] h-[110px] rounded-xl overflow-hidden flex-shrink-0 grid place-items-center" style="background:var(--sky)">
-        <img id="prodImgBig" class="w-full h-full object-cover" alt="">
-      </div>
       <div class="flex-1 text-center sm:text-left">
         <div class="flex items-center justify-center sm:justify-start gap-2 text-[12px] font-bold mb-1.5" style="color:var(--blue)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--blue)"><path d="M12 2 13.6 8.4 20 10 13.6 11.6 12 18 10.4 11.6 4 10 10.4 8.4Z"/></svg>
@@ -2162,7 +2176,6 @@
       <!-- min-w-0: this column is a grid item in the filters/results grid. Below lg the grid is a single implicit auto column, and grid items default to min-width:auto, so the refinement chip rail's ~755px of chips inside #searchLiveWrap forced the track to 795px and the whole page scrolled sideways at 393px viewports (results grid stretched to 389px tiles). min-w-0 lets the item shrink below its content minimum; the chip rail keeps its designed internal scroll via overflow-x-auto. -->
       <div class="min-w-0">
         <div class="flex items-center gap-4 mb-5">
-          <img id="prodImg" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">
           <div>
             <h1 id="prodName" class="text-[22px] font-bold tracking-[-0.02em] leading-tight"></h1>
             <div id="prodSpec" class="text-[13px] text-zinc-500 mt-0.5"></div>
@@ -6899,6 +6912,12 @@ const SEARCH_SYNONYM_GROUPS = [
     concept: "watch",
     words: ["watch", "watches", "reloj", "relojes"],
   },
+  /* REPORTED LIVE 2026-09-26: "aletas" is flippers — one concept so
+     "aletas", "fins" and "flippers" all return the same fin sets. */
+  {
+    concept: "fins",
+    words: ["fin", "fins", "flipper", "flippers", "aleta", "aletas"],
+  },
 ];
 
 const SEARCH_WORD_TO_GROUP = new Map();
@@ -6932,8 +6951,26 @@ function synonymsOf(word) {
   return group.words.filter((x) => x !== w);
 }
 
+/* SHORT CONCEPT WORDS MATCH WHOLE WORDS ONLY (2026-09-26).
+
+   REPORTED LIVE: "aletas" returned a serum "for Fine Lines and Wrinkles"
+   and a "Walnut Wood Finish" picture frame. The fins synonym group put
+   "fin" into the token list, and the prefix shortcut let 3-letter "fin"
+   match any longer word starting with it -- "fine", "finish", "final".
+
+   A synonym-group word of 3 letters or fewer is never allowed the prefix
+   shortcut: it matches the exact word or nothing. "Fin Set" still
+   answers; "Fine Lines" never does. The same rule protects every other
+   short concept word ("bra" no longer matches "brand"). Longer group
+   words keep the shortcut -- "shoe" must still find "shoes". */
+function synonymWholeWordOnly(t){
+  const g = synonymGroupOf(t);
+  return !!g && String(t || '').length <= 3;
+}
+
 function catalogTokenHitsOne(words, t){
   if (words.has(t)) return true;
+  if (synonymWholeWordOnly(t)) return false;
   for (const w of words){
     if (t.length >= CATALOG_MIN_PREFIX && w.length > t.length && w.startsWith(t)) return true;
     if (w.length >= 4 && t.length > w.length && t.startsWith(w)) return true;
@@ -7085,6 +7122,39 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
   return s;
 }
 
+/* A product is a real fin product when "fin" is the product itself,
+   not a design word. REPORTED LIVE 2026-09-26 (round 3): SSENSE "Black
+   Whale Fin Snap-On Denim Cargo Pants" slipped through on whole-word
+   "Fin" -- a whale-fin design detail on pants, not flippers. Three
+   gates, any one passes:
+   1. Plural "fins"/"flipper(s)" in the title -- the product IS fins.
+   2. "fin" as the product noun: "fin set", "fin snorkel(ing)",
+      "swim fin", "dive/diving fin", "fin pack", "snorkel fin".
+   3. Catalogue context: the item's department is swim/dive/snorkel/
+      sporting (Dick's buckets all dive gear under sporting_goods, so a
+      bare "fin" there is still dive gear). "Whale Fin ... Pants" fails
+   all three -- bare "fin", no product phrase, apparel department. */
+const FIN_PRODUCT_PLURAL = /\bfins\b|\bflippers?\b/i;
+const FIN_PRODUCT_PHRASES = /\bfin (?:sets?|snorkel(?:ing)?|pack)\b|\bswim fins?\b|\bdiv(?:e|ing) fins?\b|\bsnorkel fins?\b/i;
+const FIN_CONTEXT_DEPTS = /(?:swim|dive|snorkel|sport)/i;
+function isRealFinProduct(item){
+  const title = String((item && (item.title || item.name)) || '');
+  if (FIN_PRODUCT_PLURAL.test(title)) return true;
+  if (FIN_PRODUCT_PHRASES.test(title)) return true;
+  const depts = (item && item.departments) || [];
+  return depts.some((d) => FIN_CONTEXT_DEPTS.test(String(d)));
+}
+
+/* THE QUERIES THAT MEAN ONLY FLIPPERS (2026-09-26, Danny): "aletas"
+   means flippers and nothing else. When every token in the (translated,
+   canonicalised) query is the fins concept -- optionally "diving",
+   since "aletas de buceo" translates to "diving fins" -- the result
+   set may contain ONLY real fin products. No loose concept expansion. */
+const FINS_STRICT_TOKENS = new Set(['fins', 'diving']);
+function isStrictFinsQuery(toks){
+  return toks.includes('fins') && toks.every((t) => FINS_STRICT_TOKENS.has(t));
+}
+
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   query = expandBrandAliases(query);
@@ -7105,6 +7175,8 @@ function rankCatalogMatches(pool, query, opts){
   const retailerKey = intentKey && (pool || []).some(it => it && it.retailer === intentKey) ? intentKey : null;
   const retailerToks = retailerKey ? new Set(retailerNameTokens(opts.retailers, retailerKey)) : null;
   let candidates = (pool || []);
+  /* STRICT "ALETAS" INTENT: flippers only -- see isStrictFinsQuery. */
+  if (isStrictFinsQuery(toks)) candidates = candidates.filter(isRealFinProduct);
   if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
 
   /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
@@ -10273,6 +10345,9 @@ const ES_EN_PHRASES = [
   ["ropa deportiva", "activewear"],
   ["ropa interior", "underwear"],
   ["traje de bano", "swimsuit"],
+  /* REPORTED LIVE 2026-09-26: Danny's dad searched "aletas de buceo"
+     and got zero results — the Dick's catalog already had the fin sets. */
+  ["aletas de buceo", "diving fins"],
   ["zapatillas de correr", "running shoes"],
   ["zapatos de vestir", "dress shoes"],
   ["casaca de cuero", "leather jacket"],
@@ -10411,6 +10486,9 @@ const ES_EN_WORDS = {
   bicicleta: "bicycle",
   patineta: "skateboard",
   mancuerna: "dumbbell",
+  /* REPORTED LIVE 2026-09-26: "aletas" is the everyday Peruvian word for
+     flippers; the plural falls back to this singular automatically. */
+  aleta: "fins",
   vitamina: "vitamins",
   suplemento: "supplement",
   libro: "book",
@@ -11223,8 +11301,7 @@ async function showResults(query, opts = {}){
     ? `Buscamos “${t.query}” en las tiendas de EE. UU.`
     : '';
   document.getElementById('prodNameBig').textContent = query;
-  document.getElementById('prodImg').removeAttribute('src');
-  document.getElementById('prodImgBig').removeAttribute('src');
+
   document.getElementById('storeCount').textContent = CATALOG_RETAILERS.length;
   document.getElementById('resultCount').textContent = 'Buscando en nuestro catálogo…';
 
@@ -11263,11 +11340,7 @@ async function showResults(query, opts = {}){
   if (liveScrapeQuery !== query) return;
   catalogMatch = res;
   searchResults = res.items.slice();
-  const hero = res.items.find(p => p.image);
-  if (hero){
-    document.getElementById('prodImg').src = hero.image;
-    document.getElementById('prodImgBig').src = hero.image;
-  }
+
   renderSearchResults();
   lastSearch = { query, items: searchResults.slice(), catalog: catalogMatch, liveState: liveSearchState };
 }
@@ -11299,7 +11372,6 @@ async function runLiveSearch(){
   liveSearchState = 'running';
   renderSearchResults();
 
-  let heroSet = !!document.getElementById('prodImg').getAttribute('src');
   const failures = [];
   await Promise.allSettled(GENERAL_RETAILERS.map(async (retailer) => {
     let items = [];
@@ -11314,14 +11386,7 @@ async function runLiveSearch(){
       if (!it.title || it.price == null) continue;
       searchResults.push({ ...it, retailer });
     }
-    if (!heroSet && items.length){
-      const first = normalizeLiveItem(items[0]);
-      if (first.image){
-        document.getElementById('prodImg').src = first.image;
-        document.getElementById('prodImgBig').src = first.image;
-        heroSet = true;
-      }
-    }
+
     // Paint as each store lands, so the feed fills in rather than waiting
     // on the slowest retailer.
     renderSearchResults();

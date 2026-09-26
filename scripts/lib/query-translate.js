@@ -85,6 +85,9 @@ export const ES_EN_PHRASES = [
   ["ropa deportiva", "activewear"],
   ["ropa interior", "underwear"],
   ["traje de bano", "swimsuit"],
+  /* REPORTED LIVE 2026-09-26: Danny's dad searched "aletas de buceo"
+     and got zero results — the Dick's catalog already had the fin sets. */
+  ["aletas de buceo", "diving fins"],
   ["zapatillas de correr", "running shoes"],
   ["zapatos de vestir", "dress shoes"],
   ["casaca de cuero", "leather jacket"],
@@ -223,6 +226,9 @@ export const ES_EN_WORDS = {
   bicicleta: "bicycle",
   patineta: "skateboard",
   mancuerna: "dumbbell",
+  /* REPORTED LIVE 2026-09-26: "aletas" is the everyday Peruvian word for
+     flippers; the plural falls back to this singular automatically. */
+  aleta: "fins",
   vitamina: "vitamins",
   suplemento: "supplement",
   libro: "book",
