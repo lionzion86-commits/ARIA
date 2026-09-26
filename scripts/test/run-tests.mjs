@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -5614,16 +5614,26 @@ check("Costco's rail renders real picks with price and photo", () => {
     if (!(p.price > 0) || !p.image) throw new Error("a Costco pick has no price or no photo");
     if (costcoBucketOf(p) === "dulces") throw new Error("candy reached Costco's rail");
   }
-  // The treasure hunt leads with electronics on the real catalogue.
-  if (costcoBucketOf(picks[0]) !== "electronica")
-    throw new Error("Costco's rail does not lead with electronics");
+  // DANNY'S WOMEN-SHOPPER LENS (2026-09-26): the rail leads with cozy
+  // home (textiles, then plush/decor) on the real catalogue -- never a
+  // TV mount, cable or other tech accessory.
+  const { costcoTreasureRank } = loadPageStoreRailSlice();
+  if (costcoTreasureRank(picks[0]) > -2)
+    throw new Error("Costco's rail does not lead with cozy home: " + picks[0].title);
+  const BORING = /(wall\smount|tv\smount|\bmount\b|mounting|soporte|cable\smanagement|\bhdmi\b|\bcables?\b|adaptador|\badapter\b)/i;
+  for (const p of picks.slice(0, 6))
+    if (BORING.test(`${p.title} ${p.brand || ""}`))
+      throw new Error("a tech accessory leads Costco's rail: " + p.title);
 });
 
-check("Costco's curation ranks electronics, finds, clothes, home -- never candy", () => {
-  /* 2026-09-26, DANNY'S CALL: Costco is a treasure hunt, not a brand
-     directory. Electronics first, then the interesting finds (gadgets,
-     gemstone boxes, quirky discoveries), then clothes, then home, then
-     everything else. Candy belongs in Fiestas y Eventos, never here. */
+check("Costco's curation ranks cozy home first, boring tech last -- never candy", () => {
+  /* 2026-09-26, DANNY'S CALL: the Costco shopper is women. Home textiles
+     (throws, blankets, bedding, pillows) lead, then plush/decor, then
+     kitchen, then beauty, then the interesting finds (gadgets, quirky
+     discoveries), then clothes, then small electronics, then everything
+     else. Boring tech accessories (TV mounts, cables) and freight
+     furniture sink to the back -- both stay shoppable, neither leads.
+     Candy belongs in Fiestas y Eventos, never here. */
   const { costcoCuratedItems, costcoBucketOf, COSTCO_CAROUSEL_MAX } = loadPageStoreRailSlice();
   const mk = (title, departments, extra = {}) => ({
     retailer: "costco", title, price: 29.99,
@@ -5631,14 +5641,21 @@ check("Costco's curation ranks electronics, finds, clothes, home -- never candy"
     brand: "", departments, ...extra,
   });
   const items = [
-    mk("Juguete de peluche", ["juguetes"]),
-    mk("Chocolate belga surtido", ["dulces"]),
-    mk("Sofá seccional de tela", ["hogar"]),
-    mk("Camisa de vestir", ["bebe"]),
-    mk("Caja de gemas coleccionables", ["hogar"]),
-    mk("Laptop 15 pulgadas", ["electronica"]),
-    mk("Audífonos bluetooth", ["belleza"]),
-    mk("Toallas de baño", ["hogar"]),
+    mk("Juguete de peluche", ["juguetes"]),              // plush, rank -2
+    mk("Chocolate belga surtido", ["dulces"]),            // excluded: candy
+    mk("Sofá seccional de tela", ["hogar"]),              // freight furniture, rank 7
+    mk("Camisa de vestir", ["bebe"]),                     // apparel, rank 2
+    mk("Caja de gemas coleccionables", ["hogar"]),        // treasure find, rank 1
+    mk("Laptop 15 pulgadas", ["electronica"]),            // hero electronics, rank 3
+    mk("Audífonos bluetooth", ["belleza"]),               // beauty bucket beats the audio keyword, rank 0
+    mk("Funda de almohada decorativa", ["hogar"]),        // home textile, rank -3
+    mk("Vela aromática de vainilla", ["hogar"]),          // decor, rank -2
+    mk("Batería de cocina antiadherente", ["hogar"]),    // kitchen, rank -1
+    mk("Soporte de pared para TV 55 pulg", ["electronica"]), // boring tech, rank 6
+    mk("Cable HDMI 8K 3 metros", ["electronica"]),        // boring tech, rank 6
+    mk("Toallas de baño", ["hogar"]),                     // ordinary home, rank 5
+    mk("Manta para bebé", ["bebe"]),                      // home textile beats the baby bucket, rank -3
+    mk("Mountain Bouquet", ["hogar"]),                    // flowers, NOT a TV mount -- rank -2, never 6
     mk("Sin precio", ["electronica"], { price: 0 }),
     mk("Sin foto", ["electronica"], { image: "" }),
     mk("Otra tienda", ["electronica"], { retailer: "samsclub" }),
@@ -5651,35 +5668,172 @@ check("Costco's curation ranks electronics, finds, clothes, home -- never candy"
     throw new Error("the curation kept an unrenderable or foreign item");
   eq(titles.filter(t => t === "Laptop 15 pulgadas").length, 1, "the duplicate collapsed");
   const rankOf = (t) => titles.indexOf(t);
-  if (!(rankOf("Laptop 15 pulgadas") < rankOf("Caja de gemas coleccionables")))
-    throw new Error("electronics do not lead the treasure finds");
-  if (!(rankOf("Audífonos bluetooth") < rankOf("Camisa de vestir")))
+  // the lead: home textiles, ahead of everything
+  if (!(rankOf("Funda de almohada decorativa") < rankOf("Juguete de peluche")))
+    throw new Error("home textiles do not lead the plush");
+  if (!(rankOf("Manta para bebé") < rankOf("Vela aromática de vainilla")))
+    throw new Error("a blanket does not beat decor");
+  // plush and decor ahead of kitchen, kitchen ahead of beauty
+  if (!(rankOf("Vela aromática de vainilla") < rankOf("Batería de cocina antiadherente")))
+    throw new Error("decor does not beat kitchen");
+  if (!(rankOf("Mountain Bouquet") < rankOf("Batería de cocina antiadherente")))
+    throw new Error("a floral bouquet was treated as a TV mount");
+  if (!(rankOf("Batería de cocina antiadherente") < rankOf("Audífonos bluetooth")))
+    throw new Error("kitchen does not beat beauty");
+  // beauty ahead of finds, finds ahead of clothes, clothes ahead of electronics
+  if (!(rankOf("Audífonos bluetooth") < rankOf("Caja de gemas coleccionables")))
+    throw new Error("beauty does not beat the treasure finds");
+  if (!(rankOf("Caja de gemas coleccionables") < rankOf("Camisa de vestir")))
     throw new Error("finds do not beat clothes");
-  if (!(rankOf("Camisa de vestir") < rankOf("Sofá seccional de tela")))
-    throw new Error("clothes do not beat home");
-  if (!(rankOf("Sofá seccional de tela") < rankOf("Juguete de peluche")))
-    throw new Error("home does not beat the rest");
+  if (!(rankOf("Camisa de vestir") < rankOf("Laptop 15 pulgadas")))
+    throw new Error("clothes do not beat electronics");
+  if (!(rankOf("Laptop 15 pulgadas") < rankOf("Toallas de baño")))
+    throw new Error("hero electronics do not beat ordinary home");
+  // the back of the shelf: boring tech, then furniture -- both shoppable, neither leading
+  if (!(rankOf("Toallas de baño") < rankOf("Soporte de pared para TV 55 pulg")))
+    throw new Error("ordinary home does not beat a TV mount");
+  if (!(rankOf("Cable HDMI 8K 3 metros") < rankOf("Sofá seccional de tela")))
+    throw new Error("a cable does not beat freight furniture");
+  if (rankOf("Sofá seccional de tela") !== titles.length - 1)
+    throw new Error("freight furniture is not last");
   if (out.length > COSTCO_CAROUSEL_MAX) throw new Error("the curation overflows its carousel");
   eq(costcoBucketOf({ departments: ["Dulces y Chocolates"] }), "dulces", "bucket detection");
   eq(costcoBucketOf({ department: "Electrónica" }), "electronica", "singular department field");
 });
-
-check("Costco's storefront never shows the brand-directory fallback", () => {
-  /* 2026-09-26, DANNY'S QA: "Costco says sin categoría, busca por
-     marca... that doesn't make any sense." The storefront special-case
-     returns before the generic deptEntries fallback, so the
-     "Sin categorías por ahora — busca por marca" copy can never render
-     for Costco. */
+check("Costco's storefront follows the standard store template", () => {
+  /* 2026-09-26, DANNY'S QA: the Costco store page (tap "Ver tienda") must
+     read like every other store page -- carousel first, then category
+     sections -- not a one-off curated shelf. Costco's Spanish buckets map
+     through BUCKET_SPEC now, so the standard openStore path (Destacados
+     carousel + department tiles + brand panel) renders for it like any
+     other store, and the treasure-hunt special-case is gone. Settled by
+     execution over the real catalogue, not by reading the code. */
+  const { departmentItemsFor } = loadPageDepartmentSlice();
+  const { withoutUnshippableItems } = loadPageEnvelopeSlice();
+  const raw = JSON.parse(readFileSync(root("costco-catalog.json"), "utf8"));
+  const costco = withoutUnshippableItems(raw).retailers.costco;
+  const electronics = departmentItemsFor(costco, "department", "electronics", "costco");
+  const home = departmentItemsFor(costco, "department", "home_goods", "costco");
+  const beauty = departmentItemsFor(costco, "department", "beauty", "costco");
+  if (!electronics.length) throw new Error("Costco's electronica bucket no longer resolves to the electronics department");
+  if (!home.length) throw new Error("Costco's hogar bucket no longer resolves to the home department");
+  if (!beauty.length) throw new Error("Costco's belleza bucket no longer resolves to the beauty department");
+  // the whole kept catalogue is reachable through the departments -- no 48-item cap
+  const reachable = electronics.length + home.length + beauty.length;
+  if (reachable < 700) throw new Error("only " + reachable + " Costco items reachable through departments");
+  // no bulky projector bundle survives to the storefront
+  const titles = [...electronics, ...home, ...beauty].map(p => p.name || p.title || "");
+  if (titles.some(t => /projector|proyector/i.test(t) && /100"|120"|150"|\bUST\b/i.test(t)))
+    throw new Error("a bulky projector bundle reached Costco's storefront departments");
+  // and openStore keeps no Costco-only storefront
   const html = readFileSync(root("index.html"), "utf8");
-  const special = html.indexOf("COSTCO'S STOREFRONT IS A TREASURE HUNT");
-  const fallback = html.indexOf("if (!deptEntries.length){");
-  if (special < 0) throw new Error("the Costco storefront special-case is gone");
-  if (fallback < 0) throw new Error("the generic fallback moved -- update this check");
-  if (!(special < fallback)) throw new Error("the Costco special-case does not pre-empt the fallback");
-  const block = html.slice(special, fallback);
-  if (!/costcoCuratedItems/.test(block)) throw new Error("the storefront does not curate");
-  if (/storeBrandPanelHTML/i.test(block)) throw new Error("the brand panel leaked into Costco's storefront");
-  if (/Sin categorías por ahora/.test(block)) throw new Error("the fallback copy leaked into Costco's storefront");
+  const start = html.indexOf("async function openStore(retailer){");
+  const end = html.indexOf("async function openStoreResults(", start);
+  if (start < 0 || end < 0 || end < start) throw new Error("openStore moved -- update this check");
+  const body = html.slice(start, end);
+  if (/Lo mejor de Costco|hallazgos de Costco/.test(body))
+    throw new Error("the curated-shelf storefront is still in openStore");
+  if (/retailer === 'costco'/.test(body))
+    throw new Error("a Costco special-case is still in openStore");
+});
+
+
+check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surface", () => {
+  /* 2026-09-26, DANNY'S CALL: "we do not sell fucking TVs." TVs of any
+     size and anything that needs freight (sofas, sectionals, mattresses,
+     cribs, big appliances, treadmills, patio sets, generators, safes)
+     are dropped at the load boundary -- the same place pharmacy went --
+     so no surface (search, Ofertas, rails, aisles, store pages) can show
+     them, and a re-pulled catalogue cannot bring them back. */
+  const { isShippableItem, withoutUnshippableItems } = loadPageEnvelopeSlice();
+  const out = (name) => isShippableItem({ name });
+  // TVs, all sizes, plus TV services and TV furniture
+  for (const tv of [
+    'TCL 65" Class - Q77K Series - 4K UHD QLED Smart TV',
+    'Samsung 60" - TU700D Series - 4K UHD LED LCD TV',
+    'onn 32 in Class 720p HD Smart TV Powered by VIZIO, 32S2V1',
+    'Hisense 40-Inch Class H4 Series FHD Roku Smart TV',
+    'Angi Premier - Basic 2-Pro TV Mounting Service',
+    'Puerta Del Sol TV Console',
+  ]) if (out(tv)) throw new Error(`a TV slipped through: ${tv}`);
+  // freight-class bulky goods
+  // bulky projector packages (2026-09-26, Danny's QA: no price ceiling).
+  // No weight or dimension data on these -- only titles -- so the freight
+  // signal comes from the package the title describes: a bundled 80"+
+  // screen, a UST chassis, or a soundbar bundle. A small portable projector
+  // with no such package signal stays shippable (see the carve-outs).
+  for (const bulky of [
+    'JMGO N3 4K UHD Triple Laser Google TV Smart Projector Bundle with 100" Portable Screen',
+    'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle with Power Bank Tripod and 100" Portable Screen',
+    'Hisense, 80"- 150" 4K UHD IMAX Enhanced Triple Laser Smart UST Projector PT1 Bundled with 3.1.2ch Dolby Atmos',
+    'Hisense M2SE Pro 4K Triple Laser Smart Projector Bundle with 120" Projector Screen',
+    'Hisense C2 Pro 4K Portable Laser Mini Projector Bundle with 120" Portable Indoor/ Outdoor Projector Screen',
+  ]) if (out(bulky)) throw new Error("a bulky projector bundle slipped through: " + bulky);
+  for (const big of [
+    'Thomasville Fallon Modular Sectional 6-piece Gray with Ottoman',
+    'Henredon Caley Reversible Sofa Chaise with Ottoman',
+    'Stearns & Foster Devan Fabric Sleeper Sofa with King Memory Foam Mattress',
+    'Imagio Baby Ashley 3-piece Crib Set, Brushed White',
+    'Allspace 5-piece Modular Outdoor Patio Set',
+    'Tresanti Jordyn 85” Console with ClassicFlame Electric Fireplace',
+  ]) if (out(big)) throw new Error(`a freight item slipped through: ${big}`);
+  // weight backstop for the day catalogues carry real weights
+  if (isShippableItem({ name: 'Treadmill Pro 5000', weightKg: 85 }))
+    throw new Error("the 30kg weight backstop did not catch an 85kg item");
+  // carve-outs: small TV-adjacent accessories and small goods that
+  // merely mention furniture must survive
+  for (const small of [
+    'Apple TV 4K 64GB (Wi-Fi)',
+    'SANUS Preferred 3 Meter 8K Ultra High-Speed HDMI 2.1 Cable, 2-pack',
+    'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle',
+    'Anker Nebula Capsule Mini Portable Projector',
+    'Mini Projector, projects up to 120 inch screen',
+    'Dreame Pocket Ultra High-Speed Hair Dryer',
+    'Nintendo Switch OLED console',
+    'Velvet Throw Pillow Cushion Covers for Sofas, Chairs',
+    'SSENSE Exclusive Off-White FF Bunker Jacket',
+    'Souper Cubes Silicone Freezer Storage Tray, 5-pack',
+  ]) if (!out(small)) throw new Error(`a shippable small good got eaten: ${small}`);
+  // the envelope filter drops them per-department, keeps the rest
+  const env = withoutUnshippableItems({ retailers: { costco: { departments: {
+    electronica: { items: [{ name: 'TCL 65" Class Smart TV' }, { name: 'Bose Solo Soundbar Series II' }] },
+    hogar: { items: [{ name: 'Thomasville Fallon Modular Sectional' }, { name: 'Toallas de baño' }] },
+  } } } });
+  const e = env.retailers.costco.departments.electronica.items.map(i => i.name);
+  const h = env.retailers.costco.departments.hogar.items.map(i => i.name);
+  if (e.length !== 1 || e[0] !== 'Bose Solo Soundbar Series II')
+    throw new Error("the envelope filter kept a TV or dropped a soundbar");
+  if (h.length !== 1 || h[0] !== 'Toallas de baño')
+    throw new Error("the envelope filter kept a sectional or dropped towels");
+  // and the pipeline actually runs it on every load
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/\.then\(parts => parts\.map\(withoutUnshippableItems\)\)/.test(html))
+    throw new Error("withoutUnshippableItems is not wired into the load pipeline");
+});
+
+check("Costco's rail leads with cozy home, never a TV", () => {
+  /* 2026-09-26, DANNY'S QA: the shelf's lead card used to be a 65-inch TV.
+     With TVs filtered at the load boundary and the women-shopper lens in
+     place, home textiles lead the rail; small electronics still rank, but
+     behind cozy home, decor, kitchen and beauty. */
+  const { costcoCuratedItems } = loadPageStoreRailSlice();
+  const mk = (title, departments, extra = {}) => ({
+    retailer: "costco", title, price: 29.99,
+    image: "https://img/" + title.replace(/\W+/g, "_"),
+    brand: "", departments, ...extra,
+  });
+  const items = [
+    mk("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer", ["electronica"]),
+    mk("Manta tejida artesanal", ["hogar"]),
+    mk("Camisa de vestir", ["bebe"]),
+    mk("Toallas de baño", ["hogar"]),
+  ];
+  const out = costcoCuratedItems(items);
+  if (!/manta/i.test(out[0].title))
+    throw new Error(`the lead is not cozy home: ${out[0].title}`);
+  const titles = out.map(p => p.title);
+  if (!(titles.indexOf("Manta tejida artesanal") < titles.indexOf("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer")))
+    throw new Error("a soundbar leads cozy home");
 });
 
 check("every Fiestas sub-rail has a non-empty product set", () => {
