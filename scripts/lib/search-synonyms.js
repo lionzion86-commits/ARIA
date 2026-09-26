@@ -100,6 +100,31 @@ export const SEARCH_SYNONYM_GROUPS = [
     concept: "fins",
     words: ["fin", "fins", "flipper", "flippers", "aleta", "aletas"],
   },
+  /* PERU 2026-09-26: "polo" is a plain T-shirt in Peru, not a collared
+     polo shirt. One concept so "polo" finds tees (and collared polos
+     still match too, as they did before the correction). "shirt" is in
+     the group because searchTokens splits "T-Shirt" into "t"+"shirt" —
+     without it the hyphenated concept word can never hit a title. */
+  {
+    concept: "t-shirt",
+    words: [
+      "t-shirt", "t-shirts", "tshirt", "tshirts",
+      "tee", "tees",
+      "shirt", "shirts",
+      "polo", "polos",
+    ],
+  },
+  /* PERU 2026-09-26: "buzo" is any sweatshirt-type garment in Peru — with
+     or without a hood. One concept so "buzo" finds sweatshirts as well
+     as hoodies. */
+  {
+    concept: "sweatshirt",
+    words: [
+      "sweatshirt", "sweatshirts",
+      "hoodie", "hoodies",
+      "buzo", "buzos",
+    ],
+  },
 ];
 
 const WORD_TO_GROUP = new Map();

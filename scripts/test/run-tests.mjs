@@ -1594,6 +1594,82 @@ check("a phrase beats its own words", () => {
   eq(translate.translateQuery("plancha de cabello").query, "hair straightener");
 });
 
+group("follow-up: Peruvian Spanish glossary");
+
+check("Peru-verified words translate, with accents and plurals", () => {
+  const cases = [
+    // CORRECTED 2026-09-26: "polo" is a plain T-shirt in Peru, not a
+    // collared polo shirt (verified against Peruvian retail listings).
+    ["polo", "t-shirt"],
+    ["polos", "t-shirt"],
+    ["ojotas", "flip flops"],
+    ["tomatodo", "water bottle"],
+    ["tomatodos", "water bottle"],
+    ["chimpunes", "soccer cleats"],
+    ["chimpún", "soccer cleats"],
+    ["canguro", "fanny pack"],
+    ["riñonera", "fanny pack"],
+    ["velador", "nightstand"],
+    ["ropero", "wardrobe"],
+    ["bividi", "tank top"],
+    ["frazada", "blanket"],
+    ["terno", "suit"],
+    ["enterizo", "jumpsuit"],
+    ["morral", "messenger bag"],
+    ["bandolera", "crossbody bag"],
+    ["taper", "food storage container"],
+    ["sanguchera", "sandwich maker"],
+    ["hervidor", "electric kettle"],
+    ["arrocera", "rice cooker"],
+    ["biberón", "baby bottle"],
+    ["chupón", "pacifier"],
+    ["coche", "stroller"],
+    ["cepillo", "hair brush"],
+    ["casco", "helmet"],
+    ["foco", "light bulb"],
+    ["paraguas", "umbrella"],
+    ["pila", "battery"],
+    ["balerinas", "ballet flats"],
+  ];
+  for (const [es, en] of cases) {
+    eq(translate.translateSearchQuery(es), en, es);
+    eq(pageQuery.translateSearchQuery(es), en, `${es} (page)`);
+  }
+});
+
+check("Peru phrases beat their bare words", () => {
+  const cases = [
+    ["polo piqué", "polo-shirt"],
+    ["ropa de baño", "swimsuit"],
+    ["salida de baño", "beach cover-up"],
+    ["zapatillas de futbol", "soccer cleats"],
+    ["zapatos de taco", "high heels"],
+    ["buzo completo", "tracksuit"],
+    ["pantalon de buzo", "sweatpants"],
+    ["casaca jean", "denim jacket"],
+    ["brillo labial", "lip gloss"],
+    ["funda de celular", "phone case"],
+    ["mesa de noche", "nightstand"],
+    ["aire acondicionado", "air conditioner"],
+    // the existing phrase still wins over the new bare word
+    ["cepillo de dientes", "toothbrush"],
+  ];
+  for (const [es, en] of cases) {
+    eq(translate.translateSearchQuery(es), en, es);
+    eq(pageQuery.translateSearchQuery(es), en, `${es} (page)`);
+  }
+});
+
+check("ambiguous short words stay untouched", () => {
+  // "taco" is food, "lima" is the city — the bare words must not
+  // translate, or the query broadens to the wrong catalog.
+  for (const q of ["taco", "tacos", "lima"]) {
+    eq(translate.translateSearchQuery(q), q, q);
+    eq(pageQuery.translateSearchQuery(q), q, `${q} (page)`);
+    eq(translate.translateQuery(q).translated, false, `${q} reports no translation`);
+  }
+});
+
 check("anything we do not recognise goes out exactly as typed", () => {
   for (const q of ["The North Face jacket", "iPhone 15 Pro Max 256GB", "Levi's 501", "PS5 DualSense", "nintendo switch oled"]) {
     eq(translate.translateSearchQuery(q), q, q);
@@ -6961,6 +7037,30 @@ group("Search answers from the catalogue first");
     if (cs.catalogTokenHits(new Set(["de"]), ["desodorante"]) !== 0) throw new Error("a 2-letter word matched a long token");
   });
 
+  check("a pillowcase that says \"sweat\" never answers a sweater query", () => {
+    /* REPORTED LIVE 2026-09-26 by Danny: "chompa" and "buzo" both
+       surfaced "AZXY 2-Pack Cooling Pillowcases for Hot Sleepers ...
+       Anti-Sweat Breathable" -- the reverse prefix shortcut let
+       "sweater" and "sweatshirt" match the word "sweat". Prefixes are
+       plurals only now, so the bedding stays out while the real
+       garments still answer. */
+    const pool = [
+      P("AZXY 2-Pack Cooling Pillowcases for Hot Sleepers, Anti-Sweat Breathable", ""),
+      P("Women's Cotton Colorblock Curved-Hem Sweater", "Style & Co"),
+      P("Men's EcoSmart Fleece Hoodie Sweatshirt", "Hanes"),
+    ];
+    for (const q of ["sweater", "sweatshirt", "hoodie"]) {
+      const titles = cs.rankCatalogMatches(pool, q, {}).items.map((i) => i.title);
+      if (titles.some((t) => /pillowcase/i.test(t)))
+        throw new Error(`"${q}" returned a pillowcase`);
+    }
+    // ...and the garments each query is actually about still answer.
+    const sweaters = cs.rankCatalogMatches(pool, "sweater", {}).items.map((i) => i.title);
+    if (!sweaters.some((t) => /sweater/i.test(t))) throw new Error('"sweater" lost the real sweaters');
+    const hoodies = cs.rankCatalogMatches(pool, "hoodie", {}).items.map((i) => i.title);
+    if (!hoodies.some((t) => /sweatshirt/i.test(t))) throw new Error('"hoodie" lost the real sweatshirts');
+  });
+
   check("matching every token outranks matching some, and a brand hit outranks a title hit", () => {
     const toks = cs.searchTokens("nike shorts");
     const both = P("Pro 3in Shorts", "Nike");
@@ -7391,6 +7491,81 @@ group("search synonyms: one concept, many words");
     eq(r1.length, 1, "sporting-goods bare 'fin' qualifies");
     const r2 = cs.rankCatalogMatches([bareFinApparel], "aletas", {}).items;
     eq(r2.length, 0, "apparel bare 'fin' excluded");
+  });
+
+  check("\"polo\" is a T-shirt in Peru, and finds tees without losing polo shirts", () => {
+    /* PERU 2026-09-26: "polo" corrected from "polo shirt" to "t-shirt".
+       The group keeps collared polos reachable (as the old mapping did)
+       while adding plain tees. */
+    eq(translate.translateSearchQuery("polo"), "t-shirt", "translation");
+    eq(pageQuery.translateSearchQuery("polo"), "t-shirt", "page mirror");
+    eq(cs.canonicalizeToken("polo"), "t-shirt", "page canonical");
+    eq(synonyms.canonicalizeToken("polo"), "t-shirt", "module canonical");
+    eq(cs.canonicalizeToken("t-shirt"), "t-shirt");
+    eq(cs.canonicalizeToken("tee"), "t-shirt");
+    const pool = [
+      P("Cotton T-Shirt", "Hanes"),
+      P("Polo Shirt", "Ralph Lauren"),
+      P("Wool Sweater", "Gap"), // control
+    ];
+    const seen = [];
+    for (const q of ["polo", "polos", "t-shirt", "tee"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, {});
+      const titles = items.map((i) => i.title);
+      seen.push(JSON.stringify(titles));
+      if (!titles.includes("Cotton T-Shirt")) throw new Error(`"${q}" missed the T-shirt`);
+      if (!titles.includes("Polo Shirt")) throw new Error(`"${q}" lost the polo shirt`);
+      if (titles.includes("Wool Sweater")) throw new Error(`"${q}" leaked a sweater`);
+    }
+    for (const sig of seen) eq(sig, seen[0], "identical result set and order");
+  });
+
+  check("\"buzo\" finds sweatshirts as well as hoodies", () => {
+    /* PERU 2026-09-26: "buzo" is any sweatshirt-type garment in Peru,
+       with or without a hood. */
+    eq(cs.canonicalizeToken("buzo"), "sweatshirt", "page canonical");
+    eq(synonyms.canonicalizeToken("buzo"), "sweatshirt", "module canonical");
+    eq(cs.canonicalizeToken("hoodie"), "sweatshirt");
+    eq(cs.canonicalizeToken("sweatshirt"), "sweatshirt");
+    const pool = [
+      P("Fleece Hoodie", "Nike"),
+      P("Crewneck Sweatshirt", "Gap"),
+      P("Wool Sweater", "Gap"), // control: a sweater is not a buzo
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "buzo", {});
+    const titles = items.map((i) => i.title);
+    if (!titles.includes("Fleece Hoodie")) throw new Error('"buzo" missed the hoodie');
+    if (!titles.includes("Crewneck Sweatshirt")) throw new Error('"buzo" missed the sweatshirt');
+    if (titles.includes("Wool Sweater")) throw new Error('"buzo" leaked a sweater');
+  });
+
+  check("\"chimpunes\" are soccer cleats, never generic sneakers", () => {
+    /* PERU 2026-09-26: verified on Falabella Perú — "chimpunes" is
+       football footwear. It must not broaden into the shoes group. */
+    eq(translate.translateSearchQuery("chimpunes"), "soccer cleats", "translation");
+    eq(pageQuery.translateSearchQuery("chimpunes"), "soccer cleats", "page mirror");
+    const toks = cs.canonicalizeTokens(translate.translateSearchQuery("chimpunes").split(" "));
+    if (toks.includes("shoes") || toks.includes("sneakers"))
+      throw new Error('"chimpunes" leaked into the footwear group');
+    const pool = [
+      P("Adidas Predator Soccer Cleats", "Adidas"),
+      P("Nike Air Force 1 Sneakers", "Nike"), // control: not cleats
+    ];
+    const { items } = cs.rankCatalogMatches(pool, translate.translateSearchQuery("chimpunes"), {});
+    const titles = items.map((i) => i.title);
+    if (!titles.includes("Adidas Predator Soccer Cleats")) throw new Error('"chimpunes" missed the cleats');
+    if (titles.includes("Nike Air Force 1 Sneakers")) throw new Error('"chimpunes" leaked sneakers');
+  });
+
+  check("\"canguro\" is a waist bag, not the animal", () => {
+    /* PERU 2026-09-26: verified on Falabella Perú — "canguro" pairs with
+       "riñonera" as a waist bag. The translation must never surface the
+       marsupial. */
+    eq(translate.translateSearchQuery("canguro"), "fanny pack", "translation");
+    eq(pageQuery.translateSearchQuery("canguro"), "fanny pack", "page mirror");
+    eq(translate.translateSearchQuery("riñonera"), "fanny pack", "riñonera");
+    if (/kangaroo/i.test(translate.translateSearchQuery("canguro")))
+      throw new Error('"canguro" surfaced the animal');
   });
 
   check("other groups behave the same way", () => {
