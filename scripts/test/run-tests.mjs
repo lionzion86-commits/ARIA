@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -52,6 +52,8 @@ import * as chatModel from "../../netlify/functions/_aria-chat-model.js";
 import * as subcats from "../lib/subcategories.js";
 import * as brandIndex from "../lib/brand-index.js";
 import * as footwear from "../lib/footwear.js";
+import * as autoparts from "../lib/autoparts.js";
+import * as sizes from "../lib/sizes.js";
 import * as payments from "../../netlify/functions/_payments-model.js";
 import * as stripeVerify from "../../netlify/functions/_stripe-verify.js";
 import * as ledger from "../../netlify/functions/_ledger.js";
@@ -906,14 +908,20 @@ check("index.html's registry mirror matches the module", () => {
    Walmart lead the directory, then the other researched reliable shippers,
    then YesStyle (red tier: honest 14-28 day timing, shown last).
    AutoZone (kind auto) is not in the everyday tier. */
+/* ...revised 2026-09-26: three catalog-backed stores join beside their
+   peers — New Balance after Foot Locker (sport), Kohl's after Macy's
+   (department store), B&H after Dick's (gear). No reordering of Danny's
+   existing sequence, only insertions. */
 const EXPECTED_EVERYDAY_ORDER = [
-  "revolve", "target", "footlocker", "walmart", "sephora", "macys", "dicks",
+  "revolve", "target", "footlocker", "newbalance", "walmart", "sephora",
+  "macys", "kohls", "dicks", "bhphoto",
   "costco", "victoriassecret", "ulta", "pacsun",
   /* SURF & SKATE BATCH (2026-09-26, Danny): nine surf/skate/spearfishing
      shops, registry order after PacSun. */
   "nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation",
   "mainland", "parrot", "ccs", "valsurf",
   "oldnavy", "samsclub",
+
   "lanebryant", "alphalete", "youngla", "gymshark", "skims", "yesstyle"
 ];
 function everydayOrder(){
@@ -1027,7 +1035,7 @@ check("Skims and YesStyle are the last two Tiendas tiles (then red-tier, 2026-09
     throw new Error(`last two Tiendas tiles are [${tail}], want skims,yesstyle`);
 });
 
-check("the Tiendas directory keeps its tiles and gains the six rails below them", () => {
+check("the Tiendas directory keeps its tiles and gains the eleven rails below them", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the directory stays the directory
      -- tiles on top -- and each store gets its window display below it,
      so the page browses instead of only linking out. */
@@ -1036,7 +1044,7 @@ check("the Tiendas directory keeps its tiles and gains the six rails below them"
   if (!view) throw new Error("there is no storesView");
   if (!/id="storesGrid"/.test(view)) throw new Error("the Tiendas directory grid is gone");
   const gridAt = view.indexOf('id="storesGrid"');
-  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"]) {
     const id = `id="tStoreRail-${key}"`;
     const at = view.indexOf(id);
     if (at < 0) throw new Error(`the Tiendas view has no ${key} rail`);
@@ -2793,19 +2801,25 @@ check("no layer of the auto pipeline drops fields", () => {
 
 group("auto: sources are a registry, and not Tiendas");
 
-check("RockAuto is removed, O'Reilly is excluded, Advance is unprobed", () => {
+check("RockAuto is removed, O'Reilly is excluded, Advance is catalog-backed", () => {
   /* 2026-09-26, DANNY'S CALL: RockAuto is out — "a liability waiting to
      happen". The registry row is deleted from AUTO_SOURCES entirely, so
      no fan-out, tile, banner or search path can reach it. */
   if ("rockauto" in autoSources.AUTO_SOURCES) throw new Error("RockAuto is still a registered auto source");
   eq(autoSources.AUTO_SOURCES.oreilly.excluded, true, "O'Reilly stays out");
   if (!autoSources.AUTO_SOURCES.oreilly.excludedReason) throw new Error("no reason recorded for O'Reilly");
-  eq(autoSources.AUTO_SOURCES.advanceauto.probe, "not-run", "Advance Auto could not be probed from here");
-  // An excluded or unprobed source is never shown to a shopper.
+  /* 2026-09-26: the Advance Auto "probe" came back as a catalogue —
+     advanceauto-catalog.json (120 brake parts, real weights) is committed
+     at repo root. probe:"catalog" says what it is: a real catalogue with
+     no live actor. An excluded or unprobed source is never shown; a
+     catalog-backed one is, with its honest shelf. */
+  eq(autoSources.AUTO_SOURCES.advanceauto.probe, "catalog", "Advance Auto's probe came back as a catalogue");
+  eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto has no live actor");
+  eq(autoSources.AUTO_SOURCES.advanceauto.browse, true, "Advance Auto's catalogue is real");
   const visible = autoSources.visibleAutoSources().map((s) => s.key);
   if (visible.includes("rockauto")) throw new Error("RockAuto is being shown");
   if (visible.includes("oreilly")) throw new Error("O'Reilly is being shown");
-  if (visible.includes("advanceauto")) throw new Error("an unprobed source is being shown");
+  if (!visible.includes("advanceauto")) throw new Error("Advance Auto's catalogue is not shown");
   if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
 });
 
@@ -2884,7 +2898,7 @@ check("every queried auto source has verified backing", () => {
   // the fan-out. (RockAuto's cache-backed source was removed 2026-09-26,
   // Danny's call; AutoZone remains.)
   eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
-  eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto is still unprobed");
+  eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto has no live actor yet (catalogue only)");
   eq(autoSources.AUTO_SOURCES.oreilly.search, false, "O'Reilly stays out");
 });
 
@@ -5262,11 +5276,12 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
-    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
@@ -5294,11 +5309,12 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Nautilus Spearfishing > Island Water Sports > Quiet Storm Surf Shop > Surf World > Surf Station > Mainland Skate & Surf > Parrot Surf & Skate > CCS > Val Surf > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
-    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
@@ -5319,7 +5335,7 @@ check("Todas las otras tiendas carries the rest of the directory, not the eight"
   // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
   const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
   if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
-  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the eight featured rail stores");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the eleven featured rail stores");
   if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
@@ -5335,7 +5351,7 @@ check("a rail scrolls sideways and snaps, and the page does not", () => {
   if (!/scrollbar-width:\s*none/.test(rail)) throw new Error("the rail grew a desktop scrollbar");
 
   for (const id of ["mobileDealsRow", "mobileCatsRow",
-      ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)]) {
+      ...["victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)]) {
     const tag = shopfront.slice(shopfront.indexOf(`id="${id}"`));
     const cls = tag.slice(0, tag.indexOf(">"));
     if (!/\bariaRail\b/.test(cls)) throw new Error(`${id} is not a rail`);
@@ -5536,14 +5552,17 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
   if (!rails) throw new Error("the store rails' code is gone");
-  /* The eight window displays, reliable-first (2026-09-26, Danny): Foot
+  /* The eleven window displays, reliable-first (2026-09-26, Danny): Foot
      Locker, Sephora, Macy's and Dick's lead -- the researched reliable
      shippers -- then Victoria's Secret, Costco, Gymshark, SSENSE, and the
-     nine surf/skate/spearfishing shops (2026-09-26, Danny). */
+     nine surf/skate/spearfishing shops (2026-09-26, Danny). The
+     2026-09-26 catalog arrivals sit beside their peers: New Balance
+     after Foot Locker, Kohl's after Macy's, B&H after Dick's. */
   const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
   if (!m) throw new Error("STORE_RAIL_STORES is gone");
-  eq(m[1].replace(/['\s]/g, ""), "footlocker,sephora,macys,dicks,victoriassecret,costco,gymshark,ssense,nautilus,islandwatersports,quietstorm,surfworld,surfstation,mainland,parrot,ccs,valsurf",
-    "the store rails are not the seventeen agreed stores in mall order");
+  eq(m[1].replace(/['\s]/g, ""), "footlocker,newbalance,sephora,macys,kohls,dicks,victoriassecret,costco,bhphoto,gymshark,ssense,nautilus,islandwatersports,quietstorm,surfworld,surfstation,mainland,parrot,ccs,valsurf",
+    "the store rails are not the twenty agreed stores in mall order");
+
   /* The same card every other rail draws -- a second card component is
      how the rails drift apart. */
   if (!/railCardHTML\(p,/.test(rails)) throw new Error("a store rail grew its own card");
@@ -5561,7 +5580,7 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
   if (/m.s vendido|mas vendido|best.?seller/i.test(railsCode)) throw new Error("a store rail claims a bestseller rank");
   /* Every rail ends at its store: the header and the trailing card both
      open the same full store page. */
-  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"]) {
     if (!new RegExp(`openStore\\('${key}'\\)`).test(shopfrontSrc)) throw new Error(`${key}'s rail has no way into its store`);
   }
   /* Lazy, and never self-moving: the ban the shopfront check enforces
@@ -5601,8 +5620,8 @@ check("every store rail ends on a 'Ver todo en …' end-card into the same store
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
   if (!/\+ storeRailMoreHTML\(key\)/.test(paint)) throw new Error("the rails no longer end on the more-card");
-  /* And the headers still carry the first door, for all six stores. */
-  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
+  /* And the headers still carry the first door, for all eleven stores. */
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"]) {
     if (!new RegExp(`openStore\\('${key}'\\)[^]*?Ver tienda`).test(shopfrontSrc))
       throw new Error(`${key}'s rail header lost its 'Ver tienda' door`);
   }
@@ -6142,16 +6161,17 @@ check("every brand-strip logo resolves to a real, loadable asset", () => {
   }
 });
 
-check("the six fashion rails are compact; Costco's section is full-size", () => {
-  /* 2026-09-26, DANNY: the six rails read as a store picker, not six
-     full features -- slightly smaller cards. Costco's own section keeps
-     the full-size cards. */
+check("the nine fashion rails are compact; Costco's section is full-size", () => {
+  /* 2026-09-26, DANNY: the rails read as a store picker, not full
+     features -- slightly smaller cards. New Balance, Kohl's and B&H
+     join the compact treatment. Costco's own section keeps the
+     full-size cards. */
   const html = readFileSync(root("index.html"), "utf8");
   if (!/\.storeRailCompact \[data-store-rail-card\]/.test(html))
     throw new Error("the compact-rail CSS is gone");
   for (const startMark of ['<div id="homeView"', '<div id="desktopShopfront"']) {
     const start = html.indexOf(startMark);
-    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks"]) {
       const sec = html.indexOf(`data-store-rail="${key}"`, start);
       const tag = html.slice(sec, html.indexOf(">", sec));
       if (!/storeRailCompact/.test(tag)) throw new Error(`${key} lost its compact class`);
@@ -8315,6 +8335,96 @@ check("Zapatos is a department with a name and a place in the taxonomy", () => {
   const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
   if (!/shoes:\s+\{ anyCategory: true, footwearOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no shoes");
 });
+/* ------------------------------------------------------------------
+   REPUESTOS (2026-09-26): auto parts, the Zapatos way.
+   ------------------------------------------------------------------ */
+group("Repuestos: auto parts, the Zapatos way");
+
+const partPage = loadPageAutoPartSlice();
+
+check("the page's auto-part detector and the module agree, item for item", () => {
+  /* Compared over the real advanceauto catalogue: the whole department
+     is this one predicate, twice. */
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  let checked = 0;
+  for (const r of Object.values(data.retailers || {})) {
+    for (const d of Object.values(r.departments || {})) {
+      for (const entry of d.items || []) {
+        const a = partPage.isAutoPart(entry, "advanceauto");
+        const b = autoparts.isAutoPart(entry, "advanceauto");
+        if (a !== b) throw new Error(`drifted on ${JSON.stringify(entry).slice(0, 90)}`);
+        checked++;
+      }
+    }
+  }
+  if (checked !== 120) throw new Error(`only compared ${checked} parts`);
+});
+
+check("Advance Auto's brake catalogue answers as auto parts, all 120", () => {
+  /* The store is the signal (it sells nothing but parts); the Spanish
+     part-type the normalizer ships settles each item. */
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = deptMap.departmentItems(data.retailers.advanceauto, "auto_parts", "advanceauto");
+  eq(items.length, 120, "Advance Auto's catalogue is 120 parts");
+  for (const entry of items) {
+    if (!autoparts.isAutoPart(entry, "advanceauto")) {
+      throw new Error(`not filed as a part: ${deptMap.titleOf(entry)}`.slice(0, 120));
+    }
+  }
+  // The published type settles it per item, the way footwear does.
+  eq(autoparts.isAutoPart({ title: "x", type: "Pastillas de freno" }, "walmart"), true, "a typed brake pad");
+  eq(autoparts.isAutoPart({ title: "x", type: "Discos de freno" }, "walmart"), true, "a typed rotor");
+  // ...and a typed garment stays out even from a parts store.
+  eq(autoparts.isAutoPart({ title: "x", type: "Camisetas" }, "advanceauto"), false, "a typed shirt is not a part");
+});
+
+check("brake cleaner is not a brake part", () => {
+  /* The reason there is no title-keyword fallback: a generalist's
+     "brake" would catch brake cleaner, brake fluid and kids' bike brake
+     pads. A parts retailer with a typed catalogue does not need the
+     keywords, and the keywords are where the false positives live. */
+  eq(autoparts.isAutoPart({ title: "Brake Cleaner Spray", type: "" }, "walmart"), false, "brake cleaner");
+  eq(autoparts.isAutoPart({ title: "DOT 3 Brake Fluid", type: "" }, "walmart"), false, "brake fluid");
+  eq(autoparts.isAutoPart({ title: "Kids Bike Brake Pads", type: "" }, "target"), false, "bike brake pads");
+});
+
+check("Repuestos is a department with a name and a place in the taxonomy", () => {
+  eq(deptMap.DEPARTMENT_SPEC.auto_parts.autoPartsOnly, true, "the auto_parts spec");
+  eq(deptMap.DEPARTMENT_SPEC.auto_parts.anyCategory, true, "parts must scan every bucket, not one named bucket");
+  const src = stripComments(readFileSync(root("index.html"), "utf8"));
+  if (!/auto_parts: \{ label: 'Repuestos'/.test(src)) throw new Error("the department has no Spanish name");
+  // The page's spec mirrors the module's.
+  const spec = src.slice(src.indexOf("const DEPARTMENT_SPEC = {"), src.indexOf("const BUCKET_SPEC = {"));
+  if (!/auto_parts:\s+\{ anyCategory: true, autoPartsOnly: true \}/.test(spec)) throw new Error("the page's taxonomy has no Repuestos");
+  // And the department actually fills from the catalogue.
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const bucket = data.retailers.advanceauto;
+  const items = deptMap.departmentItems(bucket, "auto_parts", "advanceauto");
+  eq(items.length, 120, "Repuestos renders Advance Auto's 120 parts");
+  // A part stays in its store page too — departments overlap here exactly
+  // as Ofertas overlaps everything.
+  const storeItems = deptMap.departmentItems(bucket, "auto_parts", "advanceauto");
+  if (!storeItems.length) throw new Error("the parts vanished from their own department");
+});
+
+check("Advance Auto's catalogue weights reach the cart, exact or estimated", () => {
+  /* catalogWeightDetail used to read only specWeightKg and refuse
+     weightEstimated:false — so the normalized weightKg field, exact or
+     estimated, never reached the freight quote. The advanceauto pull
+     ships real converted weights (weightEstimated:false) and one honest
+     estimate (weightEstimated:true); both must flow through. */
+  const slice = loadPageWeightSlice();
+  const exact = slice.catalogWeightDetail({ weightKg: 2.5, weightEstimated: false }, "Front Brake Pads");
+  if (!exact || !(exact.kg > 0)) throw new Error("an exact catalog weight was dropped");
+  if (exact.estimated !== false) throw new Error("an exact weight is mislabelled as estimated");
+  const est = slice.catalogWeightDetail({ weightKg: 1.1, weightEstimated: true }, "Front Brake Pads");
+  if (!est || !(est.kg > 0)) throw new Error("an estimated catalog weight was dropped");
+  if (est.estimated !== true) throw new Error("an estimated weight is mislabelled as exact");
+  // Legacy alias still works.
+  const legacy = slice.catalogWeightDetail({ specWeightKg: 0.9 }, "Brake Rotor");
+  if (!legacy || !(legacy.kg > 0)) throw new Error("the legacy specWeightKg field stopped working");
+});
+
 group("no price, no buy button");
 
 check("a priceless record is a real thing in the cache, not a hypothesis", () => {
@@ -8647,17 +8757,20 @@ check("every store rail keeps its branded header, on all three surfaces", () => 
   }
 });
 
-check("the seventeen rails stand in mall order on all three surfaces", () => {
+check("the twenty rails stand in mall order on all three surfaces", () => {
+
   /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
      phone's shopfront, the laptop's shopfront, and the Tiendas page's
      vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
      mall stops feeling like one mall. */
   const src = HOME_SRC();
-  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): seventeen rails, one
-     order on the phone, the laptop, and the Tiendas vitrinas -- the eight
-     originals plus the nine surf/skate/spearfishing shops. */
-  const want = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "gymshark", "ssense",
+  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): twenty rails, one
+     order on the phone, the laptop, and the Tiendas vitrinas -- the
+     eleven from the 4-store batch plus the nine surf/skate/spearfishing
+     shops. */
+  const want = ["footlocker", "newbalance", "sephora", "macys", "kohls", "dicks", "victoriassecret", "costco", "bhphoto", "gymshark", "ssense",
     "nautilus", "islandwatersports", "quietstorm", "surfworld", "surfstation", "mainland", "parrot", "ccs", "valsurf"];
+
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
     ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
@@ -8665,7 +8778,8 @@ check("the seventeen rails stand in mall order on all three surfaces", () => {
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
     const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
-    eq(found.join(","), want.join(","), `${name} does not carry the seventeen rails in mall order`);
+    eq(found.join(","), want.join(","), `${name} does not carry the twenty rails in mall order`);
+
   }
 });
 
@@ -8684,7 +8798,7 @@ check("the store rails paint lazily below the fold", () => {
      the markup, the observer would be theatre. */
   const markup = stripHtmlComments(src);
   for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
-    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]){
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"]){
       const row = new RegExp(`<div id="${prefix}-${key}"[^>]*></div>`);
       if (!row.test(markup)) throw new Error(`${prefix}-${key} is not an empty row waiting for the observer`);
     }
@@ -9531,6 +9645,55 @@ check("curvy is a size filter over apparel, not a category a store scrapes into"
      declaring one would make the page depend on a bucket name instead
      of on the data. */
   if (deptMap.BUCKET_SPEC.curvy) throw new Error("curvy became a scrape bucket — it is a filter, not an aisle");
+});
+
+check("the page's size filter and the module agree, item for item", () => {
+  /* scripts/lib/department-map.js was missing the extendedSizesOnly
+     branch while the page had it — the module admitted ALL apparel to
+     Curvy. Compared over the real catalogues so the drift cannot return. */
+  const files = ["kohls-catalog.json", "lanebryant-catalog.json", "newbalance-catalog.json"];
+  let checked = 0;
+  for (const file of files) {
+    const data = JSON.parse(readFileSync(root(file), "utf8"));
+    for (const [retailer, r] of Object.entries(data.retailers || {})) {
+      for (const [bucketName, d] of Object.entries(r.departments || {})) {
+        for (const item of d.items || []) {
+          const a = curvy.hasExtendedSizes(item);
+          const b = sizes.hasExtendedSizes(item);
+          if (a !== b) throw new Error(`drifted on ${retailer}: ${deptMap.titleOf(item)}`);
+          const c = curvy.extendedSizesOf(item).join(",");
+          const e = sizes.extendedSizesOf(item).join(",");
+          if (c !== e) throw new Error(`size-run drifted on ${retailer}: ${deptMap.titleOf(item)}`);
+          checked++;
+        }
+      }
+    }
+  }
+  if (checked < 500) throw new Error(`only compared ${checked} items`);
+});
+
+check("Kohl's own \"Plus Size\" range label is an extended size", () => {
+  /* DANNY (2026-09-26): apparel offered in XL/XXL/1X/2X/3X renders in
+     Curvy. Kohl's titles its range "Plus Size" but publishes no per-size
+     list; the normalizer carries the retailer's own label in
+     availableSizes — never an invented 1X/2X run — and Curvy recognises
+     it. Driven over the real kohls-catalog.json. */
+  if (!curvy.EXTENDED_SIZES.has("plus size")) throw new Error("'plus size' is not an extended size");
+  const data = JSON.parse(readFileSync(root("kohls-catalog.json"), "utf8"));
+  const plus = [];
+  for (const d of Object.values(data.retailers.kohls.departments || {})) {
+    for (const item of d.items || []) {
+      if ((item.availableSizes || []).includes("Plus Size")) plus.push(item);
+    }
+  }
+  if (plus.length !== 114) throw new Error(`want 114 plus-size items, found ${plus.length}`);
+  for (const item of plus) {
+    if (!curvy.hasExtendedSizes(item)) throw new Error(`not curvy-eligible: ${deptMap.titleOf(item)}`);
+  }
+  // And the department actually renders them.
+  const rendered = deptMap.departmentItems(data.retailers.kohls, "curvy", "kohls");
+  const plusRendered = rendered.filter((it) => (it.availableSizes || []).includes("Plus Size"));
+  if (plusRendered.length !== 114) throw new Error(`Curvy renders ${plusRendered.length}/114 plus-size items`);
 });
 
 check("curvy took the slot pharmacy left, and kept its own cover", () => {
@@ -10946,6 +11109,35 @@ check("zero shoes reach the Gym Rat feed, from any retailer", () => {
   }
 });
 
+check("New Balance shoes reach Zapatos and never Gym Rat", () => {
+  /* DANNY (2026-09-26): Gym Rat has zero shoes — shoes live in Zapatos.
+     New Balance's normalizer types its shoes "Zapatillas"; the footwear
+     detector reads Spanish types (2026-09-26), so the guard fires.
+     Driven over the real newbalance-catalog.json, not fixtures. */
+  const data = JSON.parse(readFileSync(root("newbalance-catalog.json"), "utf8"));
+  const bucket = data.retailers.newbalance;
+  const shoes = deptMap.departmentItems(bucket, "shoes", "newbalance");
+  if (!shoes.length) throw new Error("no New Balance shoes reach Zapatos — the detector is measuring nothing");
+  const gymrat = deptMap.departmentItems(bucket, "gym_rat", "newbalance");
+  if (!gymrat.length) throw new Error("no New Balance apparel reaches Gym Rat — the filter is measuring nothing");
+  const { isFootwear } = loadPageFootwearSlice();
+  for (const item of gymrat) {
+    if (isFootwear(item, "newbalance")) {
+      throw new Error(`a shoe renders in Gym Rat: ${deptMap.titleOf(item)}`);
+    }
+  }
+  for (const item of shoes) {
+    if (deptMap.itemBelongsToDepartment(item, "gym_rat", "gym_rat", "newbalance")) {
+      throw new Error(`a Zapatos shoe also belongs to Gym Rat: ${deptMap.titleOf(item)}`);
+    }
+  }
+  // The Spanish type is what carries the shoe — "Zapatillas" must be
+  // authoritative in both implementations.
+  const shoe = { name: "Fresh Foam X 1080v14", type: "Zapatillas", brand: "New Balance" };
+  if (!isFootwear(shoe, "newbalance")) throw new Error("the page no longer reads a Spanish shoe type");
+  if (!footwear.isFootwear(shoe, "newbalance")) throw new Error("the module no longer reads a Spanish shoe type");
+});
+
 check("no Foot Locker shoe can enter Gym Rat through the old retailer rule", () => {
   /* The old rule admitted Foot Locker athletic shoes via the retailer;
      Danny killed it. A Foot Locker shoe must not belong to gym_rat. The
@@ -11016,26 +11208,22 @@ check("the Gym Rat lead is wired into the department sort, explicit sorts bypass
   if (!/onchange="onCatalogSortChange\(\)"/.test(src)) throw new Error("the sort dropdown is not wired to onCatalogSortChange");
 });
 
-check("Gymshark sits between Costco and SSENSE on all three surfaces (reliable-first, 2026-09-26)", () => {
-  /* DANNY (2026-09-26, reliable-first): Gymshark sits between Costco and
-     SSENSE on the phone, the laptop, and the Tiendas vitrinas. No rail was
-     removed to make room. */
+check("the three new rails sit beside their peers on all three surfaces (2026-09-26)", () => {
+  /* New Balance, Kohl's and B&H join the rails without removing any
+     existing one: each new rail is declared exactly once per surface,
+     and the rail-store list leads with the reliable-first order. */
   const src = readFileSync(root("index.html"), "utf8");
-  if (!/const STORE_RAIL_STORES = \[\s*'footlocker',\s*'sephora',\s*'macys'/.test(src)) {
-    throw new Error("STORE_RAIL_STORES is not footlocker, sephora, macys");
+  if (!/const STORE_RAIL_STORES = \[\s*'footlocker',\s*'newbalance',\s*'sephora'/.test(src)) {
+    throw new Error("STORE_RAIL_STORES is not footlocker, newbalance, sephora");
   }
-  for (const id of ["mStoreRail-gymshark", "dStoreRail-gymshark", "tStoreRail-gymshark"]) {
-    eq((src.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is not declared exactly once`);
-  }
-  /* DOM adjacency: the Gymshark section directly follows the Costco
-     section and directly precedes the SSENSE section, per surface. */
   for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]) {
-    const ids = [...src.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
-    const i = ids.indexOf("gymshark");
-    if (i < 0) throw new Error(`${prefix}-gymshark is missing`);
-    eq(ids[i - 1], "costco", `${prefix}: Gymshark is not under Costco`);
-    eq(ids[i + 1], "ssense", `${prefix}: Gymshark is not above SSENSE`);
+    for (const key of ["newbalance", "kohls", "bhphoto", "gymshark"]) {
+      const id = `${prefix}-${key}`;
+      eq((src.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is not declared exactly once`);
+    }
   }
+  /* DOM order: the eleven-rail check above pins the full order per
+     surface; this check only pins the registry that drives it. */
 });
 
 check("ofertasLeadSort leads with the pull brands, discount deciding within", () => {

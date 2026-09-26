@@ -107,6 +107,18 @@ export const RETAILERS = {
     kind: "general",
     search: true,
   },
+  /* NEW BALANCE (2026-09-26) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. Mirrors the index.html row; the page is a
+     plain <script> and cannot import. */
+  newbalance: {
+    key: "newbalance",
+    label: "New Balance",
+    color: "#E21836",
+    tagline: "Zapatillas y ropa deportiva",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   walmart: {
     key: "walmart",
     label: "Walmart",
@@ -131,6 +143,20 @@ export const RETAILERS = {
     // deliberately excluded from the general search fan-out.
     kind: "auto",
     search: true,
+  },
+  /* ADVANCE AUTO PARTS (2026-09-26) — the Macy's pattern for Aria Auto:
+     browse: true, search: false; advanceauto-catalog.json (120 brake
+     parts, real weights) is committed at repo root. kind:"auto" so it
+     tiles under the Repuestos tier. Fitment search stays AutoZone-only:
+     no compatibility data, no fitment claim. Mirrors index.html. */
+  advanceauto: {
+    key: "advanceauto",
+    label: "Advance Auto Parts",
+    color: "#EA1927",
+    tagline: "Frenos y repuestos — vía Aria Auto",
+    kind: "auto",
+    search: false,
+    browse: true,
   },
   /* BATH & BODY WORKS (2026-09-20). Fragrance and body care is core to
      the audience this shop is being launched for, and it is the eighth
@@ -166,6 +192,19 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+
+  /* KOHL'S (2026-09-26) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. Mirrors the index.html row; the page is a
+     plain <script> and cannot import. */
+  kohls: {
+    key: "kohls",
+    label: "Kohl's",
+    color: "#C41230",
+    tagline: "Ropa y hogar para toda la familia",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor, the Macy's
      pattern: browse: true, search: false. Their 251 sports products
      (skate, surf, fitness, swim) live inside Deportes per Danny — these
@@ -181,6 +220,19 @@ export const RETAILERS = {
     label: "Dick's Sporting Goods",
     color: "#D22630",
     tagline: "Skate, surf y fitness",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+
+  /* B&H PHOTO (2026-09-26) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. Mirrors the index.html row; the page is a
+     plain <script> and cannot import. */
+  bhphoto: {
+    key: "bhphoto",
+    label: "B&H Photo",
+    color: "#A7392F",
+    tagline: "Cámaras, fotografía y electrónica",
     kind: "general",
     search: false,
     browse: true,
