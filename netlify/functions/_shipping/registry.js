@@ -5,7 +5,7 @@
    what part it plays, and how to build its adapter. The adapter itself
    knows how to ship; this file knows which adapter to reach for.
 
-   ADDING THE SECOND COURIER
+   ADDING A COURIER
      1. Write netlify/functions/_shipping/<name>-adapter.js exporting a
         factory that returns the five ShippingProvider operations.
      2. Add a row below with its factory and its role.
@@ -34,6 +34,8 @@
    ============================================================ */
 
 import { createAviAdapter, AVI_KEY } from "./avi-adapter.js";
+import { createVelozzyAdapter, VELOZZY_KEY } from "./velozzy-adapter.js";
+import { createLadyaAdapter, LADYA_KEY } from "./ladya-adapter.js";
 import { assertImplementsProvider } from "./provider.js";
 
 /**
@@ -46,6 +48,20 @@ import { assertImplementsProvider } from "./provider.js";
  * operator needs to see it.
  */
 export const PROVIDER_REGISTRY = {
+  /* THE PRIMARY SLOT IS WRITTEN. Velozzy Global Services (Amex Courier)
+     took it 2026-09-25: $7/kg peso real, no volumetric, no
+     perfume/aerosol surcharge, 6 flights/week Miami–Lima. Row is
+     registered but starts DISABLED — Danny enables it (and names it the
+     live primary in Envíos) when the signed agreement lands. See
+     DEFAULT_SHIPPING_SETTINGS below. */
+  [VELOZZY_KEY]: {
+    key: VELOZZY_KEY,
+    label: "Velozzy Global Services (Amex Courier)",
+    role: "primary",
+    mode: "manual",
+    factory: createVelozzyAdapter,
+    note: "$7/kg peso real (0.1 kg), sin volumétrico, sin recargo perfumes/aerosoles; 6 vuelos/sem Miami–Lima; tránsito 3–10 días; ventana de reclamos 15 días; validación frágiles $1/caja en Miami.",
+  },
   [AVI_KEY]: {
     key: AVI_KEY,
     label: "AVI Courier",
@@ -54,12 +70,14 @@ export const PROVIDER_REGISTRY = {
     factory: createAviAdapter,
     note: "Mom-and-pop, sin API: opera por manifiesto y confirmación manual de ops.",
   },
-  /* THE PRIMARY IS NOT WRITTEN YET. Danny is courting a second shipper;
-     the follow-up is due Mon 2026-09-21. When that lands it becomes a row
-     here with role: "primary" and its own adapter file, and Phase 1
-     routing starts choosing it with no other change. Leaving the slot
-     described rather than stubbed is deliberate: a stub row would show up
-     in the admin list as a courier that cannot ship. */
+  [LADYA_KEY]: {
+    key: LADYA_KEY,
+    label: "Lady A Courier",
+    role: "secondary",
+    mode: "manual",
+    factory: createLadyaAdapter,
+    note: "$8.90/kg primer mes; courier de calidad, rol secundario.",
+  },
 };
 
 /** Defaults for a site that has never opened the Envíos panel. */
@@ -67,6 +85,13 @@ export const DEFAULT_SHIPPING_SETTINGS = {
   enabled: { [AVI_KEY]: true },
   primary: AVI_KEY,
 };
+/* [NEEDS DECISION] (Danny's call, not ours): DEFAULT_SHIPPING_SETTINGS
+   is intentionally untouched — Velozzy holds the primary ROLE in the
+   registry, but the live routing default still points at AVI, and
+   Velozzy/Lady A ship disabled until someone flips them on in Envíos.
+   Changing the live primary happens in the admin panel (or by revising
+   this default), never silently in a code push. The day the signed
+   Velozzy agreement lands, Danny decides when it goes live. */
 
 /** Thrown when there is no courier to route to. Carries its own message. */
 export class NoProviderError extends Error {

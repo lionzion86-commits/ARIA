@@ -158,7 +158,7 @@ export function createAviAdapter({ readShipmentByTracking } = {}) {
       const trackingNumber = String(providerShipmentId || "").replace(/^avi-manual-/, "");
       const shipment = await read(trackingNumber);
       if (!shipment) return false;
-      return shipment.status === "created";
+      return ["purchased_usa", "retailer_shipped", "miami_received", "created"].includes(shipment.status);
     },
   };
 }
