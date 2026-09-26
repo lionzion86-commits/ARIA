@@ -5940,6 +5940,43 @@ check("the brand strip exists on both breakpoints and tiles into brand pages", (
   if (!/initStoreRails\(\); initBrandStrip\(\)/.test(html)) throw new Error("the brand strip is not painted on boot");
 });
 
+check("every brand-strip logo resolves to a real, loadable asset", () => {
+  /* 2026-09-26: Danny's blank-logo report. A tile is only as good as its
+     asset: every BRAND_LOGOS entry must point at a file that exists on
+     disk and parses as its claimed image type, so a bad path can never
+     render a blank tile again. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const mapSrc = html.slice(html.indexOf("const BRAND_LOGOS = {"), html.indexOf("function brandStripTileHTML"));
+  const entries = [...mapSrc.matchAll(/^\s*([a-z0-9]+):\s*\{\s*src:\s*'([^']+)'/gm)];
+  if (entries.length < 25) throw new Error(`BRAND_LOGOS shrank to ${entries.length} entries`);
+  for (const [, key, src] of entries) {
+    const p = root(src);
+    if (!existsSync(p)) throw new Error(`brand logo missing on disk: ${key} -> ${src}`);
+    const buf = readFileSync(p);
+    if (src.endsWith(".svg")) {
+      const txt = buf.toString("utf8");
+      if (!/<svg[\s>]/.test(txt)) throw new Error(`brand logo is not an SVG: ${key} -> ${src}`);
+      if (/<script/i.test(txt)) throw new Error(`brand logo contains script: ${key} -> ${src}`);
+    } else if (src.endsWith(".png")) {
+      const magic = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      if (!buf.subarray(0, 8).equals(magic)) throw new Error(`brand logo is not a PNG: ${key} -> ${src}`);
+    } else {
+      throw new Error(`brand logo has an unexpected extension: ${key} -> ${src}`);
+    }
+  }
+  // The second-wave brands the strip was rendering as text-only tiles.
+  for (const key of ["hugo", "vetements", "jordan", "calvinklein", "tomford"]) {
+    if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
+  }
+  // Third wave, 2026-09-26: every remaining text-only tile except the two
+  // Macy's private labels (bariii, styleco), which have no published mark.
+  for (const key of ["ourlegacy", "y3", "sacai", "entirestudios", "adriannapapell",
+      "xscape", "kikokostadinov", "paulsmith", "studionicholson", "we11done",
+      "kasper", "rickowensdrkshdw", "luudan", "incinternationalconcepts"]) {
+    if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
+  }
+});
+
 check("the six fashion rails are compact; Costco's section is full-size", () => {
   /* 2026-09-26, DANNY: the six rails read as a store picker, not six
      full features -- slightly smaller cards. Costco's own section keeps
