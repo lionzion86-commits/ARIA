@@ -9530,7 +9530,6 @@ async function openCatalog(kind, key, opts = {}){
     for (const r of retailerOrder) if (byRetailer.has(r)) orderedRetailers.set(r, byRetailer.get(r));
     for (const [r, items] of byRetailer) if (!orderedRetailers.has(r)) orderedRetailers.set(r, items);
   }
-  }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
   // A new category is a new question: the budget does not follow you into
