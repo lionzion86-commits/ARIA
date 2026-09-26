@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -888,6 +888,10 @@ check("index.html's registry mirror matches the module", () => {
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
   "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
+  /* LANE BRYANT (2026-09-25): registered at last -- the audit found its
+     169 products were invisible for want of this row. Apparel cluster,
+     after PacSun. */
+  "lanebryant",
   "sunglasshut", "dyson",
   "macys", "oldnavy", "target", "walmart",
 ];
@@ -1661,9 +1665,10 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      1200x631 banner and a square file share a tile without either being
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
-  /* Two when the homepage chip row existed (card + chip); one since the
-     store rails superseded it on 2026-09-25. */
-  if (imgs.length !== 1) throw new Error(`expected 1 store-mark <img> tag, found ${imgs.length}`);
+  /* Two since the Curvy store cards joined the Tiendas card on 2026-09-25:
+     the Tiendas card template and the Curvy card template. Every one must
+     carry the zone discipline, which the loop below pins per template. */
+  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -8736,6 +8741,70 @@ check("the feed sort actually reads the band on Curvy, and only on Curvy", () =>
    The page mirrors scripts/lib/carousel.js; both copies are pinned
    below, plus the wiring that puts a rail on each surface.
    ================================================================== */
+/* ==================================================================
+   CURVY STORE CARDS (2026-09-25, Danny).
+
+   The department opens with one wide card per store that carries
+   extended sizes -- Lane Bryant first (the plus-size destination), then
+   Old Navy, then Victoria's Secret, then the rest by product count. The
+   set is DERIVED from the feed's own byRetailer map, never hardcoded: a
+   future catalog pull adds its card the moment its products pass
+   hasExtendedSizes, with no code change.
+   ================================================================== */
+group("curvy store cards: one wide card per extended-size store");
+
+const curvyCards = loadPageCurvyStoreCardsSlice();
+
+check("lane bryant leads, then old navy, then victoria's secret, whatever the counts", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["oldnavy", new Array(500)],
+    ["victoriassecret", new Array(900)],
+    ["lanebryant", new Array(3)],
+    ["dicks", new Array(40)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "lanebryant,oldnavy,victoriassecret,dicks", "lead order broken");
+});
+
+check("non-lead stores sort by count, ties alphabetical", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["target", new Array(10)],
+    ["walmart", new Array(30)],
+    ["macys", new Array(30)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "macys,walmart,target", "count sort broken");
+});
+
+check("empty stores and empty feeds produce no cards", () => {
+  const { curvyStoreCards } = curvyCards;
+  eq(curvyStoreCards(new Map()).length, 0, "empty feed produced cards");
+  const keys = curvyStoreCards(new Map([["lanebryant", []], ["oldnavy", new Array(2)]])).map(s => s.key).join(",");
+  eq(keys, "oldnavy", "a store with zero items got a card");
+});
+
+check("lane bryant is registered and browsable in both mirrors", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const row = /lanebryant:\s*\{[^}]*\}/.exec(src);
+  if (!row) throw new Error("lanebryant is not in index.html's RETAILERS");
+  if (!/browse:\s*true/.test(row[0])) throw new Error("lanebryant is not browsable");
+  if (!/search:\s*false/.test(row[0])) throw new Error("lanebryant must not join the live search fan-out (no actor)");
+  const mirror = retailers.RETAILERS.lanebryant;
+  if (!mirror) throw new Error("lanebryant is missing from scripts/lib/retailers.js");
+  eq(mirror.label, "Lane Bryant", "mirror label drifted");
+  eq(mirror.browse, true, "mirror browse flag drifted");
+});
+
+check("the cards render only on the curvy department feed", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/\$\{isCurvy \? curvyStoreCardsHTML\(\) : ''\}/.test(src)) {
+    throw new Error("curvyStoreCardsHTML is not gated on the curvy feed");
+  }
+  if (!/function curvyStoreCardsHTML\(\)/.test(src)) throw new Error("curvyStoreCardsHTML is gone");
+});
+
 group("store carousels: window-shopping rails");
 
 {

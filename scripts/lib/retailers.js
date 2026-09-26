@@ -228,6 +228,18 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* LANE BRYANT (2026-09-25) — catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. Mirrors the index.html row; the page is a
+     plain <script> and cannot import. */
+  lanebryant: {
+    key: "lanebryant",
+    label: "Lane Bryant",
+    color: "#C41230",
+    tagline: "Moda femenina en tallas grandes",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
      Both are real rows: they appear on Tiendas, they carry their own
