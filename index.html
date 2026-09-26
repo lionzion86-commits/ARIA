@@ -648,7 +648,7 @@
                            object-fit:cover; object-position:50% 42% }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
   .ariaRail::-webkit-scrollbar{ display:none }
-  .ariaRail > *{ scroll-snap-align:start }
+  .ariaRail > *{ scroll-snap-align:start }
   /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
      unreadable as brands). Official logo SVGs live in logos/brands/,
      keyed by brandKeyOf(label). A brand with no sourced logo keeps the
@@ -1194,6 +1194,19 @@
       </div>
       <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+    <!-- STORE RAIL: GYMSHARK (2026-09-26, Danny). The gym brand sits between Victoria's Secret and Sephora — most-known
+         gym brand in Peru right now. Sale + featured picks from the Gym Rat catalog's Gymshark
+         shelf; the header opens the full Gymshark store. No logo file: the wordmark pill on the
+         brand colour is the designed treatment, same as Dick's. -->
+    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+        <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
     <!-- STORE RAIL: SEPHORA. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
     <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -1281,7 +1294,7 @@
     </section>
     <!-- COSTCO: THE TREASURE-HUNT SHELF (2026-09-26, Danny's call). Costco
          is not a brand directory -- its own section below the brand strip,
-         curated electronics-first with no candy (see costcoCuratedItems).
+         curated cozy-home-first for Danny's women-shopper lens, no candy (see costcoCuratedItems).
          The header keeps the official logo + the big store name; the row
          is painted by initStoreRails like every other rail. -->
     <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
@@ -1481,6 +1494,19 @@
           <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: GYMSHARK (desktop, 2026-09-26, Danny). Same shelf as the phone, wider stance —
+         sits between Victoria's Secret and Sephora. -->
+    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+          <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- STORE RAIL: SEPHORA (desktop). Same shelf as the phone, wider stance. -->
@@ -2504,7 +2530,10 @@
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
     <div data-honest-banner></div>
-    <div class="rounded-2xl p-5 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, var(--navy) 0%, #14306B 100%)">
+    <!-- OFERTAS BANNER (2026-09-26): clearance-rack photo under a navy
+         gradient tint (darker left where the text sits) so the white
+         title stays legible. Danny iPhone QA: the flat navy bar looked empty. -->
+    <div class="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, rgba(8,17,36,0.95) 0%, rgba(8,17,36,0.80) 48%, rgba(8,17,36,0.40) 100%), url('assets/ofertas/clearance-banner.webp') center 35%/cover no-repeat, #0A1428">
       <div>
         <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2">🔥 Ofertas y liquidación</h1>
         <p id="salesCount" class="text-[12.5px] mt-1" style="color:#B9C6E8"></p>
@@ -2515,6 +2544,11 @@
            renderSalesFreshness(). -->
       <div id="salesFreshness" class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)"></div>
     </div>
+
+    <!-- OFERTAS BOARD (2026-09-26): navy-black backboard under the banner
+         so the white product cards pop; inner text is lightened for
+         contrast. Danny iPhone QA: the white content area looked unfinished. -->
+    <div class="rounded-2xl border border-white/10 p-5 sm:p-6" style="background:linear-gradient(165deg,#0A1428 0%,#0C1C40 55%,#0A1428 100%)">
 
     <!-- Ofertas had no search of its own: the only search input on the way
          here was the one on the store-picker page, which mobile used to
@@ -2531,7 +2565,7 @@
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
-      <p id="salesSearchHint" class="text-[11.5px] mt-2 max-w-[520px]" style="color:#8A93A8">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en EE. UU.</p>
+      <p id="salesSearchHint" class="text-[11.5px] mt-2 max-w-[520px]" style="color:#AEB9D4">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en EE. UU.</p>
     </div>
 
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
@@ -2543,12 +2577,12 @@
            as categoriesView — it stacks above the grid instead of hiding. -->
       <aside class="mb-2 lg:mb-0">
         <div class="flex items-center justify-between mb-4">
-          <div class="font-bold text-[14px]">Filtros</div>
+          <div class="font-bold text-[14px] text-white">Filtros</div>
         </div>
         <div class="space-y-6 text-[13px]">
           <div>
-            <div class="font-semibold mb-2.5">Tienda</div>
-            <div id="salesStoreFilters" class="space-y-2 text-zinc-600"></div>
+            <div class="font-semibold mb-2.5 text-white">Tienda</div>
+            <div id="salesStoreFilters" class="space-y-2" style="color:#C7D0E8"></div>
           </div>
         </div>
       </aside>
@@ -2567,6 +2601,7 @@
         <div id="salesGrid" class="grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3 xl:gap-6"></div>
       </div>
     </div>
+    </div><!-- /ofertas board -->
   </div>
 </div>
 
@@ -2941,6 +2976,22 @@
           <button onclick="openStore('victoriassecret')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
         <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- VITRINA: GYMSHARK (2026-09-26, Danny). Sits between Victoria's Secret and Sephora, same shelf as the
+         homepage rails -- the most-known gym brand in Peru. No logo file: the black wordmark pill is the designed
+         treatment, same as the homepage rail. Painted by initStoreRails. -->
+    <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none" style="background:#000000">Gymshark</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none whitespace-nowrap" style="color:#fff">Gymshark</span>
+        </span>
+          <button onclick="openStore('gymshark')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
     <section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
@@ -4886,6 +4937,75 @@ function withoutRestrictedDepartments(envelope){
   return { ...envelope, retailers: out };
 }
 
+/* ============================================================
+   WHAT WE DO NOT SELL, PERIOD (2026-09-26, Danny's call)
+
+   No TVs. No freight. "We do not sell fucking TVs" -- and nothing
+   that needs a freight truck rather than a parcel box: sofas,
+   sectionals, mattresses, cribs, big appliances, treadmills, patio
+   sets, generators, safes, dining sets, TV consoles. If it cannot
+   fly Miami -> Lima in a normal parcel, it does not belong on Aria.
+
+   Enforced at the same load boundary as RESTRICTED_DEPARTMENTS, for
+   the same reason: search, Ofertas, the rails, the aisles, the store
+   pages and the category tiles all read the one merged object, so an
+   item dropped here is gone from every surface at once -- and stays
+   gone when a catalogue is re-pulled, because the filter runs on
+   every load, not on the data files.
+
+   Name-based, because the committed catalogues carry no usable
+   weight/type fields (weightKg is null across the board). Two
+   deliberate carve-outs so the rule does not eat the small stuff:
+   TV-adjacent parcel accessories (Apple TV box, HDMI cables, wall
+   mounts, streaming sticks, projectors -- a projector runs Google TV
+   but it is a small electronic, not a television) and small goods
+   whose names merely mention furniture (hair dryers, pillow covers
+   "for sofas", freezer trays, a perfume called Wardrobe).
+   ============================================================ */
+const UNSHIPPABLE_TV_RX = /\btvs?\b|television|televisor|smart[-\s]?tv|\bqled\b|\boled\b/i;
+const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|wall\smount|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv/i;
+const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|\bshed\b|cobertizo|playset|gazebo|patio\sset|\bconsole\b|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|tv\sstand|tv\sconsole|entertainment\scenter/i;
+const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|infinitipro|bed head|revlon|hot tools|pressure|hidrolavadora|\btray\b|perfume|fragancia|cologne|\bfor\b.{0,30}\b(sofas?|couch(es)?|mattress(es)?|beds?|dressers?)\b|\btoy\b|\bdoll\b|lego|nintendo|playstation|xbox/i;
+/* Anything over this is freight, not a parcel -- a backstop for the day
+   the catalogues start carrying real weights (weightKg is null today). */
+const UNSHIPPABLE_WEIGHT_KG = 30;
+/* BULKY PROJECTOR PACKAGES (2026-09-26, Danny's QA: no price ceiling).
+   Costco's projector bundles carry no weight or dimension data -- only
+   titles -- so the freight signal has to come from the package the title
+   describes: a bundled 80"+ screen, a UST (ultra-short-throw) chassis, or
+   a soundbar/Dolby bundle. Each is parcel-impossible at these sizes. A
+   genuinely small portable/mini projector with no such package signal
+   stays shippable; the screen clause requires a bundle word so a title
+   like "Mini Projector, projects up to 100 inch" is not punished for
+   naming a screen size it merely supports. */
+const PROJECTOR_RX = /(projector|proyector)/i;
+const BULKY_PROJECTOR_PACKAGE_RX = /\bUST\b|(bundl|inclu|kit|combo|pack).{0,60}\b(80|100|110|120|130|150)\s?["\u201c\u201d]|bundl.{0,40}(soundbar|dolby|atmos|speaker|bocina|parlante)/i;
+function isShippableItem(p){
+  if (!p) return false;
+  const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
+  if (UNSHIPPABLE_TV_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
+  if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
+  if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
+  const w = Number(p.weightKg);
+  if (Number.isFinite(w) && w > UNSHIPPABLE_WEIGHT_KG) return false;
+  return true;
+}
+function withoutUnshippableItems(envelope){
+  const retailers = envelope?.retailers;
+  if (!retailers || typeof retailers !== 'object') return envelope;
+  const out = {};
+  for (const [key, bucket] of Object.entries(retailers)){
+    const departments = {};
+    for (const [dept, entry] of Object.entries(bucket?.departments || {})){
+      if (Array.isArray(entry)){ departments[dept] = entry.filter(isShippableItem); continue; }
+      if (!entry || !Array.isArray(entry.items)){ departments[dept] = entry; continue; }
+      departments[dept] = { ...entry, items: entry.items.filter(isShippableItem) };
+    }
+    out[key] = { ...bucket, departments };
+  }
+  return { ...envelope, retailers: out };
+}
+
 function loadDepartmentCache(){
   if (!departmentCachePromise){
     let loaded = 0;
@@ -4908,7 +5028,7 @@ function loadDepartmentCache(){
        Danny — no separate section. Both files bucket everything under
        sporting_goods so the department picks it up with no other change;
        the aisle split below is what keeps skate, surf and fitness apart. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json'];
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json'];
     const files = CATALOGUE_FILES.map(url => fetch(url)
       .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
       .then(normalizeCatalogueEnvelope)
@@ -4917,6 +5037,7 @@ function loadDepartmentCache(){
 
     departmentCachePromise = Promise.all([scraped, ...files])
       .then(parts => parts.map(withoutRestrictedDepartments))
+      .then(parts => parts.map(withoutUnshippableItems))
       .then(parts => parts.map(aliasEnvelopeTitles))
       .then(parts => {
       // Not "some store is thin" -- NOTHING answered. That is a broken
@@ -4943,6 +5064,10 @@ const DEPARTMENT_META = {
      supporting line carries the words people actually search --
      see CURVY_BLURB. Never "Big & Tall". */
   curvy: { label: 'Curvy', icon: '👚' },
+  /* GYM RAT (2026-09-26, Danny): the gym-culture identity destination.
+     Danny's pick and it stays in English, alone — the way Curvy and
+     Aria Beauty are. Never "Activewear" or "Ropa Deportiva". */
+  gym_rat: { label: 'Gym Rat', icon: '💪' },
   men: { label: 'Moda Hombre', icon: '👔' },
   women: { label: 'Moda Mujer', icon: '👗' },
   kids: { label: 'Moda Niños', icon: '🧒' },
@@ -5174,6 +5299,7 @@ const CATEGORY_COVERS = {
   candy_chocolate: 'assets/category/candy_chocolate.jpg',
   clothing:        'assets/category/clothing.jpg',
   curvy:           'assets/category/curvy.jpg',
+  gym_rat:         'assets/category/gym_rat.jpg',
   electronics:     'assets/category/electronics.jpg',
   home_goods:      'assets/category/home_goods.jpg',
   home_decor:      'assets/category/home_decor.jpg',
@@ -5401,6 +5527,11 @@ function categoryCoverArtHTML(t){
    cross-checks both over the real cache. Change one, change the other.
    ============================================================ */
 
+/* DEPARTMENT_CHAIN:SLICE-START
+   The pure department-resolution chain: the specs, the bucket map, the
+   per-item classifiers and departmentItemsFor. Grabbed verbatim by
+   loadPageDepartmentSlice in scripts/test/_page-script.mjs -- keep this
+   region free of DOM, network and page calls. */
 // A department = one product category, optionally narrowed to a gender.
 const DEPARTMENT_SPEC = {
   electronics:     { category: 'electronics' },
@@ -5417,6 +5548,10 @@ const DEPARTMENT_SPEC = {
      category: the apparel is the same apparel, and what makes it this
      department is the size run the retailer publishes for it. */
   curvy:           { category: 'apparel', extendedSizesOnly: true },
+  /* GYM RAT (2026-09-26, Danny). The gym brands file everything under a
+     gym_rat bucket (category 'gymrat'): gym clothing + gym accessories.
+     Zero shoes — shoes live in Zapatos / Foot Locker only. */
+  gym_rat:         { category: 'gymrat' },
   /* BEAUTY (2026-09-20). No retailer supplies a beauty bucket yet —
      Sephora and Victoria's Secret are real stores whose scrapers are
      still being wired up (see scripts/lib/retailers.js). A department no
@@ -5458,6 +5593,17 @@ const BUCKET_SPEC = {
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: 'beauty' },
   fragrance:       { category: 'beauty' },
+gym_rat:         { category: 'gymrat' },
+  /* COSTCO BUCKETS (2026-09-26). costco-catalog.json files its departments
+     under these Spanish names and no other retailer uses them, so they map
+     here without touching anyone else. This puts the Costco store page on
+     the standard template: the buckets now resolve through DEPARTMENT_SPEC
+     like every other store. fiesta and dulces already live in Fiestas y
+     Eventos; bebe and juguetes have no department and stay reachable
+     through search. */
+  electronica:     { category: 'electronics' },
+  hogar:           { category: 'home' },
+  belleza:         { category: 'beauty' },
 };
 
 /* ============================================================
@@ -5716,6 +5862,10 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.footwearOnly) return isFootwear(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* GYM RAT (2026-09-26, Danny): zero shoes — shoes live in Zapatos /
+     Foot Locker only. Gym Rat is gym clothing + gym accessories (bags,
+     belts, etc.) from the gym brands' gymrat buckets. */
+  if (deptKey === 'gym_rat' && isFootwear(item, retailer)) return false;
   /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
      the retailers' sporting_goods buckets carry them, and the bucket is
      this department's only other signal. Gated on isFootwear so a
@@ -5829,6 +5979,7 @@ function departmentItemsFor(retailerData, kind, key, retailer){
   }
   return out;
 }
+/* DEPARTMENT_CHAIN:SLICE-END */
 
 /* DEPARTMENTS ONLY. A BRAND IS NEVER A TILE (2026-09-22).
 
@@ -6290,10 +6441,16 @@ const HOME_ROW_DEPARTMENTS = [
      destination for the core shopper, so it is the first thing the row
      offers rather than the tenth. */
   'beauty',
-  'curvy',
+  /* GYM RAT SECOND (2026-09-26, Danny): the gym-culture identity
+     destination goes right after Beauty, before Curvy. */
+  'gym_rat',
   'women',
   'men',
   'shoes',
+  /* CURVY LAST (2026-09-26, Danny): one of the smallest target
+     demographics — stays on the row and stays filled, but deprioritized
+     in placement. */
+  'curvy',
 ];
 
 /* ============================================================
@@ -7152,6 +7309,70 @@ function spreadDealsByStore(sorted, lead){
   return first.concat(held);
 }
 
+/* OFERTAS FRONT (2026-09-26, Danny): the lead sells the section.
+   Brands that pull go first — Victoria's Secret, Sephora, Macy's,
+   Gymshark, YoungLA — so Gym Rat sale items sit toward the front next
+   to Victoria's Secret. Discount decides within each brand.
+   - Near-identical products never stack in the lead (the three-Macy's-
+     coats lesson): one normalized title per lead.
+   - Heavy coats don't lead — Peru's summer is coming — but they stay in
+     the grid (the sierra still gets cold).
+   Explicit price sorts are the shopper's own question and are untouched;
+   this only shapes the default "Mayor descuento" order. */
+const OFERTAS_LEAD_BRANDS = ['victoriassecret', 'sephora', 'macys', 'gymshark', 'youngla'];
+const OFERTAS_LEAD_N = 12;
+const OFERTAS_COAT_RX = /puffer|parka|\bcoat\b|down jacket|abrigo|chamarra|plumas/i;
+function ofertasLeadRank(p){
+  const i = OFERTAS_LEAD_BRANDS.indexOf(String(p.retailer || '').toLowerCase());
+  return i === -1 ? OFERTAS_LEAD_BRANDS.length : i;
+}
+/* Normalized-title key for near-duplicate detection: lowercase, strip
+   gender/fit/collar words and punctuation so "Women's Hooded Stand
+   Collar Puffer Coat" and "Women's Collar Hooded Puffer Coat" collide. */
+function ofertasTitleKey(title){
+  return String(title || '').toLowerCase()
+    .replace(/women'?s|men'?s|kids?|unisex/g, ' ')
+    .replace(/hooded|stand|collar|sleeve|long|short|zip|oversized|regular|slim|fit|with|sin|con/g, ' ')
+    .replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+}
+function ofertasLeadSort(items){
+  const byDiscount = [...items].sort((a, b) => discountPct(b) - discountPct(a));
+  const lead = [], rest = [], seen = new Set();
+  for (const p of byDiscount){
+    if (lead.length >= OFERTAS_LEAD_N){ rest.push(p); continue; }
+    if (OFERTAS_COAT_RX.test(String(p.title || ''))){ rest.push(p); continue; }
+    const k = ofertasTitleKey(p.title);
+    if (k && seen.has(k)){ rest.push(p); continue; }
+    seen.add(k);
+    lead.push(p);
+  }
+  /* Lead order: lead brands first, discount deciding within each brand.
+     The rest keeps pure discount order — nothing is dropped. */
+  lead.sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
+  return lead.concat(rest);
+}
+
+/* GYM RAT LEAD SORT (2026-09-26, Danny): the front of Gym Rat is hero gym
+   apparel — leggings, shorts, joggers, tops, sports bras, hoodies, the
+   aspirational stuff. Socks, keychains, hats, bags and the rest of the
+   accessories are fine deeper in the grid, never the lead. Nothing is
+   removed, only reordered. */
+const GYMRAT_ACCESSORY_TYPE_RX = /accessor|key[\s-]?tag|\bsocks?\b|headwear|\bbags?\b|equipment|\bbottles?\b|\bmisc\.?\b/i;
+const GYMRAT_ACCESSORY_NAME_RX = /\b(socks?|keychains?|key\s*chain|hats?|beanies?|snapback|bucket\s*hat|dad\s*hat|bags?|backpack|duffel|tote|headbands?|bottles?|gloves?|belts?|bracelets?|wristbands?)\b/i;
+function gymRatIsAccessory(p){
+  if (!p || typeof p !== 'object') return false;
+  const t = String(p.type || '');
+  /* An explicit Apparel category is authoritative — it wins outright. */
+  if (/apparel/i.test(t)) return false;
+  if (GYMRAT_ACCESSORY_TYPE_RX.test(t)) return true;
+  /* Vague-type feeds (YoungLA's "For Him"/"For Her") carry no category, so
+     fall back to the product name — with a guard so "Cap Sleeve" tops
+     (apparel) are never mistaken for caps. */
+  const name = String(p.title || p.name || '').replace(/\bcap\s+sleeves?\b/i, '');
+  return GYMRAT_ACCESSORY_NAME_RX.test(name);
+}
+function gymRatLeadRank(p){ return gymRatIsAccessory(p) ? 1 : 0; }
+
 /* BIGGEST DISCOUNT FIRST, which is the whole brief: "80% off first".
    Sorted here rather than trusting the feed's own order, because the
    feed defaults to cheapest door-to-door and this rail is answering a
@@ -7160,7 +7381,7 @@ function renderMobileDealsRail(){
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
-    .sort((a, b) => discountPct(b) - discountPct(a));
+    .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
   const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
   /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
@@ -7216,10 +7437,13 @@ function renderMobileDealsRail(){
    the viewport, through one IntersectionObserver. No timers, no
    autoplay -- the rails never move on their own.
    ============================================================ */
-/* The seven window displays, in mall order: aspirational first, the way
+/* The window displays, in mall order: aspirational first, the way
    the RETAILERS registry itself is ordered. Costco (2026-09-25) is the
-   seventh rail: the warehouse club's bulk prices belong in the window row. */
-const STORE_RAIL_STORES = ['victoriassecret', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks', 'costco'];
+   warehouse club's bulk prices in the window row. GYMSHARK BETWEEN
+   VICTORIA'S SECRET AND SEPHORA (2026-09-26, Danny): the most-known gym
+   brand in Peru right now sits right under Victoria's Secret; its shelf
+   is the Gym Rat catalogue's Gymshark picks. */
+const STORE_RAIL_STORES = ['victoriassecret', 'gymshark', 'sephora', 'macys', 'footlocker', 'ssense', 'dicks', 'costco'];
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
 
@@ -7239,10 +7463,45 @@ function openStoreRailProduct(key, idx){
    (Keep it that way: no calls to page functions.) */
 const STORE_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
 const STORE_RAIL_TOTAL = 12; // shelf length; fewer without apology
+/* GYMSHARK RAIL OPENER (2026-09-26, Danny): the Gymshark shelf opens
+   on a model shot, never the sock rack. Gymshark shoots apparel on
+   models (verified on the real sale images), so the first apparel card
+   is the people shot; the cheap big-discount socks ride second. Nothing
+   is removed -- this only orders -- and if no apparel card is on the
+   shelf the order is left exactly as-is. Pure and self-contained like
+   the rest of this slice. */
+const GYMSHARK_SOCKS_RX = /\bsocks?\b/i;
+const GYMSHARK_OPENER_ACCESSORY_RX = /\b(socks?|keychains?|key\s*chain|hats?|beanies?|snapback|bucket\s*hat|dad\s*hat|bags?|backpack|duffel|tote|headbands?|bottles?|gloves?|belts?|bracelets?|wristbands?)\b/i;
+function gymsharkRailOpenerIdx(picks){
+  for (let i = 0; i < picks.length; i++){
+    const p = picks[i];
+    if (!p) continue;
+    /* An explicit apparel category is authoritative. */
+    if (/apparel/i.test(String(p.type || ''))) return i;
+    const name = String(p.title || p.name || '').replace(/\bcap\s+sleeves?\b/i, '');
+    if (!GYMSHARK_OPENER_ACCESSORY_RX.test(name)) return i;
+  }
+  return -1;
+}
+function gymsharkRailLead(picks){
+  if (!Array.isArray(picks) || picks.length < 2) return picks;
+  const openerIdx = gymsharkRailOpenerIdx(picks);
+  if (openerIdx > 0){
+    const opener = picks.splice(openerIdx, 1)[0];
+    picks.unshift(opener);
+  }
+  /* The cheap big-discount socks ride second -- never the opener. */
+  const s = picks.findIndex(p => p && GYMSHARK_SOCKS_RX.test(String(p.title || p.name || '')));
+  if (s > 1){
+    const sock = picks.splice(s, 1)[0];
+    picks.splice(1, 0, sock);
+  }
+  return picks;
+}
 function storeRailPicks(key, saleItems, pool, ofertasKeys){
   /* COSTCO NEVER GOES THROUGH THE SALE/FEATURED FILL: its shelf is the
-     treasure-hunt curation (electronics first, never candy) and the rail
-     takes the first twelve of it. */
+     women-shopper curation (cozy home first, boring tech accessories at
+     the back, never candy) and the rail takes the first twelve of it. */
   if (String(key || '').toLowerCase() === 'costco' && Array.isArray(pool))
     return costcoCuratedItems(pool).slice(0, STORE_RAIL_TOTAL);
   const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
@@ -7278,22 +7537,47 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
       picks.push(it);
     }
   }
+  /* GYMSHARK OPENS ON A MODEL SHOT (2026-09-26, Danny). */
+  if (String(key || '').toLowerCase() === 'gymshark') gymsharkRailLead(picks);
   return picks;
 }
-/* COSTCO'S TREASURE-HUNT SHELF (2026-09-26, Danny's call): Costco is not
+/* COSTCO'S WOMEN-SHOPPER SHELF (2026-09-26, Danny's call): Costco is not
    a brand directory -- its raw buckets do not map through the generic
    DEPARTMENT_SPEC taxonomy, so the storefront's generic fallback would
    render "Sin categorias por ahora - busca por marca", which makes no
-   sense for a warehouse club. Costco's shelf and storefront are curated
-   by hand-rank instead: electronics first, then the interesting finds
-   (gadgets, gemstone boxes, quirky discoveries), then clothes, then
-   home, then everything else. Candy never appears here -- it belongs in
-   Fiestas y Eventos -> Dulces y Chocolates, not leading Costco.
+   sense for a warehouse club. Costco's shelf is curated by hand-rank
+   instead, through Danny's women-shopper lens: the Costco shopper is
+   women. They are not looking for wall-mounted TVs or tech accessories
+   -- they want cozy home stuff. Blankets, throws, bedding and pillows
+   lead, then home decor, then kitchen, then beauty, then the interesting
+   finds (gadgets, quirky discoveries), then clothes, then small
+   electronics, then everything else. Boring tech accessories (TV mounts,
+   cables) and freight furniture sink to the back of the shelf -- both
+   stay shoppable, neither leads. Candy never appears here -- it belongs
+   in Fiestas y Eventos -> Dulces y Chocolates, not leading Costco.
    Pure and self-contained like the rest of this slice, so the test
    suite can run it in a vm without the page. */
 const COSTCO_CAROUSEL_MAX = 48;
 const COSTCO_TREASURE_RX = /(gadget|gemstone|gema|joyero|jewelry\s?box|projector|proyector|c[áa]mara|camera|drone|smart|port[áa]til|reloj|aud[íi]fono|headphone|tablet|monitor|speaker|bocina|keyboard|teclado|consola|console|lego|coleccionable|collectible|novedad|quirky|ins[óo]lito|curios)/i;
 const COSTCO_APPAREL_RX = /(camisa|pantal[óo]n|jeans?|vestido|blusa|chaqueta|sudadera|hoodie|shorts?|falda|traje|\bropa\b|t-?shirt|camiseta|abrigo|sweater|su[ée]ter|pijama|calcet[íi]n|leggings?|jogger|cardigan)/i;
+/* Home textiles: throws, blankets, bedding, pillows, rugs -- the core of
+   "things that make the house feel good". This is what leads the rail.
+   ("Sleeper" is excluded: a Blanket Sleeper is kids' pajamas, not a throw.) */
+const COSTCO_TEXTILE_RX = /(throw|blanket|manta|cobija|frazada|edred[oó]n|duvet|quilt|colcha|pillow|almohada|coj[íi]n|s[áa]banas?|bedding|\brug\b|tapete|alfombra)/i;
+/* Other soft goods: plush toys and friends -- cozy, but the textiles lead. */
+const COSTCO_COZY_RX = /(plush|peluche)/i;
+/* Home decor: candles, vases, florals, frames, mirrors -- the pretty stuff. */
+const COSTCO_DECOR_RX = /(decoraci[óo]n|\bdecor\b|vela|candle|jarr[oó]n|vase|floral|bouquet|arreglo|marco|frame|espejo|mirror|l[áa]mpara|guirnalda|wreath|ornament|adorno|centro de mesa|wall art)/i;
+/* Kitchen: cookware, coffee, small appliances. Empty in the catalogue
+   today -- the rule stands ready for the next pull. */
+const COSTCO_KITCHEN_RX = /(cocina|kitchen|ninja|kitchenaid|cuisinart|instant pot|vitamix|keurig|nespresso|espresso|cafeter|cookware|bater[íi]a de cocina|air fry|freidora|stand mixer|batidora|food processor|waflera|waffle|sart[eé]n|skillet|\bolla\b|kettle|hervidor|tostador|toaster|knife set|cuchillos|cutting board|tupper|contenedor)/i;
+/* Boring tech accessories: TV mounts, cables, adapters. They stay on the
+   shelf -- they just never lead it. \bmount\b needs its boundaries:
+   "Mountain Bouquet" is flowers, not hardware. */
+const COSTCO_BORING_TECH_RX = /(wall\smount|tv\smount|\bmount\b|mounting|soporte|cable\smanagement|\bhdmi\b|\bcables?\b|adaptador|\badapter\b)/i;
+/* Freight furniture that slips the load-boundary filter ("Patio Seating
+   Set" vs the filter's "patio set") must not lead the rail either. */
+const COSTCO_FURNITURE_RX = /(sof[áa]|sectional|seccional|couch|loveseat|reclin|sill[oó]n|chaise|patio|outdoor|accent chair|swivel chair|dining|comedor|dresser|c[óo]moda|wardrobe|armario|ropero|tv stand|tv console|entertainment center|console table|coffee table|mesa de centro|bookcase|librero|headboard|cabecera|bed frame|mattress|colch[óo]n)/i;
 function costcoBucketOf(p){
   const deps = Array.isArray(p && p.departments) ? p.departments
     : (p && p.department ? [p.department] : []);
@@ -7303,14 +7587,41 @@ function costcoBucketOf(p){
     if (low.some(d => d.indexOf(b) !== -1)) return b;
   return '';
 }
+/* DANNY'S NO-TV RULE (2026-09-26): the shelf's lead card used to be a
+   65-inch TV. TVs never reach the curation anymore (see
+   withoutUnshippableItems). Small electronics (projector, soundbar,
+   speaker, laptop, phone, tablet, camera, drone, console, headphones)
+   still rank -- but behind the cozy home / decor / kitchen / beauty
+   lead, because the Costco shopper is women and she is not here for
+   tech. Boring tech accessories sink below everything shoppable. */
+const COSTCO_HERO_RX = /(proyector|projector|soundbar|bocina|parlante|speaker|laptop|port[áa]til|tablet|ipad|tel[ée]fono|phone|smartphone|c[áa]mara|gopro|drone|dron|nintendo|playstation|xbox|game\sconsole|videojuego|aud[íi]fono|headphone|reloj|smartwatch|teclado|keyboard)/i;
 function costcoTreasureRank(p){
   const bucket = costcoBucketOf(p);
-  if (bucket === 'electronica') return 0;
   const hay = `${p.title || ''} ${p.brand || ''} ${p.name || ''}`;
+  /* The back of the shelf: boring tech accessories, then freight
+     furniture. Both stay shoppable -- neither leads. */
+  if (COSTCO_BORING_TECH_RX.test(hay)) return 6;
+  if (COSTCO_FURNITURE_RX.test(hay)) return 7;
+  /* Danny's women-shopper lens: home textiles lead the rail. */
+  if (COSTCO_TEXTILE_RX.test(hay) && !/sleeper/i.test(hay)) return -3;
+  if (COSTCO_COZY_RX.test(hay)) return -2;
+  if (COSTCO_DECOR_RX.test(hay)) return -2;
+  if (COSTCO_KITCHEN_RX.test(hay)) return -1;
+  if (bucket === 'belleza') return 0;
   if (COSTCO_TREASURE_RX.test(hay)) return 1;
   if (COSTCO_APPAREL_RX.test(hay)) return 2;
-  if (bucket === 'hogar') return 3;
-  return 4;
+  if (bucket === 'electronica' && COSTCO_HERO_RX.test(hay)) return 3;
+  if (bucket === 'electronica') return 4;
+  return 5;
+}
+/* Within the same rank, a real markdown beats full price -- deal energy
+   at the front. No-op while the catalogues carry no sale fields. */
+function costcoSalePct(p){
+  const price = Number(p.price);
+  const was = Number(p.originalPrice);
+  if (p.onSale && Number.isFinite(was) && was > price && price > 0)
+    return Math.round((1 - price / was) * 100);
+  return 0;
 }
 function costcoCuratedItems(items){
   const seen = new Set();
@@ -7327,7 +7638,7 @@ function costcoCuratedItems(items){
     seen.add(key);
     clean.push(p);
   }
-  return clean.sort((a, b) => costcoTreasureRank(a) - costcoTreasureRank(b)).slice(0, COSTCO_CAROUSEL_MAX);
+  return clean.sort((a, b) => (costcoTreasureRank(a) - costcoTreasureRank(b)) || (costcoSalePct(b) - costcoSalePct(a))).slice(0, COSTCO_CAROUSEL_MAX);
 }
 /* STORE_RAIL_PICKS:SLICE-END */
 
@@ -7542,6 +7853,13 @@ async function initBrandStrip(){
    is the display name for the one unregistered retailer the site
    surfaces. */
 const FIESTAS_RETAILER_LABEL = { partycity: 'Party City' };
+/* GYM RAT BRAND ORDER (2026-09-26, Danny): most-known brands first —
+   YoungLA leads, Gymshark follows with heavy presence, Alphalete third.
+   The pill row and the product grid both read byRetailer in insertion
+   order, so one reorder drives both. */
+const DEPARTMENT_RETAILER_ORDER = {
+  gym_rat: ['youngla', 'gymshark', 'alphalete'],
+};
 /* Inside Costco's mixed 'fiesta' bucket, the Menaje rail keeps only the
    tableware. Matched on the English title, the way the search does. */
 const FIESTAS_TABLEWARE_RX = /plate|cutlery|cup|napkin|bowl|utensil|tray|tablecover|straw|fork|spoon|knife/i;
@@ -7968,6 +8286,10 @@ const LISTING_PAGE_SIZE = 24;
    throw that kills the whole page script on load — the same way
    GENERAL_RETAILERS once did (see its comment). Keep declaration order. */
 let catalogState = { kind: 'department', key: null, retailerFilter: null, subKey: null, budget: null, byRetailer: new Map(), searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+/* GYM RAT LEAD (2026-09-26, Danny): the section opens on hero apparel
+   unless the shopper explicitly touched the sort dropdown. Reset on every
+   navigation into a catalogue view; set by onCatalogSortChange. */
+let catalogSortTouched = false;
 
 function catalogGoBack(){
   // In-page "Volver" and the browser's back arrow have to agree.
@@ -7985,6 +8307,7 @@ function catalogGoBack(){
 }
 
 async function openCatalog(kind, key, opts = {}){
+  catalogSortTouched = false; // a fresh section opens on the default sort
   const retailerFilter = opts.retailerFilter || null;
   // The aisle is part of the address: it gets its own URL, so one back
   // press returns to the aisle list rather than out of the category.
@@ -8043,11 +8366,22 @@ async function openCatalog(kind, key, opts = {}){
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
   }
+  /* Per-department retailer display order (DEPARTMENT_RETAILER_ORDER):
+     the pill row and the product grid both read this map in insertion
+     order, so reordering here drives both. Retailers not named in the
+     order keep their relative order after the named ones. */
+  let orderedRetailers = byRetailer;
+  const retailerOrder = kind === 'department' ? DEPARTMENT_RETAILER_ORDER[key] : null;
+  if (retailerOrder){
+    orderedRetailers = new Map();
+    for (const r of retailerOrder) if (byRetailer.has(r)) orderedRetailers.set(r, byRetailer.get(r));
+    for (const [r, items] of byRetailer) if (!orderedRetailers.has(r)) orderedRetailers.set(r, items);
+  }
   // A new category (or a new store filter) is a new question — carrying
   // the last search term into it would silently hide most of the feed.
   // A new category is a new question: the budget does not follow you into
   // it, for the same reason the search term does not.
-  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE };
   renderCatalogFeed();
 }
 
@@ -8614,6 +8948,9 @@ function peruSportRank(item){
   return 6;
 }
 
+/* An explicit sort choice bypasses department lead-sorts (Gym Rat);
+   the shopper asked for a price order and gets exactly that. */
+function onCatalogSortChange(){ catalogSortTouched = true; renderCatalogFeed(); }
 function renderCatalogFeed(){
   const { retailerFilter, byRetailer } = catalogState;
   const sections = document.getElementById('catalogSections');
@@ -8705,11 +9042,16 @@ function renderCatalogFeed(){
   const priceSort = byDoorToDoor(sortBy);
   const isCurvy = catalogState.kind === 'department' && catalogState.key === 'curvy';
   const isSports = catalogState.kind === 'department' && catalogState.key === 'sporting_goods';
+  const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
+  /* GYM RAT LEAD (2026-09-26, Danny): hero gym apparel opens the section —
+     accessories never lead. An explicit user sort bypasses the lead. */
   items.sort(isCurvy
     ? (a, b) => ((a.curvyBand ?? 1) - (b.curvyBand ?? 1)) || priceSort(a, b)
     : isSports
       ? (a, b) => (peruSportRank(a) - peruSportRank(b)) || priceSort(a, b)
-      : priceSort);
+      : (isGymRat && !catalogSortTouched)
+        ? (a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || priceSort(a, b)
+        : priceSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
@@ -8749,7 +9091,7 @@ function renderCatalogFeed(){
     ${isCurvy ? curvyStoreCardsHTML() : ''}
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
-      <select id="catalogSort" onchange="renderCatalogFeed()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
+      <select id="catalogSort" onchange="onCatalogSortChange()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
         <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
         <option value="priceDesc">Total a tu puerta: mayor a menor</option>
       </select>
@@ -9282,27 +9624,6 @@ async function openStore(retailer){
      setting. Two is where a list starts to be worth reading. */
   const brandList = brandRows(retailerBrandBuckets(retailerData));
   const brandPanel = brandList.length > 1 ? storeBrandPanelHTML(brandList) : '';
-  /* COSTCO'S STOREFRONT IS A TREASURE HUNT, NOT A BRAND DIRECTORY
-     (2026-09-26, Danny's call): its raw buckets never map through
-     DEPARTMENT_SPEC, so deptEntries is empty and the generic fallback
-     would print "Sin categorias por ahora - busca por marca" -- a brand
-     directory over a warehouse club, which makes no sense. Costco gets
-     a product-first storefront instead: one big curated carousel
-     (electronics first, then the interesting finds, never candy), no
-     category tiles, no brand panel, no "busca por marca". */
-  if (retailer === 'costco'){
-    const curated = costcoCuratedItems(await relatedPool());
-    document.getElementById('storeViewSubtitle').textContent = curated.length
-      ? `${curated.length} hallazgos de Costco`
-      : 'No hay artículos disponibles por ahora.';
-    if (curated.length){
-      document.getElementById('storeViewSections').innerHTML += storeCarouselHTML({
-        id: 'storeRail', title: 'Lo mejor de Costco',
-        items: curated, retailer, max: COSTCO_CAROUSEL_MAX,
-      });
-    }
-    return;
-  }
 
   if (!deptEntries.length){
     document.getElementById('storeViewSubtitle').textContent = brandPanel
@@ -12328,6 +12649,13 @@ const RETAILERS = {
      names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
   oldnavy:         { key: 'oldnavy',         label: 'Old Navy',          color: '#001E62', logo: 'logos/oldnavy.svg',    tagline: 'Ropa casual para toda la familia',             kind: 'general', search: true },
+  /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's pattern:
+     browse: true, search: false. The Gym Rat catalogues (gymrat-catalog.json) are
+     committed files; they power the Gym Rat department, its brand pills, the
+     Gymshark home rail, and Ofertas via fileBackedDeals. Apparel cluster, after Old Navy. Mirrors scripts/lib/retailers.js. */
+  youngla:         { key: 'youngla',         label: 'YoungLA',          color: '#000000', tagline: 'Ropa de gym — oversize y streetwear',                 kind: 'general', search: false, browse: true },
+  gymshark:        { key: 'gymshark',        label: 'Gymshark',         color: '#000000', tagline: 'Ropa de gym — leggings, tops y conjuntos',            kind: 'general', search: false, browse: true },
+  alphalete:       { key: 'alphalete',       label: 'Alphalete',        color: '#000000', tagline: 'Ropa de gym premium',                                kind: 'general', search: false, browse: true },
   target:          { key: 'target',          label: 'Target',            color: '#CC0000', logo: 'logos/target.svg',     tagline: 'Ropa, hogar y belleza',                        kind: 'general', search: true },
   walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
@@ -15467,6 +15795,49 @@ function autoSourceBadgeHTML(key, heightPx = 22){
    per-source facts are the registry row and the actor config in
    apify-scrape-start.js. That is what makes adding RockAuto data entry
    rather than code. */
+/* ROCKAUTO DIRECT LIVE SEARCH (2026-09-26) — the zero-Apify fallback.
+   Danny: "Yes, scrape it directly for free for sure." POSTs { year, make,
+   model, query } to the server function, which runs the 4-request
+   RockAuto chain (catalog -> node -> category -> part type -> listings),
+   parses brand / part number / price / image, and caches by
+   {year}|{make}|{model}|{spanish-query} for 7 days. A cache hit costs
+   zero RockAuto requests.
+
+   ANY failure — catalog miss, timeout, fetch failure, rate limit —
+   throws with sourceNotConnected, so the block renders the honest
+   "Estamos ampliando nuestro catálogo de repuestos" pending state.
+   RockAuto diagnostics never reach the shopper. */
+async function rockautoLiveSearch(vehicle, query){
+  const res = await fetchWithStartTimeout('/.netlify/functions/rockauto-live-search', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      year: vehicle.year, make: vehicle.make, model: vehicle.model,
+      query: String(query || ''),
+    }),
+  }, 30000);
+  if (!res || !res.ok) throw new Error('rockauto-live: bad response');
+  return res.json();
+}
+
+async function searchRockautoLive(vehicle, query, maxItems){
+  let data;
+  try {
+    data = await rockautoLiveSearch(vehicle, query);
+  } catch (err){
+    const fail = new Error(`rockauto-live fetch failed: ${err && err.message ? err.message : err}`);
+    fail.sourceNotConnected = true;
+    throw fail;
+  }
+  if (!data || data.ok === false || !Array.isArray(data.items) || !data.items.length){
+    const miss = new Error(`rockauto-live miss: ${data && data.miss ? data.miss : 'empty'}`);
+    miss.sourceNotConnected = true;
+    throw miss;
+  }
+  const n = Number(maxItems) > 0 ? Number(maxItems) : data.items.length;
+  return data.items.slice(0, n).map((it) => normalizeAutoPartItem('rockauto', it));
+}
+
 async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   const cache = await loadAutoCache();
   const cached = cache?.partSearches?.[autoPartCacheKey(vehicle, query)]?.[sourceKey];
@@ -15478,6 +15849,11 @@ async function searchAutoSource(sourceKey, vehicle, query, maxItems){
   if (indexed.length) return indexed;
   // Translated before it leaves: every parts catalogue is in English.
   const combined = `${vehicle.year} ${vehicle.make} ${vehicle.model} ${translatePartQuery(query)}`.trim();
+  /* ROCKAUTO DIRECT (2026-09-26): the Apify actor path is replaced by the
+     free server-side chain. Triggered only on an Aria Auto cache miss,
+     after the vehicle and the Spanish query are known — same contract as
+     every other source's live path. */
+  if (sourceKey === 'rockauto') return searchRockautoLive(vehicle, query, maxItems);
   const rawItems = await scrapeRetailer(sourceKey, combined, maxItems);
   return rawItems.map(it => normalizeAutoPartItem(sourceKey, it));
 }
@@ -18587,7 +18963,7 @@ function renderSalesGrid(){
   // Price sorts rank by what the shopper actually pays at the door, not
   // by the product price — see doorToDoorUsd(). Discount stays a
   // discount: it is a claim about the markdown, not about the total.
-  if (sortBy === 'discount') items.sort((a, b) => discountPct(b) - discountPct(a));
+  if (sortBy === 'discount') items = ofertasLeadSort(items);
   else items.sort(byDoorToDoor(sortBy));
 
   salesRendered = items;

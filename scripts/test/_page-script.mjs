@@ -284,7 +284,7 @@ export function loadPageEnvelopeSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     extractNamedFunction(html, "aliasEnvelopeTitles") + "\n" +
-    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope };",
+    html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope, isShippableItem, withoutUnshippableItems };",
     sandbox,
     { filename: "index.html#envelope" },
   );
@@ -412,7 +412,18 @@ export function loadPageDealSpreadSlice() {
   }
   const sandbox = { console };
   vm.createContext(sandbox);
-  vm.runInContext(html.slice(from, to) + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD };",
+  /* OFERTAS LEAD (2026-09-26, Danny): the lead-brand sort ships in the
+     same slice as the spread, so its behaviour is tested, not just its
+     source text. */
+  /* ofertasLeadSort leans on the page's own discountPct -- the slice
+     carries that one-liner along so the sort runs for real. */
+  const dpctStart = html.indexOf("function discountPct(p){");
+  const dpctEnd = html.indexOf("\n", dpctStart);
+  if (dpctStart < 0 || dpctEnd < 0) {
+    throw new Error("index.html discountPct moved — update scripts/test/_page-script.mjs");
+  }
+  vm.runInContext(html.slice(from, to) + "\n" + html.slice(dpctStart, dpctEnd)
+    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory };",
     sandbox, { filename: "index.html#deal-spread" });
   return sandbox.__exports;
 }
@@ -575,6 +586,42 @@ export function loadPageCurvyBandSlice() {
   return sandbox.__exports;
 }
 
+
+/* The department read chain, on its own. departmentItemsFor() is what
+   turns a retailer's raw buckets into the category sections a store page
+   shows -- so Costco's standard-template storefront is settled by
+   execution over the real catalogue, not by reading BUCKET_SPEC.
+   Marker-sliced verbatim (DEPARTMENT_CHAIN:SLICE-START/END in index.html),
+   the way the fiestas slice works: brace-counting extraction chokes on
+   apostrophes inside the region's own comments (2026-09-26). The four
+   far-away consts the chain reads are single-line declarations, lifted by
+   line match so the slice needs no second region. Pure -- the region is
+   kept free of DOM, network and page calls by the marker comment. */
+export function loadPageDepartmentSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("DEPARTMENT_CHAIN:SLICE-START");
+  const from = html.lastIndexOf("/*", marker);
+  const endMarker = html.indexOf("DEPARTMENT_CHAIN:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html department-chain markers moved -- update scripts/test/_page-script.mjs");
+  }
+  const line = (name) => {
+    const m = html.match(new RegExp(`^const ${name} = [^\\n]+;`, "m"));
+    if (!m) throw new Error(`index.html lost const ${name} -- update scripts/test/_page-script.mjs`);
+    return m[0];
+  };
+  const prelude = ["MIN_DISCOUNT_PCT", "KID_MARKER", "WOMEN_MARKER", "MEN_MARKER"].map(line).join("\n");
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    prelude + "\n" + html.slice(from, to) +
+      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC };",
+    sandbox,
+    { filename: "index.html#department" },
+  );
+  return sandbox.__exports;
+}
 
 /* The carousel selection mirror: the pure pick/mix functions index.html
    carries line-for-line from scripts/lib/carousel.js. Pure — no DOM. */
