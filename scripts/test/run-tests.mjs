@@ -9808,9 +9808,13 @@ check("the page merge cannot sum quantities", () => {
    merge stops NEW doublings but can never repair a cart corrupted by
    the old summing merge — max(256, 256) is 256 forever. Danny's live
    cart proved it: two lines at qty 256 (2^8), $26,145 declared value.
-   repairDoubledQuantities heals the exact fingerprint (a power of two
-   >= 64, unreachable via the +1 stepper) back to 1 and leaves every
-   plausible quantity alone.
+   repairImplausibleQuantities heals the corruption fingerprint back to 1
+   and leaves every plausible quantity alone: a power of two >= 64 is
+   always corruption (unreachable via the +1 stepper), and any other
+   integer >= 64 heals only on a sized variant — 64+ of one size is never
+   a real order, while unsized bulk (100 napkins) stays plausible.
+   normalizeCartQty keeps every qty a positive integer at every entry
+   point, so the string-concat class ("50" -> "501") is impossible.
    ============================================================ */
 
 check("the doubling incident reproduces: 8 summing merges turn qty 1 into 256", () => {
@@ -9841,15 +9845,15 @@ check("max() alone never heals a corrupted cart", () => {
   const local = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256)];
   const server = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256)];
   const merged = pageCart.mergeCarts(local, server);
-  eq(merged[0].qty, 256, "max(256,256) stays 256 - the gap repairDoubledQuantities closes");
+  eq(merged[0].qty, 256, "max(256,256) stays 256 - the gap repairImplausibleQuantities closes");
 });
 
-check("repairDoubledQuantities heals the doubling fingerprint back to 1", () => {
+check("repairImplausibleQuantities heals the doubling fingerprint back to 1", () => {
   const list = [
     cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256),
     cartKey("Victoria's Secret", "Heritage Mesh Lace-Trim", "M", 128),
   ];
-  const { cart, repaired } = pageCart.repairDoubledQuantities(list);
+  const { cart, repaired } = pageCart.repairImplausibleQuantities(list);
   eq(repaired, 2, "both lines healed");
   eq(cart[0].qty, 1, "256 -> 1");
   eq(cart[1].qty, 1, "128 -> 1");
@@ -9857,7 +9861,17 @@ check("repairDoubledQuantities heals the doubling fingerprint back to 1", () => 
   eq(cart[0].selectedSize, "10", "size untouched");
 });
 
-check("repairDoubledQuantities leaves plausible quantities alone", () => {
+check("repairImplausibleQuantities heals the 502-panty fossil (sized, non-power-of-two)", () => {
+  // 2026-09-26 live report: one size-M panty at qty 502, $4,654 declared.
+  // Not a power of two, so the old fingerprint missed it and max() could
+  // never bring it down. 64+ of one size variant is never a real order.
+  const list = [cartKey("Victoria's Secret", "Heritage Mesh Lace-Trim", "M", 502)];
+  const { cart, repaired } = pageCart.repairImplausibleQuantities(list);
+  eq(repaired, 1, "fossil healed");
+  eq(cart[0].qty, 1, "502 -> 1");
+});
+
+check("repairImplausibleQuantities leaves plausible quantities alone", () => {
   const list = [
     cartKey("Nike", "Air Force 1", "10", 1),
     cartKey("Nike", "Dunk Low", "10", 2),
@@ -9867,17 +9881,41 @@ check("repairDoubledQuantities leaves plausible quantities alone", () => {
     cartKey("Party", "Vasos descartables", "", 32),
     cartKey("Party", "Platos hondos", "", 30),
     cartKey("Party", "Servilletas", "", 100),
+    cartKey("Party", "Vasos", "", 70),
   ];
-  const { cart, repaired } = pageCart.repairDoubledQuantities(list);
+  const { cart, repaired } = pageCart.repairImplausibleQuantities(list);
   eq(repaired, 0, "nothing repaired");
-  eq(cart.map((it) => it.qty).join(","), "1,2,3,8,16,32,30,100", "quantities untouched");
+  eq(cart.map((it) => it.qty).join(","), "1,2,3,8,16,32,30,100,70", "quantities untouched");
+});
+
+check("a sized non-power-of-two >= 64 heals, an unsized one does not", () => {
+  const sized = pageCart.repairImplausibleQuantities([cartKey("VS", "Panty", "M", 70)]);
+  eq(sized.cart[0].qty, 1, "sized 70 -> 1");
+  const unsized = pageCart.repairImplausibleQuantities([cartKey("Party", "Vasos", "", 70)]);
+  eq(unsized.repaired, 0, "unsized 70 untouched");
+});
+
+check("normalizeCartQty keeps every quantity a positive integer", () => {
+  eq(pageCart.normalizeCartQty("50"), 50, "numeric string");
+  eq(pageCart.normalizeCartQty(3), 3, "number passes through");
+  eq(pageCart.normalizeCartQty("abc"), 1, "garbage becomes 1");
+  eq(pageCart.normalizeCartQty(0), 1, "zero becomes 1");
+  eq(pageCart.normalizeCartQty(2.9), 2, "floors");
+});
+
+check("mergeCarts normalises string quantities instead of concatenating them", () => {
+  const local = [cartKey("VS", "Panty", "M", "50")];
+  const server = [cartKey("VS", "Panty", "M", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged[0].qty, 50, "max of normalised values");
+  eq(typeof merged[0].qty, "number", "qty is a real number");
 });
 
 check("initCart runs the quantity healing pass", () => {
   const src = readFileSync(root("index.html"), "utf8");
   const fn = src.slice(src.indexOf("async function initCart(){"), src.indexOf("let cartLoaded = false;"));
-  if (!/repairDoubledQuantities\(cart\)/.test(fn)) {
-    throw new Error("initCart does not run repairDoubledQuantities");
+  if (!/repairImplausibleQuantities\(cart\)/.test(fn)) {
+    throw new Error("initCart does not run repairImplausibleQuantities");
   }
 });
 
