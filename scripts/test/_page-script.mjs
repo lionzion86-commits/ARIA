@@ -43,7 +43,7 @@ export function loadPageWeightSlice() {
     console,
   };
   vm.createContext(sandbox);
-  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, catalogWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
   return sandbox.__exports;
 }
 
@@ -395,6 +395,27 @@ export function loadPageFootwearSlice() {
     html.slice(from, to) + "\n;globalThis.__exports = { isFootwear, isFootwearType, isFootwearTitle, FOOTWEAR_RETAILERS };",
     sandbox,
     { filename: "index.html#footwear" },
+  );
+  return sandbox.__exports;
+}
+
+/* The auto-part detector. Same shape as the footwear loader: the
+   DEPARTMENT_CHAIN slice in index.html carries a verbatim mirror of
+   scripts/lib/autoparts.js, and the parity test compares module against
+   mirror over the real catalogues. */
+export function loadPageAutoPartSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const AUTOPART_RETAILERS =");
+  const to = html.indexOf("function rawTitleOf(item){");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html auto-part slice markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { isAutoPart, isAutoPartType, AUTOPART_RETAILERS };",
+    sandbox,
+    { filename: "index.html#autoparts" },
   );
   return sandbox.__exports;
 }

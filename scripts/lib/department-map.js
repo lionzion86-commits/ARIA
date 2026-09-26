@@ -28,6 +28,8 @@
 // three gendered pages at once.
 
 import { isFootwear } from "./footwear.js";
+import { isAutoPart } from "./autoparts.js";
+import { hasExtendedSizes } from "./sizes.js";
 
 // A department = one product category, optionally narrowed to a gender.
 export const DEPARTMENT_SPEC = {
@@ -73,6 +75,12 @@ export const DEPARTMENT_SPEC = {
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
+  /* REPUESTOS (2026-09-26). Not a category either, the Zapatos way: an
+     auto part is a KIND OF ITEM, answered per item by isAutoPart in
+     scripts/lib/autoparts.js. Advance Auto Parts files everything under
+     one auto_parts bucket, and a part stays in its store page too —
+     departments overlap here exactly as Ofertas overlaps everything. */
+  auto_parts:      { anyCategory: true, autoPartsOnly: true },
   /* GYM RAT (2026-09-26, Danny): the gym-culture identity destination.
      The gym brands file everything under a gym_rat bucket (category
      'gymrat'): gym clothing + gym accessories. Zero shoes — shoes live
@@ -197,6 +205,7 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
   if (!dept) return false;
   if (dept.onSaleOnly) return isOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
+  if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
   /* GYM RAT (2026-09-26, Danny): zero shoes — shoes live in Zapatos /
@@ -208,6 +217,15 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
      department's only other signal. Gated on isFootwear so a
      "Ball Pump" — sports equipment, not a shoe — never trips on "pump". */
   if (deptKey === "sporting_goods" && isFootwear(item, retailer) && NON_ATHLETIC_FOOTWEAR.test(titleOf(item))) return false;
+  /* Curvy is a filter over apparel, the way Ofertas is a filter over
+     everything — not a category a retailer scrapes into. Kids never;
+     otherwise the retailer's own size list decides, via
+     scripts/lib/sizes.js. (This branch was missing here while the page
+     had it — the module admitted all apparel to Curvy.) */
+  if (dept.extendedSizesOnly) {
+    if (genderOfItem(item, bucketName) === "kids") return false;
+    return hasExtendedSizes(item);
+  }
   if (!dept.gender) return true;
   return genderOfItem(item, bucketName) === dept.gender;
 }
