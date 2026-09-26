@@ -6899,6 +6899,12 @@ const SEARCH_SYNONYM_GROUPS = [
     concept: "watch",
     words: ["watch", "watches", "reloj", "relojes"],
   },
+  /* REPORTED LIVE 2026-09-26: "aletas" is flippers — one concept so
+     "aletas", "fins" and "flippers" all return the same fin sets. */
+  {
+    concept: "fins",
+    words: ["fin", "fins", "flipper", "flippers", "aleta", "aletas"],
+  },
 ];
 
 const SEARCH_WORD_TO_GROUP = new Map();
@@ -10273,6 +10279,9 @@ const ES_EN_PHRASES = [
   ["ropa deportiva", "activewear"],
   ["ropa interior", "underwear"],
   ["traje de bano", "swimsuit"],
+  /* REPORTED LIVE 2026-09-26: Danny's dad searched "aletas de buceo"
+     and got zero results — the Dick's catalog already had the fin sets. */
+  ["aletas de buceo", "diving fins"],
   ["zapatillas de correr", "running shoes"],
   ["zapatos de vestir", "dress shoes"],
   ["casaca de cuero", "leather jacket"],
@@ -10411,6 +10420,9 @@ const ES_EN_WORDS = {
   bicicleta: "bicycle",
   patineta: "skateboard",
   mancuerna: "dumbbell",
+  /* REPORTED LIVE 2026-09-26: "aletas" is the everyday Peruvian word for
+     flippers; the plural falls back to this singular automatically. */
+  aleta: "fins",
   vitamina: "vitamins",
   suplemento: "supplement",
   libro: "book",

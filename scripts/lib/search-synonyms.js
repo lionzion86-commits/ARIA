@@ -94,6 +94,12 @@ export const SEARCH_SYNONYM_GROUPS = [
     concept: "watch",
     words: ["watch", "watches", "reloj", "relojes"],
   },
+  /* REPORTED LIVE 2026-09-26: "aletas" is flippers — one concept so
+     "aletas", "fins" and "flippers" all return the same fin sets. */
+  {
+    concept: "fins",
+    words: ["fin", "fins", "flipper", "flippers", "aleta", "aletas"],
+  },
 ];
 
 const WORD_TO_GROUP = new Map();

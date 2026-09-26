@@ -1585,6 +1585,9 @@ check("the words the brief named, and the ones a shopper actually types", () => 
     ["audifonos inalambricos", "wireless earbuds"],
     ["zapatillas negras para hombre", "sneakers black mens"],
     ["chompa para mujer", "sweater womens"],
+    // REPORTED LIVE 2026-09-26: Danny's dad searched both and got nothing.
+    ["aletas", "fins"],
+    ["aletas de buceo", "diving fins"],
   ];
   for (const [es, en] of cases) {
     eq(translate.translateSearchQuery(es), en, es);
@@ -7311,6 +7314,32 @@ group("search synonyms: one concept, many words");
       throw new Error('"zapatillas" did not find "Shoes"');
     if (cs.catalogTokenHits(cs.catalogWordsOf(onlyShoes), ["sneakers"]) !== 1)
       throw new Error('"sneakers" did not find "Shoes"');
+  });
+
+  check("\"aletas\" / \"fins\" / \"flippers\" return the same fin sets", () => {
+    /* REPORTED LIVE 2026-09-26: "aletas" is flippers. One concept, so the
+       Spanish word, the English word and the slang all run the identical
+       token list — the Dick's fin sets the dad's search missed. */
+    const pool = [
+      P("Speedo Adult Adventure Mask, Snorkel & Fin Set", "Speedo"),
+      P("Speedo Adult Mask, Snorkel, and Fin Set", "Speedo"),
+      P("Speedo Kids' Aqua Quest Mask, Snorkel & Fin Snorkeling Set", "Speedo"),
+      P("Cotton T-Shirt", "Hanes"), // control: not fins
+    ];
+    const seen = [];
+    for (const q of ["aletas", "aleta", "fins", "fin", "flipper", "flippers"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, {});
+      const titles = items.map((i) => i.title);
+      seen.push(JSON.stringify(titles));
+      if (!titles.some((t) => /fin set/i.test(t))) throw new Error(`"${q}" missed the fin sets`);
+      if (titles.includes("Cotton T-Shirt")) throw new Error(`"${q}" leaked a non-fin product`);
+    }
+    for (const sig of seen) eq(sig, seen[0], "identical result set and order");
+    // The full phrase the dad typed: "diving" narrows nothing, the fin
+    // sets still come back and the control stays out.
+    const phrase = cs.rankCatalogMatches(pool, "aletas de buceo", {}).items.map((i) => i.title);
+    if (!phrase.some((t) => /fin set/i.test(t))) throw new Error('"aletas de buceo" missed the fin sets');
+    if (phrase.includes("Cotton T-Shirt")) throw new Error('"aletas de buceo" leaked a non-fin product');
   });
 
   check("other groups behave the same way", () => {
