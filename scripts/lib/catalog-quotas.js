@@ -38,6 +38,24 @@ export const MIN_HONEST_STOREFRONT = 120;
    one returning 24. Raised from 24 with the quota model. */
 export const ITEMS_PER_QUOTA = 60;
 
+/* Per-retailer depth overrides for the department/brand refresh.
+   Foot Locker runs deep (2026-09-25: Danny wants 500–1,000 shoe models
+   on the storefront) — every other retailer stays at the standard quota.
+   The refresh script reads these; the function's maxItems cap was raised
+   for config-driven browses to match. */
+const DEPARTMENT_ITEMS_BY_RETAILER = { footlocker: 150 };
+const BRAND_ITEMS_BY_RETAILER = { footlocker: 70 };
+
+/** Items per department-browse run for one retailer. */
+export function departmentItemsFor(retailer) {
+  return DEPARTMENT_ITEMS_BY_RETAILER[String(retailer || "").toLowerCase()] || ITEMS_PER_QUOTA;
+}
+
+/** Items per brand-browse run for one retailer. */
+export function brandItemsFor(retailer) {
+  return BRAND_ITEMS_BY_RETAILER[String(retailer || "").toLowerCase()] || 24;
+}
+
 /**
  * quotas: [{ category, query, department?, target }]
  *

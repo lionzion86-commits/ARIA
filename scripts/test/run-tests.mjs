@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageStoreDoorSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -27,10 +27,11 @@ import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL
          importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
          TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
+import * as delivery from "../lib/retailer-delivery.js";
 import * as retailers from "../lib/retailers.js";
 import * as deptMap from "../lib/department-map.js";
 import { CATALOG_QUOTAS } from "../lib/catalog-quotas.js";
-import { inkCoverage } from "./_png.mjs";
+import { inkCoverage, pngShape } from "./_png.mjs";
 import * as ondemand from "../lib/ondemand-policy.js";
 import * as refreshTiers from "../lib/refresh-tiers.js";
 import * as translate from "../lib/query-translate.js";
@@ -68,6 +69,23 @@ function check(name, fn) {
   } catch (err) {
     failures.push(`${name}\n      ${err.message}`);
   }
+}
+
+/* check() does not await — an async fn's rejection would slip past it.
+   checkAsync collects the promise; every entry is awaited before the
+   summary, so a hung or rejected chain still fails the suite. */
+const pendingAsync = [];
+function checkAsync(name, fn) {
+  pendingAsync.push(
+    (async () => {
+      try {
+        await fn();
+        passed++;
+      } catch (err) {
+        failures.push(`${name}\n      ${err.message}`);
+      }
+    })(),
+  );
 }
 
 function eq(actual, expected, what) {
@@ -260,6 +278,42 @@ check("balls quote real mass times count", () => {
   eq(itemWeight.ballWeightKg("Titleist Golf Balls (12 pack)"), 0.7);
 });
 
+check("candles quote parcel weight, never the wax weight", () => {
+  // The wax-weight trap: "22 oz" is wax, the glass jar ships too.
+  eq(itemWeight.candleWeightKg("Yankee Candle Large Jar Candle 22 oz"), 1.3);
+  if (itemWeight.candleWeightKg("Yankee Candle Large Jar Candle 22 oz") === 0.62)
+    throw new Error("the wax-weight trap fired: 22 oz read as the parcel weight");
+  eq(itemWeight.candleWeightKg("Bath & Body Works 3-Wick Scented Candle 14.5 oz"), 1.3);
+  eq(itemWeight.candleWeightKg("Yankee Candle Medium Jar 14.5 oz"), 1.05);
+  eq(itemWeight.candleWeightKg("Yankee Candle Small Jar 3.7 oz"), 0.45);
+  eq(itemWeight.candleWeightKg("Chesapeake Bay Pillar Candle"), 0.55);
+  eq(itemWeight.candleWeightKg("Scented Wax Melts"), 0.25);
+  eq(itemWeight.candleWeightKg("Votive Candles Set of 12"), 0.15);
+  eq(itemWeight.candleWeightKg("Flameless LED Candles"), 0.3);
+  eq(itemWeight.candleWeightKg("Yankee Candle Large Jar 3 Pack"), 3.9);
+  // Accessories are not the candle.
+  eq(itemWeight.candleWeightKg("Glass Candle Holder"), null);
+  eq(itemWeight.candleWeightKg("Candle Warmer"), null);
+  eq(itemWeight.candleWeightKg("Wax Warmer"), null);
+  eq(itemWeight.candleWeightKg("Wick Snuffer"), null);
+  // No candle words, no match — a 22 oz bottle is not a candle.
+  eq(itemWeight.candleWeightKg("Hydro Flask 22 oz Water Bottle"), null);
+  // The estimator chain puts the candle figure ahead of the stated wax weight.
+  const d = estimateWeightDetail("Yankee Candle Large Jar Candle 22 oz");
+  eq(d.kg, 1.3, "estimate chain");
+  eq(d.source, "candle", "estimate chain source");
+  if (d.reviewKind === "gap") throw new Error("a real candle row must not be flagged as a gap");
+  // The checkout resolver agrees — the cart charges freight on 1.3 kg, not 0.62.
+  const r = resolveItemWeight({ title: "Yankee Candle Large Jar Candle 22 oz", price: 25 });
+  eq(r.weightKg, 1.3, "checkout resolver");
+  eq(r.source, "candle", "checkout resolver source");
+  // Page mirror parity on a handful of candle titles.
+  for (const t of ["Yankee Candle Large Jar Candle 22 oz", "Bath & Body Works 3-Wick Scented Candle 14.5 oz",
+                   "Chesapeake Bay Pillar Candle", "Votive Candles Set of 12", "Glass Candle Holder"]) {
+    eq(page.candleWeightKg(t), itemWeight.candleWeightKg(t), "page mirror: " + t);
+  }
+});
+
 check("a retailer's published DIMENSIONS are no longer a weight source", () => {
   const r = resolveItemWeight({ title: "Anker Soundcore Speaker", dimensions: "25 x 22 x 12 cm" });
   if (r.source === "spec") throw new Error("dimensions still resolving as a spec weight");
@@ -337,7 +391,7 @@ check("an estimate BELOW its category band fails closed", () => {
   eq(under.ok, false);
   eq(under.outOfBand, true);
   eq(under.minKg, 0.5, "a projector under half a kilo is not a projector");
-  eq(itemWeight.weightSanity('Samsung 55" QLED TV', 0.12).outOfBand, true, "the TV-stand class");
+  /* No TV band: Danny banned TVs outright (2026-09-26) — they never reach the estimator. */
   eq(itemWeight.weightSanity("Mainstay 4-Shelf TV Stand", 0).outOfBand, true, "a zero weight is a missing measurement");
 });
 
@@ -843,17 +897,19 @@ check("index.html's registry mirror matches the module", () => {
   }
 });
 
-/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised).
-   The Tiendas de siempre row leads with aspirational, brag-worthy brands
-   that catch a woman's eye; the mall feels exclusive, not downmarket.
-   Target and Walmart sit at the very back (thin catalogs there). The tile
-   order is the registry's insertion order, so this pins the full order in
-   both the module and the index.html mirror. */
+/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised 2026-09-26).
+   Bath & Body Works, Sunglass Hut and Dyson retired from the strip (no
+   shoppable catalogs -- dead storefronts never show, per Danny's rule),
+   so they no longer appear here. Costco and Sam's Club join after Lane
+   Bryant: warehouse club, end of the aspirational run, before Macy's. */
+/* Reliable-first (2026-09-26, Danny): Revolve, Target, Foot Locker and
+   Walmart lead the directory, then the other researched reliable shippers,
+   then YesStyle (red tier: honest 14-28 day timing, shown last).
+   AutoZone (kind auto) is not in the everyday tier. */
 const EXPECTED_EVERYDAY_ORDER = [
-  "victoriassecret", "sephora", "skims", "revolve", "ulta",
-  "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
-  "sunglasshut", "dyson",
-  "macys", "oldnavy", "lanebryant", "target", "walmart",
+  "revolve", "target", "footlocker", "walmart", "sephora", "macys", "dicks",
+  "costco", "victoriassecret", "ulta", "pacsun", "oldnavy", "samsclub",
+  "lanebryant", "alphalete", "youngla", "gymshark", "skims", "yesstyle"
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
@@ -869,59 +925,6 @@ check("Tiendas tiles follow Danny's exclusive-mall order", () => {
   if (got !== want) throw new Error(`Tiendas order is [${got}], want [${want}]`);
 });
 
-check("Victoria's Secret is the first Tiendas tile", () => {
-  const order = everydayOrder();
-  if (order[0] !== "victoriassecret")
-    throw new Error(`first Tiendas tile is ${order[0]}, want victoriassecret`);
-});
-
-check("Sephora is the second Tiendas tile", () => {
-  const order = everydayOrder();
-  if (order[1] !== "sephora")
-    throw new Error(`second Tiendas tile is ${order[1]}, want sephora`);
-});
-
-check("Target and Walmart are the last two Tiendas tiles", () => {
-  const order = everydayOrder();
-  const tail = order.slice(-2).join(",");
-  if (tail !== "target,walmart")
-    throw new Error(`last two Tiendas tiles are [${tail}], want target,walmart`);
-});
-
-check("index.html's Tiendas tile order matches the module's", () => {
-  const html = readFileSync(root("index.html"), "utf8");
-  const lit = html.slice(html.indexOf("const RETAILERS = {"));
-  const pos = k => {
-    const i = lit.indexOf(`key: '${k}'`);
-    if (i < 0) throw new Error(`${k} missing from the index.html mirror`);
-    return i;
-  };
-  const positions = EXPECTED_EVERYDAY_ORDER.map(pos);
-  for (let i = 1; i < positions.length; i++) {
-    if (!(positions[i - 1] < positions[i]))
-      throw new Error(`index.html mirror order breaks at ${EXPECTED_EVERYDAY_ORDER[i]}`);
-  }
-});
-
-check("adding a retailer needs no new scraper code", async () => {
-  // The point of INPUT_SHAPES: a new store declares a spelling, not a function.
-  const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
-  if (!src.includes("INPUT_SHAPES")) throw new Error("INPUT_SHAPES missing");
-  if (!src.includes("config.inputShape")) throw new Error("the handler does not honour inputShape");
-});
-
-/* ============================================================
-   THE STORE DOORWAY — UNIVERSAL (2026-09-25, Danny).
-
-   Every product page is a doorway into its own store: the store
-   attribution (logo + name) is one obvious tap that opens the
-   storefront. The door resolves from the PRODUCT's own store field —
-   a shirt opened from Big and Tall and the same shirt opened from
-   Curvy each resolve to their own store — never from browsing
-   context. Auto-kind retailers open the Aria Auto workshop instead.
-   A store whose catalogue is still being connected opens its
-   storefront page (which says so plainly): a door, never a dead end.
-   ============================================================ */
 group("product page: the store doorway is universal");
 
 check("storeDoorFor resolves every active store; auto kinds open the workshop", () => {
@@ -998,6 +1001,65 @@ check("the suggestions rail is untouched by the doorway", () => {
   if (!/renderRelatedRail\(\{ retailer, title: name/.test(fn))
     throw new Error("showProduct no longer renders the related rail");
   if (!src.includes('id="relatedRail"')) throw new Error("the related rail section is gone");
+});
+
+check("Revolve is the first Tiendas tile (reliable-first, 2026-09-26)", () => {
+  const order = everydayOrder();
+  if (order[0] !== "revolve")
+    throw new Error(`first Tiendas tile is ${order[0]}, want revolve`);
+});
+
+check("Target is the second Tiendas tile (reliable-first, 2026-09-26)", () => {
+  const order = everydayOrder();
+  if (order[1] !== "target")
+    throw new Error(`second Tiendas tile is ${order[1]}, want target`);
+});
+
+check("Skims and YesStyle are the last two Tiendas tiles (then red-tier, 2026-09-26)", () => {
+  const order = everydayOrder();
+  const tail = order.slice(-2).join(",");
+  if (tail !== "skims,yesstyle")
+    throw new Error(`last two Tiendas tiles are [${tail}], want skims,yesstyle`);
+});
+
+check("the Tiendas directory keeps its tiles and gains the six rails below them", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: the directory stays the directory
+     -- tiles on top -- and each store gets its window display below it,
+     so the page browses instead of only linking out. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const view = html.slice(html.indexOf('<div id="storesView"'), html.indexOf('<!-- ============ ARIA AUTO VIEW ============ -->'));
+  if (!view) throw new Error("there is no storesView");
+  if (!/id="storesGrid"/.test(view)) throw new Error("the Tiendas directory grid is gone");
+  const gridAt = view.indexOf('id="storesGrid"');
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
+    const id = `id="tStoreRail-${key}"`;
+    const at = view.indexOf(id);
+    if (at < 0) throw new Error(`the Tiendas view has no ${key} rail`);
+    if (!(gridAt < at)) throw new Error(`the ${key} rail sits above the directory it should follow`);
+    if (!new RegExp(`openStore\\('${key}'\\)`).test(view)) throw new Error(`${key}'s Tiendas rail has no way into its store`);
+  }
+});
+
+check("index.html's Tiendas tile order matches the module's", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const lit = html.slice(html.indexOf("const RETAILERS = {"));
+  const pos = k => {
+    const i = lit.indexOf(`key: '${k}'`);
+    if (i < 0) throw new Error(`${k} missing from the index.html mirror`);
+    return i;
+  };
+  const positions = EXPECTED_EVERYDAY_ORDER.map(pos);
+  for (let i = 1; i < positions.length; i++) {
+    if (!(positions[i - 1] < positions[i]))
+      throw new Error(`index.html mirror order breaks at ${EXPECTED_EVERYDAY_ORDER[i]}`);
+  }
+});
+
+check("adding a retailer needs no new scraper code", async () => {
+  // The point of INPUT_SHAPES: a new store declares a spelling, not a function.
+  const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (!src.includes("INPUT_SHAPES")) throw new Error("INPUT_SHAPES missing");
+  if (!src.includes("config.inputShape")) throw new Error("the handler does not honour inputShape");
 });
 
 /* ------------------------------------------------------------------
@@ -1587,13 +1649,16 @@ check("the words the brief named, and the ones a shopper actually types", () => 
     ["zapatillas", "sneakers"],
     ["cartera", "handbag"],
     ["audífonos", "headphones"],
-    ["televisor", "tv"],
+    /* No TV alias: televisions are banned (2026-09-26, Danny). */
     ["chompa", "sweater"],
     ["juguetes", "toy"],
     ["plancha de cabello", "hair straightener"],
     ["audifonos inalambricos", "wireless earbuds"],
     ["zapatillas negras para hombre", "sneakers black mens"],
     ["chompa para mujer", "sweater womens"],
+    // REPORTED LIVE 2026-09-26: Danny's dad searched both and got nothing.
+    ["aletas", "fins"],
+    ["aletas de buceo", "diving fins"],
   ];
   for (const [es, en] of cases) {
     eq(translate.translateSearchQuery(es), en, es);
@@ -1605,6 +1670,82 @@ check("a phrase beats its own words", () => {
   // "plancha" alone is a clothes iron; the phrase is a hair straightener.
   eq(translate.translateSearchQuery("plancha"), "plancha", "no row for the bare word, so untouched");
   eq(translate.translateQuery("plancha de cabello").query, "hair straightener");
+});
+
+group("follow-up: Peruvian Spanish glossary");
+
+check("Peru-verified words translate, with accents and plurals", () => {
+  const cases = [
+    // CORRECTED 2026-09-26: "polo" is a plain T-shirt in Peru, not a
+    // collared polo shirt (verified against Peruvian retail listings).
+    ["polo", "t-shirt"],
+    ["polos", "t-shirt"],
+    ["ojotas", "flip flops"],
+    ["tomatodo", "water bottle"],
+    ["tomatodos", "water bottle"],
+    ["chimpunes", "soccer cleats"],
+    ["chimpún", "soccer cleats"],
+    ["canguro", "fanny pack"],
+    ["riñonera", "fanny pack"],
+    ["velador", "nightstand"],
+    ["ropero", "wardrobe"],
+    ["bividi", "tank top"],
+    ["frazada", "blanket"],
+    ["terno", "suit"],
+    ["enterizo", "jumpsuit"],
+    ["morral", "messenger bag"],
+    ["bandolera", "crossbody bag"],
+    ["taper", "food storage container"],
+    ["sanguchera", "sandwich maker"],
+    ["hervidor", "electric kettle"],
+    ["arrocera", "rice cooker"],
+    ["biberón", "baby bottle"],
+    ["chupón", "pacifier"],
+    ["coche", "stroller"],
+    ["cepillo", "hair brush"],
+    ["casco", "helmet"],
+    ["foco", "light bulb"],
+    ["paraguas", "umbrella"],
+    ["pila", "battery"],
+    ["balerinas", "ballet flats"],
+  ];
+  for (const [es, en] of cases) {
+    eq(translate.translateSearchQuery(es), en, es);
+    eq(pageQuery.translateSearchQuery(es), en, `${es} (page)`);
+  }
+});
+
+check("Peru phrases beat their bare words", () => {
+  const cases = [
+    ["polo piqué", "polo-shirt"],
+    ["ropa de baño", "swimsuit"],
+    ["salida de baño", "beach cover-up"],
+    ["zapatillas de futbol", "soccer cleats"],
+    ["zapatos de taco", "high heels"],
+    ["buzo completo", "tracksuit"],
+    ["pantalon de buzo", "sweatpants"],
+    ["casaca jean", "denim jacket"],
+    ["brillo labial", "lip gloss"],
+    ["funda de celular", "phone case"],
+    ["mesa de noche", "nightstand"],
+    ["aire acondicionado", "air conditioner"],
+    // the existing phrase still wins over the new bare word
+    ["cepillo de dientes", "toothbrush"],
+  ];
+  for (const [es, en] of cases) {
+    eq(translate.translateSearchQuery(es), en, es);
+    eq(pageQuery.translateSearchQuery(es), en, `${es} (page)`);
+  }
+});
+
+check("ambiguous short words stay untouched", () => {
+  // "taco" is food, "lima" is the city — the bare words must not
+  // translate, or the query broadens to the wrong catalog.
+  for (const q of ["taco", "tacos", "lima"]) {
+    eq(translate.translateSearchQuery(q), q, q);
+    eq(pageQuery.translateSearchQuery(q), q, `${q} (page)`);
+    eq(translate.translateQuery(q).translated, false, `${q} reports no translation`);
+  }
 });
 
 check("anything we do not recognise goes out exactly as typed", () => {
@@ -1626,7 +1767,7 @@ check("translating twice changes nothing", () => {
 
 check("every query that leaves for a retailer is translated first", () => {
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  const calls = src.match(/fetch\('\/\.netlify\/functions\/apify-scrape-start'[\s\S]{0,400}?\}\);/g) || [];
+  const calls = src.match(/fetch(?:WithStartTimeout)?\('\/\.netlify\/functions\/apify-scrape-start'[\s\S]{0,400}?\}\);/g) || [];
   if (calls.length !== 2) throw new Error(`expected 2 scrape entry points, found ${calls.length}`);
   for (const call of calls) {
     if (!/query: translateSearchQuery\(/.test(call)) {
@@ -1672,7 +1813,9 @@ check("a real logo is never greyed out, however pending the store", () => {
      with them would ship Victoria's Secret's pink and Bath & Body
      Works' blue as grey — a retailer's mark is not ours to recolour. */
   const src = readFileSync(root("index.html"), "utf8");
-  for (const fn of ["function storeCardHTML(", "function homeStoreChipHTML("]) {
+  /* The homepage chip row is gone (2026-09-25, store rails superseded
+     it), so the store card is the only mark renderer left to check. */
+  for (const fn of ["function storeCardHTML("]) {
     const from = src.indexOf(fn);
     if (from < 0) throw new Error(`${fn} is gone`);
     // Comments first: the note explaining why the filter is gone names
@@ -1695,7 +1838,11 @@ check("every store mark fills its zone, contain-fit, never stretched", () => {
      1200x631 banner and a square file share a tile without either being
      distorted, AND what makes them read at the same size. */
   const imgs = src.match(/<img src="\$\{r\.logo\}"[\s\S]{0,400}?>/g) || [];
-  if (imgs.length !== 2) throw new Error(`expected 2 store-mark <img> tags, found ${imgs.length}`);
+  /* Three since the "Todas las otras tiendas" strip joined (2026-09-25):
+     the Tiendas card template, the Curvy card template, and the strip's
+     own tiles — every store-mark template obeys the zone rules, which the
+     loop below pins per template. */
+  if (imgs.length !== 3) throw new Error(`expected 3 store-mark <img> tags, found ${imgs.length}`);
   for (const img of imgs) {
     if (!/object-fit:\s*contain/.test(img)) throw new Error("a store mark is not contain-fit");
     if (!/max-height:\s*\d+px/.test(img)) throw new Error("a store mark has no height cap");
@@ -1769,18 +1916,24 @@ check("the beauty stores say exactly which of them has a catalogue", () => {
      stopped being interchangeable: "sells beauty" and "we can show you
      its products" are different claims and the registry has to make
      them separately. */
-  for (const key of ["victoriassecret", "bathandbodyworks"]) {
+  for (const key of ["bathandbodyworks"]) {
     const r = RETAILERS[key];
     if (!r) throw new Error(`${key} left the registry`);
     eq(r.search, false, `${key} is still pending`);
     eq(r.browse, undefined, `${key} has no catalogue file`);
     eq(r.pendingNote, "Conectando el catálogo", `${key} status badge`);
   }
-  const sephora = RETAILERS.sephora;
-  if (!sephora) throw new Error("sephora left the registry");
-  eq(sephora.search, false, "Sephora still has no actor");
-  eq(sephora.browse, true, "Sephora has a catalogue now");
-  eq(sephora.pendingNote, undefined, "a store with a catalogue is not 'conectando'");
+  /* Victoria's Secret joined Sephora on 2026-09-24 — 1,649 products in
+     beauty-catalog.json. Both are browse-only: a catalogue and no
+     actor. Bath & Body Works is the one still pending, which is why the
+     loop above still exists rather than being deleted. */
+  for (const key of ["sephora", "victoriassecret"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`${key} left the registry`);
+    eq(r.search, false, `${key} still has no actor`);
+    eq(r.browse, true, `${key} has a catalogue now`);
+    eq(r.pendingNote, undefined, `a store with a catalogue is not 'conectando'`);
+  }
 });
 
 check("the store count in the Tiendas heading is computed, not remembered", () => {
@@ -1980,9 +2133,9 @@ check("an unknown courier is refused", () => {
 
 group("A. shipping: normalized statuses");
 
-check("the vocabulary is exactly the five plus two", () => {
-  eq(shippingStatus.SHIPPING_FLOW.join(" "), "created in_transit in_customs out_for_delivery delivered");
-  eq(shippingStatus.SHIPPING_STATUSES.length, 7);
+check("the vocabulary is exactly the nine plus two", () => {
+  eq(shippingStatus.SHIPPING_FLOW.join(" "), "purchased_usa retailer_shipped miami_received created in_transit in_customs lince_available out_for_delivery delivered");
+  eq(shippingStatus.SHIPPING_STATUSES.length, 11);
   for (const s of ["exception", "cancelled"]) {
     if (!shippingStatus.SHIPPING_STATUSES.includes(s)) throw new Error(`${s} is missing`);
   }
@@ -2003,8 +2156,15 @@ check("index.html mirrors the vocabulary word for word", () => {
 
 check("a parcel never walks backwards on a customer's screen", () => {
   const { canTransition } = shippingStatus;
-  eq(canTransition(null, "created"), true);
+  eq(canTransition(null, "purchased_usa"), true, "a fresh shipment starts at the first step");
+  eq(canTransition(null, "created"), false, "created is no longer the first step");
+  eq(canTransition("purchased_usa", "retailer_shipped"), true);
+  eq(canTransition("retailer_shipped", "purchased_usa"), false, "a re-sent old event must not walk a parcel backwards");
+  eq(canTransition("miami_received", "created"), true);
   eq(canTransition("created", "in_transit"), true);
+  eq(canTransition("in_customs", "lince_available"), true, "the Lince anchor sits on the happy path");
+  eq(canTransition("lince_available", "in_customs"), false);
+  eq(canTransition("lince_available", "out_for_delivery"), true);
   eq(canTransition("in_transit", "delivered"), true, "skipping ahead is real: some parcels clear customs unseen");
   eq(canTransition("delivered", "in_transit"), false, "a re-sent old event must not un-deliver a parcel");
   eq(canTransition("cancelled", "in_transit"), false);
@@ -2196,7 +2356,7 @@ check("tracking was recorded through every normalized state", () => {
   eq(e2e.steps.map((s) => s.status).join(","), shippingStatus.SHIPPING_FLOW.join(","));
   eq(e2e.tracked.found, true);
   eq(e2e.tracked.status, "delivered");
-  eq(e2e.tracked.events.length, 5);
+  eq(e2e.tracked.events.length, shippingStatus.SHIPPING_FLOW.length, "one event per normalized state");
   for (const ev of e2e.tracked.events) {
     if (!shippingStatus.SHIPPING_STATUSES.includes(ev.status)) throw new Error(`jargon leaked: ${ev.status}`);
   }
@@ -2211,9 +2371,9 @@ check("delivery was confirmed, with a real audit trail", () => {
 check("the customer sees the whole journey and none of the plumbing", () => {
   const view = shippingService.publicTrackingView(e2e.ship);
   eq(view.label, "Entregado");
-  eq(view.history.length, 5, "the full journey, in Aria's words");
+  eq(view.history.length, 9, "the full journey, in Aria's words");
   eq(view.history.map((h) => h.label).join(" → "),
-     "Pedido registrado → En camino → En aduana → En reparto → Entregado");
+     "Comprado en EE.UU. → Tienda lo envió → Recibido en Miami → Pedido registrado → En camino → En aduana → Disponible en Lince → En reparto → Entregado");
   const json = JSON.stringify(view);
   for (const secret of ["avi", "AVI", String(e2e.quote.costUsd), "ops@ariashop.pe"]) {
     if (json.includes(secret)) throw new Error(`the customer view leaks "${secret}"`);
@@ -2628,16 +2788,19 @@ check("no layer of the auto pipeline drops fields", () => {
 
 group("auto: sources are a registry, and not Tiendas");
 
-check("RockAuto is a source, O'Reilly is excluded, Advance is unprobed", () => {
-  eq(autoSources.AUTO_SOURCES.rockauto.label, "RockAuto");
+check("RockAuto is removed, O'Reilly is excluded, Advance is unprobed", () => {
+  /* 2026-09-26, DANNY'S CALL: RockAuto is out — "a liability waiting to
+     happen". The registry row is deleted from AUTO_SOURCES entirely, so
+     no fan-out, tile, banner or search path can reach it. */
+  if ("rockauto" in autoSources.AUTO_SOURCES) throw new Error("RockAuto is still a registered auto source");
   eq(autoSources.AUTO_SOURCES.oreilly.excluded, true, "O'Reilly stays out");
   if (!autoSources.AUTO_SOURCES.oreilly.excludedReason) throw new Error("no reason recorded for O'Reilly");
   eq(autoSources.AUTO_SOURCES.advanceauto.probe, "not-run", "Advance Auto could not be probed from here");
   // An excluded or unprobed source is never shown to a shopper.
   const visible = autoSources.visibleAutoSources().map((s) => s.key);
+  if (visible.includes("rockauto")) throw new Error("RockAuto is being shown");
   if (visible.includes("oreilly")) throw new Error("O'Reilly is being shown");
   if (visible.includes("advanceauto")) throw new Error("an unprobed source is being shown");
-  if (!visible.includes("rockauto")) throw new Error("RockAuto is not shown");
   if (!visible.includes("autozone")) throw new Error("AutoZone is not shown");
 });
 
@@ -2679,12 +2842,19 @@ check("a browsable store is not treated as one still being connected", () => {
   // A store with no catalogue at all is still pending. (Sephora used to
   // be this example and stopped being one when beauty-catalog.json
   // landed — which is the distinction working, not a regression.)
-  eq(retailers.isBrowseOnlyRetailer("victoriassecret"), false, "Victoria's Secret has no catalogue yet");
+  /* Bath & Body Works is the pending example now. Sephora stopped being
+     one when beauty-catalog.json landed, and Victoria's Secret stopped
+     being one when its 1,649 products joined that file — the
+     distinction working, not a regression. */
+  eq(retailers.isBrowseOnlyRetailer("bathandbodyworks"), false, "Bath & Body Works has no catalogue yet");
+  eq(retailers.isBrowseOnlyRetailer("victoriassecret"), true, "Victoria's Secret has a catalogue now");
 
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
-  // Both the card and the chip must read BOTH flags, or Macy's is muted.
-  // Scoped to those two functions: "pending" is a common local name.
-  for (const fn of ["storeCardHTML", "homeStoreChipHTML"]) {
+  // The store card must read BOTH flags, or Macy's is muted. (The
+  // homepage chip row that shared this check is gone since 2026-09-25,
+  // superseded by the store rails.) Scoped to the function: "pending"
+  // is a common local name.
+  for (const fn of ["storeCardHTML"]) {
     const at = src.indexOf(`function ${fn}(`);
     if (at < 0) throw new Error(`${fn} is gone`);
     const body = src.slice(at, at + 600);
@@ -2704,12 +2874,11 @@ check("a browsable store is not treated as one still being connected", () => {
 
 check("every queried auto source has verified backing", () => {
   // Same rule as the beauty stores: a guessed actor returns an empty run,
-  // which reads as "this store has nothing for your car" — a lie. RockAuto
-  // went live 2026-09-24 with a verified 2,490-row cache (1,013 unique
-  // parts) served from auto-cache.json, so its `search: true` is
-  // cache-backed, not a guessed actor. A source with neither a verified
-  // actor nor a verified cache must stay out of the fan-out.
-  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone,rockauto");
+  // which reads as "this store has nothing for your car" — a lie. A source
+  // with neither a verified actor nor a verified cache must stay out of
+  // the fan-out. (RockAuto's cache-backed source was removed 2026-09-26,
+  // Danny's call; AutoZone remains.)
+  eq(autoSources.searchableAutoSources().map((s) => s.key).join(","), "autozone");
   eq(autoSources.AUTO_SOURCES.advanceauto.search, false, "Advance Auto is still unprobed");
   eq(autoSources.AUTO_SOURCES.oreilly.search, false, "O'Reilly stays out");
 });
@@ -3263,7 +3432,11 @@ check("only the verified webhook can move an order to paid", () => {
      ledger that could not name a payment state would be useless. The
      rule being protected is "nothing else may DECIDE that an order is
      paid", and a report cannot. */
-  const allowed = new Set(["_payments-model.js", "_payments.js", "_ledger.js"]);
+  /* admin-pipeline.js is on this list for the same reason: its response
+     row carries paymentStatus as a READ (order.paymentStatus ?? null) so
+     the Tubería tab can paint the payment pill. It writes no order
+     record and decides nothing about payment. */
+  const allowed = new Set(["_payments-model.js", "_payments.js", "_ledger.js", "admin-pipeline.js"]);
   const dir = root("netlify/functions");
   const offenders = [];
   const walk = (d, prefix = "") => {
@@ -3541,6 +3714,7 @@ check("every admin endpoint gates on a session AND the allowlist", () => {
      It is only a check paired with getSessionEmail(event), which reads
      the httpOnly cookie server-side. */
   for (const f of ["admin-dashboard.js", "admin-orders-list.js", "admin-orders-update.js",
+                   "admin-orders-delete.js",
                    "admin-settings.js", "admin-shipping.js", "admin-wallet-credit.js"]) {
     const src = stripComments(readFileSync(root(`netlify/functions/${f}`), "utf8"));
     if (!/getSessionEmail\(event\)/.test(src)) throw new Error(`${f} does not read the session`);
@@ -4078,7 +4252,7 @@ check("the bare-array envelope is reshaped, so the products are visible at all",
 
   const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
   const fixed = normalizeCatalogueEnvelope(raw);
-  eq(deptMap.departmentItems(fixed.retailers.sephora, "beauty").length, 80, "Sephora after the adapter");
+  eq(deptMap.departmentItems(fixed.retailers.sephora, "beauty").length, 2001, "Sephora after the adapter");
   eq(deptMap.departmentItems(fixed.retailers.ulta, "beauty").length, 77, "Ulta after the adapter");
   eq(deptMap.departmentItems(fixed.retailers.yesstyle, "beauty").length, 40, "YesStyle after the adapter");
 
@@ -4103,8 +4277,15 @@ check("the bare-array envelope is reshaped, so the products are visible at all",
   eq(JSON.stringify(normalizeCatalogueEnvelope({})), '{"retailers":{}}');
 });
 
-check("the catalogue itself is whole: 197 products, no missing photo, no missing weight", () => {
-  eq(beautyItems.length, 197, "product count");
+check("the catalogue itself is whole: 3,769 products, no missing photo, no missing weight", () => {
+  /* 197 -> 1,846 when Victoria's Secret's 1,649 landed (2026-09-24),
+     -> 3,769 hours later when Sephora went 80 -> 2,003. Still pinned
+     rather than derived, deliberately: this check exists to catch a
+     truncated or half-written catalogue file, and `expected = actual`
+     catches nothing. It does mean this line moves every time a
+     catalogue lands, which is the intended cost — a number that changes
+     in a commit someone wrote beats a number nobody can see. */
+  eq(beautyItems.length, 3769, "product count");
   const noImage = beautyItems.filter((i) => !i.image);
   eq(noImage.length, 0, "every product has a photo (the aisle tiles need one)");
   const noWeight = beautyItems.filter((i) => !(Number(i.specWeightKg) > 0));
@@ -4112,32 +4293,75 @@ check("the catalogue itself is whole: 197 products, no missing photo, no missing
   /* A DEAL MUST BE A REAL MARKDOWN. onSale with no higher originalPrice
      is the "trivial deal" bug Ofertas already has a gate for; this
      checks the data never asks it to. */
+  /* A MARKDOWN IS NOT ALWAYS SPELLED `originalPrice`. This read that one
+     field and would have called all 646 of Victoria's Secret's
+     discounts fake. They are real and they carry `regularPrice` —
+     $22.95 -> $11.00 on the body mists, 52% off. isOnSale() in
+     department-map.js has always read four spellings; this reads the
+     same four, because a test that knows fewer field names than the
+     code it guards reports the DATA as broken when the TEST is. */
+  const originalOf = (i) => Number(i.regularPrice ?? i.wasPrice ?? i.was_price ?? i.originalPrice);
   const onSale = beautyItems.filter((i) => i.onSale);
-  eq(onSale.length, 44, "discounted products");
-  for (const i of onSale) {
-    if (!(Number(i.originalPrice) > Number(i.price))) {
-      throw new Error(`${i.name} is flagged onSale with no markdown`);
-    }
+  eq(onSale.length, 728, "discounted products");
+
+  /* RED SINCE 2026-09-25, AND THE COUNT IS THE POINT. Sephora's top-up
+     to 2,003 products brought 38 items flagged `onSale: true` with no
+     original price in any of the four spellings — nothing to discount
+     from. Naming one product made this read like a single bad row; it
+     is a whole store's worth of unsubstantiated flags.
+
+     No shopper sees a false badge: isOnSale() needs a real original and
+     so does the card's hasRealDiscount, so all 38 are held out of
+     Ofertas and none wears a discount. This stays red anyway, because
+     the data is making a claim it cannot support, and the fix belongs
+     in the Sephora export rather than in a looser assertion here. */
+  const unsupported = onSale.filter((i) => !(originalOf(i) > Number(i.price)));
+  if (unsupported.length) {
+    const by = {};
+    for (const i of unsupported) by[i.retailer || "?"] = (by[i.retailer || "?"] || 0) + 1;
+    throw new Error(
+      `${unsupported.length} products are flagged onSale with no original price ` +
+      `(${Object.entries(by).map(([r, n]) => `${r}: ${n}`).join(", ")}) — ` +
+      `e.g. ${unsupported[0].name}`);
   }
 });
 
 check("beauty splits into aisles, and the leftovers are declared rather than buried", () => {
+  /* THIS IS RED ON PURPOSE AS OF 2026-09-24 AND THE NUMBERS BELOW SAY WHY.
+
+     Victoria's Secret's 1,649 products landed in beauty-catalog.json,
+     and 1,381 of them are lingerie, bras, sleepwear and clothing —
+     type values "Ropa interior" (432), "Sostenes" (402), "Ropa" (219),
+     "Lencería" (189), "Pijamas" (139). No beauty aisle claims any of
+     them, so the typed share fell from 81% to 13%, under
+     SPLIT_MIN_TYPED_SHARE (0.60), and shouldSplit() now returns false.
+
+     The consequence is the exact thing this check was written to stop:
+     the Belleza destination renders 1,846 products as ONE WALL.
+
+     I have not made it green, because every way of doing that is a
+     decision about the shop rather than about the test:
+       a) give Belleza lingerie/sleepwear aisles — Belleza then becomes
+          mostly not beauty, and needs Spanish aisle names chosen;
+       b) file Victoria's Secret's apparel outside beauty, leaving its
+          ~268 fragrance and body-care products here;
+       c) lower SPLIT_MIN_TYPED_SHARE — which would ship the wall.
+     (c) is the one option that is clearly wrong. Danny picks between
+     (a) and (b). */
   const grouped = subcats.groupBySubcategory(beautyItems);
-  eq(subcats.shouldSplit(grouped), true, "197 products must not render as one wall");
+  const share = (grouped.typed / grouped.total * 100).toFixed(0);
+  eq(subcats.shouldSplit(grouped), true,
+    `${grouped.total} products render as one wall: only ${grouped.typed} (${share}%) fall in an aisle, ` +
+    `under the ${subcats.SPLIT_MIN_TYPED_SHARE * 100}% floor. Unplaced types: ` +
+    subcats.unmappedTypes(beautyItems).slice(0, 6).map((u) => `${u.type} x${u.count ?? "?"}`).join(", "));
+
   const byKey = Object.fromEntries(grouped.rows.map((r) => [r.key, r.count]));
-  eq(byKey.face, 64, "Rostro");
+  eq(byKey.face, 673, "Rostro");
   eq(byKey.eyes, 35, "Ojos");
   eq(byKey.lips, 25, "Labios");
-  eq(byKey.skincare, 25, "Cuidado de la piel");
-  eq(byKey.fragrance, 11, "Fragancia");
-  /* THE 37 THE EXPORT CALLS "Belleza" — a lip gloss, an undereye patch,
-     a pencil sharpener and a gift set all wear it, so no aisle claims
-     them. They are in "Ver todo" and the card says how many, which is
-     the difference between a remainder and a disappearance. */
-  eq(grouped.untyped, 37, "unplaced products");
-  eq(grouped.typed + grouped.untyped, 197, "nothing is lost either way");
-  eq(subcats.unmappedTypes(beautyItems).map((u) => u.type).join(), "BELLEZA",
-    "only the export's own catch-all is unplaced");
+  eq(byKey.skincare, 808, "Cuidado de la piel");
+  eq(byKey.fragrance, 624, "Fragancia");
+  eq(grouped.typed + grouped.untyped, 3769, "nothing is lost either way");
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   if (!/grouped\.untyped > 0/.test(src)) throw new Error("the Ver todo card no longer says where the remainder is");
 });
@@ -4251,7 +4475,7 @@ check("every beauty markdown reaches Ofertas, tier and file notwithstanding", ()
   /* The universal-sales rule: Ofertas aggregates every store regardless
      of tier or of whether it is scraped or filed. These three are
      browse-only, so fileBackedDeals() is their only route in. */
-  for (const key of ["sephora", "ulta", "yesstyle"]) {
+  for (const key of ["sephora", "ulta", "yesstyle", "victoriassecret"]) {
     eq(retailers.isBrowseOnlyRetailer(key), true, `${key} must be read by fileBackedDeals`);
     if (!retailers.browsableRetailers().includes(key)) throw new Error(`${key} is not in CATALOG_RETAILERS`);
   }
@@ -4263,11 +4487,32 @@ check("every beauty markdown reaches Ofertas, tier and file notwithstanding", ()
      is still in the Belleza category and in the store, it is just not
      something to call an oferta. */
   const onSale = beautyItems.filter((i) => deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
-  eq(onSale.length, 43, "beauty markdowns worth featuring");
-  const thin = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
-  eq(thin.length, 1, "exactly one markdown is below the floor");
-  if (Math.round((1 - thin[0].price / thin[0].originalPrice) * 100) >= 5) {
-    throw new Error("a real markdown is being gated out of Ofertas");
+  eq(onSale.length, 689, "beauty markdowns worth featuring");
+  /* WHAT THE GATE IS HOLDING BACK, SPLIT BY REASON (2026-09-25).
+
+     This asserted "exactly one" — an Ulta setting mist at 3% off, below
+     the 5% floor every surface of this site uses. Sephora's top-up to
+     2,003 products added 38 more, and they are a DIFFERENT KIND of
+     thing: not thin markdowns but flags with no original price at all,
+     so there is no discount to measure. Counting them together would
+     hide that behind a number.
+
+     The shopper is not affected either way — isOnSale() needs a real
+     original, and so does the card's own hasRealDiscount — but a
+     retailer sending `onSale: true` with no was-price is a data problem
+     worth being able to see, so it is counted separately and the two
+     are named. */
+  const originalNum = (i) => Number(i.regularPrice ?? i.wasPrice ?? i.was_price ?? i.originalPrice);
+  const held = beautyItems.filter((i) => i.onSale && !deptMap.itemBelongsToDepartment(i, "beauty", "sale"));
+  const unsubstantiated = held.filter((i) => !(originalNum(i) > Number(i.price)));
+  const belowFloor = held.filter((i) => originalNum(i) > Number(i.price));
+
+  eq(unsubstantiated.length, 38, "onSale flags carrying no original price (all Sephora)");
+  eq(belowFloor.length, 1, "genuine markdowns under the 5% floor");
+  for (const i of belowFloor) {
+    if (Math.round((1 - i.price / originalNum(i)) * 100) >= 5) {
+      throw new Error(`a real markdown is being gated out of Ofertas: ${i.name}`);
+    }
   }
 });
 
@@ -4390,7 +4635,7 @@ check("a deal with no photo is not featured, and a missing photo is branded", ()
   /* MEASURED BEFORE GATING, because a gate that empties a feed is worse
      than the tiles it removes. Every committed product carries an
      image, so this can only ever act on the live deals cache. */
-  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 197]]) {
+  for (const [file, expected] of [["macys-catalog.json", 754], ["ssense-catalog.json", 2426], ["beauty-catalog.json", 3769]]) {
     const cat = JSON.parse(readFileSync(root(file), "utf8"));
     const items = Object.values(cat.retailers).flatMap((r) =>
       Object.values(r.departments || {}).flatMap((d) => (Array.isArray(d) ? d : d.items || [])));
@@ -4581,10 +4826,24 @@ check("the page streams into the same bubble, and falls back without double-rend
   const sink = src.slice(src.indexOf("function beginAssistantReply("), src.indexOf("async function streamAssistantReply("));
   /* SAME BUBBLE, SAME CLASSES. "Change only how the response appears"
      is enforced by the markup being identical to addAssistantMessage's,
-     not by remembering to keep two copies in step. */
-  const bubbleClass = "max-w-[85%] rounded-2xl rounded-bl-sm px-3.5 py-2.5 text-[13px] leading-relaxed";
-  eq(sink.includes(bubbleClass), true, "the streaming bubble is the standard bot bubble");
-  eq(src.split(bubbleClass).length - 1 >= 2, true, "addAssistantMessage still uses it too");
+     not by remembering to keep two copies in step.
+
+     READ OFF addAssistantMessage RATHER THAN FROZEN AS A LITERAL. The
+     literal used to name text-[13px] and went red the day the phone's
+     bubbles moved to a sized class -- reporting a drift between the two
+     bubbles when there was none. What this rule has always been about
+     is that the two strings MATCH, so it now takes one and looks for
+     the other, and it cannot go stale again. */
+  const typed = src.slice(src.indexOf("function addAssistantMessage("), src.indexOf("function addAssistantProductCard("));
+  const bubbleClass = (typed.match(/bubble\.className = '([^']*rounded-bl-sm[^']*)'/) || [])[1];
+  if (!bubbleClass) throw new Error("addAssistantMessage no longer draws a bot bubble we can read");
+  eq(sink.includes(bubbleClass), true, "the streaming bubble is not the standard bot bubble");
+  /* And the size it is drawn at is a class the stylesheet owns, not a
+     utility frozen into two JS strings: iOS Safari zooms a page whose
+     focused field is under 16px, and the fix only works if one rule
+     raises the whole conversation at once. */
+  eq(bubbleClass.includes("ariaChatMsg"), true, "the bot bubble is not carrying the sized chat class");
+  if (/text-\[1[0-5](\.\d+)?px\]/.test(bubbleClass)) throw new Error("a hard-coded sub-16px size is back on the bubbles");
   // NO JANK: one DOM write per frame, whatever the token rate.
   if (!/requestAnimationFrame\(flush\)/.test(sink)) throw new Error("tokens are written to the DOM unbatched");
   if (!/cancelAnimationFrame/.test(sink)) throw new Error("a pending frame is not cancelled on finish");
@@ -4788,10 +5047,12 @@ check("a brand list can be counted off a store's own stock", () => {
 });
 
 check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
-  /* Foot Locker's 24 shoes live in `brands.nike` and its department
-     items name no brand at all, so a purely derived list would drop
-     Nike and break a link that exists today. The page's merge is what
-     stops that, so the page's merge is what is read here. */
+  /* Foot Locker's shoes live in explicit `brands.*` buckets and the
+     page's merge must keep preferring those over derived ones.
+     (2026-09-25 deep pull: nine brand buckets now, and every item
+     carries its brand — so the derived list is no longer empty and the
+     old "nike-only / no-brand" assertions are retired. What still
+     matters is the merge order, asserted above.) */
   const src = stripComments(readFileSync(root("index.html"), "utf8"));
   const merge = src.slice(src.indexOf("function retailerBrandBuckets("), src.indexOf("function departmentItemsFor("));
   if (!/Object\.entries\(retailerData\.brands \|\| \{\}\)/.test(merge)) throw new Error("the explicit buckets are no longer read");
@@ -4801,11 +5062,9 @@ check("an explicit brand bucket still wins — Foot Locker keeps Nike", () => {
   if (!/Array\.isArray\(bucket\?\.items\) && bucket\.items\.length/.test(merge)) throw new Error("an empty brands bucket can shadow the real list again");
 
   const cache = JSON.parse(readFileSync(root("department-cache.json"), "utf8")).retailers.footlocker;
-  eq(Object.keys(cache.brands).join(), "nike", "Foot Locker's brand bucket");
-  if (!cache.brands.nike.items.length) throw new Error("Foot Locker's Nike bucket is empty");
-  // And its items really do carry no brand, which is why the bucket matters.
-  const derived = brandIndex.brandBucketsFromItems(Object.values(cache.departments).flatMap((d) => d.items || []));
-  eq(Object.keys(derived).length, 0, "Foot Locker's items now name their brand — the fallback may be enough");
+  eq(Object.keys(cache.brands).sort().join(), "adidas,asics,converse,jordan,newbalance,nike,puma,reebok,vans", "Foot Locker's brand buckets");
+  for (const k of Object.keys(cache.brands))
+    if (!cache.brands[k].items.length) throw new Error(`Foot Locker's ${k} bucket is empty`);
 });
 
 check("no grid anywhere can build a wall of brands", () => {
@@ -4828,13 +5087,24 @@ check("no grid anywhere can build a wall of brands", () => {
   if (/brand/i.test(tiles)) throw new Error("collectTiles can make a brand tile again");
   if (!/DEPARTMENT_SPEC/.test(tiles)) throw new Error("collectTiles lost the department taxonomy");
 
-  for (const [label, from, to] of [
-    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)"],
-    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan("],
+  /* THE HOME PAGE REACHES collectTiles THROUGH ONE HOP NOW (2026-09-24).
+     It calls homeRowTiles(), which is the editorial shortlist, and that
+     reads collectTiles(). So the builder each grid ends at is checked
+     rather than the literal call in the grid -- which keeps this exactly
+     as strong as it was: whatever the shortlist names, the tiles it
+     hands back are still made only from DEPARTMENT_SPEC, and the hop is
+     itself asserted below rather than assumed. */
+  const homeRow = src.slice(src.indexOf("function homeRowTiles("), src.indexOf("function initDepartmentTiles("));
+  if (!/collectTiles\(\)/.test(homeRow)) throw new Error("homeRowTiles no longer builds from collectTiles");
+  if (/brand/i.test(homeRow)) throw new Error("the home row's shortlist can name a brand");
+
+  for (const [label, from, to, builder] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/],
+    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan(", /collectTiles\(\)/],
   ]) {
     const grid = src.slice(src.indexOf(from), src.indexOf(to));
     if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
-    if (!/collectTiles\(\)/.test(grid)) throw new Error(`${label} lost its department tiles`);
+    if (!builder.test(grid)) throw new Error(`${label} lost its department tiles`);
   }
 
   // And the route a brand still travels is untouched.
@@ -4901,38 +5171,43 @@ group("The mobile shopfront");
 const shopfrontSrc = readFileSync(root("index.html"), "utf8");
 const shopfront = shopfrontSrc.slice(
   shopfrontSrc.indexOf('<div id="mobileShopfront"'),
-  shopfrontSrc.indexOf('<div class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">'),
+  shopfrontSrc.indexOf('<div id="desktopShopfront"'),
 );
 
-check("nothing but the hero comes before the shopfront, and it is phone-only", () => {
+check("the photo hero opens the home page, shopfront follows", () => {
   if (!shopfront) throw new Error("there is no mobile shopfront");
 
-  /* THIS RULE CHANGED ON 2026-09-23, DELIBERATELY, AND THE OLD ONE IS
-     WORTH KEEPING IN VIEW. It read: the shopfront is the FIRST child of
-     #homeView, because "a shopper who scrolls -- and they all scroll --
-     meets the deals before anything else. One element moved above this
-     and the rails are below the fold again." That came out of a real
-     user test and it was right.
-
-     Danny then asked for a photographic hero at the top of the home
-     page. A hero is exactly the "one element moved above this", and on
-     a 393x852 phone it does push the Ofertas rail off the first screen.
-     That is a trade he made knowingly and it is recorded here rather
-     than quietly deleted: the protection now is that the hero is the
-     ONLY thing allowed above the rails. A third element between the
-     header and the shopfront still fails, which is what the original
-     check was really guarding. */
+  /* THIS RULE CHANGED ON 2026-09-26, DELIBERATELY, AT DANNY'S WORD.
+     2026-09-25 had it: the shopfront is the FIRST child of #homeView
+     and the Ofertas rail is the first section inside it -- deals first
+     because that is what stops the scroll. On iPhone review Danny
+     reversed it: "Todo USA ahora en Lima" is the strong opening message
+     and it should hit you the moment you walk in, like it originally
+     did. The photographic hero is the FIRST child of #homeView again,
+     the shopfront follows it, and the Ofertas rail stays the first
+     section inside the shopfront. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
   const first = tags[0] || "";
-  if (!/class="ariaHero"/.test(first)) {
-    throw new Error(`the first thing in #homeView is not the hero: ${first.slice(0, 70)}`);
+  if (!first.startsWith('<section class="ariaHero"')) {
+    throw new Error(`the first thing in #homeView is not the photo hero: ${first.slice(0, 70)}`);
   }
-  const afterHero = body.slice(body.indexOf("</section>") + "</section>".length);
-  const nextTag = (afterHero.match(/<(?!!--)[a-zA-Z][^>]*>/) || [""])[0];
-  if (!nextTag.startsWith('<div id="mobileShopfront"')) {
-    throw new Error(`something sits between the hero and the shopfront: ${nextTag.slice(0, 70)}`);
+  if (!first.includes('aria-label="Todo USA ahora en Lima"')) {
+    throw new Error("the photo hero lost its aria-label");
+  }
+  const second = (() => {
+    const heroOpen = body.indexOf('<section class="ariaHero"');
+    const heroClose = body.indexOf("</section>", heroOpen) + "</section>".length;
+    const after = body.slice(heroClose);
+    return (after.match(/<(?!!--)[a-zA-Z][^>]*>/) || [])[0] || "";
+  })();
+  if (!second.startsWith('<div id="mobileShopfront"')) {
+    throw new Error(`the shopfront does not follow the hero: ${second.slice(0, 70)}`);
+  }
+  const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
+  if (firstSection !== "Ofertas") {
+    throw new Error(`the first section in the shopfront is ${firstSection}, want Ofertas`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -4944,7 +5219,7 @@ check("nothing but the hero comes before the shopfront, and it is phone-only", (
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Ofertas, then Categorías, then Tiendas", () => {
+check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -4952,15 +5227,95 @@ check("Ofertas, then Categorías, then Tiendas", () => {
      where you go when the deals did not have it; stores last, for the
      shopper who already knows where they want to shop.
 
-     (The written brief numbered Tiendas second. He was asked which, and
-     chose the spoken one — this is that decision, not a drift from it.) */
-  const order = [...shopfront.matchAll(/<section aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Categorías > Tiendas", "the shopfront's scroll order");
+     (2026-09-25, DANNY'S MALL VISION: "I'm not clicking in between
+     stores. I'm just browsing." The Tiendas chips rail is gone from the
+     home page -- each store gets its own window display, and the two
+     breakpoints finally share one scroll order: deals, the eight store
+     rails in mall order, then departments.
+     2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo, "Compra
+     en Estados Unidos / Te lo llevamos a Perú", the search -- sits
+     directly under the Ofertas rail, ahead of the store rails.
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the eight rails and Categorías -- the rest of the mall
+     directory as one logo strip, with a way into the full 22-store
+     Tiendas directory.
+
+     (2026-09-26, DANNY'S HOMEPAGE ORDER V2: the photo hero opens the
+     page again -- "Todo USA ahora en Lima" is the strong message that
+     hits you the moment you walk in. The 2026-09-25 order holds after
+     it, with the Costco rail and the Fiestas y Eventos vertical.
+
+     2026-09-26, DANNY'S HOMEPAGE ORDER V3: the Aria Auto house banner
+     sits under the ARIA brand band and above the store rails (the
+     logo/branding moment lands first, then the black banner, then the
+     Victoria's Secret rails). The six fashion rails read compact, a
+     clothing-brand strip ("Marcas") separates them from the Costco
+     treasure-hunt section, and Fiestas y Eventos follows Costco.) */
+  const homeSlice = shopfrontSrc.slice(
+    shopfrontSrc.indexOf('<div id="homeView"'),
+    shopfrontSrc.indexOf('<div id="desktopShopfront"'),
+  );
+  const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
-  for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
+  const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
+  for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
+});
+
+check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
+     scroll order now -- deals, the eight store rails in mall order,
+     departments. The Tiendas chips rail is superseded by the rails.
+     2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band (logo, "Compra
+     en Estados Unidos / Te lo llevamos a Perú", search) sits directly
+     under the Ofertas rail, ahead of the store rails.
+
+     (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
+     between the eight rails and Categorías on the laptop too.
+
+     2026-09-26, DANNY'S HOMEPAGE ORDER V3: same reorder as the phone --
+     Aria Auto house banner under the brand band, six compact rails, the
+     "Marcas" brand strip, then the Costco treasure-hunt section. */
+  const desk = shopfrontSrc.slice(
+    shopfrontSrc.indexOf('<div id="desktopShopfront"'),
+    shopfrontSrc.indexOf('id="whyUs"'),
+  );
+  if (!desk) throw new Error("there is no desktop shopfront");
+  const open = desk.slice(0, desk.indexOf(">") + 1);
+  if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
+  const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > Sephora > Macy's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > Gymshark > SSENSE > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  // Each section owns exactly one rail, and the rails are the ids the
+  // renderers write into.
+  const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
+  for (const id of railIds) {
+    eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+});
+
+check("Todas las otras tiendas carries the rest of the directory, not the eight", () => {
+  /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the seven rails
+     and Categorías shows every active retailer that is NOT a featured
+     rail store, painted from the RETAILERS registry (never hardcoded),
+     with a way into the full Tiendas directory. */
+  const html = shopfrontSrc;
+  for (const id of ["mOtherStoresRow", "dOtherStoresRow"]) {
+    eq((html.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
+  }
+  // The way into the full directory: both headers point at storesView.
+  const ways = [...html.matchAll(/onclick="showPage\('storesView'\)"[^>]*>Ver todas las tiendas/g)];
+  if (ways.length < 2) throw new Error(`expected a "Ver todas las tiendas" way in on both surfaces, found ${ways.length}`);
+  // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
+  const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
+  if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the eight featured rail stores");
+  if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
 check("a rail scrolls sideways and snaps, and the page does not", () => {
@@ -4974,7 +5329,8 @@ check("a rail scrolls sideways and snaps, and the page does not", () => {
   if (!/scroll-snap-align:\s*start/.test(rail)) throw new Error("the cards have nothing to snap to");
   if (!/scrollbar-width:\s*none/.test(rail)) throw new Error("the rail grew a desktop scrollbar");
 
-  for (const id of ["mobileDealsRow", "mobileStoresRow", "mobileCatsRow"]) {
+  for (const id of ["mobileDealsRow", "mobileCatsRow",
+      ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)]) {
     const tag = shopfront.slice(shopfront.indexOf(`id="${id}"`));
     const cls = tag.slice(0, tag.indexOf(">"));
     if (!/\bariaRail\b/.test(cls)) throw new Error(`${id} is not a rail`);
@@ -5003,7 +5359,7 @@ check("nothing in the shopfront moves on its own", () => {
 check("the deals rail is the Ofertas feed, sorted by discount, never a second list", () => {
   const js = shopfrontSrc.slice(
     shopfrontSrc.indexOf("function renderMobileDealsRail("),
-    shopfrontSrc.indexOf("function renderMobileStoresRail("),
+    shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
 
   /* saleItemsCache IS what renderSalesGrid() paints. Reading anything
@@ -5012,9 +5368,13 @@ check("the deals rail is the Ofertas feed, sorted by discount, never a second li
   if (!/saleItemsCache/.test(js)) throw new Error("the rail no longer reads the feed's own set");
   if (/loadDepartmentCache|departmentItems|fetch\(/.test(js)) throw new Error("the rail is building its own list of deals");
 
-  // Biggest discount first -- "80% off first" is the brief.
-  if (!/\.sort\(\(a, b\) => discountPct\(b\) - discountPct\(a\)\)/.test(js)) {
-    throw new Error("the rail is no longer sorted by discount, descending");
+  /* LEAD BRANDS FIRST (2026-09-26, Danny): "80% off first" is still the
+     brief WITHIN a brand, but the brands that pull lead the rail --
+     Victoria's Secret, Sephora, Macy's, Gymshark, YoungLA -- so Gym Rat
+     sale sits toward the front next to Victoria's Secret. If this ever
+     regresses to pure discount sort, that is a decision, not drift. */
+  if (!/\.sort\(\(a, b\) => \(ofertasLeadRank\(a\) - ofertasLeadRank\(b\)\) \|\| \(discountPct\(b\) - discountPct\(a\)\)\)/.test(js)) {
+    throw new Error("the rail is no longer lead-brand ordered (lead rank, then discount)");
   }
   /* ...and then ONE STORE PER CARD across the opening run, so the rail
      cannot lead on three near-identical markdowns from one shop. The
@@ -5080,20 +5440,128 @@ check("the opening five deals come from five different stores, and nothing is lo
   eq(spreadDealsByStore([], MOBILE_RAIL_LEAD).length, 0, "an empty feed broke the spread");
 });
 
-check("the other two rails reuse what the page already draws", () => {
-  const stores = shopfrontSrc.slice(
-    shopfrontSrc.indexOf("function renderMobileStoresRail("),
+check("a store rail curates its own shelf: sale first, Ofertas deprioritised, featured fill", () => {
+  const { STORE_RAIL_SALE, STORE_RAIL_TOTAL, storeRailPicks } = loadPageStoreRailSlice();
+  eq(STORE_RAIL_SALE, 8, "the sale lead changed size");
+  eq(STORE_RAIL_TOTAL, 12, "the shelf changed length");
+  const sale = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice, image: "img" });
+  const feat = (retailer, title, price) => ({ retailer, title, price, image: "img" });
+
+  /* Sale items lead, deepest discount first. */
+  const items = [
+    sale("macys", "coat", 50, 100),   // -50%
+    sale("macys", "dress", 20, 100),  // -80%
+    sale("sephora", "serum", 30, 60), // other store, must not leak in
+  ];
+  const picks = storeRailPicks("macys", items, [], new Set());
+  eq(picks.map(p => p.title).join(), "dress,coat", "the rail is not sale-first by discount");
+
+  /* What Ofertas already leads on yields to what it does not -- the
+     window is not a copy of the sale rack. */
+  const withOfertas = storeRailPicks("macys", items, [],
+    new Set(["macys::dress"]));
+  eq(withOfertas.map(p => p.title).join(), "coat,dress", "an Ofertas item still leads the store's own rail");
+
+  /* Featured fill: priced and photographed non-sale items complete the
+     shelf; priceless, imageless and duplicate records never do. */
+  const pool = [
+    feat("macys", "bag", 40),
+    { retailer: "macys", title: "ghost", price: 0, image: "img" },
+    { retailer: "macys", title: "nophoto", price: 25 },
+    feat("macys", "coat", 50), // same title as the sale pick: not twice
+    feat("sephora", "other", 10),
+  ];
+  const filled = storeRailPicks("macys", [sale("macys", "dress", 20, 100), sale("macys", "coat", 50, 100)], pool, new Set());
+  eq(filled.map(p => p.title).join(), "dress,coat,bag", "the featured fill let something through it should not have");
+  eq(filled.length <= STORE_RAIL_TOTAL, true, "the shelf overran its length");
+
+  /* Fail closed: nothing to show is an empty shelf, not a crash. */
+  eq(storeRailPicks("macys", [], [], new Set()).length, 0, "an empty store broke the curation");
+});
+
+check("the Gymshark rail opens on a model shot, socks second", () => {
+  const { storeRailPicks } = loadPageStoreRailSlice();
+  const sale = (retailer, title, price, originalPrice, type) =>
+    ({ retailer, title, price, originalPrice, image: "img", ...(type ? { type } : {}) });
+
+  /* The sock rack must never be the opener: the first apparel card --
+     Gymshark shoots apparel on models -- takes card one, the cheap
+     big-discount socks take card two, everything after keeps order. */
+  const items = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14),
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Reset Pink", 4.2, 14),
+    sale("gymshark", "Woven Shorts \u2014 Indigo Purple", 10.2, 34),
+    sale("gymshark", "Power T-Shirt \u2014 White/Brand Blue", 14.4, 36),
+  ];
+  const picks = storeRailPicks("gymshark", items, [], new Set());
+  eq(picks[0].title, "Woven Shorts \u2014 Indigo Purple", "the Gymshark opener is not apparel");
+  eq(picks[1].title, "Comfy Rest Day Socks \u2014 Stone Beige", "the socks are not card two");
+  eq(picks.slice(2).map(p => p.title).join(),
+    "Comfy Rest Day Socks \u2014 Reset Pink,Power T-Shirt \u2014 White/Brand Blue",
+    "the tail of the rail moved");
+
+  /* An explicit apparel category is authoritative even when the name is
+     accessory-adjacent. */
+  const typed = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14, "WOMENS_ACCESSORIES_SOCKS_LONG"),
+    sale("gymshark", "Woven Shorts \u2014 Indigo Purple", 10.2, 34, "WOMENS_APPAREL_SHORTS_LOOSE"),
+  ];
+  eq(storeRailPicks("gymshark", typed, [], new Set())[0].title,
+    "Woven Shorts \u2014 Indigo Purple", "the apparel type did not win the opener");
+
+  /* No apparel on the shelf: the order is left exactly as-is. */
+  const socksOnly = [
+    sale("gymshark", "Comfy Rest Day Socks \u2014 Stone Beige", 4.2, 14),
+    sale("gymshark", "Crew Socks 3 Pack", 8, 16),
+  ];
+  eq(storeRailPicks("gymshark", socksOnly, [], new Set()).map(p => p.title).join(),
+    "Comfy Rest Day Socks \u2014 Stone Beige,Crew Socks 3 Pack",
+    "a socks-only shelf got reordered");
+
+  /* Other stores are untouched by the Gymshark lead. */
+  const macys = storeRailPicks("macys",
+    [sale("macys", "coat", 50, 100), sale("macys", "dress", 20, 100)], [], new Set());
+  eq(macys.map(p => p.title).join(), "dress,coat", "a non-Gymshark rail changed order");
+});
+
+check("the store rails reuse the page's own cards, feeds and registry", () => {
+  const railAnchor = shopfrontSrc.indexOf("STORE RAILS -- THE MALL, NOT THE DIRECTORY");
+  const rails = shopfrontSrc.slice(
+    shopfrontSrc.lastIndexOf("/*", railAnchor),
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
-  /* The same chip as the home page's store grid. Restyled instead of
-     reused, a store's mark, its colour and its honest "próximamente"
-     dot could differ between the rail and the grid below it. */
-  if (!/homeStoreChipHTML\(r\)/.test(stores)) throw new Error("the stores rail has grown its own chip");
-  if (!/activeRetailers\(\)/.test(stores)) throw new Error("the stores rail is not reading the registry");
-  /* The chip carries no width of its own -- in the home grid its cell
-     supplies one -- so the rail's wrapper has to stretch it, or the
-     tiles come out at three different widths. */
-  if (!/w-\[118px\] grid/.test(stores)) throw new Error("the store tiles are no longer a uniform width");
+  if (!rails) throw new Error("the store rails' code is gone");
+  /* The eight window displays, reliable-first (2026-09-26, Danny): Foot
+     Locker, Sephora, Macy's and Dick's lead -- the researched reliable
+     shippers -- then Victoria's Secret, Costco, Gymshark, SSENSE. */
+  const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
+  if (!m) throw new Error("STORE_RAIL_STORES is gone");
+  eq(m[1].replace(/['\s]/g, ""), "footlocker,sephora,macys,dicks,victoriassecret,costco,gymshark,ssense",
+    "the store rails are not the eight agreed stores in mall order");
+  /* The same card every other rail draws -- a second card component is
+     how the rails drift apart. */
+  if (!/railCardHTML\(p,/.test(rails)) throw new Error("a store rail grew its own card");
+  /* Sale items come from the Ofertas feed's own cache, featured picks
+     from the catalogue pool the related rail reads -- never a private
+     list a store rail could quietly diverge on. */
+  if (!/saleItemsCache/.test(rails)) throw new Error("a store rail is not reading the deals feed");
+  if (!/relatedPool\(\)/.test(rails)) throw new Error("a store rail is not reading the catalogue pool");
+  /* HONEST LABELS. There is no sales-rank data yet, so "más vendido"
+     anywhere in here would be invented. Markdowns carry their -% badge
+     from the shared card; nothing else claims a rank. Comments are
+     stripped first -- the rule is discussed in a comment above the
+     code, and the check is about labels, not prose. */
+  const railsCode = rails.replace(/\/\*[\s\S]*?\*\//g, "");
+  if (/m.s vendido|mas vendido|best.?seller/i.test(railsCode)) throw new Error("a store rail claims a bestseller rank");
+  /* Every rail ends at its store: the header and the trailing card both
+     open the same full store page. */
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
+    if (!new RegExp(`openStore\\('${key}'\\)`).test(shopfrontSrc)) throw new Error(`${key}'s rail has no way into its store`);
+  }
+  /* Lazy, and never self-moving: the ban the shopfront check enforces
+     covers this code too, but the observer is the point -- cards paint
+     when the row nears the viewport. */
+  if (!/IntersectionObserver/.test(rails)) throw new Error("the store rails lost their lazy paint");
 
   const cats = shopfrontSrc.slice(
     shopfrontSrc.indexOf("function initDepartmentTiles("),
@@ -5103,6 +5571,35 @@ check("the other two rails reuse what the page already draws", () => {
      makes a new department -- Zapatos, and whatever follows it --
      appear in the rail with no second change anywhere. */
   if (!/renderMobileCatsRail\(tiles\)/.test(cats)) throw new Error("the categories rail is not fed the grid's own tiles");
+});
+
+check("every store rail ends on a 'Ver todo en …' end-card into the same store", () => {
+  /* 2026-09-25, DANNY: each rail gets two doors into the store -- the
+     header's "Ver tienda" link and a trailing "Ver más" end-card
+     ("Ver todo en Victoria's Secret →"). Both open the same full store
+     page with its departments. */
+  const more = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function storeRailMoreHTML("),
+    shopfrontSrc.indexOf("let storeRailsStarted"),
+  );
+  if (!more) throw new Error("storeRailMoreHTML is gone");
+  /* Danny's copy: "Ver todo en {store} →", not a second "Ver tienda". */
+  if (!/Ver todo en/.test(more)) throw new Error("the end-card lost Danny's 'Ver todo en' copy");
+  if (!/&#8594;/.test(more)) throw new Error("the end-card lost its arrow");
+  /* Same destination as the header link: the store's full page. */
+  if (!/openStore\('\$\{jsAttr\(key\)\}'\)/.test(more)) throw new Error("the end-card no longer opens its own store");
+  /* The painter actually appends it after the cards -- a function that
+     exists but is never called is a door painted on a wall. */
+  const paint = shopfrontSrc.slice(
+    shopfrontSrc.indexOf("function initStoreRails("),
+    shopfrontSrc.indexOf("function mobileCatCardHTML("),
+  );
+  if (!/\+ storeRailMoreHTML\(key\)/.test(paint)) throw new Error("the rails no longer end on the more-card");
+  /* And the headers still carry the first door, for all six stores. */
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
+    if (!new RegExp(`openStore\\('${key}'\\)[^]*?Ver tienda`).test(shopfrontSrc))
+      throw new Error(`${key}'s rail header lost its 'Ver tienda' door`);
+  }
 });
 
 check("the rails' images are lazy, and its covers are the curated ones", () => {
@@ -5122,15 +5619,17 @@ check("the rails' images are lazy, and its covers are the curated ones", () => {
   if (!/t\.icon/.test(card)) throw new Error("a department with no cover now renders nothing");
 });
 
-check("the shopfront fills itself when a window is dragged across lg", () => {
+check("the shopfront fills on first paint at any width", () => {
+  /* 2026-09-25: the laptop has its own shopfront now, so the old
+     phone-only guard (wait for the lg query to match before fetching)
+     is gone -- the sales scan runs on first paint at every width. What
+     is pinned: filled once, and the resize listener still exists for
+     the narrow-then-wide case. */
   const init = shopfrontSrc.slice(
     shopfrontSrc.indexOf("const MOBILE_SHOPFRONT_MQ"),
     shopfrontSrc.indexOf("window.addEventListener('DOMContentLoaded', renderPrecioHonestoCards)"),
   );
-  // One query, used by both the guard and the listener, so the point at
-  // which the rails appear and the point at which they fill cannot drift.
-  eq((init.match(/MOBILE_SHOPFRONT_MQ/g) || []).length, 3, "the breakpoint is read from one place");
-  eq(shopfrontSrc.includes("(max-width: 1023px)"), true, "the shopfront's breakpoint moved off lg");
+  if (/if \(!window\.matchMedia\(MOBILE_SHOPFRONT_MQ\)\.matches\) return;/.test(init)) throw new Error("the phone-only guard is back -- the desktop would never fill its rails");
   if (!/addEventListener\('change', initMobileShopfront\)/.test(init)) throw new Error("a resize no longer fills the rails");
   if (!/mq\.addListener/.test(init)) throw new Error("older iOS Safari never fills the rails on rotation");
   // Filled once, not on every crossing: a drag across the breakpoint
@@ -5164,6 +5663,1017 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
 });
 
 
+/* ==================================================================
+   FIESTAS Y EVENTOS (2026-09-26): THE PARTY VERTICAL.
+
+   Party City (518 products), Sam's Club (120) and Costco (1,569) arrive
+   as catalog files. Party City is deliberately NOT a registered store --
+   it only surfaces inside this vertical, badged "Party City" by name.
+   Costco is the eighth featured store rail; Sam's Club rides the
+   other-stores strip (browse-true, search-false).
+   ================================================================== */
+group("Fiestas y Eventos: the party vertical");
+
+const FIESTA_CATALOG_COUNTS = { "partycity-catalog.json": 518, "samsclub-catalog.json": 120, "costco-catalog.json": 1397 };
+const FIESTA_CATALOG_RETAILERS = { "partycity-catalog.json": "partycity", "samsclub-catalog.json": "samsclub", "costco-catalog.json": "costco" };
+
+function fiestaEnvelopes(){
+  /* The real envelope normalizer from the page, over the three real
+     files -- the same path the boot loader takes. */
+  const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
+  const out = {};
+  for (const [file, retailer] of Object.entries(FIESTA_CATALOG_RETAILERS)) {
+    const raw = JSON.parse(readFileSync(root(file), "utf8"));
+    out[retailer] = normalizeCatalogueEnvelope(raw).retailers[retailer];
+  }
+  return out;
+}
+
+function fiestaFileCounts(){
+  const counts = {};
+  for (const [file, retailer] of Object.entries(FIESTA_CATALOG_RETAILERS)) {
+    const raw = JSON.parse(readFileSync(root(file), "utf8"));
+    const bucket = (raw.retailers || {})[retailer] || {};
+    counts[file] = Object.values(bucket.departments || {})
+      .reduce((t, d) => t + (d.items || []).length, 0);
+  }
+  return counts;
+}
+
+check("the three party catalogs parse with their expected product counts", () => {
+  const counts = fiestaFileCounts();
+  for (const [file, want] of Object.entries(FIESTA_CATALOG_COUNTS)) {
+    eq(counts[file], want, `${file} product count`);
+  }
+});
+
+check("CATALOGUE_FILES lists the three catalogs and they resolve on disk", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const m = html.match(/const CATALOGUE_FILES = \[([\s\S]*?)\];/);
+  if (!m) throw new Error("CATALOGUE_FILES is gone");
+  for (const file of Object.keys(FIESTA_CATALOG_COUNTS)) {
+    if (!m[1].includes(`'/${file}'`)) throw new Error(`CATALOGUE_FILES lost /${file}`);
+    if (!existsSync(root(file))) throw new Error(`${file} is listed but missing on disk`);
+  }
+});
+
+check("Costco and Sam's Club are registered stores; Party City is not", () => {
+  for (const key of ["costco", "samsclub"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`the module lost its ${key} row`);
+    if (r.search) throw new Error(`${key} is search:true -- catalog-first browse only`);
+    if (!r.browse) throw new Error(`${key} is not browse:true`);
+    // The index.html mirror row carries the same fields.
+    const row = new RegExp(`^\\s*${key}:\\s*\\{[^\\n]*`, "m").exec(shopfrontSrc);
+    if (!row) throw new Error(`the index.html mirror lost its ${key} row`);
+    if (!/browse: true/.test(row[0])) throw new Error(`the mirror's ${key} row lost browse:true`);
+  }
+  if ("partycity" in RETAILERS) throw new Error("partycity is registered as a store");
+  const retailersBlockSrc = /const RETAILERS = \{[\s\S]*?\n\};/.exec(shopfrontSrc)[0];
+  if (/^\s*partycity:\s*\{/m.test(retailersBlockSrc)) throw new Error("partycity has a mirror row as a store");
+  /* No member-only badges: Danny holds the memberships, so the
+     catalogs' membershipRequired/isMemberOnly flags must never be read
+     at render, and no members-only badge copy may exist. (The "miembro"
+     copy elsewhere on the page is the Aria Key Club, not a store.) */
+  if (/\.(membershipRequired|isMemberOnly)\b/.test(shopfrontSrc))
+    throw new Error("the page reads a catalog membership flag");
+  /* Comments document the rule; the check is about rendered badge copy. */
+  const noComments = shopfrontSrc.replace(/\/\*[\s\S]*?\*\//g, "").replace(/<!--[\s\S]*?-->/g, "");
+  if (/Solo miembros|Members only|members-only/i.test(noComments))
+    throw new Error("a members-only badge leaked into the page");
+});
+
+check("Costco's rail renders real picks with price and photo", () => {
+  const { storeRailPicks, costcoBucketOf } = loadPageStoreRailSlice();
+  const costco = fiestaEnvelopes().costco;
+  // Raw-level pool the way the page's relatedPool builds it: title,
+  // price and image present, retailer attached, departments stamped.
+  const pool = [];
+  for (const [dept, entry] of Object.entries(costco.departments || {})) {
+    for (const raw of entry.items || []) {
+      const title = raw.title || raw.name || "";
+      const price = Number(raw.price);
+      const image = raw.image || raw.imageUrl || "";
+      if (title && Number.isFinite(price) && price > 0 && image)
+        pool.push({ retailer: "costco", title, price, image, brand: raw.brand || "", departments: [dept] });
+    }
+  }
+  if (!pool.length) throw new Error("the costco catalog yielded no pool items");
+  const picks = storeRailPicks("costco", [], pool, new Set());
+  if (!picks.length) throw new Error("Costco's rail rendered nothing");
+  if (picks.length > 12) throw new Error("Costco's rail overflows its twelve-card shelf");
+  for (const p of picks) {
+    if (p.retailer !== "costco") throw new Error("Costco's rail picked another store's product");
+    if (!(p.price > 0) || !p.image) throw new Error("a Costco pick has no price or no photo");
+    if (costcoBucketOf(p) === "dulces") throw new Error("candy reached Costco's rail");
+  }
+  // DANNY'S WOMEN-SHOPPER LENS (2026-09-26): the rail leads with cozy
+  // home (textiles, then plush/decor) on the real catalogue -- never a
+  // TV mount, cable or other tech accessory.
+  const { costcoTreasureRank } = loadPageStoreRailSlice();
+  if (costcoTreasureRank(picks[0]) > -2)
+    throw new Error("Costco's rail does not lead with cozy home: " + picks[0].title);
+  const BORING = /(wall\smount|tv\smount|\bmount\b|mounting|soporte|cable\smanagement|\bhdmi\b|\bcables?\b|adaptador|\badapter\b)/i;
+  for (const p of picks.slice(0, 6))
+    if (BORING.test(`${p.title} ${p.brand || ""}`))
+      throw new Error("a tech accessory leads Costco's rail: " + p.title);
+});
+
+check("Costco's curation ranks cozy home first, boring tech last -- never candy", () => {
+  /* 2026-09-26, DANNY'S CALL: the Costco shopper is women. Home textiles
+     (throws, blankets, bedding, pillows) lead, then plush/decor, then
+     kitchen, then beauty, then the interesting finds (gadgets, quirky
+     discoveries), then clothes, then small electronics, then everything
+     else. Boring tech accessories (TV mounts, cables) and freight
+     furniture sink to the back -- both stay shoppable, neither leads.
+     Candy belongs in Fiestas y Eventos, never here. */
+  const { costcoCuratedItems, costcoBucketOf, COSTCO_CAROUSEL_MAX } = loadPageStoreRailSlice();
+  const mk = (title, departments, extra = {}) => ({
+    retailer: "costco", title, price: 29.99,
+    image: "https://img/" + title.replace(/\W+/g, "_"),
+    brand: "", departments, ...extra,
+  });
+  const items = [
+    mk("Juguete de peluche", ["juguetes"]),              // plush, rank -2
+    mk("Chocolate belga surtido", ["dulces"]),            // excluded: candy
+    mk("Sofá seccional de tela", ["hogar"]),              // freight furniture, rank 7
+    mk("Camisa de vestir", ["bebe"]),                     // apparel, rank 2
+    mk("Caja de gemas coleccionables", ["hogar"]),        // treasure find, rank 1
+    mk("Laptop 15 pulgadas", ["electronica"]),            // hero electronics, rank 3
+    mk("Audífonos bluetooth", ["belleza"]),               // beauty bucket beats the audio keyword, rank 0
+    mk("Funda de almohada decorativa", ["hogar"]),        // home textile, rank -3
+    mk("Vela aromática de vainilla", ["hogar"]),          // decor, rank -2
+    mk("Batería de cocina antiadherente", ["hogar"]),    // kitchen, rank -1
+    mk("Soporte de pared para TV 55 pulg", ["electronica"]), // boring tech, rank 6
+    mk("Cable HDMI 8K 3 metros", ["electronica"]),        // boring tech, rank 6
+    mk("Toallas de baño", ["hogar"]),                     // ordinary home, rank 5
+    mk("Manta para bebé", ["bebe"]),                      // home textile beats the baby bucket, rank -3
+    mk("Mountain Bouquet", ["hogar"]),                    // flowers, NOT a TV mount -- rank -2, never 6
+    mk("Sin precio", ["electronica"], { price: 0 }),
+    mk("Sin foto", ["electronica"], { image: "" }),
+    mk("Otra tienda", ["electronica"], { retailer: "samsclub" }),
+    mk("Laptop 15 pulgadas", ["electronica"]), // duplicate collapses
+  ];
+  const out = costcoCuratedItems(items);
+  const titles = out.map(p => p.title);
+  if (titles.includes("Chocolate belga surtido")) throw new Error("candy entered the curation");
+  if (titles.includes("Sin precio") || titles.includes("Sin foto") || titles.includes("Otra tienda"))
+    throw new Error("the curation kept an unrenderable or foreign item");
+  eq(titles.filter(t => t === "Laptop 15 pulgadas").length, 1, "the duplicate collapsed");
+  const rankOf = (t) => titles.indexOf(t);
+  // the lead: home textiles, ahead of everything
+  if (!(rankOf("Funda de almohada decorativa") < rankOf("Juguete de peluche")))
+    throw new Error("home textiles do not lead the plush");
+  if (!(rankOf("Manta para bebé") < rankOf("Vela aromática de vainilla")))
+    throw new Error("a blanket does not beat decor");
+  // plush and decor ahead of kitchen, kitchen ahead of beauty
+  if (!(rankOf("Vela aromática de vainilla") < rankOf("Batería de cocina antiadherente")))
+    throw new Error("decor does not beat kitchen");
+  if (!(rankOf("Mountain Bouquet") < rankOf("Batería de cocina antiadherente")))
+    throw new Error("a floral bouquet was treated as a TV mount");
+  if (!(rankOf("Batería de cocina antiadherente") < rankOf("Audífonos bluetooth")))
+    throw new Error("kitchen does not beat beauty");
+  // beauty ahead of finds, finds ahead of clothes, clothes ahead of electronics
+  if (!(rankOf("Audífonos bluetooth") < rankOf("Caja de gemas coleccionables")))
+    throw new Error("beauty does not beat the treasure finds");
+  if (!(rankOf("Caja de gemas coleccionables") < rankOf("Camisa de vestir")))
+    throw new Error("finds do not beat clothes");
+  if (!(rankOf("Camisa de vestir") < rankOf("Laptop 15 pulgadas")))
+    throw new Error("clothes do not beat electronics");
+  if (!(rankOf("Laptop 15 pulgadas") < rankOf("Toallas de baño")))
+    throw new Error("hero electronics do not beat ordinary home");
+  // the back of the shelf: boring tech, then furniture -- both shoppable, neither leading
+  if (!(rankOf("Toallas de baño") < rankOf("Soporte de pared para TV 55 pulg")))
+    throw new Error("ordinary home does not beat a TV mount");
+  if (!(rankOf("Cable HDMI 8K 3 metros") < rankOf("Sofá seccional de tela")))
+    throw new Error("a cable does not beat freight furniture");
+  if (rankOf("Sofá seccional de tela") !== titles.length - 1)
+    throw new Error("freight furniture is not last");
+  if (out.length > COSTCO_CAROUSEL_MAX) throw new Error("the curation overflows its carousel");
+  eq(costcoBucketOf({ departments: ["Dulces y Chocolates"] }), "dulces", "bucket detection");
+  eq(costcoBucketOf({ department: "Electrónica" }), "electronica", "singular department field");
+});
+check("Costco's storefront follows the standard store template", () => {
+  /* 2026-09-26, DANNY'S QA: the Costco store page (tap "Ver tienda") must
+     read like every other store page -- carousel first, then category
+     sections -- not a one-off curated shelf. Costco's Spanish buckets map
+     through BUCKET_SPEC now, so the standard openStore path (Destacados
+     carousel + department tiles + brand panel) renders for it like any
+     other store, and the treasure-hunt special-case is gone. Settled by
+     execution over the real catalogue, not by reading the code. */
+  const { departmentItemsFor } = loadPageDepartmentSlice();
+  const { withoutUnshippableItems } = loadPageEnvelopeSlice();
+  const raw = JSON.parse(readFileSync(root("costco-catalog.json"), "utf8"));
+  const costco = withoutUnshippableItems(raw).retailers.costco;
+  const electronics = departmentItemsFor(costco, "department", "electronics", "costco");
+  const home = departmentItemsFor(costco, "department", "home_goods", "costco");
+  const beauty = departmentItemsFor(costco, "department", "beauty", "costco");
+  if (!electronics.length) throw new Error("Costco's electronica bucket no longer resolves to the electronics department");
+  if (!home.length) throw new Error("Costco's hogar bucket no longer resolves to the home department");
+  if (!beauty.length) throw new Error("Costco's belleza bucket no longer resolves to the beauty department");
+  // the whole kept catalogue is reachable through the departments -- no 48-item cap
+  const reachable = electronics.length + home.length + beauty.length;
+  if (reachable < 700) throw new Error("only " + reachable + " Costco items reachable through departments");
+  // no bulky projector bundle survives to the storefront
+  const titles = [...electronics, ...home, ...beauty].map(p => p.name || p.title || "");
+  if (titles.some(t => /projector|proyector/i.test(t) && /100"|120"|150"|\bUST\b/i.test(t)))
+    throw new Error("a bulky projector bundle reached Costco's storefront departments");
+  // and openStore keeps no Costco-only storefront
+  const html = readFileSync(root("index.html"), "utf8");
+  const start = html.indexOf("async function openStore(retailer){");
+  const end = html.indexOf("async function openStoreResults(", start);
+  if (start < 0 || end < 0 || end < start) throw new Error("openStore moved -- update this check");
+  const body = html.slice(start, end);
+  if (/Lo mejor de Costco|hallazgos de Costco/.test(body))
+    throw new Error("the curated-shelf storefront is still in openStore");
+  if (/retailer === 'costco'/.test(body))
+    throw new Error("a Costco special-case is still in openStore");
+});
+
+
+check("Danny's no-TV/no-freight rule: TVs and bulky items never reach any surface", () => {
+  /* 2026-09-26, DANNY'S CALL: "we do not sell fucking TVs." TVs of any
+     size and anything that needs freight (sofas, sectionals, mattresses,
+     cribs, big appliances, treadmills, patio sets, generators, safes)
+     are dropped at the load boundary -- the same place pharmacy went --
+     so no surface (search, Ofertas, rails, aisles, store pages) can show
+     them, and a re-pulled catalogue cannot bring them back. */
+  const { isShippableItem, withoutUnshippableItems } = loadPageEnvelopeSlice();
+  const out = (name) => isShippableItem({ name });
+  // TVs, all sizes, plus TV mounting services (TV stands are furniture and stay)
+  for (const tv of [
+    'TCL 65" Class - Q77K Series - 4K UHD QLED Smart TV',
+    'Samsung 60" - TU700D Series - 4K UHD LED LCD TV',
+    'onn 32 in Class 720p HD Smart TV Powered by VIZIO, 32S2V1',
+    'Hisense 40-Inch Class H4 Series FHD Roku Smart TV',
+    'Angi Premier - Basic 2-Pro TV Mounting Service',
+    'TV Wall Mount Bracket 32-65 inch', // mounts banned even without a bare "TV"
+    'Soporte TV de pared articulado',
+    'Soporte para TV fijo 14-42 pulgadas',
+  ]) if (out(tv)) throw new Error(`a TV slipped through: ${tv}`);
+  // freight-class bulky goods
+  // bulky projector packages (2026-09-26, Danny's QA: no price ceiling).
+  // No weight or dimension data on these -- only titles -- so the freight
+  // signal comes from the package the title describes: a bundled 80"+
+  // screen, a UST chassis, or a soundbar bundle. A small portable projector
+  // with no such package signal stays shippable (see the carve-outs).
+  for (const bulky of [
+    'JMGO N3 4K UHD Triple Laser Google TV Smart Projector Bundle with 100" Portable Screen',
+    'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle with Power Bank Tripod and 100" Portable Screen',
+    'Hisense, 80"- 150" 4K UHD IMAX Enhanced Triple Laser Smart UST Projector PT1 Bundled with 3.1.2ch Dolby Atmos',
+    'Hisense M2SE Pro 4K Triple Laser Smart Projector Bundle with 120" Projector Screen',
+    'Hisense C2 Pro 4K Portable Laser Mini Projector Bundle with 120" Portable Indoor/ Outdoor Projector Screen',
+  ]) if (out(bulky)) throw new Error("a bulky projector bundle slipped through: " + bulky);
+  for (const big of [
+    'Thomasville Fallon Modular Sectional 6-piece Gray with Ottoman',
+    'Henredon Caley Reversible Sofa Chaise with Ottoman',
+    'Stearns & Foster Devan Fabric Sleeper Sofa with King Memory Foam Mattress',
+    'Imagio Baby Ashley 3-piece Crib Set, Brushed White',
+    'Allspace 5-piece Modular Outdoor Patio Set',
+    'Tresanti Jordyn 85” Console with ClassicFlame Electric Fireplace',
+  ]) if (out(big)) throw new Error(`a freight item slipped through: ${big}`);
+  // weight backstop for the day catalogues carry real weights
+  if (isShippableItem({ name: 'Treadmill Pro 5000', weightKg: 85 }))
+    throw new Error("the 30kg weight backstop did not catch an 85kg item");
+  // carve-outs: small TV-adjacent accessories and small goods that
+  // merely mention furniture must survive
+  for (const small of [
+    'Apple TV 4K 64GB (Wi-Fi)',
+    'SANUS Preferred 3 Meter 8K Ultra High-Speed HDMI 2.1 Cable, 2-pack',
+    'JMGO PicoPlay+ Portable 1080P Google TV Projector Bundle',
+    'Anker Nebula Capsule Mini Portable Projector',
+    'Mini Projector, projects up to 120 inch screen',
+    'Dreame Pocket Ultra High-Speed Hair Dryer',
+    'Nintendo Switch OLED console',
+    'Puerta Del Sol TV Console', // TV stands are furniture, not televisions (2026-09-26, Danny)
+    'Walker Edison 58" TV Stand',
+    'Velvet Throw Pillow Cushion Covers for Sofas, Chairs',
+    'SSENSE Exclusive Off-White FF Bunker Jacket',
+    'Souper Cubes Silicone Freezer Storage Tray, 5-pack',
+  ]) if (!out(small)) throw new Error(`a shippable small good got eaten: ${small}`);
+  // the envelope filter drops them per-department, keeps the rest
+  const env = withoutUnshippableItems({ retailers: { costco: { departments: {
+    electronica: { items: [{ name: 'TCL 65" Class Smart TV' }, { name: 'Bose Solo Soundbar Series II' }] },
+    hogar: { items: [{ name: 'Thomasville Fallon Modular Sectional' }, { name: 'Toallas de baño' }] },
+  } } } });
+  const e = env.retailers.costco.departments.electronica.items.map(i => i.name);
+  const h = env.retailers.costco.departments.hogar.items.map(i => i.name);
+  if (e.length !== 1 || e[0] !== 'Bose Solo Soundbar Series II')
+    throw new Error("the envelope filter kept a TV or dropped a soundbar");
+  if (h.length !== 1 || h[0] !== 'Toallas de baño')
+    throw new Error("the envelope filter kept a sectional or dropped towels");
+  // and the pipeline actually runs it on every load
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/\.then\(parts => parts\.map\(withoutUnshippableItems\)\)/.test(html))
+    throw new Error("withoutUnshippableItems is not wired into the load pipeline");
+});
+
+check("Costco's rail leads with cozy home, never a TV", () => {
+  /* 2026-09-26, DANNY'S QA: the shelf's lead card used to be a 65-inch TV.
+     With TVs filtered at the load boundary and the women-shopper lens in
+     place, home textiles lead the rail; small electronics still rank, but
+     behind cozy home, decor, kitchen and beauty. */
+  const { costcoCuratedItems } = loadPageStoreRailSlice();
+  const mk = (title, departments, extra = {}) => ({
+    retailer: "costco", title, price: 29.99,
+    image: "https://img/" + title.replace(/\W+/g, "_"),
+    brand: "", departments, ...extra,
+  });
+  const items = [
+    mk("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer", ["electronica"]),
+    mk("Manta tejida artesanal", ["hogar"]),
+    mk("Camisa de vestir", ["bebe"]),
+    mk("Toallas de baño", ["hogar"]),
+  ];
+  const out = costcoCuratedItems(items);
+  if (!/manta/i.test(out[0].title))
+    throw new Error(`the lead is not cozy home: ${out[0].title}`);
+  const titles = out.map(p => p.title);
+  if (!(titles.indexOf("Manta tejida artesanal") < titles.indexOf("Hisense AX700 5.1.4 Ch Soundbar with Wireless Subwoofer")))
+    throw new Error("a soundbar leads cozy home");
+});
+
+check("every Fiestas sub-rail has a non-empty product set", () => {
+  const { FIESTAS_RAILS, fiestasItemsFor } = loadPageFiestasSlice();
+  eq(FIESTAS_RAILS.map(r => r.key).join(","), "decoracion,sorpresas,menaje,dulces", "the four sub-rails");
+  const envelopes = fiestaEnvelopes();
+  for (const rail of FIESTAS_RAILS) {
+    let n = 0;
+    for (const retailer of Object.keys(rail.departments)) {
+      const items = fiestasItemsFor(envelopes[retailer], rail.key, retailer);
+      n += items.length;
+      for (const raw of items) {
+        if (!(raw.title || raw.name)) throw new Error(`${rail.key}: a raw item has no title`);
+        if (!(Number(raw.price) > 0)) throw new Error(`${rail.key}: "${(raw.title || raw.name || "").slice(0, 40)}" has no price`);
+        if (!(raw.image || raw.imageUrl)) throw new Error(`${rail.key}: "${(raw.title || raw.name || "").slice(0, 40)}" has no image`);
+      }
+    }
+    if (!n) throw new Error(`the ${rail.key} sub-rail has no products`);
+  }
+});
+
+check("the Fiestas vertical's markup matches its shelf config", () => {
+  /* Raw markup on purpose: the ids below are unique to the Fiestas
+     sections, and no HTML comment carries them. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const { FIESTAS_RAILS } = loadPageFiestasSlice();
+  for (const surface of ["mFiestasSection", "dFiestasSection"]) {
+    if (!html.includes(`id="${surface}"`)) throw new Error(`${surface} is gone`);
+  }
+  for (const rail of FIESTAS_RAILS) {
+    for (const prefix of ["m", "d"]) {
+      if (!html.includes(`id="${prefix}FiestasRail-${rail.key}"`))
+        throw new Error(`${prefix}FiestasRail lost its ${rail.key} row`);
+    }
+    // Each sub-rail's "Ver todo" opens the Fiestas listing for that key.
+    if (!new RegExp(`openCatalog\\('fiestas',\\s*'${rail.key}'\\)`).test(html))
+      throw new Error(`${rail.key} has no Ver todo into the Fiestas listing`);
+  }
+  // Danny's exact copy on both headers.
+  const slogan = "Las mamás fashion merecen más opciones.";
+  if ((html.match(new RegExp(slogan.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) || []).length < 2)
+    throw new Error("the Fiestas slogan is not on both surfaces");
+  // The category rails tile into the vertical.
+  if (!/goFiestasSection\(\)/.test(html)) throw new Error("no tile scrolls into Fiestas y Eventos");
+});
+
+check("Party City cards badge the store by name, without a storefront", () => {
+  const badge = forwardSlice(shopfrontSrc, "function retailerTextBadgeHTML(", "function ", "retailerTextBadgeHTML");
+  if (!/FIESTAS_RETAILER_LABEL/.test(badge)) throw new Error("the card badge lost its Party City fallback");
+  const { FIESTAS_RETAILER_LABEL } = loadPageFiestasSlice();
+  eq(FIESTAS_RETAILER_LABEL.partycity, "Party City", "the Party City display name");
+  // And nothing in the page routes to a Party City storefront.
+  if (/openStore\(\s*['"]partycity['"]\)/.test(shopfrontSrc)) throw new Error("something opens a partycity storefront");
+});
+
+check("the Aria Auto house banner sits under the brand band, on both breakpoints", () => {
+  /* 2026-09-26, DANNY'S CALL (final position): the logo/branding moment
+     lands first, then the black banner, then the rails -- at the very top
+     it would read like the page title. One bold statement, no product
+     carousel. Danny's copy: relatable promise first, the live source as
+     the trust kicker. The CTA opens the Aria Auto vertical.
+     (Supersedes PR #92's between-Fiestas slot. RockAuto's name left the
+     banner 2026-09-26 with the source itself.) */
+  const html = readFileSync(root("index.html"), "utf8");
+  const banners = [...html.matchAll(/<section[^>]*aria-label="Aria Auto"[^>]*>([\s\S]*?)<\/section>/g)];
+  eq(banners.length, 2, "one Aria Auto banner per breakpoint");
+  for (const [, body] of banners) {
+    for (const phrase of ["Aria Auto", "Repuestos para tu auto a una fracci", "frenos, filtros, amortiguadores",
+        "Abastecido por AutoZone", "Encuentra tu repuesto"]) {
+      if (!body.includes(phrase)) throw new Error(`the banner lost its copy: ${phrase}`);
+    }
+    if (/RockAuto/.test(body)) throw new Error("the banner still names RockAuto");
+    if (!/openAriaAuto\(\);return false;/.test(body)) throw new Error("the banner CTA does not open Aria Auto");
+    if (!/ariaAutoCta/.test(body)) throw new Error("the banner CTA lost its amber button styling");
+  }
+  // Dark automotive styling exists, and the banner never wears the navy rail band.
+  if (!/\.ariaAutoBanner\{/.test(html)) throw new Error("the banner lost its dark styling");
+  for (const [tag] of banners) {
+    if (/ariaNavyBand/.test(tag)) throw new Error("the auto banner wears the navy rail language");
+  }
+  // Position: after the brand band, before the first store rail, on both breakpoints.
+  for (const [startMark, railId] of [["<div id=\"homeView\"", "mStoreRail-victoriassecret"],
+      ["<div id=\"desktopShopfront\"", "dStoreRail-victoriassecret"]]) {
+    const start = html.indexOf(startMark);
+    const band = html.indexOf('aria-label="Compra en Estados Unidos"', start);
+    const banner = html.indexOf('aria-label="Aria Auto"', start);
+    const rail = html.indexOf(`id="${railId}"`, start);
+    if (!(band > 0 && banner > band && rail > banner))
+      throw new Error("the Aria Auto banner is not under the brand band");
+  }
+});
+
+check("the brand strip exists on both breakpoints and tiles into brand pages", () => {
+  /* 2026-09-26, DANNY'S HOMEPAGE ORDER V3: the eye-catcher between the
+     store picker and the Costco zone -- the catalogue's top clothing
+     brands as one swipeable row. */
+  const html = readFileSync(root("index.html"), "utf8");
+  for (const id of ["mBrandStrip", "dBrandStrip"]) {
+    if (!html.includes(`id="${id}" data-brand-strip`)) throw new Error(`${id} lost its strip row`);
+  }
+  if (!/function brandStripBrands\(\)/.test(html)) throw new Error("brandStripBrands is gone");
+  if (!/function initBrandStrip\(\)/.test(html)) throw new Error("initBrandStrip is gone");
+  // Tiles open the brand's catalogue page, not a search.
+  if (!/openCatalog\('brand',/.test(html)) throw new Error("brand tiles do not open brand pages");
+  // The strip is painted next to the store rails on boot.
+  if (!/initStoreRails\(\); initBrandStrip\(\)/.test(html)) throw new Error("the brand strip is not painted on boot");
+});
+
+check("every brand-strip logo resolves to a real, loadable asset", () => {
+  /* 2026-09-26: Danny's blank-logo report. A tile is only as good as its
+     asset: every BRAND_LOGOS entry must point at a file that exists on
+     disk and parses as its claimed image type, so a bad path can never
+     render a blank tile again. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const mapSrc = html.slice(html.indexOf("const BRAND_LOGOS = {"), html.indexOf("function brandStripTileHTML"));
+  const entries = [...mapSrc.matchAll(/^\s*([a-z0-9]+):\s*\{\s*src:\s*'([^']+)'/gm)];
+  if (entries.length < 25) throw new Error(`BRAND_LOGOS shrank to ${entries.length} entries`);
+  for (const [, key, src] of entries) {
+    const p = root(src);
+    if (!existsSync(p)) throw new Error(`brand logo missing on disk: ${key} -> ${src}`);
+    const buf = readFileSync(p);
+    if (src.endsWith(".svg")) {
+      const txt = buf.toString("utf8");
+      if (!/<svg[\s>]/.test(txt)) throw new Error(`brand logo is not an SVG: ${key} -> ${src}`);
+      if (/<script/i.test(txt)) throw new Error(`brand logo contains script: ${key} -> ${src}`);
+    } else if (src.endsWith(".png")) {
+      const magic = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+      if (!buf.subarray(0, 8).equals(magic)) throw new Error(`brand logo is not a PNG: ${key} -> ${src}`);
+    } else {
+      throw new Error(`brand logo has an unexpected extension: ${key} -> ${src}`);
+    }
+  }
+  // The second-wave brands the strip was rendering as text-only tiles.
+  for (const key of ["hugo", "vetements", "jordan", "calvinklein", "tomford"]) {
+    if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
+  }
+  // Third wave, 2026-09-26: every remaining text-only tile except the two
+  // Macy's private labels (bariii, styleco), which have no published mark.
+  for (const key of ["ourlegacy", "y3", "sacai", "entirestudios", "adriannapapell",
+      "xscape", "kikokostadinov", "paulsmith", "studionicholson", "we11done",
+      "kasper", "rickowensdrkshdw", "luudan", "incinternationalconcepts"]) {
+    if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
+  }
+});
+
+check("the six fashion rails are compact; Costco's section is full-size", () => {
+  /* 2026-09-26, DANNY: the six rails read as a store picker, not six
+     full features -- slightly smaller cards. Costco's own section keeps
+     the full-size cards. */
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/\.storeRailCompact \[data-store-rail-card\]/.test(html))
+    throw new Error("the compact-rail CSS is gone");
+  for (const startMark of ['<div id="homeView"', '<div id="desktopShopfront"']) {
+    const start = html.indexOf(startMark);
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+      const sec = html.indexOf(`data-store-rail="${key}"`, start);
+      const tag = html.slice(sec, html.indexOf(">", sec));
+      if (!/storeRailCompact/.test(tag)) throw new Error(`${key} lost its compact class`);
+    }
+    const csec = html.indexOf('data-store-rail="costco"', start);
+    const ctag = html.slice(csec, html.indexOf(">", csec));
+    if (/storeRailCompact/.test(ctag)) throw new Error("Costco's section shrank with the picker");
+  }
+});
+
+
+/* ==================================================================
+   THE MOBILE HEADER: THE MARK, THE UTILITY BAR, AND WHERE ITS TWO
+   LINKS LAND.
+
+   Almost all of this is geometry the browser suite cannot see, because
+   it boots with the Tailwind CDN blocked on purpose. Pinned here by the
+   rules that decide it.
+   ================================================================== */
+group("The mobile header");
+
+const hdrSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const hdrStyle = hdrSrc.slice(hdrSrc.indexOf("<style>"), hdrSrc.indexOf("</style>"));
+const utilityBar = hdrSrc.slice(hdrSrc.indexOf('<div id="utilityBar"'), hdrSrc.indexOf('<header class="sticky'));
+const headerEl = hdrSrc.slice(hdrSrc.indexOf('<header class="sticky'), hdrSrc.indexOf("</header>"));
+
+check("the header carries no mark image \u2014 the wordmark stands alone", () => {
+  /* 2026-09-25 (Danny, Chromebook review): the triangle mark is gone
+     from the header \u2014 "looks like a watermark tattoo". The text
+     wordmark carries the brand now, so no aria-mark image may appear
+     anywhere in the header. */
+  if (/aria-mark/.test(headerEl)) throw new Error("the triangle mark is back in the header");
+  if (!/ariaWordmark/.test(headerEl)) throw new Error("the header wordmark is gone");
+  if (!/>Aria<\/span>/.test(headerEl)) throw new Error("the header no longer says Aria");
+});
+
+check("the wordmark is strengthened text, gold SHOP kept", () => {
+  /* With the mark gone the wordmark does all the work: extra-bold,
+     wider tracking, and the gold SHOP Danny approved. */
+  if (!/ariaWordmark[^"]*font-extrabold[^"]*tracking-\[0\.12em\]/.test(headerEl)) {
+    throw new Error("the wordmark was not strengthened (extrabold, wider tracking)");
+  }
+  if (!/color:var\(--amber\)[^>]*>Shop/.test(headerEl)) throw new Error("SHOP lost its gold");
+  if (!/&#8482;/.test(headerEl)) throw new Error("the \u2122 is gone from the wordmark");
+});
+
+check("the footer carries no mark image either", () => {
+  /* Same removal, for consistency: the footer's mark went with the header's. */
+  const footerEl = hdrSrc.slice(hdrSrc.indexOf('<footer'), hdrSrc.indexOf('</footer>'));
+  if (/aria-mark/.test(footerEl)) throw new Error("the triangle mark is still in the footer");
+  if (!/ARIA/.test(footerEl)) throw new Error("the footer wordmark is gone");
+});
+
+check("the auth pair are matching solid pills, Entrar visible on mobile", () => {
+  /* 2026-09-25 (Danny, Chromebook review): the ghost "Entrar" next to
+     the solid "Crear cuenta" read cheap and sat off-centre. Both are
+     solid pills now \u2014 navy Entrar, gold Crear cuenta \u2014 same height,
+     same weight, vertically centred, and Entrar is visible on mobile.
+     Three copies: the static header markup plus the desktop and mobile
+     templates in renderAuthUI(). */
+  if (/openAuthModal\('login'\)" class="[^"]*hidden sm:inline-flex/.test(hdrSrc)) {
+    throw new Error("Entrar is still hidden on mobile");
+  }
+  if (/border-color:var\(--line\); color:var\(--navy\)">Entrar/.test(hdrSrc)) {
+    throw new Error("the ghost Entrar is back");
+  }
+  const navyEntrar = (hdrSrc.match(/openAuthModal\('login'\)[^>]*background:var\(--navy\)/g) || []).length;
+  const goldSignup = (hdrSrc.match(/openAuthModal\('signup'\)[^>]*background:#F4C463/g) || []).length;
+  if (navyEntrar !== 3) throw new Error(`Entrar is not the navy solid pill in all three copies (found ${navyEntrar}, want 3)`);
+  if (goldSignup !== 3) throw new Error(`Crear cuenta is not the gold solid pill in all three copies (found ${goldSignup}, want 3)`);
+});
+
+check("the admin panel link renders for admins only", () => {
+  /* 2026-09-25: Danny is logged in as admin but the UI gave him no path
+     to /admin.html. The link is conditional on currentUserIsAdmin \u2014
+     the same isAdmin the server reports and admin.html's gate trusts
+     \u2014 in both the desktop account area and the mobile menu, and
+     absent from the DOM for everyone else. */
+  const guarded = [...hdrSrc.matchAll(/currentUserIsAdmin\s*\?\s*`<a href="\/admin\.html"/g)];
+  if (guarded.length !== 2) {
+    throw new Error(`the admin link is not guarded by currentUserIsAdmin in both account templates (found ${guarded.length}, want 2)`);
+  }
+  const total = (hdrSrc.match(/href="\/admin\.html"/g) || []).length;
+  if (total !== 2) throw new Error(`an unguarded /admin.html link exists (found ${total} links, want exactly the 2 guarded ones)`);
+  if (!/Panel de control/.test(hdrSrc)) throw new Error("the admin link label is gone");
+});
+
+check("the orb is docked on every screen \u2014 the lane drift is retired", () => {
+  /* 2026-09-25 (Danny, Chromebook review): the lane drift parked the orb
+     at the top of the screen while its greeting sat bottom-right, and
+     the travel between them read as broken. orbLane() now returns the
+     docked corner unconditionally. */
+  const body = hdrSrc.slice(hdrSrc.indexOf("function orbLane(){"), hdrSrc.indexOf("/* RETIRED WITH THE LANE"));
+  if (!body) throw new Error("orbLane is gone");
+  if (!/mode: 'dock'/.test(body)) throw new Error("orbLane no longer docks");
+  if (/'lane'/.test(body)) throw new Error("the lane drift is back in orbLane");
+});
+
+check("the orb is pinch-zoom-proof \u2014 pure CSS anchor, no JS repositioning", () => {
+  /* 2026-09-26 (Danny, iPhone QA with a screenshot): pinch-zooming on iOS
+     Safari threw the orb from its corner to mid-screen. The old swim loop
+     rewrote the launcher's transform every animation frame from
+     window.innerWidth/innerHeight, which track the VISUAL viewport on iOS
+     -- zooming shrank the anchor. The launcher is now pinned with pure
+     CSS (position:fixed rides the visual viewport at any zoom level), the
+     JS loop is retired, and the bounded float lives in keyframes. */
+  const btnCss = hdrSrc.slice(hdrSrc.indexOf("#assistantBtn {"), hdrSrc.indexOf("#assistantBtn:hover"));
+  if (!btnCss) throw new Error("#assistantBtn CSS block is gone");
+  if (!/position:\s*fixed/.test(btnCss)) throw new Error("the orb is no longer position:fixed in CSS");
+  if (!/right:\s*12px/.test(btnCss)) throw new Error("the orb lost its CSS right anchor");
+  if (!/bottom:\s*calc\(12px/.test(btnCss)) throw new Error("the orb lost its CSS bottom anchor");
+  const swimFn = hdrSrc.slice(hdrSrc.indexOf("function startOrbSwim(){"), hdrSrc.indexOf("THE CHAT ON A PHONE"));
+  if (!swimFn) throw new Error("startOrbSwim is gone");
+  if (/requestAnimationFrame\(orbStep\)/.test(swimFn)) throw new Error("the swim loop is running again");
+  if (/\.style\.transform/.test(swimFn)) throw new Error("JS is positioning the orb again");
+  if (!/@keyframes ariaOrbFloat/.test(hdrSrc)) throw new Error("the bounded float keyframes are gone");
+});
+
+check("the utility bar sits above the header and pushes nothing down", () => {
+  if (!utilityBar) throw new Error("there is no utility bar");
+
+  /* ABOVE THE HEADER, IN THE SOURCE. The header is what is sticky; the
+     bar must come before it and must not be sticky itself, or it costs
+     a phone 33px of screen for the whole session. */
+  if (hdrSrc.indexOf('<div id="utilityBar"') > hdrSrc.indexOf('<header class="sticky')) {
+    throw new Error("the utility bar is below the header");
+  }
+  if (/sticky|fixed/.test(utilityBar.slice(0, utilityBar.indexOf(">")))) {
+    throw new Error("the utility bar is stuck to the top — it would eat the screen permanently");
+  }
+  if (!/<header class="sticky top-0/.test(hdrSrc)) throw new Error("the header stopped being the sticky one");
+
+  // One line, and a fixed height it cannot grow past.
+  if (!/h-\[32px\]/.test(utilityBar)) throw new Error("the bar has no fixed single-line height");
+  eq((utilityBar.match(/whitespace-nowrap/g) || []).length >= 3, true, "something in the bar can wrap to a second line");
+});
+
+check("the bar's two links, and a Key Club that goes somewhere", () => {
+  /* BOTH LINKS GO THROUGH goHomeSection, which is the router the nav
+     already uses for a section of the home page — not a bare #hash that
+     would break when the shopper is on another view. */
+  if (!/onclick="goHomeSection\('whyUs'\)"/.test(utilityBar)) throw new Error("'Quiénes somos' does not go to the Por qué Aria section");
+  if (!/onclick="goHomeSection\('precioHonesto'\)"/.test(utilityBar)) throw new Error("'Precio honesto' does not go to the guarantee");
+  if (!/>Quiénes somos</.test(utilityBar)) throw new Error("the first link is not 'Quiénes somos'");
+  if (!/>Precio honesto</.test(utilityBar)) throw new Error("the second link is not 'Precio honesto'");
+  // And both targets exist to be landed on.
+  for (const id of ["whyUs", "precioHonesto"]) {
+    if (!hdrSrc.includes(`id="${id}"`)) throw new Error(`the bar links to #${id}, which is not on the page`);
+  }
+
+  /* JOINABLE SINCE 2026-09-25. The Key Club page exists, so the teaser
+     is a real link to keyclubView — a tappable thing that does nothing
+     would be worse, but a link to a real page is the honest version.
+     No more "Próximamente": "Únete gratis" on the page opens signup. */
+  /* FROM THE OPENING TAG, not from the attribute. Slicing at
+     "data-key-club" starts the slice INSIDE the tag, so the element's
+     own name is not in it -- and a check for "<button" could never fire
+     however the teaser was rewritten. */
+  const clubAt = utilityBar.indexOf("data-key-club");
+  const club = clubAt < 0 ? "" : utilityBar.slice(utilityBar.lastIndexOf("<", clubAt), utilityBar.indexOf("</div>", clubAt));
+  if (!club) throw new Error("the Key Club link is gone");
+  if (!/^<button\b/.test(club)) throw new Error(`the Key Club is a <${club.slice(1, club.indexOf(">")).split(" ")[0]}>, not a button`);
+  if (!/onclick="showPage\('keyclubView'\)"/.test(club)) throw new Error("the Key Club does not open keyclubView");
+  if (!/Aria Key Club/.test(club)) throw new Error("the Key Club lost its name");
+  if (/Próximamente/.test(club)) throw new Error("the Key Club still says it is coming");
+  // Gold, which on this site is the orb-and-logo colour — and the key is
+  // drawn, never an emoji standing in for an icon.
+  if (!/#F4C463/.test(club)) throw new Error("the Key Club lost its gold");
+  if (!/<svg/.test(club)) throw new Error("the key is not drawn");
+  if (/[\u{1F300}-\u{1FAFF}]/u.test(club)) throw new Error("an emoji is standing in for the key");
+  // And the page behind the link exists, registered as a view.
+  if (!hdrSrc.includes('id="keyclubView"')) throw new Error("keyclubView does not exist");
+  if (!/keyclubView/.test(hdrSrc.slice(hdrSrc.indexOf("const ALL_VIEWS"), hdrSrc.indexOf("const ALL_VIEWS") + 400))) throw new Error("keyclubView is not registered in ALL_VIEWS");
+});
+
+check("a section jumped to does not land under the sticky header", () => {
+  /* scrollIntoView({block:'start'}) puts the target's top edge at
+     viewport 0, and 69px of opaque header is sitting exactly there. Every
+     anchor on this site landed with its heading hidden behind the logo
+     until this one declaration — the nav's own "Precio Honesto" link
+     included. */
+  const m = hdrStyle.match(/html\{ scroll-padding-top:(\d+)px \}/);
+  if (!m) throw new Error("nothing clears the sticky header for an anchor");
+  const pad = Number(m[1]);
+  /* READ OFF THE HEADER, NOT THE FIRST THING THAT LOOKS LIKE ONE. The
+     first version of this regex matched the utility bar's h-[32px] and
+     happily compared an 84px scroll-padding against it -- green, and
+     measuring nothing. The header's row is the one inside <header>. */
+  const headerH = Number((headerEl.match(/h-\[(\d+)px\] flex items-center justify-between/) || [])[1]);
+  if (!headerH) throw new Error("could not read the header's height");
+  if (pad < headerH) throw new Error(`scroll-padding is ${pad}px under a ${headerH}px header — headings still land behind it`);
+});
+
+check("'Por qué Aria' leads with the reasons and carries the story", () => {
+  const why = hdrSrc.slice(hdrSrc.indexOf('<div id="whyUs"'), hdrSrc.indexOf("<!-- HOW IT WORKS -->"));
+  if (!why) throw new Error("the Por qué Aria section is gone");
+  if (!/>Por qué Aria</.test(why)) throw new Error("the section lost its name");
+
+  /* REASONS FIRST, STORY LAST — AND THE MIDDLE TERM MOVED (2026-09-23).
+
+     This read promises-band -> "ariaCard ariaCard--light" -> story, all
+     three inside #whyUs, because #whyUs was a PAPER section. It since
+     became a photograph under a navy scrim: the light cards are
+     .ariaWhyPromise glass now, and the two blocks this branch added were
+     written for the paper — merging them back where they were left "La
+     historia" as navy type on a dark scrim, an unreadable paragraph.
+
+     So they moved one section down, to #whyUsStory, which keeps the
+     paper they were designed against. The order that MATTERS is intact:
+     what you get, the guarantee behind it, then who is promising it.
+
+     AMENDMENT 2026-09-25: Danny's iPhone QA overruled the paper teaser
+     ("like PowerPoint" between the two navy blocks). The teaser itself
+     now rides the balcony-night photograph under the standard scrim with
+     white/gold type; the section around it keeps its paper background. */
+  const reasonsAt = why.indexOf("ariaWhyPromise");
+  const promisesAt = why.indexOf('id="whyUsPromises"');
+  const storyAt = why.indexOf(">La historia<");
+  if (reasonsAt < 0) throw new Error("the reasons are not in the section");
+  if (promisesAt < 0) throw new Error("the promises are not in the section");
+  if (storyAt < 0) throw new Error("the story is not in the section");
+  if (!(reasonsAt < promisesAt && promisesAt < storyAt)) {
+    throw new Error("the run is no longer reasons -> guarantee -> story");
+  }
+
+  /* THE TEASER RIDES THE PHOTOGRAPH (2026-09-25, Danny's iPhone QA): the
+     paper teaser sitting between two navy blocks read "like PowerPoint".
+     It now uses the approved balcony-night photograph (the girl with the
+     Aria box, same file as the full story page) under the standard navy
+     scrim, white type. The failure this assertion exists to catch is
+     unchanged in spirit: no dark type on the dark scrim. */
+  const storyAtIdx = why.indexOf('id="whyUsStory"');
+  if (storyAtIdx < 0) throw new Error("#whyUsStory is gone — the story is back inside the photograph");
+  if (storyAtIdx < why.indexOf("ariaWhyPhoto")) throw new Error("the story section sits above the photograph");
+  if (!/background:var\(--paper\)/.test(why.slice(storyAtIdx, storyAtIdx + 400))) {
+    throw new Error("#whyUsStory lost its paper section background");
+  }
+  const teaserStart = why.indexOf("STORY TEASER ON THE PHOTOGRAPH");
+  const teaserEnd = why.indexOf("showPage('aboutView')", teaserStart);
+  if (teaserStart < 0 || teaserEnd < 0) throw new Error("the story teaser is gone");
+  const teaser = why.slice(teaserStart, teaserEnd);
+  if (!/balcony-night\.jpg/.test(teaser)) throw new Error("the story teaser lost its photograph");
+  if (!/ariaStoryScrim/.test(teaser)) throw new Error("the story teaser lost its light scrim");
+  if (/class="ariaWhyScrim"/.test(teaser)) throw new Error("the teaser is back on the heavy #whyUs scrim -- unreadable");
+  /* THE TEASER SCRIM STAYS LIGHT (2026-09-25, Danny's iPhone QA, pass 2):
+     the 0.72->0.93 standard scrim crushed the text on his phone. The
+     teaser's own scrim must stay well under the standard's stops. */
+  const scrimAt = hdrSrc.indexOf(".ariaStoryScrim{");
+  if (scrimAt < 0) throw new Error("the .ariaStoryScrim rule is gone");
+  const scrimCss = hdrSrc.slice(scrimAt, scrimAt + 700);
+  const stops = [...scrimCss.matchAll(/rgba\(4,12,28,([0-9.]+)\)/g)].map(m => Number(m[1]));
+  if (stops.length < 3) throw new Error("the story scrim lost its gradient stops");
+  if (stops[0] > 0.40 || stops[stops.length - 1] > 0.65) {
+    throw new Error("the story scrim got heavy again (" + stops.join("->") + ") -- Danny's contrast fix regressed");
+  }
+  if (/ariaKicker--onLight|var\(--navy\)|#3D4759/.test(teaser)) {
+    throw new Error("dark type on the photograph — unreadable");
+  }
+
+  /* THE TEASER LINK IS TAPPABLE (2026-09-25, Danny's iPhone QA): the scrim's
+     z-index:1 sat above the z-index:auto content and swallowed every tap on
+     "Lee la historia completa ->". The scrim must never intercept pointer
+     events, and the content must ride above it. */
+  if (!/\.ariaStoryScrim\{[^}]*pointer-events\s*:\s*none/.test(hdrSrc)) {
+    throw new Error("the story scrim can intercept taps - the teaser link is dead");
+  }
+  if (!/\.ariaStoryTeaser\{[^}]*z-index\s*:\s*2/.test(hdrSrc)) {
+    throw new Error("the teaser content is not above the scrim - the link may not receive taps");
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) {
+    throw new Error("the teaser link no longer opens the full story");
+  }
+
+  /* THE PROMISES ARE RENDERED, NEVER RETYPED. The codebase's own words,
+     one section down: "a promise written down twice is a promise that
+     will eventually say two different things." This is a third surface
+     for them, so it is a third READER of the array. */
+  const render = hdrSrc.slice(hdrSrc.indexOf("function renderWhyUsPromises(){"), hdrSrc.indexOf("function renderHonestPricingBanners(){"));
+  if (!/PRECIO_HONESTO_CARDS\.map/.test(render)) throw new Error("the promises are not read from PRECIO_HONESTO_CARDS");
+  if (!/escapeHtml\(c\.title\)/.test(render) || !/escapeHtml\(c\.body\)/.test(render)) throw new Error("a promise is injected unescaped");
+  // The four promises the brief names are the ones in that array.
+  const arr = hdrSrc.slice(hdrSrc.indexOf("const PRECIO_HONESTO_CARDS = ["), hdrSrc.indexOf("function precioHonestoCardHTML"));
+  for (const t of ["Flete honesto, siempre", "Nada que pagar al recibir", "Lo que ves es lo que pagas"]) {
+    if (!arr.includes(t)) throw new Error(`the promise "${t}" is no longer in the array the section renders`);
+  }
+  // And the section does not retype any of them.
+  if (/Flete honesto, siempre/.test(why)) throw new Error("a promise was copied into the section's markup");
+
+  /* THE STORY IS #aboutView's, WORD FOR WORD. The full page is still the
+     canonical telling; this is its opening, so the two cannot come to
+     say different things about where the name came from. */
+  const about = hdrSrc.slice(hdrSrc.indexOf('<div id="aboutView"'), hdrSrc.indexOf('<div id="returnsView"'));
+  for (const line of ["Aria lleva el nombre de mi hija.", "que el precio que ves sea el precio que pagas."]) {
+    if (!why.includes(line)) throw new Error(`the section's story is missing: ${line}`);
+    if (!about.includes(line)) throw new Error(`#aboutView no longer says: ${line} — the two have drifted`);
+  }
+  if (!/showPage\('aboutView'\)/.test(why)) throw new Error("the story does not offer the full page");
+});
+
+/* ==================================================================
+   THE ASSISTANT ON A PHONE.
+
+   Mobile is the store and the chat is the on-ramp, so nearly all of
+   this is geometry and type size -- which the browser suite cannot see,
+   because it boots with the Tailwind CDN blocked on purpose. Everything
+   a stylesheet decides is pinned here, by the rule that decides it.
+   ================================================================== */
+group("The assistant, phone-first");
+
+check("the conversation can always be closed, and closing never opens", () => {
+  /* THE BUG. The launcher WAS the close button, and a launcher parked in
+     the bottom-right corner sits underneath a bottom sheet -- so once
+     the panel was open on a phone there was nothing left to tap. The X
+     lives in the panel's own header now.
+
+     AND IT CLOSES RATHER THAN TOGGLES. Wired to toggleAssistant(), a
+     control labelled "Cerrar" can OPEN the panel whenever the flag and
+     the DOM disagree. hideAssistant() sets the state instead of
+     flipping it, so a second tap is a no-op. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const panel = src.slice(src.indexOf('<div id="assistantPanel"'), src.indexOf('id="assistantMessages"'));
+  if (!panel) throw new Error("the assistant panel is gone");
+  const btnAt = panel.search(/data-assistant-close(?![\w-])/);
+  if (btnAt < 0) throw new Error("the panel header has no close button — on a phone the chat cannot be dismissed");
+  const tag = panel.slice(panel.lastIndexOf("<button", btnAt), panel.indexOf(">", btnAt));
+  if (!/onclick="hideAssistant\(\)"/.test(tag)) throw new Error("the X is not wired to hideAssistant()");
+  if (/toggleAssistant/.test(tag)) throw new Error("the X toggles — it can re-open what it is meant to close");
+  if (!/w-11 h-11/.test(tag)) throw new Error("the close target is under the 44px minimum");
+  if (!/aria-label="Cerrar la conversación"/.test(tag)) throw new Error("the close button is unlabelled");
+
+  const fn = src.slice(src.indexOf("function hideAssistant(){"), src.indexOf("function toggleAssistant(){"));
+  if (!fn) throw new Error("hideAssistant does not exist");
+  if (/assistantOpen = !assistantOpen/.test(fn)) throw new Error("hideAssistant flips the flag instead of setting it");
+  if (!/assistantOpen = false;/.test(fn)) throw new Error("hideAssistant does not actually close");
+  if (!/e\.key === 'Escape' && assistantOpen/.test(src)) throw new Error("Escape no longer closes the conversation");
+});
+
+/* NORMALISED, BECAUSE index.html IS CRLF FROM END TO END. Every marker
+   below that spans two lines would otherwise never match, and the
+   checks would pass vacuously on an empty slice -- which is how they
+   first reported "the sheet's stylesheet is gone" about a stylesheet
+   that was right there. */
+const chatSrc = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+const chatStyle = chatSrc.slice(chatSrc.indexOf("<style>"), chatSrc.indexOf("</style>"));
+const chatPanel = chatSrc.slice(chatSrc.indexOf('<div id="assistantPanel"'), chatSrc.indexOf("<!-- ============ PRODUCT IMAGE LIGHTBOX"));
+const chatSheetCss = chatStyle.slice(chatStyle.indexOf("  @media (max-width: 1023px){\n    #assistantPanel{"), chatStyle.indexOf(".ariaQuickChip:active"));
+
+check("the chat is a bottom sheet on a phone, and a floating card everywhere else", () => {
+  if (!chatSheetCss) throw new Error("the sheet's stylesheet is gone");
+
+  /* ONE MOBILE BREAKPOINT FOR THE WHOLE SITE. 1024px is where the nav
+     goes behind the hamburger (hidden lg:flex), where the orb
+     corner-parks (ORB_ANCHOR_MAX_VW) and where the shopfront's rails
+     appear (lg:hidden). A chat that became a sheet at a DIFFERENT width
+     would leave a band of tablet sizes with a corner card and no nav. */
+  eq(chatSrc.includes("const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)'"), true, "the chat's breakpoint");
+  eq(chatSrc.includes("const ORB_ANCHOR_MAX_VW = 1024;"), true, "the orb's breakpoint moved away from the chat's");
+
+  // Bottom-anchored, full width, and NOT a full-screen takeover: the
+  // shopper has to be able to see the product they are asking about.
+  for (const rule of ["left:0; right:0;", "width:100%; max-width:none;", "border-radius:22px 22px 0 0"]) {
+    if (!chatSheetCss.includes(rule)) throw new Error(`the sheet lost: ${rule}`);
+  }
+  if (!/height:var\(--ariaSheetPeek, 62vh\)/.test(chatSheetCss)) throw new Error("the sheet has no peek height — it is a takeover");
+  if (!/\[data-sheet="expanded"\]\{ height:var\(--ariaSheetFull, 92vh\)/.test(chatSheetCss)) throw new Error("the sheet cannot be expanded");
+  if (/height:100vh|height:100dvh|inset:0/.test(chatSheetCss)) throw new Error("the sheet became a full-screen takeover");
+
+  /* HAND-WRITTEN, NOT TAILWIND, like .brandList and .ariaRail. The page
+     is built to boot with the CDN blocked, and a sheet that loses its
+     height in that state is the takeover this rule exists to prevent. */
+  if (/@media \(max-width: 1023px\)/.test(chatPanel)) throw new Error("the sheet's geometry moved into the markup");
+
+  // One tap out, and the grab handle between the two heights.
+  if (!/aria-label="Cerrar la conversación"/.test(chatPanel)) throw new Error("the sheet has no close button");
+  /* Wired to hideAssistant(), not toggleAssistant(): a control labelled
+     "Cerrar" must never be able to open the panel, whatever state the
+     flag and the DOM are in. The dedicated check below pins the rest. */
+  if (!/onclick="hideAssistant\(\)"/.test(chatPanel)) throw new Error("the close button does not close it");
+  if (!/id="assistantSheetHandle"/.test(chatPanel)) throw new Error("the sheet has no grab handle");
+  if (!/aria-expanded="false"/.test(chatPanel)) throw new Error("the handle does not say which height it is at");
+});
+
+check("iOS Safari cannot zoom the page when the shopper taps the field", () => {
+  /* THE NAMED BUG. Mobile Safari zooms in on a focused input whose
+     computed font-size is under 16px, and it does not zoom back out:
+     the header scrolls away, the sheet is wider than the screen, and
+     the shopper is stuck in it. 16px is the fix, not a preference. */
+  if (!/#assistantInput\{ font-size:16px \}/.test(chatSheetCss)) throw new Error("the input can be under 16px on a phone");
+  if (!/\.ariaChatMsg\{ font-size:16px \}/.test(chatSheetCss)) throw new Error("the conversation can be under 16px on a phone");
+
+  /* AND THE BASE IS DECLARED ABOVE THE OVERRIDE. At equal specificity
+     the LAST rule wins, so a 13px base written underneath its own media
+     query silently defeats it -- which is exactly what happened on the
+     first cut of this, and what the measurement caught. */
+  const basePos = chatStyle.indexOf(".ariaChatMsg{ font-size:13px }");
+  const overridePos = chatStyle.indexOf(".ariaChatMsg{ font-size:16px }");
+  if (basePos < 0 || overridePos < 0) throw new Error("the chat's two type sizes are not both declared");
+  if (basePos > overridePos) throw new Error("the 13px base is declared after the 16px override and wins on a phone");
+
+  // The bubbles carry the class rather than a frozen utility, in BOTH
+  // the typed path and the streamed one.
+  eq((chatSrc.match(/bubble\.className = 'ariaChatMsg /g) || []).length, 3, "every chat bubble carries the sized class");
+  if (/rounded-bl-sm px-3\.5 py-2\.5 text-\[13px\]/.test(chatSrc)) throw new Error("a bubble is back on a hard-coded 13px");
+});
+
+check("every tap target in the sheet is one a thumb can hit", () => {
+  /* 44px is Apple's documented minimum. The mic was a 40px grey outline
+     -- under the floor and reading as secondary, on the control most of
+     this shop's customers will actually reach for. */
+  if (!/\.ariaQuickChip\{[^}]*min-height:44px/.test(chatStyle)) throw new Error("a quick reply can be under 44px");
+  const mic = chatPanel.slice(chatPanel.indexOf('id="assistantMicBtn"'));
+  if (!/w-12 h-12/.test(mic.slice(0, mic.indexOf(">")))) throw new Error("the mic is no longer 48px");
+  if (!/background:var\(--navy\)/.test(mic.slice(0, mic.indexOf(">")))) throw new Error("the mic is back to a quiet outline");
+  if (!/w-12 h-12[^>]*aria-label="Enviar"|aria-label="Enviar"[^>]*w-12 h-12/.test(chatPanel)) {
+    if (!/aria-label="Enviar"/.test(chatPanel) || !/w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition"\s*style="background:var\(--blue\)/.test(chatPanel)) {
+      throw new Error("the send button is no longer 48px");
+    }
+  }
+  if (!/class="w-11 h-11/.test(chatPanel)) throw new Error("the close button is under 44px");
+
+  /* ONE PLACE DECIDES THE MIC'S LOOK. It was five -- four of them
+     writing "idle" as an empty string -- so the filled button set in
+     the markup was wiped by whichever ran first. */
+  eq((chatSrc.match(/assistantMicBtn'\)\.style\./g) || []).length, 0, "the mic's look is written directly again");
+  if (!/function setAssistantMicState\(listening\)/.test(chatSrc)) throw new Error("the mic has no single state function");
+  eq((chatSrc.match(/setAssistantMicState\(/g) || []).length >= 6, true, "not every mic state writer goes through it");
+});
+
+check("the keyboard cannot trap the shopper", () => {
+  /* iOS does NOT shrink the layout viewport for the keyboard, so a
+     sheet at bottom:0 ends up behind it with its input out of reach.
+     The visual viewport is the part you can see; the difference is the
+     keyboard, and that is what lifts the sheet. */
+  const sync = chatSrc.slice(chatSrc.indexOf("function syncAssistantSheet(){"), chatSrc.indexOf("function toggleAssistantSheet(){"));
+  if (!/window\.visualViewport/.test(sync)) throw new Error("the sheet does not read the visual viewport");
+  if (!/window\.innerHeight - \(vv\.height \+ vv\.offsetTop\)/.test(sync)) throw new Error("the keyboard's height is not measured");
+  if (!/--ariaSheetInset/.test(sync)) throw new Error("the sheet is not lifted by the keyboard");
+  if (!/bottom:var\(--ariaSheetInset, 0px\)/.test(chatSheetCss)) throw new Error("the stylesheet ignores the lift");
+  /* A browser with no visualViewport -- and, just as importantly, a
+     LAYOUT VIEWPORT IN DIFFERENT UNITS FROM THE VISUAL ONE -- must still
+     get a sheet in roughly the right place rather than one thrown off
+     the bottom of the screen. The widths agreeing is how the two cases
+     are told apart: a keyboard changes the visible height alone, a
+     zoomed or shrunk-to-fit layout viewport changes both. */
+  if (!/Math\.abs\(window\.innerWidth - vv\.width\) <= 1/.test(sync)) {
+    throw new Error("the sheet subtracts two viewports without checking they are in the same units");
+  }
+  if (!/sameUnits \? vv\.height : window\.innerHeight/.test(sync)) throw new Error("no fallback when the visual viewport cannot be trusted");
+  if (!/const inset = sameUnits \?/.test(sync)) throw new Error("the lift is taken from an untrusted measurement");
+
+  /* iOS reports the keyboard as a visualViewport SCROLL as often as a
+     resize; listening to only one of them leaves the sheet behind it. */
+  const bind = chatSrc.slice(chatSrc.indexOf("(function bindAssistantSheetViewport(){"), chatSrc.indexOf("function hideGreetBubble(){"));
+  for (const ev of ["'resize'", "'orientationchange'", "'scroll'"]) {
+    if (!bind.includes(ev)) throw new Error(`the sheet does not re-measure on ${ev}`);
+  }
+
+  // The column must not hand its overscroll to the page behind it.
+  if (!/#assistantMessages\{ overscroll-behavior:contain \}/.test(chatStyle)) throw new Error("scrolling the chat scrolls the page under it");
+
+  /* AND THE FIELD IS NOT FOCUSED ON OPEN. Focusing it throws the
+     keyboard up over the products the sheet was sized to leave visible,
+     before the shopper has decided to type at all. */
+  const toggle = chatSrc.slice(chatSrc.indexOf("function toggleAssistant(){"), chatSrc.indexOf("function hideGreetBubble(){"));
+  if (!/if \(!isMobileChat\(\)\) document\.getElementById\('assistantInput'\)\?\.focus\(\)/.test(toggle)) {
+    throw new Error("the phone autofocuses the input and throws the keyboard up");
+  }
+  // And the launcher gets out of the sheet's way.
+  if (!/body\[data-chat-open\] #assistantBtn/.test(chatStyle)) throw new Error("the orb sits on the sheet's input row");
+});
+
+check("a quick reply says exactly what it sends, and every one of them lands", () => {
+  const routing = loadPageChatRoutingSlice();
+  const chips = routing.ARIA_QUICK_REPLIES;
+  eq(chips.length >= 2, true, "there are quick replies at all");
+
+  /* NO SECOND ROUTING TABLE. The chip's label IS the message, sent
+     through the same brain a typed message goes through -- which is the
+     only arrangement in which a button cannot come to do something
+     other than what it says. */
+  const send = chatSrc.slice(chatSrc.indexOf("function sendAssistantQuickReply(text){"), chatSrc.indexOf("function dismissAssistantForNavigation(){"));
+  if (!/addAssistantMessage\('user', text\)/.test(send)) throw new Error("a chip's text is not shown as what the shopper said");
+  if (!/runAssistantBrain\(text\)/.test(send)) throw new Error("a chip does not go through the same brain as typing");
+  if (!/data-quick-reply="\$\{escapeHtml\(q\)\}"[\s\S]{0,140}>\$\{escapeHtml\(q\)\}</.test(chatSrc)) {
+    throw new Error("a chip's label and the message it sends are two different strings");
+  }
+
+  /* THE BRIEF'S OWN CHIP HAS TO REACH THE FEED. Not by a special case:
+     runAssistantBrain's SALE_KEYWORDS see "oferta" in it, which is the
+     routing the chat already had. */
+  const ofertas = chips.filter(q => routing.SALE_KEYWORDS.some(k => q.toLowerCase().includes(k)));
+  eq(ofertas.length, 1, "exactly one chip routes to Ofertas");
+  eq(ofertas[0], "¿Qué hay en oferta?", "the Ofertas chip");
+  if (!/goSales\(\);\s*\n\s*dismissAssistantForNavigation\(\);/.test(chatSrc)) {
+    throw new Error("the sheet stays up over Ofertas — the shopper never sees what they asked for");
+  }
+
+  /* AND NOT ONE OF THEM STARTS A THIRTY-SECOND PRODUCT SEARCH.
+     runAssistantBrain sends anything that is neither a sale question nor
+     CHAT_NON_SHOPPING_RE to a LIVE multi-retailer scrape. A chip that
+     did that would sit there spinning for half a minute and come back
+     with nothing, which is worse than having no chip. Executed, not
+     grepped: "Rastrear mi pedido" reads like it is covered and was not
+     — the pattern knew rastreo and rastrea, and the infinitive the
+     brief's own chip uses fell straight through it. */
+  for (const q of chips) {
+    const sale = routing.SALE_KEYWORDS.some(k => q.toLowerCase().includes(k));
+    if (!sale && !routing.CHAT_NON_SHOPPING_RE.test(q)) {
+      throw new Error(`the chip "${q}" would launch a live product search for its own label`);
+    }
+  }
+  eq(routing.CHAT_NON_SHOPPING_RE.test("Rastrear mi pedido"), true, "the tracking chip fell through the pattern again");
+  eq(routing.CHAT_NON_SHOPPING_RE.test("rastreo de mi pedido"), true, "the older spellings stopped matching");
+  eq(routing.CHAT_NON_SHOPPING_RE.test("zapatillas para correr"), false, "the pattern now swallows real product searches");
+});
+
+check("the assistant never opens with an empty bubble", () => {
+  /* THE FIRST THING A SHOPPER SEES OF THE ON-RAMP. A 200 carrying no
+     `reply` -- a degraded endpoint, a cold function -- was passed
+     straight to addAssistantMessage and drew a sky-blue box with
+     nothing in it. */
+  const greet = chatSrc.slice(chatSrc.indexOf("if (assistantOpen && document.getElementById('assistantMessages')"), chatSrc.indexOf("function hideGreetBubble(){"));
+  if (!/const greeting = typeof data\?\.reply === 'string' \? data\.reply\.trim\(\) : ''/.test(greet)) {
+    throw new Error("the greeting is rendered without checking there is one");
+  }
+  if (!/if \(greeting\) addAssistantMessage\('bot', greeting, data\.audio\);/.test(greet)) throw new Error("a blank greeting can reach the panel");
+  eq((greet.match(/ARIA_GREETING_FALLBACK/g) || []).length, 2, "the empty case and the network case give different answers");
+});
 /* ==================================================================
    THE IMAGE LIGHTBOX — six ways out, and none of them coverable.
    ================================================================== */
@@ -5605,6 +7115,30 @@ group("Search answers from the catalogue first");
     if (cs.catalogTokenHits(new Set(["de"]), ["desodorante"]) !== 0) throw new Error("a 2-letter word matched a long token");
   });
 
+  check("a pillowcase that says \"sweat\" never answers a sweater query", () => {
+    /* REPORTED LIVE 2026-09-26 by Danny: "chompa" and "buzo" both
+       surfaced "AZXY 2-Pack Cooling Pillowcases for Hot Sleepers ...
+       Anti-Sweat Breathable" -- the reverse prefix shortcut let
+       "sweater" and "sweatshirt" match the word "sweat". Prefixes are
+       plurals only now, so the bedding stays out while the real
+       garments still answer. */
+    const pool = [
+      P("AZXY 2-Pack Cooling Pillowcases for Hot Sleepers, Anti-Sweat Breathable", ""),
+      P("Women's Cotton Colorblock Curved-Hem Sweater", "Style & Co"),
+      P("Men's EcoSmart Fleece Hoodie Sweatshirt", "Hanes"),
+    ];
+    for (const q of ["sweater", "sweatshirt", "hoodie"]) {
+      const titles = cs.rankCatalogMatches(pool, q, {}).items.map((i) => i.title);
+      if (titles.some((t) => /pillowcase/i.test(t)))
+        throw new Error(`"${q}" returned a pillowcase`);
+    }
+    // ...and the garments each query is actually about still answer.
+    const sweaters = cs.rankCatalogMatches(pool, "sweater", {}).items.map((i) => i.title);
+    if (!sweaters.some((t) => /sweater/i.test(t))) throw new Error('"sweater" lost the real sweaters');
+    const hoodies = cs.rankCatalogMatches(pool, "hoodie", {}).items.map((i) => i.title);
+    if (!hoodies.some((t) => /sweatshirt/i.test(t))) throw new Error('"hoodie" lost the real sweatshirts');
+  });
+
   check("matching every token outranks matching some, and a brand hit outranks a title hit", () => {
     const toks = cs.searchTokens("nike shorts");
     const both = P("Pro 3in Shorts", "Nike");
@@ -5962,6 +7496,156 @@ group("search synonyms: one concept, many words");
       throw new Error('"sneakers" did not find "Shoes"');
   });
 
+  check("\"aletas\" means ONLY flippers -- strict, no junk, no pants", () => {
+    /* REPORTED LIVE 2026-09-26, refined same day by Danny: "aletas" is
+       flippers and nothing else. The preview returned a serum "for Fine
+       Lines and Wrinkles" and a "Walnut Wood Finish" frame because the
+       3-letter "fin" took the prefix shortcut. Round 3: SSENSE "Black
+       Whale Fin Snap-On Denim Cargo Pants" slipped through on whole-word
+       "Fin" -- a whale-fin design detail on pants, not flippers. Two
+       rules now: short concept words match whole words only, and a
+       fins-only query is answered exclusively by real fin products --
+       "fin" must be the product itself (plural, or a fin-as-noun phrase),
+       not a design word. */
+    const pool = [
+      P("Speedo Adult Adventure Mask, Snorkel & Fin Set", "Speedo"),
+      P("Speedo Adult Mask, Snorkel, and Fin Set", "Speedo"),
+      P("Speedo Kids' Aqua Quest Mask, Snorkel & Fin Snorkeling Set", "Speedo"),
+      P("The Ordinary Matrixyl 10% + Hyaluronic Acid for Fine Lines and Wrinkles", "The Ordinary"), // "fine" junk
+      P("Mainstays 4 x 6 Picture Frame, Walnut Wood Finish", "Mainstays"), // "finish" junk
+      P("Final Clearance Swim Goggles", "Speedo"), // "final" junk
+      P("Black Whale Fin Snap-On Denim Cargo Pants", "NULLUS", "ssense"), // REGRESSION 2026-09-26: pants, not flippers
+      P("Cotton T-Shirt", "Hanes"), // control: not fins
+    ];
+    // Mirror of the page's isRealFinProduct gates (plural / fin-as-noun
+    // phrase). Department context is covered by the separate check below.
+    const isRealFin = (t) =>
+      /\bfins\b|\bflippers?\b/i.test(t) ||
+      /\bfin (?:sets?|snorkel(?:ing)?|pack)\b|\bswim fins?\b|\bdiv(?:e|ing) fins?\b|\bsnorkel fins?\b/i.test(t);
+    const seen = [];
+    for (const q of ["aletas", "aleta", "fins", "fin", "flipper", "flippers"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, {});
+      const titles = items.map((i) => i.title);
+      seen.push(JSON.stringify(titles));
+      // Exactly the three real fin sets come back, nothing else.
+      eq(titles.filter(isRealFin).length, 3, `"${q}" real fin count`);
+      eq(titles.length, 3, `"${q}" result count`);
+      if (titles.includes("Black Whale Fin Snap-On Denim Cargo Pants"))
+        throw new Error(`"${q}" returned PANTS for a flippers query`);
+      // EVERY result is a real fin product -- no junk, no control.
+      for (const t of titles) {
+        if (!isRealFin(t)) throw new Error(`"${q}" leaked non-fin product: ${t}`);
+      }
+    }
+    for (const sig of seen) eq(sig, seen[0], "identical result set and order");
+    // The full phrase the dad typed: production translates first
+    // (catalogSearch: translateQuery -> rankCatalogMatches), so the test
+    // mirrors that path -- "aletas de buceo" ranks as "diving fins".
+    const translated = pageQuery.translateQuery("aletas de buceo").query;
+    eq(translated, "diving fins", "phrase translation");
+    const phrase = cs.rankCatalogMatches(pool, translated, {}).items.map((i) => i.title);
+    if (!phrase.some((t) => /fin set/i.test(t))) throw new Error('"aletas de buceo" missed the fin sets');
+    if (phrase.includes("Black Whale Fin Snap-On Denim Cargo Pants"))
+      throw new Error('"aletas de buceo" returned PANTS for a flippers query');
+    for (const t of phrase) {
+      if (!isRealFin(t)) throw new Error(`"aletas de buceo" leaked non-fin product: ${t}`);
+    }
+    // Word boundary at the unit level: "fin" never matches fine/finish/final.
+    const junkWords = cs.catalogWordsOf(P("for Fine Lines and Wrinkles Wood Finish Final", ""));
+    eq(cs.catalogTokenHits(junkWords, ["fin"]), 0, '"fin" must not hit fine/finish/final');
+    // But the exact word still hits.
+    const finWords = cs.catalogWordsOf(P("Mask, Snorkel & Fin Set", "Speedo"));
+    eq(cs.catalogTokenHits(finWords, ["fin"]), 1, '"fin" must still hit "Fin Set"');
+  });
+
+  check("bare 'fin' qualifies only with dive context", () => {
+    /* Round 3, production path: Dick's buckets all dive gear under
+       sporting_goods, so a bare "fin" there is dive gear even without a
+       fin-as-noun phrase. The SSENSE pants sit in an apparel department,
+       so bare "Fin" there is a design word. */
+    const bareFinDive = { title: "Aqua Lung SlingShot Fin", brand: "Aqua Lung", retailer: "dicks", price: 120, departments: ["sporting_goods"] };
+    const bareFinApparel = { title: "Black Whale Fin Snap-On Denim Cargo Pants", brand: "NULLUS", retailer: "ssense", price: 326, departments: ["men"] };
+    const r1 = cs.rankCatalogMatches([bareFinDive], "aletas", {}).items.map((i) => i.title);
+    eq(r1.length, 1, "sporting-goods bare 'fin' qualifies");
+    const r2 = cs.rankCatalogMatches([bareFinApparel], "aletas", {}).items;
+    eq(r2.length, 0, "apparel bare 'fin' excluded");
+  });
+
+  check("\"polo\" is a T-shirt in Peru, and finds tees without losing polo shirts", () => {
+    /* PERU 2026-09-26: "polo" corrected from "polo shirt" to "t-shirt".
+       The group keeps collared polos reachable (as the old mapping did)
+       while adding plain tees. */
+    eq(translate.translateSearchQuery("polo"), "t-shirt", "translation");
+    eq(pageQuery.translateSearchQuery("polo"), "t-shirt", "page mirror");
+    eq(cs.canonicalizeToken("polo"), "t-shirt", "page canonical");
+    eq(synonyms.canonicalizeToken("polo"), "t-shirt", "module canonical");
+    eq(cs.canonicalizeToken("t-shirt"), "t-shirt");
+    eq(cs.canonicalizeToken("tee"), "t-shirt");
+    const pool = [
+      P("Cotton T-Shirt", "Hanes"),
+      P("Polo Shirt", "Ralph Lauren"),
+      P("Wool Sweater", "Gap"), // control
+    ];
+    const seen = [];
+    for (const q of ["polo", "polos", "t-shirt", "tee"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, {});
+      const titles = items.map((i) => i.title);
+      seen.push(JSON.stringify(titles));
+      if (!titles.includes("Cotton T-Shirt")) throw new Error(`"${q}" missed the T-shirt`);
+      if (!titles.includes("Polo Shirt")) throw new Error(`"${q}" lost the polo shirt`);
+      if (titles.includes("Wool Sweater")) throw new Error(`"${q}" leaked a sweater`);
+    }
+    for (const sig of seen) eq(sig, seen[0], "identical result set and order");
+  });
+
+  check("\"buzo\" finds sweatshirts as well as hoodies", () => {
+    /* PERU 2026-09-26: "buzo" is any sweatshirt-type garment in Peru,
+       with or without a hood. */
+    eq(cs.canonicalizeToken("buzo"), "sweatshirt", "page canonical");
+    eq(synonyms.canonicalizeToken("buzo"), "sweatshirt", "module canonical");
+    eq(cs.canonicalizeToken("hoodie"), "sweatshirt");
+    eq(cs.canonicalizeToken("sweatshirt"), "sweatshirt");
+    const pool = [
+      P("Fleece Hoodie", "Nike"),
+      P("Crewneck Sweatshirt", "Gap"),
+      P("Wool Sweater", "Gap"), // control: a sweater is not a buzo
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "buzo", {});
+    const titles = items.map((i) => i.title);
+    if (!titles.includes("Fleece Hoodie")) throw new Error('"buzo" missed the hoodie');
+    if (!titles.includes("Crewneck Sweatshirt")) throw new Error('"buzo" missed the sweatshirt');
+    if (titles.includes("Wool Sweater")) throw new Error('"buzo" leaked a sweater');
+  });
+
+  check("\"chimpunes\" are soccer cleats, never generic sneakers", () => {
+    /* PERU 2026-09-26: verified on Falabella Perú — "chimpunes" is
+       football footwear. It must not broaden into the shoes group. */
+    eq(translate.translateSearchQuery("chimpunes"), "soccer cleats", "translation");
+    eq(pageQuery.translateSearchQuery("chimpunes"), "soccer cleats", "page mirror");
+    const toks = cs.canonicalizeTokens(translate.translateSearchQuery("chimpunes").split(" "));
+    if (toks.includes("shoes") || toks.includes("sneakers"))
+      throw new Error('"chimpunes" leaked into the footwear group');
+    const pool = [
+      P("Adidas Predator Soccer Cleats", "Adidas"),
+      P("Nike Air Force 1 Sneakers", "Nike"), // control: not cleats
+    ];
+    const { items } = cs.rankCatalogMatches(pool, translate.translateSearchQuery("chimpunes"), {});
+    const titles = items.map((i) => i.title);
+    if (!titles.includes("Adidas Predator Soccer Cleats")) throw new Error('"chimpunes" missed the cleats');
+    if (titles.includes("Nike Air Force 1 Sneakers")) throw new Error('"chimpunes" leaked sneakers');
+  });
+
+  check("\"canguro\" is a waist bag, not the animal", () => {
+    /* PERU 2026-09-26: verified on Falabella Perú — "canguro" pairs with
+       "riñonera" as a waist bag. The translation must never surface the
+       marsupial. */
+    eq(translate.translateSearchQuery("canguro"), "fanny pack", "translation");
+    eq(pageQuery.translateSearchQuery("canguro"), "fanny pack", "page mirror");
+    eq(translate.translateSearchQuery("riñonera"), "fanny pack", "riñonera");
+    if (/kangaroo/i.test(translate.translateSearchQuery("canguro")))
+      throw new Error('"canguro" surfaced the animal');
+  });
+
   check("other groups behave the same way", () => {
     const pool = [
       P("Lace Balconette Bra", "Victoria's Secret"),
@@ -6000,6 +7684,143 @@ group("search synonyms: one concept, many words");
     }
     eq(cs.SEARCH_SYNONYM_GROUPS.length, synonyms.SEARCH_SYNONYM_GROUPS.length, "group count");
     if (drift.length) throw new Error(drift.join("\n      "));
+  });
+}
+
+
+/* ==================================================================
+   BRAND AND RETAILER NAMES ARE SEARCHABLE (2026-09-24).
+
+   WHAT ALE FOUND. Searching "Victoria's Secret" in the search bar
+   returned nothing on her phone -- and the audit showed five carried
+   stores (Sephora, Ulta, Target, Walmart, Old Navy) answered to nothing
+   at all, because catalogWordsOf reads title + brand and a store's own
+   name appears in neither. "VS" matched 11 stray titles instead of the
+   brand. The store page she was on had the same root cause from the
+   other side: a tab opened before the catalogue published has no data
+   for the new store, and openStore read that as "this shop is empty".
+   ================================================================== */
+group("Brand and retailer names are searchable");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand, retailer) => ({ title, brand: brand || "", retailer: retailer || "ssense", price: 100 });
+
+  check("an alias expands to the brand it names", () => {
+    eq(cs.expandBrandAliases("VS"), "Victoria's Secret", "VS expands");
+    eq(cs.expandBrandAliases("vs"), "Victoria's Secret", "lowercase expands");
+    eq(cs.expandBrandAliases("vs pink"), "vs pink", "a longer query is left alone");
+    eq(cs.expandBrandAliases("nike"), "nike", "non-aliases pass through");
+  });
+
+  check("a store's name resolves to that store, and a mere subset does not", () => {
+    const RETS = [
+      { key: "sephora", label: "Sephora" },
+      { key: "ulta", label: "Ulta Beauty" },
+      { key: "oldnavy", label: "Old Navy" },
+      { key: "macys", label: "Macy's" },
+      { key: "victoriassecret", label: "Victoria's Secret" },
+      { key: "target", label: "Target" },
+    ];
+    eq(cs.retailerIntentFor("Sephora", RETS), "sephora", "Sephora");
+    eq(cs.retailerIntentFor("old navy", RETS), "oldnavy", "Old Navy by whole name");
+    eq(cs.retailerIntentFor("Macy's", RETS), "macys", "apostrophe-s is noise");
+    eq(cs.retailerIntentFor("Victoria's Secret", RETS), "victoriassecret", "apostrophe-s both sides");
+    eq(cs.retailerIntentFor("beauty", RETS), null, "beauty is a category, not Ulta Beauty");
+    eq(cs.retailerIntentFor("target shoes", RETS), "target", "store + category composes");
+    eq(cs.retailerIntentFor("nike shoes", RETS), null, "no store named Nike");
+  });
+
+  check("a store-name search returns that store's products", () => {
+    const RETS = [
+      { key: "sephora", label: "Sephora" },
+      { key: "target", label: "Target" },
+    ];
+    const pool = [
+      P("Rare Beauty Blush", "Rare Beauty", "sephora"),
+      P("Nike Air Force 1", "Nike", "target"),
+    ];
+    for (const q of ["Sephora", "sephora"]) {
+      const { items } = cs.rankCatalogMatches(pool, q, { retailers: RETS });
+      if (items.length !== 1 || items[0].retailer !== "sephora")
+        throw new Error(`${q} returned ${items.map(i => i.retailer).join(",")}`);
+    }
+  });
+
+  check("VS returns Victoria's Secret products, not stray titles", () => {
+    const RETS = [{ key: "victoriassecret", label: "Victoria's Secret" }];
+    const pool = [
+      P("Victoria's Secret Bombshell Bra", "Victoria's Secret", "victoriassecret"),
+      P("PINK Cotton Thong", "PINK", "victoriassecret"),
+      P("Savage X Fenty Bra", "Savage X Fenty", "macys"),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "VS", { retailers: RETS });
+    if (!items.length) throw new Error("VS returned nothing");
+    if (items.some(it => it.retailer !== "victoriassecret"))
+      throw new Error("VS leaked another store: " + items.map(i => i.retailer).join(","));
+  });
+
+  check("store intent composes with category intent", () => {
+    const RETS = [
+      { key: "target", label: "Target" },
+      { key: "walmart", label: "Walmart" },
+    ];
+    const pool = [
+      P("Nike Running Shoes", "Nike", "target"),
+      P("Cotton T-Shirt", "Hanes", "target"),
+      P("Adidas Running Shoes", "Adidas", "walmart"),
+    ];
+    const { items } = cs.rankCatalogMatches(pool, "target shoes", { retailers: RETS });
+    if (items.length !== 1 || items[0].retailer !== "target")
+      throw new Error("target shoes returned " + items.map(i => i.title).join("; "));
+  });
+
+  check("every carried store is findable through search", () => {
+    const html = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const RETS = [];
+    for (const m of html.matchAll(/^\s*\w+:\s*\{\s*key:\s*'(\w+)',[^}\n]*?label:\s*(?:"([^"]+)"|'([^']+)')/gm)) {
+      if (/retired:\s*true/.test(m[0])) continue;
+      RETS.push({ key: m[1], label: m[2] || m[3] });
+    }
+    if (!RETS.length) throw new Error("no retailer rows parsed");
+    const files = ["department-cache.json", "macys-catalog.json", "ssense-catalog.json", "beauty-catalog.json"];
+    const pool = [];
+    for (const f of files) {
+      const data = JSON.parse(readFileSync(root(f), "utf8"));
+      const buckets = data.retailers || {};
+      for (const [rk, bucket] of Object.entries(buckets)) {
+        for (const entry of Object.values(bucket.departments || {})) {
+          const items = Array.isArray(entry) ? entry : entry.items || [];
+          for (const it of items) {
+            const title = it.title || it.name || it.productTitle || it.productName;
+            if (title) pool.push({ title, brand: it.brand || "", retailer: rk });
+          }
+        }
+      }
+    }
+    const missing = [];
+    for (const r of RETS) {
+      const stocked = pool.some(it => it.retailer === r.key);
+      if (!stocked) continue;
+      for (const q of [r.label, r.key]) {
+        const { items } = cs.rankCatalogMatches(pool, q, { retailers: RETS });
+        const own = items.filter(it => it.retailer === r.key).length;
+        if (!items.length || !own) missing.push(`${r.key} via "${q}": ${items.length} items, ${own} own`);
+      }
+    }
+    if (missing.length) throw new Error("unfindable stores:\n      " + missing.join("\n      "));
+  });
+
+  check("a store with no catalogue data gets a retry, not a ghost town", () => {
+    /* THE OTHER HALF OF ALE'S REPORT. openStore read a missing
+       retailerData as "this shop is empty". The page must now offer the
+       retry that busts the memoised catalogue load instead. */
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const open = src.slice(src.indexOf("async function openStore(retailer){"), src.indexOf("async function openStoreResults"));
+    if (!/if\s*\(!retailerData\)/.test(open)) throw new Error("openStore has no missing-data branch");
+    if (!/retryStore\(/.test(open)) throw new Error("the missing-data branch offers no retry");
+    if (!/function retryStore\(retailer\)/.test(src)) throw new Error("retryStore is not defined");
+    if (!/departmentCachePromise = null/.test(src.slice(src.indexOf("function retryStore")))) throw new Error("retryStore does not bust the memoised load");
   });
 }
 
@@ -6621,13 +8442,13 @@ check("the page promises nothing we cannot do", () => {
   }
 });
 
-check("the explainer follows the logo, and the category tiles follow the explainer", () => {
-  /* THE PHONE USED TO READ: Ofertas -> Categorías (the compact
-     carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
-     (the long tiles). The visitor met the categories, scrolled past
-     them to reach the brand and how any of this works, and met the
-     categories AGAIN -- the same list twice with the story wedged
-     between its two halves.
+check("the home page runs deals, brand band, rails, departments, story", () => {
+  /* 2026-09-25, DANNY'S HOMEPAGE ORDER (his phone verdict): the brand
+     band -- the ARIA logo, "Compra en Estados Unidos / Te lo llevamos
+     a Perú", the search -- sat eight carousels down and the deals were
+     not the first thing the eye met. Now the run is: Ofertas, the
+     brand band, the seven store rails in mall order, Categorías, then
+     the story sections. One scroll order on both breakpoints.
 
      Asserted on SOURCE ORDER, not on measured positions: the browser
      harness blocks the CDN, so nothing there has a reliable y. */
@@ -6641,17 +8462,25 @@ check("the explainer follows the logo, and the category tiles follow the explain
     return i;
   };
   const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
+  const band   = at('aria-label="Compra en Estados Unidos"', "the brand band");
   const cats   = at('id="mobileCatsRow"', "the Categorías rail");
-  const stores = at('id="mobileStoresRow"', "the Tiendas rail");
+  const rails  = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "ssense"]
+    .map(k => at(`id="mStoreRail-${k}"`, `the ${k} rail`));
   const logo   = at('src="aria-full-logo.png"', "the ARIA logo");
   const why    = at('id="whyUs"', "the Por qué Aria explainer");
   const tiles  = at('id="cats"', "the Comprar por categoría tiles");
 
-  // Unchanged, and the brief says so explicitly.
-  if (!(deals < cats && cats < stores)) throw new Error("the three rails are no longer Ofertas -> Categorías -> Tiendas");
-  if (!(stores < logo)) throw new Error("the rails no longer come before the logo");
-  // The move itself.
-  if (!(logo < why)) throw new Error("the explainer no longer follows the ARIA logo it belongs to");
+  // 2026-09-25, DANNY'S HOMEPAGE ORDER: Ofertas, the brand band, the
+  // seven store rails in mall order, then Categorías -- one scroll order
+  // on both breakpoints.
+  if (!(deals < band)) throw new Error("the brand band no longer follows Ofertas");
+  if (!(band < rails[0])) throw new Error("the store rails no longer follow the brand band");
+  for (let i = 1; i < rails.length; i++) {
+    if (!(rails[i - 1] < rails[i])) throw new Error("the store rails are out of mall order");
+  }
+  if (!(rails[rails.length - 1] < cats)) throw new Error("Categorías no longer follows the store rails");
+  // The brand story still closes the run: logo, explainer, then tiles.
+  if (!(logo < why)) throw new Error("the explainer no longer follows the brand story");
   if (!(why < tiles)) throw new Error("the category tiles interrupt the brand story again");
 
   /* NOTHING WAS DELETED. The tiles are still there and still built by
@@ -6744,6 +8573,14 @@ function forwardSlice(src, a, b, what){
 const stripHtmlComments = (s) => s.replace(/<!--[\s\S]*?-->/g, "");
 
 const HOME_SRC = () => readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+
+check("the search glossary has no TV aliases (banned category, 2026-09-26)", () => {
+  const src = HOME_SRC();
+  for (const term of ["televisor", "television"]) {
+    const m = new RegExp(`^\\s*${term}:\\s*["']tv["']`, "m").exec(src);
+    if (m) throw new Error(`the glossary still routes "${term}" to a TV search`);
+  }
+});
 const SECTION_PHOTO = "assets/sections/tiendas-mall-row.jpg";
 
 check("the mall photograph is committed, and small enough to send to a phone", () => {
@@ -6756,111 +8593,94 @@ check("the mall photograph is committed, and small enough to send to a phone", (
   if (bytes > 200 * 1024) throw new Error(`${SECTION_PHOTO} is ${(bytes/1024).toFixed(0)} KB — over the 200 KB budget for a background nobody came to look at`);
 });
 
-check("both Tiendas surfaces carry the photo, the scrim and a way to lose the photo safely", () => {
+check("the old homepage store-tile strip is gone, and nothing still points at it", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: the seven store rails ARE the
+     homepage's store browsing now. The old tile rows -- the shopfront's
+     mobileStoresRow/desktopStoresRow and the bottom RETAILERS STRIP
+     (homeStoresRow) -- are superseded, and the strip's "directory at the
+     bottom" duplicated the Tiendas page. All of it is out of the
+     markup, and no script may still reach for it. */
   const src = HOME_SRC();
-  const surfaces = {
-    "the phone's shopfront rail": stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
-    "the laptop's retailers strip": stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
+  for (const dead of ["homeStoresRow", "RETAILERS STRIP", "mobileStoresRow", "desktopStoresRow", "homeStoreChipHTML", "renderMobileStoresRail"]){
+    if (src.includes(dead)) throw new Error(`obsolete ${dead} is still in index.html`);
+  }
+  /* The strip was also the last photographic Tiendas surface. With it
+     gone, no markup may reference the mall photograph or the photo
+     layer: a second picture per width was the duplication the lg-only
+     rule existed to prevent, and now there are zero. */
+  const markup = stripHtmlComments(src);
+  if (markup.includes("tiendas-mall-row.jpg")) throw new Error("the mall photograph is still referenced by markup");
+  if (/class="ariaSectionPhoto"/.test(markup)) throw new Error("a section still takes the photographic layer");
+});
+
+check("every store rail keeps its branded header, on all three surfaces", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: each rail is a window display, and
+     a window display without the store's name above it is just a shelf.
+     Five rails carry the real logo; Dick's and Costco carry brand-red wordmark pills until their logo files land.
+     The headers are static markup -- they paint with the page, not with
+     the lazy cards -- so a shopper always knows whose window they're at. */
+  const src = HOME_SRC();
+  const brands = {
+    victoriassecret: /<img[^>]*src="logos\/victoriassecret\.png"[^>]*data-retailer="victoriassecret"/,
+    sephora: /<img[^>]*src="logos\/sephora\.png"[^>]*data-retailer="sephora"/,
+    macys: /<img[^>]*src="logos\/macys\.png"[^>]*data-retailer="macys"/,
+    footlocker: /<img[^>]*src="logos\/footlocker\.png"[^>]*data-retailer="footlocker"/,
+    ssense: /<img[^>]*src="logos\/ssense\.png"[^>]*data-retailer="ssense"/,
+    dicks: /<span[^>]*style="background:#D22630"[^>]*>Dick's Sporting Goods<\/span>/,
+    costco: /<img[^>]*src=\"logos\/costco\.svg\"[^>]*data-retailer=\"costco\"/,
   };
-  for (const [name, html] of Object.entries(surfaces)){
-    if (!html.includes(SECTION_PHOTO)) throw new Error(`${name} does not reference the photograph`);
-    if (!/class="ariaSectionPhoto"/.test(html)) throw new Error(`${name} does not use the shared photo layer`);
-    if (!/class="ariaSectionScrim"/.test(html)) throw new Error(`${name} has no scrim — text straight onto a golden-hour sky`);
-    /* Below the fold, both of them: the page must not spend a phone's
-       first bytes on a picture behind a logo strip. */
-    if (!/loading="lazy"/.test(html)) throw new Error(`${name}'s photo is not lazy-loaded`);
-    /* A 404 must leave navy + scrim, not a broken-image glyph over the
-       heading. Same guard the explainer carries. */
-    if (!/onerror="this\.remove\(\)"/.test(html)) throw new Error(`${name} would render a broken image if the file went missing`);
-    /* Decorative: the heading already says "Tiendas en EE. UU." and a
-       screen reader repeating a mall row adds nothing. */
-    if (!/alt=""/.test(html) || !/aria-hidden="true"/.test(html)) throw new Error(`${name}'s photo is not marked decorative`);
-  }
-});
-
-check("the photo cannot escape when the Tailwind CDN does", () => {
-  /* THE TRAP THIS PINS. .ariaSectionPhoto is position:absolute. Its
-     containing block is the section, which is only positioned because
-     something says so — and if that something is a Tailwind `relative`
-     utility, then on the day the CDN is blocked (which is exactly how
-     the browser suite runs, deliberately) the containing block becomes
-     the viewport and a 1760px photograph lies across the whole page.
-     The declaration therefore lives in the inline stylesheet. */
-  const src = HOME_SRC();
-  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
-  const shot = forwardSlice(css, ".ariaSectionShot{", "}", ".ariaSectionShot");
-  if (!/position:relative/.test(shot)) throw new Error(".ariaSectionShot no longer establishes a containing block in the inline CSS");
-  if (!/overflow:hidden/.test(shot)) throw new Error(".ariaSectionShot no longer clips the photo to the section");
-  if (!/background:var\(--navy\)/.test(shot)) throw new Error("the navy moved off the section — with no photo there is nothing behind the text");
-
-  for (const surface of [
-    stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail")),
-    stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip")),
-  ]){
-    /* The opening tag only. Without stripComments above, the strip's
-       slice begins with a comment and this lands on its prose instead. */
-    const tag = surface.slice(0, surface.indexOf(">") + 1);
-    if (/\brelative\b/.test(tag) || /\boverflow-hidden\b/.test(tag)){
-      throw new Error("a Tiendas surface positions itself with Tailwind utilities — those vanish with the CDN and the photo goes with them");
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
+    for (const [key, mark] of Object.entries(brands)){
+      const sec = stripHtmlComments(src).match(
+        new RegExp(`<section[^>]*data-store-rail="${key}"[\\s\\S]*?id="${prefix}-${key}"`));
+      if (!sec) throw new Error(`no ${prefix}-${key} rail section`);
+      if (!mark.test(sec[0])) throw new Error(`${prefix}-${key} lost its branded header`);
+      if (!new RegExp(`onclick="openStore\\('${key}'\\)"[^>]*>Ver tienda`).test(sec[0]))
+        throw new Error(`${prefix}-${key} lost its "Ver tienda" way in`);
     }
-    if (!/\bariaSectionShot\b/.test(tag)) throw new Error("a Tiendas surface is not using .ariaSectionShot");
   }
 });
 
-check("exactly one Tiendas section is photographic at any width", () => {
-  /* Both surfaces exist on a phone: the shopfront rail and, far below
-     it, the retailers grid. The grid is ten rows tall at 393px, so a
-     4.29:1 photograph cropped into it shows the middle eleventh of the
-     frame — a dark blur, and the same picture twice on one page. The
-     strip therefore only takes the photograph at lg, which is precisely
-     where #mobileShopfront hides. If one of those two numbers is ever
-     changed without the other, a width exists that has two photographic
-     Tiendas sections, or none. */
+check("the eight rails stand in mall order on all three surfaces", () => {
+  /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
+     phone's shopfront, the laptop's shopfront, and the Tiendas page's
+     vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
+     mall stops feeling like one mall. */
   const src = HOME_SRC();
-  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
-  const shopfront = forwardSlice(src, 'id="mobileShopfront"', ">", "#mobileShopfront");
-  if (!/\blg:hidden\b/.test(shopfront)) throw new Error("#mobileShopfront no longer hides at lg — the breakpoint story below is stale");
-
-  if (!/@media \(max-width:1023\.98px\)/.test(css)) throw new Error("the strip's phone rule is gone or moved off Tailwind's lg breakpoint (1024px)");
-  const phoneRule = forwardSlice(css, "@media (max-width:1023.98px){", "@media (min-width:1024px)", "the phone rule");
-  if (!/\.ariaSectionShot--lg > \.ariaSectionPhoto/.test(phoneRule)) throw new Error("the retailers strip keeps its photo on a phone — that crop is the blur this rule exists to prevent");
-  if (!/display:none/.test(phoneRule)) throw new Error("the strip's phone rule no longer hides anything");
-  if (!/background:var\(--paper\)/.test(phoneRule)) throw new Error("with its photo hidden the strip has no background of its own left");
-
-  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
-  if (!/ariaSectionShot--lg/.test(strip)) throw new Error("the retailers strip is not opted into the lg-only treatment");
-  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
-  if (/ariaSectionShot--lg/.test(rail)) throw new Error("the phone's own rail went lg-only — now no width shows the photograph on a phone");
+  /* RELIABLE-FIRST RAIL ORDER (2026-09-26, Danny): eight rails, one order
+     on the phone, the laptop, and the Tiendas vitrinas. */
+  const want = ["footlocker", "sephora", "macys", "dicks", "victoriassecret", "costco", "gymshark", "ssense"];
+  for (const [name, prefix, from, to] of [
+    ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
+    ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
+    ["the Tiendas vitrinas", "tStoreRail", 'aria-label="Vitrinas por tienda"', 'Por qu\u00e9 importa'],
+  ]){
+    const seg = stripHtmlComments(forwardSlice(src, from, to, name));
+    const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
+    eq(found.join(","), want.join(","), `${name} does not carry the eight rails in mall order`);
+  }
 });
 
-check("the type over the photograph was measured, not eyeballed", () => {
-  /* Every number here came off rendered pixels: the glyphs are hidden,
-     the brightest pixel actually behind each text run is sampled, and
-     the ratio is computed against it. The site's usual on-navy blue
-     (#7FB8FF) measured 3.73:1 over a lit shop window and #9FC5FF 4.35:1
-     — both under the 4.5 floor, both plausible-looking choices. */
+check("the store rails paint lazily below the fold", () => {
+  /* The seven rails sit below Ofertas: twenty-one product rows must not
+     cost a phone its first paint. Headers are static markup -- the
+     shopper always sees whose window it is -- and the cards paint
+     through one shared IntersectionObserver that starts early enough
+     to feel instant (600px of root margin). */
   const src = HOME_SRC();
-  const rail = stripHtmlComments(forwardSlice(src, '<section aria-label="Tiendas"', "</section>", "Tiendas rail"));
-  const h2 = forwardSlice(rail, "<h2", "</h2>", "the rail heading");
-  if (!/color:#fff/.test(h2)) throw new Error("the Tiendas heading is no longer white over the photograph");
-  if (/var\(--navy\)/.test(h2)) throw new Error("the Tiendas heading is navy again — navy type on a navy scrim");
-  if (!/#C3D9FF/.test(rail)) throw new Error('"Ver todas" lost its measured colour');
-  for (const tooDark of ["#7FB8FF", "#9FC5FF", "var(--blue)"]){
-    if (rail.includes(tooDark)) throw new Error(`"Ver todas" is back to ${tooDark}, which measured under 4.5:1 over this photograph`);
+  const init = forwardSlice(src, "function initStoreRails(){", "function ", "initStoreRails");
+  if (!/new IntersectionObserver/.test(init)) throw new Error("the rails no longer paint through an IntersectionObserver");
+  if (!/rootMargin:\s*["']600px/.test(init)) throw new Error("the rails' observer lost its 600px head start");
+  if (!/\[data-store-rail-row\]/.test(init)) throw new Error("the observer is not watching the rail rows");
+  /* Headers static, rows empty: if the cards were server-rendered into
+     the markup, the observer would be theatre. */
+  const markup = stripHtmlComments(src);
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]){
+      const row = new RegExp(`<div id="${prefix}-${key}"[^>]*></div>`);
+      if (!row.test(markup)) throw new Error(`${prefix}-${key} is not an empty row waiting for the observer`);
+    }
   }
-  const strip = stripHtmlComments(forwardSlice(src, "<!-- RETAILERS STRIP", 'id="homeStoresRow"', "retailers strip"));
-  if (/text-zinc-500/.test(strip)) throw new Error("the strip's caption is grey again — unreadable over the photo at lg");
-  if (!/ariaSectionCaption/.test(strip)) throw new Error("the strip's caption no longer switches colour with the breakpoint");
-
-  const css = forwardSlice(src, "<style>", "</style>", "the inline stylesheet");
-  const scrim = forwardSlice(css, ".ariaSectionScrim{", "}", ".ariaSectionScrim");
-  /* The top stop is the scrim's thinnest point and therefore the one
-     that decides legibility. 0.55 measured 4.39:1 against this asset's
-     brightest pixel; 0.60 cleared at 5.22:1; 0.66 ships for 6.50:1
-     because this type is 12.5-15px, not display size. */
-  const top = scrim.match(/rgba\(4,12,28,([\d.]+)\) 0%/);
-  if (!top) throw new Error("the scrim's top stop is gone — cannot tell what the text sits on any more");
-  if (Number(top[1]) < 0.6) throw new Error(`the scrim opens at ${top[1]}; anything under 0.60 measured below 4.5:1 on this photograph`);
 });
 
 check("every category cover named in the page is actually on disk", () => {
@@ -6877,6 +8697,165 @@ check("every category cover named in the page is actually on disk", () => {
 });
 
 /* ------------------------------------------------------------------ */
+group("The home row leads with what the shop wants read first");
+
+/* WHY THIS GROUP EXISTS AT ALL. The running order used to be implicit --
+   whatever order DEPARTMENT_SPEC declared its keys in -- so there was
+   nothing to assert and no way to get it wrong except by editing the
+   taxonomy. Now it is an editorial list, which is better but introduces
+   exactly one new way to break the page silently, and that is what the
+   first check below is for. */
+
+check("Aria Beauty is the first card in the home row", () => {
+  /* Danny's call, 2026-09-24: Beauty is the highest-traffic destination
+     for the core shopper, so it leads. Asserted by POSITION, not merely
+     by presence -- "beauty is somewhere in the row" was true before this
+     change too, at position ten. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  if (HOME_ROW_DEPARTMENTS[0] !== "beauty") {
+    throw new Error(`the home row leads with "${HOME_ROW_DEPARTMENTS[0]}", not Aria Beauty`);
+  }
+});
+
+check("every key in the home row names a department that exists", () => {
+  /* THE SILENT FAILURE THIS EXISTS TO CATCH. homeRowTiles() looks each
+     key up and drops what it cannot find, which is the right behaviour
+     for a department no retailer stocks yet -- `beauty` sat in the
+     taxonomy for days before its catalogue landed. The cost is that a
+     TYPO behaves identically: 'shoez' renders nothing, throws nothing,
+     and the card is just gone. Nobody notices until someone asks where
+     Zapatos went.
+
+     So the list is checked against the taxonomy rather than against the
+     cache: naming a department early is allowed, naming one that does
+     not exist is not. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const known = new Set(Object.keys(deptMap.DEPARTMENT_SPEC));
+  const unknown = HOME_ROW_DEPARTMENTS.filter(k => !known.has(k));
+  if (unknown.length) {
+    throw new Error(
+      `the home row names ${unknown.map(k => JSON.stringify(k)).join(", ")}, which ` +
+      `${unknown.length === 1 ? "is not a department" : "are not departments"} — ` +
+      `it will render nothing and fail silently. Known: ${[...known].join(", ")}`);
+  }
+});
+
+check("no department is listed in the home row twice", () => {
+  /* A duplicate does not throw either: it renders the same card twice,
+     which on a phone rail reads as a glitch rather than a decision. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  const seen = new Set(), dupes = [];
+  for (const k of HOME_ROW_DEPARTMENTS) (seen.has(k) ? dupes.push(k) : seen.add(k));
+  if (dupes.length) throw new Error(`the home row lists ${dupes.join(", ")} more than once`);
+});
+
+check("the home row is the shortlist, and every department it drops is still on Categorías", () => {
+  /* THE SHORTLIST IS PINNED BY NAME, deliberately, where most lists here
+     are pinned to a rule. This one is editorial -- it is what the shop
+     leads with -- so there is no rule to derive it from, and the thing
+     worth protecting is that changing it is a DECISION rather than a
+     side effect of some other edit. Change the row, change this line,
+     and the diff says who decided what.
+
+     The second half is the one that matters. Cutting a card from the
+     front door is only honest while the door to everything else is
+     complete: every department left out here must still be tiled on
+     Categorías. That is asserted against the taxonomy rather than
+     against a list of names, so a department added tomorrow is covered
+     without anyone remembering to add it. */
+  const { HOME_ROW_DEPARTMENTS } = loadPageHomeRowSlice();
+  /* GYM RAT (2026-09-26, Danny): added as an identity destination
+     like Curvy and Aria Beauty — deliberate, per the test's own rule. */
+  /* 2026-09-26, Danny: Gym Rat second (before Curvy); Curvy last —
+     smallest target demographic, deprioritized in placement. */
+  const expected = ["beauty", "gym_rat", "women", "men", "shoes", "curvy"];
+  if (HOME_ROW_DEPARTMENTS.join() !== expected.join()) {
+    throw new Error(
+      `the home row is [${HOME_ROW_DEPARTMENTS.join(", ")}], expected [${expected.join(", ")}] — ` +
+      `if this was deliberate, update this check in the same commit`);
+  }
+
+  /* Everything cut is still a department, so it still tiles on
+     Categorías, which builds from the taxonomy and not from this list
+     (asserted separately above).
+
+     READ FROM index.html, NOT FROM THE LIB. My first version of this
+     derived the dropped set from deptMap.DEPARTMENT_SPEC and then
+     checked each key was in deptMap.DEPARTMENT_SPEC — a tautology that
+     could not fail. The claim worth making is a CROSS-CHECK: the row
+     shrank, and the page's own taxonomy did not shrink with it. So the
+     keys come out of index.html's declaration and are compared against
+     the lib's, which is the pair that has to stay in step. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const specBlock = forwardSlice(src, "const DEPARTMENT_SPEC = {", "\nconst BUCKET_SPEC = {", "DEPARTMENT_SPEC");
+  const pageKeys = [...specBlock.matchAll(/^\s{2}([a-z_]+):\s*\{/gm)].map(m => m[1]);
+  if (pageKeys.length < 10) throw new Error(`only found ${pageKeys.length} departments in index.html — the slice is wrong`);
+
+  const dropped = pageKeys.filter(k => !HOME_ROW_DEPARTMENTS.includes(k));
+  if (!dropped.length) throw new Error("nothing was trimmed — this check is measuring nothing");
+
+  for (const key of dropped) {
+    if (!deptMap.DEPARTMENT_SPEC[key]) {
+      throw new Error(
+        `"${key}" is off the home row and missing from scripts/lib/department-map.js — ` +
+        `the two taxonomies have drifted, and a department cut from the front door ` +
+        `is the one place that drift would go unnoticed`);
+    }
+  }
+  for (const key of HOME_ROW_DEPARTMENTS) {
+    if (!pageKeys.includes(key)) {
+      throw new Error(`the home row leads with "${key}", which index.html's DEPARTMENT_SPEC does not declare`);
+    }
+  }
+
+  /* Ropa is the cut that needs its reason recorded next to it, because
+     it is the BIGGEST department and cutting it looks like a mistake
+     until you know it is the union of the three gendered ones. */
+  for (const gendered of ["men", "women"]) {
+    if (!HOME_ROW_DEPARTMENTS.includes(gendered)) {
+      throw new Error(
+        `Ropa is cut from the row because Moda Hombre/Mujer/Niños hold the same stock — ` +
+        `with "${gendered}" also cut, that inventory has no card at all`);
+    }
+  }
+});
+
+check("the grid and the phone rail are still built from one list", () => {
+  /* The rule this protects is older than this change and is written in
+     index.html as "from the SAME tiles -- never a second list". Two
+     lists is how the phone and the desktop end up disagreeing about
+     what the shop sells. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const init = forwardSlice(src, "function initDepartmentTiles(){", "\nwindow.addEventListener('DOMContentLoaded', initDepartmentTiles);", "initDepartmentTiles");
+  if (!/const tiles = homeRowTiles\(\)/.test(init)) {
+    throw new Error("the home row no longer reads its own list");
+  }
+  if (!/renderMobileCatsRail\(tiles\)/.test(init)) {
+    throw new Error("the phone rail no longer renders the same tiles the grid does");
+  }
+});
+
+check("Categorías still shows every department, whatever the home row drops", () => {
+  /* THE PROMISE THAT MAKES TRIMMING THE ROW SAFE. Leaving a department
+     out of the front door is only honest while the door to everything
+     else is still there and still complete. renderCategoriesGrid() must
+     keep reading collectTiles() directly -- the moment it reads the
+     shortlist instead, cutting a card from the home row quietly deletes
+     a section of the shop. */
+  const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+  const cats = forwardSlice(src, "function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
+  if (!/collectTiles\(\)/.test(cats)) {
+    throw new Error("Categorías no longer builds from collectTiles() — it can no longer be the page that shows everything");
+  }
+  if (/HOME_ROW_DEPARTMENTS|homeRowTiles/.test(cats)) {
+    throw new Error("Categorías is filtering through the home row's shortlist — departments left off the front door would vanish from the site");
+  }
+  /* And the way back to it stays under the row. */
+  if (!/data-explora[^>]*>Explora más</.test(src)) {
+    throw new Error("the \"Explora más\" link out of the home row is gone");
+  }
+});
+
 group("A department is never a dead page");
 
 check("the catalogue knows the difference between broken and empty", () => {
@@ -7751,6 +9730,70 @@ check("the feed sort actually reads the band on Curvy, and only on Curvy", () =>
    The page mirrors scripts/lib/carousel.js; both copies are pinned
    below, plus the wiring that puts a rail on each surface.
    ================================================================== */
+/* ==================================================================
+   CURVY STORE CARDS (2026-09-25, Danny).
+
+   The department opens with one wide card per store that carries
+   extended sizes -- Lane Bryant first (the plus-size destination), then
+   Old Navy, then Victoria's Secret, then the rest by product count. The
+   set is DERIVED from the feed's own byRetailer map, never hardcoded: a
+   future catalog pull adds its card the moment its products pass
+   hasExtendedSizes, with no code change.
+   ================================================================== */
+group("curvy store cards: one wide card per extended-size store");
+
+const curvyCards = loadPageCurvyStoreCardsSlice();
+
+check("lane bryant leads, then old navy, then victoria's secret, whatever the counts", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["oldnavy", new Array(500)],
+    ["victoriassecret", new Array(900)],
+    ["lanebryant", new Array(3)],
+    ["dicks", new Array(40)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "lanebryant,oldnavy,victoriassecret,dicks", "lead order broken");
+});
+
+check("non-lead stores sort by count, ties alphabetical", () => {
+  const { curvyStoreCards } = curvyCards;
+  const byRetailer = new Map([
+    ["target", new Array(10)],
+    ["walmart", new Array(30)],
+    ["macys", new Array(30)],
+  ]);
+  const keys = curvyStoreCards(byRetailer).map(s => s.key).join(",");
+  eq(keys, "macys,walmart,target", "count sort broken");
+});
+
+check("empty stores and empty feeds produce no cards", () => {
+  const { curvyStoreCards } = curvyCards;
+  eq(curvyStoreCards(new Map()).length, 0, "empty feed produced cards");
+  const keys = curvyStoreCards(new Map([["lanebryant", []], ["oldnavy", new Array(2)]])).map(s => s.key).join(",");
+  eq(keys, "oldnavy", "a store with zero items got a card");
+});
+
+check("lane bryant is registered and browsable in both mirrors", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const row = /lanebryant:\s*\{[^}]*\}/.exec(src);
+  if (!row) throw new Error("lanebryant is not in index.html's RETAILERS");
+  if (!/browse:\s*true/.test(row[0])) throw new Error("lanebryant is not browsable");
+  if (!/search:\s*false/.test(row[0])) throw new Error("lanebryant must not join the live search fan-out (no actor)");
+  const mirror = retailers.RETAILERS.lanebryant;
+  if (!mirror) throw new Error("lanebryant is missing from scripts/lib/retailers.js");
+  eq(mirror.label, "Lane Bryant", "mirror label drifted");
+  eq(mirror.browse, true, "mirror browse flag drifted");
+});
+
+check("the cards render only on the curvy department feed", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/\$\{isCurvy \? curvyStoreCardsHTML\(\) : ''\}/.test(src)) {
+    throw new Error("curvyStoreCardsHTML is not gated on the curvy feed");
+  }
+  if (!/function curvyStoreCardsHTML\(\)/.test(src)) throw new Error("curvyStoreCardsHTML is gone");
+});
+
 group("store carousels: window-shopping rails");
 
 {
@@ -7794,6 +9837,55 @@ group("store carousels: window-shopping rails");
     eq(c, d, "carouselMixItems parity");
   });
 
+  check("the rail opens on the biggest MEANINGFUL sales, then spreads the rest", () => {
+    // Danny's merchandising (2026-09-24): first cards are the deepest
+    // meaningful discounts — never full-price, never a meaningless
+    // markdown. Then non-sale, with remaining sales distributed.
+    const S = (title, price, regularPrice, extra = {}) =>
+      ({ title, image: title.replace(/\W/g, "") + ".jpg", price, regularPrice, onSale: true, ...extra });
+    const F = (title, i) => ({ title, image: `full${i}.jpg`, price: 50 + i });
+    const items = [
+      F("Full A", 1), F("Full B", 2), F("Full C", 3), F("Full D", 4),
+      F("Full E", 5), F("Full F", 6), F("Full G", 7), F("Full H", 8),
+      S("Bra 20% off", 40, 50),          // meaningful, shallow
+      S("Bra 50% off", 25, 50),          // meaningful, deepest
+      S("Bra 40% off", 30, 50),          // meaningful
+      S("Bra 45% off", 33, 60),          // meaningful
+      S("Socks 90% off", 4, 40),         // deep but trivial + cheap: never leads
+      S("Keychain 70% off", 3, 10),      // deep but trivial: never leads
+      S("Balm 60% off", 8, 20),          // below the $10 lead floor: never leads
+      S("NoPhoto 55% off", 22, 50, { image: "" }), // no photo: never leads
+    ];
+    const picks = carousel.carouselPickItems(items, 16);
+    const titles = picks.map((p) => p.title);
+    // Lead run: the three biggest MEANINGFUL sales, deepest first.
+    eq(titles[0], "Bra 50% off", "deepest meaningful sale opens the rail");
+    eq(titles[1], "Bra 45% off", "second deepest next");
+    eq(titles[2], "Bra 40% off", "third deepest next");
+    // The meaningless markdowns are on the rail but never in the lead run.
+    for (const t of ["Socks 90% off", "Keychain 70% off", "Balm 60% off", "NoPhoto 55% off"]) {
+      if (titles.slice(0, 3).includes(t)) throw new Error(`${t} led the rail`);
+      if (!titles.includes(t)) throw new Error(`${t} fell off the rail entirely`);
+    }
+    // "Bra 20% off" is a real sale but lost the lead slots: it must be
+    // spread through the non-sale run, not clumped right after the leads.
+    const idx20 = titles.indexOf("Bra 20% off");
+    if (idx20 < 6) throw new Error("leftover sale clumped behind the leads: " + titles.join(","));
+    // The page mirror answers identically on the same merchandising input.
+    const b = JSON.stringify(pc.carouselPickItems(items, 16).map((p) => p.title));
+    eq(JSON.stringify(titles), b, "sale merchandising parity");
+  });
+
+  check("a sub-5% markdown is not a sale and never leads", () => {
+    const items = [
+      { title: "Full", image: "f.jpg", price: 50 },
+      { title: "Tiny markdown", image: "t.jpg", price: 48.5, regularPrice: 50, onSale: true },
+    ];
+    const picks = carousel.carouselPickItems(items, 16);
+    eq(picks[0].title, "Full", "3% off does not jump the rail");
+    if (carousel.carouselIsSale(items[1])) throw new Error("3% off counted as a sale");
+  });
+
   check("every store landing renders the rail above the tiles", () => {
     const src = readFileSync(root("index.html"), "utf8");
     const store = src.slice(src.indexOf("async function openStore("), src.indexOf("async function openStoreResults("));
@@ -7812,7 +9904,9 @@ group("store carousels: window-shopping rails");
     const railAt = aisle.indexOf("storeCarouselHTML({");
     const searchAt = aisle.indexOf("catalogSearchBarHTML()");
     if (railAt < 0 || railAt > searchAt) throw new Error("the aisle landing does not lead with the rail");
-    if (!/catalogAisleListHTML\(grouped, storeLabel, all\)/.test(src)) throw new Error("the aisle landing is not fed the department's items");
+    /* Curvy feeds the landing its gender-filtered feed (2026-09-25): the aisle tiles must describe what the
+       Mujeres/Hombres toggle is showing, so `gendered` is the department's items here, not a subset. */
+    if (!/catalogAisleListHTML\(grouped, storeLabel, (all|gendered)\)/.test(src)) throw new Error("the aisle landing is not fed the department's items");
     const feed = src.slice(src.indexOf("sections.innerHTML = `\n    ${storeCarouselHTML("), src.indexOf("id=\"catalogGrid\""));
     if (!feed || !/id: 'feedRail'/.test(feed)) throw new Error("the feed does not lead with the rail");
   });
@@ -7825,11 +9919,45 @@ group("store carousels: window-shopping rails");
     }
     if (!/cardPhotoHTML\(src/.test(card)) throw new Error("the rail card does not reuse the shared photo builder");
     if (!/productCardOpenExpr\(it, retailer\)/.test(card)) throw new Error("the rail card does not open the product like grid cards do");
-    if (!/fmtDisplayPrice\(price\)/.test(card)) throw new Error("the rail card shows no price");
+    if (!/fmtPriceLabel\(taxed\)/.test(card)) throw new Error("the rail card does not lead with the USD price");
+    if (!/solesUnderHTML\(taxed/.test(card)) throw new Error("the rail card shows no soles (venta) reference");
+    if (!/weightLabelHTML\(title/.test(card)) throw new Error("the rail card shows no estimated shipping weight");
+    const wl = src.slice(src.indexOf("function weightLabelHTML("), src.indexOf("function weightLabelHTML(") + 900);
+    if (!/estimateRetailWeightKg\(title\)/.test(wl)) throw new Error("the weight line can go blank when the title lookup misses");
+    if (!/brandEyebrowHTML\(it\.brand/.test(card)) throw new Error("the rail card shows no brand");
     if (/Comprar|flete|retailerBadgeHTML/.test(card)) throw new Error("the rail card carries grid-card chrome");
     if (!/ariaCarouselCard/.test(card)) throw new Error("rail cards carry no carousel class");
     const rail = src.slice(src.indexOf("function storeCarouselHTML("), src.indexOf("/* ============================================================\n   THE BROWSE TILE"));
     if (!/CAROUSEL_MIN_ITEMS/.test(rail)) throw new Error("the rail renders even for a 1-card stub");
+  });
+
+  check("sale items on the rail show the struck original beside the price", () => {
+    // PR #52 (2026-09-24): Danny's QA — the -78% corset led the sale-first
+    // rail but the card showed only "$32.99". The badge itself came via #51;
+    // this pins the struck original price next to it.
+    // NOTE: the merged sale definition is original-price-driven (PR #51),
+    // not flag-driven — a priced original above the price shows the
+    // discount with or without onSale set.
+    const { carouselCardHTML } = loadPageCarouselCardSlice();
+    const sale = carouselCardHTML(
+      { title: "Blooming Rose Corset Top", price: 32.99, originalPrice: 150, onSale: true, image: "corset.jpg" },
+      null,
+    );
+    if (!sale.includes("line-through")) throw new Error("no struck original price on the sale card");
+    if (!sale.includes("$150")) throw new Error("the struck price is not the original");
+
+    const regular = carouselCardHTML({ title: "Tease Perfume", price: 40, image: "tease.jpg" }, null);
+    if (regular.includes("line-through")) throw new Error("a full-price card grew a struck price");
+
+    // Fail closed: the sale definition is original > price.
+    const noOriginal = carouselCardHTML({ title: "X", price: 30, onSale: true, image: "x.jpg" }, null);
+    if (noOriginal.includes("line-through")) {
+      throw new Error("a sale-flagged item with no original price shows a discount");
+    }
+    const inverted = carouselCardHTML({ title: "Z", price: 60, originalPrice: 30, onSale: true, image: "z.jpg" }, null);
+    if (inverted.includes("line-through")) {
+      throw new Error("an original below the price shows a discount");
+    }
   });
 
   check("the rail CSS is a touch scroller with snap points and edge bleed", () => {
@@ -7843,12 +9971,1076 @@ group("store carousels: window-shopping rails");
     if (!css.includes('[data-store-theme="victoriassecret"] .ariaCarouselTitle')) {
       throw new Error("the VS theme does not re-ink the rail title");
     }
+    // PINK-NOT-BLACK (2026-09-24): Danny — the VS ambient stays
+    // recognizably pink all the way down. The base gradient must end in
+    // a deep pink, never a near-black.
+    const vsTheme = css.slice(css.indexOf('[data-store-theme="victoriassecret"]{'), css.indexOf('[data-store-theme="victoriassecret"] h1'));
+    if (!/linear-gradient\(180deg,\s*#[0-9A-Fa-f]{6}\s*0%,\s*#[0-9A-Fa-f]{6}\s*52%,\s*#[0-9A-Fa-f]{6}\s*100%\)/.test(vsTheme)) {
+      throw new Error("the VS theme lost its three-stop pink base gradient");
+    }
+    const stops = vsTheme.match(/#[0-9A-Fa-f]{6}/g) || [];
+    const lum = (hex) => {
+      const n = [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16) / 255).map(v => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4));
+      return 0.2126 * n[0] + 0.7152 * n[1] + 0.0722 * n[2];
+    };
+    for (const s of stops) {
+      if (lum(s) < 0.03) throw new Error(`the VS base gradient stop ${s} is near-black — keep it pink`);
+    }
     const card = src.slice(src.indexOf("function carouselCardHTML("), src.indexOf("function storeCarouselHTML("));
     if (!/background:#fff/.test(card)) throw new Error("rail cards lost their light surface");
   });
 }
 
+/* ==================================================================
+   PER-STORE AMBIENT THEMES — FULL ROLLOUT (2026-09-24).
+
+   Danny: every carried store gets a brand-grounded ambient, not just
+   Victoria's Secret. Each theme is a STORE_THEMES row plus a
+   [data-store-theme="<key>"] CSS block (3 radial glows + linear base,
+   then the 7 re-ink rules). The wiring (applyStoreTheme) is generic and
+   already covers the store landing, department drill-downs and
+   store-scoped search — these checks pin the registry and the CSS.
+   ================================================================== */
+group("per-store ambient themes: full rollout");
+
+{
+  const themeKeys = () => {
+    const src = readFileSync(root("index.html"), "utf8");
+    const lit = src.slice(src.indexOf("const STORE_THEMES = {"), src.indexOf("function storeThemeFor("));
+    return [...lit.matchAll(/^  ([a-z0-9]+): \{ glow: '(#[0-9A-Fa-f]{6})' \},$/gm)].map(m => m[1]);
+  };
+  const cssFor = (key) => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    const css = src.slice(0, src.indexOf("</style>"));
+    const start = css.indexOf(`[data-store-theme="${key}"]{`);
+    if (start < 0) return null;
+    // the block runs to the last re-ink rule for this key
+    const endMarker = `[data-store-theme="${key}"] .ariaCarouselTitle`;
+    const end = css.indexOf(endMarker);
+    return css.slice(start, css.indexOf("}", end) + 1);
+  };
+  const lum = (hex) => {
+    let h = hex.replace("#", "");
+    if (h.length === 3) h = [...h].map(c => c + c).join("");
+    const [r, g, b] = [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+    const f = (c) => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const contrast = (a, b) => {
+    const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+    return (x + 0.05) / (y + 0.05);
+  };
+
+  check("every carried store has an ambient theme", () => {
+    const keys = themeKeys();
+    const expected = ["walmart","target","oldnavy","footlocker","sephora","ulta",
+      "yesstyle","victoriassecret","bathandbodyworks","macys","skims","revolve",
+      "dyson","sunglasshut","ssense","fendi","miumiu","goldengoose","autozone"];
+    for (const k of expected) {
+      if (!keys.includes(k)) throw new Error(`no STORE_THEMES row for ${k}`);
+    }
+    for (const retired of ["bestbuy", "nordstrom"]) {
+      if (keys.includes(retired)) throw new Error(`retired store ${retired} has a theme`);
+    }
+    if (new Set(keys).size !== keys.length) throw new Error("duplicate theme keys");
+  });
+
+  check("the Victoria's Secret theme is untouched", () => {
+    const src = readFileSync(root("index.html"), "utf8");
+    if (!/victoriassecret: \{ glow: '#E31C79' \},/.test(src)) {
+      throw new Error("the VS registry row changed");
+    }
+    const css = cssFor("victoriassecret");
+    // 2026-09-24 restyle (Danny: keep it pink all the way down) — the
+    // approved base is now the pink gradient, not the old near-black plum.
+    if (!css || !css.includes("#D6337F")) throw new Error("the VS ambient changed");
+  });
+
+  check("every theme has the full CSS block", () => {
+    const rules = ["h1{", "#catalogSubtitle", ".themeBack{", '[aria-pressed="true"]{',
+      ".chipLabel{", "#catalogSort{", ".ariaCarouselTitle{"];
+    for (const k of themeKeys()) {
+      // AutoZone keeps Aria Auto's light surfaces with a brand-colour wash
+      // instead of a dark ambient — pinned separately below.
+      if (k === "autozone") continue;
+      const css = cssFor(k);
+      if (!css) throw new Error(`no CSS block for ${k}`);
+      if (!/radial-gradient/.test(css) || !/linear-gradient\(180deg/.test(css)) {
+        throw new Error(`${k}: ambient background is not glows-over-base`);
+      }
+      for (const r of rules) {
+        if (!css.includes(r)) throw new Error(`${k}: missing re-ink rule ${r}`);
+      }
+    }
+  });
+
+  check("active filter chips hold 4.5:1 on every theme", () => {
+    for (const k of themeKeys()) {
+      // Victoria's Secret is the pilot (PR #42, owned elsewhere): its approved
+      // values predate this bar and compute to 4.46:1. Grandfathered, not touched.
+      // AutoZone has no pressed-chip rule: it wears the light wash, not a dark ambient.
+      if (k === "victoriassecret" || k === "autozone") continue;
+      const css = cssFor(k);
+      const m = css.match(/\[aria-pressed="true"\]\{\s*background:(#[0-9A-Fa-f]{3,6}) !important; border-color:(#[0-9A-Fa-f]{3,6}) !important; color:(#[0-9A-Fa-f]{3,6}) !important;/);
+      if (!m) throw new Error(`${k}: pressed-chip rule not in the expected shape`);
+      const ratio = contrast(m[3], m[1]);
+      if (ratio < 4.5) throw new Error(`${k}: chip contrast ${ratio.toFixed(2)}:1 under 4.5`);
+    }
+  });
+}
+  check("the auto store keeps the light wash", () => {
+    const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
+    if (!/autozone: \{ glow: '#1C8A4B' \},/.test(src)) {
+      throw new Error("the AutoZone registry row changed");
+    }
+    const css = src.slice(0, src.indexOf("</style>"));
+    if (!css.includes('[data-store-theme="autozone"]{ background:linear-gradient(180deg, #DFF0E4')) {
+      throw new Error("the AutoZone light wash is gone");
+    }
+  });
+
 /* ------------------------------------------------------------------ */
+
+/* ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------
+   VOICE PUNCTUATION + THE SEARCH DOORWAY (2026-09-24)
+
+   TWO REPORTS FROM DANNY'S IPHONE. (1) Aria said the word "comma" out
+   loud — "of course we do comma why" — instead of pausing at a comma.
+   (2) He tapped a shoe in Smart Search and landed on a page titled
+   "Women's Mid-Rise Bootcut Pants" with no image and no results.
+   ------------------------------------------------------------------ */
+group("voice: dictated punctuation never reaches the shopper as words");
+
+check("the reported exchange is punctuated, not spoken", () => {
+  // The verbatim failure Danny reported, plus the dictated-punctuation
+  // shapes around it: the model echoing the words, the user dictating
+  // them, and both languages (recognition is es-PE, dictation English).
+  const cases = [
+    ["of course we do comma why would you think that", "of course we do, why would you think that"],
+    ["show me red shoes comma size eight please", "show me red shoes, size eight please"],
+    ["quiero zapatos rojos coma talla ocho por favor", "quiero zapatos rojos, talla ocho por favor"],
+    ["really exclamation point I love them", "really! I love them"],
+    ["are they on sale question mark", "are they on sale?"],
+    ["dear mom new paragraph I found them", "dear mom\nI found them"],
+    ["that sounds perfect period", "that sounds perfect."],
+  ];
+  for (const [input, want] of cases) {
+    eq(chatModel.sanitizeSpokenPunctuation(input), want, JSON.stringify(input));
+  }
+});
+
+check("spanish idioms are not mistaken for punctuation", () => {
+  // "punto" in "a punto de" / "punto de venta" is a noun, not a dictated
+  // period — corrupting it would be worse than the bug being fixed.
+  for (const idiom of ["estoy a punto de buscar tu pedido", "nuestro punto de venta en Miami"]) {
+    eq(chatModel.sanitizeSpokenPunctuation(idiom), idiom, JSON.stringify(idiom));
+  }
+});
+
+check("ordinary text passes through untouched", () => {
+  for (const plain of ["just show me the shoes", "I found them for $41.65, well-known brand"]) {
+    eq(chatModel.sanitizeSpokenPunctuation(plain), plain, JSON.stringify(plain));
+  }
+});
+
+check("the client mirror agrees with the server copy", () => {
+  // index.html cannot import, so the rule list lives twice — this pins
+  // that the two never drift, the way the weight tables are pinned.
+  const src = readFileSync(root("index.html"), "utf8");
+  const m = src.match(/function spokenPunctuationToMarks\(text\)\{[\s\S]*?\r?\n\}/);
+  if (!m) throw new Error("spokenPunctuationToMarks is missing from index.html");
+  const client = new Function(m[0] + "; return spokenPunctuationToMarks;")();
+  const samples = [
+    "of course we do comma why would you think that",
+    "quiero zapatos rojos coma talla ocho por favor",
+    "really exclamation point I love them",
+    "estoy a punto de buscar tu pedido",
+    "just show me the shoes",
+  ];
+  for (const sample of samples) {
+    eq(client(sample), chatModel.sanitizeSpokenPunctuation(sample), JSON.stringify(sample));
+  }
+});
+
+check("both chat endpoints and the TTS path sanitize the reply", () => {
+  // The voice Danny hears comes from Grok TTS fed by speechFor; the
+  // bubble and the history come from the endpoint replies. All three
+  // must carry the sanitized text, or the voice says "comma" again.
+  const model = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
+  if (!/const speakable = sanitizeSpokenPunctuation\(reply\)/.test(model) ||
+      !/text:\s*speakable/.test(model)) {
+    throw new Error("speechFor no longer sanitizes before Grok TTS");
+  }
+  const groq = readFileSync(root("netlify/functions/aria-chat-groq.js"), "utf8");
+  if (!/const reply = sanitizeSpokenPunctuation\(chatData/.test(groq)) {
+    throw new Error("aria-chat-groq.js returns the unsanitized reply");
+  }
+  const stream = readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8");
+  if (!/reply: sanitizeSpokenPunctuation\(reply\)/.test(stream)) {
+    throw new Error("aria-chat-stream.js returns the unsanitized reply");
+  }
+  const stt = readFileSync(root("index.html"), "utf8");
+  if (!/const cleanTranscript = spokenPunctuationToMarks\(transcript\)/.test(stt)) {
+    throw new Error("the speech-to-text transcript is not sanitized before the chat");
+  }
+});
+
+group("search doorway: a product route never degrades into a fake search");
+
+check("restoring a product route resolves the catalogue, never searches the title", () => {
+  // The doorway: applyRoute's productView case used to call
+  // showResults(route.name) when the in-memory item was gone, which is
+  // how a tapped shoe became a pants title with no image and no results.
+  const src = readFileSync(root("index.html"), "utf8");
+  const route = src.slice(src.indexOf("async function applyRoute(route){"), src.indexOf("/* ============================================================\n   THE CATALOGUE PAGE"));
+  const productCase = route.slice(route.indexOf("case 'productView'"), route.indexOf("case 'catalogView'"));
+  if (/showResults\(route\.name/.test(productCase)) {
+    throw new Error("product route restoration still fakes a search out of the product name");
+  }
+  if (!/findCatalogProductByTitle\(route\.name\)/.test(productCase)) {
+    throw new Error("product route restoration does not resolve the catalogue by title");
+  }
+  if (!/showProductUnavailable\(route\.name\)/.test(productCase)) {
+    throw new Error("an unresolvable product route has no honest empty state");
+  }
+});
+
+check("a failed catalogue search says so and offers a retry", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("async function showResults(query, opts = {}){"), src.indexOf("/* ============================================================\n   THE LIVE SCAN"));
+  if (!/catch \(err\)[\s\S]*?catalogSearch/.test(fn) && !/try \{[\s\S]*?catalogSearch\(query\)/.test(fn)) {
+    throw new Error("showResults does not guard catalogSearch");
+  }
+  if (!/No pudimos cargar el catálogo/.test(fn) || !/retryFailedSearch/.test(fn)) {
+    throw new Error("a failed search has no honest message with a retry");
+  }
+});
+
+check("one poison record cannot empty the search pool", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const pool = src.slice(src.indexOf("async function relatedPool(){"), src.indexOf("/* ============================================================\n   CATALOG-FIRST SEARCH"));
+  if (!/try \{ it = normalizeLiveItem/.test(pool)) {
+    throw new Error("relatedPool does not isolate a throwing record");
+  }
+});
+
+/* ============================================================
+   CART MERGE IDEMPOTENCE (2026-09-26, live bug): for a logged-in shopper
+   the server cart is an exact mirror of the localStorage cart, so the old
+   sum-on-match merge doubled every line on every page load. mergeCarts
+   now unions by cartItemKey with qty = max() — reloads can never change
+   quantities, genuine cross-device adds still union.
+   ============================================================ */
+const pageCart = loadPageCartSlice();
+const cartKey = (retailer, title, size, qty) => ({ retailer, title, selectedSize: size, qty });
+
+check("a logged-in reload never changes quantities", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 1, "line count");
+  eq(merged[0].qty, 1, "qty after reload");
+});
+
+check("cross-device adds still union without doubling", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1), cartKey("Adidas", "Samba", "9", 2)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 2, "line count");
+  eq(merged.find((it) => it.retailer === "Nike").qty, 1, "Nike qty");
+  eq(merged.find((it) => it.retailer === "Adidas").qty, 2, "Adidas qty");
+});
+
+check("divergent quantities keep the larger side", () => {
+  const local = [cartKey("Nike", "Air Force 1", "10", 3)];
+  const server = [cartKey("Nike", "Air Force 1", "10", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged.length, 1, "line count");
+  eq(merged[0].qty, 3, "qty keeps the larger side");
+});
+
+check("the page merge cannot sum quantities", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("function mergeCarts(localCart, serverCart){"), src.indexOf("CART WEIGHT REPAIR"));
+  if (/\.qty\s*\+=\s*it\.qty/.test(fn)) {
+    throw new Error("mergeCarts still sums quantities on matching keys");
+  }
+  if (!/Math\.max\(/.test(fn)) {
+    throw new Error("mergeCarts does not take the max quantity on matching keys");
+  }
+});
+
+/* ============================================================
+   CART QUANTITY HEALING (2026-09-26, live money bug): PR #89's max()
+   merge stops NEW doublings but can never repair a cart corrupted by
+   the old summing merge — max(256, 256) is 256 forever. Danny's live
+   cart proved it: two lines at qty 256 (2^8), $26,145 declared value.
+   repairImplausibleQuantities heals the corruption fingerprint back to 1
+   and leaves every plausible quantity alone: a power of two >= 64 is
+   always corruption (unreachable via the +1 stepper), and any other
+   integer >= 64 heals only on a sized variant — 64+ of one size is never
+   a real order, while unsized bulk (100 napkins) stays plausible.
+   normalizeCartQty keeps every qty a positive integer at every entry
+   point, so the string-concat class ("50" -> "501") is impossible.
+   ============================================================ */
+
+check("the doubling incident reproduces: 8 summing merges turn qty 1 into 256", () => {
+  // Pre-#89 behavior: local and server are exact mirrors and the merge
+  // summed on matching keys; the client overwrote the server after
+  // every load, so each reload doubled every line.
+  const summingMerge = (l, s) => {
+    const map = new Map();
+    for (const it of s) map.set([it.retailer, it.title, it.selectedSize || ""].join("::"), { ...it });
+    for (const it of l) {
+      const key = [it.retailer, it.title, it.selectedSize || ""].join("::");
+      if (map.has(key)) map.get(key).qty += it.qty;
+      else map.set(key, { ...it });
+    }
+    return Array.from(map.values());
+  };
+  let local = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 1)];
+  let server = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 1)];
+  for (let i = 0; i < 8; i++) {
+    const merged = summingMerge(local, server);
+    local = merged;
+    server = merged.map((it) => ({ ...it }));
+  }
+  eq(local[0].qty, 256, "8 reloads double qty 1 to 256");
+});
+
+check("max() alone never heals a corrupted cart", () => {
+  const local = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256)];
+  const server = [cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged[0].qty, 256, "max(256,256) stays 256 - the gap repairImplausibleQuantities closes");
+});
+
+check("repairImplausibleQuantities heals the doubling fingerprint back to 1", () => {
+  const list = [
+    cartKey("Foot Locker", "New Balance 740 - Men's", "10", 256),
+    cartKey("Victoria's Secret", "Heritage Mesh Lace-Trim", "M", 128),
+  ];
+  const { cart, repaired } = pageCart.repairImplausibleQuantities(list);
+  eq(repaired, 2, "both lines healed");
+  eq(cart[0].qty, 1, "256 -> 1");
+  eq(cart[1].qty, 1, "128 -> 1");
+  eq(cart[0].title, "New Balance 740 - Men's", "rest of the line untouched");
+  eq(cart[0].selectedSize, "10", "size untouched");
+});
+
+check("repairImplausibleQuantities heals the 502-panty fossil (sized, non-power-of-two)", () => {
+  // 2026-09-26 live report: one size-M panty at qty 502, $4,654 declared.
+  // Not a power of two, so the old fingerprint missed it and max() could
+  // never bring it down. 64+ of one size variant is never a real order.
+  const list = [cartKey("Victoria's Secret", "Heritage Mesh Lace-Trim", "M", 502)];
+  const { cart, repaired } = pageCart.repairImplausibleQuantities(list);
+  eq(repaired, 1, "fossil healed");
+  eq(cart[0].qty, 1, "502 -> 1");
+});
+
+check("repairImplausibleQuantities leaves plausible quantities alone", () => {
+  const list = [
+    cartKey("Nike", "Air Force 1", "10", 1),
+    cartKey("Nike", "Dunk Low", "10", 2),
+    cartKey("Adidas", "Samba", "9", 3),
+    cartKey("Party", "Vasos descartables", "", 8),
+    cartKey("Party", "Vasos descartables", "", 16),
+    cartKey("Party", "Vasos descartables", "", 32),
+    cartKey("Party", "Platos hondos", "", 30),
+    cartKey("Party", "Servilletas", "", 100),
+    cartKey("Party", "Vasos", "", 70),
+  ];
+  const { cart, repaired } = pageCart.repairImplausibleQuantities(list);
+  eq(repaired, 0, "nothing repaired");
+  eq(cart.map((it) => it.qty).join(","), "1,2,3,8,16,32,30,100,70", "quantities untouched");
+});
+
+check("a sized non-power-of-two >= 64 heals, an unsized one does not", () => {
+  const sized = pageCart.repairImplausibleQuantities([cartKey("VS", "Panty", "M", 70)]);
+  eq(sized.cart[0].qty, 1, "sized 70 -> 1");
+  const unsized = pageCart.repairImplausibleQuantities([cartKey("Party", "Vasos", "", 70)]);
+  eq(unsized.repaired, 0, "unsized 70 untouched");
+});
+
+check("normalizeCartQty keeps every quantity a positive integer", () => {
+  eq(pageCart.normalizeCartQty("50"), 50, "numeric string");
+  eq(pageCart.normalizeCartQty(3), 3, "number passes through");
+  eq(pageCart.normalizeCartQty("abc"), 1, "garbage becomes 1");
+  eq(pageCart.normalizeCartQty(0), 1, "zero becomes 1");
+  eq(pageCart.normalizeCartQty(2.9), 2, "floors");
+});
+
+check("mergeCarts normalises string quantities instead of concatenating them", () => {
+  const local = [cartKey("VS", "Panty", "M", "50")];
+  const server = [cartKey("VS", "Panty", "M", 1)];
+  const merged = pageCart.mergeCarts(local, server);
+  eq(merged[0].qty, 50, "max of normalised values");
+  eq(typeof merged[0].qty, "number", "qty is a real number");
+});
+
+check("initCart runs the quantity healing pass", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("async function initCart(){"), src.indexOf("let cartLoaded = false;"));
+  if (!/repairImplausibleQuantities\(cart\)/.test(fn)) {
+    throw new Error("initCart does not run repairImplausibleQuantities");
+  }
+});
+
+check("index.html is never served stale (stale doubling code must not survive)", () => {
+  const headers = readFileSync(root("_headers"), "utf8");
+  const idx = headers.search(/^\/index\.html$/m);
+  if (idx < 0) throw new Error("_headers has no /index.html cache rule");
+  const section = headers.slice(idx).split(/\n[^\s]/)[0];
+  if (!/no-cache/.test(section)) {
+    throw new Error("/index.html is cacheable - a stale summing mergeCarts could keep doubling carts");
+  }
+});
+
+/* ============================================================
+   GUÍA DE TALLAS (2026-09-26): brand- and region-aware size guide.
+   A Nike L, a Zara L and a Peruvian-market L are different garments,
+   so the guide resolves per brand (curated tables transcribed from
+   each brand's own published chart — never invented) and falls back
+   to a clearly labeled general-reference table for unknown brands.
+   ============================================================ */
+const pageSizeGuide = loadPageSizeGuideSlice();
+
+check("a Nike shoe resolves to the Nike shoe table", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Nike", "Nike Air Force 1", "shoe");
+  eq(g.title, "Guía de tallas — Nike", "header");
+  eq(g.isGeneral, false, "isGeneral");
+  eq(g.activeTab, "shoes", "default tab for shoes");
+  const tab = g.getTab("shoes");
+  if (!tab.cols.some((c) => /largo del pie/i.test(c))) {
+    throw new Error("Nike shoe table has no foot-length column");
+  }
+  if (!tab.rows.some((r) => r[0] === "9" && r[2] === "27")) {
+    throw new Error("Nike shoe table is missing the US 9 → 27 cm row");
+  }
+});
+
+check("an unknown brand resolves to the general table", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Zara", "Vestido floral", "clothing");
+  eq(g.title, "Guía de tallas — tabla general", "fallback header");
+  eq(g.isGeneral, true, "isGeneral");
+  eq(g.activeTab, "womens", "default tab");
+});
+
+check("the brand header names the brand when one is curated", () => {
+  eq(pageSizeGuide.resolveSizeGuide("Lane Bryant", "Blusa", "clothing").title, "Guía de tallas — Lane Bryant", "Lane Bryant header");
+  eq(pageSizeGuide.resolveSizeGuide("Cacique", "Brasier", "clothing").title, "Guía de tallas — Lane Bryant", "Cacique resolves to Lane Bryant");
+  eq(pageSizeGuide.resolveSizeGuide("adidas", "Remera", "clothing").title, "Guía de tallas — adidas", "adidas header");
+});
+
+check("women's clothing guides include 1X through 5X", () => {
+  const g = pageSizeGuide.resolveSizeGuide("Lane Bryant", "Vestido", "clothing");
+  const rows = g.getTab("womens").rows.map((r) => r[0]);
+  for (const want of ["1X", "2X", "3X", "4X", "5X"]) {
+    if (!rows.includes(want)) throw new Error(`Lane Bryant womens table is missing ${want}`);
+  }
+});
+
+check("every curated brand table ships with a non-empty source URL", () => {
+  for (const brand of pageSizeGuide.SIZE_GUIDE_BRANDS) {
+    if (!/^https?:\/\//.test(brand.source || "")) {
+      throw new Error(`${brand.display} has no source URL`);
+    }
+    for (const id of Object.keys(brand.tabs)) {
+      const tab = brand.tabs[id];
+      if (!tab.cols.length || !tab.rows.length) {
+        throw new Error(`${brand.display} tab ${id} is empty`);
+      }
+    }
+  }
+});
+
+check("size tables are region-aware: UK/UE equivalents plus cm body measurements", () => {
+  const nike = pageSizeGuide.resolveSizeGuide("Nike", "Remera", "clothing").getTab("womens");
+  for (const need of ["UK", "UE"]) {
+    if (!nike.cols.some((c) => c === need)) throw new Error(`Nike womens table has no ${need} column`);
+  }
+  if (!nike.cols.some((c) => /cm/i.test(c))) throw new Error("Nike womens table has no cm column");
+  const general = pageSizeGuide.resolveSizeGuide("", "Remera", "clothing").getTab("womens");
+  if (!general.cols.some((c) => c === "UK") || !general.cols.some((c) => c === "UE")) {
+    throw new Error("general womens table has no UK/UE columns");
+  }
+});
+
+check("the guide link lives inside the size picker and the modal closes three ways", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const wrap = src.slice(src.indexOf('id="productSizeWrap"'), src.indexOf('id="addToCartBtn"'));
+  if (!/id="sizeGuideLink"/.test(wrap)) {
+    throw new Error("Guía de tallas link is not inside #productSizeWrap");
+  }
+  if (!/id="sizeGuideBackdrop"[\s\S]*?onclick="if\(event\.target===this\)closeSizeGuide\(\)"/.test(src)) {
+    throw new Error("backdrop does not close the size guide on tap");
+  }
+  const escFn = src.slice(src.indexOf("function sizeGuideEscHandler"), src.indexOf("}", src.indexOf("function sizeGuideEscHandler")) + 1);
+  if (!/key\s*===\s*['"]Escape['"]/.test(escFn)) {
+    throw new Error("Escape does not close the size guide");
+  }
+  if (!/Las tallas son referenciales y pueden variar según la marca y el modelo\./.test(src)) {
+    throw new Error("the reference disclaimer is missing");
+  }
+  if (!/Cómo medir el cuerpo/.test(src)) {
+    throw new Error("the body-measuring guidance is missing");
+  }
+});
+
+check("opening the guide cannot disturb the shopper's chosen size", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  const fn = src.slice(src.indexOf("function openSizeGuide(){"), src.indexOf("function sizeGuideTab("));
+  if (/productSizeSelect/.test(fn)) {
+    throw new Error("openSizeGuide touches the size select");
+  }
+  const closer = src.slice(src.indexOf("function closeSizeGuide(){"), src.indexOf("function sizeGuideEscHandler("));
+  if (/productSizeSelect/.test(closer)) {
+    throw new Error("closeSizeGuide touches the size select");
+  }
+});
+
+check("the product page shows a continue-to-cart line whenever the cart holds items", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  // The line lives directly under the buy button and taps straight into the cart.
+  const btnZone = src.slice(src.indexOf('id="addToCartBtn"'), src.indexOf('id="productNoPriceNote"'));
+  if (!/id="continueToCartBtn"[^>]*onclick="openCart\(\)"/.test(btnZone)) {
+    throw new Error("continueToCartBtn is not directly under #addToCartBtn or does not open the cart");
+  }
+  if (!/class="[^"]*\bhidden\b/.test(btnZone)) {
+    throw new Error("continueToCartBtn does not start hidden in the markup");
+  }
+  // The success path of addToCartFromProduct() raises it with the live count.
+  const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("function retailerFor("));
+  if (!/showContinueToCart\(\)/.test(fn)) {
+    throw new Error("addToCartFromProduct does not show the continue-to-cart line on success");
+  }
+  // A fresh product render DRIVES the line off the cart count (Danny's iPhone QA
+  // 2026-09-26: hiding it on every render made it vanish on navigation even with
+  // items in the cart). It must sync, never unconditionally wipe.
+  const buyable = src.slice(src.indexOf("function setProductBuyable(hasPrice){"), src.indexOf("function addToCartFromProduct(){"));
+  if (!/refreshContinueToCart\(ctc\)/.test(buyable)) {
+    throw new Error("setProductBuyable does not sync the continue-to-cart line to the cart count");
+  }
+  if (/ctc\.classList\.add\('hidden'\)/.test(buyable)) {
+    throw new Error("setProductBuyable still wipes the continue-to-cart line on every render");
+  }
+  // Every cart mutation funnels through renderCartBadge(), which syncs the line
+  // unconditionally — it must APPEAR from here too, not only refresh while visible.
+  const badge = src.slice(src.indexOf("function renderCartBadge(){"), src.indexOf("function addToCart(item){"));
+  if (!/if \(ctc\) refreshContinueToCart\(ctc\);/.test(badge)) {
+    throw new Error("renderCartBadge does not unconditionally sync the continue-to-cart line");
+  }
+  if (/contains\('hidden'\)\) refreshContinueToCart/.test(badge)) {
+    throw new Error("renderCartBadge still only refreshes the line while it is visible");
+  }
+  // The sync never paints a cart that has not finished loading.
+  const sync = src.slice(src.indexOf("function refreshContinueToCart(el){"), src.indexOf("function showContinueToCart(){"));
+  if (!/cartLoaded \? cartCount\(\) : 0/.test(sync)) {
+    throw new Error("refreshContinueToCart does not guard on cartLoaded");
+  }
+  // Spanish-first copy with a real count, singular and plural.
+  if (!/Continuar al carrito/.test(src)) {
+    throw new Error("the continue-to-cart copy is missing");
+  }
+  if (!/1 art\u00edculo/.test(src) || !/art\u00edculos/.test(src)) {
+    throw new Error("the continue-to-cart line has no singular/plural count copy");
+  }
+});
+
+group("shared parts glossary");
+
+check("the parts glossary JSON is valid shared infrastructure", () => {
+  const g = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
+  if (!g.version || !g.entries || !g._readme) throw new Error("glossary missing version/entries/_readme");
+  if (!/shared/i.test(g._readme.join("\n"))) throw new Error("glossary does not document its shared-infrastructure role");
+  const cats = new Set(["brakes","filters","fluids","ignition","electrical","lighting","cooling","fuel","exhaust","belts","suspension","steering","drivetrain","transmission","wipers","body","wheels","sensors"]);
+  const seen = new Set();
+  for (const e of g.entries) {
+    if (!e.es || !Array.isArray(e.en) || !e.en.length) throw new Error(`bad entry shape: ${JSON.stringify(e)}`);
+    if (!cats.has(e.category)) throw new Error(`unknown category ${e.category} on ${e.es}`);
+    for (const t of [e.es, ...(e.synonyms_es || [])]) {
+      const k = t.toLowerCase();
+      if (seen.has(k)) throw new Error(`duplicate Spanish term: ${t}`);
+      seen.add(k);
+    }
+  }
+  const flat = new Map();
+  for (const e of g.entries) for (const t of [e.es, ...(e.synonyms_es || [])]) flat.set(t.toLowerCase(), e.en[0]);
+  eq(flat.get("bujía"), "spark plug", "bujía");
+  eq(flat.get("bujías"), "spark plugs", "bujías");
+  eq(flat.get("filtro de aire"), "engine air filter", "filtro de aire");
+});
+
+check("the inline glossary in index.html matches the JSON source of truth", () => {
+  const g = JSON.parse(readFileSync(root("scripts/lib/es-en-parts-glossary.json"), "utf8"));
+  const { AUTO_PART_TERMS_ES_EN } = loadPageAutoGlossarySlice();
+  const want = new Map();
+  for (const e of g.entries) for (const t of [e.es, ...(e.synonyms_es || [])]) want.set(t.toLowerCase(), e.en[0]);
+  const got = new Map(AUTO_PART_TERMS_ES_EN.map(([es, en]) => [es.toLowerCase(), en]));
+  eq(got.size, want.size, "inline pair count");
+  for (const [es, en] of want) eq(got.get(es), en, `inline pair for ${es}`);
+});
+
+check("the shared glossary translates the acceptance terms (accent-insensitive)", () => {
+  const { translatePartQuery } = loadPageAutoGlossarySlice();
+  eq(translatePartQuery("bujía"), "spark plug", "bujía");
+  eq(translatePartQuery("bujías"), "spark plugs", "bujías");
+  eq(translatePartQuery("BUJIAS"), "spark plugs", "BUJIAS");
+  eq(translatePartQuery("filtro de aire"), "engine air filter", "filtro de aire");
+  eq(translatePartQuery("pastilla de freno"), "brake pad", "pastilla de freno");
+  eq(translatePartQuery("faja de distribución"), "timing belt", "faja de distribución");
+  eq(translatePartQuery("correa de accesorios"), "serpentine belt", "correa de accesorios");
+});
+
+check("an unwired auto source renders the honest pending block, never the backend diagnostic", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/autoPendingBlockHTML\(\{\s*\.\.\.source,\s*pendingNote:\s*'Estamos ampliando nuestro catálogo de repuestos/.test(html))
+    throw new Error("the auto search catch does not render the pending block for unwired sources");
+  if (!/DEV_DIAGNOSTIC_RE\.test\(rawErr\)/.test(html))
+    throw new Error("renderAutoPartBlock does not sanitize dev diagnostics");
+  if (!/throwIfNotConnected\(startData,\s*startRes\)/.test(html))
+    throw new Error("no pendingIntegration detection on the scrape start call");
+});
+
+check("both scrape entry points time out the start call (no endless skeleton)", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const starts = html.match(/fetchWithStartTimeout\('\/\.netlify\/functions\/apify-scrape-start'/g) || [];
+  eq(starts.length, 2, "start calls through fetchWithStartTimeout");
+});
+
+check("the on-demand error path never toasts a raw backend diagnostic", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/Esta tienda aún no está conectada — prueba con otra\./.test(html))
+    throw new Error("no friendly on-demand toast for unwired stores");
+});
+
+check("the scrape backend keeps dev diagnostics out of the production error", () => {
+  const src = readFileSync(root("netlify/functions/apify-scrape-start.js"), "utf8");
+  if (!/isDevRequest\(event\)/.test(src)) throw new Error("no dev-request gating");
+  const prodErr = src.match(/error:\s*known\s*\?\s*`([^`]+)`/);
+  if (!prodErr) throw new Error("production unwired-retailer error not found");
+  if (/TO FINISH|no Apify actor configured/.test(prodErr[1]))
+    throw new Error("dev diagnostic still in the production error string");
+  if (!/is not connected yet/.test(prodErr[1])) throw new Error("production error is not shopper-safe");
+  if (!/devNote/.test(src)) throw new Error("devNote missing for dev-flagged requests");
+});
+
+/* ROCKAUTO DIRECT — REMOVED 2026-09-26 with the source (Danny's call).
+   The zero-Apify fallback, its fixtures and its checks lived here. */
+
+
+/* ------------------------------------------------------------------ */
+await Promise.all(pendingAsync);
+
+/* ============================================================
+   SEO INDEXABILITY (2026-09-26). Google told a shopper in Lima the
+   domain "doesn't appear to operate as an active online store" —
+   because it was never indexed: no robots.txt, no sitemap.xml.
+   These checks pin the crawl surface: robots allows everything and
+   points at the sitemap; every sitemap URL is same-origin on "/" (the
+   query-based SPA routes all serve index.html, so 200); every
+   tienda= key is an ACTIVE retailer (no dead storefronts — the
+   standing rule); index.html has no noindex; canonical + OG present
+   for WhatsApp/Facebook cards.
+   ============================================================ */
+group("SEO indexability");
+
+check("robots.txt exists, allows all, and points at the sitemap", () => {
+  if (!existsSync(root("robots.txt"))) throw new Error("robots.txt missing");
+  const robots = readFileSync(root("robots.txt"), "utf8");
+  if (!/^User-agent: \*$/m.test(robots)) throw new Error("no User-agent: *");
+  if (!/^Allow: \/$/m.test(robots)) throw new Error("root not allowed");
+  if (!/^Sitemap: https:\/\/ariashop\.pe\/sitemap\.xml$/m.test(robots))
+    throw new Error("sitemap not referenced");
+  if (/^Disallow: \/$/m.test(robots)) throw new Error("root disallowed");
+});
+
+check("sitemap.xml is valid XML with same-origin index.html URLs only", () => {
+  if (!existsSync(root("sitemap.xml"))) throw new Error("sitemap.xml missing");
+  const xml = readFileSync(root("sitemap.xml"), "utf8");
+  const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  if (!locs.length) throw new Error("no <loc> entries");
+  for (const loc of locs) {
+    const u = new URL(loc);
+    eq(u.origin, "https://ariashop.pe", `origin of ${loc}`);
+    eq(u.pathname, "/", `pathname of ${loc}`); // query routes hang off "/"
+  }
+  if (!locs.includes("https://ariashop.pe/")) throw new Error("homepage missing");
+});
+
+check("every sitemap tienda= key is an ACTIVE retailer (no dead storefronts)", () => {
+  const xml = readFileSync(root("sitemap.xml"), "utf8");
+  const html = readFileSync(root("index.html"), "utf8");
+  const keys = [...xml.matchAll(/[?&]tienda=([a-z0-9]+)/g)].map((m) => m[1]);
+  if (!keys.length) throw new Error("no storefront URLs in sitemap");
+  for (const key of keys) {
+    // the row must exist in the inline RETAILERS registry and not be retired
+    const row = html.match(new RegExp(`^\\s*${key}:\\s*\\{([^}]*)\\}`, "m"));
+    if (!row) throw new Error(`tienda=${key} has no RETAILERS row`);
+    if (/retired:\s*true/.test(row[1])) throw new Error(`tienda=${key} is retired`);
+  }
+});
+
+check("index.html has no noindex; checkout.html keeps its deliberate noindex", () => {
+  const index = readFileSync(root("index.html"), "utf8");
+  if (/name="robots"[^>]*noindex/i.test(index)) throw new Error("index.html has noindex");
+  // checkout is app functionality, not landing content - its noindex is intentional
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  if (!/name="robots"[^>]*noindex/i.test(checkout)) throw new Error("checkout.html lost its noindex");
+  if (/X-Robots-Tag/i.test(readFileSync(root("_headers"), "utf8")))
+    throw new Error("_headers sets X-Robots-Tag");
+});
+
+check("head carries canonical + Spanish description + OG/Twitter card tags", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/<link rel="canonical" href="https:\/\/ariashop\.pe\/">/.test(html))
+    throw new Error("canonical missing");
+  const desc = html.match(/<meta name="description" content="([^"]+)">/);
+  if (!desc) throw new Error("meta description missing");
+  if (!/[áéíóúñ¿¡]/.test(desc[1]) && /\b(the|and|with|your)\b/i.test(desc[1]))
+    throw new Error("meta description does not look Spanish");
+  for (const tag of ["og:title", "og:description", "og:image", "og:url", "og:site_name", "twitter:card"]) {
+    if (!new RegExp(`property="${tag}"|name="${tag}"`).test(html)) throw new Error(`${tag} missing`);
+  }
+});
+
+check("Search Console verification hook is present (placeholder until Danny pastes the code)", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (!/<meta name="google-site-verification" content="[^"]+">/.test(html))
+    throw new Error("google-site-verification meta missing");
+});
+
+
+group("Gym Rat: Danny's 2026-09-26 direction");
+
+const gymratCatalog = JSON.parse(readFileSync(root("gymrat-catalog.json"), "utf8"));
+const gymratItems = [];
+for (const [retailer, r] of Object.entries(gymratCatalog.retailers || {})) {
+  for (const d of Object.values(r.departments || {})) {
+    for (const item of (Array.isArray(d) ? d : d?.items || [])) gymratItems.push({ retailer, item });
+  }
+}
+
+check("the gym brands are registered and browsable in both mirrors", () => {
+  /* The Macy's / Lane Bryant pattern: a committed catalogue, no actor --
+     browse: true, search: false, in both registries or the brand's pills,
+     rail, storefront and Ofertas entries silently disagree. */
+  const src = readFileSync(root("index.html"), "utf8");
+  for (const [key, label] of [["youngla", "YoungLA"], ["gymshark", "Gymshark"], ["alphalete", "Alphalete"]]) {
+    const row = new RegExp(key + ":\\s*\\{[^}]*\\}").exec(src);
+    if (!row) throw new Error(`${key} is not in index.html's RETAILERS`);
+    if (!/browse:\s*true/.test(row[0])) throw new Error(`${key} is not browsable`);
+    if (!/search:\s*false/.test(row[0])) throw new Error(`${key} must not join the live search fan-out (no actor)`);
+    const mirror = retailers.RETAILERS[key];
+    if (!mirror) throw new Error(`${key} is missing from scripts/lib/retailers.js`);
+    eq(mirror.label, label, `${key} mirror label drifted`);
+    eq(mirror.browse, true, `${key} mirror browse flag drifted`);
+    eq(mirror.search, false, `${key} mirror search flag drifted`);
+  }
+});
+
+check("zero shoes reach the Gym Rat feed, from any retailer", () => {
+  /* DANNY (2026-09-26): Gym Rat is gym clothing + gym accessories -- shoes
+     live in Zapatos / Foot Locker only. The guard sits in
+     itemBelongsToDepartment past the bucket match, so even a footwear
+     item filed under a gymrat bucket is refused. This runs the real
+     filter over the real committed catalogue, retailer by retailer. */
+  const { isFootwear } = loadPageFootwearSlice();
+  const rendered = gymratItems.filter(({ retailer, item }) =>
+    deptMap.itemBelongsToDepartment(item, "gym_rat", "gym_rat", retailer));
+  if (!rendered.length) throw new Error("nothing renders in Gym Rat -- the filter is measuring nothing");
+  const shoes = rendered.filter(({ retailer, item }) => isFootwear(item, retailer));
+  if (shoes.length) {
+    throw new Error(`${shoes.length} footwear items render in Gym Rat, e.g. ` +
+      shoes.slice(0, 3).map(s => s.item.name || s.item.title).join(" | "));
+  }
+});
+
+check("no Foot Locker shoe can enter Gym Rat through the old retailer rule", () => {
+  /* The old rule admitted Foot Locker athletic shoes via the retailer;
+     Danny killed it. A Foot Locker shoe must not belong to gym_rat. The
+     positive control keeps the test honest: gym apparel still belongs. */
+  const { isFootwear } = loadPageFootwearSlice();
+  const shoe = { name: "Nike Air Force 1 '07", type: "Athletic Shoes", brand: "Nike" };
+  if (!isFootwear(shoe, "footlocker")) throw new Error("the shoe fixture is not a shoe -- the test is measuring nothing");
+  if (deptMap.itemBelongsToDepartment(shoe, "gym_rat", "gym_rat", "footlocker")) {
+    throw new Error("a Foot Locker shoe still belongs to gym_rat");
+  }
+  const legging = { name: "Seamless Leggings", type: "Bottoms>Leggings", brand: "Gymshark" };
+  if (isFootwear(legging, "gymshark")) throw new Error("the apparel fixture reads as footwear -- the test is measuring nothing");
+  if (!deptMap.itemBelongsToDepartment(legging, "gym_rat", "gym_rat", "gymshark")) {
+    throw new Error("gym apparel no longer belongs to gym_rat");
+  }
+});
+
+check("Gym Rat lists YoungLA first, Gymshark heavy second, Alphalete third", () => {
+  /* DANNY (2026-09-26): most-known brands first. One reorder drives the
+     pill row and the product grid, both of which read byRetailer in
+     insertion order. */
+  const src = readFileSync(root("index.html"), "utf8");
+  const m = src.match(/DEPARTMENT_RETAILER_ORDER = \{[^}]*gym_rat:\s*\[([^\]]+)\]/);
+  if (!m) throw new Error("DEPARTMENT_RETAILER_ORDER.gym_rat is gone");
+  eq(m[1].replace(/['\s]/g, ""), "youngla,gymshark,alphalete", "Gym Rat brand order drifted");
+});
+
+check("Gym Rat leads with hero apparel -- accessories never open the section", () => {
+  /* DANNY (2026-09-26): the front of Gym Rat is hero gym apparel (leggings,
+     shorts, joggers, tops, sports bras, hoodies) -- socks and keychains are
+     fine deeper in the grid, never the lead. Runs the real rank over the
+     real committed catalogue: the first 12 of the default order must all
+     be apparel. */
+  const { gymRatLeadRank, gymRatIsAccessory } = loadPageDealSpreadSlice();
+  const rendered = gymratItems
+    .filter(({ retailer, item }) => deptMap.itemBelongsToDepartment(item, "gym_rat", "gym_rat", retailer))
+    .map(({ item }) => item);
+  if (!rendered.length) throw new Error("nothing renders in Gym Rat -- the test is measuring nothing");
+  const acc = rendered.filter(gymRatIsAccessory);
+  if (!acc.length) throw new Error("no accessories classified -- the rank is measuring nothing");
+  if (acc.length >= rendered.length) throw new Error("everything reads as an accessory -- the rank is broken");
+  /* The page's default comparator: lead rank first, price inside each band.
+     2503 apparel items sort ahead of every accessory whatever the tiebreak. */
+  const price = (p) => { const n = Number(p.price); return Number.isFinite(n) && n > 0 ? n : Infinity; };
+  const sorted = [...rendered].sort((a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || (price(a) - price(b)));
+  const bad = sorted.slice(0, 12).filter(gymRatIsAccessory);
+  if (bad.length) {
+    throw new Error(`${bad.length} accessories lead Gym Rat, e.g. ` +
+      bad.slice(0, 3).map(p => p.name || p.title).join(" | "));
+  }
+  /* Nothing removed: the grid still holds every item, accessories included. */
+  eq(sorted.length, rendered.length, "the lead sort dropped items");
+  eq(sorted.filter(gymRatIsAccessory).length, acc.length, "accessories went missing from the grid");
+});
+
+check("the Gym Rat lead is wired into the department sort, explicit sorts bypass it", () => {
+  /* The lead only governs the default view: a shopper who explicitly picks
+     a price sort gets exactly that order (catalogSortTouched), and the flag
+     resets on every navigation into a catalogue view. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/isGymRat && !catalogSortTouched/.test(src)) throw new Error("the gym_rat lead is not in the department sort");
+  if (!/function onCatalogSortChange\(\)\{ catalogSortTouched = true;/.test(src)) {
+    throw new Error("an explicit sort choice does not set catalogSortTouched");
+  }
+  if (!/catalogSortTouched = false; \/\/ a fresh section opens on the default sort/.test(src)) {
+    throw new Error("catalogSortTouched is never reset on navigation");
+  }
+  if (!/onchange="onCatalogSortChange\(\)"/.test(src)) throw new Error("the sort dropdown is not wired to onCatalogSortChange");
+});
+
+check("Gymshark sits between Costco and SSENSE on all three surfaces (reliable-first, 2026-09-26)", () => {
+  /* DANNY (2026-09-26, reliable-first): Gymshark sits between Costco and
+     SSENSE on the phone, the laptop, and the Tiendas vitrinas. No rail was
+     removed to make room. */
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/const STORE_RAIL_STORES = \[\s*'footlocker',\s*'sephora',\s*'macys'/.test(src)) {
+    throw new Error("STORE_RAIL_STORES is not footlocker, sephora, macys");
+  }
+  for (const id of ["mStoreRail-gymshark", "dStoreRail-gymshark", "tStoreRail-gymshark"]) {
+    eq((src.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is not declared exactly once`);
+  }
+  /* DOM adjacency: the Gymshark section directly follows the Costco
+     section and directly precedes the SSENSE section, per surface. */
+  for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]) {
+    const ids = [...src.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
+    const i = ids.indexOf("gymshark");
+    if (i < 0) throw new Error(`${prefix}-gymshark is missing`);
+    eq(ids[i - 1], "costco", `${prefix}: Gymshark is not under Costco`);
+    eq(ids[i + 1], "ssense", `${prefix}: Gymshark is not above SSENSE`);
+  }
+});
+
+check("ofertasLeadSort leads with the pull brands, discount deciding within", () => {
+  /* DANNY (2026-09-26): the lead sells the section. Victoria's Secret,
+     Sephora, Macy's, Gymshark, YoungLA go first -- so Gym Rat sale sits
+     toward the front next to Victoria's Secret -- and discount decides
+     within each brand. */
+  const { ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N } = loadPageDealSpreadSlice();
+  eq(OFERTAS_LEAD_BRANDS.join(","), "victoriassecret,sephora,macys,gymshark,youngla", "lead brand order drifted");
+  const deal = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice });
+  const items = [
+    deal("target", "Target Towels", 10, 100),                    // 90% off, not a lead brand
+    deal("gymshark", "Gymshark Leggings", 90, 100),              // 10% off, lead brand
+    deal("victoriassecret", "VS Lotion", 50, 100),               // 50% off
+    deal("victoriassecret", "VS Mist", 20, 100),                 // 80% off, same brand
+  ];
+  const sorted = ofertasLeadSort(items);
+  eq(sorted.map(d => d.title).join(","), "VS Mist,VS Lotion,Gymshark Leggings,Target Towels",
+    "lead brands do not lead, or discount does not decide within a brand");
+  eq(ofertasLeadRank({ retailer: "target" }) > ofertasLeadRank({ retailer: "youngla" }), true,
+    "a non-lead brand outranks a lead brand");
+});
+
+check("ofertasLeadSort holds heavy coats and near-duplicates out of the lead, and drops nothing", () => {
+  /* DANNY (2026-09-26): Peru heads into summer -- heavy coats never lead
+     (the sierra still gets cold, so they stay in the grid). And the
+     three-near-identical-Macy's-coats lesson: one normalized title per
+     lead. Nothing is ever removed, only reordered. */
+  const { ofertasLeadSort, OFERTAS_LEAD_N } = loadPageDealSpreadSlice();
+  const deal = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice });
+  const items = [];
+  for (let i = 0; i < OFERTAS_LEAD_N; i++) {
+    items.push(deal("sephora", `Sephora Find ${i}`, 50, 100));
+  }
+  items.push(deal("macys", "Women's Hooded Puffer Coat", 10, 100));       // 90% off coat
+  items.push(deal("macys", "Women's Oversized Hooded Sweatshirt", 30, 100));
+  items.push(deal("macys", "Women's Hooded Oversized Sweatshirt", 40, 100)); // near-duplicate, weaker discount
+  const sorted = ofertasLeadSort(items);
+  eq(sorted.length, items.length, "ofertasLeadSort dropped a product");
+  const titles = sorted.map(d => d.title);
+  eq(new Set(titles).size, titles.length, "ofertasLeadSort duplicated a product");
+  const coatIdx = titles.indexOf("Women's Hooded Puffer Coat");
+  if (coatIdx < OFERTAS_LEAD_N) throw new Error(`a heavy coat leads at index ${coatIdx}`);
+  const dupIdx = titles.indexOf("Women's Hooded Oversized Sweatshirt");
+  if (dupIdx < OFERTAS_LEAD_N) throw new Error(`a near-duplicate leads at index ${dupIdx}`);
+  if (!titles.includes("Women's Oversized Hooded Sweatshirt")) throw new Error("the stronger duplicate went missing");
+});
+
+
+/* ================================================================
+   DELIVERY TRANSPARENCY (2026-09-26, Danny's brief): store-by-store
+   Miami timing, shown on store and product pages and in cart/checkout
+   before anyone pays. Honesty and communication and transparency. */
+check("the delivery dataset is well-formed", () => {
+  const rows = Object.entries(delivery.RETAILER_DELIVERY);
+  if (rows.length < 30) throw new Error(`only ${rows.length} delivery rows`);
+  for (const [key, e] of rows) {
+    if (!Number.isFinite(e.miamiMax) || e.miamiMax < 1)
+      throw new Error(`${key}: bad miamiMax ${e.miamiMax}`);
+    if (e.miamiMin != null && (e.miamiMin < 1 || e.miamiMin > e.miamiMax))
+      throw new Error(`${key}: bad miamiMin ${e.miamiMin}`);
+    if (!["green", "yellow", "red"].includes(e.tier))
+      throw new Error(`${key}: bad tier ${e.tier}`);
+  }
+  eq(delivery.MIAMI_TO_DOOR_MIN, 2, "Miami-to-door min");
+  eq(delivery.MIAMI_TO_DOOR_MAX, 7, "Miami-to-door max");
+});
+
+check("the researched timings Danny approved are in the dataset", () => {
+  eq(delivery.miamiRangeEs(delivery.deliveryFor("dicks")), "3–6 días", "Dick's");
+  eq(delivery.miamiRangeEs(delivery.deliveryFor("yesstyle")), "14–28 días", "YesStyle");
+  eq(delivery.deliveryFor("yesstyle").tier, "red", "YesStyle is red tier");
+  if (!/Hong Kong/.test(delivery.deliveryFor("yesstyle").noteEs || ""))
+    throw new Error("YesStyle lost its Hong Kong note");
+  if (!delivery.deliveryFor("alphalete").plus)
+    throw new Error("Alphalete lost its 30+ open end");
+});
+
+check("the store delivery line reads naturally in Spanish", () => {
+  eq(delivery.storeDeliveryLineEs("dicks"),
+    "Llega a nuestro almacén en Miami en 3–6 días.", "range line");
+  eq(delivery.storeDeliveryLineEs("skims"),
+    "Llega a nuestro almacén en Miami en 7 días como máximo.", "max-only line");
+  if (/en hasta/.test(delivery.storeDeliveryLineEs("skims")))
+    throw new Error('the awkward "en hasta" copy is back');
+  eq(delivery.storeDeliveryLineEs("nosuchstore"), null, "unresearched store");
+});
+
+check("the red-tier notice is honest about the slow lane", () => {
+  const notice = delivery.redTierNoticeEs("yesstyle");
+  if (!/Aviso honesto/.test(notice)) throw new Error("not an honest warning");
+  if (!/14–28 días/.test(notice)) throw new Error("hides the 14-28 day range");
+  if (!/2–7 días/.test(notice)) throw new Error("hides the Miami-to-door leg");
+  eq(delivery.redTierNoticeEs("dicks"), null, "non-red store has no warning");
+});
+
+check("the slowest store sets the checkout expectation", () => {
+  eq(delivery.slowestDeliveryKey(["dicks", "yesstyle", "sephora"]), "yesstyle", "slowest wins");
+  eq(delivery.slowestDeliveryKey(["dicks", "sephora"]), "dicks", "slower of two");
+  eq(delivery.slowestDeliveryKey(["nosuchstore"]), null, "no researched stores");
+});
+
+check("the page mirrors the delivery dataset", () => {
+  const src = HOME_SRC();
+  const m = src.match(/const RETAILER_DELIVERY = \{([\s\S]*?)\n\};/);
+  if (!m) throw new Error("the page lost its RETAILER_DELIVERY mirror");
+  for (const key of ["dicks", "yesstyle", "skims", "ssense", "sephora"]) {
+    const row = new RegExp(`^\\s*${key}:\\s*\\{[^\\n]*`, "m").exec(m[1]);
+    if (!row) throw new Error(`the page mirror lost its ${key} row`);
+    const mod = delivery.deliveryFor(key);
+    for (const f of ["miamiMin", "miamiMax", "tier"]) {
+      const want = String(mod[f]);
+      if (!new RegExp(`${f}:\\s*["']?${want}["']?\\b`).test(row[0]))
+        throw new Error(`mirror ${key}.${f} is ${row[0]}, module says ${want}`);
+    }
+  }
+  for (const fn of ["deliveryFor", "miamiRangeEs", "storeDeliveryLineEs", "redTierNoticeEs", "slowestDeliveryKey"]) {
+    if (!new RegExp(`function ${fn}\\(`).test(src)) throw new Error(`the page lost ${fn}`);
+  }
+});
+
+check("store cards, rails, storefronts and product pages disclose delivery", () => {
+  const src = HOME_SRC();
+  if (!/storeDeliveryLineEs\(r\.key\)/.test(src))
+    throw new Error("store cards lost their delivery line");
+  if (!/storeDeliveryLineEs\(retailer\)/.test(src))
+    throw new Error("storefront/product pages lost their delivery line");
+  if (!/redTierNoticeEs\(/.test(src))
+    throw new Error("the red-tier storefront warning is gone");
+  for (const id of ["storeViewDelivery", "productViewDelivery", "cartDeliveryWrap"]) {
+    if (!src.includes(`id="${id}"`)) throw new Error(`the page lost #${id}`);
+  }
+});
+
+check("the homepage and checkout explain how shipping works", () => {
+  const src = HOME_SRC();
+  for (const id of ["mShippingExplainer", "dShippingExplainer"]) {
+    if (!src.includes(`id="${id}"`)) throw new Error(`the homepage lost #${id}`);
+  }
+  if (!/renderShippingExplainers/.test(src)) throw new Error("the explainer renderer is gone");
+  if (!/La tienda en EE\. UU\./.test(src) && !/tienda.*Miami.*puerta/.test(src))
+    throw new Error("the explainer lost its two-leg story");
+  const co = readFileSync(root("checkout.html"), "utf8");
+  if (!co.includes("checkoutExplainerWrap")) throw new Error("checkout lost its explainer");
+  if (!/De Miami a tu puerta/.test(co)) throw new Error("checkout lost the Miami-to-door leg");
+  if (!/slowestDeliveryKey/.test(co)) throw new Error("checkout lost the slowest-store logic");
+});
+
+check("RockAuto and Sunglass Hut are gone from every shopper path", () => {
+  const src = HOME_SRC();
+  const liveRefs = src.replace(/retiredNote:[^\n]*/g, "")
+    .replace(/^\s*rockauto:\s*\{[^\n]*/gm, ""); // the one retired registry row
+  if (/["']rockauto["']/.test(liveRefs))
+    throw new Error("rockauto still referenced as a live store");
+  if (!/retired: *true/.test(src.match(/rockauto:\s*\{[^}]*\}/)?.[0] || "retired: true"))
+    throw new Error("rockauto lost its retired flag");
+  /* Sunglass Hut: dropped 2026-09-25, no pull attempted — only the retired
+     registry row may remain. */
+  const shLive = src.replace(/retiredNote:[^\n]*/g, "")
+    .replace(/^\s*sunglasshut:\s*\{[^\n]*/gm, "");
+  if (/["']sunglasshut["']/.test(shLive))
+    throw new Error("sunglasshut still referenced as a live store");
+  for (const f of ["scripts/lib/rockauto-direct.js", "netlify/functions/rockauto-live-search.js",
+                   "netlify/functions/rockauto-image.js", "scripts/canary-rockauto.mjs"]) {
+    if (existsSync(root(f))) throw new Error(`${f} still exists`);
+  }
+  if (existsSync(root("netlify/functions/rockauto-live-search.js")))
+    throw new Error("the RockAuto serverless function still exists");
+});
+
+check("no TV set or TV mount survives in the catalogs", () => {
+  const tvSet = /\btv\b[\s-]*(set|sets)?\b/i;
+  const mountRx = /tv\s*mount|soporte\s*(para\s*)?tv|wall\s*mount|montaje\s*(de\s*)?tv/i;
+  for (const f of ["costco-catalog.json", "department-cache.json"]) {
+    const items = JSON.parse(readFileSync(root(f), "utf8"));
+    const list = Array.isArray(items) ? items : items.products || [];
+    for (const p of list) {
+      const name = String(p.title || p.name || "");
+      if (mountRx.test(name) && !/stand|console|entertainment/i.test(name))
+        throw new Error(`${f} still lists a mount: ${name.slice(0, 60)}`);
+    }
+  }
+});
+
+check("TV stands stay: they are furniture, not televisions", () => {
+  const src = HOME_SRC();
+  const m = src.match(/const TV_PARCEL_OK_RX = \/(.*?)\/i;/);
+  if (!m) throw new Error("TV_PARCEL_OK_RX is gone");
+  const okRx = new RegExp(m[1], "i");
+  for (const name of ["Puerta Del Sol TV Console", "Walker Edison 58\" TV Stand"]) {
+    if (!okRx.test(name)) throw new Error(`${name} is not carved out as furniture`);
+  }
+});
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);

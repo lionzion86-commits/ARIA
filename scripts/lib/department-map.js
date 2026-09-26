@@ -73,6 +73,11 @@ export const DEPARTMENT_SPEC = {
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
+  /* GYM RAT (2026-09-26, Danny): the gym-culture identity destination.
+     The gym brands file everything under a gym_rat bucket (category
+     'gymrat'): gym clothing + gym accessories. Zero shoes — shoes live
+     in Zapatos / Foot Locker only. */
+  gym_rat:         { category: 'gymrat' },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -91,6 +96,7 @@ export const BUCKET_SPEC = {
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: "beauty" },
   fragrance:       { category: "beauty" },
+  gym_rat:         { category: "gymrat" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:
@@ -191,9 +197,12 @@ export function itemBelongsToDepartment(item, bucketName, deptKey, retailer) {
   if (!dept) return false;
   if (dept.onSaleOnly) return isOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
-
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
+  /* GYM RAT (2026-09-26, Danny): zero shoes — shoes live in Zapatos /
+     Foot Locker only. Gym Rat is gym clothing + gym accessories (bags,
+     belts, etc.) from the gym brands' gymrat buckets. */
+  if (deptKey === 'gym_rat' && isFootwear(item, retailer)) return false;
   /* Deportes refuses dress shoes per item: the retailers'
      sporting_goods buckets carry them, and the bucket is this
      department's only other signal. Gated on isFootwear so a
