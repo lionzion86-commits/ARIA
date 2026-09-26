@@ -8358,15 +8358,15 @@ check("the page's auto-part detector and the module agree, item for item", () =>
       }
     }
   }
-  if (checked !== 120) throw new Error(`only compared ${checked} parts`);
+  if (checked !== 1365) throw new Error(`only compared ${checked} parts`);
 });
 
-check("Advance Auto's brake catalogue answers as auto parts, all 120", () => {
+check("Advance Auto's brake catalogue answers as auto parts, all 1365", () => {
   /* The store is the signal (it sells nothing but parts); the Spanish
      part-type the normalizer ships settles each item. */
   const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
   const items = deptMap.departmentItems(data.retailers.advanceauto, "auto_parts", "advanceauto");
-  eq(items.length, 120, "Advance Auto's catalogue is 120 parts");
+  eq(items.length, 1365, "Advance Auto's catalogue is 1365 parts");
   for (const entry of items) {
     if (!autoparts.isAutoPart(entry, "advanceauto")) {
       throw new Error(`not filed as a part: ${deptMap.titleOf(entry)}`.slice(0, 120));
@@ -8401,7 +8401,7 @@ check("Repuestos is a department with a name and a place in the taxonomy", () =>
   const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
   const bucket = data.retailers.advanceauto;
   const items = deptMap.departmentItems(bucket, "auto_parts", "advanceauto");
-  eq(items.length, 120, "Repuestos renders Advance Auto's 120 parts");
+  eq(items.length, 1365, "Repuestos renders Advance Auto's 1365 parts");
   // A part stays in its store page too — departments overlap here exactly
   // as Ofertas overlaps everything.
   const storeItems = deptMap.departmentItems(bucket, "auto_parts", "advanceauto");
