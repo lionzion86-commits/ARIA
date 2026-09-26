@@ -1560,7 +1560,16 @@
 
     <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#E21836">New Balance</span>
+        <button onclick="openStore('newbalance')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1625,15 +1634,6 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#E21836">New Balance</span>
-        <button onclick="openStore('newbalance')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -1715,6 +1715,56 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Tablas, skate y neopreno de 9 tiendas.</span></div>
       <div id="mCategoryRail-surf_skate" data-category-rail-row="surf_skate" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- CATEGORY CAROUSELS (2026-09-26, Danny): Ropa, Zapatos, Hogar y Curvy.
+         The same mixed-shelf pattern as Surf & Skate -- sales lead, every
+         card keeps its brand and its store badge -- one carousel per
+         destination, so shoppers can browse by category as well as by
+         store. Painted by initStoreRails(); an empty shelf hides itself. -->
+    <section aria-label="Ropa" data-category-rail="clothing" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B76E79 20%, #B76E79 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="flex-shrink-0 w-[34px] h-[34px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/clothing.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Ropa</span>
+        </span>
+        <button onclick="openCatalog('department','clothing')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Toda la ropa, de todas las tiendas.</span></div>
+      <div id="mCategoryRail-clothing" data-category-rail-row="clothing" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section><section aria-label="Zapatos" data-category-rail="shoes" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E8833A 20%, #E8833A 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="flex-shrink-0 w-[34px] h-[34px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/shoes.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Zapatos</span>
+        </span>
+        <button onclick="openCatalog('department','shoes')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
+      <div id="mCategoryRail-shoes" data-category-rail-row="shoes" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section><section aria-label="Hogar" data-category-rail="home_goods" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #7BA05B 20%, #7BA05B 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="flex-shrink-0 w-[34px] h-[34px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/home_goods.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hogar</span>
+        </span>
+        <button onclick="openCatalog('department','home_goods')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Todo para tu casa, de todas las tiendas.</span></div>
+      <div id="mCategoryRail-home_goods" data-category-rail-row="home_goods" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+</section><section aria-label="Curvy" data-category-rail="curvy" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="flex-shrink-0 w-[34px] h-[34px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/curvy.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Curvy</span>
+        </span>
+        <button onclick="openCatalog('department','curvy')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Tallas extendidas, de todas las tiendas.</span></div>
+      <div id="mCategoryRail-curvy" data-category-rail-row="curvy" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
@@ -1888,7 +1938,18 @@
     </section>
 
     <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+              style="background:#E21836">New Balance</span>
+          <button onclick="openStore('newbalance')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1962,17 +2023,6 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="dStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-              style="background:#E21836">New Balance</span>
-          <button onclick="openStore('newbalance')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
@@ -2063,6 +2113,64 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Tablas, skate y neopreno de 9 tiendas.</span></div>
       <div id="dCategoryRail-surf_skate" data-category-rail-row="surf_skate" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- CATEGORY CAROUSELS (2026-09-26, Danny): Ropa, Zapatos, Hogar y Curvy.
+         The same mixed-shelf pattern as Surf & Skate -- sales lead, every
+         card keeps its brand and its store badge -- one carousel per
+         destination, so shoppers can browse by category as well as by
+         store. Painted by initStoreRails(); an empty shelf hides itself. -->
+    <section aria-label="Ropa" data-category-rail="clothing" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B76E79 20%, #B76E79 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="flex-shrink-0 w-[38px] h-[38px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/clothing.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+            <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Ropa</span>
+          </span>
+          <button onclick="openCatalog('department','clothing')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Toda la ropa, de todas las tiendas.</span></div>
+      <div id="dCategoryRail-clothing" data-category-rail-row="clothing" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+</section><section aria-label="Zapatos" data-category-rail="shoes" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E8833A 20%, #E8833A 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="flex-shrink-0 w-[38px] h-[38px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/shoes.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+            <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Zapatos</span>
+          </span>
+          <button onclick="openCatalog('department','shoes')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
+      <div id="dCategoryRail-shoes" data-category-rail-row="shoes" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+</section><section aria-label="Hogar" data-category-rail="home_goods" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #7BA05B 20%, #7BA05B 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="flex-shrink-0 w-[38px] h-[38px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/home_goods.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+            <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Hogar</span>
+          </span>
+          <button onclick="openCatalog('department','home_goods')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Todo para tu casa, de todas las tiendas.</span></div>
+      <div id="dCategoryRail-home_goods" data-category-rail-row="home_goods" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+</section><section aria-label="Curvy" data-category-rail="curvy" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+            <span class="flex-shrink-0 w-[38px] h-[38px] rounded-lg overflow-hidden" style="background:#0B2233"><img src="assets/category/curvy.jpg" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover"></span>
+            <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Curvy</span>
+          </span>
+          <button onclick="openCatalog('department','curvy')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#237;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Tallas extendidas, de todas las tiendas.</span></div>
+      <div id="dCategoryRail-curvy" data-category-rail-row="curvy" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -8381,7 +8489,7 @@ function renderMobileDealsRail(){
 /* RELIABLE-FIRST (2026-09-26, Danny): the window displays lead with the strongest shippers.
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE anchors the end: browsable and honest, but red-tier and slow. */
-const STORE_RAIL_STORES = ['victoriassecret', 'footlocker', 'sephora', 'macys', 'kohls', 'newbalance', 'dicks', 'costco', 'bhphoto', 'gymshark', 'ssense', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'footlocker', 'sephora', 'macys', 'kohls', 'dicks', 'costco', 'bhphoto', 'gymshark', 'ssense', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 
 
 let storeRailsRendered = {}; // store key -> picks; one shelf shared by the rail's rows on every page
@@ -8658,9 +8766,50 @@ function storeRailMoreHTML(key){
    source and its door. Later departments reuse the shape: add an entry,
    add the two static sections (phone + laptop), nothing else changes. */
 const SURFSKATE_RAIL_STORES = ['nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+/* CATEGORY-RAIL PREDICATES (2026-09-26, Danny). The homepage category
+   carousels reuse the exact bucket taxonomy the department pages use
+   (BUCKET_SPEC), so a rail never shows what its own department page would
+   refuse. Pool items carry their bucket names in `departments`; requiring
+   the array keeps untagged items out rather than guessing from titles. */
+function railBucketCategoryIs(p, category){
+  const deps = p && p.departments;
+  return Array.isArray(deps) && deps.some(b => BUCKET_SPEC[b] && BUCKET_SPEC[b].category === category);
+}
+function railBucketGenderIs(p, gender){
+  const deps = p && p.departments;
+  return Array.isArray(deps) && deps.some(b => BUCKET_SPEC[b] && BUCKET_SPEC[b].gender === gender);
+}
+/* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
+   normalized pool carries `sizes`. hasExtendedSizes only reads the raw
+   field, so the rail needs its own check. */
+function railHasExtendedSizes(p){
+  const list = Array.isArray(p && p.availableSizes) ? p.availableSizes
+    : Array.isArray(p && p.sizes) ? p.sizes : [];
+  return list.some(s => EXTENDED_SIZES.has(String(s).trim().toLowerCase()));
+}
+
 const CATEGORY_RAILS = [
   { key: 'surf_skate', label: 'Surf & Skate', stores: SURFSKATE_RAIL_STORES,
+    test: (p) => isSurfSkate(p, p.retailer),
     open: "openCatalog('department','surf_skate')" },
+  /* FOUR NEW CATEGORY CAROUSELS (2026-09-26, Danny): the same mixed-shelf
+     pattern as Surf & Skate -- sales lead, every card keeps its brand and
+     its store badge -- one per destination: Ropa, Zapatos, Hogar, Curvy.
+     poolOnly: the sale lead and the fill both come from the committed
+     department cache (the pool), so each shelf matches its department
+     page exactly. stores: null = every catalog retailer. */
+  { key: 'clothing', label: 'Ropa', stores: null, poolOnly: true,
+    test: (p) => railBucketCategoryIs(p, 'apparel'),
+    open: "openCatalog('department','clothing')" },
+  { key: 'shoes', label: 'Zapatos', stores: null, poolOnly: true,
+    test: (p) => isFootwear(p, p.retailer),
+    open: "openCatalog('department','shoes')" },
+  { key: 'home_goods', label: 'Hogar', stores: null, poolOnly: true,
+    test: (p) => railBucketCategoryIs(p, 'home'),
+    open: "openCatalog('department','home_goods')" },
+  { key: 'curvy', label: 'Curvy', stores: null, poolOnly: true,
+    test: (p) => railBucketCategoryIs(p, 'apparel') && !railBucketGenderIs(p, 'kids') && railHasExtendedSizes(p),
+    open: "openCatalog('department','curvy')" },
 ];
 
 let categoryRailsRendered = {}; // category key -> picks; one mixed shelf per rail
@@ -8796,17 +8945,24 @@ function initStoreRails(){
     for (const key of STORE_RAIL_STORES){
       storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
     }
-    /* CATEGORY RAILS (2026-09-26, Danny): the front page's Surf & Skate
-       carousel mixes the nine stores' GEAR -- the same predicate the
-       department page uses, so the rail never shows the bikinis and
-       tees the surf shops also sell. Sale items lead, featured picks
+    /* CATEGORY RAILS (2026-09-26, Danny): the front page's category
+       carousels mix every store's products by CATEGORY, not by store --
+       the same predicate the department page uses, so a rail never shows
+       what its department would refuse. Sale items lead, featured picks
        fill; every card keeps its brand and its store badge. */
     for (const cat of CATEGORY_RAILS){
-      const gear = (p) => p && cat.stores.indexOf(String(p.retailer || '').toLowerCase()) !== -1
-        && isSurfSkate(p, p.retailer);
-      categoryRailsRendered[cat.key] = categoryRailPicks(cat.stores,
-        (Array.isArray(saleItemsCache) ? saleItemsCache : []).filter(gear),
-        (Array.isArray(pool) ? pool : []).filter(gear),
+      const stores = cat.stores || Object.keys(departmentCacheData?.retailers || {});
+      const test = (p) => p && stores.indexOf(String(p.retailer || '').toLowerCase()) !== -1
+        && (!cat.test || cat.test(p));
+      /* Pool-only rails take the sale lead from the pool too: the pool is
+         the committed department cache, so the shelf matches the
+         department page exactly. */
+      const saleSrc = cat.poolOnly
+        ? (Array.isArray(pool) ? pool : [])
+        : (Array.isArray(saleItemsCache) ? saleItemsCache : []);
+      categoryRailsRendered[cat.key] = categoryRailPicks(stores,
+        saleSrc.filter(test),
+        (Array.isArray(pool) ? pool : []).filter(test),
         ofertasKeys, CATEGORY_RAIL_TOTAL);
     }
     const paint = (row) => {
