@@ -2227,6 +2227,23 @@
             <p id="productSizeNote" class="text-[11px] mt-1.5" style="color:#8A93A8"></p>
           </div>
           <button id="addToCartBtn" onclick="addToCartFromProduct()" class="w-full sm:w-auto h-[50px] px-8 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition" style="background:var(--blue)">Agregar al carrito</button>
+          <!-- CONTINUAR AL CARRITO (2026-09-26).
+
+               Danny's iPhone QA on the cart-fix preview: tapping "agregar al
+               carrito" gave the shopper no next step — the only way forward
+               was hunting for the tiny cart icon up top. So a successful add
+               now raises this small line directly under the buy button: the
+               live item count plus a tap straight into the cart ("3
+               artículos — Continuar al carrito →"). Deliberately a text link,
+               not a second solid button: it must not out-shout "Agregar al
+               carrito" or fight the Guía de tallas link above it. Hidden on
+               every fresh product render (setProductBuyable), shown only by
+               addToCartFromProduct() on success, and kept live by
+               renderCartBadge() so a stale count can never survive a cart
+               mutation. -->
+          <button id="continueToCartBtn" type="button" onclick="openCart()"
+            class="hidden w-full text-center sm:text-left text-[13.5px] font-semibold underline underline-offset-2 mt-2.5 focus-ring"
+            style="color:var(--blue)">Continuar al carrito →</button>
           <!-- Only ever shown when the price is missing, and the button
                above is disabled in the same breath. See showProduct(). -->
           <p id="productNoPriceNote" class="text-[12.5px] mt-2.5 leading-relaxed max-w-[42ch]" style="color:#8A6B1F" hidden></p>
@@ -11354,6 +11371,10 @@ function setProductBuyable(hasPrice){
   btn.style.background = hasPrice ? 'var(--blue)' : '#C8CDD8';
   btn.style.color = hasPrice ? '#fff' : '#5B6478';
   btn.style.cursor = hasPrice ? '' : 'not-allowed';
+  /* A fresh product render never inherits the previous product's
+     "continuar al carrito" line — it only ever appears after an add. */
+  const ctc = document.getElementById('continueToCartBtn');
+  if (ctc) ctc.classList.add('hidden');
   if (note){
     note.hidden = hasPrice;
     note.textContent = hasPrice ? '' : 'La tienda todavía no publica el precio de este producto. Te avisamos en cuanto lo tengamos — escríbenos y lo cotizamos por ti.';
@@ -11428,6 +11449,7 @@ function addToCartFromProduct(){
     selectedSize: sizeWrap.hidden ? '' : sizeSelect.value,
   })) return;   // addToCart said why; do not also claim success
   showToast('Agregado al carrito.');
+  showContinueToCart();
 }
 
 /* ============================================================
@@ -15927,6 +15949,30 @@ function renderCartBadge(){
   el.textContent = count > 99 ? '99+' : String(count);
   el.hidden = count === 0;
   el.classList.toggle('hidden', count === 0);   // both switches, always agreeing
+  /* The product page's "continuar al carrito" line carries a live count, and
+     every cart mutation funnels through here — so refresh it while it is
+     visible, and let it vanish on its own if the cart empties. It never
+     APPEARS from here: only a successful product-page add shows it. */
+  const ctc = document.getElementById('continueToCartBtn');
+  if (ctc && !ctc.classList.contains('hidden')) refreshContinueToCart(ctc);
+}
+
+/* CONTINUAR AL CARRITO (2026-09-26). See the HTML comment above
+   #continueToCartBtn for the why. Two tiny functions: show it after a
+   successful add, and refresh its count / hide it when the cart empties.
+   Function declarations hoist, so renderCartBadge() above can call
+   refreshContinueToCart() even though it is defined here. */
+function refreshContinueToCart(el){
+  el = el || document.getElementById('continueToCartBtn');
+  if (!el) return;
+  const n = cartCount();
+  if (n <= 0){ el.classList.add('hidden'); return; }
+  el.textContent = (n === 1 ? '1 artículo' : n + ' artículos') + ' — Continuar al carrito →';
+  el.classList.remove('hidden');
+}
+
+function showContinueToCart(){
+  refreshContinueToCart();
 }
 
 function addToCart(item){

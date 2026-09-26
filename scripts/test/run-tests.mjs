@@ -9208,6 +9208,40 @@ check("opening the guide cannot disturb the shopper's chosen size", () => {
   }
 });
 
+check("the product page offers a continue-to-cart line after a successful add", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  // The line lives directly under the buy button and taps straight into the cart.
+  const btnZone = src.slice(src.indexOf('id="addToCartBtn"'), src.indexOf('id="productNoPriceNote"'));
+  if (!/id="continueToCartBtn"[^>]*onclick="openCart\(\)"/.test(btnZone)) {
+    throw new Error("continueToCartBtn is not directly under #addToCartBtn or does not open the cart");
+  }
+  if (!/class="[^"]*\bhidden\b/.test(btnZone)) {
+    throw new Error("continueToCartBtn is not hidden until an add");
+  }
+  // The success path of addToCartFromProduct() raises it with the live count.
+  const fn = src.slice(src.indexOf("function addToCartFromProduct(){"), src.indexOf("function retailerFor("));
+  if (!/showContinueToCart\(\)/.test(fn)) {
+    throw new Error("addToCartFromProduct does not show the continue-to-cart line on success");
+  }
+  // A fresh product render resets it — no leaking across products.
+  const buyable = src.slice(src.indexOf("function setProductBuyable(hasPrice){"), src.indexOf("function addToCartFromProduct(){"));
+  if (!/continueToCartBtn/.test(buyable)) {
+    throw new Error("setProductBuyable does not reset the continue-to-cart line");
+  }
+  // The count stays live: every cart mutation funnels through renderCartBadge().
+  const badge = src.slice(src.indexOf("function renderCartBadge(){"), src.indexOf("function addToCart(item){"));
+  if (!/refreshContinueToCart/.test(badge)) {
+    throw new Error("renderCartBadge does not keep the continue-to-cart count live");
+  }
+  // Spanish-first copy with a real count, singular and plural.
+  if (!/Continuar al carrito/.test(src)) {
+    throw new Error("the continue-to-cart copy is missing");
+  }
+  if (!/1 art\u00edculo/.test(src) || !/art\u00edculos/.test(src)) {
+    throw new Error("the continue-to-cart line has no singular/plural count copy");
+  }
+});
+
 /* ------------------------------------------------------------------ */
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
