@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageCarouselSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -879,20 +879,21 @@ check("index.html's registry mirror matches the module", () => {
   }
 });
 
-/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised).
-   The Tiendas de siempre row leads with aspirational, brag-worthy brands
-   that catch a woman's eye; the mall feels exclusive, not downmarket.
-   Target and Walmart sit at the very back (thin catalogs there). The tile
-   order is the registry's insertion order, so this pins the full order in
-   both the module and the index.html mirror. */
+/* DANNY'S TIENDAS ORDER — EXCLUSIVE MALL (2026-09-24, revised 2026-09-26).
+   Bath & Body Works, Sunglass Hut and Dyson retired from the strip (no
+   shoppable catalogs -- dead storefronts never show, per Danny's rule),
+   so they no longer appear here. Costco and Sam's Club join after Lane
+   Bryant: warehouse club, end of the aspirational run, before Macy's. */
 const EXPECTED_EVERYDAY_ORDER = [
   "victoriassecret", "sephora", "skims", "revolve", "ulta",
-  "bathandbodyworks", "yesstyle", "footlocker", "dicks", "pacsun",
+  "yesstyle", "footlocker", "dicks", "pacsun",
   /* LANE BRYANT (2026-09-25): registered at last -- the audit found its
      169 products were invisible for want of this row. Apparel cluster,
      after PacSun. */
   "lanebryant",
-  "sunglasshut", "dyson",
+  /* COSTCO + SAM'S CLUB (2026-09-26): real catalogs wired (1,569 + 120
+     products), both browse-true general retailers. */
+  "costco", "samsclub",
   "macys", "oldnavy", "target", "walmart",
 ];
 function everydayOrder(){
@@ -937,7 +938,7 @@ check("the Tiendas directory keeps its tiles and gains the six rails below them"
   if (!view) throw new Error("there is no storesView");
   if (!/id="storesGrid"/.test(view)) throw new Error("the Tiendas directory grid is gone");
   const gridAt = view.indexOf('id="storesGrid"');
-  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
     const id = `id="tStoreRail-${key}"`;
     const at = view.indexOf(id);
     if (at < 0) throw new Error(`the Tiendas view has no ${key} rail`);
@@ -5062,24 +5063,24 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
      directly under the Ofertas rail, ahead of the store rails.
 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
-     between the six rails and Categorías -- the rest of the mall
+     between the seven rails and Categorías -- the rest of the mall
      directory as one logo strip, with a way into the full 22-store
      Tiendas directory.
 
      (2026-09-26, DANNY'S HOMEPAGE ORDER V2: the photo hero opens the
      page again -- "Todo USA ahora en Lima" is the strong message that
      hits you the moment you walk in. The 2026-09-25 order holds after
-     it.) */
+     it, with the Costco rail and the Fiestas y Eventos vertical.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow",
-    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)];
+    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
@@ -5087,14 +5088,14 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
 
 check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
-     scroll order now -- deals, the six store rails in mall order,
+     scroll order now -- deals, the seven store rails in mall order,
      departments. The Tiendas chips rail is superseded by the rails.
      2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band (logo, "Compra
      en Estados Unidos / Te lo llevamos a Perú", search) sits directly
      under the Ofertas rail, ahead of the store rails.
 
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
-     between the six rails and Categorías on the laptop too. */
+     between the seven rails and Categorías on the laptop too. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
     shopfrontSrc.indexOf('id="whyUs"'),
@@ -5103,18 +5104,18 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Victoria's Secret > Sephora > Macy's > Foot Locker > SSENSE > Dick's Sporting Goods > Costco > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow",
-    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `dStoreRail-${k}`)];
+    ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
-check("Todas las otras tiendas carries the rest of the directory, not the six", () => {
-  /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the six rails
+check("Todas las otras tiendas carries the rest of the directory, not the seven", () => {
+  /* 2026-09-25, DANNY'S IPHONE REVIEW: the strip between the seven rails
      and Categorías shows every active retailer that is NOT a featured
      rail store, painted from the RETAILERS registry (never hardcoded),
      with a way into the full Tiendas directory. */
@@ -5128,7 +5129,7 @@ check("Todas las otras tiendas carries the rest of the directory, not the six", 
   // Registry-driven: the renderer reads activeRetailers() minus STORE_RAIL_STORES.
   const fn = forwardSlice(html, "function otherStoresStripOrder(){", "function ", "otherStoresStripOrder");
   if (!/activeRetailers\(\)/.test(fn)) throw new Error("the strip is not painted from the retailer registry");
-  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the six featured rail stores");
+  if (!/STORE_RAIL_STORES/.test(fn)) throw new Error("the strip does not exclude the seven featured rail stores");
   if (!/openAriaAuto/.test(html.slice(html.indexOf("function otherStoreTileHTML"))) ) throw new Error("auto-kind stores lost their Aria Auto route");
 });
 
@@ -5144,7 +5145,7 @@ check("a rail scrolls sideways and snaps, and the page does not", () => {
   if (!/scrollbar-width:\s*none/.test(rail)) throw new Error("the rail grew a desktop scrollbar");
 
   for (const id of ["mobileDealsRow", "mobileCatsRow",
-      ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"].map(k => `mStoreRail-${k}`)]) {
+      ...["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)]) {
     const tag = shopfront.slice(shopfront.indexOf(`id="${id}"`));
     const cls = tag.slice(0, tag.indexOf(">"));
     if (!/\bariaRail\b/.test(cls)) throw new Error(`${id} is not a rail`);
@@ -5296,12 +5297,12 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
     shopfrontSrc.indexOf("function mobileCatCardHTML("),
   );
   if (!rails) throw new Error("the store rails' code is gone");
-  /* The six window displays, in mall order: aspirational first, the way
+  /* The seven window displays, in mall order: aspirational first, the way
      the RETAILERS registry is ordered. */
   const m = rails.match(/const STORE_RAIL_STORES = \[([^\]]+)\]/);
   if (!m) throw new Error("STORE_RAIL_STORES is gone");
-  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,sephora,macys,footlocker,ssense,dicks",
-    "the store rails are not the six agreed stores in mall order");
+  eq(m[1].replace(/['\s]/g, ""), "victoriassecret,sephora,macys,footlocker,ssense,dicks,costco",
+    "the store rails are not the seven agreed stores in mall order");
   /* The same card every other rail draws -- a second card component is
      how the rails drift apart. */
   if (!/railCardHTML\(p,/.test(rails)) throw new Error("a store rail grew its own card");
@@ -5319,7 +5320,7 @@ check("the store rails reuse the page's own cards, feeds and registry", () => {
   if (/m.s vendido|mas vendido|best.?seller/i.test(railsCode)) throw new Error("a store rail claims a bestseller rank");
   /* Every rail ends at its store: the header and the trailing card both
      open the same full store page. */
-  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
     if (!new RegExp(`openStore\\('${key}'\\)`).test(shopfrontSrc)) throw new Error(`${key}'s rail has no way into its store`);
   }
   /* Lazy, and never self-moving: the ban the shopfront check enforces
@@ -5360,7 +5361,7 @@ check("every store rail ends on a 'Ver todo en …' end-card into the same store
   );
   if (!/\+ storeRailMoreHTML\(key\)/.test(paint)) throw new Error("the rails no longer end on the more-card");
   /* And the headers still carry the first door, for all six stores. */
-  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]) {
+  for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]) {
     if (!new RegExp(`openStore\\('${key}'\\)[^]*?Ver tienda`).test(shopfrontSrc))
       throw new Error(`${key}'s rail header lost its 'Ver tienda' door`);
   }
@@ -5424,6 +5425,162 @@ check("the shopfront's gold is the brand's, and no emoji is doing an image's job
   if (!/background:#F4C463[\s\S]{0,40}-\$\{pct\}%/.test(badge)) throw new Error("the discount badge is no longer the gold one");
   if (!/cardPhotoHTML\(/.test(badge)) throw new Error("a deal card is not using the shared product photo");
   if (/[\u{1F300}-\u{1FAFF}]/u.test(badge)) throw new Error("an emoji is standing in for a product photo");
+});
+
+
+/* ==================================================================
+   FIESTAS Y EVENTOS (2026-09-26): THE PARTY VERTICAL.
+
+   Party City (518 products), Sam's Club (120) and Costco (1,569) arrive
+   as catalog files. Party City is deliberately NOT a registered store --
+   it only surfaces inside this vertical, badged "Party City" by name.
+   Costco is the seventh featured store rail; Sam's Club rides the
+   other-stores strip (browse-true, search-false).
+   ================================================================== */
+group("Fiestas y Eventos: the party vertical");
+
+const FIESTA_CATALOG_COUNTS = { "partycity-catalog.json": 518, "samsclub-catalog.json": 120, "costco-catalog.json": 1569 };
+const FIESTA_CATALOG_RETAILERS = { "partycity-catalog.json": "partycity", "samsclub-catalog.json": "samsclub", "costco-catalog.json": "costco" };
+
+function fiestaEnvelopes(){
+  /* The real envelope normalizer from the page, over the three real
+     files -- the same path the boot loader takes. */
+  const { normalizeCatalogueEnvelope } = loadPageEnvelopeSlice();
+  const out = {};
+  for (const [file, retailer] of Object.entries(FIESTA_CATALOG_RETAILERS)) {
+    const raw = JSON.parse(readFileSync(root(file), "utf8"));
+    out[retailer] = normalizeCatalogueEnvelope(raw).retailers[retailer];
+  }
+  return out;
+}
+
+function fiestaFileCounts(){
+  const counts = {};
+  for (const [file, retailer] of Object.entries(FIESTA_CATALOG_RETAILERS)) {
+    const raw = JSON.parse(readFileSync(root(file), "utf8"));
+    const bucket = (raw.retailers || {})[retailer] || {};
+    counts[file] = Object.values(bucket.departments || {})
+      .reduce((t, d) => t + (d.items || []).length, 0);
+  }
+  return counts;
+}
+
+check("the three party catalogs parse with their expected product counts", () => {
+  const counts = fiestaFileCounts();
+  for (const [file, want] of Object.entries(FIESTA_CATALOG_COUNTS)) {
+    eq(counts[file], want, `${file} product count`);
+  }
+});
+
+check("CATALOGUE_FILES lists the three catalogs and they resolve on disk", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const m = html.match(/const CATALOGUE_FILES = \[([\s\S]*?)\];/);
+  if (!m) throw new Error("CATALOGUE_FILES is gone");
+  for (const file of Object.keys(FIESTA_CATALOG_COUNTS)) {
+    if (!m[1].includes(`'/${file}'`)) throw new Error(`CATALOGUE_FILES lost /${file}`);
+    if (!existsSync(root(file))) throw new Error(`${file} is listed but missing on disk`);
+  }
+});
+
+check("Costco and Sam's Club are registered stores; Party City is not", () => {
+  for (const key of ["costco", "samsclub"]) {
+    const r = RETAILERS[key];
+    if (!r) throw new Error(`the module lost its ${key} row`);
+    if (r.search) throw new Error(`${key} is search:true -- catalog-first browse only`);
+    if (!r.browse) throw new Error(`${key} is not browse:true`);
+    // The index.html mirror row carries the same fields.
+    const row = new RegExp(`^\\s*${key}:\\s*\\{[^\\n]*`, "m").exec(shopfrontSrc);
+    if (!row) throw new Error(`the index.html mirror lost its ${key} row`);
+    if (!/browse: true/.test(row[0])) throw new Error(`the mirror's ${key} row lost browse:true`);
+  }
+  if ("partycity" in RETAILERS) throw new Error("partycity is registered as a store");
+  if (/^\s*partycity:\s*\{/m.test(shopfrontSrc)) throw new Error("partycity has a mirror row as a store");
+  /* No member-only badges: Danny holds the memberships, so the
+     catalogs' membershipRequired/isMemberOnly flags must never be read
+     at render, and no members-only badge copy may exist. (The "miembro"
+     copy elsewhere on the page is the Aria Key Club, not a store.) */
+  if (/\.(membershipRequired|isMemberOnly)\b/.test(shopfrontSrc))
+    throw new Error("the page reads a catalog membership flag");
+  /* Comments document the rule; the check is about rendered badge copy. */
+  const noComments = shopfrontSrc.replace(/\/\*[\s\S]*?\*\//g, "").replace(/<!--[\s\S]*?-->/g, "");
+  if (/Solo miembros|Members only|members-only/i.test(noComments))
+    throw new Error("a members-only badge leaked into the page");
+});
+
+check("Costco's rail renders real picks with price and photo", () => {
+  const { storeRailPicks } = loadPageStoreRailSlice();
+  const costco = fiestaEnvelopes().costco;
+  // Raw-level pool the way the page's relatedPool builds it: title,
+  // price and image present, retailer attached.
+  const pool = [];
+  for (const [dept, entry] of Object.entries(costco.departments || {})) {
+    for (const raw of entry.items || []) {
+      const title = raw.title || raw.name || "";
+      const price = Number(raw.price);
+      const image = raw.image || raw.imageUrl || "";
+      if (title && Number.isFinite(price) && price > 0 && image) pool.push({ retailer: "costco", title, price, image });
+    }
+  }
+  if (!pool.length) throw new Error("the costco catalog yielded no pool items");
+  const picks = storeRailPicks("costco", [], pool, new Set());
+  if (!picks.length) throw new Error("Costco's rail rendered nothing");
+  for (const p of picks) {
+    if (p.retailer !== "costco") throw new Error("Costco's rail picked another store's product");
+    if (!(p.price > 0) || !p.image) throw new Error("a Costco pick has no price or no photo");
+  }
+});
+
+check("every Fiestas sub-rail has a non-empty product set", () => {
+  const { FIESTAS_RAILS, fiestasItemsFor } = loadPageFiestasSlice();
+  eq(FIESTAS_RAILS.map(r => r.key).join(","), "decoracion,sorpresas,menaje,dulces", "the four sub-rails");
+  const envelopes = fiestaEnvelopes();
+  for (const rail of FIESTAS_RAILS) {
+    let n = 0;
+    for (const retailer of Object.keys(rail.departments)) {
+      const items = fiestasItemsFor(envelopes[retailer], rail.key, retailer);
+      n += items.length;
+      for (const raw of items) {
+        if (!(raw.title || raw.name)) throw new Error(`${rail.key}: a raw item has no title`);
+        if (!(Number(raw.price) > 0)) throw new Error(`${rail.key}: "${(raw.title || raw.name || "").slice(0, 40)}" has no price`);
+        if (!(raw.image || raw.imageUrl)) throw new Error(`${rail.key}: "${(raw.title || raw.name || "").slice(0, 40)}" has no image`);
+      }
+    }
+    if (!n) throw new Error(`the ${rail.key} sub-rail has no products`);
+  }
+});
+
+check("the Fiestas vertical's markup matches its shelf config", () => {
+  /* Raw markup on purpose: the ids below are unique to the Fiestas
+     sections, and no HTML comment carries them. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const { FIESTAS_RAILS } = loadPageFiestasSlice();
+  for (const surface of ["mFiestasSection", "dFiestasSection"]) {
+    if (!html.includes(`id="${surface}"`)) throw new Error(`${surface} is gone`);
+  }
+  for (const rail of FIESTAS_RAILS) {
+    for (const prefix of ["m", "d"]) {
+      if (!html.includes(`id="${prefix}FiestasRail-${rail.key}"`))
+        throw new Error(`${prefix}FiestasRail lost its ${rail.key} row`);
+    }
+    // Each sub-rail's "Ver todo" opens the Fiestas listing for that key.
+    if (!new RegExp(`openCatalog\\('fiestas',\\s*'${rail.key}'\\)`).test(html))
+      throw new Error(`${rail.key} has no Ver todo into the Fiestas listing`);
+  }
+  // Danny's exact copy on both headers.
+  const slogan = "Las mamás fashion merecen más opciones.";
+  if ((html.match(new RegExp(slogan.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) || []).length < 2)
+    throw new Error("the Fiestas slogan is not on both surfaces");
+  // The category rails tile into the vertical.
+  if (!/goFiestasSection\(\)/.test(html)) throw new Error("no tile scrolls into Fiestas y Eventos");
+});
+
+check("Party City cards badge the store by name, without a storefront", () => {
+  const badge = forwardSlice(shopfrontSrc, "function retailerTextBadgeHTML(", "function ", "retailerTextBadgeHTML");
+  if (!/FIESTAS_RETAILER_LABEL/.test(badge)) throw new Error("the card badge lost its Party City fallback");
+  const { FIESTAS_RETAILER_LABEL } = loadPageFiestasSlice();
+  eq(FIESTAS_RETAILER_LABEL.partycity, "Party City", "the Party City display name");
+  // And nothing in the page routes to a Party City storefront.
+  if (/openStore\(\s*['"]partycity['"]\)/.test(shopfrontSrc)) throw new Error("something opens a partycity storefront");
 });
 
 
@@ -7523,7 +7680,7 @@ check("the home page runs deals, brand band, rails, departments, story", () => {
      band -- the ARIA logo, "Compra en Estados Unidos / Te lo llevamos
      a Perú", the search -- sat eight carousels down and the deals were
      not the first thing the eye met. Now the run is: Ofertas, the
-     brand band, the six store rails in mall order, Categorías, then
+     brand band, the seven store rails in mall order, Categorías, then
      the story sections. One scroll order on both breakpoints.
 
      Asserted on SOURCE ORDER, not on measured positions: the browser
@@ -7540,14 +7697,14 @@ check("the home page runs deals, brand band, rails, departments, story", () => {
   const deals  = at('id="mobileDealsRow"', "the Ofertas rail");
   const band   = at('aria-label="Compra en Estados Unidos"', "the brand band");
   const cats   = at('id="mobileCatsRow"', "the Categorías rail");
-  const rails  = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]
+  const rails  = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]
     .map(k => at(`id="mStoreRail-${k}"`, `the ${k} rail`));
   const logo   = at('src="aria-full-logo.png"', "the ARIA logo");
   const why    = at('id="whyUs"', "the Por qué Aria explainer");
   const tiles  = at('id="cats"', "the Comprar por categoría tiles");
 
   // 2026-09-25, DANNY'S HOMEPAGE ORDER: Ofertas, the brand band, the
-  // six store rails in mall order, then Categorías -- one scroll order
+  // seven store rails in mall order, then Categorías -- one scroll order
   // on both breakpoints.
   if (!(deals < band)) throw new Error("the brand band no longer follows Ofertas");
   if (!(band < rails[0])) throw new Error("the store rails no longer follow the brand band");
@@ -7662,7 +7819,7 @@ check("the mall photograph is committed, and small enough to send to a phone", (
 });
 
 check("the old homepage store-tile strip is gone, and nothing still points at it", () => {
-  /* 2026-09-25, DANNY'S MALL VISION: the six store rails ARE the
+  /* 2026-09-25, DANNY'S MALL VISION: the seven store rails ARE the
      homepage's store browsing now. The old tile rows -- the shopfront's
      mobileStoresRow/desktopStoresRow and the bottom RETAILERS STRIP
      (homeStoresRow) -- are superseded, and the strip's "directory at the
@@ -7684,7 +7841,7 @@ check("the old homepage store-tile strip is gone, and nothing still points at it
 check("every store rail keeps its branded header, on all three surfaces", () => {
   /* 2026-09-25, DANNY'S MALL VISION: each rail is a window display, and
      a window display without the store's name above it is just a shelf.
-     Five rails carry the real logo; Dick's carries its brand-red wordmark.
+     Five rails carry the real logo; Dick's and Costco carry brand-red wordmark pills until their logo files land.
      The headers are static markup -- they paint with the page, not with
      the lazy cards -- so a shopper always knows whose window they're at. */
   const src = HOME_SRC();
@@ -7695,6 +7852,7 @@ check("every store rail keeps its branded header, on all three surfaces", () => 
     footlocker: /<img[^>]*src="logos\/footlocker\.png"[^>]*data-retailer="footlocker"/,
     ssense: /<img[^>]*src="logos\/ssense\.png"[^>]*data-retailer="ssense"/,
     dicks: /<span[^>]*style="background:#D22630"[^>]*>Dick's Sporting Goods<\/span>/,
+    costco: /<img[^>]*src=\"logos\/costco\.svg\"[^>]*data-retailer=\"costco\"/,
   };
   for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
     for (const [key, mark] of Object.entries(brands)){
@@ -7708,13 +7866,13 @@ check("every store rail keeps its branded header, on all three surfaces", () => 
   }
 });
 
-check("the six rails stand in mall order on all three surfaces", () => {
+check("the seven rails stand in mall order on all three surfaces", () => {
   /* 2026-09-25, DANNY'S MALL VISION: one scroll order everywhere -- the
      phone's shopfront, the laptop's shopfront, and the Tiendas page's
      vitrinas. If a surface ever reorders, dedupes, or drops a rail, the
      mall stops feeling like one mall. */
   const src = HOME_SRC();
-  const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"];
+  const want = ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"];
   for (const [name, prefix, from, to] of [
     ["the phone's shopfront", "mStoreRail", 'id="mobileShopfront"', 'id="desktopShopfront"'],
     ["the laptop's shopfront", "dStoreRail", 'id="desktopShopfront"', 'id="whyUs"'],
@@ -7722,12 +7880,12 @@ check("the six rails stand in mall order on all three surfaces", () => {
   ]){
     const seg = stripHtmlComments(forwardSlice(src, from, to, name));
     const found = [...seg.matchAll(new RegExp(`id="${prefix}-([a-z]+)"`, "g"))].map(m => m[1]);
-    eq(found.join(","), want.join(","), `${name} does not carry the six rails in mall order`);
+    eq(found.join(","), want.join(","), `${name} does not carry the seven rails in mall order`);
   }
 });
 
 check("the store rails paint lazily below the fold", () => {
-  /* The six rails sit below Ofertas: eighteen product rows must not
+  /* The seven rails sit below Ofertas: twenty-one product rows must not
      cost a phone its first paint. Headers are static markup -- the
      shopper always sees whose window it is -- and the cards paint
      through one shared IntersectionObserver that starts early enough
@@ -7741,7 +7899,7 @@ check("the store rails paint lazily below the fold", () => {
      the markup, the observer would be theatre. */
   const markup = stripHtmlComments(src);
   for (const prefix of ["mStoreRail", "dStoreRail", "tStoreRail"]){
-    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks"]){
+    for (const key of ["victoriassecret", "sephora", "macys", "footlocker", "ssense", "dicks", "costco"]){
       const row = new RegExp(`<div id="${prefix}-${key}"[^>]*></div>`);
       if (!row.test(markup)) throw new Error(`${prefix}-${key} is not an empty row waiting for the observer`);
     }

@@ -252,9 +252,13 @@ export function loadPageEnvelopeSlice() {
   if (from < 0 || to < 0 || to <= from) {
     throw new Error("index.html envelope slice markers moved — update scripts/test/_page-script.mjs");
   }
+  /* normalizeCatalogueEnvelope leans on aliasEnvelopeTitles, defined just
+     above the slice start -- pulled in by name so the slice keeps working
+     without dragging the whole catalogue section along. */
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
+    extractNamedFunction(html, "aliasEnvelopeTitles") + "\n" +
     html.slice(from, to) + "\n;globalThis.__exports = { normalizeCatalogueEnvelope };",
     sandbox,
     { filename: "index.html#envelope" },
@@ -642,6 +646,45 @@ export function loadPageCurvyStoreCardsSlice() {
   return sandbox.__exports;
 }
 
+/* The Fiestas vertical's pure wiring: shelf config + the raw-item
+   selector. fiestasItemsFor leans on two tiny pure helpers defined
+   elsewhere in the page (notQuarantined, rawTitleOf); they are pulled in
+   by name so the slice stays a faithful copy of the page's logic.
+   fiestasRailPicks is NOT in the slice -- it needs normalizeLiveItem's
+   weight closure, which is not vm-friendly. */
+function extractNamedFunction(html, name) {
+  const start = html.indexOf("function " + name + "(");
+  if (start < 0) throw new Error("index.html lost function " + name + " -- update scripts/test/_page-script.mjs");
+  const rest = html.slice(start);
+  const m = rest.match(/\n(?=function |const |let |var )/);
+  return m ? rest.slice(0, m.index + 1) : rest;
+}
+
+export function loadPageFiestasSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const marker = html.indexOf("FIESTAS_PICK:SLICE-START");
+  /* The marker lives inside its opening /* comment -- the slice must
+     start at the opener or the vm parses prose as code. */
+  const from = html.lastIndexOf("/*", marker);
+  /* And the slice must run past the END marker's own closing comment,
+     or the vm gets an unterminated /* and nothing parses. */
+  const endMarker = html.indexOf("FIESTAS_PICK:SLICE-END");
+  const to = html.indexOf("*/", endMarker) + 2;
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html fiestas-pick markers moved -- update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    extractNamedFunction(html, "notQuarantined") + "\n" +
+    extractNamedFunction(html, "rawTitleOf") + "\n" +
+    html.slice(from, to) +
+    "\n;globalThis.__exports = { FIESTAS_RETAILER_LABEL, FIESTAS_TABLEWARE_RX, FIESTAS_VARIETY_RX, FIESTAS_RAIL_TOTAL, FIESTAS_RAILS, fiestasItemsFor };",
+    sandbox,
+    { filename: "index.html#fiestasPick" },
+  );
+  return sandbox.__exports;
+}
 /* THE CART MERGE, on its own. mergeCarts + cartItemKey are pure functions;
    the slice runs them so the idempotence rule ("reload must never change
    quantities") is settled by execution, not by reading the code. */
