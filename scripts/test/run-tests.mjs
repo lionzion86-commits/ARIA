@@ -5386,7 +5386,7 @@ check("Hero, Ofertas, brand band, Aria Auto, category carousel, rails, rest (202
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Marcas > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Aria Beauty > Marcas > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5420,7 +5420,7 @@ check("the desktop shopfront reads Ofertas, brand band, Aria Auto, carousel, rai
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Marcas > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Aria Beauty > Marcas > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -9241,19 +9241,19 @@ check("the category rail is wired: config, lazy paint, honest cards", () => {
     throw new Error("a rail card stopped showing the brand");
 });
 
-check("the category pills open on Danny's order: Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración, Gym Rat last (2026-09-27, Danny)", () => {
+check("the category pills open on Danny's order: Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración, Gym Rat and Aria Beauty last (2026-09-27, Danny)", () => {
   const src = HOME_SRC();
   /* The pill order is the hook: Moda Niños, Surf & Skate, Moda Mujer,
-     Moda Hombre, Decoración first -- Danny 2026-09-27. Gym Rat sits last
-     because it already owns the permanent rail under the pills. A silent
-     reorder would bury the hook again. */
+     Moda Hombre, Decoración first -- Danny 2026-09-27. Gym Rat and Aria
+     Beauty sit last because both own permanent rails under the pills. A
+     silent reorder would bury the hook again. */
   const m = src.match(/const CATEGORY_TAB_ORDER = \[([^\]]*)\];/);
   if (!m) throw new Error("CATEGORY_TAB_ORDER is gone");
   const keys = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
   eq(keys.slice(0, 5).join(","), "kids,surf_skate,women,men,home_decor",
     "the first five pills are not Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración");
-  eq(keys[keys.length - 1], "gym_rat",
-    "Gym Rat is not last -- it owns the permanent rail, the pill sits down the road");
+  eq(keys.slice(-2).join(","), "gym_rat,beauty",
+    "Gym Rat and Aria Beauty are not last -- both own permanent rails, their pills sit down the road");
   /* The vague general "Moda" pill was pulled 2026-09-26 (Danny): the
      Mujer/Hombre tabs cover general fashion, and a fourth fashion pill
      muddied the hook. */
@@ -9266,21 +9266,22 @@ check("the category pills open on Danny's order: Moda Niños, Surf & Skate, Moda
     throw new Error("the carousel no longer opens on the first pill");
 });
 
-check("Gym Rat and Hogar keep permanent homepage rails (2026-09-27, Danny)", () => {
+check("Gym Rat and Aria Beauty keep permanent homepage rails (2026-09-27, Danny)", () => {
   /* Danny: the two most marketable categories get always-visible rails
      under the tab browser on both layouts, painted from the same shelf
-     as their pills. Each must stand down while its pill is the active
-     tab (no double rail) and while its shelf is empty. */
+     as their pills. Beauty took the Hogar rail's slot; Hogar keeps its
+     pill. Each must stand down while its pill is the active tab (no
+     double rail) and while its shelf is empty. */
   const src = HOME_SRC();
   const sections = [...src.matchAll(/<section[^>]*data-featured-rail[^>]*>([\s\S]*?)<\/section>/g)];
   if (sections.length !== 4)
-    throw new Error(`expected mobile+desktop Gym Rat and Hogar rails, found ${sections.length}`);
+    throw new Error(`expected mobile+desktop Gym Rat and Aria Beauty rails, found ${sections.length}`);
   const keys = sections.map(([, body]) => {
     const m = body.match(/data-category-rail-row="([a-z_]+)"/);
     return m && m[1];
   }).sort().join(",");
-  eq(keys, "gym_rat,gym_rat,home_goods,home_goods",
-    "the featured rails are not Gym Rat + Hogar on both layouts");
+  eq(keys, "beauty,beauty,gym_rat,gym_rat",
+    "the featured rails are not Gym Rat + Aria Beauty on both layouts");
   for (const [, body] of sections){
     const key = body.match(/data-category-rail-row="([a-z_]+)"/)[1];
     if (!new RegExp("openCatalog\\('department','" + key + "'\\)").test(body))
