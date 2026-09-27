@@ -22738,8 +22738,8 @@ function startOrbSwim(){
    ================================================================== */
 const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)';
 
-/* What Aria says when the greeting endpoint gives us nothing usable. */
-const ARIA_GREETING_FALLBACK = '¡Hola! Soy el asistente de Aria 👋 Cuéntame qué buscas.';
+/* What Aria says when the greeting endpoint gives us nothing usable. Matches her signature greeting script (GREETING_SCRIPT_ES in netlify/functions/_aria-prompt.js). No emoji: this line can be spoken aloud by the browser-voice fallback. */
+const ARIA_GREETING_FALLBACK = '¡Bienvenido a Aria Shop! Soy tu shopper personal. Vámonos de compras — dime qué buscas y te lo encuentro al mejor precio en todas las tiendas de Estados Unidos.';
 
 function isMobileChat(){
   return !!(window.matchMedia && window.matchMedia(ARIA_CHAT_MOBILE_MQ).matches);
@@ -22936,7 +22936,7 @@ if (assistantOpen && document.getElementById('assistantMessages').children.lengt
    written, voice follows when it lands. Any failure lands on the same written
    fallback line the old path used. */
 async function greetAssistantStreaming(){
-  const msg = 'Preséntate brevemente como Aria, la asistente de compras, y pregunta qué está buscando el cliente.';
+  const msg = 'Saluda siguiendo tu guión de bienvenida y pregunta qué está buscando el cliente.';
   const sink = beginAssistantReply();
   let streamed = null;
   try {
