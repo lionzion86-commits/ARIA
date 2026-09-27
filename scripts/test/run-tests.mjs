@@ -8909,6 +8909,30 @@ check("the category rail is wired: config, lazy paint, honest cards", () => {
     throw new Error("a rail card stopped showing the brand");
 });
 
+check("the category pills open on Danny's hook order: Moda Niños, Moda, Surf & Skate, Moda Mujer, Moda Hombre (2026-09-26, Danny)", () => {
+  const src = HOME_SRC();
+  /* The pill order is the hook: kids' fashion first, then the general
+     Moda tab, then Surf & Skate nudged right. A silent reorder would
+     bury the hook again. */
+  const m = src.match(/const CATEGORY_TAB_ORDER = \[([^\]]*)\];/);
+  if (!m) throw new Error("CATEGORY_TAB_ORDER is gone");
+  const keys = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+  eq(keys.slice(0, 5).join(","), "kids,clothing,surf_skate,women,men",
+    "the first five pills are not Moda Niños, Moda, Surf & Skate, Moda Mujer, Moda Hombre");
+  /* The "Moda" pill is the general-fashion tab: key 'clothing' so its
+     "Ver categoría" door opens the existing Ropa department, label
+     'Moda' because that is Danny's word for the chip. */
+  const cfg = forwardSlice(src, "const CATEGORY_RAILS = [", "];", "CATEGORY_RAILS");
+  if (!/key: 'clothing', label: 'Moda'/.test(cfg))
+    throw new Error("the Moda pill is missing or mislabeled");
+  if (!/key: 'clothing'[\s\S]*?openCatalog\('department','clothing'\)/.test(cfg))
+    throw new Error("the Moda pill's door does not open the clothing department");
+  /* The carousel opens on the first pill -- the hook has to be the
+     thing a shopper sees, not a tap away. */
+  if (!/let activeCategoryTab = CATEGORY_TAB_ORDER\[0\]/.test(src))
+    throw new Error("the carousel no longer opens on the first pill");
+});
+
 check("store rail names truncate instead of overlapping Ver tienda", () => {
   /* 2026-09-26, DANNY'S IPHONE QA: "MAINLAND SKATE & SURF" overlapped the
      "Ver tienda" link at phone widths. Every rail header's store name

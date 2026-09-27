@@ -2071,8 +2071,9 @@
        ORDER ON THE HOME PAGE (2026-09-26, Danny)
 
        hero -> OFERTAS -> brand band (logo + search) -> Aria Auto ->
-       "Compra por categoría" (the chip carousel: Surf & Skate, kids,
-       toys... tapping a chip swaps the product rail) -> the store
+       "Compra por categoría" (the chip carousel: Moda Niños, Moda,
+       Surf & Skate, Moda Mujer, Moda Hombre... tapping a chip swaps the
+       product rail) -> the store
        rails -> Marcas / Costco / SSENSE -> Todas las otras tiendas ->
        Categorías (tiles). Same run on desktop.
 
@@ -8830,6 +8831,14 @@ const CATEGORY_RAILS = [
     blurb: 'Ropa para niños, de todas las tiendas.',
     test: (p) => railBucketCategoryIs(p, 'apparel') && railBucketGenderIs(p, 'kids'),
     open: "openCatalog('department','kids')" },
+  /* MODA (2026-09-26, Danny's hook): the general-fashion tab -- all apparel,
+     all genders -- sitting second in the pill order, right after Moda Niños.
+     Key 'clothing' so the "Ver categoría" door opens the existing Ropa
+     department; the pill itself reads "Moda", Danny's word. */
+  { key: 'clothing', label: 'Moda', icon: '🛍️', stores: null, poolOnly: true,
+    blurb: 'Toda la moda, de todas las tiendas.',
+    test: (p) => railBucketCategoryIs(p, 'apparel'),
+    open: "openCatalog('department','clothing')" },
   { key: 'shoes', label: 'Zapatos', icon: '👟', stores: null, poolOnly: true,
     blurb: 'Calzado de todas las tiendas.',
     test: (p) => isFootwear(p, p.retailer),
@@ -8863,8 +8872,9 @@ const CATEGORY_RAILS = [
     test: (p) => isParty(p, p.retailer, p.departments),
     open: "openCatalog('department','party')" },
 ];
-/* Tab order on the pills: Danny's sequence, Surf & Skate first. */
-const CATEGORY_TAB_ORDER = ['surf_skate', 'women', 'men', 'kids', 'shoes', 'home_goods', 'home_decor', 'curvy', 'gym_rat', 'electronics', 'toys', 'party'];
+/* Tab order on the pills (2026-09-26, Danny's hook): Moda Niños, Moda,
+   Surf & Skate, Moda Mujer, Moda Hombre, then the rest. */
+const CATEGORY_TAB_ORDER = ['kids', 'clothing', 'surf_skate', 'women', 'men', 'shoes', 'home_goods', 'home_decor', 'curvy', 'gym_rat', 'electronics', 'toys', 'party'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
