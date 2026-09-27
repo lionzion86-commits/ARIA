@@ -978,7 +978,7 @@ const EXPECTED_EVERYDAY_ORDER = [
   "lanebryant", "alphalete", "youngla", "gymshark",
   /* ARIA FIGHT CLUB BATCH (2026-09-27, Danny): six fight-sports shops,
      registry order before Skims. */
-  "venum", "tatami", "everlast", "mmawarehouse", "combatcorner", "fuji",
+  "venum", "tatami", "everlast", "mmawarehouse", "combatcorner", "fuji", "crocs",
   "skims", "yesstyle"
 ];
 function everydayOrder(){
