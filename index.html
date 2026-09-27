@@ -15075,6 +15075,85 @@ function safeUrl(u){
 // real margin leak on every single order.
 const SALES_TAX_RATE = 1.07;
 const LIVE_PRICE_MARKUP = 1.24;
+
+/* PER-RETAILER MIAMI SALES TAX (2026-09-27) -- Danny's call.
+   Aria holds a FL LLC + EIN and is filing the FL DOR resale certificate
+   (DR-13); each retailer is then enrolled individually. While a retailer
+   is NOT enrolled, Miami's 7% sales tax is a real cost paid at the
+   register, so it stays in the acquisition cost (x1.07). Once a
+   retailer's DR-13 enrollment is confirmed AND a live test checkout
+   genuinely clears tax-free, flip that retailer to 'exempt' here and its
+   cards drop to x1.0 -- no other code changes needed.
+
+   Statuses:
+     'exempt'  -- confirmed: enrolled + test checkout cleared tax-free.
+                  Cards for this retailer price at raw x 1.0 x 1.24.
+     'taxable' -- retailer policy PROHIBITS reseller purchases outright
+                  (audit 2026-09-27: Target, Macy's, Kohl's, Old Navy,
+                  Foot Locker, Victoria's Secret). No enrollment will ever
+                  change this -- the 7% stays permanently.
+     'unknown' -- default: no confirmed enrollment yet. Keeps the 7% until
+                  verified. (Sephora has a reseller tax-refund path, but its
+                  ToS needs reconciling first -- do NOT strip it yet.)
+
+   Anything not listed here falls through to 'unknown' (keeps the 7%),
+   so newly added retailers are safe by default. */
+const TAX_EXEMPT_STATUS = {
+  // CONFIRMED EXEMPT -- flip more retailers here as enrollments confirm:
+  walmart: 'exempt',
+  // REFUSE RESALE -- 7% stays permanently, no enrollment to attempt:
+  target: 'taxable',
+  macys: 'taxable',
+  kohls: 'taxable',
+  oldnavy: 'taxable',
+  footlocker: 'taxable',
+  victoriassecret: 'taxable',
+  // UNVERIFIED -- keep the 7% until enrollment + test checkout confirm:
+  sephora: 'unknown',
+  costco: 'unknown',
+  samsclub: 'unknown',
+  autozone: 'unknown',
+  advanceauto: 'unknown',
+  bhphoto: 'unknown',
+  nordstrom: 'unknown',
+  dicks: 'unknown',
+  bestbuy: 'unknown',
+  dyson: 'unknown',
+  lanebryant: 'unknown',
+  revolve: 'unknown',
+  newbalance: 'unknown',
+  ulta: 'unknown',
+  bathandbodyworks: 'unknown',
+  pacsun: 'unknown',
+  gymshark: 'unknown',
+  youngla: 'unknown',
+  alphalete: 'unknown',
+  skims: 'unknown',
+  sunglasshut: 'unknown',
+  ssense: 'unknown',
+  yesstyle: 'unknown',
+  miumiu: 'unknown',
+  fendi: 'unknown',
+  goldengoose: 'unknown',
+  nautilus: 'unknown',
+  islandwatersports: 'unknown',
+  quietstorm: 'unknown',
+  surfworld: 'unknown',
+  surfstation: 'unknown',
+  mainland: 'unknown',
+  parrot: 'unknown',
+  ccs: 'unknown',
+  valsurf: 'unknown',
+  rockauto: 'unknown',
+};
+/* The acquisition-cost multiplier for one retailer's goods: the Miami
+   shelf price plus whatever sales tax Aria really pays at that
+   retailer's register. Exempt retailers are x1.0; everyone else stays
+   x1.07. Unknown/missing keys are 'unknown' by default -- the 7% stays. */
+function salesTaxRateFor(retailer){
+  const s = TAX_EXEMPT_STATUS[String(retailer || '').toLowerCase()];
+  return s === 'exempt' ? 1.0 : SALES_TAX_RATE;
+}
 function round2(n){ return Math.round(n * 100) / 100; }
 
 // CONFIDENCE-BASED SAFETY BUFFER — shared by every weight estimate on the
@@ -16847,14 +16926,18 @@ function normalizeLiveItem(item, hints){
   const title = item.title || item.name || item.productTitle || item.productName || 'Producto sin título';
   const priceRaw = item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice;
   const rawPrice = typeof priceRaw === 'number' ? priceRaw : (typeof priceRaw === 'string' ? parseFloat(priceRaw.replace(/[^0-9.]/g, '')) : NaN);
-  const price = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
+  /* PER-RETAILER TAX (2026-09-27): the 7% is only in the cost when Aria really pays it --
+     see TAX_EXEMPT_STATUS / salesTaxRateFor() near LIVE_PRICE_MARKUP. */
+  const taxRate = salesTaxRateFor((hints && hints.retailer) || item.retailer);
+  const price = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate * LIVE_PRICE_MARKUP) : null;
   /* DUTIABLE BASE (2026-09-27): the true acquisition cost — raw US price
-     plus Miami sales tax, BEFORE the 24% service markup. Peru's import
+     plus whatever Miami sales tax Aria really pays at that retailer's
+     register (per-retailer rate above), BEFORE the 24% service markup. Peru's import
      tax is assessed on this value, never on the marked-up card price.
      Stamped here because every product path (catalog + live) normalizes
      through this function, so the base travels with the item to the
      card, the product page, the cart, checkout and the order record. */
-  const dutiableUsd = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE) : null;
+  const dutiableUsd = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate) : null;
   // The whole gallery, not just the first frame — spec §6 wants a
   // thumbnail strip "when the retailer supplies multiple images", so the
   // rest can no longer be thrown away here. Deduped and cleaned; an empty
@@ -16956,7 +17039,7 @@ function normalizeLiveItem(item, hints){
   // Rounded before comparing so what's kept always matches what the badge
   // shows — a 4.6% markdown renders as "-5%", so it should qualify.
   const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
-  const originalPrice = hasRealDiscount ? round2(rawOriginalNum * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
+  const originalPrice = hasRealDiscount ? round2(rawOriginalNum * taxRate * LIVE_PRICE_MARKUP) : null;
 
   /* THE DESIGNER SURVIVES NORMALISATION.
 
@@ -19576,8 +19659,8 @@ function addToCart(item){
      passes through here, so the tax base is guaranteed once rather
      than at each caller. The import-tax threshold, the checkout
      estimate and the order's set-aside bucket all read dutiableUsd —
-     what the goods really cost (raw x 1.07), never the marked-up
-     card price. A line from an older build carries no stamp; the
+     what the goods really cost (raw x per-retailer sales-tax rate),
+     never the marked-up card price. A line from an older build carries no stamp; the
      exact reversal (price / LIVE_PRICE_MARKUP) restores it. */
   const dBase = dutiableBaseUsd(item.priceUsd, item.dutiableUsd);
   if (Number.isFinite(dBase)) item = { ...item, dutiableUsd: dBase };
@@ -20572,12 +20655,13 @@ async function loadAdminOrders(){
   }
 }
 
-// precio scrapeado is derived, not stored — same known SALES_TAX_RATE/
-// LIVE_PRICE_MARKUP constants used at scrape time (see normalizeLiveItem
-// above) back out the pre-markup price from what was actually charged.
+// precio scrapeado is derived, not stored — reversed per line with the same
+// per-retailer tax rate used at scrape time (see normalizeLiveItem above),
+// so exempt-retailer lines back out exactly. Lines with no retailer fall
+// back to the 1.07 default, matching every legacy order.
 function computeMargin(order, actuals){
-  const priceUsdTotal = (order.items || []).reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
-  const priceScrapedUsd = round2(priceUsdTotal / (SALES_TAX_RATE * LIVE_PRICE_MARKUP));
+  const priceScrapedUsd = round2((order.items || []).reduce((sum, it) => sum +
+    (Number(it.priceUsd) || 0) / (salesTaxRateFor(it.retailer) * LIVE_PRICE_MARKUP) * (Number(it.qty) || 1), 0));
   const fx = order.fxRateUsed || 0;
   const montoNetoPen = order.pricePenCharged || 0;
   const hasActuals = actuals.precioRealPagadoUsd != null && actuals.costoRealCourierUsd != null && fx;
