@@ -9234,16 +9234,16 @@ check("the category rail is wired: config, lazy paint, honest cards", () => {
     throw new Error("a rail card stopped showing the brand");
 });
 
-check("the category pills open on Danny's hook order: Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre (2026-09-26, Danny)", () => {
+check("the category pills open on Danny's order: Surf & Skate, Gym Rat, Moda Niños, Moda Mujer (2026-09-27, Danny)", () => {
   const src = HOME_SRC();
-  /* The pill order is the hook: kids' fashion first, Surf & Skate right
-     next to it, then the gendered fashion tabs. A silent reorder would
-     bury the hook again. */
+  /* The pill order is the hook: Surf & Skate first, Gym Rat right next
+     to it and next to Moda Niños -- Danny 2026-09-27, "it's a really good
+     category". A silent reorder would bury the hook again. */
   const m = src.match(/const CATEGORY_TAB_ORDER = \[([^\]]*)\];/);
   if (!m) throw new Error("CATEGORY_TAB_ORDER is gone");
   const keys = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
-  eq(keys.slice(0, 4).join(","), "kids,surf_skate,women,men",
-    "the first four pills are not Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre");
+  eq(keys.slice(0, 4).join(","), "surf_skate,gym_rat,kids,women",
+    "the first four pills are not Surf & Skate, Gym Rat, Moda Niños, Moda Mujer");
   /* The vague general "Moda" pill was pulled 2026-09-26 (Danny): the
      Mujer/Hombre tabs cover general fashion, and a fourth fashion pill
      muddied the hook. */

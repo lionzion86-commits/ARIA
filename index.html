@@ -8907,11 +8907,12 @@ const CATEGORY_RAILS = [
     test: (p) => isParty(p, p.retailer, p.departments),
     open: "openCatalog('department','party')" },
 ];
-/* Tab order on the pills (2026-09-26, Danny's hook): Moda Niños,
-   Surf & Skate, Moda Mujer, Moda Hombre, then the rest. The general
-   "Moda" tab was pulled the same night -- the Mujer/Hombre tabs cover
-   general fashion, and a vague fourth fashion pill muddied the hook. */
-const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'shoes', 'home_goods', 'home_decor', 'curvy', 'gym_rat', 'electronics', 'toys', 'party'];
+/* Tab order on the pills (2026-09-27, Danny): Surf & Skate, Gym Rat,
+   Moda Niños, Moda Mujer, Moda Hombre, then the rest. Gym Rat sits next
+   to Moda Niños because the category is that good. The general "Moda"
+   tab was pulled 2026-09-26 -- the Mujer/Hombre tabs cover general
+   fashion, and a vague fourth fashion pill muddied the hook. */
+const CATEGORY_TAB_ORDER = ['surf_skate', 'gym_rat', 'kids', 'women', 'men', 'shoes', 'home_goods', 'home_decor', 'curvy', 'electronics', 'toys', 'party'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
