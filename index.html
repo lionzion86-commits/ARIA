@@ -1589,17 +1589,19 @@
       <div data-category-rail-row="gym_rat" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-    <!-- PERMANENT HOGAR RAIL (2026-09-27, Danny): the second marketable
-         category keeps an always-visible rail under the Gym Rat rail.
-         Same shared painter, same stand-down rule in renderCategoryTabs. -->
-    <section aria-label="Hogar" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+    <!-- PERMANENT ARIA BEAUTY RAIL (2026-09-27, Danny): takes the Hogar
+         rail's slot -- beauty is the highest-traffic destination and gets
+         the always-visible carousel under the Gym Rat rail. Hogar keeps
+         its pill in the tab browser. Same shared painter, same stand-down
+         rule in renderCategoryTabs. -->
+    <section aria-label="Aria Beauty" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F6CB;&#xFE0F; Hogar</span>
-        <button onclick="openCatalog('department','home_goods')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F484; Aria Beauty</span>
+        <button onclick="openCatalog('department','beauty')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Todo para tu casa.</span></div>
-      <div data-category-rail-row="home_goods" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
+      <div data-category-rail-row="beauty" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
 <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
@@ -1917,17 +1919,18 @@
       </div>
     </section>
 
-    <!-- PERMANENT HOGAR RAIL (desktop, 2026-09-27, Danny). Same shelf as
-         the phone's: always visible under the Gym Rat rail. -->
-    <section aria-label="Hogar" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+    <!-- PERMANENT ARIA BEAUTY RAIL (desktop, 2026-09-27, Danny). Same
+         shelf as the phone's: always visible under the Gym Rat rail,
+         in the Hogar rail's old slot. -->
+    <section aria-label="Aria Beauty" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F6CB;&#xFE0F; Hogar</span>
-          <button onclick="openCatalog('department','home_goods')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F484; Aria Beauty</span>
+          <button onclick="openCatalog('department','beauty')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Todo para tu casa.</span></div>
-        <div data-category-rail-row="home_goods" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
+        <div data-category-rail-row="beauty" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny. -->
@@ -9151,14 +9154,24 @@ const CATEGORY_RAILS = [
     blurb: 'Todo para tu fiesta en un solo lugar.',
     test: (p) => isParty(p, p.retailer, p.departments),
     open: "openCatalog('department','party')" },
+  /* ARIA BEAUTY (2026-09-27, Danny): the beauty pill + permanent carousel,
+     taking the Hogar rail's slot. Danny's name, verbatim. Sales lead from
+     the pool -- Sephora, Ulta, YesStyle and Victoria's Secret beauty
+     departments -- so the shelf matches the department page exactly. */
+  { key: 'beauty', label: 'Aria Beauty', icon: '💄', stores: null, poolOnly: true,
+    blurb: 'Maquillaje, skincare y perfumes.',
+    test: (p) => railBucketCategoryIs(p, 'beauty'),
+    open: "openCatalog('department','beauty')" },
 ];
 /* Tab order on the pills (2026-09-27, Danny): Moda Niños, Surf &
    Skate, Moda Mujer, Moda Hombre, Decoración, then the rest, with Gym
-   Rat last -- it already owns the permanent rail right under the pills,
-   so the pill sits down the road. The general "Moda" tab was pulled
-   2026-09-26 -- the Mujer/Hombre tabs cover general fashion, and a
-   vague fourth fashion pill muddied the hook. */
-const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'home_decor', 'combat_sports', 'shoes', 'home_goods', 'curvy', 'electronics', 'toys', 'party', 'gym_rat'];
+   Rat and Aria Beauty last -- both own permanent rails right under the
+   pills, so their pills sit down the road. Hogar keeps its pill (Danny,
+   2026-09-27); it only lost the permanent rail to Beauty. Combat sports
+   keeps its tab from the Fight Club batch. The general "Moda" tab was
+   pulled 2026-09-26 -- the Mujer/Hombre tabs cover general fashion, and
+   a vague fourth fashion pill muddied the hook. */
+const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'home_decor', 'combat_sports', 'shoes', 'home_goods', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -9202,8 +9215,9 @@ function renderCategoryTabs(){
         `data-category-rail-card="${escapeHtml(activeCategoryTab)}" data-idx="${i}"`)).join('')
       + categoryRailMoreHTML(activeCategoryTab);
   }
-  /* PERMANENT FEATURED RAILS (2026-09-27, Danny): Gym Rat and Hogar
-     keep always-visible rails under the tab browser. Each stands down
+  /* PERMANENT FEATURED RAILS (2026-09-27, Danny): Gym Rat and Aria
+     Beauty keep always-visible rails under the tab browser (Beauty took
+     the Hogar rail's slot; Hogar keeps its pill). Each stands down
      while its pill is the active tab -- the tab rail already shows that
      shelf -- and while its shelf is empty. Runs on every tab switch, so
      a featured rail and the tab rail can never double up. */
