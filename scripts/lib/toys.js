@@ -82,3 +82,50 @@ export function isToyGradeSkate(item) {
   if (TOY_SKATE_BRANDS.has(String(item?.brand || "").toUpperCase().trim())) return true;
   return TOY_SKATE_TITLE.test(skateboardName(item));
 }
+
+/* ============================================================
+   GAME-CONSOLE DETECTOR + JUGUETES LEAD RANK (2026-09-26, Danny)
+
+   WHAT IT ANSWERS: is this item a game console — and where does it
+   sort inside Juguetes?
+
+   DANNY'S TWO RULES:
+   1. Consoles ARE toys and stay in Juguetes, but they are SECONDARY
+      toys: real toys lead the department, consoles follow.
+      toyLeadRank(item) is 0 for a real toy, 1 for a console; the
+      department sorts by it before price.
+   2. Consoles are also electronics: a PlayStation shopper checks
+      Electrónica first, so the electronics department claims consoles
+      too. Dual presence with Juguetes is intended — departments
+      overlap here exactly as Ofertas overlaps everything.
+
+   WHAT COUNTS AS A CONSOLE: a console-platform word (nintendo /
+   playstation / xbox / ps5 / ps4) PLUS a hardware word (console /
+   consola / switch / ps5 / ps4 / xbox series). A video GAME
+   ("LEGO Batman … PlayStation 5") has the platform word but no
+   hardware word, so it stays a plain toy — it is not demoted and it
+   is not electronics.
+
+   MIRROR: index.html carries a verbatim copy inside the
+   DEPARTMENT_CHAIN slice (the page is a plain <script> and cannot
+   import). Change one, change the other; a parity test compares them
+   over the real catalogues.
+   ============================================================ */
+
+/** Title text the console detector reads. */
+function consoleName(item) {
+  return String(item?.title || item?.name || item?.productName || "");
+}
+
+/** True when this catalogue item is a game console (hardware). */
+export function isConsole(item) {
+  if (!item || typeof item !== "object") return false;
+  const t = consoleName(item).toLowerCase();
+  if (!/\b(nintendo|playstation|xbox|ps5|ps4)\b/.test(t)) return false;
+  return /\b(consol[ae]|switch|ps5|ps4|xbox\s*series)\b/.test(t);
+}
+
+/** Juguetes lead rank: real toys (0) sort before consoles (1). */
+export function toyLeadRank(item) {
+  return isConsole(item) ? 1 : 0;
+}

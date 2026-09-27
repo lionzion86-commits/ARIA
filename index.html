@@ -1311,23 +1311,27 @@
      sticky band would have cost 30px of a phone screen permanently,
      which is the one thing a slim bar must not do.
 
-     ONE LINE ON A PHONE. Measured at 393px: the two links and the Key
-     Club teaser fit on a single row with the type at 11.5px. Nothing
+     ONE LINE ON A PHONE. Measured at 393px: the three story links and the Key
+     Club teaser fit on a single row with the type at 11px. Nothing
      wraps and nothing scrolls sideways -- a utility bar that wraps to
-     two lines is a second header.
+     two lines is a second header. The nav gap and button side-padding
+     tighten below sm to buy the margin; do not widen them without
+     re-measuring at 393px.
 
-     THE KEY CLUB IS A TEASER, NOT A LINK. It is a <span>, not a button:
-     there is nothing behind it yet, and a tappable thing that does
-     nothing is worse than a thing that plainly says "Próximamente".
+     THE KEY CLUB TEASER IS A REAL LINK (since 2026-09-25): it opens
+     keyclubView, where "Únete gratis" starts signup. No Próximamente.
      ============================================================ -->
 <div id="utilityBar" class="ariaNavyBand border-b" style="border-color:rgba(255,255,255,0.10)">
   <div class="max-w-[1240px] mx-auto px-2.5 sm:px-5 h-[32px] flex items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-[11.5px] leading-none">
-    <nav class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0" aria-label="Sobre Aria">
+    <nav class="flex items-center gap-1 sm:gap-2 flex-shrink-0" aria-label="Sobre Aria">
+      <button onclick="showPage('howView')" data-utility="howView"
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0 sm:px-0.5 py-1" style="color:#DCE6FF">Cómo funciona</button>
+      <span aria-hidden="true" style="color:rgba(220,230,255,0.38)">·</span>
       <button onclick="goHomeSection('whyUs')" data-utility="whyUs"
-        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Quiénes somos</button>
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0 sm:px-0.5 py-1" style="color:#DCE6FF">Por qué Aria</button>
       <span aria-hidden="true" style="color:rgba(220,230,255,0.38)">·</span>
       <button onclick="goHomeSection('precioHonesto')" data-utility="precioHonesto"
-        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Precio honesto</button>
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0 sm:px-0.5 py-1" style="color:#DCE6FF">Precio honesto</button>
     </nav>
     <!-- KEY CLUB IS JOINABLE NOW (2026-09-25): the page exists, so the
          teaser is a real link to keyclubView and the Próximamente tag is
@@ -1393,6 +1397,7 @@
       </button>
     </div>
   </div>
+  
   <nav id="mobileMenu" class="hidden lg:hidden border-t flex-col text-[14.5px] font-medium" style="border-color:var(--line); color:var(--navy)">
     <a href="#" onclick="openCart();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line)">🛒 Carrito</a>
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
@@ -1470,9 +1475,10 @@
        ============================================================ -->
   <div id="mobileShopfront" class="lg:hidden">
 
-    <!-- OFERTAS: on the navy band, because a sale rail should read as
-         the brightest thing on the page and gold only sings on navy. -->
-    <section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <!-- HOME ORDER (2026-09-26, Danny): Ofertas -> brand band -> Aria Auto ->
+       Compra por categoría (chip carousel) -> store rails -> Marcas / Costco /
+       SSENSE -> Todas las otras tiendas -> Categorías. -->
+<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
       <div class="ariaGoldHair"></div>
       <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
         <div class="flex items-baseline gap-2 min-w-0">
@@ -1487,7 +1493,7 @@
       <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-  <!-- ============================================================
+<!-- ============================================================
        BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
        "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
        search sit directly under the Ofertas rail -- deals first because
@@ -1541,13 +1547,7 @@
     </div>
   </div>
 
-    <!-- ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): one bold statement,
-         no product carousel. Aria Auto is a huge section nobody discovers
-         from the homepage -- the logo/branding moment lands first, then
-         this black banner, then the Victoria's Secret rails. Relatable
-         promise first (Aria Auto + price), AutoZone as the trust
-         kicker underneath. Permanent, one banner only. -->
-    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
       <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
       <div class="relative px-5 py-8" style="z-index:1">
@@ -1558,7 +1558,28 @@
       </div>
     </section>
 
-    <!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
+<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
+        <button id="mCategoryTabMore" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
+      </div>
+      <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="mCategoryTabPills" role="tablist" aria-label="Elige una categoría"></div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="mCategoryTabBlurb"></span></div>
+      <div id="mCategoryTabRail" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
+         that is not one of the six featured rails, as one swipeable logo strip.
+         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
+         newly registered store appears here with no markup change. -->
+
+<!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
          own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
     <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
@@ -1574,7 +1595,8 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1588,7 +1610,8 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
@@ -1597,7 +1620,8 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1611,7 +1635,8 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
       <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1625,7 +1650,8 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
@@ -1656,7 +1682,8 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
-    <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
+
+<!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
          picker and the Costco zone -- the catalogue's top clothing brands
          as one swipeable row. Painted by initBrandStrip(). -->
     <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
@@ -1671,6 +1698,7 @@
          curated cozy-home-first for Danny's women-shopper lens, no candy (see costcoCuratedItems).
          The header keeps the official logo + the big store name; the row
          is painted by initStoreRails like every other rail. -->
+
 <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -1685,7 +1713,9 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="mStoreRail-costco" data-store-rail-row="costco" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+
+<section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1699,27 +1729,9 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
-        <button id="mCategoryTabMore" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
-      </div>
-      <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="mCategoryTabPills" role="tablist" aria-label="Categorías"></div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="mCategoryTabBlurb"></span></div>
-      <div id="mCategoryTabRail" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
-         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
-         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
-         Sits after the store rails and before "Todas las otras tiendas".
-         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
-    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
-         that is not one of the six featured rails, as one swipeable logo strip.
-         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
-         newly registered store appears here with no markup change. -->
-    <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
+<section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
         <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
         <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas las tiendas &#8594;</button>
@@ -1727,10 +1739,7 @@
       <div id="mOtherStoresRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
 
-    <!-- CÓMO FUNCIONA TU ENVÍO (2026-09-26) — filled by renderShippingExplainers. -->
-    <div id="mShippingExplainer"></div>
-
-    <!-- CATEGORÍAS -->
+<!-- CATEGORÍAS -->
     <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
         <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
@@ -1759,8 +1768,8 @@
        ============================================================ -->
   <div id="desktopShopfront" class="hidden lg:block">
 
-    <!-- OFERTAS: the same navy band as the phone, at laptop scale. -->
-    <section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <!-- HOME ORDER, DESKTOP (2026-09-26, Danny): same run as the phone. -->
+<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
       <div class="ariaGoldHair"></div>
       <div class="relative max-w-[1240px] mx-auto">
         <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
@@ -1777,7 +1786,7 @@
       </div>
     </section>
 
-  <!-- ============================================================
+<!-- ============================================================
        BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
        "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
        search sit directly under the Ofertas rail -- deals first because
@@ -1831,9 +1840,7 @@
     </div>
   </div>
 
-    <!-- ARIA AUTO HOUSE BANNER (desktop, 2026-09-26, Danny's call): same house
-         banner as the phone's -- one bold statement, category-led copy. -->
-    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
       <div class="ariaAutoBannerHair" aria-hidden="true"></div>
       <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
       <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
@@ -1846,7 +1853,31 @@
       </div>
     </section>
 
-    <!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
+    <!-- CATEGORIAS -->
+
+<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
+          <button id="dCategoryTabMore" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
+        </div>
+        <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="dCategoryTabPills" role="tablist" aria-label="Elige una categoría"></div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="dCategoryTabBlurb"></span></div>
+      <div id="dCategoryTabRail" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+
+    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
+         mall directory between the six featured rails and Categorías. -->
+
+<!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
     <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -1863,7 +1894,8 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1879,7 +1911,8 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1890,7 +1923,8 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
         <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1906,7 +1940,8 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
       <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1922,7 +1957,8 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+<section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1959,7 +1995,8 @@
       <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
-    <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
+
+<!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
     <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
@@ -1971,6 +2008,7 @@
     </section>
     <!-- COSTCO: THE TREASURE-HUNT SHELF (desktop, 2026-09-26, Danny's call).
          Same curated shelf as the phone -- electronics first, no candy. -->
+
 <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -1987,7 +2025,9 @@
       <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="dStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+
+<section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -2003,28 +2043,9 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
-          <button id="dCategoryTabMore" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
-        </div>
-        <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="dCategoryTabPills" role="tablist" aria-label="Categorías"></div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="dCategoryTabBlurb"></span></div>
-      <div id="dCategoryTabRail" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
     </section>
 
-    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
-         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
-         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
-         Sits after the store rails and before "Todas las otras tiendas".
-         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
-
-    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
-         mall directory between the six featured rails and Categorías. -->
-    <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
+<section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
           <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
@@ -2034,11 +2055,7 @@
       </div>
     </section>
 
-    <!-- CÓMO FUNCIONA TU ENVÍO (2026-09-26) — filled by renderShippingExplainers. -->
-    <div id="dShippingExplainer"></div>
-
-    <!-- CATEGORIAS -->
-    <section aria-label="Categorías" style="background:#fff">
+<section aria-label="Categorías" style="background:#fff">
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
           <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
@@ -2047,29 +2064,22 @@
         <div id="desktopCatsRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
+
   </div>
 
 <!-- ============================================================
-       ORDER ON THE HOME PAGE (2026-09-23)
+       ORDER ON THE HOME PAGE (2026-09-26, Danny)
 
-       The phone used to read: Ofertas -> Categorías (the compact
-       carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
-       (the long tiles). So the visitor met the categories, scrolled
-       past them to reach the brand and how any of this works, and then
-       met the categories AGAIN -- the same list twice, with the story
-       wedged between the two halves of it.
+       hero -> OFERTAS -> brand band (logo + search) -> Aria Auto ->
+       "Compra por categoría" (the chip carousel: Moda Niños,
+       Surf & Skate, Moda Mujer, Moda Hombre... tapping a chip swaps the
+       product rail) -> the store
+       rails -> Marcas / Costco / SSENSE -> Todas las otras tiendas ->
+       Categorías (tiles). Same run on desktop.
 
-       (2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo,
-       "Compra en Estados Unidos / Te lo llevamos a Perú", search --
-       moved directly under the Ofertas rail in both shopfronts, and the
-       photo hero moved below the rails. The run is now: what is on
-       sale -> who we are -> the six store rails -> departments.)
-
-       DESKTOP ORDER (2026-09-25, Danny): the laptop now opens on its
-       own shopfront -- #desktopShopfront, right after the hero --
-       reading Ofertas -> Tiendas -> Categorias, then the (slimmed)
-       search hero, then the explainer below. The phone's order is
-       unchanged.
+       The story links (Cómo funciona, Por qué Aria, Precio honesto)
+       live in the slim utility bar at the very top of the page --
+       subtle, always one tap away, never a hamburger hunt.
        ============================================================ -->
   <!-- WHY SHOP WITH US -->
   <!-- ============================================================
@@ -3348,7 +3358,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3361,7 +3372,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3377,7 +3389,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
       <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3393,7 +3406,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3406,7 +3420,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3417,7 +3432,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3433,7 +3449,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
       <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3449,7 +3466,8 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="tStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3462,7 +3480,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
         <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3478,7 +3497,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Nautilus Spearfishing" data-store-rail="nautilus" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Nautilus Spearfishing" data-store-rail="nautilus" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #213236 20%, #213236 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3494,7 +3514,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-nautilus" data-store-rail-row="nautilus" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Island Water Sports" data-store-rail="islandwatersports" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Island Water Sports" data-store-rail="islandwatersports" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #373435 20%, #373435 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3510,7 +3531,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-islandwatersports" data-store-rail-row="islandwatersports" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Quiet Storm Surf Shop" data-store-rail="quietstorm" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Quiet Storm Surf Shop" data-store-rail="quietstorm" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #141414 20%, #141414 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3526,7 +3548,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-quietstorm" data-store-rail-row="quietstorm" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Surf World" data-store-rail="surfworld" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Surf World" data-store-rail="surfworld" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #00A9DC 20%, #00A9DC 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3542,7 +3565,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-surfworld" data-store-rail-row="surfworld" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Surf Station" data-store-rail="surfstation" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Surf Station" data-store-rail="surfstation" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3558,7 +3582,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-surfstation" data-store-rail-row="surfstation" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Mainland Skate & Surf" data-store-rail="mainland" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Mainland Skate & Surf" data-store-rail="mainland" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0F6FEF 20%, #0F6FEF 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3574,7 +3599,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-mainland" data-store-rail-row="mainland" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Parrot Surf & Skate" data-store-rail="parrot" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Parrot Surf & Skate" data-store-rail="parrot" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3590,7 +3616,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-parrot" data-store-rail-row="parrot" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="CCS" data-store-rail="ccs" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="CCS" data-store-rail="ccs" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #2AADEB 20%, #2AADEB 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3606,7 +3633,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-ccs" data-store-rail-row="ccs" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Val Surf" data-store-rail="valsurf" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Val Surf" data-store-rail="valsurf" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0F506F 20%, #0F506F 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3658,7 +3686,7 @@
     </div>
   </section>
 
-  <section style="background:#fff">
+  <section id="preguntasHome" style="background:#fff">
     <div class="max-w-[860px] mx-auto px-5 py-16 sm:py-20">
       <div class="ariaKicker ariaKicker--onLight mb-3">Preguntas</div>
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-9" style="color:var(--navy)">
@@ -6369,6 +6397,29 @@ function isToyGradeSkate(item){
   return TOY_SKATE_TITLE.test(toySkateName(item));
 }
 /* ============================================================
+   IS THIS A GAME CONSOLE? (2026-09-26, Danny)
+   Mirror of the console detector in scripts/lib/toys.js — the page is
+   a plain <script> and cannot import. Change one, change the other; a
+   parity test compares them over the real catalogues.
+   A console-platform word (nintendo/playstation/xbox/ps5/ps4) PLUS a
+   hardware word (console/consola/switch/ps5/ps4/xbox series). A video
+   GAME ("LEGO Batman … PlayStation 5") has no hardware word, so it
+   stays a plain toy: not demoted, not electronics.
+   Danny's rules: consoles stay in Juguetes but sort AFTER real toys
+   (toyLeadRank: toys 0, consoles 1), and consoles are also claimed by
+   Electrónica — a PlayStation shopper checks electronics first.
+   ============================================================ */
+function consoleName(item){
+  return String((item && (item.title || item.name || item.productName)) || '');
+}
+function isConsole(item){
+  if (!item || typeof item !== 'object') return false;
+  var t = consoleName(item).toLowerCase();
+  if (!/\b(nintendo|playstation|xbox|ps5|ps4)\b/.test(t)) return false;
+  return /\b(consol[ae]|switch|ps5|ps4|xbox\s*series)\b/.test(t);
+}
+function toyLeadRank(item){ return isConsole(item) ? 1 : 0; }
+/* ============================================================
    IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)
    Mirror of scripts/lib/surfskate.js — the page is a plain <script>
    and cannot import. Change one, change the other; a parity test
@@ -6376,6 +6427,10 @@ function isToyGradeSkate(item){
    Signals, most trustworthy first:
    1. The normalizer's Spanish `type` vocabulary (SURFSKATE_TYPES).
    2. Title keywords as a last resort for generic-typed gear.
+   2b. A SKATE HELMET BY NAME: a helmet marketed for skate is skate
+       protection (Danny 2026-09-26) - pure bike helmets stay out.
+   2c. A SURF ROPE BY NAME: a rope with the surf word is wake-surf
+       gear (Danny 2026-09-26) - a plain tow rope never matches.
    Spearfishing gear is NOT surf/skate: it stays in Deportes.
    Toy-grade character boards are NOT surf/skate either: isToyGradeSkate
    answers first, so they land in Juguetes no matter what their type
@@ -6397,6 +6452,13 @@ const NOT_SURFSKATE =
    skate helmets live only in Surf & Skate). */
 const SURFSKATE_HELMET =
   /\bskate\b.{0,30}\bhelmets?\b|\bhelmets?\b.{0,30}\bskate\b|\bskate\b.{0,30}\bcascos?\b|\bcascos?\b.{0,30}\bskate\b/i;
+/* A surf rope is surf gear (Danny 2026-09-26: all genuine surf
+   merchandise belongs in Surf & Skate): "Liquid Force Surf 8in
+   Floating Rope" types as "Boyas y flotadores" (too generic to claim
+   by type), but a rope with the surf word is wake-surf gear. Requires
+   the surf word - a plain tow/mooring rope never matches. */
+const SURFSKATE_ROPE =
+  /\bsurf\b.{0,40}\bropes?\b|\bropes?\b.{0,40}\bsurf\b|\bsurf\b.{0,40}\bcuerdas?\b|\bcuerdas?\b.{0,40}\bsurf\b/i;
 function isSurfSkate(item, retailer){
   if (!item || typeof item !== 'object') return false;
   /* Toy-aisle character boards are never surf/skate gear — they belong
@@ -6406,7 +6468,7 @@ function isSurfSkate(item, retailer){
   if (item.type && SURFSKATE_TYPES.has(item.type)) return true;
   const title = (item.title || item.name || '') + ' ' + (item.type || '');
   if (NOT_SURFSKATE.test(title)) return false;
-  return SURFSKATE_TITLE.test(title) || SURFSKATE_HELMET.test(title);
+  return SURFSKATE_TITLE.test(title) || SURFSKATE_HELMET.test(title) || SURFSKATE_ROPE.test(title);
 }
 
 /* ============================================================
@@ -6642,6 +6704,10 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
   if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
+  /* ELECTRÓNICA CLAIMS CONSOLES (2026-09-26, Danny): a PlayStation
+     shopper checks electronics first. Dual presence with Juguetes is
+     intended — departments overlap here exactly as Ofertas does. */
+  if (deptKey === 'electronics' && isConsole(item)) return true;
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
@@ -8707,6 +8773,14 @@ const TOY_KEYWORD_RX = /\b(lego|juguete|mu[ñn]eca|peluche|plush|barbie|hot whee
    bucket-name path above is untouched: a real "juguetes" department
    stays a toy department. */
 const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|pillowcase|quilt|coverlet|mattress|towel|pants|pajama|pijama|robe|slipper|slippers|socks|tee|t-shirt|hoodie|sweatshirt|backpack|lunch|pencil|wedge|cable|hdmi|charger|perfume|parfum|cologne|fragrance)\b|\beau\s+de\s+parfum/i;
+/* Party supplies are not toys (2026-09-26, Danny): licensed balloons,
+   plates, napkins, table covers and favor bags match toy words like
+   "barbie"/"hot wheels" but are party merchandise — Aria Party's
+   shelf, never Juguetes. "cup" stays out of the list on purpose: a
+   toy tea set is still a toy. The bucket-name path above is untouched:
+   a real "juguetes" department stays a toy department, and toy-grade
+   skateboards are claimed before this check. */
+const PARTY_NOT_A_TOY_RX = /\b(balloons?|globos?|napkins?|servilletas?|plates?|platos?|table\s*covers?|manteles?|favors?|streamers?|serpentinas?|pi[nñ]atas?|cotill[oó]n|confetti)\b|\bparty\s*(supplies|supply|kits?|packs?|sets?|decor|decorations?)\b/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
@@ -8714,8 +8788,12 @@ function isToy(item, retailer, bucketName){
   /* Toy-aisle character skateboards live here too (2026-09-26, Danny):
      real surf/skate refuses them, so Juguetes claims them. */
   if (isToyGradeSkate(item)) return true;
+  /* Real surf/skate protection is never a toy (Danny 2026-09-26). */
+  if (typeof isSurfSkate === "function" && isSurfSkate(item, retailer)) return false;
   if (!TOY_KEYWORD_RX.test(hay)) return false;
   if (NOT_A_TOY_RX.test(hay)) return false;
+  /* Party supplies are party merchandise, not toys (Danny 2026-09-26). */
+  if (PARTY_NOT_A_TOY_RX.test(hay)) return false;
   return true;
 }
 /* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
@@ -8786,8 +8864,11 @@ const CATEGORY_RAILS = [
     test: (p) => isParty(p, p.retailer, p.departments),
     open: "openCatalog('department','party')" },
 ];
-/* Tab order on the pills: Danny's sequence, Surf & Skate first. */
-const CATEGORY_TAB_ORDER = ['surf_skate', 'women', 'men', 'kids', 'shoes', 'home_goods', 'home_decor', 'curvy', 'gym_rat', 'electronics', 'toys', 'party'];
+/* Tab order on the pills (2026-09-26, Danny's hook): Moda Niños,
+   Surf & Skate, Moda Mujer, Moda Hombre, then the rest. The general
+   "Moda" tab was pulled the same night -- the Mujer/Hombre tabs cover
+   general fashion, and a vague fourth fashion pill muddied the hook. */
+const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'shoes', 'home_goods', 'home_decor', 'curvy', 'gym_rat', 'electronics', 'toys', 'party'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -10424,6 +10505,14 @@ function renderCatalogFeed(){
   if (catalogState.kind === 'department' && catalogState.key === 'sporting_goods'){
     all.sort((a, b) => peruSportRank(a) - peruSportRank(b));
   }
+  /* JUGUETES LEADS WITH REAL TOYS (2026-09-26, Danny): consoles stay in
+     the department but rank below actual toys. The aisle landing's
+     Destacados rail is drawn from this array before any other sort
+     runs, so the rank has to be on it here -- a stable sort keeps each
+     band in catalogue order. */
+  if (catalogState.kind === 'department' && catalogState.key === 'toys'){
+    all.sort((a, b) => toyLeadRank(a) - toyLeadRank(b));
+  }
 
   /* CURVY'S MUJERES/HOMBRES TOGGLE (2026-09-25, Danny's iPhone QA).
      The section is a women's destination with men's as the secondary
@@ -10507,6 +10596,7 @@ function renderCatalogFeed(){
   const isCurvy = catalogState.kind === 'department' && catalogState.key === 'curvy';
   const isSports = catalogState.kind === 'department' && catalogState.key === 'sporting_goods';
   const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
+  const isToys = catalogState.kind === 'department' && catalogState.key === 'toys';
   /* GYM RAT LEAD (2026-09-26, Danny): hero gym apparel opens the section —
      accessories never lead. An explicit user sort bypasses the lead. */
   items.sort(isCurvy
@@ -10515,7 +10605,9 @@ function renderCatalogFeed(){
       ? (a, b) => (peruSportRank(a) - peruSportRank(b)) || priceSort(a, b)
       : (isGymRat && !catalogSortTouched)
         ? (a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || priceSort(a, b)
-        : priceSort);
+        : (isToys && !catalogSortTouched)
+          ? (a, b) => (toyLeadRank(a) - toyLeadRank(b)) || priceSort(a, b)
+          : priceSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
@@ -10887,16 +10979,6 @@ function renderOtherStoresStrip(){
   }
 }
 window.addEventListener('DOMContentLoaded', renderOtherStoresStrip);
-/* CÓMO FUNCIONA TU ENVÍO (2026-09-26): the two-leg explainer strip,
-   rendered into both home copies from one function. */
-function renderShippingExplainers(){
-  const html = shippingExplainerHTML();
-  for (const id of ['mShippingExplainer', 'dShippingExplainer']){
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = html;
-  }
-}
-window.addEventListener('DOMContentLoaded', renderShippingExplainers);
 
 
 /* ============================================================
@@ -14503,25 +14585,6 @@ function deliverySummaryHTML(cart){
     <div class="text-[12.5px] mt-1.5 pt-1.5 font-semibold" style="color:var(--navy); border-top:1px solid var(--line)">De Miami a tu puerta: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</div>
     ${keys.length > 1 ? `<div class="text-[12px] mt-1 leading-snug" style="color:#8A93A8">Tu pedido sale de Miami cuando llegue lo de ${slowLabel}.</div>` : ''}
   </div>`;
-}
-/* "Cómo funciona tu envío" — the two-leg explainer strip (homepage + checkout). */
-function shippingExplainerHTML(){
-  return `<section aria-label="Cómo funciona tu envío" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
-    <div class="ariaGoldHair"></div>
-    <div class="px-5 py-6 sm:px-8">
-      <h2 class="text-[18px] font-extrabold tracking-[-0.01em]" style="color:#fff">Cómo funciona tu envío</h2>
-      <div class="grid sm:grid-cols-2 gap-4 mt-4">
-        <div class="rounded-2xl p-4" style="background:rgba(255,255,255,.06); border:1px solid rgba(244,196,99,.35)">
-          <div class="text-[13.5px] font-extrabold" style="color:#F4C463">1 · Tienda en EE. UU. → Miami</div>
-          <p class="text-[13px] leading-relaxed mt-1.5" style="color:rgba(255,255,255,.85)">Compramos tu pedido en la tienda y lo llevamos a nuestro almacén en Miami. El tiempo varía por tienda y lo ves en cada producto antes de pagar.</p>
-        </div>
-        <div class="rounded-2xl p-4" style="background:rgba(255,255,255,.06); border:1px solid rgba(244,196,99,.35)">
-          <div class="text-[13.5px] font-extrabold" style="color:#F4C463">2 · Miami → tu puerta</div>
-          <p class="text-[13px] leading-relaxed mt-1.5" style="color:rgba(255,255,255,.85)">De Miami a tu puerta en Perú: ${MIAMI_TO_DOOR_MIN}–${MIAMI_TO_DOOR_MAX} días.</p>
-        </div>
-      </div>
-    </div>
-  </section>`;
 }
 function activeRetailers(){ return Object.values(RETAILERS).filter(r => !r.retired); }
 /* ============================================================
