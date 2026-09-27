@@ -17774,7 +17774,10 @@ function autoSourceBadgeHTML(key, heightPx = 22){
   if (s.logo){
     return `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle">`;
   }
-  return `<span class="inline-flex items-center h-[${heightPx}px] px-2.5 rounded-lg text-[12px] font-extrabold text-white align-middle" style="background:${s.color}">${escapeHtml(s.label)}</span>`;
+  /* Wordmark pill for sources with no logo file. nowrap + no-shrink:
+     inside tight flex rows (the compare strip) a long label like
+     "Advance Auto Parts" must never wrap and spill out of the pill. */
+  return `<span class="inline-flex items-center px-2.5 rounded-lg text-[12px] font-extrabold text-white align-middle" style="background:${s.color};height:${heightPx}px;white-space:nowrap;flex-shrink:0">${escapeHtml(s.label)}</span>`;
 }
 
 /* ONE SEARCH PATH FOR EVERY SOURCE. AutoZone's cached results and a

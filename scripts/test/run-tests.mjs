@@ -8536,8 +8536,26 @@ check("comparison strip counts an unconfirmed live source, not just confirmed fi
   }
 });
 
-check("cheapest store's carousel floats to the top", () => {
+/* 2026-09-27, Danny's iPhone QA: the compare strip's Advance badge
+   rendered as a broken pill — "Advance Auto Parts" wrapped into three
+   lines and spilled out of an 18px-high pill inside the strip's tight
+   flex row. The wordmark fallback must be nowrap, no-shrink, with its
+   height set inline (not a runtime-built Tailwind arbitrary class). */
+check("compare strip wordmark badge cannot wrap or spill", () => {
   const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("function autoSourceBadgeHTML(key, heightPx = 22){");
+  if (i < 0) throw new Error("autoSourceBadgeHTML moved");
+  const body = html.slice(i, html.indexOf("\n}\n", i));
+  if (!/white-space:nowrap/.test(body)) throw new Error("wordmark badge can wrap its label");
+  if (!/flex-shrink:0/.test(body)) throw new Error("wordmark badge can be squeezed by the strip's flex row");
+  if (!/height:\${heightPx}px/.test(body)) throw new Error("wordmark badge height is not set inline");
+  if (/h-\[\${heightPx}px\]/.test(body)) throw new Error("wordmark badge still uses a runtime-built Tailwind class for height");
+});
+
+check("cheapest store's carousel floats to the top", () => {
+  /* .gitattributes checks index.html out with CRLF; normalize so \n
+     regexes match the working file, not just a fresh LF blob. */
+  const html = readFileSync(root("index.html"), "utf8").replace(/\r\n?/g, "\n");
   if (html.indexOf("function sortAutoBlocksByPrice(){") < 0) throw new Error("sortAutoBlocksByPrice missing");
   if (html.indexOf("function setAutoBlockMedianDoor(blockEl, items, query){") < 0) throw new Error("setAutoBlockMedianDoor missing");
   const i = html.indexOf("async function searchAutoParts(){");
