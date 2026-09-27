@@ -9369,6 +9369,46 @@ function surfSkateDeptRailsHTML(byRetailer){
   return blocks.join('');
 }
 
+/* ARIA BEAUTY SUBCATEGORY CAROUSELS (2026-09-27, Danny): the beauty
+   department landing leads with one FULL carousel per subcategory --
+   Mascarillas first (the pink PDRN hero masks), then Maquillaje, Cuidado
+   de la piel, Hombre, and the rest in SUBCATEGORY_SPEC editorial order.
+   Each rail is sale-led by discount through the same picker the category
+   rails use; within the sales band, pink PDRN masks lead the Mascarillas
+   rail (Danny's hero product). Every rail head carries a "Ver pasillo"
+   door into its aisle listing. A subcategory with fewer than
+   BEAUTY_SUB_RAIL_MIN items contributes no rail -- the section hides
+   rather than standing empty. The aisle tiles and 'Ver todo' still render
+   below (see the department landing). */
+const BEAUTY_SUB_RAIL_MIN = 4;
+const BEAUTY_SUB_ROWS = ['face', 'masks', 'makeup', 'lips', 'eyes', 'skincare', 'mens', 'nails', 'fragrance'];
+const PDRN_LEAD_RX = /pdrn/i;
+function beautyDeptRailsHTML(items, noKeys){
+  const blocks = [];
+  for (const row of SUBCATEGORY_SPEC){
+    if (BEAUTY_SUB_ROWS.indexOf(row.key) === -1) continue;
+    const aisle = itemsInSubcategory(items, row.key);
+    if (aisle.length < BEAUTY_SUB_RAIL_MIN) continue;
+    const picks = categoryRailPicks(null, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
+    if (!picks.length) continue;
+    const isSale = (p) => p && p.image && Number.isFinite(Number(p.price)) && Number(p.price) > 0
+      && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price);
+    /* PDRN FIRST (Danny, 2026-09-27): within the sale-led order, the pink
+       PDRN salmon-DNA masks lead the Mascarillas rail. Stable: the
+       discount order inside each band is untouched. Products carry `name`
+       (not `title`) in this catalogue, so both are checked. */
+    const pdrnName = (p) => String(p.title || p.name || '');
+    const ordered = row.key === 'masks'
+      ? [...picks.filter(p => isSale(p) && PDRN_LEAD_RX.test(pdrnName(p))),
+         ...picks.filter(p => !(isSale(p) && PDRN_LEAD_RX.test(pdrnName(p))))]
+      : picks;
+    blocks.push(deptRailSectionHTML(`beauty-sub-${row.key}`, row.label,
+      deptMixedRailHeadHTML(row.label, `${aisle.length} productos`)
+      + `<button onclick="setCatalogSub('${jsAttr(row.key)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver pasillo &#8594;</button>`,
+      ordered));
+  }
+  return blocks.join('');
+}
 let storeRailsStarted = false;
 
 function initStoreRails(){
@@ -9915,9 +9955,21 @@ const SUBCATEGORY_SPEC = [
      them would be guessing; they stay in 'Ver todo', which holds the
      whole department, and the card says how many are there. */
   { key: 'face',        label: 'Rostro',              types: ['ROSTRO', 'FACE', 'FOUNDATION', 'CONCEALER', 'BLUSH', 'BRONZER', 'HIGHLIGHTER', 'PRIMER'] },
+  /* MASCARILLAS (2026-09-27, Danny): the hero aisle -- salmon PDRN / pink
+     collagen hydrogel masks, overnight/sleeping masks, sheet, clay/mud,
+     peel-off, wash-off, nose strips and eye patches live here. MASK moved
+     here out of skincare. Placed second so the mask carousel is the first
+     thing a shopper scrolls into. */
+  { key: 'masks',       label: 'Mascarillas',         types: ['MASK', 'MASCARILLA', 'MASKS', 'MASCARILLAS', 'FACIAL_MASK', 'SHEET_MASK', 'HYDROGEL_MASK', 'GEL_MASK', 'JELLY_MASK', 'OVERNIGHT_MASK', 'SLEEPING_MASK', 'WRAPPING_MASK', 'PEEL_OFF_MASK', 'CLAY_MASK', 'MUD_MASK', 'WASH_OFF_MASK', 'NOSE_STRIP', 'EYE_PATCH', 'EYE_MASKS'] },
+  /* MAQUILLAJE (2026-09-27, Danny): makeup + tooling. Morphe brush sets
+     and Townley Girl kids' washable play-makeup kits file here. */
+  { key: 'makeup',      label: 'Maquillaje',          types: ['MAQUILLAJE', 'MAKEUP', 'COSMETICS', 'BRUSH_SET'] },
   { key: 'lips',        label: 'Labios',              types: ['LABIOS', 'LIP', 'LIPSTICK', 'LIP_GLOSS', 'LIP_BALM'] },
   { key: 'eyes',        label: 'Ojos',                types: ['OJOS', 'EYE', 'MASCARA', 'EYELINER', 'EYESHADOW', 'BROW'] },
-  { key: 'skincare',    label: 'Cuidado de la piel',  types: ['CUIDADO_DE_LA_PIEL', 'SKINCARE', 'SKIN_CARE', 'MOISTURIZER', 'SERUM', 'CLEANSER', 'SUNSCREEN', 'MASK'] },
+  { key: 'skincare',    label: 'Cuidado de la piel',  types: ['CUIDADO_DE_LA_PIEL', 'SKINCARE', 'SKIN_CARE', 'MOISTURIZER', 'SERUM', 'CLEANSER', 'SUNSCREEN'] },
+  /* HOMBRE (2026-09-27, Danny): men's care is its OWN category inside
+     Aria Beauty -- shaving, skincare, hair, fragrance for men. */
+  { key: 'mens',        label: 'Hombre',              types: ['CUIDADO_PARA_HOMBRES', 'MENS_CARE', 'MENS_GROOMING', 'FOR_MEN'] },
   { key: 'nails',       label: 'U\u00f1as',              types: ['UNAS', 'NAIL', 'NAIL_POLISH', 'MANICURE'] },
   { key: 'fragrance',   label: 'Fragancia',           types: ['FRAGANCIA', 'FRAGRANCE', 'PERFUME', 'EAU_DE_PARFUM', 'COLOGNE', 'BODY_MIST'] },
 ];
@@ -10881,7 +10933,10 @@ function renderCatalogFeed(){
        follows. Only on the unfiltered landing -- a store filter already
        narrows the feed to that store, so rails would be redundant. */
     const deptRails = (catalogState.kind === 'department' && catalogState.key === 'surf_skate' && !retailerFilter)
-      ? surfSkateDeptRailsHTML(byRetailer) : '';
+      ? surfSkateDeptRailsHTML(byRetailer)
+      : (catalogState.kind === 'department' && catalogState.key === 'beauty' && !retailerFilter)
+        ? beautyDeptRailsHTML(gendered, new Set())
+        : '';
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, gendered);
     revealActiveChips(sections);
     return;
@@ -14807,6 +14862,19 @@ const RETAILERS = {
   mushie:         { key: 'mushie',         label: 'Mushie',          color: '#000000', tagline: 'Vasos y vajilla para niños',                       kind: 'general', search: false, browse: true },
   ezpz:           { key: 'ezpz',           label: 'ezpz',            color: '#000000', tagline: 'Platos y vasos para niños',                        kind: 'general', search: false, browse: true },
   statebags:      { key: 'statebags',      label: 'State Bags',      color: '#000000', tagline: 'Mochilas y loncheras para niños',                  kind: 'general', search: false, browse: true },
+  /* ARIA BEAUTY BRAND AISLES (2026-09-27, Danny): browsable brand keys inside beauty-catalog.json. Wordmark pills until logos land. */
+  townley:         { key: 'townley',         label: 'Townley Girl',        color: '#EC008C', tagline: 'Maquillaje lavable para niñas',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  morphe:          { key: 'morphe',          label: 'Morphe',              color: '#000000', tagline: 'Sets de brochas y maquillaje',               kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  skin1004:        { key: 'skin1004',        label: 'SKIN1004',            color: '#7A8B5C', tagline: 'Centella asiática coreana',                  kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  everymanjack:    { key: 'everymanjack',    label: 'Every Man Jack',      color: '#14342B', tagline: 'Cuidado masculino',                        kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  brickell:        { key: 'brickell',        label: 'Brickell',            color: '#0A1F44', tagline: 'Skincare premium para hombres',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  medicube:        { key: 'medicube',        label: 'Medicube',            color: '#C0272D', tagline: 'Mascarillas coreanas PDRN',                  kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  /* K-BEAUTY HERO BRANDS (2026-09-27, Danny): "brands like Laneige". */
+  laneige:         { key: 'laneige',         label: 'Laneige',             color: '#4AA8DE', tagline: 'Sleeping masks y skincare coreano',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  cosrx:           { key: 'cosrx',           label: 'COSRX',               color: '#000000', tagline: 'Skincare coreano — acné y textura',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  beautyofjoseon:  { key: 'beautyofjoseon',  label: 'Beauty of Joseon',    color: '#2B2B2B', tagline: 'Belleza tradicional coreana',                kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  anua:            { key: 'anua',            label: 'Anua',                color: '#6A9A5B', tagline: 'Skincare coreano minimalista',               kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  mediheal:        { key: 'mediheal',        label: 'Mediheal',            color: '#0066B3', tagline: 'Mascarillas coreanas',                       kind: 'general', search: false, browse: true, catalog: 'beauty' },
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
 /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
    Delivery transparency is the merchandising strategy now — the stores
