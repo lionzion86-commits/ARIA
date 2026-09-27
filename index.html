@@ -23120,6 +23120,7 @@ function speakAssistantReply(text, audioBase64){
      shopper's reaction while she is talking. Each speak path reopens it
      when the audio actually ends. */
   intentionalStop = true;
+  intentionalStopAt = Date.now();
   clearSpeechCapTimer();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   setAssistantMicState(false);
@@ -23761,6 +23762,7 @@ async function runAssistantBrain(text){
      intentionalStop keeps onend from treating this as an accidental drop
      and reopening the mic behind our back. */
   intentionalStop = true;
+  intentionalStopAt = Date.now();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   setAssistantMicState(false);
   loadFxRate(); // kick off/reuse the memoized fetch; addAssistantProductCard awaits it below before rendering a price
@@ -24035,6 +24037,8 @@ function clearSilenceTimer(){
    ================================================================== */
 let speechBuffer = '';   // final segments accumulated for the current turn
 let echoGuardUntil = 0;  // ECHO GUARD (2026-09-27): results before this timestamp are her own speaker tail, not the shopper
+let intentionalStopAt = 0; // STALE-SESSION GUARD (2026-09-27): last deliberate stop() time
+let lastStartAt = 0;       // last time start() actually began a session
 let lastSpeechAt = 0;    // timestamp of the last speech activity
 
 /* "Aria" is routinely transcribed as "area" (2026-09-27: Danny said
@@ -24068,6 +24072,7 @@ function endTurnAndSend(){
   clearSilenceTimer();
   clearSpeechCapTimer();
   intentionalStop = true;
+  intentionalStopAt = Date.now();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
@@ -24217,11 +24222,19 @@ recognition.onresult = (e) => {
      instants after her voice stops can still carry the speaker's tail
      through the mic — results inside the guard window are her echo, not
      the shopper, and are dropped before they can touch the silence timer
-     or the speech buffer. Stragglers arriving after a deliberate stop
-     (intentionalStop) are equally stale: the turn they belonged to
-     already shipped, and keeping them would re-send it as a phantom turn. */
+     or the speech buffer. Stragglers arriving after a deliberate stop are
+     equally stale (see STALE-SESSION GUARD below): the turn they belonged
+     to already shipped, and keeping them would re-send it as a phantom turn. */
   if (Date.now() < echoGuardUntil) return;
-  if (intentionalStop) return;
+  /* STALE-SESSION GUARD (2026-09-27). A stop() issued after the latest
+     start() means this result is a straggler from the deliberately
+     closed session — the turn it belonged to already shipped, so it is
+     dropped instead of re-shipping as a phantom turn. This used to be a
+     plain boolean, which stuck: the stop() inside speakAssistantReply is
+     usually a no-op that never produces onend, so the flag was never
+     cleared for the next session and the mic sat "on" transcribing
+     nothing. Timestamps cannot stick — a fresh start() always wins. */
+  if (intentionalStopAt > lastStartAt) return;
   const result = e.results[e.results.length - 1];
   const transcript = normalizeAriaName(result[0].transcript);
 
@@ -24302,7 +24315,7 @@ recognition.onend = () => {
 
 function startListening(){
   if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
-  try { recognition.start(); } catch(e) { /* already listening */ }
+  try { recognition.start(); lastStartAt = Date.now(); } catch(e) { /* already listening */ }
 }
 
 function toggleContinuousMode(){
