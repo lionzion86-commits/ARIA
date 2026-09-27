@@ -22408,7 +22408,8 @@ function setOrbState(state){
       doBlink();
       if (Math.random() < 0.25) setTimeout(doBlink, 380); /* natural double-blink */
       schedule();
-    }, 2600 + Math.random() * 4200);
+    }, 2000 + Math.random() * 2600);
+  /* 2026-09-27, Danny: ~2-4.6s between blinks reads more alive than ~6s */
   }
   function start(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); }
   if (document.readyState === 'complete') start();
