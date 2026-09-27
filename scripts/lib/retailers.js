@@ -495,6 +495,17 @@ export const RETAILERS = {
   combatcorner: { key: "combatcorner", label: "Combat Corner", color: "#000000", tagline: "Boxeo y MMA — equipo de pelea", kind: "general", search: false, browse: true },
   fuji: { key: "fuji", label: "FUJI Sports", color: "#1A1A1A", tagline: "Jiu-jitsu y judo — gis y equipo", kind: "general", search: false, browse: true },
 
+  /* CROCS (2026-09-27, Danny) — 564 products via crocs.com Algolia
+     index. Wordmark pill fallback (no logo file). Mirrors index.html. */
+  crocs: {
+    key: "crocs",
+    label: "Crocs",
+    color: "#000000",
+    tagline: "Clogs, sandalias y calzado cómodo",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   skims: {
     key: "skims",
     label: "Skims",
