@@ -6647,6 +6647,38 @@ function isSurfSkate(item, retailer){
 }
 
 /* ============================================================
+   IS THIS GYM APPAREL? (2026-09-27, Danny's PC QA)
+   "Everlast is gym also. It's not just fighting."
+   The combat retailers file gym clothing -- leggings, sports bras,
+   tanks, tees, shorts, sweats, hoodies -- in the combat bucket, and
+   it belongs in Gym Rat too. Fight gear (gloves, bags, wraps, gis,
+   pads, grappling shorts) stays only in Fight Club. Answered per
+   item from the scraper's own type facet; the fight-word veto runs
+   first so MUAY_THAI_SHORTS, BOXING_TRAINING and MMA gear never
+   cross over. Footwear never matches -- Gym Rat is zero-shoes by
+   Danny's rule. Dual presence, the Ofertas way.
+   ============================================================ */
+function _gymWords(s){
+  return ' ' + String(s ?? '').toUpperCase().replace(/[^A-Z]+/g, ' ').trim().replace(/\s+/g, ' ') + ' ';
+}
+const GYM_APPAREL_TYPE_VETO =
+  / (MUAY THAI|MMA|BJJ|BOXING|BOXEO|FIGHT|COMBAT|COMBATE|WRAPS?|GLOVES?|GUANTES?|PADS?|BAGS?|KITS?|PROTECTIVE|GEAR|GIS?) /;
+const GYM_APPAREL_SHORTS_NAME_VETO =
+  / (GRAPPLING|VALE TUDO|VT|MUAY|MMA|COMBAT|FIGHT) /;
+const GYM_APPAREL_TYPE_WORDS =
+  / (LEGGINGS?|SPORTS BRAS?|TANK TOPS?|CROP TOPS?|T SHIRTS?|SHORTS?|SWEAT ?SHIRTS?|SWEAT ?PANTS?|JOGGERS?|JOGGING|PANTS|HOODIES?|JACKETS?|COATS?|VESTS?|COMPRESSION|PERFORMANCE TOPS?|ATHLETIC) /;
+function isGymApparel(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  if (isFootwear(item, retailer)) return false;
+  const type = _gymWords(item.type);
+  if (type.length < 3 || GYM_APPAREL_TYPE_VETO.test(type)) return false;
+  /* Grappling / vale-tudo shorts are fight gear even though the type
+     facet just says SHORTS. */
+  if (type.indexOf(' SHORT') !== -1 && GYM_APPAREL_SHORTS_NAME_VETO.test(_gymWords(item.name))) return false;
+  return GYM_APPAREL_TYPE_WORDS.test(type);
+}
+
+/* ============================================================
    IS THIS AN AUTO PART? — MIRROR of scripts/lib/autoparts.js.
    Change one, change the other; a parity test compares them over the
    real catalogues. The module carries the full note; the short version:
@@ -6879,6 +6911,12 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
   if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
+  /* GYM RAT CLAIMS GYM APPAREL FROM FIGHT CLUB (2026-09-27, Danny):
+     "Everlast is gym also. It's not just fighting." The leggings,
+     sports bras, tanks, tees, shorts and sweats the combat retailers
+     file in the combat bucket belong in Gym Rat too; fight gear stays
+     only in Fight Club. Dual presence, the Ofertas way. */
+  if (deptKey === 'gym_rat' && BUCKET_SPEC[bucketName]?.category === 'combat' && isGymApparel(item, retailer)) return true;
   /* ELECTRÓNICA CLAIMS CONSOLES (2026-09-26, Danny): a PlayStation
      shopper checks electronics first. Dual presence with Juguetes is
      intended — departments overlap here exactly as Ofertas does. */
@@ -11883,11 +11921,18 @@ function catalogLoadMoreHTML(total, shownCount){
 }
 
 function catalogShowMore(){
-  catalogState.pageSize = (catalogState.pageSize || LISTING_PAGE_SIZE) + LISTING_PAGE_SIZE;
+  const prevCount = catalogState.pageSize || LISTING_PAGE_SIZE;
+  catalogState.pageSize = prevCount + LISTING_PAGE_SIZE;
   renderCatalogFeed();
-  // Keep the shopper where they were rather than jumping to the top.
+  /* STAY WITH THE NEW ROWS (2026-09-27, Danny's PC QA): the old code
+     scrolled to the grid's LAST child -- the new bottom -- teleporting
+     the shopper ~5 pages past the rows that just loaded, so the new
+     items were missed entirely. Now we land on the first newly-loaded
+     row, one page down: "load more" keeps you with the new items,
+     never throws you to the bottom. */
   const grid = document.getElementById('catalogGrid');
-  if (grid) grid.lastElementChild?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const firstNew = grid && grid.children[prevCount];
+  if (firstNew) firstNew.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 
