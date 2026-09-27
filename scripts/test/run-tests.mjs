@@ -11722,8 +11722,11 @@ check("a real protective Barbie-signature helmet is Surf & Skate, never Juguetes
     "toy-grade Barbie skateboard stays a toy");
 });
 
-/* CONSOLES (2026-09-26, Danny): two rules. (1) In Juguetes, real
-   toys lead and consoles follow — toyLeadRank: toys 0, consoles 1.
+/* CONSOLES + TOY BOARDS (2026-09-26, Danny; boards demoted 2026-09-27,
+   Danny): two rules. (1) In Juguetes, real toys lead and consoles +
+   toy-grade skateboards follow — toyLeadRank: real toys 0, consoles and
+   toy-grade boards 1. The section promotes real toys for kids, not
+   boards and consoles.
    (2) Consoles are also electronics: Electrónica claims them too, so a
    PlayStation shopper finds them there. Dual presence is intended. A
    video GAME is not a console: it stays a plain toy. */
@@ -11776,9 +11779,9 @@ checkAsync("consoles sort after real toys in Juguetes and are claimed by Electr�
   const board = { title: "Barbie 31in Skateboard", type: "Tablas de skate" };
   const ps5 = { title: "PlayStation 5 Slim Console" };
   const game = { title: "LEGO Batman: Legacy of the Dark Knight - PlayStation 5" };
-  /* Lead rank: real toys 0, consoles 1. */
+  /* Lead rank: real toys 0; consoles and toy-grade boards 1. */
   eq(toyLeadRank(plush), 0, "plush rank");
-  eq(toyLeadRank(board), 0, "toy board rank");
+  eq(toyLeadRank(board), 1, "toy board rank");
   eq(toyLeadRank(ps5), 1, "console rank");
   eq(toyLeadRank(game), 0, "video game rank");
   /* Routing: consoles ride in both departments. The "juguetes" bucket
@@ -11790,6 +11793,40 @@ checkAsync("consoles sort after real toys in Juguetes and are claimed by Electr�
   ok(itemBelongsToDepartment(game, "juguetes", "toys", "costco"), "video game left Juguetes");
   ok(!itemBelongsToDepartment(game, "juguetes", "electronics", "costco"), "video game claimed by Electrónica");
   ok(!itemBelongsToDepartment(plush, "juguetes", "electronics", "costco"), "plush claimed by Electrónica");
+});
+
+checkAsync("the Juguetes tab rail leads with real toys, not consoles or toy boards (2026-09-27, Danny)", async () => {
+  /* The homepage category tab was sale-led with no lead rank, so a
+     discounted console could headline Juguetes. With the rank injected,
+     real toys lead the sale run AND the featured fill. */
+  const { CATEGORY_RAIL_TOTAL, categoryRailPicks } = loadPageCategoryRailSlice();
+  const { toyLeadRank } = await import(root("scripts/lib/toys.js"));
+  const stores = ["walmart", "target", "costco"];
+  const sale = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice, image: "img" });
+  const plain = (retailer, title, price, extra) => ({ retailer, title, price, image: "img", ...(extra || {}) });
+  const opts = { toyRankFn: toyLeadRank };
+  /* Sale run: the console's 20% markdown is deeper than the plush's 10%,
+     but the real toy still leads. */
+  const salePicks = categoryRailPicks(stores,
+    [sale("target", "PlayStation 5 Slim Console", 400, 500),
+     sale("costco", "Jumbo Baby Animal Plush", 90, 100)],
+    [], new Set(), CATEGORY_RAIL_TOTAL, opts);
+  eq(salePicks[0].title, "Jumbo Baby Animal Plush", "a discounted console led the Juguetes sale run");
+  /* Featured fill: real toy before console before toy-grade board. */
+  const fillPicks = categoryRailPicks(stores, [],
+    [plain("target", "PlayStation 5 Slim Console", 450),
+     plain("walmart", "Barbie 31in Skateboard", 30, { type: "Tablas de skate" }),
+     plain("costco", "Jumbo Baby Animal Plush", 25)],
+    new Set(), CATEGORY_RAIL_TOTAL, opts);
+  eq(fillPicks.map(p => p.title).join("|"),
+    "Jumbo Baby Animal Plush|PlayStation 5 Slim Console|Barbie 31in Skateboard",
+    "the Juguetes fill did not order real toy, console, toy board");
+  /* Opt-out: without the rank the slice behaves exactly as before. */
+  const plainPicks = categoryRailPicks(stores, [],
+    [plain("target", "PlayStation 5 Slim Console", 450),
+     plain("costco", "Jumbo Baby Animal Plush", 25)],
+    new Set(), CATEGORY_RAIL_TOTAL);
+  eq(plainPicks[0].title, "PlayStation 5 Slim Console", "the rank leaked into an opted-out rail");
 });
 
 check("the section nav strip is gone; the story links live in the top utility bar (2026-09-26, Danny)", () => {

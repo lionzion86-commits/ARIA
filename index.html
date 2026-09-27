@@ -6436,7 +6436,7 @@ function isToyGradeSkate(item){
    GAME ("LEGO Batman … PlayStation 5") has no hardware word, so it
    stays a plain toy: not demoted, not electronics.
    Danny's rules: consoles stay in Juguetes but sort AFTER real toys
-   (toyLeadRank: toys 0, consoles 1), and consoles are also claimed by
+   (toyLeadRank: real toys 0, consoles and toy-grade skateboards 1 — 2026-09-27, Danny: the section promotes real toys), and consoles are also claimed by
    Electrónica — a PlayStation shopper checks electronics first.
    ============================================================ */
 function consoleName(item){
@@ -6448,7 +6448,7 @@ function isConsole(item){
   if (!/\b(nintendo|playstation|xbox|ps5|ps4)\b/.test(t)) return false;
   return /\b(consol[ae]|switch|ps5|ps4|xbox\s*series)\b/.test(t);
 }
-function toyLeadRank(item){ return isConsole(item) ? 1 : 0; }
+function toyLeadRank(item){ return (isConsole(item) || isToyGradeSkate(item)) ? 1 : 0; }
 /* ============================================================
    IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)
    Mirror of scripts/lib/surfskate.js — the page is a plain <script>
@@ -8687,6 +8687,14 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      order still decides within each gender. */
   const womenFirst = Boolean(opts && opts.womenFirst);
   const womanRank = (p) => (womenFirst && !railBucketGenderIs(p, 'women')) ? 1 : 0;
+  /* JUGUETES REAL-TOYS-FIRST (2026-09-27, Danny): the tab rail promotes
+     real toys for kids -- consoles and toy-grade skateboards stay on the
+     shelf but sort after every real toy, the same rule the department
+     page uses. The rank function arrives via opts so this slice stays
+     self-contained (no page globals) for the vm tests; the Juguetes rail
+     entry opts in with toysFirst: true. */
+  const toyRankFn = (opts && typeof opts.toyRankFn === 'function') ? opts.toyRankFn : null;
+  const toyRank = (p) => toyRankFn ? toyRankFn(p) : 0;
   /* SURF & SKATE (2026-09-26, Danny): sales lead -- unless the sale is
      socks. Foot socks and fin socks are minor accessories; a markdown on
      them must not lead the tab ahead of boards, wetsuits and helmets, so
@@ -8707,16 +8715,21 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
-      return (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
+      return (toyRank(a) - toyRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
   const picks = sale.slice(0, CATEGORY_RAIL_SALE);
   const picked = new Set(picks.map(itemKey));
   /* Featured fill: real products with a price and a photo, mixed across
      the category's stores. Never priceless, never imageless, never a
      sale item twice. */
-  const fillPool = womenFirst && Array.isArray(pool)
+  const fillPoolBase = womenFirst && Array.isArray(pool)
     ? [...pool.filter(p => railBucketGenderIs(p, 'women')), ...pool.filter(p => !railBucketGenderIs(p, 'women'))]
     : pool;
+  /* Toys-first fill: a stable sort by lead rank, so real toys fill the
+     rail before consoles and toy-grade boards do. */
+  const fillPool = (toyRankFn && Array.isArray(fillPoolBase))
+    ? [...fillPoolBase].sort((a, b) => toyRank(a) - toyRank(b))
+    : fillPoolBase;
   if (picks.length < max && Array.isArray(fillPool)){
     for (const it of fillPool){
       if (picks.length >= max) break;
@@ -8886,7 +8899,7 @@ const CATEGORY_RAILS = [
     test: (p) => railBucketCategoryIs(p, 'electronics'),
     open: "openCatalog('department','electronics')" },
   { key: 'toys', label: 'Juguetes', icon: '🧸', stores: null, poolOnly: true,
-    blurb: 'Juguetes para todas las edades.',
+    blurb: 'Juguetes para todas las edades.', toysFirst: true,
     test: (p) => isToyGradeSkate(p) || isToy(p, p.retailer, p.departments),
     open: "openCatalog('department','toys')" },
   { key: 'party', label: 'Aria Party', icon: '🎉', stores: ['partycity', 'costco', 'samsclub'], poolOnly: true,
@@ -9102,7 +9115,7 @@ function initStoreRails(){
       categoryRailsRendered[cat.key] = categoryRailPicks(stores,
         saleSrc.filter(test),
         (Array.isArray(pool) ? pool : []).filter(test),
-        ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales });
+        ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null });
     }
     /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
        The pills and the single rail render once the pool lands; an empty
