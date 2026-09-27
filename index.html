@@ -5887,7 +5887,7 @@ const DEPARTMENT_META = {
   books: { label: 'Libros', icon: '📚' },
   /* ARIA MOMS (2026-09-27, Danny): Danny's name, verbatim. The
      premium moms destination — everything mom and baby. */
-  moms: { label: 'Aria Moms', icon: '🤱' },
+  moms: { label: "Mama's Fashion", icon: '🤱' },
   shoes: { label: 'Zapatos', icon: '👟' },
   /* REPUESTOS (2026-09-26). Advance Auto Parts' brake-parts catalogue.
      Answered per item (isAutoPart), the Zapatos way — no retailer
@@ -9296,12 +9296,12 @@ const CATEGORY_RAILS = [
   /* ARIA MOMS (2026-09-27, Danny): the premium moms pill. Danny's name,
      verbatim. Sales lead from the pool -- strollers, pumps, feeding and
      the rest -- so the shelf matches the department page exactly. */
-  { key: 'moms', label: 'Aria Moms', icon: '🤱', stores: null, poolOnly: true,
+  { key: 'moms', label: "Mama's Fashion", icon: '🤱', stores: null, poolOnly: true,
     blurb: 'Selección premium para mamá y bebé.',
     test: (p) => railBucketCategoryIs(p, 'moms'),
     open: "openCatalog('department','moms')" },
 ];
-/* Tab order on the pills (2026-09-27, Danny): Aria Moms is second-in-command
+/* Tab order on the pills (2026-09-27, Danny): Mama's Fashion is second-in-command
    (right after the Ofertas section), then Aria Fight Club, then Surf &
    Skate, then the rest. Gym Rat and Aria Beauty stay last -- both own
    permanent rails right under the pills, so their pills sit down the road.
