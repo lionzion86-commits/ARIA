@@ -5219,13 +5219,17 @@ check("no grid anywhere can build a wall of brands", () => {
   if (!/collectTiles\(\)/.test(homeRow)) throw new Error("homeRowTiles no longer builds from collectTiles");
   if (/brand/i.test(homeRow)) throw new Error("the home row's shortlist can name a brand");
 
-  for (const [label, from, to, builder] of [
-    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/],
-    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan(", /collectTiles\(\)/],
+  /* Categorías stopped tiling departments (2026-09-27, Danny): it is
+     stacked carousels now, one per category, so there is no tile builder
+     left to guard there -- but the page must still walk the full category
+     set, never the home row's shortlist. */
+  for (const [label, from, to, builder, missing] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/, "lost its department tiles"],
+    ["Categorías", "async function renderCategoriesGrid(", "async function liveSalesScan(", /for \(const cat of CATEGORY_RAILS\)/, "no longer walks the full category set"],
   ]) {
     const grid = src.slice(src.indexOf(from), src.indexOf(to));
     if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
-    if (!builder.test(grid)) throw new Error(`${label} lost its department tiles`);
+    if (!builder.test(grid)) throw new Error(`${label} ${missing}`);
   }
 
   // And the route a brand still travels is untouched.
@@ -5382,7 +5386,7 @@ check("Hero, Ofertas, brand band, Aria Auto, category carousel, rails, rest (202
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5416,7 +5420,7 @@ check("the desktop shopfront reads Ofertas, brand band, Aria Auto, carousel, rai
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -9261,26 +9265,44 @@ check("the category pills open on Danny's order: Moda Niños, Surf & Skate, Moda
     throw new Error("the carousel no longer opens on the first pill");
 });
 
-check("Gym Rat keeps a permanent homepage rail (2026-09-27, Danny)", () => {
-  /* Danny: the category is that good -- it gets an always-visible rail
+check("Gym Rat and Hogar keep permanent homepage rails (2026-09-27, Danny)", () => {
+  /* Danny: the two most marketable categories get always-visible rails
      under the tab browser on both layouts, painted from the same shelf
-     as the pill. It must stand down while the Gym Rat pill is active
-     (no double rail) and while the shelf is empty. */
+     as their pills. Each must stand down while its pill is the active
+     tab (no double rail) and while its shelf is empty. */
   const src = HOME_SRC();
-  const sections = [...src.matchAll(/<section[^>]*data-gym-rat-rail[^>]*>([\s\S]*?)<\/section>/g)];
-  if (sections.length !== 2)
-    throw new Error(`expected a mobile and a desktop Gym Rat rail, found ${sections.length}`);
+  const sections = [...src.matchAll(/<section[^>]*data-featured-rail[^>]*>([\s\S]*?)<\/section>/g)];
+  if (sections.length !== 4)
+    throw new Error(`expected mobile+desktop Gym Rat and Hogar rails, found ${sections.length}`);
+  const keys = sections.map(([, body]) => {
+    const m = body.match(/data-category-rail-row="([a-z_]+)"/);
+    return m && m[1];
+  }).sort().join(",");
+  eq(keys, "gym_rat,gym_rat,home_goods,home_goods",
+    "the featured rails are not Gym Rat + Hogar on both layouts");
   for (const [, body] of sections){
-    if (!/data-category-rail-row="gym_rat"/.test(body))
-      throw new Error("a Gym Rat rail is not wired to the shared category-rail painter");
-    if (!/openCatalog\('department','gym_rat'\)/.test(body))
-      throw new Error("a Gym Rat rail lost its Ver categoria door");
+    const key = body.match(/data-category-rail-row="([a-z_]+)"/)[1];
+    if (!new RegExp("openCatalog\\('department','" + key + "'\\)").test(body))
+      throw new Error(`the ${key} rail lost its Ver categoria door`);
   }
   /* The toggle lives in renderCategoryTabs so it runs on every tab
      switch, not just the first paint. */
   const fn = forwardSlice(src, "function renderCategoryTabs(){", "\n}\n", "renderCategoryTabs");
-  if (!/activeCategoryTab === 'gym_rat'/.test(fn))
-    throw new Error("the permanent rail no longer stands down when the Gym Rat pill is active");
+  if (!/data-featured-rail/.test(fn) || !/activeCategoryTab === key/.test(fn))
+    throw new Error("a featured rail no longer stands down when its pill is the active tab");
+});
+
+check("the categories view is stacked carousels, one per category (2026-09-27, Danny)", () => {
+  /* Danny: the category page is not a tile grid any more -- every
+     category gets its own browsable rail, one under the other. A card
+     opens the product; the header's Ver todo opens the department. */
+  const src = HOME_SRC();
+  if (!/async function renderCategoriesGrid\(\)/.test(src))
+    throw new Error("renderCategoriesGrid is not the async carousel builder");
+  if (!/for \(const cat of CATEGORY_RAILS\)/.test(src))
+    throw new Error("the categories view no longer walks every category rail");
+  if (!/function openCategoriesViewProduct/.test(src))
+    throw new Error("the stacked carousels lost their product opener");
 });
 
 check("store rail names truncate instead of overlapping Ver tienda", () => {
@@ -9559,8 +9581,8 @@ check("Categorías still shows every department, whatever the home row drops", (
      shortlist instead, cutting a card from the home row quietly deletes
      a section of the shop. */
   const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
-  const cats = forwardSlice(src, "function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
-  if (!/collectTiles\(\)/.test(cats)) {
+  const cats = forwardSlice(src, "async function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
+  if (!/for \(const cat of CATEGORY_RAILS\)/.test(cats)) {
     throw new Error("Categorías no longer builds from collectTiles() — it can no longer be the page that shows everything");
   }
   if (/HOME_ROW_DEPARTMENTS|homeRowTiles/.test(cats)) {

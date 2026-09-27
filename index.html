@@ -1575,7 +1575,7 @@
          shared data-category-rail-row painter; renderCategoryTabs() stands
          it down while the Gym Rat pill is the active tab (no double rail)
          and while the shelf is empty. Starts hidden; JS reveals it. -->
-    <section aria-label="Gym Rat" data-gym-rat-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+    <section aria-label="Gym Rat" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F4AA; Gym Rat</span>
@@ -1583,6 +1583,19 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
       <div data-category-rail-row="gym_rat" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+    <!-- PERMANENT HOGAR RAIL (2026-09-27, Danny): the second marketable
+         category keeps an always-visible rail under the Gym Rat rail.
+         Same shared painter, same stand-down rule in renderCategoryTabs. -->
+    <section aria-label="Hogar" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F6CB;&#xFE0F; Hogar</span>
+        <button onclick="openCatalog('department','home_goods')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Todo para tu casa.</span></div>
+      <div data-category-rail-row="home_goods" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
@@ -1887,7 +1900,7 @@
     <!-- PERMANENT GYM RAT RAIL (desktop, 2026-09-27, Danny). Same shelf as
          the phone's: always visible under the tab browser, stands down
          while the Gym Rat pill is active. -->
-    <section aria-label="Gym Rat" data-gym-rat-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+    <section aria-label="Gym Rat" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -1896,6 +1909,20 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
         <div data-category-rail-row="gym_rat" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- PERMANENT HOGAR RAIL (desktop, 2026-09-27, Danny). Same shelf as
+         the phone's: always visible under the Gym Rat rail. -->
+    <section aria-label="Hogar" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F6CB;&#xFE0F; Hogar</span>
+          <button onclick="openCatalog('department','home_goods')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Todo para tu casa.</span></div>
+        <div data-category-rail-row="home_goods" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -8988,13 +9015,15 @@ function renderCategoryTabs(){
         `data-category-rail-card="${escapeHtml(activeCategoryTab)}" data-idx="${i}"`)).join('')
       + categoryRailMoreHTML(activeCategoryTab);
   }
-  /* PERMANENT GYM RAT RAIL (2026-09-27, Danny): the always-visible rail
-     stands down while the Gym Rat pill is the active tab -- the tab rail
-     already shows that shelf -- and while the shelf is empty. Runs on
-     every tab switch, so the two can never double up. */
-  const gymRatPicks = categoryRailsRendered['gym_rat'] || [];
-  for (const s of document.querySelectorAll('[data-gym-rat-rail]')){
-    s.hidden = activeCategoryTab === 'gym_rat' || !gymRatPicks.length;
+  /* PERMANENT FEATURED RAILS (2026-09-27, Danny): Gym Rat and Hogar
+     keep always-visible rails under the tab browser. Each stands down
+     while its pill is the active tab -- the tab rail already shows that
+     shelf -- and while its shelf is empty. Runs on every tab switch, so
+     a featured rail and the tab rail can never double up. */
+  for (const s of document.querySelectorAll('[data-featured-rail]')){
+    const row = s.querySelector('[data-category-rail-row]');
+    const key = row ? row.getAttribute('data-category-rail-row') : '';
+    s.hidden = !key || activeCategoryTab === key || !(categoryRailsRendered[key] || []).length;
   }
 }
 function setCategoryTab(key){
@@ -20810,21 +20839,74 @@ async function openCategories(){
   renderCategoriesGrid();
 }
 
-function renderCategoriesGrid(){
+/* CATEGORIES VIEW AS STACKED CAROUSELS (2026-09-27, Danny): no more
+   tile grid -- every category gets its own browsable rail, one under the
+   other. A card opens the product (which carries its store); the
+   header's "Ver todo" opens the department page. The store filter
+   recomputes each shelf; an empty shelf earns no section. */
+let categoriesViewRendered = {}; // category key -> picks for the stacked carousels
+
+function openCategoriesViewProduct(key, idx){
+  const p = (categoriesViewRendered[key] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
+}
+
+async function renderCategoriesGrid(){
+  const grid = document.getElementById('categoriesGrid');
   const activeStores = Array.from(document.querySelectorAll('.categoriesStoreFilter:checked')).map(cb => cb.value);
   const sortBy = document.getElementById('categoriesSort').value;
+  grid.innerHTML = '<div class="text-center text-zinc-400 py-16">Cargando categor\u00EDas\u2026</div>';
+  let pool = [];
+  try { pool = await relatedPool(); } catch (e) { pool = []; }
+  const dealsRendered = (typeof mobileDealsRendered !== 'undefined' && Array.isArray(mobileDealsRendered))
+    ? mobileDealsRendered : [];
+  const ofertasKeys = new Set(dealsRendered.map(p => `${p.retailer || ''}::${p.title || ''}`));
+  const saleItems = Array.isArray(saleItemsCache) ? saleItemsCache : [];
+  const poolArr = Array.isArray(pool) ? pool : [];
+  const allStores = Object.keys(departmentCacheData?.retailers || {});
 
-  let tiles = collectTiles()
-    .map(t => ({ ...t, kind: 'department' }))
-    .filter(t => t.retailers.some(r => activeStores.includes(r)));
+  /* One shelf per category, same algorithm as the homepage rails -- the
+     store filter just narrows which stores deal into each shelf. */
+  const sections = [];
+  for (const cat of CATEGORY_RAILS){
+    if (!cat || !cat.key) continue;
+    const catStores = cat.stores || allStores;
+    const stores = catStores.filter(s => activeStores.includes(String(s).toLowerCase()));
+    if (!stores.length) continue;
+    const test = (p) => p && stores.indexOf(String(p.retailer || '').toLowerCase()) !== -1
+      && (!cat.test || cat.test(p));
+    const saleSrc = cat.poolOnly ? poolArr : saleItems;
+    const picks = categoryRailPicks(stores,
+      saleSrc.filter(test), poolArr.filter(test),
+      ofertasKeys, CATEGORY_RAIL_TOTAL,
+      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null });
+    if (!picks.length) continue;
+    categoriesViewRendered[cat.key] = picks;
+    sections.push({ cat, picks });
+  }
+  if (sortBy === 'count') sections.sort((a, b) => b.picks.length - a.picks.length);
+  else sections.sort((a, b) => String(a.cat.label || '').localeCompare(String(b.cat.label || ''), 'es'));
 
-  if (sortBy === 'count') tiles.sort((a, b) => b.count - a.count);
-  else tiles.sort((a, b) => a.label.localeCompare(b.label, 'es'));
-
-  document.getElementById('categoriesCount').textContent = `${tiles.length} categoría${tiles.length === 1 ? '' : 's'}`;
-  document.getElementById('categoriesGrid').innerHTML = tiles.length
-    ? tiles.map(t => deptTileHTML(t, t.kind)).join('')
-    : '<div class="col-span-full text-center text-zinc-400 py-16">No hay categorías disponibles para esta selección de tiendas.</div>';
+  document.getElementById('categoriesCount').textContent =
+    `${sections.length} categor\u00EDa${sections.length === 1 ? '' : 's'}`;
+  grid.innerHTML = sections.length ? sections.map(({ cat, picks }) => `
+    <section aria-label="${escapeHtml(cat.label || '')}" class="mb-8">
+      <div class="flex items-center justify-between gap-3 mb-3">
+        <span class="min-w-0">
+          <span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:var(--navy)">${cat.icon ? escapeHtml(cat.icon) + ' ' : ''}${escapeHtml(cat.label || '')}</span>
+          ${cat.blurb ? `<span class="block text-[12px] font-semibold mt-0.5" style="color:#6B7487">${escapeHtml(cat.blurb)}</span>` : ''}
+        </span>
+        <button onclick="${cat.open || ''}" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>
+      </div>
+      <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${picks.map((p, i) => railCardHTML(p,
+        `openCategoriesViewProduct('${jsAttr(cat.key)}',${i})`,
+        `data-categories-view-card="${escapeHtml(cat.key)}" data-idx="${i}"`)).join('')}</div>
+    </section>`).join('')
+    : '<div class="text-center text-zinc-400 py-16">No hay categor\u00EDas disponibles para esta selecci\u00F3n de tiendas.</div>';
 }
 
 // The actual scrape. Returns normalized on-sale items; never throws — one
