@@ -979,6 +979,9 @@ const EXPECTED_EVERYDAY_ORDER = [
   /* ARIA FIGHT CLUB BATCH (2026-09-27, Danny): six fight-sports shops,
      registry order before Skims. */
   "venum", "tatami", "everlast", "mmawarehouse", "combatcorner", "fuji", "crocs",
+  /* JEWELRY + PURSES + KIDS' EVERYDAY BATCH (2026-09-27, Danny): seven shops,
+     registry order before Skims. */
+  "baublebar", "jwpei", "meliebianco", "bentgo", "mushie", "ezpz", "statebags",
   "skims", "yesstyle"
 ];
 function everydayOrder(){
