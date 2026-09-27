@@ -23689,6 +23689,7 @@ async function runAssistantBrain(text){
     addAssistantMessage('bot', '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy 🔥');
     goSales();
     dismissAssistantForNavigation();
+    continuousMode = false; // navigating away ends the voice conversation
     assistantThinking = false;
     if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
     return;
@@ -23810,12 +23811,14 @@ async function runAssistantBrain(text){
         clearTimeout(fallTimer);
         hideAssistantTyping();
         addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+    reopenMicForRetry();
         return;
       }
       clearTimeout(fallTimer);
       if (!res.ok) {
         hideAssistantTyping();
         addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+    reopenMicForRetry();
         return;
       }
       const data = await res.json();
@@ -23845,6 +23848,7 @@ async function runAssistantBrain(text){
   } catch (err) {
     hideAssistantTyping();
     addAssistantMessage('bot', 'Tuve un problema con la conexión, ¿intentamos de nuevo?');
+    reopenMicForRetry();
   } finally {
     clearTimeout(progressTimer);
     hideAssistantTyping();
@@ -23859,22 +23863,24 @@ async function runAssistantBrain(text){
 let recognition = null;
 let continuousMode = false;
 let silenceTimer = null;
-  let intentionalStop = false;
- 
-      let currentAriaSpeech = '';
-  let lastTranscriptLength = 0;
+let intentionalStop = false;
+let currentAriaSpeech = '';
 let maxSessionTimer = null;
 let voiceErrorStreak = 0;
 const VOICE_ERROR_STREAK_MAX = 3;
 const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
-// TURN-TAKING (2026-09-27): ~1.2 seconds, not 2-3. The mic must never hover —
-// a thinker, or someone turning to ask their kid mid-sentence, should hear it
-// close and re-tap when they are ready, rather than feel listened to.
-const SILENCE_TIMEOUT_MS = 1200;
-/* PER-CAPTURE SPEECH CAP (2026-09-27): one utterance never runs past ~10s of
-   continuous speech. When it fires, recognition stops and the final result
-   processes normally -- a long sentence just gets finalized early instead
-   of holding the mic open. */
+// TURN-TAKING: 2.5 seconds of silence ends the turn. (2026-09-27: Danny
+// reported the 1.2s timeout felt like being "cut off after one second" —
+// a natural pause mid-sentence is not the end of the turn.) This timer
+// ends TURNS, not listening: after her reply the mic stays open so he can
+// react — the follow-up is the whole point of a fluid conversation. The
+// listening pill plus tap-to-mute keep it explicit; the 2-minute session
+// cap and iOS itself are the backstops, not this timer.
+const SILENCE_TIMEOUT_MS = 2500;
+/* PER-CAPTURE SPEECH CAP (2026-09-27): one turn never runs past ~10s of
+   continuous speech. When it fires, the turn ships early via
+   endTurnAndSend — a long sentence gets finalized instead of holding
+   the mic open. */
 const SPEECH_CAP_MS = 10000;
 let speechCapTimer = null;
 function clearSpeechCapTimer(){
@@ -23882,10 +23888,7 @@ function clearSpeechCapTimer(){
 }
 function restartSpeechCapTimer(){
   clearSpeechCapTimer();
-  speechCapTimer = setTimeout(() => {
-    intentionalStop = true;
-    if (recognition) { try { recognition.stop(); } catch(e) {} }
-  }, SPEECH_CAP_MS);
+  speechCapTimer = setTimeout(onSilenceTimeout, SPEECH_CAP_MS);
 }
 const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
 
@@ -23897,6 +23900,101 @@ function isGoodbye(text){
 function clearSilenceTimer(){
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
 }
+
+/* ==================================================================
+   TURNS, NOT UTTERANCES — the 1-second cutoff fix (2026-09-27).
+
+   Danny's report: "I say hola and it cuts me off after one second."
+   Two compounding causes:
+
+   1. The app had its own `continuousMode` flag (tap to talk, tap to
+      stop), but the *browser's* recognizer was never told —
+      `recognition.continuous` defaults to false, i.e. single-utterance
+      mode. On mobile the speech service finalizes the utterance after a
+      ~1s pause on its own.
+
+   2. Every final result shipped IMMEDIATELY as a complete message, and
+      the silence timeout was 1.2s — so "hola" + a natural pause became
+      a finished turn, and anything said after it landed while Aria was
+      thinking and got dropped by the overheard-speech guard.
+
+   Now the browser stays in continuous mode and OUR 2.5s silence timer
+   decides when the turn is over: final segments accumulate in
+   speechBuffer and ship as ONE message only after 2.5s of real
+   silence, after 10s of continuous speech, or when the user taps the
+   mic to stop early. iOS kills sessions aggressively mid-turn, so onend
+   restarts the session (and the silence timer) when speech was recent —
+   the buffer survives and the user feels no cutoff. The conversation
+   stays open across turns (the mic reopens after Aria finishes
+   speaking); only a manual tap or a goodbye closes it.
+   ================================================================== */
+let speechBuffer = '';   // final segments accumulated for the current turn
+let lastSpeechAt = 0;    // timestamp of the last speech activity
+
+/* "Aria" is routinely transcribed as "area" (2026-09-27: Danny said
+   "Aria", the engine heard "area"). Normalize it back in name-like
+   positions only — never inside real words like "área de juegos". */
+function normalizeAriaName(t){
+  return String(t || '')
+    .replace(/^(\s*)area\b/i, '$1Aria')
+    .replace(/\b(hola|oye|hey|buenas|disculpa|gracias)\s+area\b/gi, '$1 Aria');
+}
+
+function resetSilenceTimer(){
+  clearSilenceTimer();
+  silenceTimer = setTimeout(onSilenceTimeout, SILENCE_TIMEOUT_MS);
+}
+
+/* The silence window elapsed. Speech in the buffer means the turn is
+   over — ship it. An empty buffer means nobody said anything yet, which
+   is NOT a turn: keep listening instead of killing the session. (This
+   was the post-reply "shuts off immediately": the reopened mic died on
+   its first empty window and nothing ever restarted it.) */
+function onSilenceTimeout(){
+  if (speechBuffer.trim()) { endTurnAndSend(); return; }
+  resetSilenceTimer();
+}
+
+/* A turn ended: ship everything captured as ONE message. The session is
+   stopped; if the conversation is still open the mic reopens after Aria
+   finishes speaking (each speak path calls startListening on audio end). */
+function endTurnAndSend(){
+  clearSilenceTimer();
+  clearSpeechCapTimer();
+  intentionalStop = true;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
+  setAssistantMicState(false);
+  flushSpeechBuffer();
+}
+
+/* Ship the accumulated turn (if any) as a single chat message. */
+function flushSpeechBuffer(){
+  const text = spokenPunctuationToMarks(speechBuffer.trim());
+  speechBuffer = '';
+  const inputEl = document.getElementById('assistantInput');
+  if (inputEl) inputEl.value = '';
+  if (!text) return;
+  /* TURN-TAKING: a turn that ends while Aria is still thinking is
+     overheard side-conversation, not a new turn — drop it, as the old
+     final-result guard did, instead of hijacking the answer in flight. */
+  if (typeof assistantThinking !== 'undefined' && assistantThinking) return;
+  if (isGoodbye(text)) continuousMode = false;
+  addAssistantMessage('user', text);
+  setTimeout(() => runAssistantBrain(text), 350);
+}
+
+/* A brain failure must not strand the mic: the "¿intentamos de nuevo?"
+   invite only works by voice if the mic deterministically reopens for
+   the retry (the speak path usually reopens it, but autoplay blocks and
+   dead utterance callbacks must not be able to veto it). */
+function reopenMicForRetry(){
+  if (continuousMode) {
+    setTimeout(() => { if (continuousMode && !assistantThinking) startListening(); }, 400);
+  }
+}
+
 
 /* ==================================================================
    THE MIC HAS TWO LOOKS, AND ONE PLACE THAT DECIDES THEM.
@@ -23940,46 +24038,35 @@ function setAssistantMicState(listening){
 }
 
 function stopContinuousMode(){
+  // Manual mic tap: the conversation is over — ship what was captured
+  // so far instead of discarding it.
   continuousMode = false;
-  clearSilenceTimer();
-  clearSpeechCapTimer();
-  if (recognition) { try { recognition.stop(); } catch(e) {} }
-  const statusEl = document.getElementById('assistantStatus');
-  if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
-  setAssistantMicState(false);
+  endTurnAndSend();
 }
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 if (SpeechRecognitionAPI) {
   recognition = new SpeechRecognitionAPI();
   recognition.lang = 'es-PE';
+  recognition.continuous = true; // THE 1s-cutoff fix: the browser must not end the turn on a short pause
   recognition.interimResults = true;
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
-  document.getElementById('assistantStatus').textContent = 'Escuchando…';
-  setAssistantMicState(true);
-  lastTranscriptLength = 0;
-  voiceErrorStreak = 0;
-  clearSilenceTimer();
-  // start the silence countdown fresh — it only fires if no speech
-  // event resets it before it completes
-  silenceTimer = setTimeout(() => {
-        intentionalStop = true;
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-        setAssistantMicState(false);
-      }, SILENCE_TIMEOUT_MS);
-  if (maxSessionTimer) clearTimeout(maxSessionTimer);
-      maxSessionTimer = setTimeout(() => {
-        continuousMode = false;
-        intentionalStop = true;
-        if (recognition) { try { recognition.stop(); } catch(e) {} }
-        document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-        setAssistantMicState(false);
-        showToast('Sesión de voz finalizada por inactividad prolongada.');
-      }, MAX_SESSION_MS);
-    };
+    const statusEl = document.getElementById('assistantStatus');
+    if (statusEl) statusEl.textContent = 'Escuchando…';
+    setAssistantMicState(true);
+    voiceErrorStreak = 0;
+    // A session restart mid-turn (iOS) keeps the buffer; the silence
+    // timer restarts so a quiet restart can't listen forever.
+    resetSilenceTimer();
+    if (maxSessionTimer) clearTimeout(maxSessionTimer);
+    maxSessionTimer = setTimeout(() => {
+      stopContinuousMode();
+      showToast('Sesión de voz finalizada (límite de 2 minutos). Toca el micrófono para seguir.');
+    }, MAX_SESSION_MS);
+  };
+
 
 /* SPOKEN PUNCTUATION -> REAL PUNCTUATION (client mirror).
    Speech-to-text hears Danny dictate his punctuation, so the transcript
@@ -24021,77 +24108,48 @@ function spokenPunctuationToMarks(text){
 
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
-  const transcript = result[0].transcript;
+  const transcript = normalizeAriaName(result[0].transcript);
 
-  // reset the silence timer on any speech activity, not just growing transcripts —
-        // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
-        if (transcript.trim().length > 0) {
-          clearSilenceTimer();
-          restartSpeechCapTimer();
-          lastTranscriptLength = transcript.trim().length;
-
-          if (!result.isFinal) {
-            silenceTimer = setTimeout(() => {
-              intentionalStop = true;
-              if (recognition) { try { recognition.stop(); } catch(e) {} }
-            }, SILENCE_TIMEOUT_MS);
-          }
-        }
-
-  document.getElementById('assistantInput').value = transcript;
+  if (transcript.trim().length > 0) {
+    // Any speech activity — interim or final — pushes the 2.5s window
+    // out. Interim results can shrink or stay flat mid-sentence and must
+    // never be treated as silence.
+    lastSpeechAt = Date.now();
+    resetSilenceTimer();
+    restartSpeechCapTimer();
+  }
 
   if (result.isFinal) {
-    /* TURN-TAKING (2026-09-27). A final result that lands while Aria is
-       still thinking is overheard side-conversation, not a new turn --
-       the mic was supposed to be closed. Drop it: no bubble, no brain
-       run, instead of letting "mira, está buscando zapatos" hijack
-       the search in flight. */
-    if (assistantThinking) {
-      lastTranscriptLength = 0;
-      document.getElementById('assistantInput').value = '';
-      return;
-    }
-    lastTranscriptLength = 0;
-    /* Dictated punctuation arrives as words ("comma", "punto") — convert
-       to the real marks before the message is shown or sent, so the chat
-       bubble, the search and the model all see "shoes, red ones" instead
-       of "shoes comma red ones". Mirror of sanitizeSpokenPunctuation in
-       netlify/functions/_aria-chat-model.js (this page is a plain
-       <script> and cannot import). */
-    const cleanTranscript = spokenPunctuationToMarks(transcript);
-    addAssistantMessage('user', cleanTranscript);
-    document.getElementById('assistantInput').value = '';
-
-    if (isGoodbye(cleanTranscript)) {
-      continuousMode = false;
-      setTimeout(() => runAssistantBrain(cleanTranscript), 350);
-      return;
-    }
-
-    setTimeout(() => runAssistantBrain(cleanTranscript), 350);
+    speechBuffer = (speechBuffer + ' ' + transcript).trim();
+    document.getElementById('assistantInput').value = speechBuffer;
+  } else {
+    // Show the whole turn as it builds: finalized so far + live words.
+    document.getElementById('assistantInput').value = (speechBuffer + ' ' + transcript).trim();
   }
 };
 
-  recognition.onerror = (e) => {
-    clearSilenceTimer();
-    clearSpeechCapTimer();
-    if (!continuousMode) { showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.'); return; }
-    /* BACKOFF (2026-09-27). Three real failures in a row (denied mic, no
-       capture device, dead network) is not a bad moment, it is a broken
-       mic -- stop the restart loop instead of spinning on it, and say so.
-       'no-speech'/'aborted' are the recognizer giving up on its own and
-       are already handled by the silence timer. */
-    const kind = e && e.error;
-    if (kind === 'not-allowed' || kind === 'service-not-allowed' || kind === 'audio-capture' || kind === 'network') {
-      if (++voiceErrorStreak >= VOICE_ERROR_STREAK_MAX) {
-        stopContinuousMode();
-        voiceErrorStreak = 0;
-        showToast('El micrófono no está respondiendo — toca el micrófono para intentarlo de nuevo.');
-      }
+recognition.onerror = (e) => {
+  clearSilenceTimer();
+  clearSpeechCapTimer();
+  // Never lose captured speech to an error — ship the partial turn.
+  if (speechBuffer.trim()) { endTurnAndSend(); return; }
+  if (!continuousMode) { showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.'); return; }
+  /* BACKOFF (2026-09-27). Three real failures in a row (denied mic, no
+     capture device, dead network) is not a bad moment, it is a broken
+     mic -- stop the restart loop instead of spinning on it, and say so.
+     'no-speech'/'aborted' are the recognizer giving up on its own and
+     are already handled by the silence timer. */
+  const kind = e && e.error;
+  if (kind === 'not-allowed' || kind === 'service-not-allowed' || kind === 'audio-capture' || kind === 'network') {
+    if (++voiceErrorStreak >= VOICE_ERROR_STREAK_MAX) {
+      stopContinuousMode();
+      voiceErrorStreak = 0;
+      showToast('El micrófono no está respondiendo — toca el micrófono para intentarlo de nuevo.');
     }
-  };
+  }
+};
 
-  recognition.onend = () => {
+recognition.onend = () => {
   clearSilenceTimer();
   clearSpeechCapTimer();
 
@@ -24100,17 +24158,26 @@ recognition.onresult = (e) => {
     return;
   }
 
-  document.getElementById('assistantStatus').textContent = 'Aquí para ayudarte a encontrar algo';
-  setAssistantMicState(false);
-
-  if (continuousMode && !assistantThinking) {
+  // The session died on its own. If the user was speaking recently
+  // (iOS kills sessions mid-turn) and the conversation is open, resume
+  // seamlessly — the buffer and the turn survive. Otherwise the mic
+  // simply closes below.
+  if (continuousMode && typeof assistantThinking !== 'undefined' && !assistantThinking && Date.now() - lastSpeechAt < 3000) {
+    resetSilenceTimer();
     /* The 400ms window is long enough for a turn to begin -- re-check
        inside it, so the mic can never reopen mid-think. */
     setTimeout(() => {
       if (continuousMode && !assistantThinking) startListening();
     }, 400);
+    return;
   }
+
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
+  setAssistantMicState(false);
+  continuousMode = false; // truly closed — the next tap starts fresh, no invisible toggle
 };
+
 } else {
   window.addEventListener('DOMContentLoaded', () => {
     const micBtn = document.getElementById('assistantMicBtn');
@@ -24154,15 +24221,17 @@ function speakWithAria(audioBase64, ariaText){
     ariaAudioPlayer.onplaying = () => setOrbState('speaking');
     ariaAudioPlayer.onended = () => {
       setOrbState('idle');
-      /* The follow-up listen window is short by construction: the
-         silence timer closes the mic ~1.2s after the shopper stops
-         talking, so this never becomes an open mic again. */
+      /* FLUID CONVERSATION (2026-09-27): the mic reopens when she finishes
+         and STAYS open — an empty silence window no longer kills the
+         listen, so the shopper gets a real window to react. Tap the mic
+         to mute; the 2-minute cap is the backstop. */
       if (continuousMode && !assistantThinking) startListening();
     };
     ariaAudioPlayer.onpause = () => { if (orbState === 'speaking') setOrbState('idle'); };
     ariaAudioPlayer.onerror = () => setOrbState('idle');
     ariaAudioPlayer.play().catch(() => {
       setOrbState('idle'); // autoplay blocked — text stays visible, orb goes back to breathing
+      reopenMicForRetry(); // no onended will fire: reopen the mic or the conversation strands here
     });
 } catch (err) {
     setOrbState('idle');
