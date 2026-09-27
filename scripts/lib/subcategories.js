@@ -121,9 +121,21 @@ export const SUBCATEGORY_SPEC = [
      which holds the whole department, and unmappedTypes() reports the
      token so it stays visible rather than becoming folklore. */
   { key: "face",        label: "Rostro",              types: ["ROSTRO", "FACE", "FOUNDATION", "CONCEALER", "BLUSH", "BRONZER", "HIGHLIGHTER", "PRIMER"] },
+  /* MASCARILLAS (2026-09-27, Danny): the hero aisle -- salmon PDRN / pink
+     collagen hydrogel masks, overnight/sleeping masks, sheet, clay/mud,
+     peel-off, wash-off, nose strips and eye patches live here. MASK moved
+     here out of skincare. Placed second so the mask carousel is the first
+     thing a shopper scrolls into. */
+  { key: "masks",       label: "Mascarillas",         types: ["MASK", "MASCARILLA", "MASKS", "MASCARILLAS", "FACIAL_MASK", "SHEET_MASK", "HYDROGEL_MASK", "GEL_MASK", "JELLY_MASK", "OVERNIGHT_MASK", "SLEEPING_MASK", "WRAPPING_MASK", "PEEL_OFF_MASK", "CLAY_MASK", "MUD_MASK", "WASH_OFF_MASK", "NOSE_STRIP", "EYE_PATCH", "EYE_MASKS"] },
+  /* MAQUILLAJE (2026-09-27, Danny): makeup + tooling. Morphe brush sets
+     and Townley Girl kids' washable play-makeup kits file here. */
+  { key: "makeup",      label: "Maquillaje",          types: ["MAQUILLAJE", "MAKEUP", "COSMETICS", "BRUSH_SET"] },
   { key: "lips",        label: "Labios",              types: ["LABIOS", "LIP", "LIPSTICK", "LIP_GLOSS", "LIP_BALM"] },
   { key: "eyes",        label: "Ojos",                types: ["OJOS", "EYE", "MASCARA", "EYELINER", "EYESHADOW", "BROW"] },
-  { key: "skincare",    label: "Cuidado de la piel",  types: ["CUIDADO_DE_LA_PIEL", "SKINCARE", "SKIN_CARE", "MOISTURIZER", "SERUM", "CLEANSER", "SUNSCREEN", "MASK"] },
+  { key: "skincare",    label: "Cuidado de la piel",  types: ["CUIDADO_DE_LA_PIEL", "SKINCARE", "SKIN_CARE", "MOISTURIZER", "SERUM", "CLEANSER", "SUNSCREEN"] },
+  /* HOMBRE (2026-09-27, Danny): men's care is its OWN category inside
+     Aria Beauty -- shaving, skincare, hair, fragrance for men. */
+  { key: "mens",        label: "Hombre",              types: ["CUIDADO_PARA_HOMBRES", "MENS_CARE", "MENS_GROOMING", "FOR_MEN"] },
   { key: "nails",       label: "U\u00f1as",              types: ["UNAS", "NAIL", "NAIL_POLISH", "MANICURE"] },
   { key: "fragrance",   label: "Fragancia",           types: ["FRAGANCIA", "FRAGRANCE", "PERFUME", "EAU_DE_PARFUM", "COLOGNE", "BODY_MIST"] },
 ];

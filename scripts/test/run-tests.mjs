@@ -979,6 +979,10 @@ const EXPECTED_EVERYDAY_ORDER = [
   /* ARIA FIGHT CLUB BATCH (2026-09-27, Danny): six fight-sports shops,
      registry order before Skims. */
   "venum", "tatami", "everlast", "mmawarehouse", "combatcorner", "fuji", "crocs",
+  /* ARIA BEAUTY BRAND BATCH (2026-09-27, Danny): eleven browsable beauty
+     brand keys, registry order before Skims. */
+  "townley", "morphe", "skin1004", "everymanjack", "brickell", "medicube",
+  "laneige", "cosrx", "beautyofjoseon", "anua", "mediheal",
   "skims", "yesstyle"
 ];
 function everydayOrder(){
@@ -4006,7 +4010,7 @@ check("the order is editorial, and lingerie is last", () => {
      walked skate -> surf -> fitness. All three are asserted, because all
      three are the same fix. */
   const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
-  const BEAUTY_AISLES = ["face", "lips", "eyes", "skincare", "nails", "fragrance"];
+  const BEAUTY_AISLES = ["face", "masks", "makeup", "lips", "eyes", "skincare", "mens", "nails", "fragrance"];
   const SPORTS_AISLES = ["skate", "surf", "fitness", "sportswear"];
   const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k) && !SPORTS_AISLES.includes(k));
   const sports = keys.filter((k) => SPORTS_AISLES.includes(k));
