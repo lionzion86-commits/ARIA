@@ -103,6 +103,9 @@ export const DEPARTMENT_SPEC = {
   surf_skate:      { anyCategory: true, surfSkateOnly: true },
   /* ARIA FIGHT CLUB (2026-09-27, Danny). Mirrors index.html. */
   combat_sports:   { category: "combat" },
+  /* ARIA MOMS (2026-09-27, Danny): the mom+baby department — strollers,
+     breast pumps, feeding, nursery, maternity. Mirrors index.html. */
+  moms:            { category: "moms" },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -124,6 +127,8 @@ export const BUCKET_SPEC = {
   gym_rat:         { category: "gymrat" },
   /* ARIA FIGHT CLUB (2026-09-27, Danny). Mirrors index.html. */
   combat_sports:   { category: "combat" },
+  /* ARIA MOMS (2026-09-27, Danny). Mirrors index.html. */
+  moms:            { category: "moms" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:

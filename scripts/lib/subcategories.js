@@ -126,6 +126,20 @@ export const SUBCATEGORY_SPEC = [
   { key: "skincare",    label: "Cuidado de la piel",  types: ["CUIDADO_DE_LA_PIEL", "SKINCARE", "SKIN_CARE", "MOISTURIZER", "SERUM", "CLEANSER", "SUNSCREEN", "MASK"] },
   { key: "nails",       label: "U\u00f1as",              types: ["UNAS", "NAIL", "NAIL_POLISH", "MANICURE"] },
   { key: "fragrance",   label: "Fragancia",           types: ["FRAGANCIA", "FRAGRANCE", "PERFUME", "EAU_DE_PARFUM", "COLOGNE", "BODY_MIST"] },
+  /* ---- ARIA MOMS (2026-09-27, Danny) ----------------------------------
+     The premium moms department: strollers of every type, breast pumps,
+     feeding, nursery, maternity. Same mechanism as Belleza — the
+     vocabularies do not overlap with other verticals. Editorial order:
+     Coches first (Danny's hero aisle), Lactancia second. */
+  { key: 'strollers',   label: 'Coches',              types: ['COCHE', 'STROLLER', 'TRAVEL_SYSTEM', 'SISTEMA_DE_VIAJE', 'PRAM'] },
+  { key: 'nursing',     label: 'Lactancia',           types: ['LACTANCIA', 'NURSING', 'BREAST_PUMP', 'EXTRACTOR', 'NURSING_BRA'] },
+  { key: 'feeding',     label: 'Alimentación',        types: ['ALIMENTACION', 'BIBERON', 'BOTTLE', 'STERILIZER', 'WARMER', 'PACIFIER'] },
+  { key: 'carseats',    label: 'Autoasientos',        types: ['AUTOASIENTO', 'CAR_SEAT', 'BOOSTER_SEAT'] },
+  { key: 'nursery',     label: 'El cuarto del bebé',  types: ['HABITACION_BEBE', 'CRIB', 'CUNA', 'BASSINET', 'MONITOR'] },
+  { key: 'diapering',   label: 'Pañales y pañaleras', types: ['PANALES', 'DIAPER', 'DIAPER_BAG', 'PANALERA'] },
+  { key: 'carriers',    label: 'Portabebés',          types: ['PORTABEBE', 'CARRIER'] },
+  { key: 'highchairs',  label: 'Sillas de comer',     types: ['SILLA_DE_COMER', 'HIGH_CHAIR'] },
+  { key: 'maternity',   label: 'Maternidad',          types: ['MATERNIDAD', 'MATERNITY', 'PREGNANCY'] },
 ];
 
 /** type token -> aisle key. Built once, from the rows above. */
