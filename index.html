@@ -9181,15 +9181,13 @@ const CATEGORY_RAILS = [
     test: (p) => railBucketCategoryIs(p, 'moms'),
     open: "openCatalog('department','moms')" },
 ];
-/* Tab order on the pills (2026-09-27, Danny): Moda Niños, Surf &
-   Skate, Moda Mujer, Moda Hombre, Decoración, then the rest, with Gym
-   Rat and Aria Beauty last -- both own permanent rails right under the
-   pills, so their pills sit down the road. Hogar keeps its pill (Danny,
-   2026-09-27); it only lost the permanent rail to Beauty. Combat sports
-   keeps its tab from the Fight Club batch. The general "Moda" tab was
-   pulled 2026-09-26 -- the Mujer/Hombre tabs cover general fashion, and
-   a vague fourth fashion pill muddied the hook. */
-const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'home_decor', 'combat_sports', 'shoes', 'home_goods', 'curvy', 'electronics', 'toys', 'party', 'moms', 'gym_rat', 'beauty'];
+/* Tab order on the pills (2026-09-27, Danny): Aria Moms is second-in-command
+   (right after the Ofertas section), then Aria Fight Club, then Surf &
+   Skate, then the rest. Gym Rat and Aria Beauty stay last -- both own
+   permanent rails right under the pills, so their pills sit down the road.
+   Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
+   to Beauty. */
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'surf_skate', 'kids', 'women', 'men', 'home_decor', 'shoes', 'home_goods', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
