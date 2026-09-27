@@ -2954,6 +2954,10 @@
           <p id="productNoPriceNote" class="text-[12.5px] mt-2.5 leading-relaxed max-w-[42ch]" style="color:#8A6B1F" hidden></p>
         </div>
       </div>
+      <!-- COMBO DEALS (2026-09-27): "Combinalo y ahorra" — rendered by
+           renderComboModule() into #comboDealWrap; hidden until a real,
+           resolvable combo exists for the product on screen. -->
+      <div id="comboDealWrap" class="mt-6 space-y-4" hidden></div>
     </div>
 
     <!-- ============================================================
@@ -4334,6 +4338,16 @@
       </p>
     </div>
   </section>
+  <!-- COMBO DEALS (2026-09-27): combo-deals.js is an ES module shared
+       with the server validator. The bridge re-publishes it for the
+       classic inline script; modules are deferred, so the main script may
+       have run its first bundle sync before the data lands — the bridge
+       re-syncs, and the sync itself never prunes what it cannot verify. -->
+  <script type="module">
+    import { COMBO_DEALS } from './combo-deals.js';
+    window.COMBO_DEALS = COMBO_DEALS;
+    if (typeof syncBundleDiscounts === 'function') syncBundleDiscounts();
+  </script>
   <script>
   /* ARIA_CREDIT_BONUS — única fuente de verdad para el bono de créditos.
      PENDING LEGAL REVIEW (2026-09-25): 5% decidido por el negocio,
@@ -5789,7 +5803,7 @@ function loadDepartmentCache(){
        Danny — no separate section. Both files bucket everything under
        sporting_goods so the department picks it up with no other change;
        the aisle split below is what keeps skate, surf and fitness apart. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json'];
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json'];
     const files = CATALOGUE_FILES.map(url => fetchWithTimeout(url, FETCH_DEADLINE_MS)
       .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
       .then(normalizeCatalogueEnvelope)
@@ -5844,6 +5858,7 @@ const DEPARTMENT_META = {
   /* JOYERÍA + CARTERAS (2026-09-27, Danny): own sections, own carousels. */
   jewelry: { label: 'Joyería y Accesorios', icon: '💎' },
   purses: { label: 'Carteras', icon: '👜' },
+  books: { label: 'Libros', icon: '📚' },
   shoes: { label: 'Zapatos', icon: '👟' },
   /* REPUESTOS (2026-09-26). Advance Auto Parts' brake-parts catalogue.
      Answered per item (isAutoPart), the Zapatos way — no retailer
@@ -6371,6 +6386,10 @@ const DEPARTMENT_SPEC = {
      means the tile appears by itself the moment the first beauty bucket
      lands, with no second change. */
   beauty:          { category: 'beauty' },
+  /* LIBROS (2026-09-27): the coffee-table-book department. Assouline +
+     Chronicle Books file under a `books` bucket (category 'books'), so
+     the tile appears by itself via collectTiles — no second change. */
+  books:           { category: 'books' },
   /* ZAPATOS (2026-09-23). Not a category either, and for a different
      reason than Ofertas: footwear is a KIND OF ITEM that lives inside
      other people's buckets. Foot Locker files its shoes under men,
@@ -6411,6 +6430,9 @@ const BUCKET_SPEC = {
   // Both spellings a beauty scrape is likely to use, one category.
   beauty:          { category: 'beauty' },
   fragrance:       { category: 'beauty' },
+  /* LIBROS (2026-09-27): Assouline + Chronicle Books file everything
+     under a `books` bucket. */
+  books:           { category: 'books' },
 gym_rat:         { category: 'gymrat' },
   /* ARIA FIGHT CLUB (2026-09-27, Danny): the combat-retailer bucket. */
   combat_sports:   { category: 'combat' },
@@ -9179,6 +9201,13 @@ const CATEGORY_RAILS = [
     blurb: 'Maquillaje, skincare y perfumes.',
     test: (p) => railBucketCategoryIs(p, 'beauty'),
     open: "openCatalog('department','beauty')" },
+  /* LIBROS (2026-09-27): the coffee-table-book pill + rail — Assouline +
+     Chronicle Books. Pool-only so the shelf matches the department page
+     exactly. */
+  { key: 'books', label: 'Libros', icon: '📚', stores: null, poolOnly: true,
+    blurb: 'Libros de mesa de Assouline y Chronicle Books.',
+    test: (p) => railBucketCategoryIs(p, 'books'),
+    open: "openCatalog('department','books')" },
 ];
 /* Tab order on the pills (2026-09-27, Danny): Moda Niños, Surf &
    Skate, Moda Mujer, Moda Hombre, Decoración, then the rest, with Gym
@@ -9188,7 +9217,7 @@ const CATEGORY_RAILS = [
    keeps its tab from the Fight Club batch. The general "Moda" tab was
    pulled 2026-09-26 -- the Mujer/Hombre tabs cover general fashion, and
    a vague fourth fashion pill muddied the hook. */
-const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'home_decor', 'combat_sports', 'shoes', 'home_goods', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['kids', 'surf_skate', 'women', 'men', 'home_decor', 'combat_sports', 'shoes', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -14504,6 +14533,11 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      not a visible bug -- it is the same omission, closed while the
      class of it is in view. */
   renderRelatedRail({ retailer, title: name, brand: opts && opts.brand, price: totalUsd, weightKg, image: imageUrl, images, sizes, rating, catalogWeightKg });
+  /* COMBO DEALS (2026-09-27): the "Combinalo y ahorra" module. Not
+     awaited — like the related rail, the details are on screen and the
+     module fills in underneath when the catalogue pool is ready. */
+  renderComboModule({ retailer, title: name, price: totalUsd, image: imageUrl,
+    dutiableUsd: pendingProduct.dutiableUsd, weightKg, brand: pendingProduct.brand });
 }
 
 function goBack(){
@@ -14875,6 +14909,13 @@ const RETAILERS = {
   beautyofjoseon:  { key: 'beautyofjoseon',  label: 'Beauty of Joseon',    color: '#2B2B2B', tagline: 'Belleza tradicional coreana',                kind: 'general', search: false, browse: true, catalog: 'beauty' },
   anua:            { key: 'anua',            label: 'Anua',                color: '#6A9A5B', tagline: 'Skincare coreano minimalista',               kind: 'general', search: false, browse: true, catalog: 'beauty' },
   mediheal:        { key: 'mediheal',        label: 'Mediheal',            color: '#0066B3', tagline: 'Mascarillas coreanas',                       kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  /* BOOKS (2026-09-27, Danny) — coffee table books: Assouline (luxury) +
+     Chronicle Books (illustrated), 481 products via Shopify collection
+     APIs. No logo files yet — wordmark pill fallback, the documented
+     pattern. Macy's pattern: browse: true, search: false.
+     Mirrors scripts/lib/retailers.js. */
+  assouline:       { key: 'assouline',       label: 'Assouline',         color: '#000000', tagline: 'Libros de mesa de lujo — moda, arte y viajes', kind: 'general', search: false, browse: true },
+  chronicle:       { key: 'chronicle',       label: 'Chronicle Books',   color: '#1A1A1A', tagline: 'Libros ilustrados — fotografía, arte y diseño', kind: 'general', search: false, browse: true },
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
 /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
    Delivery transparency is the merchandising strategy now — the stores
@@ -19771,11 +19812,17 @@ function cartTotals(){
     /* The tax base sums beside the price (2026-09-27): the $200
        threshold and the customs disclosure read the dutiable total —
        the true FOB — never the marked-up sum. */
-    const dLine = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+    /* Bundle-discount lines never touch the tax base: the discount is
+       funded from margin, while import tax is assessed on what the goods
+       really cost. dutiableBaseUsd(-saving, 0) is NaN by construction;
+       the explicit skip keeps that true even if the helper changes. */
+    const dLine = (it && it.lineType === 'bundle-discount') ? NaN : dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
     acc.dutiableUsd += (Number.isFinite(dLine) ? dLine : 0) * it.qty;
     // Last line of defence: repairCartWeights() runs on load, but a line
     // that reached here with no weight still must not bill as free
     // freight. Estimating is always better than charging zero.
+    /* Bundle-discount lines are savings, not goods: no weight, no freight. */
+    if (it && it.lineType === 'bundle-discount') return acc;
     const kg = Number(it.weightKg);
     acc.weightKg += (Number.isFinite(kg) && kg > 0 ? kg : estimateRetailWeightKg(it.title || '')) * it.qty;
     return acc;
@@ -19894,6 +19941,9 @@ function repairImplausibleQuantities(list){
 function repairCartWeights(list){
   let changed = false;
   const repaired = list.map((it) => {
+    /* A bundle-discount line is a saving, not shippable goods: its 0 kg
+       is correct and must never be "repaired" into a freight charge. */
+    if (it && it.lineType === 'bundle-discount') return it;
     const kg = Number(it.weightKg);
     if (Number.isFinite(kg) && kg > 0) return it;
     changed = true;
@@ -19926,6 +19976,11 @@ async function initCart(){
   const fixed = repairCartWeights(cart);
   cart = fixed.cart;
   if (fixed.changed){ saveCartLocal(); syncCartToServer(); }
+  /* Bundle discounts are re-derived, never trusted: a discount line
+     whose pair broke (or a foreign line injected into the cart) is
+     clamped or dropped here. syncBundleDiscounts() saves itself when it
+     changes anything. */
+  syncBundleDiscounts();
   // Only now is `cart` the real cart — before this the badge was painting
   // whatever happened to be in memory. See renderCartBadge().
   cartLoaded = true;
@@ -20048,15 +20103,247 @@ function addToCart(item){
 
 function removeFromCartByKey(key){
   cart = cart.filter(it => cartItemKey(it) !== key);
+  /* A removed product breaks its pairs: orphaned bundle discounts are
+     dropped by the sync before the view re-renders, so the saving
+     disappears with the product it belonged to. */
+  syncBundleDiscounts();
   saveCartLocal();
   syncCartToServer();
   renderCartBadge();
   renderCartView();
 }
 
+/* ============================================================
+   COMBO DEALS — "Combínalo y ahorra" (2026-09-27, Danny).
+
+   A generic, data-driven bundle upsell. The offers live in
+   combo-deals.js (COMBO_DEALS); everything below is department-
+   agnostic: resolve the items against the live catalogue, show the
+   honest bundle arithmetic, and add every SKU plus one real discount
+   line with a single tap. New departments plug in by appending to
+   COMBO_DEALS — zero code changes.
+
+   THE HONESTY CONTRACT:
+   - Bundle price = (sum of the items' real card prices) − savingUsd.
+     savingUsd is a genuine reduction funded from margin, stated on
+     the module ("Ahorras $X") and applied as a negative-price line in
+     the cart — never display-only.
+   - The discount line carries dutiableUsd: 0 and weightKg: 0, so the
+     import-tax base (2026-09-27 doctrine) and the freight quote never
+     move because of a bundle. cartTotals(), repairCartWeights(),
+     cartWeightReviewItems(), checkout and the weight resolver all skip
+     it explicitly.
+   - A discount line only survives while every combo item is in the
+     cart: syncBundleDiscounts() clamps its qty to the number of
+     complete pairs and drops it the moment a pair breaks.
+   ============================================================ */
+
+/* ==== COMBO-MATH-START ==== */
+function comboBundleMath(sumUsd, savingUsd){
+  const sum = Number(sumUsd), saving = Number(savingUsd);
+  if (!(sum > 0) || !(saving > 0) || !(saving < sum)) return null;
+  return { sum: round2(sum), saving: round2(saving), bundle: round2(sum - saving) };
+}
+/* The cart line that carries the saving. Negative priceUsd so every
+   total that sums the cart (cart page, checkout goods) reflects it;
+   dutiableUsd 0 so the tax base does not move; weightKg 0 plus the
+   explicit skips so freight never prices the discount. */
+function comboDiscountLineFields(comboId, comboLabel, savingUsd){
+  return {
+    retailer: 'aria',
+    title: 'Descuento combo: ' + String(comboLabel || '').slice(0, 80),
+    priceUsd: -Math.abs(Number(savingUsd)),
+    dutiableUsd: 0,
+    weightKg: 0,
+    weightEstimated: false,
+    lineType: 'bundle-discount',
+    comboId,
+    image: null,
+    qty: 1,
+  };
+}
+/* ==== COMBO-MATH-END ==== */
+
+function comboDeals(){
+  return (typeof COMBO_DEALS !== 'undefined' && Array.isArray(COMBO_DEALS)) ? COMBO_DEALS : [];
+}
+
+function combosForProduct(retailer, title){
+  return comboDeals().filter(c => c && Array.isArray(c.items) && c.items.length >= 2
+    && c.items.some(it => it && it.retailer === retailer && it.title === title));
+}
+
+/* Resolve every item of a combo against the live catalogue pool.
+   Returns null when any item is missing or priceless — the module
+   then hides rather than promising a bundle it cannot build. */
+async function resolveComboDeal(combo, anchor){
+  let pool = [];
+  try { pool = await relatedPool(); } catch { pool = []; }
+  const lines = [];
+  for (const ref of combo.items){
+    let found = null;
+    if (anchor && ref.retailer === anchor.retailer && ref.title === anchor.title
+        && Number.isFinite(Number(anchor.price)) && Number(anchor.price) > 0){
+      found = { retailer: anchor.retailer, title: anchor.title, price: Number(anchor.price),
+        image: anchor.image || null, dutiableUsd: anchor.dutiableUsd ?? null,
+        weightKg: anchor.weightKg, brand: anchor.brand || '' };
+    } else {
+      const hit = pool.find(it => it && it.retailer === ref.retailer && it.title === ref.title);
+      if (hit && Number.isFinite(Number(hit.price)) && Number(hit.price) > 0) found = hit;
+    }
+    if (!found) return null;
+    const w = Number(found.weightKg);
+    lines.push({
+      retailer: found.retailer,
+      title: found.title,
+      priceUsd: Number(found.price),
+      dutiableUsd: found.dutiableUsd ?? null,
+      weightKg: (Number.isFinite(w) && w > 0) ? w : estimateRetailWeightKg(found.title || ''),
+      image: found.image || null,
+      brand: found.brand || '',
+    });
+  }
+  const math = comboBundleMath(lines.reduce((s, l) => s + l.priceUsd, 0), combo.savingUsd);
+  if (!math) return null;
+  return { combo, lines, ...math };
+}
+
+function comboDealHTML(combo, resolved){
+  const rows = resolved.lines.map(l => `
+    <div class="flex items-center gap-2.5">
+      ${l.image
+        ? `<img src="${escapeHtml(l.image)}" alt="" loading="lazy" class="w-12 h-12 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)">`
+        : `<div class="w-12 h-12 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
+      <div class="min-w-0 flex-1">
+        <div class="text-[12.5px] font-semibold leading-snug truncate">${escapeHtml(l.title)}</div>
+        <div class="text-[12.5px] tabular font-bold" style="color:var(--navy)">${fmtPriceLabel(l.priceUsd)}</div>
+      </div>
+    </div>`).join(`
+    <div class="flex items-center gap-2 my-1.5" aria-hidden="true">
+      <div class="flex-1 border-t" style="border-color:var(--line)"></div>
+      <span class="text-[13px] font-extrabold" style="color:#8A93A8">+</span>
+      <div class="flex-1 border-t" style="border-color:var(--line)"></div>
+    </div>`);
+  const cta = resolved.lines.length === 2 ? 'Agregar ambos al carrito' : 'Agregar el combo al carrito';
+  return `<div class="rounded-2xl border p-4 sm:p-5" style="border-color:#F0D28A; background:#FFFCF3">
+    <div class="flex items-center gap-2 mb-1">
+      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#8A6B1F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+      <h2 class="text-[14.5px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Combínalo y ahorra</h2>
+    </div>
+    <p class="text-[12.5px] mb-3" style="color:#5B6478">${escapeHtml(combo.label)} — llévate ${resolved.lines.length === 2 ? 'los dos' : 'todo el combo'} junto${resolved.lines.length === 2 ? 's' : ''}:</p>
+    ${rows}
+    <div class="mt-3 pt-3 border-t space-y-1" style="border-color:var(--line)">
+      <div class="flex items-center justify-between text-[12.5px]" style="color:#5B6478">
+        <span>Por separado</span><span class="tabular font-semibold">${fmtPriceLabel(resolved.sum)}</span>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-[14px] font-extrabold" style="color:var(--navy)">Precio combo</span>
+        <span class="text-[16px] font-extrabold tabular" style="color:var(--navy)">${fmtPriceLabel(resolved.bundle)}</span>
+      </div>
+      <div>${solesUnderHTML(resolved.bundle, 'text-[11px] tabular')}</div>
+      <div class="text-[12.5px] font-bold" style="color:#0F7A3D">Ahorras ${fmtPriceLabel(resolved.saving)}</div>
+    </div>
+    <button type="button" onclick="addComboToCart('${jsAttr(combo.id)}')"
+      class="mt-3 w-full h-[48px] rounded-2xl text-white text-[14px] font-bold focus-ring transition active:scale-[0.99]"
+      style="background:var(--navy)">${cta}</button>
+    <p class="text-[11px] mt-2 leading-snug" style="color:#8A93A8">El ahorro aparece como una línea de descuento real en tu carrito.</p>
+  </div>`;
+}
+
+async function renderComboModule(anchor){
+  const wrap = document.getElementById('comboDealWrap');
+  if (!wrap) return;
+  wrap.hidden = true; wrap.innerHTML = '';
+  if (!anchor || !Number.isFinite(Number(anchor.price)) || Number(anchor.price) <= 0) return;
+  const combos = combosForProduct(anchor.retailer, anchor.title).slice(0, 2);
+  if (!combos.length) return;
+  const blocks = [];
+  for (const combo of combos){
+    const resolved = await resolveComboDeal(combo, anchor);
+    /* The shopper may have moved on while the pool loaded. Drawing a
+       combo for the product they just left is worse than drawing none. */
+    const current = document.getElementById('productViewTitle')?.textContent || '';
+    if (current !== anchor.title) return;
+    if (resolved) blocks.push(comboDealHTML(combo, resolved));
+  }
+  if (!blocks.length) return;
+  wrap.innerHTML = blocks.join('');
+  wrap.hidden = false;
+}
+
+/* One tap: every SKU at its real card price, plus the combo's stated
+   saving as a real discount line. The saving is re-derived from the
+   resolved live prices, never trusted from the data alone. */
+async function addComboToCart(comboId){
+  const combo = comboDeals().find(c => c && c.id === comboId);
+  if (!combo){ showToast('Este combo ya no está disponible.'); return; }
+  const p = (typeof pendingProduct !== 'undefined' && pendingProduct) || null;
+  const anchor = p ? { retailer: p.retailer, title: p.name, price: p.totalUsd,
+    image: p.imageUrl, dutiableUsd: p.dutiableUsd, weightKg: p.weightKg, brand: p.brand } : null;
+  const resolved = await resolveComboDeal(combo, anchor);
+  if (!resolved){ showToast('Este combo ya no está disponible.'); return; }
+  let added = 0;
+  for (const line of resolved.lines){ if (addToCart(line)) added++; }
+  if (!added) return;
+  const fields = comboDiscountLineFields(combo.id, combo.label, resolved.saving);
+  const key = cartItemKey(fields);
+  const existing = cart.find(it => cartItemKey(it) === key);
+  if (existing) existing.qty = normalizeCartQty(existing.qty) + 1;
+  else cart.push({ ...fields });
+  syncBundleDiscounts();
+  saveCartLocal();
+  syncCartToServer();
+  renderCartBadge();
+  showToast(`Combo agregado: ${resolved.lines.length} productos con ${fmtPriceLabel(resolved.saving)} de ahorro.`);
+}
+
+/* THE BUNDLE INVARIANT. A discount line only ever covers complete
+   pairs: its qty is clamped to the minimum qty across the combo's
+   product lines, and the line is dropped the moment any item of the
+   pair leaves the cart. Never creates lines — only the combo button
+   does that — so the saving is always tied to an explicit "add both". */
+function syncBundleDiscounts(){
+  /* The combo data file loads as a deferred module: if it is not in
+     yet (first paint), pruning now would delete legitimate discounts
+     the shopper earned in a previous session. Fail open — the bridge
+     module re-runs this sync the moment the data lands, and every
+     cart mutation re-runs it too. */
+  if (!comboDeals().length) return;
+  if (!Array.isArray(cart) || !cart.length) return;
+  let changed = false;
+  for (const d of cart.filter(it => it && it.lineType === 'bundle-discount')){
+    const combo = comboDeals().find(c => c && c.id === d.comboId);
+    let complete = 0;
+    if (combo && Array.isArray(combo.items) && combo.items.length){
+      complete = Infinity;
+      for (const ref of combo.items){
+        const line = cart.find(it => it && it.lineType !== 'bundle-discount'
+          && it.retailer === ref.retailer && it.title === ref.title);
+        complete = Math.min(complete, line ? normalizeCartQty(line.qty) : 0);
+      }
+      if (!Number.isFinite(complete)) complete = 0;
+    }
+    if (complete <= 0){
+      cart = cart.filter(it => it !== d);
+      changed = true;
+    } else if (normalizeCartQty(d.qty) !== complete){
+      d.qty = complete;
+      changed = true;
+    }
+  }
+  if (changed){
+    saveCartLocal();
+    syncCartToServer();
+    renderCartBadge();
+  }
+}
+
+
 function setCartQty(key, qty){
   const it = cart.find(it => cartItemKey(it) === key);
   if (!it) return;
+  /* Bundle-discount qty is derived by syncBundleDiscounts(), never stepped. */
+  if (it.lineType === 'bundle-discount') return;
   const n = Math.floor(Number(qty));
   if (!Number.isFinite(n) || n <= 0){ removeFromCartByKey(key); return; }
   it.qty = n;
@@ -20074,6 +20361,26 @@ function openCart(){
 
 function cartLineItemHTML(it){
   const key = cartItemKey(it);
+  /* Bundle-discount lines render as the saving they are: a green
+     "Ahorro combo" row with no qty stepper (the qty is derived by
+     syncBundleDiscounts()) and no retailer badge. */
+  if (it && it.lineType === 'bundle-discount'){
+    return `<div class="flex items-center gap-3 py-4 border-b" style="border-color:var(--line)">
+    <div class="w-16 h-16 rounded-xl flex-shrink-0 grid place-items-center" style="background:#E9F7EF">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0F7A3D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3.24H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.59a2 2 0 0 0 2.83 0l4.59-4.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+    </div>
+    <div class="min-w-0 flex-1">
+      <div class="mb-1"><span class="text-[10.5px] font-extrabold uppercase tracking-wide px-2 py-0.5 rounded-full" style="background:#0F7A3D; color:#fff">Ahorro combo</span></div>
+      <div class="text-[13px] font-bold leading-snug truncate">${escapeHtml(it.title)}</div>
+      <div class="text-[14px] font-extrabold tabular mt-1" style="color:#0F7A3D">${fmtPriceLabel(Number(it.priceUsd))}</div>
+    </div>
+    <div class="flex-shrink-0">
+      <button onclick="removeFromCartByKey('${jsAttr(key)}')" aria-label="Quitar descuento" class="w-8 h-8 rounded-lg grid place-items-center focus-ring transition text-zinc-400 hover:text-red-500">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
+      </button>
+    </div>
+  </div>`;
+  }
   return `<div class="flex items-center gap-3 py-4 border-b" style="border-color:var(--line)">
     ${it.image ? `<img src="${escapeHtml(it.image)}" class="w-16 h-16 rounded-xl object-cover flex-shrink-0" style="background:var(--sky)" alt="">` : `<div class="w-16 h-16 rounded-xl flex-shrink-0" style="background:var(--sky)"></div>`}
     <div class="min-w-0 flex-1">
@@ -20135,6 +20442,7 @@ function fmtPEN_direct(pen){
    cart was missing, and it is on every line. */
 function cartWeightReviewItems(){
   return cart.filter(it => {
+    if (it && it.lineType === 'bundle-discount') return false;
     const detail = estimateRetailWeightDetail(it.title || '');
     return !freightQuotable(detail, Number(it.priceUsd ?? it.price)).quotable;
   });

@@ -106,6 +106,8 @@ export const DEPARTMENT_SPEC = {
   /* JOYERÍA + CARTERAS (2026-09-27, Danny). Mirrors index.html. */
   jewelry:         { category: "jewelry" },
   purses:          { category: "purses" },
+  /* LIBROS (2026-09-27). Mirrors index.html. */
+  books:           { category: "books" },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -130,6 +132,8 @@ export const BUCKET_SPEC = {
   /* JOYERÍA + CARTERAS (2026-09-27, Danny). Mirrors index.html. */
   jewelry:         { category: "jewelry" },
   purses:          { category: "purses" },
+  /* LIBROS (2026-09-27). Mirrors index.html. */
+  books:           { category: "books" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:
