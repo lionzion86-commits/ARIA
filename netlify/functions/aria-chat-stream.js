@@ -26,8 +26,12 @@
 
    THE WIRE FORMAT (server-sent events, one JSON object per event):
      {"t":"texto"}                    a delta, append it
-     {"done":true,"reply":"...",      the finished reply, plus Ara's
-      "audio":"<base64>|null"}         voice if it was available
+     {"done":true,"reply":"..."}      the finished reply -- text first,
+                                      always, even if voice fails
+     {"audio":"<base64>"}             Ara's voice, when available; a
+                                      trailing event that may arrive after
+                                      done, or never -- the client speaks
+                                      whenever it lands
      {"error":"..."}                  give up and fall back
 
    The full reply is repeated in the `done` event on purpose. The client
@@ -138,22 +142,25 @@ export default async function handler(req) {
           return;
         }
 
-        /* ARA'S VOICE STILL ARRIVES, just last instead of first. It
-           needs the whole reply, which only exists now, and the text is
-           already on screen by the time this resolves — so the round
-           trip costs the shopper nothing they can see. Best effort, as
-           it has always been: null here means the browser's own voice
-           takes over client-side. The reply is sanitized (see
+        /* VOICE IS DECOUPLED FROM TEXT (2026-09-27). Done used to wait for
+           Grok's TTS round trip, so the words sat on screen in silence while
+           the audio rendered. Now done carries the text immediately and the
+           audio follows as its own trailing event; the client speaks whenever
+           it lands, and a TTS failure never delays or blocks the reply. Best
+           effort, as it has always been: no audio event means the browser's
+           own voice takes over client-side. The reply is sanitized (see
            sanitizeSpokenPunctuation) so dictated punctuation words never
            reach the shopper as words, in the bubble or the voice. */
-        send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), audio: await speechFor(reply) });
+        send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply) });
+        const audio = await speechFor(reply);
+        if (audio) send(controller, { audio });
         controller.close();
       } catch (error) {
         /* MID-STREAM FAILURE KEEPS WHAT IT HAS. Whatever Aria had
            already said stays on screen and is returned as the reply, so
            a dropped connection leaves a short answer rather than
            deleting a paragraph the shopper was reading. */
-        if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), audio: null, truncated: true });
+        if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), truncated: true });
         else send(controller, { error: error.message });
         controller.close();
       } finally {

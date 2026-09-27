@@ -6811,13 +6811,15 @@ check("the assistant never opens with an empty bubble", () => {
   /* THE FIRST THING A SHOPPER SEES OF THE ON-RAMP. A 200 carrying no
      `reply` -- a degraded endpoint, a cold function -- was passed
      straight to addAssistantMessage and drew a sky-blue box with
-     nothing in it. */
+     nothing in it. The greeting streams now (2026-09-27), but the
+     guarantee is unchanged: no reply, no bubble -- the written
+     fallback line instead. */
   const greet = chatSrc.slice(chatSrc.indexOf("if (assistantOpen && document.getElementById('assistantMessages')"), chatSrc.indexOf("function hideGreetBubble(){"));
-  if (!/const greeting = typeof data\?\.reply === 'string' \? data\.reply\.trim\(\) : ''/.test(greet)) {
+  if (!/if \(!streamed \|\| !streamed\.reply\)/.test(greet)) {
     throw new Error("the greeting is rendered without checking there is one");
   }
-  if (!/if \(greeting\) addAssistantMessage\('bot', greeting, data\.audio\);/.test(greet)) throw new Error("a blank greeting can reach the panel");
-  eq((greet.match(/ARIA_GREETING_FALLBACK/g) || []).length, 2, "the empty case and the network case give different answers");
+  if (!/sink\.finish\(streamed\.reply\) \|\| ARIA_GREETING_FALLBACK/.test(greet)) throw new Error("a blank greeting can reach the panel");
+  eq((greet.match(/ARIA_GREETING_FALLBACK/g) || []).length, 2, "the failed stream and the empty reply both fall back to the written line");
 });
 /* ==================================================================
    THE IMAGE LIGHTBOX — six ways out, and none of them coverable.

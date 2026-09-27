@@ -31,6 +31,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
 <style>
   @keyframes blink{50%{opacity:0}}
+  /* LISTENING PILL DOT (2026-09-27): the header status pulses green while
+     the mic is hot, so "is she listening?" is never a question. */
+  .ariaListenDot{display:inline-block;width:8px;height:8px;border-radius:9999px;background:#22c55e;margin-right:6px;vertical-align:1px;animation:ariaListenPulse 1.2s ease-in-out infinite}
+  @keyframes ariaListenPulse{50%{opacity:.25;transform:scale(.8)}}
   :root{
     --navy:#0A1F44;
     --blue:#2F5FEE;
@@ -22096,30 +22100,31 @@ function toggleAssistant(){
 hideGreetBubble();
 if (assistantOpen && document.getElementById('assistantMessages').children.length === 0) {
   if (!continuousMode) { continuousMode = true; }
-  fetch('/.netlify/functions/aria-chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: 'Preséntate brevemente como Aria, la asistente de compras, y pregunta qué está buscando el cliente.' })
-  })
-  .then(res => res.json())
-  .then(data => {
-    /* AN EMPTY GREETING IS AN EMPTY BLUE BOX. A 200 carrying no `reply`
-       -- a degraded endpoint, a missing key, a cold function -- used to
-       be passed straight to addAssistantMessage, which drew a sky-blue
-       bubble with nothing in it. On a phone that box is the FIRST thing
-       a shopper sees of the assistant, so the greeting falls back to the
-       same written line the network failure already falls back to.
-       Flagged during the streaming work as "one line to fix"; this is
-       the line, and it is here because a broken first impression of the
-       on-ramp is exactly what this brief is about. */
-    const greeting = typeof data?.reply === 'string' ? data.reply.trim() : '';
-    if (greeting) addAssistantMessage('bot', greeting, data.audio);
-    else addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
-  })
-  .catch(() => {
-    addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
-  });
+  greetAssistantStreaming();
 }
+}
+
+/* THE GREETING STREAMS TOO (2026-09-27). It used to wait for the whole x.ai
+   round trip -- text AND Ara's voice -- before a single word appeared, which
+   made the slowest first impression the first impression. Now it rides the
+   same streaming endpoint as every other reply: words appear as they are
+   written, voice follows when it lands. Any failure lands on the same written
+   fallback line the old path used. */
+async function greetAssistantStreaming(){
+  const msg = 'Preséntate brevemente como Aria, la asistente de compras, y pregunta qué está buscando el cliente.';
+  const sink = beginAssistantReply();
+  let streamed = null;
+  try {
+    streamed = sink ? await streamAssistantReply({ message: msg, history: [] }, sink) : null;
+  } catch { streamed = null; }
+  if (!streamed || !streamed.reply) {
+    if (sink) sink.discard();
+    addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
+    return;
+  }
+  const reply = sink.finish(streamed.reply) || ARIA_GREETING_FALLBACK;
+  hideAssistantTyping();
+  speakAssistantReply(reply, streamed.audio);
 }
 
 /* The sheet re-measures whenever the visible area changes: the keyboard
@@ -22178,15 +22183,42 @@ function addAssistantMessage(role, text, audioBase64){
    everything else about it -- Ara's voice first, the browser's as the
    fallback, and resuming the mic in continuous mode either way -- is
    the behaviour the site already had. */
+/* BROWSER-VOICE FALLBACK (2026-09-27). speakAssistantReply has always named
+   speakText as the fallback when Ara's audio is missing, but nothing defined
+   it -- so the fallback silently never spoke. Now it does: the browser's
+   Spanish voice, reopening the mic when the utterance ends under the same
+   half-duplex contract as Ara's audio. */
+function speakText(text){
+  const reopen = () => { if (continuousMode && !assistantThinking) startListening(); };
+  try {
+    if (!('speechSynthesis' in window) || !text) { setTimeout(reopen, 400); return; }
+    window.speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'es-PE';
+    u.onend = reopen;
+    u.onerror = () => setTimeout(reopen, 400);
+    window.speechSynthesis.speak(u);
+  } catch(e) {
+    setTimeout(reopen, 400);
+  }
+}
+
 function speakAssistantReply(text, audioBase64){
+  /* TURN-TAKING (2026-09-27). The mic is closed for the whole speak phase
+     on every path: Aria never listens to herself, and never to the
+     shopper's reaction while she is talking. Each speak path reopens it
+     when the audio actually ends. */
+  intentionalStop = true;
+  clearSpeechCapTimer();
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  setAssistantMicState(false);
   if (audioBase64) {
     speakWithAria(audioBase64, text);
   } else if (typeof speakText === 'function') {
-    speakText(text); // fallback to browser voice if Ara's audio wasn't available this turn
-    if (continuousMode) setTimeout(() => { if (continuousMode) startListening(); }, 400);
+    speakText(text); // browser voice; reopens the mic on utterance end
   } else if (continuousMode) {
     // no audio available at all this turn — still resume listening so the flow isn't stuck
-    setTimeout(() => { if (continuousMode) startListening(); }, 400);
+    setTimeout(() => { if (continuousMode && !assistantThinking) startListening(); }, 400);
   }
 }
 
@@ -22332,22 +22364,31 @@ function beginAssistantReply(){
    ============================================================ */
 async function streamAssistantReply(payload, sink){
   if (typeof ReadableStream === 'undefined' || typeof TextDecoder === 'undefined') return null;
+  /* A HUNG FIRST BYTE IS A FROZEN CHAT. The 25s budget covers time-to-
+     first-token only: once tokens are flowing the shopper is reading, so
+     the stream owns its own lifetime after that. A dead stream returns
+     null and the caller falls back to the buffered endpoint instead of
+     spinning forever. */
+  const ctrl = new AbortController();
+  const abortTimer = setTimeout(() => ctrl.abort(), 25000);
   let res;
   try {
     res = await fetch('/.netlify/functions/aria-chat-stream', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
+      signal: ctrl.signal,
     });
-  } catch { return null; }
-  if (!res.ok || !res.body || typeof res.body.getReader !== 'function') return null;
-  if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) return null;
+  } catch { clearTimeout(abortTimer); return null; }
+  if (!res.ok || !res.body || typeof res.body.getReader !== 'function') { clearTimeout(abortTimer); return null; }
+  if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) { clearTimeout(abortTimer); return null; }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffered = '';
   let done = null;
   let failed = null;
+  let pendingAudio = null;
   try {
     for (;;){
       const chunk = await reader.read();
@@ -22365,7 +22406,11 @@ async function streamAssistantReply(payload, sink){
         try { evt = JSON.parse(trimmed.slice(5)); } catch { continue; }
         if (evt.error){ failed = evt.error; continue; }
         if (evt.done){ done = evt; continue; }
-        if (typeof evt.t === 'string') sink.push(evt.t);
+        /* VOICE RIDES ALONE NOW (2026-09-27): the server sends the text done
+           event first and Ara's audio as a trailing event, so the words
+           never wait on the TTS round trip. */
+        if (typeof evt.audio === 'string' && evt.audio){ pendingAudio = evt.audio; continue; }
+        if (typeof evt.t === 'string') { clearTimeout(abortTimer); sink.push(evt.t); }
       }
     }
   } catch (err) {
@@ -22377,10 +22422,11 @@ async function streamAssistantReply(payload, sink){
        against a connection dropped mid-reply -- the reply itself was
        fine and the page still logged "TypeError: network error", which
        is exactly the signal this whole change exists to remove. */
+    clearTimeout(abortTimer);
     try { await reader.cancel(); } catch { /* already closed */ }
   }
 
-  if (done) return { reply: done.reply || sink.text, audio: done.audio || null };
+  if (done) return { reply: done.reply || sink.text, audio: pendingAudio || done.audio || null };
   // Died after it had started: keep what the shopper is already reading.
   if (sink.started) return { reply: sink.text, audio: null, truncated: true };
   // Nothing rendered, so the buffered endpoint can still answer cleanly.
@@ -22800,6 +22846,12 @@ async function runAssistantLiveSearch(query){
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
+  /* TURN-TAKING (2026-09-27). The mic closes for the whole think phase:
+     intentionalStop keeps onend from treating this as an accidental drop
+     and reopening the mic behind our back. */
+  intentionalStop = true;
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  setAssistantMicState(false);
   loadFxRate(); // kick off/reuse the memoized fetch; addAssistantProductCard awaits it below before rendering a price
 
   const statusEl = document.getElementById('assistantStatus');
@@ -22916,11 +22968,26 @@ async function runAssistantBrain(text){
          the buffered endpoint answers and the page behaves exactly as it
          did before any of this. */
       if (sink) sink.discard();
-      const res = await fetch('/.netlify/functions/aria-chat-groq', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      /* The buffered fallback gets the same 25s budget -- a hung
+         fallback is the freeze this whole brief is about. On timeout
+         the shopper gets the existing retry line, not a spinner. */
+      const fallCtrl = new AbortController();
+      const fallTimer = setTimeout(() => fallCtrl.abort(), 25000);
+      let res;
+      try {
+        res = await fetch('/.netlify/functions/aria-chat-groq', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: fallCtrl.signal,
+        });
+      } catch {
+        clearTimeout(fallTimer);
+        hideAssistantTyping();
+        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+        return;
+      }
+      clearTimeout(fallTimer);
       if (!res.ok) {
         hideAssistantTyping();
         addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
@@ -22972,11 +23039,29 @@ let silenceTimer = null;
       let currentAriaSpeech = '';
   let lastTranscriptLength = 0;
 let maxSessionTimer = null;
+let voiceErrorStreak = 0;
+const VOICE_ERROR_STREAK_MAX = 3;
 const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
-// SPEC: 2-3 seconds, not 8-10. The mic must never hover — a thinker, or
-// someone turning to ask their kid mid-sentence, should hear it close and
-// re-tap when they are ready, rather than feel listened to.
-const SILENCE_TIMEOUT_MS = 2500;
+// TURN-TAKING (2026-09-27): ~1.2 seconds, not 2-3. The mic must never hover —
+// a thinker, or someone turning to ask their kid mid-sentence, should hear it
+// close and re-tap when they are ready, rather than feel listened to.
+const SILENCE_TIMEOUT_MS = 1200;
+/* PER-CAPTURE SPEECH CAP (2026-09-27): one utterance never runs past ~10s of
+   continuous speech. When it fires, recognition stops and the final result
+   processes normally -- a long sentence just gets finalized early instead
+   of holding the mic open. */
+const SPEECH_CAP_MS = 10000;
+let speechCapTimer = null;
+function clearSpeechCapTimer(){
+  if (speechCapTimer) { clearTimeout(speechCapTimer); speechCapTimer = null; }
+}
+function restartSpeechCapTimer(){
+  clearSpeechCapTimer();
+  speechCapTimer = setTimeout(() => {
+    intentionalStop = true;
+    if (recognition) { try { recognition.stop(); } catch(e) {} }
+  }, SPEECH_CAP_MS);
+}
 const GOODBYE_PATTERNS = ['adiós', 'adios', 'chau', 'hasta luego', 'nos vemos', 'eso es todo', 'gracias eso es todo', 'bye', 'goodbye'];
 
 function isGoodbye(text){
@@ -23005,15 +23090,34 @@ function clearSilenceTimer(){
    ================================================================== */
 function setAssistantMicState(listening){
   const micBtn = document.getElementById('assistantMicBtn');
-  if (!micBtn) return;
-  micBtn.style.background = listening ? 'var(--blue)' : 'var(--navy)';
-  micBtn.style.color = '#fff';
-  micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+  if (micBtn){
+    micBtn.style.background = listening ? 'var(--blue)' : 'var(--navy)';
+    micBtn.style.color = '#fff';
+    micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
+    /* TAP-TO-MUTE, SAID OUT LOUD. In continuous mode the button is the
+       mute switch, so while it is live its label says so. */
+    micBtn.setAttribute('aria-label', listening ? 'Silenciar el micrófono' : 'Hablar con Aria');
+    micBtn.setAttribute('title', listening ? 'Silenciar el micrófono' : 'Hablar con Aria');
+  }
+  /* THE LISTENING PILL (2026-09-27). The header status becomes unmissable
+     while the mic is hot: a pulsing dot plus an explicit "te escucho",
+     so nobody has to wonder whether Aria is listening. It only resets
+     the line when the pill is the thing showing -- a "buscando…" status
+     set elsewhere is left alone. */
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl){
+    if (listening){
+      statusEl.innerHTML = '<span class="ariaListenDot" aria-hidden="true"></span>Te escucho… <span style="opacity:.75">· toca el micrófono para silenciar</span>';
+    } else if (statusEl.querySelector('.ariaListenDot')){
+      statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
+    }
+  }
 }
 
 function stopContinuousMode(){
   continuousMode = false;
   clearSilenceTimer();
+  clearSpeechCapTimer();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
@@ -23031,6 +23135,7 @@ if (SpeechRecognitionAPI) {
   document.getElementById('assistantStatus').textContent = 'Escuchando…';
   setAssistantMicState(true);
   lastTranscriptLength = 0;
+  voiceErrorStreak = 0;
   clearSilenceTimer();
   // start the silence countdown fresh — it only fires if no speech
   // event resets it before it completes
@@ -23097,6 +23202,7 @@ recognition.onresult = (e) => {
         // interim results can shrink or stay flat mid-sentence and shouldn't be treated as silence
         if (transcript.trim().length > 0) {
           clearSilenceTimer();
+          restartSpeechCapTimer();
           lastTranscriptLength = transcript.trim().length;
 
           if (!result.isFinal) {
@@ -23110,6 +23216,16 @@ recognition.onresult = (e) => {
   document.getElementById('assistantInput').value = transcript;
 
   if (result.isFinal) {
+    /* TURN-TAKING (2026-09-27). A final result that lands while Aria is
+       still thinking is overheard side-conversation, not a new turn --
+       the mic was supposed to be closed. Drop it: no bubble, no brain
+       run, instead of letting "mira, está buscando zapatos" hijack
+       the search in flight. */
+    if (assistantThinking) {
+      lastTranscriptLength = 0;
+      document.getElementById('assistantInput').value = '';
+      return;
+    }
     lastTranscriptLength = 0;
     /* Dictated punctuation arrives as words ("comma", "punto") — convert
        to the real marks before the message is shown or sent, so the chat
@@ -23131,13 +23247,28 @@ recognition.onresult = (e) => {
   }
 };
 
-  recognition.onerror = () => {
+  recognition.onerror = (e) => {
     clearSilenceTimer();
-    if (!continuousMode) showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.');
+    clearSpeechCapTimer();
+    if (!continuousMode) { showToast('No pude escuchar bien — intenta de nuevo o escribe tu búsqueda.'); return; }
+    /* BACKOFF (2026-09-27). Three real failures in a row (denied mic, no
+       capture device, dead network) is not a bad moment, it is a broken
+       mic -- stop the restart loop instead of spinning on it, and say so.
+       'no-speech'/'aborted' are the recognizer giving up on its own and
+       are already handled by the silence timer. */
+    const kind = e && e.error;
+    if (kind === 'not-allowed' || kind === 'service-not-allowed' || kind === 'audio-capture' || kind === 'network') {
+      if (++voiceErrorStreak >= VOICE_ERROR_STREAK_MAX) {
+        stopContinuousMode();
+        voiceErrorStreak = 0;
+        showToast('El micrófono no está respondiendo — toca el micrófono para intentarlo de nuevo.');
+      }
+    }
   };
 
   recognition.onend = () => {
   clearSilenceTimer();
+  clearSpeechCapTimer();
 
   if (intentionalStop) {
     intentionalStop = false;
@@ -23148,8 +23279,10 @@ recognition.onresult = (e) => {
   setAssistantMicState(false);
 
   if (continuousMode && !assistantThinking) {
+    /* The 400ms window is long enough for a turn to begin -- re-check
+       inside it, so the mic can never reopen mid-think. */
     setTimeout(() => {
-      if (continuousMode) startListening();
+      if (continuousMode && !assistantThinking) startListening();
     }, 400);
   }
 };
@@ -23196,7 +23329,10 @@ function speakWithAria(audioBase64, ariaText){
     ariaAudioPlayer.onplaying = () => setOrbState('speaking');
     ariaAudioPlayer.onended = () => {
       setOrbState('idle');
-      if (continuousMode) startListening();
+      /* The follow-up listen window is short by construction: the
+         silence timer closes the mic ~1.2s after the shopper stops
+         talking, so this never becomes an open mic again. */
+      if (continuousMode && !assistantThinking) startListening();
     };
     ariaAudioPlayer.onpause = () => { if (orbState === 'speaking') setOrbState('idle'); };
     ariaAudioPlayer.onerror = () => setOrbState('idle');
