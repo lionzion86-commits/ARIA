@@ -484,7 +484,7 @@
 <script type="module">
   import { CHARGE_PER_KG, BASE_FEE,
            TAX_ESTIMATE_THRESHOLD_USD, TAX_ESTIMATE_RATE, importTaxEstimateUsd,
-           TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE,
+           TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE, dutiableBaseUsd,
            SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_PEN, smallOrderFeePen,
            SMALL_ORDER_FEE_LABEL, SMALL_ORDER_FEE_NOTE } from './weight-data.js';
   import { RETAILER_LABELS, RETAILER_COLORS, RETAILER_LOGOS } from './scripts/lib/retailers.js';
@@ -1206,8 +1206,14 @@
       </div>
     `).join('');
 
+    /* VALOR DECLARADO IS THE DUTIABLE SUM (2026-09-27): the $200
+       threshold and the import-tax estimate are the state's rules and
+       they apply to what the goods really cost (raw x 1.07), never to
+       the marked-up card price. Lines stamped at addToCart carry
+       dutiableUsd; older lines get the exact reversal. */
     const totals = cart.reduce((acc, it) => {
-      acc.valor += it.priceUsd * it.qty;
+      const dLine = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+      acc.valor += (Number.isFinite(dLine) ? dLine : 0) * it.qty;
       acc.kg += it.weightKg * it.qty;
       return acc;
     }, { valor: 0, kg: 0 });
