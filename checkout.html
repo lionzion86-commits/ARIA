@@ -132,6 +132,7 @@
               </span>
               <span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span>
             </div>
+            <div class="flex justify-between"><span>Productos</span><span id="sumProducts" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
             <div class="flex justify-between"><span>Valor total declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
             <div class="flex justify-between"><span>Flete</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
             <!-- SMALL-ORDER FEE (2026-09-20). Rendered only when it
@@ -575,6 +576,7 @@
   const quoteStatus = document.getElementById('quoteStatus');
   const sumWeight = document.getElementById('sumWeight');
   const sumValor = document.getElementById('sumValor');
+  const sumProducts = document.getElementById('sumProducts');
   const sumTaxRow = document.getElementById('sumTaxRow');
   const sumTax = document.getElementById('sumTax');
   const sumFlete = document.getElementById('sumFlete');
@@ -868,7 +870,7 @@
 
   function currentSmallOrderFeePen(){
     if (!fxRates) return 0;
-    const orderUsd = currentValor() + currentFreightUsd();
+    const orderUsd = currentGoodsUsd() + currentFreightUsd();
     return smallOrderFeePen(round2(orderUsd * fxRates.venta));
   }
 
@@ -884,11 +886,22 @@
      the order for the margin view, but it is no longer what the customer
      is charged. Where Aria's estimate is under what AVI bills, Aria
      absorbs the difference — that is the promise printed on the row. */
+  /* GOODS ARE WHAT THE CUSTOMER PAYS (2026-09-27): the checkout total
+     charges the marked-up cart prices for products. The dutiable
+     (declared) value only ever decides the $200 threshold and feeds the
+     import-tax estimate — charging it as the goods line silently erased
+     the 24% service margin on every over-$200 order. */
+  function currentGoodsUsd(){
+    if (!Array.isArray(cart) || !cart.length) return 0;
+    return round2(cart.reduce((s, it) => s + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0));
+  }
+
   function orderTotalsUsd(){
+    const goods = currentGoodsUsd();
     const fob = currentValor();
     const freight = currentFreightUsd();
     const tax = importTaxEstimateUsd(fob, freight);
-    return { fob, freight, tax, goodsAndFreight: round2(fob + freight), totalUsd: round2(fob + freight + tax) };
+    return { goods, fob, freight, tax, totalUsd: round2(goods + freight + tax) };
   }
 
   /* One renderer for the tax row, called from both summary branches so
@@ -975,6 +988,7 @@
        quote; only the numbers on screen are filled in. */
     const provisional = kg > 0 && valor > 0 ? fallbackQuote(kg, valor) : null;
     const totals = orderTotalsUsd();
+    setMoney(sumProducts, totals.goods);
     renderTaxRow(totals.tax);
 
     if (loading || !latestQuote){
