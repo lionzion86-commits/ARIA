@@ -17821,7 +17821,10 @@ function autoSourceBadgeHTML(key, heightPx = 22){
   if (s.logo){
     return `<img src="${escapeHtml(s.logo)}" alt="${escapeHtml(s.label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle">`;
   }
-  return `<span class="inline-flex items-center h-[${heightPx}px] px-2.5 rounded-lg text-[12px] font-extrabold text-white align-middle" style="background:${s.color}">${escapeHtml(s.label)}</span>`;
+  /* Wordmark pill for sources with no logo file. nowrap + no-shrink:
+     inside tight flex rows (the compare strip) a long label like
+     "Advance Auto Parts" must never wrap and spill out of the pill. */
+  return `<span class="inline-flex items-center px-2.5 rounded-lg text-[12px] font-extrabold text-white align-middle" style="background:${s.color};height:${heightPx}px;white-space:nowrap;flex-shrink:0">${escapeHtml(s.label)}</span>`;
 }
 
 /* ONE SEARCH PATH FOR EVERY SOURCE. AutoZone's cached results and a
@@ -17959,6 +17962,80 @@ function autoCatalogBlockHTML(source){
       <button onclick="openStore('${jsAttr(source.id)}')" class="text-[13px] font-bold focus-ring rounded" style="color:var(--navy)">Ver catálogo &#8594;</button>
     </div>
   </div>`;
+}
+
+/* ============================================================
+   CATALOG-BACKED SOURCE IN SEARCH RESULTS (2026-09-27)
+
+   Danny's rule: price comparison needs the CACHED catalog, not a live
+   search. Advance Auto Parts carries 1,365 real brake parts -- real
+   prices, real axle-specific weights -- in advanceauto-catalog.json, but
+   the results view only ever showed its "Ver catálogo" teaser card, so
+   every product with a price on screen came from AutoZone's live
+   search. His words: "I can't only do a live search... we needed [the]
+   cached catalog."
+
+   A catalog-backed source (catalog:true, search:false) now renders its
+   own query-matched products as real cards through the same
+   renderAutoPartBlock as every other source: same Delantero/Trasero
+   axle badges, same Posición filter, same honest "confirma con el
+   número de parte" scope line. Its items also feed the comparison
+   strip, so "tienda por tienda" actually compares tiendas.
+   ============================================================ */
+let advanceCatalogItemsCache = null;
+async function advanceCatalogItems(){
+  if (advanceCatalogItemsCache) return advanceCatalogItemsCache;
+  const data = await loadDepartmentCache();
+  const bucket = data && data.retailers && data.retailers.advanceauto;
+  const out = [];
+  const depts = (bucket && bucket.departments) || {};
+  for (const entry of Object.values(depts)){
+    const items = Array.isArray(entry) ? entry : entry && entry.items;
+    if (Array.isArray(items)) out.push(...items);
+  }
+  advanceCatalogItemsCache = out;
+  return out;
+}
+
+/* Brake vocabulary in both languages. The whole Advance catalog is
+   brake parts, so a brake query matches on part type while a part-number
+   query (NAD1363) matches on the number in the title. Anything else --
+   "filtro de aceite" -- honestly matches nothing: Advance sells parts,
+   not everything. Pure: no DOM, no fetch, so the unit tests run it. */
+const ADV_BRAKE_WORDS = ['freno','frenos','pastilla','pastillas','disco','discos','brake','brakes','pad','pads','rotor','rotors','mordaza','caliper'];
+function scoreAdvanceItems(rawItems, query){
+  const q = String(query || '').toLowerCase();
+  const tokens = q.split(/[^a-z0-9]+/).filter(t => t.length > 2);
+  const hasWord = (w) => tokens.some(t => t.includes(w) || w.includes(t));
+  const isBrakeQuery = ADV_BRAKE_WORDS.some(hasWord);
+  const wantsPads = hasWord('pastilla') || /(^|[^a-z])pads?([^a-z]|$)/.test(q);
+  const wantsRotors = hasWord('disco') || /(^|[^a-z])rotors?([^a-z]|$)/.test(q);
+  const scored = [];
+  for (const raw of rawItems){
+    if (!raw || raw.price == null || !raw.image) continue;
+    const hay = `${raw.title || raw.name || ''} ${raw.type || ''}`.toLowerCase();
+    const isPad = /pastilla|(^|[^a-z])pads?([^a-z]|$)/.test(hay);
+    const isRotor = /disco|(^|[^a-z])rotors?([^a-z]|$)/.test(hay);
+    let score = 0;
+    for (const t of tokens){
+      if (t.length >= 4 && hay.includes(t)) score += t.length >= 6 ? 3 : 2;
+    }
+    if (wantsPads && isPad) score += 4;
+    if (wantsRotors && isRotor) score += 4;
+    if (isBrakeQuery) score += 1;
+    if (score > 0) scored.push([score, raw]);
+  }
+  scored.sort((a, b) => (b[0] - a[0]) || ((a[1].price || 0) - (b[1].price || 0)));
+  return scored.map(([, raw]) => raw);
+}
+
+/* Query-matched Advance products, normalized through the same path as
+   every other auto item -- price already carries the door margin, weight
+   is the retailer's own axle-correct figure. */
+async function advanceItemsForQuery(query, maxItems){
+  const raw = await advanceCatalogItems();
+  return scoreAdvanceItems(raw, query).slice(0, maxItems || 12)
+    .map(item => normalizeAutoPartItem('advanceauto', item));
 }
 
 /* A source whose scraper is not wired up yet. Honest, and deliberately
@@ -18502,7 +18579,9 @@ function axleBadgeHTML(axle){
 }
 
 /* Swaps which axle's listings are on screen. Cards carry their own price
-   and weight, so filtering the grid swaps all three together. */
+   and weight, so filtering the rail swaps all three together. blockId is
+   the outer block wrapper: it holds both the Posicion buttons and the
+   carousel, so one query restyles the buttons and hides the cards. */
 function setAutoAxleFilter(blockId, axle){
   const block = document.getElementById(blockId);
   if (!block) return;
@@ -18630,7 +18709,7 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       partNumber: partNumberLabel(it.raw),
     };
     const idx = autoPartsRendered.push(card) - 1;
-    return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {
+    return `<div class="ariaCarouselCard" data-axle="${axle || 'none'}">${productCardHTML(card, {
       open: `openAutoPart(${idx})`,
       // Green ONLY where the list named this car. In the unconfirmed
       // branch there is no badge at all — the absence is the signal, and
@@ -18651,10 +18730,18 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       + `La tienda no publica la lista de compatibilidad de estas piezas, así que no podemos confirmarlo nosotros: `
       + `revisa el número de parte antes de pedir.`;
 
-  return `<div class="mb-8">${header}
+  /* PER-STORE CAROUSEL (2026-09-27, Danny): each store's parts ride
+     their own horizontal rail instead of a vertical grid, so AutoZone's
+     15 pads never bury Advance's block below the fold -- both stores are
+     visible without the long scroll, and the tienda-por-tienda comparison
+     reads at a glance. The block id lives on this outer wrapper (not the
+     rail) so setAutoAxleFilter's [data-axle-btn] query actually finds the
+     Posicion buttons: they used to sit outside the queried container and
+     "Todos" stayed pressed forever. */
+  return `<div class="mb-8" id="${blockId}">${header}
     <p class="text-[11.5px] mb-3" style="color:${hasData ? '#8A93A8' : '#8A6B1F'}">${scopeLine}</p>
     ${selector}
-    <div id="${blockId}" class="${LISTING_GRID_CLASS}">${cards}</div>
+    <div class="ariaCarousel">${cards}</div>
     ${hasData ? '' : `<div class="mt-4">
       <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full border text-[13px] font-bold focus-ring transition" style="border-color:var(--line); color:var(--navy)">
         ¿Prefieres que lo confirmemos nosotros? Escríbenos
@@ -18678,6 +18765,15 @@ function autoPartNumberHTML(partNumber){
    Keyed by source so the comparison strip can say where each part came
    from, and so a source that answers late does not reorder the blocks. */
 let autoConfirmedBySource = new Map();
+/* COMPARISON MODEL (2026-09-27) -- everything each source's block actually
+   shows, keyed by source, with per-source fitment honesty. The strip needs
+   TWO sources with items; a live source whose store publishes no
+   compatibility list still counts (labeled "unconfirmed"), because its
+   prices are real and the shopper is comparing options, not certified
+   fitments. Without this the strip never rendered: AutoZone almost always
+   lands in the unconfirmed branch, leaving Advance alone below the
+   two-source threshold. */
+let autoCompareBySource = new Map();
 
 async function searchAutoParts(){
   if (!selectedVehicle){ showToast('Elige marca, modelo y año primero.'); return; }
@@ -18688,18 +18784,44 @@ async function searchAutoParts(){
   const wrap = document.getElementById('autoPartsResultsWrap');
   autoPartsRendered = [];   // a new search replaces what the cards index into
   autoConfirmedBySource = new Map();
+  autoCompareBySource = new Map();
   wrap.classList.remove('hidden');
   wrap.innerHTML = `<div id="autoCompareWrap"></div><div id="autoSimilarWrap"></div>`
     + AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${s.catalog ? autoCatalogBlockHTML(s) : s.pending ? autoPendingBlockHTML(s, selectedVehicle, query) : autoPartSkeleton(s.label)}</div>`).join('');
 
   await Promise.allSettled(AUTO_PARTS_SOURCES.map(async (source) => {
-    if (!source.search) return;      // nothing to query; its block is already honest
+    /* A catalog-backed source has no live actor to query, but it has
+       something better: the cached catalog. Its block becomes real
+       products with real prices -- that is the comparison Danny asked
+       for -- instead of the "Ver catálogo" teaser. */
+    if (!source.search){
+      if (source.catalog){
+        const blockEl = document.getElementById(`autoBlock-${source.id}`);
+        try {
+          const items = await advanceItemsForQuery(query, 12);
+          autoCompareBySource.set(source.id, { items, fitment: 'catalog' });
+          blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
+          setAutoBlockMedianDoor(blockEl, items, query);
+        } catch (err){
+          blockEl.innerHTML = autoCatalogBlockHTML(source);
+        }
+      }
+      renderAutoComparison(query);
+      return;
+    }
     const blockEl = document.getElementById(`autoBlock-${source.id}`);
     try {
       const items = await source.search(selectedVehicle, query, 5);
       const confirmed = filterAutomotiveParts(vehicleFittedItems(items, selectedVehicle), query);
       autoConfirmedBySource.set(source.id, confirmed);
+      /* The strip compares what the block shows -- mirror renderAutoPartBlock's
+         fitted-or-all decision so the rows match the cards, and label the
+         fitment honestly instead of dropping unconfirmed sources. */
+      const showHasData = hasFitmentData(items, selectedVehicle);
+      const shown = filterAutomotiveParts(showHasData ? vehicleFittedItems(items, selectedVehicle) : items, query);
+      autoCompareBySource.set(source.id, { items: shown, fitment: showHasData ? 'confirmed' : 'unconfirmed' });
       blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
+      setAutoBlockMedianDoor(blockEl, shown, query);
     } catch (err) {
       /* A source whose scraper was never wired up (RockAuto today) is not
          an error the shopper can act on — it gets the same honest
@@ -18711,13 +18833,52 @@ async function searchAutoParts(){
     }
     renderAutoComparison(query);
   }));
+  sortAutoBlocksByPrice();
   renderAutoComparison(query);
   renderAutoSimilarRail();
 }
 
+/* CHEAPEST STORE FLOATS TO THE TOP (2026-09-27, Danny). After a source's
+   block renders we stamp the block with the MEDIAN door price of its items,
+   then sort the blocks so the typically-cheapest store's carousel sits
+   first. Median, not minimum: a single loss-leader SKU (one $35.81 Duralast
+   pad undercutting Advance's cheapest by $0.42 at the door) must not put a
+   pricier store's whole block above the store that is cheaper across the
+   search. The strip already answers "where is the single cheapest option"
+   row by row; block order answers "which store should I browse first".
+   Blocks with no priced items (pending, error, empty) sink to the bottom.
+   The sort runs after every render because sources answer at different
+   speeds, plus once more after all settle. */
+function setAutoBlockMedianDoor(blockEl, items, query){
+  if (!blockEl || !items || !items.length) return;
+  const doors = [];
+  for (const it of items){
+    if (!it || !(it.price > 0)) continue;
+    doors.push(doorToDoorUsd({ price: it.price, weightKg: partWeightForItem(it, query, selectedVehicle) }));
+  }
+  if (!doors.length) return;
+  doors.sort((a, b) => a - b);
+  const mid = doors.length >> 1;
+  const median = doors.length % 2 ? doors[mid] : (doors[mid - 1] + doors[mid]) / 2;
+  blockEl.dataset.medianDoor = String(median);
+  sortAutoBlocksByPrice();
+}
+function sortAutoBlocksByPrice(){
+  const wrap = document.getElementById('autoPartsResultsWrap');
+  if (!wrap) return;
+  const blocks = [...wrap.querySelectorAll(':scope > [id^="autoBlock-"]')];
+  blocks.sort((a, b) => {
+    const da = parseFloat(a.dataset.medianDoor), db = parseFloat(b.dataset.medianDoor);
+    const aHas = isFinite(da), bHas = isFinite(db);
+    if (aHas && bHas) return da - db;
+    return aHas ? -1 : bHas ? 1 : 0;
+  });
+  for (const b of blocks) wrap.appendChild(b);
+}
+
 /* SIMILAR PARTS RAIL (2026-09-24) — "Similares de otras marcas". The
-   comparison strip answers "the same part, store by store"; this answers
-   the next question: the same TYPE of part from the other store's shelf.
+   comparison strip answers "which store is cheaper for this search"; this
+   answers the next question: the same TYPE of part from the other store's shelf.
    Built from the confirmed-fit results already in memory, grouped by
    part type, preferring the type with the most brand variety. Cards ride
    the same autoPartsRendered index as the main blocks, so a tap opens the
@@ -18772,22 +18933,25 @@ function renderAutoSimilarRail(){
 /* ============================================================
    THE COMPARISON STRIP — Google Flights, for brake pads.
 
-   The same part, across stores, ranked by what it costs AT YOUR DOOR:
-   product price plus the freight its own weight earns. Store attribution
-   on every row, because "which shop" is the second question after "does
-   it fit" and the answer changes the price.
+   Comparable options, across stores, ranked by what each costs AT YOUR
+   DOOR: product price plus the freight its own weight earns. Store
+   attribution on every row, because "which shop" is the second question
+   after "does it fit" and the answer changes the price. The heading never
+   claims two listings are the same part -- equivalence needs a shared
+   part number, and the strip is a price comparison of query-relevant
+   options.
 
-   It only renders when TWO OR MORE sources returned confirmed-fit parts.
-   With one source it would be the same list twice under a different
-   heading, which is noise pretending to be a feature. */
+   It renders when TWO OR MORE sources have items to compare. Fitment is
+   labeled per store: a source whose store publishes no compatibility list
+   says so instead of claiming a confirmed fit. */
 function renderAutoComparison(query){
   const wrap = document.getElementById('autoCompareWrap');
   if (!wrap) return;
-  const sources = [...autoConfirmedBySource.entries()].filter(([, items]) => items.length);
-  if (sources.length < 2){ wrap.innerHTML = ''; return; }
+  const entries = [...autoCompareBySource.entries()].filter(([, e]) => e && e.items && e.items.length);
+  if (entries.length < 2){ wrap.innerHTML = ''; return; }
 
   const rows = [];
-  for (const [sourceKey, items] of sources){
+  for (const [sourceKey, { items, fitment }] of entries){
     for (const it of items){
       const weightKg = partWeightForItem(it, query, selectedVehicle);
       rows.push({
@@ -18796,18 +18960,23 @@ function renderAutoComparison(query){
         price: it.price,
         weightKg,
         doorUsd: doorToDoorUsd({ price: it.price, weightKg }),
+        fitment,
       });
     }
   }
   rows.sort((a, b) => a.doorUsd - b.doorUsd);
   const best = rows[0];
+  /* Fitment honesty, per store: nobody claims a compatibility list the
+     store does not publish. */
+  const fitBits = entries.map(([k, { fitment }]) =>
+    `${autoSourceLabel(k)}: ${fitment === 'confirmed' ? 'calce confirmado' : 'confirma con el N.° de parte'}`);
 
   wrap.innerHTML = `<div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line); background:#fff">
     <div class="text-[15px] font-extrabold mb-1" style="color:var(--navy)">
-      El mismo repuesto, tienda por tienda
+      Compara opciones, tienda por tienda
     </div>
     <p class="text-[12px] mb-4" style="color:#6B7487">
-      Ordenado por lo que pagas a tu puerta: producto + flete. Todos con calce confirmado para tu ${escapeHtml(vehicleLabel(selectedVehicle))}.
+      Ordenado por lo que pagas a tu puerta: producto + flete para tu ${escapeHtml(vehicleLabel(selectedVehicle))}. ${escapeHtml(fitBits.join(' \u00b7 '))}.
     </p>
     <div class="space-y-2">${rows.slice(0, 8).map(r => `
       <div class="flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5" style="border-color:var(--line); ${r === best ? 'background:#F1F7F3' : ''}">
@@ -18818,7 +18987,7 @@ function renderAutoComparison(query){
         <div class="text-right flex-shrink-0">
           <div class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${escapeHtml(fmtPriceLabel(r.doorUsd))}</div>
           ${solesUnderHTML(r.doorUsd, 'text-[10.5px] tabular')}
-          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}</div>
+          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}${r.fitment === 'confirmed' ? '' : ' · confirma N.° de parte'}</div>
         </div>
       </div>`).join('')}</div>
   </div>`;

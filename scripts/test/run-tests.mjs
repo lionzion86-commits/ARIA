@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageAdvanceQuerySlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -8515,6 +8515,163 @@ check("partWeightForItem prefers a real catalog weight, keeps the axle table as 
   const r = axlePage.partWeightForItem({ weightKg: 1.08, weightEstimated: true, location: "Front" }, "pastillas de freno", null);
   eq(r, -999, "no real weight: falls through to the estimator");
   eq(axlePage.__estimateCalls[0][0], "pastillas de freno delantera", "the estimator gets the axle-qualified query");
+});
+
+/* CATALOG-BACKED SOURCE IN SEARCH RESULTS (2026-09-27, Danny): price
+   comparison needs the CACHED Advance catalog, not just AutoZone's live
+   search. scoreAdvanceItems is the pure matcher behind it. */
+const advanceQueryPage = loadPageAdvanceQuerySlice();
+
+check("advance query: a pads query ranks pads first", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const ranked = advanceQueryPage.scoreAdvanceItems(items, "pastillas de freno");
+  if (!ranked.length) throw new Error("no matches for a brake query against a brake catalog");
+  const first = ranked[0];
+  if (!/pastilla|\bpad/i.test(`${first.name} ${first.type}`)) {
+    throw new Error(`pads query did not rank a pad first: ${(first.name || "").slice(0, 60)}`);
+  }
+});
+
+check("advance query: a rotors query ranks rotors first", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const ranked = advanceQueryPage.scoreAdvanceItems(items, "discos de freno");
+  if (!ranked.length) throw new Error("no matches for a rotors query");
+  if (!/disco|\brotor/i.test(`${ranked[0].name} ${ranked[0].type}`)) {
+    throw new Error(`rotors query did not rank a rotor first: ${(ranked[0].name || "").slice(0, 60)}`);
+  }
+});
+
+check("advance query: a part number finds its part", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const ranked = advanceQueryPage.scoreAdvanceItems(items, "NAD1363");
+  if (!ranked.length) throw new Error("part-number query matched nothing");
+  if (!/NAD1363/i.test(ranked[0].name || "")) {
+    throw new Error(`part number did not surface its part first: ${(ranked[0].name || "").slice(0, 60)}`);
+  }
+});
+
+check("advance query: a non-parts query honestly matches nothing", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  eq(advanceQueryPage.scoreAdvanceItems(items, "filtro de aceite").length, 0, "no oil filters at a brake-parts store");
+});
+
+check("advance query: items without price or image never surface", () => {
+  const ranked = advanceQueryPage.scoreAdvanceItems([
+    { name: "Front Brake Pads (X1)", type: "Pastillas de freno", price: null, image: "i.jpg" },
+    { name: "Front Brake Pads (X2)", type: "Pastillas de freno", price: 10, image: null },
+    { name: "Front Brake Pads (X3)", type: "Pastillas de freno", price: 10, image: "i.jpg" },
+  ], "pastillas de freno");
+  eq(ranked.length, 1, "only the priced, imaged item");
+  if (!/X3/.test(ranked[0].name)) throw new Error("wrong item survived");
+});
+
+check("searchAutoParts renders catalog sources as real products, not just the teaser", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("async function searchAutoParts(){");
+  if (i < 0) throw new Error("searchAutoParts moved");
+  const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
+  if (!/if \(!source\.search\)\{[\s\S]*?source\.catalog[\s\S]*?advanceItemsForQuery/.test(body)) {
+    throw new Error("catalog-backed sources are still skipped in the results loop");
+  }
+  if (!/autoCompareBySource\.set\(source\.id, \{ items, fitment: 'catalog' \}\)/.test(body)) {
+    throw new Error("catalog items are not collected for the comparison strip");
+  }
+});
+
+/* PER-STORE CAROUSEL (2026-09-27, Danny): each store's parts ride
+   their own horizontal rail, so one store's long list never buries the
+   other below the fold. The block id sits on the outer wrapper so the
+   Posicion filter finds both its buttons and its cards. */
+check("auto part blocks render as per-store carousels, id on the outer wrapper", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("function renderAutoPartBlock(label, result, query, sourceKey){");
+  if (i < 0) throw new Error("renderAutoPartBlock moved");
+  const body = html.slice(i, html.indexOf("function renderAutoComparison(query){", i));
+  if (!/<div class="ariaCarousel">\${cards}<\/div>/.test(body)) {
+    throw new Error("results are not a horizontal carousel");
+  }
+  if (!/class="ariaCarouselCard" data-axle=/.test(body)) {
+    throw new Error("carousel cards lost their axle tag for the Posicion filter");
+  }
+  if (!/<div class="mb-8" id="\${blockId}">/.test(body)) {
+    throw new Error("block id is not on the outer wrapper; the filter buttons stay out of reach");
+  }
+  if (/\${LISTING_GRID_CLASS}>\${cards}/.test(body)) {
+    throw new Error("vertical grid is still the results layout");
+  }
+});
+
+check("comparison strip compares catalog items with honest fitment copy", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("function renderAutoComparison(query){");
+  if (i < 0) throw new Error("renderAutoComparison moved");
+  const body = html.slice(i, html.indexOf("function showToast(msg){", i));
+  if (!/autoCompareBySource\.entries\(\)/.test(body)) throw new Error("strip no longer reads the unified comparison model");
+  if (!/entries\.length < 2/.test(body)) throw new Error("strip lost its two-source threshold");
+  if (!/confirma con el N/.test(body)) throw new Error("unconfirmed/catalog fitment is not labeled honestly");
+  if (/Todos con calce confirmado/.test(body)) throw new Error("stale blanket fitment claim is still in the strip");
+  if (/El mismo repuesto, tienda por tienda/.test(body)) throw new Error("strip still claims same-part equivalence it cannot prove");
+  if (!/Compara opciones, tienda por tienda/.test(body)) throw new Error("strip heading is not the honest comparison wording");
+});
+
+check("comparison strip counts an unconfirmed live source, not just confirmed fits", () => {
+  /* The real-world case the QA caught: AutoZone renders unconfirmed (no
+     compatibility list) while Advance renders from catalog. The strip
+     must show -- it compares prices, and both sources' prices are real. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("async function searchAutoParts(){");
+  if (i < 0) throw new Error("searchAutoParts moved");
+  const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
+  if (!/fitment: showHasData \? 'confirmed' : 'unconfirmed'/.test(body)) {
+    throw new Error("live sources are not labeled confirmed/unconfirmed for the strip");
+  }
+  if (!/fitment: 'catalog'/.test(body)) {
+    throw new Error("catalog source lost its fitment label for the strip");
+  }
+});
+
+/* 2026-09-27, Danny's iPhone QA: the compare strip's Advance badge
+   rendered as a broken pill — "Advance Auto Parts" wrapped into three
+   lines and spilled out of an 18px-high pill inside the strip's tight
+   flex row. The wordmark fallback must be nowrap, no-shrink, with its
+   height set inline (not a runtime-built Tailwind arbitrary class). */
+check("compare strip wordmark badge cannot wrap or spill", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("function autoSourceBadgeHTML(key, heightPx = 22){");
+  if (i < 0) throw new Error("autoSourceBadgeHTML moved");
+  const body = html.slice(i, html.indexOf("\n}\n", i));
+  if (!/white-space:nowrap/.test(body)) throw new Error("wordmark badge can wrap its label");
+  if (!/flex-shrink:0/.test(body)) throw new Error("wordmark badge can be squeezed by the strip's flex row");
+  if (!/height:\${heightPx}px/.test(body)) throw new Error("wordmark badge height is not set inline");
+  if (/h-\[\${heightPx}px\]/.test(body)) throw new Error("wordmark badge still uses a runtime-built Tailwind class for height");
+});
+
+check("cheapest store's carousel floats to the top", () => {
+  /* .gitattributes checks index.html out with CRLF; normalize so \n
+     regexes match the working file, not just a fresh LF blob. */
+  const html = readFileSync(root("index.html"), "utf8").replace(/\r\n?/g, "\n");
+  if (html.indexOf("function sortAutoBlocksByPrice(){") < 0) throw new Error("sortAutoBlocksByPrice missing");
+  if (html.indexOf("function setAutoBlockMedianDoor(blockEl, items, query){") < 0) throw new Error("setAutoBlockMedianDoor missing");
+  const i = html.indexOf("async function searchAutoParts(){");
+  const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
+  const stamps = (body.match(/setAutoBlockMedianDoor\(blockEl/g) || []).length;
+  if (stamps < 2) throw new Error("median-door price is not stamped on both live and catalog blocks");
+  /* the sort key must be the median, not the minimum: one loss-leader SKU
+     must not promote a pricier store's whole block */
+  const mh = html.indexOf("function setAutoBlockMedianDoor(blockEl, items, query){");
+  const mhb = html.slice(mh, html.indexOf("\n}", mh));
+  if (!/doors\.sort/.test(mhb) || !/median/.test(mhb)) throw new Error("block sort key is not the median door price");
+  if (!/sortAutoBlocksByPrice\(\);\n  renderAutoComparison\(query\);\n  renderAutoSimilarRail\(\);/.test(body)) {
+    throw new Error("final price sort is missing after all sources settle");
+  }
+  /* unpriced blocks sink: the comparator must handle missing data-min-door */
+  const h = html.indexOf("function sortAutoBlocksByPrice(){");
+  const hb = html.slice(h, html.indexOf("\n}", h));
+  if (!/isFinite\(da\), bHas = isFinite\(db\)/.test(hb)) throw new Error("sort does not handle blocks without a price");
 });
 
 check("detectAxle separates front, rear, both and neither", () => {
