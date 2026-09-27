@@ -133,7 +133,10 @@
               <span id="sumWeight" class="tabular font-semibold" style="color:var(--navy)">0.00 kg</span>
             </div>
             <div class="flex justify-between"><span>Productos</span><span id="sumProducts" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
-            <div class="flex justify-between"><span>Valor total declarado</span><span id="sumValor" class="tabular font-semibold" style="color:var(--navy)">S/ 0.00</span></div>
+            <!-- VALOR DECLARADO REMOVED FROM THE SHOPPER SUMMARY (2026-09-27,
+                 Danny): the customer sees one baked-in product price; the
+                 dutiable value stays internal (currentValor() and its
+                 threshold/quote/tax/paperwork uses are untouched). -->
             <div class="flex justify-between"><span>Flete</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
             <!-- SMALL-ORDER FEE (2026-09-20). Rendered only when it
                  applies, as its own named line with the threshold stated
@@ -575,7 +578,6 @@
   const descInput = document.getElementById('descInput');
   const quoteStatus = document.getElementById('quoteStatus');
   const sumWeight = document.getElementById('sumWeight');
-  const sumValor = document.getElementById('sumValor');
   const sumProducts = document.getElementById('sumProducts');
   const sumTaxRow = document.getElementById('sumTaxRow');
   const sumTax = document.getElementById('sumTax');
@@ -978,7 +980,6 @@
     const smallOrderFee = currentSmallOrderFeePen();
     renderSmallOrderRow(smallOrderFee);
     sumWeight.textContent = kg.toFixed(2) + ' kg';
-    setMoney(sumValor, valor);
 
     /* A freight line that reads "—" and a total that reads S/ 0.00 are not
        honest placeholders: they look like a quote of nothing. While the

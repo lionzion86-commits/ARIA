@@ -2619,6 +2619,9 @@
                  setting spray above the Nike Air Force 1 someone had
                  just asked for. Comparing prices is still one click
                  away, which is what it is for. -->
+            <!-- OFERTAS PRIMERO IS THE DEFAULT (2026-09-27, Danny): the
+                 feed leads with real markdowns, biggest % off first. -->
+            <option value="salesFirst">Ofertas primero</option>
             <option value="relevance">Más relevante primero</option>
             <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
             <option value="priceDesc">Total a tu puerta: mayor a menor</option>
@@ -7707,11 +7710,37 @@ async function relatedPool(){
         const key = retailer + '::' + it.title;
         const had = byKey.get(key);
         if (had){ if (!had.departments.includes(department)) had.departments.push(department); continue; }
-        byKey.set(key, { ...it, retailer, departments: [department] });
+        const pooled = { ...it, retailer, departments: [department] };
+        /* SEARCH SPEED (2026-09-27). Tokenising every title on every
+           search cost ~3s in Node (~10s on a phone CPU) over the 61k-item
+           pool. The pool is memoized, so each item's word sets are
+           precomputed once here; rankCatalogMatches and scoreCatalogItem
+           reuse them. Ad-hoc items without them fall back to the
+           computed path. */
+        pooled._wordSet = catalogWordsOf(pooled);
+        pooled._brandWordSet = new Set(searchTokens(pooled.brand || ''));
+        /* Category too: catalogItemCategory re-tokenises the title, and
+           with a category intent it ran once per candidate per search. */
+        pooled._cat = catalogItemCategory(pooled);
+        byKey.set(key, pooled);
       }
     }
   }
   relatedPoolCache = [...byKey.values()];
+  /* SEARCH SPEED (2026-09-27): inverted word index over the pool. A
+     search only ever scores items containing a matching word form, so
+     rankCatalogMatches pulls that subset up front instead of scanning
+     all 61k items per search. Attached to the array rather than the
+     items, so ad-hoc pools without it take the old path unchanged. */
+  const windex = new Map();
+  for (const it of relatedPoolCache){
+    for (const w of it._wordSet){
+      let lst = windex.get(w);
+      if (!lst) windex.set(w, lst = []);
+      lst.push(it);
+    }
+  }
+  relatedPoolCache._windex = windex;
   return relatedPoolCache;
 }
 
@@ -7989,14 +8018,58 @@ function catalogTokenHitsOne(words, t){
 
 function catalogTokenHits(words, toks){
   let n = 0;
-  for (const t of toks){
-    if (catalogTokenHitsOne(words, t)) { n++; continue; }
-    /* SYNONYMS: one concept, many words. "sneakers" finds "Running
-       Shoes" and "zapatos" finds "Sneakers" — the literal miss gets a
-       second chance against every word in the token's group. */
-    if (synonymsOf(t).some((s) => catalogTokenHitsOne(words, s))) n++;
-  }
+  for (const t of toks) if (tokenHitsExpanded(words, t)) n++;
   return n;
+}
+
+/* ONE PASS PER TOKEN (2026-09-27). The old shape scanned the item's whole
+   word set once for the token and then AGAIN for every synonym — with a
+   61k-item pool that repeated scan was the search's dominant cost
+   (~4s in Node, ~10s+ on a phone). Expanding the token to its synonym
+   group up front and scanning the word set once is the same boolean OR
+   (exact over every candidate, then the plural-prefix shortcut over
+   every candidate that is allowed it), just without the repeated
+   passes. catalogTokenHitsOne above keeps its contract for any other
+   caller; this is the hot path's fused equivalent.
+   SYNONYMS: one concept, many words. "sneakers" finds "Running
+   Shoes" and "zapatos" finds "Sneakers" — the literal miss gets a
+   second chance against every word in the token's group. */
+
+/* WORD FORMS A CANDIDATE CAN MATCH (2026-09-27). Mirrors tokenHitsExpanded
+   exactly: the exact form, the plural forms the shortcut allows ("s"/
+   "es"), and the singular forms a plural candidate can come from -- so
+   an inverted index over these forms finds precisely the items the full
+   scan would score above zero. Whole-word-only candidates (short
+   synonym-group words like "fin" or "bra") contribute their exact
+   form only. */
+function matchForms(c){
+  const forms = [c];
+  if (synonymWholeWordOnly(c)) return forms;
+  if (c.length >= CATALOG_MIN_PREFIX) forms.push(c + 's', c + 'es');
+  if (c.endsWith('s')){ const s = c.slice(0, -1); if (s.length >= 4) forms.push(s); }
+  if (c.endsWith('es')){ const s = c.slice(0, -2); if (s.length >= 4) forms.push(s); }
+  return forms;
+}
+function matchFormsFor(t){
+  const out = [];
+  for (const c of [t, ...synonymsOf(t)]) for (const f of matchForms(c)) out.push(f);
+  return out;
+}
+function tokenHitsExpanded(words, t){
+  const cands = [t, ...synonymsOf(t)];
+  for (const c of cands) if (words.has(c)) return true;
+  /* Whole-word-only candidates (short synonym-group words like "fin"
+     or "bra") never get the prefix shortcut -- filtered once here,
+     not inside the hot loop. */
+  const prefixCands = cands.filter((c) => !synonymWholeWordOnly(c));
+  if (!prefixCands.length) return false;
+  for (const w of words){
+    for (const c of prefixCands){
+      if (c.length >= CATALOG_MIN_PREFIX && isPluralExtension(c, w)) return true;
+      if (w.length >= 4 && isPluralExtension(w, c)) return true;
+    }
+  }
+  return false;
 }
 
 
@@ -8103,11 +8176,12 @@ function catalogWordsWithCategory(item, intent, categoryOf){
   return words;
 }
 
-function catalogTokenWeights(pool, toks, intent, categoryOf){
+function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor){
   const df = toks.map(() => 0);
+  const wf = wordsFor || ((item) => intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item));
   for (const item of pool || []){
     if (!item || !item.title) continue;
-    const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+    const words = wf(item);
     toks.forEach((t, i) => { if (catalogTokenHits(words, [t])) df[i]++; });
   }
   return df.map(n => 1 / Math.log2(2 + n));
@@ -8126,7 +8200,7 @@ function scoreCatalogItem(item, toks, weights, wordsIn){
     s = hits / toks.length;
   }
   if (hits === toks.length) s += 1;
-  const brandWords = new Set(searchTokens(item?.brand || ''));
+  const brandWords = (item && item._brandWordSet instanceof Set) ? item._brandWordSet : new Set(searchTokens(item?.brand || ''));
   if (toks.some(t => brandWords.has(t))) s += 0.75;
   return s;
 }
@@ -8184,20 +8258,56 @@ function rankCatalogMatches(pool, query, opts){
   const retailerKey = intentKey && (pool || []).some(it => it && it.retailer === intentKey) ? intentKey : null;
   const retailerToks = retailerKey ? new Set(retailerNameTokens(opts.retailers, retailerKey)) : null;
   let candidates = (pool || []);
+
+  /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
+     footwear exactly as much as "shoes" does, and the category filter
+     must agree for all four words. (Declared up here because the
+     inverted-index subset below needs it before the filters run.) */
+  const intent = queryCategoryIntent(toks.join(' '));
+  /* SEARCH SPEED (2026-09-27): with no category intent, pull the scoring
+     subset from the pool's inverted word index instead of scanning all
+     61k items -- matchFormsFor mirrors tokenHitsExpanded exactly, so the
+     subset is precisely the items the full scan would score above zero
+     (items outside it score 0 and are skipped). Runs BEFORE the strict
+     fins and retailer filters below, so those still narrow the subset.
+     With a category intent the intent filter further below already
+     narrows to a few thousand items, so the old path runs there; pools
+     without an index (tests, live results) always take the old path.
+     The duck-type check (not instanceof) also works across JS realms. */
+  const windex = pool && pool._windex;
+  if (windex && typeof windex.get === 'function' && !intent){
+    const forms = new Set();
+    for (const t of toks) for (const f of matchFormsFor(t)) forms.add(f);
+    const inSubset = new Set();
+    for (const f of forms){
+      const lst = windex.get(f);
+      if (lst) for (const it of lst) inSubset.add(it);
+    }
+    /* Retailer-name matches: with a retailer intent the scoring loop
+       adds the store's name tokens to every candidate's words, so the
+       store's own items belong in the subset even when their titles
+       never name the store. */
+    if (retailerKey) for (const it of pool) if (it && it.retailer === retailerKey) inSubset.add(it);
+    /* Pool order, not postings order: keeps every tie-break identical
+       to the full scan, so the indexed path returns bit-identical
+       results. */
+    candidates = pool.filter(it => inSubset.has(it));
+  }
+
   /* STRICT "ALETAS" INTENT: flippers only -- see isStrictFinsQuery. */
   if (isStrictFinsQuery(toks)) candidates = candidates.filter(isRealFinProduct);
   if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
 
-  /* Intent on the CANONICAL tokens, not the raw query: "zapatos" means
-     footwear exactly as much as "shoes" does, and the category filter
-     must agree for all four words. */
-  const intent = queryCategoryIntent(toks.join(' '));
   const rawCategoryOf = (opts && opts.categoryOf)
     || (typeof catalogItemCategory === 'function' ? catalogItemCategory : () => null);
   /* Memoised: the weighting pass and the scoring pass both ask, over
      every item in the pool, and the answer cannot change between them. */
   const catCache = new Map();
+  /* _cat is precomputed in relatedPool(); a caller-supplied categoryOf
+     (tests) still wins when present. */
+  const usePrecomputedCat = !(opts && opts.categoryOf);
   const categoryOf = (item) => {
+    if (usePrecomputedCat && item && item._cat !== undefined) return item._cat;
     if (catCache.has(item)) return catCache.get(item);
     const c = rawCategoryOf(item);
     catCache.set(item, c);
@@ -8205,15 +8315,35 @@ function rankCatalogMatches(pool, query, opts){
   };
 
   if (intent) candidates = candidates.filter(it => it && it.title && categoryOf(it) === intent);
-  const weights = catalogTokenWeights(candidates, toks, intent, categoryOf);
+  /* SEARCH SPEED (2026-09-27): one shared word-set lookup per item per
+     search, instead of re-tokenising every title twice (weights pass +
+     scoring pass). Pool items carry _wordSet from relatedPool();
+     anything else falls back to the computed path, so tests and live
+     results are unaffected. */
+  const wordsFor = (item) => {
+    if (item && item._wordSet instanceof Set){
+      if (intent && categoryOf(item) === intent){
+        const extra = CATEGORY_IMPLIED_WORDS[intent];
+        if (extra && extra.length){
+          const w = new Set(item._wordSet);
+          for (const x of extra) w.add(x);
+          return w;
+        }
+      }
+      return item._wordSet;
+    }
+    return intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+  };
+  const weights = catalogTokenWeights(candidates, toks, intent, categoryOf, wordsFor);
   let exact = 0, partial = 0;
   const scored = [];
   for (const item of candidates){
     if (!item || !item.title) continue;
-    const words = intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
+    let words = wordsFor(item);
     /* The store's own name counts as one of its products' words -- see
-       retailerNameTokens below. */
-    if (retailerToks) for (const t of retailerToks) words.add(t);
+       retailerNameTokens below. Copy before adding: words may be the
+       item's shared precomputed set, which must never be mutated. */
+    if (retailerToks){ words = new Set(words); for (const t of retailerToks) words.add(t); }
     const hits = catalogTokenHits(words, toks);
     if (!hits) continue;
     if (hits === toks.length) exact++; else partial++;
@@ -8390,6 +8520,33 @@ function spreadDealsByStore(sorted, lead){
   return first.concat(held);
 }
 
+/* NO SHOP OWNS THE RAIL (2026-09-27, Danny): one store's deep markdowns
+   ran fifteen cards in a row in Ofertas. So the whole order is interleaved:
+   at most OFERTAS_MAX_RUN cards in a row from one retailer, and when the
+   cap hits, the next-best markdown from a different shop jumps the queue.
+   Card 1 is untouched -- it stays the single biggest markdown. Nothing is
+   dropped and nothing is re-ranked beyond the cap: a held-back card keeps
+   its place in the queue and comes back the moment the cap allows.
+   IT DEGRADES ON PURPOSE. If only one retailer's cards remain, they all
+   still show -- a full rail beats a short one. */
+const OFERTAS_MAX_RUN = 3;
+function interleaveRetailerCap(items, maxRun, initial){
+  const pool = Array.isArray(items) ? [...items] : [];
+  const out = [];
+  const keyOf = p => String((p && p.retailer) || '').toLowerCase();
+  let runRetailer = (initial && initial.retailer != null) ? String(initial.retailer) : null;
+  let runCount = (initial && Number.isFinite(Number(initial.count))) ? Number(initial.count) : 0;
+  while (pool.length){
+    let idx = pool.findIndex(p => keyOf(p) !== runRetailer || runCount < maxRun);
+    if (idx < 0) idx = 0; // only one shop left: show it, do not stall
+    const p = pool.splice(idx, 1)[0];
+    const k = keyOf(p);
+    if (k === runRetailer) runCount += 1; else { runRetailer = k; runCount = 1; }
+    out.push(p);
+  }
+  return { items: out, tail: { retailer: runRetailer, count: runCount } };
+}
+
 /* OFERTAS FRONT (2026-09-26, Danny): the lead sells the section.
    Brands that pull go first — Victoria's Secret, Sephora, Macy's,
    Gymshark, YoungLA — so Gym Rat sale items sit toward the front next
@@ -8428,9 +8585,14 @@ function ofertasLeadSort(items){
     lead.push(p);
   }
   /* Lead order: lead brands first, discount deciding within each brand.
-     The rest keeps pure discount order — nothing is dropped. */
+     Then the whole order is interleaved so no shop owns the rail: the
+     rest carries the lead's trailing run, so the cap holds across the
+     lead/rest boundary too. Coats and near-duplicates never enter the
+     lead; they interleave inside the rest like everything else. */
   lead.sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
-  return lead.concat(rest);
+  const leadOut = interleaveRetailerCap(lead, OFERTAS_MAX_RUN);
+  const restOut = interleaveRetailerCap(rest, OFERTAS_MAX_RUN, leadOut.tail);
+  return leadOut.items.concat(restOut.items);
 }
 
 /* GYM RAT LEAD SORT (2026-09-26, Danny): the front of Gym Rat is hero gym
@@ -8463,7 +8625,10 @@ function renderMobileDealsRail(){
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
     .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
-  const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
+  /* The spread opens on five different shops; the interleave keeps it
+     that way down the whole rail -- at most OFERTAS_MAX_RUN in a row
+     from one retailer. */
+  const deals = interleaveRetailerCap(spreadDealsByStore(priced, MOBILE_RAIL_LEAD), OFERTAS_MAX_RUN).items.slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
   /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
      shopfront's rail show the same deals in the same order, so a tap
@@ -10722,14 +10887,19 @@ function renderCatalogFeed(){
      from THIS feed, not from the category as a whole. */
   const items = catalogState.budget ? searched.filter(it => inBudget(it, catalogState.budget)) : searched;
 
-  const sortBy = document.getElementById('catalogSort')?.value || 'priceAsc';
-  // Best price first, the same default as search. An item with no price
-  // can never be the cheapest, so it sorts last either way.
-  /* CURVY LEADS WITH WOMEN (Danny's rule, 2026-09-24): the gender band is
-     the primary key and the price sort runs inside each band, so the
-     dropdown still governs price direction. The Destacados rail reads
-     this same order -- it always agrees with the grid below it. */
-  const priceSort = byDoorToDoor(sortBy);
+  const sortBy = document.getElementById('catalogSort')?.value || 'salesFirst';
+  /* SALES LEAD (2026-09-27, Danny): the default feed leads with real
+     markdowns, biggest % off first; an explicit price sort bypasses
+     it. priceSort still prices by door-to-door total either way, and an
+     item with no price can never be the cheapest, so it sorts last. */
+  const salesLead = sortBy === 'salesFirst';
+  const priceSort = byDoorToDoor(salesLead ? 'priceAsc' : sortBy);
+  const salesFirst = bySalesFirst(priceSort);
+  const baseSort = salesLead ? salesFirst : priceSort;
+  /* CURVY LEADS WITH WOMEN (Danny's rule, 2026-09-24): the gender band
+     is the primary key and the sales/price sort runs inside each band,
+     so the dropdown still governs price direction. The Destacados rail
+     reads this same order -- it always agrees with the grid below it. */
   const isCurvy = catalogState.kind === 'department' && catalogState.key === 'curvy';
   const isSports = catalogState.kind === 'department' && catalogState.key === 'sporting_goods';
   const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
@@ -10737,14 +10907,14 @@ function renderCatalogFeed(){
   /* GYM RAT LEAD (2026-09-26, Danny): hero gym apparel opens the section —
      accessories never lead. An explicit user sort bypasses the lead. */
   items.sort(isCurvy
-    ? (a, b) => ((a.curvyBand ?? 1) - (b.curvyBand ?? 1)) || priceSort(a, b)
+    ? (a, b) => ((a.curvyBand ?? 1) - (b.curvyBand ?? 1)) || baseSort(a, b)
     : isSports
-      ? (a, b) => (peruSportRank(a) - peruSportRank(b)) || priceSort(a, b)
+      ? (a, b) => (peruSportRank(a) - peruSportRank(b)) || baseSort(a, b)
       : (isGymRat && !catalogSortTouched)
-        ? (a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || priceSort(a, b)
+        ? (a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || salesFirst(a, b)
         : (isToys && !catalogSortTouched)
-          ? (a, b) => (toyLeadRank(a) - toyLeadRank(b)) || priceSort(a, b)
-          : priceSort);
+          ? (a, b) => (toyLeadRank(a) - toyLeadRank(b)) || salesFirst(a, b)
+          : baseSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
@@ -10786,6 +10956,9 @@ function renderCatalogFeed(){
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
     <div class="flex items-center justify-end mb-3">
       <select id="catalogSort" onchange="onCatalogSortChange()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
+        <!-- OFERTAS PRIMERO IS THE DEFAULT (2026-09-27, Danny): the feed
+             leads with real markdowns, biggest % off first. -->
+        <option value="salesFirst">Ofertas primero</option>
         <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
         <option value="priceDesc">Total a tu puerta: mayor a menor</option>
       </select>
@@ -12566,13 +12739,18 @@ function renderSearchResults(){
   const wrap = document.getElementById('liveResultsWrap');
   if (!wrap) return;
   const active = activeSearchStores();
-  const sortBy = document.getElementById('resultsSort')?.value || 'relevance';
+  const sortBy = document.getElementById('resultsSort')?.value || 'salesFirst';
 
   let items = groupCrossStoreMatches(searchResults.filter(it => active.includes(it.retailer)));
-  /* Relevance first, price on request. A live result carries no score
-     -- it was fetched for these exact words, so it is by definition a
-     full match -- and sorts among the catalogue's best. */
-  items.sort(sortBy === 'relevance' ? byMatchScore : byDoorToDoor(sortBy));
+  /* SALES LEAD (2026-09-27, Danny): the default feed leads with real
+     markdowns, biggest % off first, then the feed's normal order --
+     relevance here. A live result carries no score -- it was fetched
+     for these exact words, so it is by definition a full match -- and
+     sorts among the catalogue's best. An explicit sort choice
+     ('relevance', priceAsc/Desc) bypasses the sales lead. */
+  items.sort(sortBy === 'salesFirst' ? bySalesFirst(byMatchScore)
+    : sortBy === 'relevance' ? byMatchScore
+    : byDoorToDoor(sortBy));
   searchRendered = items;
 
   wrap.innerHTML = items.length
@@ -13068,7 +13246,12 @@ function retryFailedSearch(){ if (lastFailedQuery) showResults(lastFailedQuery);
 async function showResults(query, opts = {}){
   pushRoute({ view: 'resultsView', q: query });
   showPage('resultsView');
-  await loadFxRate();
+  /* SEARCH SPEED (2026-09-27): the FX rate no longer blocks the
+     results. Prices render USD-only until the rate lands (fmtPEN's
+     designed fallback -- never a fabricated conversion); when it
+     arrives the feed repaints with soles. The query guard keeps a
+     slow rate from repainting a newer search. */
+  loadFxRate().then(() => { if (liveScrapeQuery === query) renderSearchResults(); });
 
   if (opts.fromHistory && lastSearch.query === query && lastSearch.items.length){
     document.getElementById('searchInput2').value = query;
@@ -16708,6 +16891,26 @@ function budgetChipsHTML(items, activeKey, onclickFor){
 }
 
 /** Comparator for every "Mejor precio primero" / "mayor a menor" select. */
+/* SALE-SORT SLICE START (test markers -- see loadPageSaleSortSlice). */
+/* REAL DISCOUNT % (2026-09-27, Danny): the only markdown the site may
+   ever claim. onSale AND a genuine originalPrice above the price --
+   anything else is 0, never invented. Shared by the sales-first
+   default sorts in search and the catalogue feed. */
+function salePct(p){
+  const price = Number(p?.price);
+  const was = Number(p?.originalPrice);
+  if (p?.onSale && Number.isFinite(was) && was > price && price > 0)
+    return Math.round((1 - price / was) * 100);
+  return 0;
+}
+/* SALES LEAD (2026-09-27, Danny): the default feed leads with real
+   markdowns -- biggest % off first -- then regular products in the
+   feed's normal order (tieBreak). An explicit shopper sort bypasses
+   it; see renderSearchResults and renderCatalogFeed. */
+function bySalesFirst(tieBreak){
+  return (a, b) => (salePct(b) - salePct(a)) || tieBreak(a, b);
+}
+/* SALE-SORT SLICE END */
 /* Ties break on door-to-door price, so "most relevant" still answers
    "and which of these equally-relevant ones is cheapest". */
 function byMatchScore(a, b){

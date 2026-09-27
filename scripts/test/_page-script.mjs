@@ -531,7 +531,7 @@ export function loadPageDealSpreadSlice() {
     throw new Error("index.html discountPct moved — update scripts/test/_page-script.mjs");
   }
   vm.runInContext(html.slice(from, to) + "\n" + html.slice(dpctStart, dpctEnd)
-    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory };",
+    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory, interleaveRetailerCap, OFERTAS_MAX_RUN };",
     sandbox, { filename: "index.html#deal-spread" });
   return sandbox.__exports;
 }
@@ -578,7 +578,7 @@ export function loadPageCatalogSearchSlice() {
   vm.createContext(sandbox);
   vm.runInContext(
     html.slice(from, to) +
-      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT, SEARCH_SYNONYM_GROUPS, synonymGroupOf, synonymsOf, canonicalizeToken, canonicalizeTokens, expandBrandAliases, retailerIntentFor, retailerNameTokens, BRAND_ALIASES };",
+      "\n;globalThis.__exports = { searchTokens, catalogWordsOf, catalogTokenHits, scoreCatalogItem, rankCatalogMatches, catalogResultsAreThin, catalogTokenWeights, queryCategoryIntent, catalogItemCategory, CATEGORY_IMPLIED_WORDS, CATALOG_SEARCH_LIMIT, CATALOG_THIN_EXACT, SEARCH_SYNONYM_GROUPS, synonymGroupOf, synonymsOf, canonicalizeToken, canonicalizeTokens, expandBrandAliases, synonymWholeWordOnly, isPluralExtension, tokenHitsExpanded, matchForms, matchFormsFor, retailerIntentFor, retailerNameTokens, BRAND_ALIASES };",
     sandbox,
     { filename: "index.html#catalog-search" },
   );
@@ -618,6 +618,24 @@ export function loadPageSizeSlice() {
    functions, and the question it answers -- "will this store actually
    ship a 3X?" -- is one you settle by running it over real size lists,
    not by reading the pattern. */
+export function loadPageSaleSortSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("/* SALE-SORT SLICE START");
+  const to = html.indexOf("/* SALE-SORT SLICE END */");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html sale-sort markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+      "\n;globalThis.__exports = { salePct, bySalesFirst };",
+    sandbox,
+    { filename: "index.html#sale-sort" },
+  );
+  return sandbox.__exports;
+}
+
 export function loadPageCurvySlice() {
   const html = readFileSync(INDEX, "utf8");
   const from = html.indexOf("const EXTENDED_SIZES = new Set([");
