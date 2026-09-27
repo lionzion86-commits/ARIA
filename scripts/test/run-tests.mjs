@@ -8539,11 +8539,16 @@ check("comparison strip counts an unconfirmed live source, not just confirmed fi
 check("cheapest store's carousel floats to the top", () => {
   const html = readFileSync(root("index.html"), "utf8");
   if (html.indexOf("function sortAutoBlocksByPrice(){") < 0) throw new Error("sortAutoBlocksByPrice missing");
-  if (html.indexOf("function setAutoBlockMinDoor(blockEl, items, query){") < 0) throw new Error("setAutoBlockMinDoor missing");
+  if (html.indexOf("function setAutoBlockMedianDoor(blockEl, items, query){") < 0) throw new Error("setAutoBlockMedianDoor missing");
   const i = html.indexOf("async function searchAutoParts(){");
   const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
-  const stamps = (body.match(/setAutoBlockMinDoor\(blockEl/g) || []).length;
-  if (stamps < 2) throw new Error("min-door price is not stamped on both live and catalog blocks");
+  const stamps = (body.match(/setAutoBlockMedianDoor\(blockEl/g) || []).length;
+  if (stamps < 2) throw new Error("median-door price is not stamped on both live and catalog blocks");
+  /* the sort key must be the median, not the minimum: one loss-leader SKU
+     must not promote a pricier store's whole block */
+  const mh = html.indexOf("function setAutoBlockMedianDoor(blockEl, items, query){");
+  const mhb = html.slice(mh, html.indexOf("\n}", mh));
+  if (!/doors\.sort/.test(mhb) || !/median/.test(mhb)) throw new Error("block sort key is not the median door price");
   if (!/sortAutoBlocksByPrice\(\);\n  renderAutoComparison\(query\);\n  renderAutoSimilarRail\(\);/.test(body)) {
     throw new Error("final price sort is missing after all sources settle");
   }

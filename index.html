@@ -18751,7 +18751,7 @@ async function searchAutoParts(){
           const items = await advanceItemsForQuery(query, 12);
           autoCompareBySource.set(source.id, { items, fitment: 'catalog' });
           blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
-          setAutoBlockMinDoor(blockEl, items, query);
+          setAutoBlockMedianDoor(blockEl, items, query);
         } catch (err){
           blockEl.innerHTML = autoCatalogBlockHTML(source);
         }
@@ -18771,7 +18771,7 @@ async function searchAutoParts(){
       const shown = filterAutomotiveParts(showHasData ? vehicleFittedItems(items, selectedVehicle) : items, query);
       autoCompareBySource.set(source.id, { items: shown, fitment: showHasData ? 'confirmed' : 'unconfirmed' });
       blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
-      setAutoBlockMinDoor(blockEl, shown, query);
+      setAutoBlockMedianDoor(blockEl, shown, query);
     } catch (err) {
       /* A source whose scraper was never wired up (RockAuto today) is not
          an error the shopper can act on — it gets the same honest
@@ -18789,21 +18789,28 @@ async function searchAutoParts(){
 }
 
 /* CHEAPEST STORE FLOATS TO THE TOP (2026-09-27, Danny). After a source's
-   block renders we stamp its cheapest door price on the block, then sort
-   the blocks so the cheapest store's carousel sits first -- the shopper
-   sees the cheapest option without scrolling past a pricier store.
+   block renders we stamp the block with the MEDIAN door price of its items,
+   then sort the blocks so the typically-cheapest store's carousel sits
+   first. Median, not minimum: a single loss-leader SKU (one $35.81 Duralast
+   pad undercutting Advance's cheapest by $0.42 at the door) must not put a
+   pricier store's whole block above the store that is cheaper across the
+   search. The strip already answers "where is the single cheapest option"
+   row by row; block order answers "which store should I browse first".
    Blocks with no priced items (pending, error, empty) sink to the bottom.
    The sort runs after every render because sources answer at different
    speeds, plus once more after all settle. */
-function setAutoBlockMinDoor(blockEl, items, query){
+function setAutoBlockMedianDoor(blockEl, items, query){
   if (!blockEl || !items || !items.length) return;
-  let min = Infinity;
+  const doors = [];
   for (const it of items){
     if (!it || !(it.price > 0)) continue;
-    const d = doorToDoorUsd({ price: it.price, weightKg: partWeightForItem(it, query, selectedVehicle) });
-    if (d < min) min = d;
+    doors.push(doorToDoorUsd({ price: it.price, weightKg: partWeightForItem(it, query, selectedVehicle) }));
   }
-  if (isFinite(min)) blockEl.dataset.minDoor = String(min);
+  if (!doors.length) return;
+  doors.sort((a, b) => a - b);
+  const mid = doors.length >> 1;
+  const median = doors.length % 2 ? doors[mid] : (doors[mid - 1] + doors[mid]) / 2;
+  blockEl.dataset.medianDoor = String(median);
   sortAutoBlocksByPrice();
 }
 function sortAutoBlocksByPrice(){
@@ -18811,7 +18818,7 @@ function sortAutoBlocksByPrice(){
   if (!wrap) return;
   const blocks = [...wrap.querySelectorAll(':scope > [id^="autoBlock-"]')];
   blocks.sort((a, b) => {
-    const da = parseFloat(a.dataset.minDoor), db = parseFloat(b.dataset.minDoor);
+    const da = parseFloat(a.dataset.medianDoor), db = parseFloat(b.dataset.medianDoor);
     const aHas = isFinite(da), bHas = isFinite(db);
     if (aHas && bHas) return da - db;
     return aHas ? -1 : bHas ? 1 : 0;
