@@ -486,6 +486,17 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* CROCS (2026-09-27, Danny) — 564 products via crocs.com Algolia
+     index. Wordmark pill fallback (no logo file). Mirrors index.html. */
+  crocs: {
+    key: "crocs",
+    label: "Crocs",
+    color: "#000000",
+    tagline: "Clogs, sandalias y calzado cómodo",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   skims: {
     key: "skims",
     label: "Skims",

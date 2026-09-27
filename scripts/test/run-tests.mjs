@@ -926,7 +926,7 @@ const EXPECTED_EVERYDAY_ORDER = [
   "mainland", "parrot", "ccs", "valsurf",
   "oldnavy", "samsclub",
 
-  "lanebryant", "alphalete", "youngla", "gymshark", "skims", "yesstyle"
+  "lanebryant", "alphalete", "youngla", "gymshark", "crocs", "skims", "yesstyle"
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
