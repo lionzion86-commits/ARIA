@@ -101,6 +101,8 @@ export const DEPARTMENT_SPEC = {
      stays in Pesca Submarina. Departments overlap: gear stays on its
      store page too, exactly as Ofertas overlaps everything. */
   surf_skate:      { anyCategory: true, surfSkateOnly: true },
+  /* ARIA FIGHT CLUB (2026-09-27, Danny). Mirrors index.html. */
+  combat_sports:   { category: "combat" },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -120,6 +122,8 @@ export const BUCKET_SPEC = {
   beauty:          { category: "beauty" },
   fragrance:       { category: "beauty" },
   gym_rat:         { category: "gymrat" },
+  /* ARIA FIGHT CLUB (2026-09-27, Danny). Mirrors index.html. */
+  combat_sports:   { category: "combat" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:
