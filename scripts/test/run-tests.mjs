@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageAdvanceQuerySlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -8417,6 +8417,81 @@ check("partWeightForItem prefers a real catalog weight, keeps the axle table as 
   const r = axlePage.partWeightForItem({ weightKg: 1.08, weightEstimated: true, location: "Front" }, "pastillas de freno", null);
   eq(r, -999, "no real weight: falls through to the estimator");
   eq(axlePage.__estimateCalls[0][0], "pastillas de freno delantera", "the estimator gets the axle-qualified query");
+});
+
+/* CATALOG-BACKED SOURCE IN SEARCH RESULTS (2026-09-27, Danny): price
+   comparison needs the CACHED Advance catalog, not just AutoZone's live
+   search. scoreAdvanceItems is the pure matcher behind it. */
+const advanceQueryPage = loadPageAdvanceQuerySlice();
+
+check("advance query: a pads query ranks pads first", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const ranked = advanceQueryPage.scoreAdvanceItems(items, "pastillas de freno");
+  if (!ranked.length) throw new Error("no matches for a brake query against a brake catalog");
+  const first = ranked[0];
+  if (!/pastilla|\bpad/i.test(`${first.name} ${first.type}`)) {
+    throw new Error(`pads query did not rank a pad first: ${(first.name || "").slice(0, 60)}`);
+  }
+});
+
+check("advance query: a rotors query ranks rotors first", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const ranked = advanceQueryPage.scoreAdvanceItems(items, "discos de freno");
+  if (!ranked.length) throw new Error("no matches for a rotors query");
+  if (!/disco|\brotor/i.test(`${ranked[0].name} ${ranked[0].type}`)) {
+    throw new Error(`rotors query did not rank a rotor first: ${(ranked[0].name || "").slice(0, 60)}`);
+  }
+});
+
+check("advance query: a part number finds its part", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const ranked = advanceQueryPage.scoreAdvanceItems(items, "NAD1363");
+  if (!ranked.length) throw new Error("part-number query matched nothing");
+  if (!/NAD1363/i.test(ranked[0].name || "")) {
+    throw new Error(`part number did not surface its part first: ${(ranked[0].name || "").slice(0, 60)}`);
+  }
+});
+
+check("advance query: a non-parts query honestly matches nothing", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  eq(advanceQueryPage.scoreAdvanceItems(items, "filtro de aceite").length, 0, "no oil filters at a brake-parts store");
+});
+
+check("advance query: items without price or image never surface", () => {
+  const ranked = advanceQueryPage.scoreAdvanceItems([
+    { name: "Front Brake Pads (X1)", type: "Pastillas de freno", price: null, image: "i.jpg" },
+    { name: "Front Brake Pads (X2)", type: "Pastillas de freno", price: 10, image: null },
+    { name: "Front Brake Pads (X3)", type: "Pastillas de freno", price: 10, image: "i.jpg" },
+  ], "pastillas de freno");
+  eq(ranked.length, 1, "only the priced, imaged item");
+  if (!/X3/.test(ranked[0].name)) throw new Error("wrong item survived");
+});
+
+check("searchAutoParts renders catalog sources as real products, not just the teaser", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("async function searchAutoParts(){");
+  if (i < 0) throw new Error("searchAutoParts moved");
+  const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
+  if (!/if \(!source\.search\)\{[\s\S]*?source\.catalog[\s\S]*?advanceItemsForQuery/.test(body)) {
+    throw new Error("catalog-backed sources are still skipped in the results loop");
+  }
+  if (!/autoCatalogBySource\.set\(source\.id, items\)/.test(body)) {
+    throw new Error("catalog items are not collected for the comparison strip");
+  }
+});
+
+check("comparison strip compares catalog items with honest fitment copy", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("function renderAutoComparison(query){");
+  if (i < 0) throw new Error("renderAutoComparison moved");
+  const body = html.slice(i, html.indexOf("function showToast(msg){", i));
+  if (!/pushRows\(catalog, 'catalog'\)/.test(body)) throw new Error("catalog rows never reach the strip");
+  if (!/confirma con el N/.test(body)) throw new Error("catalog fitment is not labeled honestly");
+  if (/Todos con calce confirmado/.test(body)) throw new Error("stale blanket fitment claim is still in the strip");
 });
 
 check("detectAxle separates front, rear, both and neither", () => {

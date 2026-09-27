@@ -17914,6 +17914,80 @@ function autoCatalogBlockHTML(source){
   </div>`;
 }
 
+/* ============================================================
+   CATALOG-BACKED SOURCE IN SEARCH RESULTS (2026-09-27)
+
+   Danny's rule: price comparison needs the CACHED catalog, not a live
+   search. Advance Auto Parts carries 1,365 real brake parts -- real
+   prices, real axle-specific weights -- in advanceauto-catalog.json, but
+   the results view only ever showed its "Ver catálogo" teaser card, so
+   every product with a price on screen came from AutoZone's live
+   search. His words: "I can't only do a live search... we needed [the]
+   cached catalog."
+
+   A catalog-backed source (catalog:true, search:false) now renders its
+   own query-matched products as real cards through the same
+   renderAutoPartBlock as every other source: same Delantero/Trasero
+   axle badges, same Posición filter, same honest "confirma con el
+   número de parte" scope line. Its items also feed the comparison
+   strip, so "tienda por tienda" actually compares tiendas.
+   ============================================================ */
+let advanceCatalogItemsCache = null;
+async function advanceCatalogItems(){
+  if (advanceCatalogItemsCache) return advanceCatalogItemsCache;
+  const data = await loadDepartmentCache();
+  const bucket = data && data.retailers && data.retailers.advanceauto;
+  const out = [];
+  const depts = (bucket && bucket.departments) || {};
+  for (const entry of Object.values(depts)){
+    const items = Array.isArray(entry) ? entry : entry && entry.items;
+    if (Array.isArray(items)) out.push(...items);
+  }
+  advanceCatalogItemsCache = out;
+  return out;
+}
+
+/* Brake vocabulary in both languages. The whole Advance catalog is
+   brake parts, so a brake query matches on part type while a part-number
+   query (NAD1363) matches on the number in the title. Anything else --
+   "filtro de aceite" -- honestly matches nothing: Advance sells parts,
+   not everything. Pure: no DOM, no fetch, so the unit tests run it. */
+const ADV_BRAKE_WORDS = ['freno','frenos','pastilla','pastillas','disco','discos','brake','brakes','pad','pads','rotor','rotors','mordaza','caliper'];
+function scoreAdvanceItems(rawItems, query){
+  const q = String(query || '').toLowerCase();
+  const tokens = q.split(/[^a-z0-9]+/).filter(t => t.length > 2);
+  const hasWord = (w) => tokens.some(t => t.includes(w) || w.includes(t));
+  const isBrakeQuery = ADV_BRAKE_WORDS.some(hasWord);
+  const wantsPads = hasWord('pastilla') || /(^|[^a-z])pads?([^a-z]|$)/.test(q);
+  const wantsRotors = hasWord('disco') || /(^|[^a-z])rotors?([^a-z]|$)/.test(q);
+  const scored = [];
+  for (const raw of rawItems){
+    if (!raw || raw.price == null || !raw.image) continue;
+    const hay = `${raw.title || raw.name || ''} ${raw.type || ''}`.toLowerCase();
+    const isPad = /pastilla|(^|[^a-z])pads?([^a-z]|$)/.test(hay);
+    const isRotor = /disco|(^|[^a-z])rotors?([^a-z]|$)/.test(hay);
+    let score = 0;
+    for (const t of tokens){
+      if (t.length >= 4 && hay.includes(t)) score += t.length >= 6 ? 3 : 2;
+    }
+    if (wantsPads && isPad) score += 4;
+    if (wantsRotors && isRotor) score += 4;
+    if (isBrakeQuery) score += 1;
+    if (score > 0) scored.push([score, raw]);
+  }
+  scored.sort((a, b) => (b[0] - a[0]) || ((a[1].price || 0) - (b[1].price || 0)));
+  return scored.map(([, raw]) => raw);
+}
+
+/* Query-matched Advance products, normalized through the same path as
+   every other auto item -- price already carries the door margin, weight
+   is the retailer's own axle-correct figure. */
+async function advanceItemsForQuery(query, maxItems){
+  const raw = await advanceCatalogItems();
+  return scoreAdvanceItems(raw, query).slice(0, maxItems || 12)
+    .map(item => normalizeAutoPartItem('advanceauto', item));
+}
+
 /* A source whose scraper is not wired up yet. Honest, and deliberately
    not a fake empty result: "conectando" and "no calza con tu vehículo"
    are different facts and a shopper deserves to know which one they are
@@ -18631,6 +18705,9 @@ function autoPartNumberHTML(partNumber){
    Keyed by source so the comparison strip can say where each part came
    from, and so a source that answers late does not reorder the blocks. */
 let autoConfirmedBySource = new Map();
+/* Catalog-backed source items (Advance), collected for the comparison
+   strip alongside the confirmed-fit results above. */
+let autoCatalogBySource = new Map();
 
 async function searchAutoParts(){
   if (!selectedVehicle){ showToast('Elige marca, modelo y año primero.'); return; }
@@ -18641,12 +18718,30 @@ async function searchAutoParts(){
   const wrap = document.getElementById('autoPartsResultsWrap');
   autoPartsRendered = [];   // a new search replaces what the cards index into
   autoConfirmedBySource = new Map();
+  autoCatalogBySource = new Map();
   wrap.classList.remove('hidden');
   wrap.innerHTML = `<div id="autoCompareWrap"></div><div id="autoSimilarWrap"></div>`
     + AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${s.catalog ? autoCatalogBlockHTML(s) : s.pending ? autoPendingBlockHTML(s, selectedVehicle, query) : autoPartSkeleton(s.label)}</div>`).join('');
 
   await Promise.allSettled(AUTO_PARTS_SOURCES.map(async (source) => {
-    if (!source.search) return;      // nothing to query; its block is already honest
+    /* A catalog-backed source has no live actor to query, but it has
+       something better: the cached catalog. Its block becomes real
+       products with real prices -- that is the comparison Danny asked
+       for -- instead of the "Ver catálogo" teaser. */
+    if (!source.search){
+      if (source.catalog){
+        const blockEl = document.getElementById(`autoBlock-${source.id}`);
+        try {
+          const items = await advanceItemsForQuery(query, 12);
+          autoCatalogBySource.set(source.id, items);
+          blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
+        } catch (err){
+          blockEl.innerHTML = autoCatalogBlockHTML(source);
+        }
+      }
+      renderAutoComparison(query);
+      return;
+    }
     const blockEl = document.getElementById(`autoBlock-${source.id}`);
     try {
       const items = await source.search(selectedVehicle, query, 5);
@@ -18736,31 +18831,43 @@ function renderAutoSimilarRail(){
 function renderAutoComparison(query){
   const wrap = document.getElementById('autoCompareWrap');
   if (!wrap) return;
-  const sources = [...autoConfirmedBySource.entries()].filter(([, items]) => items.length);
-  if (sources.length < 2){ wrap.innerHTML = ''; return; }
+  const confirmed = [...autoConfirmedBySource.entries()].filter(([, items]) => items.length);
+  const catalog = [...autoCatalogBySource.entries()].filter(([, items]) => items.length);
+  if (confirmed.length + catalog.length < 2){ wrap.innerHTML = ''; return; }
 
   const rows = [];
-  for (const [sourceKey, items] of sources){
-    for (const it of items){
-      const weightKg = partWeightForItem(it, query, selectedVehicle);
-      rows.push({
-        sourceKey,
-        title: it.title,
-        price: it.price,
-        weightKg,
-        doorUsd: doorToDoorUsd({ price: it.price, weightKg }),
-      });
+  const pushRows = (entries, fitment) => {
+    for (const [sourceKey, items] of entries){
+      for (const it of items){
+        const weightKg = partWeightForItem(it, query, selectedVehicle);
+        rows.push({
+          sourceKey,
+          title: it.title,
+          price: it.price,
+          weightKg,
+          doorUsd: doorToDoorUsd({ price: it.price, weightKg }),
+          fitment,
+        });
+      }
     }
-  }
+  };
+  pushRows(confirmed, 'confirmed');
+  pushRows(catalog, 'catalog');
   rows.sort((a, b) => a.doorUsd - b.doorUsd);
   const best = rows[0];
+  /* Fitment honesty, per store: a catalog source never claims a
+     compatibility list it does not publish. */
+  const fitBits = [
+    ...confirmed.map(([k]) => `${autoSourceLabel(k)}: calce confirmado`),
+    ...catalog.map(([k]) => `${autoSourceLabel(k)}: confirma con el N.° de parte`),
+  ];
 
   wrap.innerHTML = `<div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line); background:#fff">
     <div class="text-[15px] font-extrabold mb-1" style="color:var(--navy)">
       El mismo repuesto, tienda por tienda
     </div>
     <p class="text-[12px] mb-4" style="color:#6B7487">
-      Ordenado por lo que pagas a tu puerta: producto + flete. Todos con calce confirmado para tu ${escapeHtml(vehicleLabel(selectedVehicle))}.
+      Ordenado por lo que pagas a tu puerta: producto + flete para tu ${escapeHtml(vehicleLabel(selectedVehicle))}. ${escapeHtml(fitBits.join(' \u00b7 '))}.
     </p>
     <div class="space-y-2">${rows.slice(0, 8).map(r => `
       <div class="flex items-center justify-between gap-3 rounded-xl border px-3.5 py-2.5" style="border-color:var(--line); ${r === best ? 'background:#F1F7F3' : ''}">
@@ -18771,7 +18878,7 @@ function renderAutoComparison(query){
         <div class="text-right flex-shrink-0">
           <div class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${escapeHtml(fmtPriceLabel(r.doorUsd))}</div>
           ${solesUnderHTML(r.doorUsd, 'text-[10.5px] tabular')}
-          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}</div>
+          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}${r.fitment === 'catalog' ? ' · confirma N.° de parte' : ''}</div>
         </div>
       </div>`).join('')}</div>
   </div>`;

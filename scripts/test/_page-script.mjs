@@ -452,6 +452,26 @@ export function loadPageAutoPartSlice() {
    is stubbed and recorded, so the tests can assert WHICH path a catalog
    item takes — real weight, cached weight_kg, or the axle-qualified table
    estimate — without dragging the tables into the sandbox. */
+/* Advance catalog query matching (2026-09-27): scoreAdvanceItems is pure
+   (no DOM, no fetch), so it runs in the sandbox on its own. */
+export function loadPageAdvanceQuerySlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("const ADV_BRAKE_WORDS = [");
+  const to = html.indexOf("/* Query-matched Advance products, normalized through the same path as");
+  if (from < 0 || to < 0 || !(from < to)) {
+    throw new Error("index.html advance-query slice markers moved \u2014 update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) +
+    "\n;globalThis.__exports = { ADV_BRAKE_WORDS, scoreAdvanceItems };",
+    sandbox,
+    { filename: "index.html#advancequery" },
+  );
+  return sandbox.__exports;
+}
+
 export function loadPageAxleSlice() {
   const html = readFileSync(INDEX, "utf8");
   const d0 = html.indexOf("function detectAxle(query){");
