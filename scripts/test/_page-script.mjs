@@ -447,6 +447,35 @@ export function loadPageAutoPartSlice() {
   return sandbox.__exports;
 }
 
+/* The front/rear axle machinery. detectAxle + axleFromItem + partWeightForItem
+   are self-contained; estimatePartWeightKg (the whole weight-table chain)
+   is stubbed and recorded, so the tests can assert WHICH path a catalog
+   item takes — real weight, cached weight_kg, or the axle-qualified table
+   estimate — without dragging the tables into the sandbox. */
+export function loadPageAxleSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const d0 = html.indexOf("function detectAxle(query){");
+  const d1 = html.indexOf("function lookupAxleWeightKg");
+  const a0 = html.indexOf("/** The retailer's own position field");
+  const a1 = html.indexOf("function axleBadgeHTML(axle){");
+  if (d0 < 0 || d1 < 0 || a0 < 0 || a1 < 0 || !(d0 < d1 && a0 < a1)) {
+    throw new Error("index.html axle slice markers moved \u2014 update scripts/test/_page-script.mjs");
+  }
+  const estimateCalls = [];
+  const sandbox = {
+    console,
+    estimatePartWeightKg: (q, v) => { estimateCalls.push([q, v]); return -999; },
+  };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(d0, d1) + "\n" + html.slice(a0, a1) +
+    "\n;globalThis.__exports = { detectAxle, axleFromItem, partWeightForItem };",
+    sandbox,
+    { filename: "index.html#axle" },
+  );
+  return { ...sandbox.__exports, __estimateCalls: estimateCalls };
+}
+
 /* The Ofertas rail's store spread, on its own. Pure list work, so it is
    run rather than pattern-matched: "one card per store in the first
    five" is a claim about what comes out, not about what the source

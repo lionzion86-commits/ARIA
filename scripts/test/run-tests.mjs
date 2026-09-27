@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -8355,6 +8355,76 @@ check("Zapatos is a department with a name and a place in the taxonomy", () => {
 group("Repuestos: auto parts, the Zapatos way");
 
 const partPage = loadPageAutoPartSlice();
+const axlePage = loadPageAxleSlice();
+
+/* FRONT/REAR AXLE TAGGING (2026-09-27, Danny): front vs rear brake pad
+   weights stay separated. Every Advance pad/rotor carries the retailer's
+   own Front/Rear `location` tag (scraped breadcrumb), so freight quotes
+   are per axle — never one generic weight for all pads. */
+check("Advance brake pads carry Front/Rear axle tags, all 120", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const pads = items.filter((p) => p.type === "Pastillas de freno");
+  eq(pads.length, 120, "120 brake pads in the catalogue");
+  for (const pad of pads) {
+    if (pad.location !== "Front" && pad.location !== "Rear") {
+      throw new Error(`pad without axle tag: ${(pad.name || "").slice(0, 70)}`);
+    }
+    if (!(pad.weightKg > 0)) throw new Error(`pad with no weight: ${(pad.name || "").slice(0, 70)}`);
+    // The single generic fallback (1.5kg x1.10) must never be a pad's weight.
+    if (pad.weightEstimated === true && pad.weightKg === 1.65) {
+      throw new Error(`pad on the generic 1.65kg fallback: ${(pad.name || "").slice(0, 70)}`);
+    }
+  }
+});
+
+check("Advance front pads quote heavier than rear pads", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const pads = items.filter((p) => p.type === "Pastillas de freno");
+  const mean = (xs) => xs.reduce((s, x) => s + x, 0) / xs.length;
+  const front = mean(pads.filter((p) => p.location === "Front").map((p) => p.weightKg));
+  const rear = mean(pads.filter((p) => p.location === "Rear").map((p) => p.weightKg));
+  if (!(front > rear)) throw new Error(`front/rear weights not separated: ${front} vs ${rear}`);
+});
+
+check("Advance brake rotors carry Front/Rear axle tags", () => {
+  const data = JSON.parse(readFileSync(root("advanceauto-catalog.json"), "utf8"));
+  const items = data.retailers.advanceauto.departments.auto_parts.items;
+  const rotors = items.filter((p) => /rotor/i.test(p.name || ""));
+  eq(rotors.length, 370, "370 brake rotors in the catalogue");
+  for (const rotor of rotors) {
+    if (rotor.location !== "Front" && rotor.location !== "Rear") {
+      throw new Error(`rotor without axle tag: ${(rotor.name || "").slice(0, 70)}`);
+    }
+    if (!(rotor.weightKg > 0)) throw new Error(`rotor with no weight: ${(rotor.name || "").slice(0, 70)}`);
+  }
+});
+
+check("axleFromItem reads the catalog location tag", () => {
+  eq(axlePage.axleFromItem({ title: "x", location: "Front" }), "front", "catalog Front tag");
+  eq(axlePage.axleFromItem({ title: "x", location: "Rear" }), "rear", "catalog Rear tag");
+  eq(axlePage.axleFromItem({ title: "x", raw: { location: "Front" } }), "front", "cached raw.location still read");
+  eq(axlePage.axleFromItem({ title: "x", raw: { location: "Rear" }, location: "Front" }), "rear", "raw.location keeps precedence");
+  eq(axlePage.axleFromItem({ title: "Front Brake Pads" }), "front", "title fallback intact");
+  eq(axlePage.axleFromItem({ title: "Pastillas", location: "Delantero" }), null, "a non-conforming tag is never guessed");
+});
+
+check("partWeightForItem prefers a real catalog weight, keeps the axle table as fallback", () => {
+  eq(axlePage.partWeightForItem({ weightKg: 2.25, weightEstimated: false, location: "Front" }, "pastillas de freno", null), 2.25, "the retailer's own axle-correct figure wins");
+  eq(axlePage.partWeightForItem({ raw: { weight_kg: 2.75 }, weightKg: 9.99, weightEstimated: false }, "q", null), 2.75, "cached weight_kg still first");
+  axlePage.__estimateCalls.length = 0;
+  const r = axlePage.partWeightForItem({ weightKg: 1.08, weightEstimated: true, location: "Front" }, "pastillas de freno", null);
+  eq(r, -999, "no real weight: falls through to the estimator");
+  eq(axlePage.__estimateCalls[0][0], "pastillas de freno delantera", "the estimator gets the axle-qualified query");
+});
+
+check("detectAxle separates front, rear, both and neither", () => {
+  eq(axlePage.detectAxle("pastillas delanteras"), "front", "delanteras");
+  eq(axlePage.detectAxle("rear brake pads"), "rear", "rear");
+  eq(axlePage.detectAxle("front and rear pads"), null, "both axles: no guess");
+  eq(axlePage.detectAxle("pastillas de freno"), null, "no axle: no guess");
+});
 
 check("the page's auto-part detector and the module agree, item for item", () => {
   /* Compared over the real advanceauto catalogue: the whole department
