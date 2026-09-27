@@ -103,6 +103,8 @@ export const DEPARTMENT_SPEC = {
   surf_skate:      { anyCategory: true, surfSkateOnly: true },
   /* ARIA FIGHT CLUB (2026-09-27, Danny). Mirrors index.html. */
   combat_sports:   { category: "combat" },
+  /* LIBROS (2026-09-27). Mirrors index.html. */
+  books:           { category: "books" },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -124,6 +126,8 @@ export const BUCKET_SPEC = {
   gym_rat:         { category: "gymrat" },
   /* ARIA FIGHT CLUB (2026-09-27, Danny). Mirrors index.html. */
   combat_sports:   { category: "combat" },
+  /* LIBROS (2026-09-27). Mirrors index.html. */
+  books:           { category: "books" },
 };
 
 // Positive gender markers retailers really put in titles. \b matters:

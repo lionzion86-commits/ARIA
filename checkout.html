@@ -1125,6 +1125,9 @@
      be able to clear a verdict the server already gave. */
   function localWeightFallback(items){
     const totalKg = items.reduce((sum, it) => {
+      /* A bundle-discount line is a saving, not shippable goods: it must
+         never pick up the generic fallback weight. */
+      if (it && it.lineType === 'bundle-discount') return sum;
       const qty = Math.max(1, Math.round(Number(it.qty) || 1));
       const kg = Number(it.weightKg);
       return sum + (Number.isFinite(kg) && kg > 0 ? kg : GENERIC_FALLBACK_KG) * qty;

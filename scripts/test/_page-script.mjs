@@ -1001,3 +1001,53 @@ export function loadPageCartSlice() {
   );
   return sandbox.__exports;
 }
+
+/* COMBO DEALS (2026-09-27). Extracts the pure bundle-math slice of
+   index.html (no DOM, no catalogue) so the honesty arithmetic —
+   bundle = sum − saving, saving strictly inside (0, sum) — is tested
+   against the page's own code, not a reimplementation. */
+export function loadPageComboSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const from = html.indexOf("/* ==== COMBO-MATH-START ==== */");
+  const to = html.indexOf("/* ==== COMBO-MATH-END ==== */");
+  if (from < 0 || to < 0 || to <= from) {
+    throw new Error("index.html combo-math markers moved — update scripts/test/_page-script.mjs");
+  }
+  const sandbox = { console, round2: (n) => Math.round(n * 100) / 100 };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    html.slice(from, to) + "\n;globalThis.__exports = { comboBundleMath, comboDiscountLineFields };",
+    sandbox,
+    { filename: "index.html#combo" },
+  );
+  return sandbox.__exports;
+}
+
+/* DEPARTMENT SPECS (2026-09-27). Extracts the page's DEPARTMENT_SPEC +
+   BUCKET_SPEC so tests can pin page/module parity: the inline copies in
+   index.html and scripts/lib/department-map.js must agree, or a
+   department renders on one surface and vanishes on another. */
+export function loadPageDepartmentSpecSlice() {
+  const html = readFileSync(INDEX, "utf8");
+  const grab = (name) => {
+    const at = html.indexOf(`const ${name} = {`);
+    if (at < 0) throw new Error(`index.html ${name} moved — update scripts/test/_page-script.mjs`);
+    let depth = 0, end = -1;
+    for (let i = html.indexOf("{", at); i < html.length; i++) {
+      const c = html[i];
+      if (c === "{") depth++;
+      else if (c === "}") { depth--; if (depth === 0) { end = i + 1; break; } }
+    }
+    if (end < 0) throw new Error(`index.html ${name} is unbalanced`);
+    return html.slice(at, end);
+  };
+  const sandbox = { console };
+  vm.createContext(sandbox);
+  vm.runInContext(
+    grab("DEPARTMENT_SPEC") + "\n" + grab("BUCKET_SPEC") +
+    "\n;globalThis.__exports = { DEPARTMENT_SPEC, BUCKET_SPEC };",
+    sandbox,
+    { filename: "index.html#departments" },
+  );
+  return sandbox.__exports;
+}

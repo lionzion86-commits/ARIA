@@ -20,6 +20,7 @@ import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
 import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBaseUsd } from "../../weight-data.js";
+import { validateBundleDiscounts } from "./_combo-validate.js";
 
 const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
@@ -77,6 +78,17 @@ export async function handler(event) {
   const quote = body.quote || {};
   if (!items.length || typeof quote.total_usd !== "number") {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Pedido inválido" }) };
+  }
+
+  /* BUNDLE DISCOUNTS (2026-09-27). The browser builds bundle-discount
+     lines, but the saving is re-validated here against the same
+     combo-deals.js the page loaded. A forged line (unknown combo, wrong
+     amount, or more discount than complete product pairs) rejects the
+     whole order — it is never silently adjusted, so a tampered request
+     cannot buy a bigger saving than the combos allow. */
+  const bundleCheck = validateBundleDiscounts(items);
+  if (!bundleCheck.ok) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: bundleCheck.error }) };
   }
 
   try {

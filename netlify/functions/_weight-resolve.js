@@ -254,6 +254,13 @@ export function resolveCartWeights(items) {
   const list = Array.isArray(items) ? items : [];
   const resolved = list.map((it) => {
     const qty = Math.max(1, Math.round(Number(it?.qty) || 1));
+    /* A bundle-discount line is a saving, not shippable goods: it weighs
+       nothing, never takes a fallback, and never trips review. */
+    if (it?.lineType === 'bundle-discount'){
+      return { weightKg: 0, source: 'bundle-discount', estimated: false,
+        needsReview: false, reviewReason: null, qty, lineKg: 0,
+        title: String(it?.title ?? '') };
+    }
     const r = resolveItemWeight(it);
     /* THE SAME RULE THE PRODUCT CARD USES (2026-09-20). A conditioner's
        page said "flete por confirmar" while the cart charged S/ 47.29 of
