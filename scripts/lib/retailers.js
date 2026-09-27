@@ -506,6 +506,76 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* JEWELRY + PURSES + KIDS' EVERYDAY (2026-09-27, Danny) — catalogues via
+     Shopify products.json, $0. BaubleBar anchors Joyería y Accesorios; JW PEI
+     + Melie Bianco anchor Carteras (own department, own carousel — Danny's
+     call); Bentgo + Mushie + ezpz + State Bags file kids' lunchboxes, sippy
+     cups, drinkware, plates and backpacks into the kids bucket, so they sit
+     with the kids' assortment. Wordmark pill fallback (no logo files).
+     Mirrors index.html. */
+  baublebar: {
+    key: "baublebar",
+    label: "BaubleBar",
+    color: "#000000",
+    tagline: "Joyería de moda — collares, aretes y pulseras",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  jwpei: {
+    key: "jwpei",
+    label: "JW PEI",
+    color: "#000000",
+    tagline: "Carteras veganas — crossbody, totes y minis",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  meliebianco: {
+    key: "meliebianco",
+    label: "Melie Bianco",
+    color: "#000000",
+    tagline: "Carteras y accesorios",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  bentgo: {
+    key: "bentgo",
+    label: "Bentgo",
+    color: "#000000",
+    tagline: "Loncheras bento para niños",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  mushie: {
+    key: "mushie",
+    label: "Mushie",
+    color: "#000000",
+    tagline: "Vasos y vajilla para niños",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  ezpz: {
+    key: "ezpz",
+    label: "ezpz",
+    color: "#000000",
+    tagline: "Platos y vasos para niños",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  statebags: {
+    key: "statebags",
+    label: "State Bags",
+    color: "#000000",
+    tagline: "Mochilas y loncheras para niños",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   skims: {
     key: "skims",
     label: "Skims",
