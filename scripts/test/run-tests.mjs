@@ -5219,13 +5219,17 @@ check("no grid anywhere can build a wall of brands", () => {
   if (!/collectTiles\(\)/.test(homeRow)) throw new Error("homeRowTiles no longer builds from collectTiles");
   if (/brand/i.test(homeRow)) throw new Error("the home row's shortlist can name a brand");
 
-  for (const [label, from, to, builder] of [
-    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/],
-    ["Categorías", "function renderCategoriesGrid(", "async function liveSalesScan(", /collectTiles\(\)/],
+  /* Categorías stopped tiling departments (2026-09-27, Danny): it is
+     stacked carousels now, one per category, so there is no tile builder
+     left to guard there -- but the page must still walk the full category
+     set, never the home row's shortlist. */
+  for (const [label, from, to, builder, missing] of [
+    ["the home page", "function initDepartmentTiles(", "window.addEventListener('DOMContentLoaded', initDepartmentTiles)", /homeRowTiles\(\)/, "lost its department tiles"],
+    ["Categorías", "async function renderCategoriesGrid(", "async function liveSalesScan(", /for \(const cat of CATEGORY_RAILS\)/, "no longer walks the full category set"],
   ]) {
     const grid = src.slice(src.indexOf(from), src.indexOf(to));
     if (/kind: 'brand'/.test(grid)) throw new Error(`${label} is tiling brands again`);
-    if (!builder.test(grid)) throw new Error(`${label} lost its department tiles`);
+    if (!builder.test(grid)) throw new Error(`${label} ${missing}`);
   }
 
   // And the route a brand still travels is untouched.
@@ -5373,14 +5377,16 @@ check("Hero, Ofertas, brand band, Aria Auto, category carousel, rails, rest (202
      strip is gone; its story links (Cómo funciona, Por qué Aria) live
      in the slim utility bar at the very top of the page. The run is
      hero > Ofertas > brand band > Aria Auto > the "Compra por
-     categoría" chip carousel > the eight store rails in mall order >
-     Marcas, Costco, SSENSE, Todas las otras tiendas, Categorías.) */
+     categoría" chip carousel > the permanent Gym Rat rail (2026-09-27,
+     Danny: the category is that good) > the eight store rails in mall
+     order > Marcas, Costco, SSENSE, Todas las otras tiendas,
+     Categorías.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5414,7 +5420,7 @@ check("the desktop shopfront reads Ofertas, brand band, Aria Auto, carousel, rai
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -9234,16 +9240,19 @@ check("the category rail is wired: config, lazy paint, honest cards", () => {
     throw new Error("a rail card stopped showing the brand");
 });
 
-check("the category pills open on Danny's hook order: Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre (2026-09-26, Danny)", () => {
+check("the category pills open on Danny's order: Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración, Gym Rat last (2026-09-27, Danny)", () => {
   const src = HOME_SRC();
-  /* The pill order is the hook: kids' fashion first, Surf & Skate right
-     next to it, then the gendered fashion tabs. A silent reorder would
-     bury the hook again. */
+  /* The pill order is the hook: Moda Niños, Surf & Skate, Moda Mujer,
+     Moda Hombre, Decoración first -- Danny 2026-09-27. Gym Rat sits last
+     because it already owns the permanent rail under the pills. A silent
+     reorder would bury the hook again. */
   const m = src.match(/const CATEGORY_TAB_ORDER = \[([^\]]*)\];/);
   if (!m) throw new Error("CATEGORY_TAB_ORDER is gone");
   const keys = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
-  eq(keys.slice(0, 4).join(","), "kids,surf_skate,women,men",
-    "the first four pills are not Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre");
+  eq(keys.slice(0, 5).join(","), "kids,surf_skate,women,men,home_decor",
+    "the first five pills are not Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración");
+  eq(keys[keys.length - 1], "gym_rat",
+    "Gym Rat is not last -- it owns the permanent rail, the pill sits down the road");
   /* The vague general "Moda" pill was pulled 2026-09-26 (Danny): the
      Mujer/Hombre tabs cover general fashion, and a fourth fashion pill
      muddied the hook. */
@@ -9254,6 +9263,46 @@ check("the category pills open on Danny's hook order: Moda Niños, Surf & Skate,
      thing a shopper sees, not a tap away. */
   if (!/let activeCategoryTab = CATEGORY_TAB_ORDER\[0\]/.test(src))
     throw new Error("the carousel no longer opens on the first pill");
+});
+
+check("Gym Rat and Hogar keep permanent homepage rails (2026-09-27, Danny)", () => {
+  /* Danny: the two most marketable categories get always-visible rails
+     under the tab browser on both layouts, painted from the same shelf
+     as their pills. Each must stand down while its pill is the active
+     tab (no double rail) and while its shelf is empty. */
+  const src = HOME_SRC();
+  const sections = [...src.matchAll(/<section[^>]*data-featured-rail[^>]*>([\s\S]*?)<\/section>/g)];
+  if (sections.length !== 4)
+    throw new Error(`expected mobile+desktop Gym Rat and Hogar rails, found ${sections.length}`);
+  const keys = sections.map(([, body]) => {
+    const m = body.match(/data-category-rail-row="([a-z_]+)"/);
+    return m && m[1];
+  }).sort().join(",");
+  eq(keys, "gym_rat,gym_rat,home_goods,home_goods",
+    "the featured rails are not Gym Rat + Hogar on both layouts");
+  for (const [, body] of sections){
+    const key = body.match(/data-category-rail-row="([a-z_]+)"/)[1];
+    if (!new RegExp("openCatalog\\('department','" + key + "'\\)").test(body))
+      throw new Error(`the ${key} rail lost its Ver categoria door`);
+  }
+  /* The toggle lives in renderCategoryTabs so it runs on every tab
+     switch, not just the first paint. */
+  const fn = forwardSlice(src, "function renderCategoryTabs(){", "\n}\n", "renderCategoryTabs");
+  if (!/data-featured-rail/.test(fn) || !/activeCategoryTab === key/.test(fn))
+    throw new Error("a featured rail no longer stands down when its pill is the active tab");
+});
+
+check("the categories view is stacked carousels, one per category (2026-09-27, Danny)", () => {
+  /* Danny: the category page is not a tile grid any more -- every
+     category gets its own browsable rail, one under the other. A card
+     opens the product; the header's Ver todo opens the department. */
+  const src = HOME_SRC();
+  if (!/async function renderCategoriesGrid\(\)/.test(src))
+    throw new Error("renderCategoriesGrid is not the async carousel builder");
+  if (!/for \(const cat of CATEGORY_RAILS\)/.test(src))
+    throw new Error("the categories view no longer walks every category rail");
+  if (!/function openCategoriesViewProduct/.test(src))
+    throw new Error("the stacked carousels lost their product opener");
 });
 
 check("store rail names truncate instead of overlapping Ver tienda", () => {
@@ -9532,8 +9581,8 @@ check("Categorías still shows every department, whatever the home row drops", (
      shortlist instead, cutting a card from the home row quietly deletes
      a section of the shop. */
   const src = readFileSync(root("index.html"), "utf8").replace(/\r\n/g, "\n");
-  const cats = forwardSlice(src, "function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
-  if (!/collectTiles\(\)/.test(cats)) {
+  const cats = forwardSlice(src, "async function renderCategoriesGrid(){", "\n// The actual scrape.", "renderCategoriesGrid");
+  if (!/for \(const cat of CATEGORY_RAILS\)/.test(cats)) {
     throw new Error("Categorías no longer builds from collectTiles() — it can no longer be the page that shows everything");
   }
   if (/HOME_ROW_DEPARTMENTS|homeRowTiles/.test(cats)) {
@@ -11722,8 +11771,11 @@ check("a real protective Barbie-signature helmet is Surf & Skate, never Juguetes
     "toy-grade Barbie skateboard stays a toy");
 });
 
-/* CONSOLES (2026-09-26, Danny): two rules. (1) In Juguetes, real
-   toys lead and consoles follow — toyLeadRank: toys 0, consoles 1.
+/* CONSOLES + TOY BOARDS (2026-09-26, Danny; boards demoted 2026-09-27,
+   Danny): two rules. (1) In Juguetes, real toys lead and consoles +
+   toy-grade skateboards follow — toyLeadRank: real toys 0, consoles and
+   toy-grade boards 1. The section promotes real toys for kids, not
+   boards and consoles.
    (2) Consoles are also electronics: Electrónica claims them too, so a
    PlayStation shopper finds them there. Dual presence is intended. A
    video GAME is not a console: it stays a plain toy. */
@@ -11776,9 +11828,9 @@ checkAsync("consoles sort after real toys in Juguetes and are claimed by Electr�
   const board = { title: "Barbie 31in Skateboard", type: "Tablas de skate" };
   const ps5 = { title: "PlayStation 5 Slim Console" };
   const game = { title: "LEGO Batman: Legacy of the Dark Knight - PlayStation 5" };
-  /* Lead rank: real toys 0, consoles 1. */
+  /* Lead rank: real toys 0; consoles and toy-grade boards 1. */
   eq(toyLeadRank(plush), 0, "plush rank");
-  eq(toyLeadRank(board), 0, "toy board rank");
+  eq(toyLeadRank(board), 1, "toy board rank");
   eq(toyLeadRank(ps5), 1, "console rank");
   eq(toyLeadRank(game), 0, "video game rank");
   /* Routing: consoles ride in both departments. The "juguetes" bucket
@@ -11790,6 +11842,40 @@ checkAsync("consoles sort after real toys in Juguetes and are claimed by Electr�
   ok(itemBelongsToDepartment(game, "juguetes", "toys", "costco"), "video game left Juguetes");
   ok(!itemBelongsToDepartment(game, "juguetes", "electronics", "costco"), "video game claimed by Electrónica");
   ok(!itemBelongsToDepartment(plush, "juguetes", "electronics", "costco"), "plush claimed by Electrónica");
+});
+
+checkAsync("the Juguetes tab rail leads with real toys, not consoles or toy boards (2026-09-27, Danny)", async () => {
+  /* The homepage category tab was sale-led with no lead rank, so a
+     discounted console could headline Juguetes. With the rank injected,
+     real toys lead the sale run AND the featured fill. */
+  const { CATEGORY_RAIL_TOTAL, categoryRailPicks } = loadPageCategoryRailSlice();
+  const { toyLeadRank } = await import(root("scripts/lib/toys.js"));
+  const stores = ["walmart", "target", "costco"];
+  const sale = (retailer, title, price, originalPrice) => ({ retailer, title, price, originalPrice, image: "img" });
+  const plain = (retailer, title, price, extra) => ({ retailer, title, price, image: "img", ...(extra || {}) });
+  const opts = { toyRankFn: toyLeadRank };
+  /* Sale run: the console's 20% markdown is deeper than the plush's 10%,
+     but the real toy still leads. */
+  const salePicks = categoryRailPicks(stores,
+    [sale("target", "PlayStation 5 Slim Console", 400, 500),
+     sale("costco", "Jumbo Baby Animal Plush", 90, 100)],
+    [], new Set(), CATEGORY_RAIL_TOTAL, opts);
+  eq(salePicks[0].title, "Jumbo Baby Animal Plush", "a discounted console led the Juguetes sale run");
+  /* Featured fill: real toy before console before toy-grade board. */
+  const fillPicks = categoryRailPicks(stores, [],
+    [plain("target", "PlayStation 5 Slim Console", 450),
+     plain("walmart", "Barbie 31in Skateboard", 30, { type: "Tablas de skate" }),
+     plain("costco", "Jumbo Baby Animal Plush", 25)],
+    new Set(), CATEGORY_RAIL_TOTAL, opts);
+  eq(fillPicks.map(p => p.title).join("|"),
+    "Jumbo Baby Animal Plush|PlayStation 5 Slim Console|Barbie 31in Skateboard",
+    "the Juguetes fill did not order real toy, console, toy board");
+  /* Opt-out: without the rank the slice behaves exactly as before. */
+  const plainPicks = categoryRailPicks(stores, [],
+    [plain("target", "PlayStation 5 Slim Console", 450),
+     plain("costco", "Jumbo Baby Animal Plush", 25)],
+    new Set(), CATEGORY_RAIL_TOTAL);
+  eq(plainPicks[0].title, "PlayStation 5 Slim Console", "the rank leaked into an opted-out rail");
 });
 
 check("the section nav strip is gone; the story links live in the top utility bar (2026-09-26, Danny)", () => {

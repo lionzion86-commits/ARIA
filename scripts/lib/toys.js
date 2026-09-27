@@ -84,17 +84,22 @@ export function isToyGradeSkate(item) {
 }
 
 /* ============================================================
-   GAME-CONSOLE DETECTOR + JUGUETES LEAD RANK (2026-09-26, Danny)
+   GAME-CONSOLE DETECTOR + JUGUETES LEAD RANK (2026-09-26, Danny;
+   extended 2026-09-27, Danny)
 
    WHAT IT ANSWERS: is this item a game console — and where does it
    sort inside Juguetes?
 
-   DANNY'S TWO RULES:
+   DANNY'S RULES:
    1. Consoles ARE toys and stay in Juguetes, but they are SECONDARY
       toys: real toys lead the department, consoles follow.
-      toyLeadRank(item) is 0 for a real toy, 1 for a console; the
-      department sorts by it before price.
-   2. Consoles are also electronics: a PlayStation shopper checks
+   2. Toy-grade character skateboards are ALSO secondary in Juguetes
+      (2026-09-27, Danny): they stay in the department — Surf & Skate
+      refuses them, so Juguetes is their only home — but the section
+      promotes real toys for kids, not boards and consoles.
+      toyLeadRank(item) is 0 for a real toy, 1 for a console or a
+      toy-grade skateboard; the department sorts by it before price.
+   3. Consoles are also electronics: a PlayStation shopper checks
       Electrónica first, so the electronics department claims consoles
       too. Dual presence with Juguetes is intended — departments
       overlap here exactly as Ofertas overlaps everything.
@@ -125,7 +130,9 @@ export function isConsole(item) {
   return /\b(consol[ae]|switch|ps5|ps4|xbox\s*series)\b/.test(t);
 }
 
-/** Juguetes lead rank: real toys (0) sort before consoles (1). */
+/** Juguetes lead rank: real toys (0) sort before consoles and
+    toy-grade skateboards (1). Neither secondary group is promoted;
+    both stay in the department. */
 export function toyLeadRank(item) {
-  return isConsole(item) ? 1 : 0;
+  return (isConsole(item) || isToyGradeSkate(item)) ? 1 : 0;
 }
