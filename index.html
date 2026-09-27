@@ -1582,7 +1582,7 @@
     <section aria-label="Gym Rat" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F4AA; Gym Rat</span>
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gym Rat</span>
         <button onclick="openCatalog('department','gym_rat')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
@@ -1597,7 +1597,7 @@
     <section aria-label="Aria Beauty" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F484; Aria Beauty</span>
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Aria Beauty</span>
         <button onclick="openCatalog('department','beauty')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
@@ -1911,7 +1911,7 @@
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F4AA; Gym Rat</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gym Rat</span>
           <button onclick="openCatalog('department','gym_rat')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
@@ -1926,7 +1926,7 @@
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F484; Aria Beauty</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Aria Beauty</span>
           <button onclick="openCatalog('department','beauty')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
@@ -4058,8 +4058,13 @@
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-4 max-w-[22ch]" style="color:#fff">
         Lo que te prometemos, por escrito.
       </h2>
+      <!-- COPY FIX (2026-09-27, Danny's PC QA): this paragraph used to read
+           "Si nuestro estimado se queda corto, asumimos la diferencia. El precio
+           que te cotizamos es el que pagas." -- word for word what the third
+           card below says. The promise was written down twice in the same
+           place; now the intro frames the four commitments instead. -->
       <p class="text-[15px] sm:text-[16.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#AFBBD6">
-        Si nuestro estimado se queda corto, asumimos la diferencia. El precio que te cotizamos es el que pagas.
+        Cuatro compromisos que asumimos con cada pedido. Sin letra pequeña, sin sorpresas.
       </p>
       <div data-precio-honesto-cards class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6"></div>
     </div>
@@ -6119,6 +6124,12 @@ const CATEGORY_COVERS = {
      red gloves in a dark gym, cinematic. Replaces the boxing-glove emoji
      fallback so the pill reads photographic like the rest of the rail. */
   combat_sports:  'assets/category/combat_sports.jpg',
+  /* LIBROS / JUGUETES / FIESTA (2026-09-27, Danny's PC QA): every
+     category pill gets a real photograph -- no emoji, no abstract
+     fallback. Danny: "every category needs to have an actual picture." */
+  books:          'assets/category/books.jpg',
+  toys:            'assets/category/toys.jpg',
+  party:           'assets/category/party.jpg',
 
 };
 
