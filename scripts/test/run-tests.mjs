@@ -9236,16 +9236,19 @@ check("the category rail is wired: config, lazy paint, honest cards", () => {
     throw new Error("a rail card stopped showing the brand");
 });
 
-check("the category pills open on Danny's order: Surf & Skate, Gym Rat, Moda Niños, Moda Mujer (2026-09-27, Danny)", () => {
+check("the category pills open on Danny's order: Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración, Gym Rat last (2026-09-27, Danny)", () => {
   const src = HOME_SRC();
-  /* The pill order is the hook: Surf & Skate first, Gym Rat right next
-     to it and next to Moda Niños -- Danny 2026-09-27, "it's a really good
-     category". A silent reorder would bury the hook again. */
+  /* The pill order is the hook: Moda Niños, Surf & Skate, Moda Mujer,
+     Moda Hombre, Decoración first -- Danny 2026-09-27. Gym Rat sits last
+     because it already owns the permanent rail under the pills. A silent
+     reorder would bury the hook again. */
   const m = src.match(/const CATEGORY_TAB_ORDER = \[([^\]]*)\];/);
   if (!m) throw new Error("CATEGORY_TAB_ORDER is gone");
   const keys = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
-  eq(keys.slice(0, 4).join(","), "surf_skate,gym_rat,kids,women",
-    "the first four pills are not Surf & Skate, Gym Rat, Moda Niños, Moda Mujer");
+  eq(keys.slice(0, 5).join(","), "kids,surf_skate,women,men,home_decor",
+    "the first five pills are not Moda Niños, Surf & Skate, Moda Mujer, Moda Hombre, Decoración");
+  eq(keys[keys.length - 1], "gym_rat",
+    "Gym Rat is not last -- it owns the permanent rail, the pill sits down the road");
   /* The vague general "Moda" pill was pulled 2026-09-26 (Danny): the
      Mujer/Hombre tabs cover general fashion, and a fourth fashion pill
      muddied the hook. */
