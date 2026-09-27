@@ -18529,7 +18529,9 @@ function axleBadgeHTML(axle){
 }
 
 /* Swaps which axle's listings are on screen. Cards carry their own price
-   and weight, so filtering the grid swaps all three together. */
+   and weight, so filtering the rail swaps all three together. blockId is
+   the outer block wrapper: it holds both the Posicion buttons and the
+   carousel, so one query restyles the buttons and hides the cards. */
 function setAutoAxleFilter(blockId, axle){
   const block = document.getElementById(blockId);
   if (!block) return;
@@ -18657,7 +18659,7 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       partNumber: partNumberLabel(it.raw),
     };
     const idx = autoPartsRendered.push(card) - 1;
-    return `<div data-axle="${axle || 'none'}">${productCardHTML(card, {
+    return `<div class="ariaCarouselCard" data-axle="${axle || 'none'}">${productCardHTML(card, {
       open: `openAutoPart(${idx})`,
       // Green ONLY where the list named this car. In the unconfirmed
       // branch there is no badge at all — the absence is the signal, and
@@ -18678,10 +18680,18 @@ function renderAutoPartBlock(label, result, query, sourceKey){
       + `La tienda no publica la lista de compatibilidad de estas piezas, así que no podemos confirmarlo nosotros: `
       + `revisa el número de parte antes de pedir.`;
 
-  return `<div class="mb-8">${header}
+  /* PER-STORE CAROUSEL (2026-09-27, Danny): each store's parts ride
+     their own horizontal rail instead of a vertical grid, so AutoZone's
+     15 pads never bury Advance's block below the fold -- both stores are
+     visible without the long scroll, and the tienda-por-tienda comparison
+     reads at a glance. The block id lives on this outer wrapper (not the
+     rail) so setAutoAxleFilter's [data-axle-btn] query actually finds the
+     Posicion buttons: they used to sit outside the queried container and
+     "Todos" stayed pressed forever. */
+  return `<div class="mb-8" id="${blockId}">${header}
     <p class="text-[11.5px] mb-3" style="color:${hasData ? '#8A93A8' : '#8A6B1F'}">${scopeLine}</p>
     ${selector}
-    <div id="${blockId}" class="${LISTING_GRID_CLASS}">${cards}</div>
+    <div class="ariaCarousel">${cards}</div>
     ${hasData ? '' : `<div class="mt-4">
       <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full border text-[13px] font-bold focus-ring transition" style="border-color:var(--line); color:var(--navy)">
         ¿Prefieres que lo confirmemos nosotros? Escríbenos

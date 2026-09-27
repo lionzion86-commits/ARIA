@@ -8484,6 +8484,29 @@ check("searchAutoParts renders catalog sources as real products, not just the te
   }
 });
 
+/* PER-STORE CAROUSEL (2026-09-27, Danny): each store's parts ride
+   their own horizontal rail, so one store's long list never buries the
+   other below the fold. The block id sits on the outer wrapper so the
+   Posicion filter finds both its buttons and its cards. */
+check("auto part blocks render as per-store carousels, id on the outer wrapper", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("function renderAutoPartBlock(label, result, query, sourceKey){");
+  if (i < 0) throw new Error("renderAutoPartBlock moved");
+  const body = html.slice(i, html.indexOf("function renderAutoComparison(query){", i));
+  if (!/<div class="ariaCarousel">\${cards}<\/div>/.test(body)) {
+    throw new Error("results are not a horizontal carousel");
+  }
+  if (!/class="ariaCarouselCard" data-axle=/.test(body)) {
+    throw new Error("carousel cards lost their axle tag for the Posicion filter");
+  }
+  if (!/<div class="mb-8" id="\${blockId}">/.test(body)) {
+    throw new Error("block id is not on the outer wrapper; the filter buttons stay out of reach");
+  }
+  if (/\${LISTING_GRID_CLASS}>\${cards}/.test(body)) {
+    throw new Error("vertical grid is still the results layout");
+  }
+});
+
 check("comparison strip compares catalog items with honest fitment copy", () => {
   const html = readFileSync(root("index.html"), "utf8");
   const i = html.indexOf("function renderAutoComparison(query){");
