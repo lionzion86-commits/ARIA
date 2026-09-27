@@ -991,6 +991,11 @@ const EXPECTED_EVERYDAY_ORDER = [
   /* BOOKS (2026-09-27, Danny): Assouline + Chronicle Books, registry order
      after Crocs, before Skims. */
   "assouline", "chronicle",
+  /* ARIA MOMS BATCH (2026-09-27, Danny): seventeen browsable mom+baby
+     brand keys, registry order before Skims. */
+  "walmartbaby", "momcozy", "elvie", "spectra", "munchkin", "babybrezza",
+  "drbrowns", "mockingbird", "nanit", "owlet", "kindredbravely", "hatch",
+  "bellybandit", "freshlypicked", "jujube", "dagnedover", "lillebaby",
   "skims", "yesstyle"
 ];
 function everydayOrder(){
@@ -4013,20 +4018,26 @@ check("the order is editorial, and lingerie is last", () => {
      aisles by size would put lingerie second and rebuild the problem, so
      the order is declared, and this is what stops anyone "improving" it
      into a count sort. */
-  /* ONE TABLE, THREE FLOORS (2026-09-22, 2026-09-25). The beauty aisles
-     were appended when beauty-catalog.json landed, and the sports aisles
-     when Dick's + PacSun landed inside Deportes — so "last in the array"
-     is no longer the same question as "last on the womenswear floor".
+  /* ONE TABLE, FOUR FLOORS (2026-09-22, 2026-09-25, 2026-09-27). The beauty aisles
+     were appended when beauty-catalog.json landed, the sports aisles
+     when Dick's + PacSun landed inside Deportes, and the moms aisles
+     with moms-catalog.json — so "last in the array" is no longer the same
+     question as "last on the womenswear floor".
      The rule was always per-department: lingerie last among the apparel
-     aisles, fragancia last among the beauty ones, and the sports floor
-     walked skate -> surf -> fitness. All three are asserted, because all
-     three are the same fix. */
+     aisles, fragancia last among the beauty ones, the sports floor
+     walked skate -> surf -> fitness, and the moms floor walks
+     Coches -> Maternidad. All four are asserted, because all four are
+     the same fix. */
   const keys = subcats.SUBCATEGORY_SPEC.map((r) => r.key);
   const BEAUTY_AISLES = ["face", "masks", "makeup", "lips", "eyes", "skincare", "mens", "nails", "fragrance"];
   const SPORTS_AISLES = ["skate", "surf", "fitness", "sportswear"];
-  const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k) && !SPORTS_AISLES.includes(k));
+  /* ARIA MOMS (2026-09-27, Danny): the moms floor walks Coches first,
+     Maternidad last. */
+  const MOMS_AISLES = ["strollers", "nursing", "feeding", "carseats", "nursery", "diapering", "carriers", "highchairs", "maternity"];
+  const apparel = keys.filter((k) => !BEAUTY_AISLES.includes(k) && !SPORTS_AISLES.includes(k) && !MOMS_AISLES.includes(k));
   const sports = keys.filter((k) => SPORTS_AISLES.includes(k));
   const beauty = keys.filter((k) => BEAUTY_AISLES.includes(k));
+  const moms = keys.filter((k) => MOMS_AISLES.includes(k));
   eq(apparel[0], "dresses", "dresses lead");
   eq(apparel[apparel.length - 1], "lingerie", "lingerie is last on the apparel floor");
   /* Ropa deportiva walks the sports floor too (2026-09-25): PacSun's
@@ -4034,13 +4045,16 @@ check("the order is editorial, and lingerie is last", () => {
      sports aisles, after fitness. */
   eq(sports.join(), "skate,surf,fitness,sportswear", "the sports floor is walked skate -> surf -> fitness -> sportswear");
   eq(beauty[beauty.length - 1], "fragrance", "fragancia is last on the beauty floor");
-  // The three blocks do not interleave: an apparel aisle after a beauty
+  // The four blocks do not interleave: an apparel aisle after a beauty
   // one would put "Rostro" in the middle of a womenswear department the
   // day some store reports both, and a surf aisle in the middle of the
   // beauty floor would do the same to Deportes.
   eq(keys.slice(0, apparel.length).join(), apparel.join(), "the apparel block is contiguous and first");
   eq(keys.slice(apparel.length, apparel.length + sports.length).join(), sports.join(), "the sports block is contiguous and second");
-  eq(keys.slice(apparel.length + sports.length).join(), beauty.join(), "the beauty block is contiguous and last");
+  eq(keys.slice(apparel.length + sports.length, apparel.length + sports.length + beauty.length).join(), beauty.join(), "the beauty block is contiguous and third");
+  eq(keys.slice(apparel.length + sports.length + beauty.length).join(), moms.join(), "the moms block is contiguous and last");
+  eq(moms[0], "strollers", "coches lead the moms floor");
+  eq(moms[moms.length - 1], "maternity", "maternidad is last on the moms floor");
   // The grouping the brief asked for, exactly.
   const lingerie = subcats.SUBCATEGORY_SPEC.find((r) => r.key === "lingerie").types;
   for (const t of ["BRA", "PANTY", "UNDERWEAR", "LINGERIE", "SHAPEWEAR", "SLEEPWEAR"]) {
