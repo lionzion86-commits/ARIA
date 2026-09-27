@@ -926,7 +926,11 @@ const EXPECTED_EVERYDAY_ORDER = [
   "mainland", "parrot", "ccs", "valsurf",
   "oldnavy", "samsclub",
 
-  "lanebryant", "alphalete", "youngla", "gymshark", "skims", "yesstyle"
+  "lanebryant", "alphalete", "youngla", "gymshark",
+  /* ARIA FIGHT CLUB BATCH (2026-09-27, Danny): six fight-sports shops,
+     registry order before Skims. */
+  "venum", "tatami", "everlast", "mmawarehouse", "combatcorner", "fuji",
+  "skims", "yesstyle"
 ];
 function everydayOrder(){
   return Object.keys(RETAILERS).filter(k => {
@@ -1244,7 +1248,10 @@ check("every department has a curated photograph, and every one is on disk", () 
      "" now that shoes.jpg is on disk — twelve departments, twelve
      photographs. */
   const uncovered = Object.keys(deptMap.DEPARTMENT_SPEC).filter((k) => !covers.CATEGORY_COVERS[k]);
-  eq(uncovered.join(), "", "a department is on the drawn cover — give it a photo or accept it here");
+  /* ARIA FIGHT CLUB (2026-09-27): combat_sports ships on the drawn brand
+     field until a curated photograph lands — a deliberate choice, recorded
+     here the way the assertion demands. */
+  eq(uncovered.join(), "combat_sports", "a department is on the drawn cover — give it a photo or accept it here");
 });
 
 check("Ofertas takes a photograph but keeps its gold sign", () => {
