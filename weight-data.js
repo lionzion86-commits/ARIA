@@ -76,11 +76,14 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
    THE DUTIABLE BASE (2026-09-27) — WHAT THE TAX IS COMPUTED ON
 
    Peru taxes the GOODS, not our margin. The dutiable base is what the
-   goods really cost: the raw US price plus Miami sales tax, BEFORE the
-   24% service markup. Every price on the site is built as
-   raw x 1.07 x 1.24 (see normalizeLiveItem() in index.html), so the base
-   backs out exactly as price / 1.24 — the same reversal the admin margin
-   view uses. Items stamped at pricing time carry dutiableUsd directly;
+   goods really cost: the raw US price plus whatever Miami sales tax Aria
+   really pays at that retailer's register (per-retailer rate — 1.07 by
+   default, 1.0 for DR-13-exempt retailers; see TAX_EXEMPT_STATUS in
+   index.html), BEFORE the 24% service markup. Every price on the site is
+   built as raw x taxRate x 1.24 (see normalizeLiveItem() in index.html),
+   so the base backs out exactly as price / 1.24 — the same reversal the
+   admin margin view uses. Items stamped at pricing time carry dutiableUsd
+   directly;
    anything older (or tampered) gets the exact reversal here.
 
    This helper is the one definition for module-land (checkout,

@@ -871,6 +871,55 @@ check("the beauty table is mirrored row for row", () => {
   eq(page.MAX_FRAGRANCES_PER_SHIPMENT, beauty.MAX_FRAGRANCES_PER_SHIPMENT);
 });
 
+group("per-retailer Miami sales tax (2026-09-27)");
+
+check("the page and the module carry the identical tax-status map", () => {
+  const pageSrc = readFileSync(root("index.html"), "utf8");
+  const m = pageSrc.match(/const TAX_EXEMPT_STATUS = (\{[\s\S]*?\n\});/);
+  if (!m) throw new Error("TAX_EXEMPT_STATUS missing from index.html");
+  const pageMap = new Function("return (" + m[1] + ")")();
+  const modMap = salesSources.TAX_EXEMPT_STATUS;
+  if (!modMap) throw new Error("TAX_EXEMPT_STATUS missing from sales-sources.js");
+  const keys = new Set([...Object.keys(pageMap), ...Object.keys(modMap)]);
+  for (const k of keys) {
+    if (pageMap[k] !== modMap[k]) {
+      throw new Error(`tax-status drift for ${k}: page=${pageMap[k]} module=${modMap[k]}`);
+    }
+  }
+  // The flip surface Danny uses: walmart confirmed exempt, six refuse resale.
+  eq(pageMap.walmart, "exempt", "page map: walmart");
+  for (const r of ["target", "macys", "kohls", "oldnavy", "footlocker", "victoriassecret"]) {
+    eq(pageMap[r], "taxable", `page map: ${r}`);
+  }
+});
+
+check("salesTaxRateFor maps the audit tiers, and defaults safe", () => {
+  eq(salesSources.salesTaxRateFor("walmart"), 1.0, "walmart is exempt");
+  eq(salesSources.salesTaxRateFor("Walmart"), 1.0, "case-insensitive");
+  for (const r of ["target", "macys", "kohls", "oldnavy", "footlocker", "victoriassecret"]) {
+    eq(salesSources.salesTaxRateFor(r), 1.07, `${r} refuses resale: keeps the 7%`);
+  }
+  eq(salesSources.salesTaxRateFor("sephora"), 1.07, "sephora unverified: keeps the 7%");
+  eq(salesSources.salesTaxRateFor("some-future-retailer"), 1.07, "unlisted retailers default safe");
+  eq(salesSources.salesTaxRateFor(null), 1.07, "missing retailer defaults safe");
+  eq(salesSources.salesTaxRateFor(undefined), 1.07, "undefined retailer defaults safe");
+});
+
+check("normalizeDeal prices exempt retailers without the 7%", () => {
+  const mk = (retailer) => salesSources.normalizeDeal(
+    { title: "Levi's 501 Original Fit Jeans", price: 100, originalPrice: 200, onSale: true, image: "https://example.com/y.jpg" },
+    retailer);
+  const w = mk("walmart");
+  if (!w) throw new Error("walmart deal was dropped");
+  eq(w.price, 124, "walmart: raw x 1.0 x 1.24");
+  const t = mk("target");
+  if (!t) throw new Error("target deal was dropped");
+  eq(t.price, 132.68, "target: raw x 1.07 x 1.24");
+  // The discount badge still reads off the raw prices, so it is unchanged.
+  eq(w.originalPrice, 248, "walmart compare-at: raw x 1.0 x 1.24");
+  eq(t.originalPrice, 265.36, "target compare-at: raw x 1.07 x 1.24");
+});
+
 /* ------------------------------------------------------------------
    P1.3 — retailers.
    ------------------------------------------------------------------ */
@@ -3280,8 +3329,16 @@ check("the card figure is price + 23% of the dutiable base", () => {
 
 check("the dutiable base is stamped at pricing and travels to the cart", () => {
   const page = readFileSync(root("index.html"), "utf8");
-  if (!/const dutiableUsd = Number\.isFinite\(rawPrice\) \? round2\(rawPrice \* SALES_TAX_RATE\) : null;/.test(page)) {
+  if (!/const dutiableUsd = Number\.isFinite\(rawPrice\) \? round2\(rawPrice \* taxRate\) : null;/.test(page)) {
     throw new Error("normalizeLiveItem no longer stamps dutiableUsd at pricing");
+  }
+  // Per-retailer tax (2026-09-27): the stamp must use the retailer's rate,
+  // resolved once per item from TAX_EXEMPT_STATUS.
+  if (!/const taxRate = salesTaxRateFor\(\(hints && hints\.retailer\) \|\| item\.retailer\);/.test(page)) {
+    throw new Error("normalizeLiveItem no longer resolves the per-retailer tax rate");
+  }
+  if (!/return s === 'exempt' \? 1\.0 : SALES_TAX_RATE;/.test(page)) {
+    throw new Error("salesTaxRateFor no longer maps exempt retailers to x1.0");
   }
   if (!/return \{ title, brand, price, dutiableUsd,/.test(page)) {
     throw new Error("the normalized item no longer carries dutiableUsd");

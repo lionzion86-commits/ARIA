@@ -1222,8 +1222,9 @@
 
     /* VALOR DECLARADO IS THE DUTIABLE SUM (2026-09-27): the $200
        threshold and the import-tax estimate are the state's rules and
-       they apply to what the goods really cost (raw x 1.07), never to
-       the marked-up card price. Lines stamped at addToCart carry
+       they apply to what the goods really cost (raw x per-retailer
+       sales-tax rate), never to the marked-up card price. Lines stamped
+       at addToCart carry
        dutiableUsd; older lines get the exact reversal. */
     const totals = cart.reduce((acc, it) => {
       const dLine = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);

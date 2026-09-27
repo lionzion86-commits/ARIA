@@ -32,6 +32,61 @@ export const SALES_SOURCES = [
 
 // Must match index.html exactly.
 export const SALES_TAX_RATE = 1.07;
+
+/* PER-RETAILER MIAMI SALES TAX (2026-09-27) -- mirror of TAX_EXEMPT_STATUS
+   in index.html. ONE config to flip: 'unknown' -> 'exempt' once a retailer's
+   DR-13 enrollment is confirmed AND a live test checkout clears tax-free.
+   'taxable' retailers prohibit reseller purchases outright -- the 7% stays
+   permanently. Anything unlisted falls through to 'unknown' (keeps 7%). */
+export const TAX_EXEMPT_STATUS = {
+  walmart: 'exempt',
+  target: 'taxable',
+  macys: 'taxable',
+  kohls: 'taxable',
+  oldnavy: 'taxable',
+  footlocker: 'taxable',
+  victoriassecret: 'taxable',
+  sephora: 'unknown',
+  costco: 'unknown',
+  samsclub: 'unknown',
+  autozone: 'unknown',
+  advanceauto: 'unknown',
+  bhphoto: 'unknown',
+  nordstrom: 'unknown',
+  dicks: 'unknown',
+  bestbuy: 'unknown',
+  dyson: 'unknown',
+  lanebryant: 'unknown',
+  revolve: 'unknown',
+  newbalance: 'unknown',
+  ulta: 'unknown',
+  bathandbodyworks: 'unknown',
+  pacsun: 'unknown',
+  gymshark: 'unknown',
+  youngla: 'unknown',
+  alphalete: 'unknown',
+  skims: 'unknown',
+  sunglasshut: 'unknown',
+  ssense: 'unknown',
+  yesstyle: 'unknown',
+  miumiu: 'unknown',
+  fendi: 'unknown',
+  goldengoose: 'unknown',
+  nautilus: 'unknown',
+  islandwatersports: 'unknown',
+  quietstorm: 'unknown',
+  surfworld: 'unknown',
+  surfstation: 'unknown',
+  mainland: 'unknown',
+  parrot: 'unknown',
+  ccs: 'unknown',
+  valsurf: 'unknown',
+  rockauto: 'unknown',
+};
+export function salesTaxRateFor(retailer){
+  const s = TAX_EXEMPT_STATUS[String(retailer || '').toLowerCase()];
+  return s === 'exempt' ? 1.0 : SALES_TAX_RATE;
+}
 export const LIVE_PRICE_MARKUP = 1.24;
 export const MIN_DISCOUNT_PCT = 5;
 
@@ -299,7 +354,8 @@ export function normalizeDeal(item, retailer) {
   const title = item.title || item.name || item.productTitle || item.productName || "";
   const rawPrice = num(item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice
     ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice);
-  const price = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
+  const taxRate = salesTaxRateFor(retailer);
+  const price = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate * LIVE_PRICE_MARKUP) : null;
 
   const rawImages = Array.isArray(item.images) ? item.images : [];
   const images = [...new Set([item.image, item.imageUrl, item.thumbnail, ...rawImages].map(safeUrl).filter(Boolean))].slice(0, 8);
@@ -356,7 +412,7 @@ export function normalizeDeal(item, retailer) {
     retailer,
     title,
     price,
-    originalPrice: round2(rawOriginal * SALES_TAX_RATE * LIVE_PRICE_MARKUP),
+    originalPrice: round2(rawOriginal * taxRate * LIVE_PRICE_MARKUP),
     rating,
     weightKg,
     // The card must be able to say "estimado" rather than print a guess as

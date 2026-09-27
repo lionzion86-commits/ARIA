@@ -119,8 +119,9 @@ export async function handler(event) {
 
     const priceUsdTotal = items.reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
     /* DUTIABLE BASE (2026-09-27): the import-tax threshold and estimate
-       are computed on what the goods really cost (raw x 1.07), NEVER on
-       the marked-up card price. The browser sends dutiableUsd per line;
+       are computed on what the goods really cost (raw x per-retailer
+       sales-tax rate: 1.07 default, 1.0 for DR-13-exempt retailers),
+       NEVER on the marked-up card price. The browser sends dutiableUsd per line;
        the server resolves it through the same canonical helper, so a
        tampered or legacy line (no stamp) gets the exact reversal and
        cannot shift the tax base. */
@@ -245,7 +246,7 @@ export async function handler(event) {
         return Number.isFinite(d) && !(Number(it.dutiableUsd) > 0) ? { ...it, dutiableUsd: d } : it;
       }),
       weightEstimatedKg: Math.round(weightKgTotal * 100) / 100,
-      priceScrapedUsdTotal: null, // admin view derives this from priceUsdTotal / (SALES_TAX_RATE*LIVE_PRICE_MARKUP) — same known constants as index.html, not re-sent over the wire
+      priceScrapedUsdTotal: null, // admin view reverses each line with its own retailer rate (see computeMargin) — not re-sent over the wire
       pricePenCharged: chargedPen,      // after saldo Aria — what the card pays
       orderTotalPen: totalPen,          // before saldo, for the margin view
       walletAppliedPen,
@@ -270,8 +271,9 @@ export async function handler(event) {
          later for want of a field.
 
          THE SET-ASIDE BUCKET (2026-09-27): declaredValueUsd is the
-         dutiable sum — what the goods really cost (raw x 1.07), never
-         the marked-up card price — and taxEstimated* is computed on it.
+         dutiable sum — what the goods really cost (raw x per-retailer
+         rate), never the marked-up card price — and taxEstimated*
+         is computed on it.
          This is the figure Danny reconciles against the courier's SUNAT
          invoice after every transaction. Per-line dutiableUsd is stamped
          on items above so the bucket is auditable line by line.
