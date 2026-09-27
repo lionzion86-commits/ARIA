@@ -14558,6 +14558,17 @@ const RETAILERS = {
 
      Mirrors scripts/lib/retailers.js.
      ============================================================ */
+  /* ARIA FIGHT CLUB RETAILERS (2026-09-27, Danny) — catalogue but no actor,
+     the Macy's pattern: browse: true, search: false. Their 931 sale
+     products (gis, gloves, rashguards, wraps, pads) file under the
+     combat_sports bucket. No logo files yet — wordmark pill on brand
+     colour, the documented fallback. Mirrors scripts/lib/retailers.js. */
+  venum:          { key: 'venum',          label: 'Venum',            color: '#000000', tagline: 'MMA y boxeo — guantes, shorts y equipo', kind: 'general', search: false, browse: true },
+  tatami:         { key: 'tatami',         label: 'Tatami Fightwear', color: '#1A1A1A', tagline: 'Jiu-jitsu — gis, rashguards y spats',     kind: 'general', search: false, browse: true },
+  everlast:       { key: 'everlast',       label: 'Everlast',         color: '#000000', tagline: 'Boxeo — guantes, sacos y protección',     kind: 'general', search: false, browse: true },
+  mmawarehouse:   { key: 'mmawarehouse',   label: 'MMAWarehouse',     color: '#1A1A1A', tagline: 'MMA — guantes, canilleras y equipo',      kind: 'general', search: false, browse: true },
+  combatcorner:   { key: 'combatcorner',   label: 'Combat Corner',    color: '#000000', tagline: 'Boxeo y MMA — equipo de pelea',           kind: 'general', search: false, browse: true },
+  fuji:           { key: 'fuji',           label: 'FUJI Sports',      color: '#1A1A1A', tagline: 'Jiu-jitsu y judo — gis y equipo',          kind: 'general', search: false, browse: true },
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
 /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
    Delivery transparency is the merchandising strategy now — the stores
@@ -14587,17 +14598,6 @@ const RETAILERS = {
   ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, browse: true },
   yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  /* ARIA FIGHT CLUB RETAILERS (2026-09-27, Danny) — catalogue but no actor,
-     the Macy's pattern: browse: true, search: false. Their 931 sale
-     products (gis, gloves, rashguards, wraps, pads) file under the
-     combat_sports bucket. No logo files yet — wordmark pill on brand
-     colour, the documented fallback. Mirrors scripts/lib/retailers.js. */
-  venum:          { key: 'venum',          label: 'Venum',            color: '#000000', tagline: 'MMA y boxeo — guantes, shorts y equipo', kind: 'general', search: false, browse: true },
-  tatami:         { key: 'tatami',         label: 'Tatami Fightwear', color: '#1A1A1A', tagline: 'Jiu-jitsu — gis, rashguards y spats',     kind: 'general', search: false, browse: true },
-  everlast:       { key: 'everlast',       label: 'Everlast',         color: '#000000', tagline: 'Boxeo — guantes, sacos y protección',     kind: 'general', search: false, browse: true },
-  mmawarehouse:   { key: 'mmawarehouse',   label: 'MMAWarehouse',     color: '#1A1A1A', tagline: 'MMA — guantes, canilleras y equipo',      kind: 'general', search: false, browse: true },
-  combatcorner:   { key: 'combatcorner',   label: 'Combat Corner',    color: '#000000', tagline: 'Boxeo y MMA — equipo de pelea',           kind: 'general', search: false, browse: true },
-  fuji:           { key: 'fuji',           label: 'FUJI Sports',      color: '#1A1A1A', tagline: 'Jiu-jitsu y judo — gis y equipo',          kind: 'general', search: false, browse: true },
   /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
      store in this tier with a catalogue behind it, and renderStoresGrid
      preserves declaration order — three "conectando" cards above it

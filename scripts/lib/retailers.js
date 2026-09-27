@@ -486,6 +486,15 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* ARIA FIGHT CLUB RETAILERS (2026-09-27, Danny) — catalogue but no actor,
+     the Macy's pattern: browse: true, search: false. Mirrors index.html. */
+  venum: { key: "venum", label: "Venum", color: "#000000", tagline: "MMA y boxeo — guantes, shorts y equipo", kind: "general", search: false, browse: true },
+  tatami: { key: "tatami", label: "Tatami Fightwear", color: "#1A1A1A", tagline: "Jiu-jitsu — gis, rashguards y spats", kind: "general", search: false, browse: true },
+  everlast: { key: "everlast", label: "Everlast", color: "#000000", tagline: "Boxeo — guantes, sacos y protección", kind: "general", search: false, browse: true },
+  mmawarehouse: { key: "mmawarehouse", label: "MMAWarehouse", color: "#1A1A1A", tagline: "MMA — guantes, canilleras y equipo", kind: "general", search: false, browse: true },
+  combatcorner: { key: "combatcorner", label: "Combat Corner", color: "#000000", tagline: "Boxeo y MMA — equipo de pelea", kind: "general", search: false, browse: true },
+  fuji: { key: "fuji", label: "FUJI Sports", color: "#1A1A1A", tagline: "Jiu-jitsu y judo — gis y equipo", kind: "general", search: false, browse: true },
+
   skims: {
     key: "skims",
     label: "Skims",
@@ -690,15 +699,6 @@ export const RETAILERS = {
      search so an unconfigured retailer cannot return a failed store
      card. Flip `browse: true` the day the catalogue is committed.
      ============================================================ */
-  /* ARIA FIGHT CLUB RETAILERS (2026-09-27, Danny) — catalogue but no actor,
-     the Macy's pattern: browse: true, search: false. Mirrors index.html. */
-  venum: { key: "venum", label: "Venum", color: "#000000", tagline: "MMA y boxeo — guantes, shorts y equipo", kind: "general", search: false, browse: true },
-  tatami: { key: "tatami", label: "Tatami Fightwear", color: "#1A1A1A", tagline: "Jiu-jitsu — gis, rashguards y spats", kind: "general", search: false, browse: true },
-  everlast: { key: "everlast", label: "Everlast", color: "#000000", tagline: "Boxeo — guantes, sacos y protección", kind: "general", search: false, browse: true },
-  mmawarehouse: { key: "mmawarehouse", label: "MMAWarehouse", color: "#1A1A1A", tagline: "MMA — guantes, canilleras y equipo", kind: "general", search: false, browse: true },
-  combatcorner: { key: "combatcorner", label: "Combat Corner", color: "#000000", tagline: "Boxeo y MMA — equipo de pelea", kind: "general", search: false, browse: true },
-  fuji: { key: "fuji", label: "FUJI Sports", color: "#1A1A1A", tagline: "Jiu-jitsu y judo — gis y equipo", kind: "general", search: false, browse: true },
-
   bestbuy: { key: "bestbuy", label: "Best Buy", color: "#0046BE", logo: null, kind: "general", search: false, retired: true },
   nordstrom: { key: "nordstrom", label: "Nordstrom", color: "#000000", logo: null, kind: "general", search: false, retired: true,
     retiredNote: "Bot protection: tres integraciones, cero productos. Reemplazada por SSENSE." },
