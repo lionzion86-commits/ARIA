@@ -26,6 +26,13 @@
       only in Surf & Skate). Pure bike helmets (no "skate" in the
       title) are untouched and stay in Deportes.
 
+   2c. A SURF ROPE BY NAME. Island Water Sports types its wake-surf
+      rope "Boyas y flotadores", which is too generic to claim by
+      type — but a rope with the surf word is genuine surf gear
+      (Danny 2026-09-26: all genuine surf merchandise belongs in Surf
+      & Skate). Requires the surf word; a plain tow/mooring rope never
+      matches, and snorkeling gear stays in Deportes.
+
    WHAT THE KEYWORDS HAD TO LEARN NOT TO MATCH:
      * "fish" is not a surfboard (Nautilus sells spearfishing gear;
        the normalizer already routes spearguns before surf).
@@ -84,6 +91,15 @@ const NOT_SURFSKATE =
 const SURFSKATE_HELMET =
   /\bskate\b.{0,30}\bhelmets?\b|\bhelmets?\b.{0,30}\bskate\b|\bskate\b.{0,30}\bcascos?\b|\bcascos?\b.{0,30}\bskate\b/i;
 
+/* A surf rope is surf gear: "Liquid Force Surf 8in Floating Rope"
+   types as "Boyas y flotadores" (too generic to claim by type), but
+   a rope with the surf word is wake-surf gear (Danny 2026-09-26: all
+   genuine surf merchandise belongs in Surf & Skate). Requires the
+   surf word — a plain tow/mooring rope never matches, and snorkeling
+   gear stays in Deportes. */
+const SURFSKATE_ROPE =
+  /\bsurf\b.{0,40}\bropes?\b|\bropes?\b.{0,40}\bsurf\b|\bsurf\b.{0,40}\bcuerdas?\b|\bcuerdas?\b.{0,40}\bsurf\b/i;
+
 /** True when this catalogue item is surf or skate GEAR (not apparel,
     and never a toy-aisle character board — those belong in Juguetes). */
 export function isSurfSkate(item) {
@@ -92,5 +108,5 @@ export function isSurfSkate(item) {
   if (SURFSKATE_TYPES.has(item.type)) return true;
   const name = `${item.name || ""} ${item.type || ""}`;
   if (NOT_SURFSKATE.test(name)) return false;
-  return SURFSKATE_TITLE.test(name) || SURFSKATE_HELMET.test(name);
+  return SURFSKATE_TITLE.test(name) || SURFSKATE_HELMET.test(name) || SURFSKATE_ROPE.test(name);
 }

@@ -660,11 +660,19 @@ export function loadPageDepartmentSlice() {
     return m[0];
   };
   const prelude = ["MIN_DISCOUNT_PCT", "KID_MARKER", "WOMEN_MARKER", "MEN_MARKER"].map(line).join("\n");
+  /* The JUGUETES isToy block lives outside the slice markers, but
+     itemBelongsToDepartment's toysOnly branch calls it — append it so
+     the slice can route toys. Same markers the run-tests extraction
+     uses. */
+  const j0 = html.indexOf("const TOY_KEYWORD_RX");
+  const j1 = html.indexOf("/* Pool-safe extended sizes", j0);
+  if (j0 < 0 || j1 < 0) throw new Error("index.html lost the JUGUETES block -- update scripts/test/_page-script.mjs");
+  const toysJs = html.slice(j0, j1);
   const sandbox = { console };
   vm.createContext(sandbox);
   vm.runInContext(
-    prelude + "\n" + html.slice(from, to) +
-      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC, isToyGradeSkate, isSurfSkate };",
+    prelude + "\n" + html.slice(from, to) + "\n" + toysJs +
+      "\n;globalThis.__exports = { departmentItemsFor, itemBelongsToDepartment, DEPARTMENT_SPEC, BUCKET_SPEC, isToyGradeSkate, isSurfSkate, isToy };",
     sandbox,
     { filename: "index.html#department" },
   );

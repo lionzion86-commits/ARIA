@@ -94,6 +94,10 @@ function eq(actual, expected, what) {
   if (actual !== expected) throw new Error(`${what ?? "value"}: got ${JSON.stringify(actual)}, expected ${JSON.stringify(expected)}`);
 }
 
+function ok(cond, what) {
+  if (!cond) throw new Error(`failed: ${what ?? "condition"}`);
+}
+
 function group(title) {
   console.log(`\n  ${title}`);
 }
@@ -5203,8 +5207,9 @@ check("the photo hero opens the home page, shopfront follows", () => {
      reversed it: "Todo USA ahora en Lima" is the strong opening message
      and it should hit you the moment you walk in, like it originally
      did. The photographic hero is the FIRST child of #homeView again,
-     the shopfront follows it, and the Ofertas rail stays the first
-     section inside the shopfront. */
+     the shopfront follows it, and (2026-09-26, DANNY'S HOMEPAGE ORDER
+     V3) the Aria Auto house banner is the first section inside the
+     shopfront -- hero > Aria Auto > nav > Categorías > rails > rest. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
@@ -5225,8 +5230,8 @@ check("the photo hero opens the home page, shopfront follows", () => {
     throw new Error(`the shopfront does not follow the hero: ${second.slice(0, 70)}`);
   }
   const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
-  if (firstSection !== "Ofertas") {
-    throw new Error(`the first section in the shopfront is ${firstSection}, want Ofertas`);
+  if (firstSection !== "Aria Auto") {
+    throw new Error(`the first section in the shopfront is ${firstSection}, want Aria Auto`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -5238,7 +5243,7 @@ check("the photo hero opens the home page, shopfront follows", () => {
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
+check("Hero, Aria Auto, nav, Categorías, store rails, rest (2026-09-26, Danny)", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5265,29 +5270,29 @@ check("Hero, Ofertas, brand band, store rails, Todas las otras tiendas, Categor�
      hits you the moment you walk in. The 2026-09-25 order holds after
      it, with the Costco rail and the Fiestas y Eventos vertical.
 
-     2026-09-26, DANNY'S HOMEPAGE ORDER V3: the Aria Auto house banner
-     sits under the ARIA brand band and above the store rails (the
-     logo/branding moment lands first, then the black banner, then the
-     Victoria's Secret rails). The six fashion rails read compact, a
-     clothing-brand strip ("Marcas") separates them from the Costco
-     treasure-hunt section, and Fiestas y Eventos follows Costco.) */
+     2026-09-26, DANNY'S HOMEPAGE ORDER V3: hero > Aria Auto > the sticky
+     mobile section-nav (phones only) > Categorías > the eight store rails
+     in mall order > everything else in its previous relative order
+     (Ofertas, the brand band, Marcas, Costco, SSENSE, Compra por categoría,
+     Todas las otras tiendas). Desktop: hero > Aria Auto > Categorías >
+     rails > rest, no nav strip.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Surf & Skate > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Aria Auto > Categorías > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Ofertas > Compra en Estados Unidos > Marcas > Costco > SSENSE > Compra por categoría > Categorías > Todas las otras tiendas", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["mobileDealsRow", "mobileCatsRow", "mOtherStoresRow", "mBrandStrip",
-    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "ssense", "dicks", "costco"].map(k => `mStoreRail-${k}`)];
   for (const id of railIds) {
     eq((shopfront.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
 });
 
-check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las otras tiendas, Categorías", () => {
+check("the desktop shopfront reads Aria Auto, Categorías, rails, rest (2026-09-26, Danny)", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
      scroll order now -- deals, the eight store rails in mall order,
      departments. The Tiendas chips rail is superseded by the rails.
@@ -5299,8 +5304,9 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
      between the eight rails and Categorías on the laptop too.
 
      2026-09-26, DANNY'S HOMEPAGE ORDER V3: same reorder as the phone --
-     Aria Auto house banner under the brand band, six compact rails, the
-     "Marcas" brand strip, then the Costco treasure-hunt section. */
+     Aria Auto > Categorías > the eight store rails in mall order >
+     everything else in its previous relative order. No nav strip on
+     desktop. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
     shopfrontSrc.indexOf('id="whyUs"'),
@@ -5309,12 +5315,12 @@ check("the desktop shopfront reads Ofertas, brand band, store rails, Todas las o
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Foot Locker > New Balance > Sephora > Macy's > Kohl's > Dick's Sporting Goods > Victoria's Secret > Marcas > Costco > B&H Photo > Gymshark > SSENSE > Surf & Skate > Fiestas y Eventos > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Aria Auto > Categorías > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Ofertas > Compra en Estados Unidos > Marcas > Costco > SSENSE > Compra por categoría > Categorías > Todas las otras tiendas", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
   const railIds = ["desktopDealsRow", "desktopCatsRow", "dOtherStoresRow", "dBrandStrip",
-    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "bhphoto", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
+    ...["gymshark", "victoriassecret", "sephora", "macys", "footlocker", "newbalance", "kohls", "ssense", "dicks", "costco"].map(k => `dStoreRail-${k}`)];
   for (const id of railIds) {
     eq((desk.match(new RegExp(`id="${id}"`, "g")) || []).length, 1, `${id} is declared once`);
   }
@@ -6072,7 +6078,7 @@ check("Party City cards badge the store by name, without a storefront", () => {
   if (/openStore\(\s*['"]partycity['"]\)/.test(shopfrontSrc)) throw new Error("something opens a partycity storefront");
 });
 
-check("the Aria Auto house banner sits under the brand band, on both breakpoints", () => {
+check("the Aria Auto house banner sits directly under the hero, on both breakpoints (2026-09-26, Danny)", () => {
   /* 2026-09-26, DANNY'S CALL (final position): the logo/branding moment
      lands first, then the black banner, then the rails -- at the very top
      it would read like the page title. One bold statement, no product
@@ -6097,15 +6103,16 @@ check("the Aria Auto house banner sits under the brand band, on both breakpoints
   for (const [tag] of banners) {
     if (/ariaNavyBand/.test(tag)) throw new Error("the auto banner wears the navy rail language");
   }
-  // Position: after the brand band, before the first store rail, on both breakpoints.
+  // Position (2026-09-26, DANNY'S HOMEPAGE ORDER V3): directly under the
+  // hero, before Categorías and the first store rail, on both breakpoints.
   for (const [startMark, railId] of [["<div id=\"homeView\"", "mStoreRail-victoriassecret"],
       ["<div id=\"desktopShopfront\"", "dStoreRail-victoriassecret"]]) {
     const start = html.indexOf(startMark);
-    const band = html.indexOf('aria-label="Compra en Estados Unidos"', start);
     const banner = html.indexOf('aria-label="Aria Auto"', start);
+    const cats = html.indexOf('aria-label="Categorías"', start);
     const rail = html.indexOf(`id="${railId}"`, start);
-    if (!(band > 0 && banner > band && rail > banner))
-      throw new Error("the Aria Auto banner is not under the brand band");
+    if (!(banner > 0 && cats > banner && rail > cats))
+      throw new Error("the Aria Auto banner is not directly under the hero");
   }
 });
 
@@ -11112,8 +11119,9 @@ checkAsync("the Surf & Skate predicate matches between module and page over real
   const js = html.slice(html.lastIndexOf("/* ===", start), end);
   const pageFn = new Function(`${js}; return isSurfSkate;`)();
   /* Expected Surf & Skate matches per shop (predicate run 2026-09-26 over the
-     committed catalogues; Nautilus keeps its 18 real wetsuits/rashguards). */
-  const want = { nautilus: 18, islandwatersports: 1115, quietstorm: 33, surfworld: 1,
+     committed catalogues; Nautilus keeps its 18 real wetsuits/rashguards;
+     islandwatersports gained one: the Liquid Force wake-surf rope). */
+  const want = { nautilus: 18, islandwatersports: 1116, quietstorm: 33, surfworld: 1,
     surfstation: 3126, mainland: 375, parrot: 709, ccs: 6767, valsurf: 827 };
   const SPEAR_TYPES = new RegExp("(pesca submarina|arpones|aletas de buceo|m[aá]scaras|boyas|cuchillos de buceo|pesas y cinturones|guantes y botines|linternas de buceo)", "i");
   let grand = 0;
@@ -11124,14 +11132,18 @@ checkAsync("the Surf & Skate predicate matches between module and page over real
       const m = !!moduleFn(p, k), g = !!pageFn(p, k);
       if (m !== g) throw new Error(`module/page disagree on ${k}: ${surf9Name(p).slice(0, 50)}`);
       if (m) mod++;
-      /* Spearfishing gear is never surf/skate -- it stays in Deportes. */
-      if (SPEAR_TYPES.test(String(p.type || "")) && m)
+      /* Spearfishing gear is never surf/skate -- it stays in Deportes.
+         The one measured exception: a wake-surf rope types as "Boyas y
+         flotadores" (which trips the boyas guard) but is genuine surf gear
+         by the surf-rope title rule (Danny 2026-09-26). */
+      if (SPEAR_TYPES.test(String(p.type || "")) && m &&
+          !/\bsurf\b.{0,40}\bropes?\b|\bropes?\b.{0,40}\bsurf\b/i.test(surf9Name(p)))
         throw new Error(`spearfishing gear routed to Surf & Skate: ${surf9Name(p).slice(0, 50)}`);
     }
     grand += mod;
     if (mod !== want[k]) throw new Error(`${k}: ${mod} surf/skate matches, expected ${want[k]}`);
   }
-  if (grand !== 12971) throw new Error(`grand total ${grand}, expected 12971`);
+  if (grand !== 12972) throw new Error(`grand total ${grand}, expected 12972`);
 });
 
 /* TOY-GRADE SKATEBOARDS (2026-09-26, Danny): character-licensed toy
@@ -11283,6 +11295,212 @@ check("the Juguetes keyword sweep refuses bedding and apparel (2026-09-26, Danny
     if (!isToy(item, "costco", bucket)) throw new Error(`not claimed as a toy: ${item.title}`);
   for (const [item, bucket] of no)
     if (isToy(item, "costco", bucket)) throw new Error(`bedding/apparel claimed as a toy: ${item.title}`);
+});
+
+checkAsync("a wake-surf rope is Surf & Skate gear; plain ropes and snorkeling gear stay out (2026-09-26, Danny)", async () => {
+  const { isSurfSkate } = await import(root("scripts/lib/surfskate.js"));
+  const { isSurfSkate: pageFn, itemBelongsToDepartment } = loadPageDepartmentSlice();
+  const island = surf9Catalog("islandwatersports");
+  const rope = island.find(p => surf9Name(p).includes("Liquid Force Surf 8in Floating Rope"));
+  if (!rope) throw new Error("the wake-surf rope is missing from the catalogue");
+  if (!isSurfSkate(rope)) throw new Error("the module does not claim the wake-surf rope");
+  if (!pageFn(rope, "islandwatersports")) throw new Error("the page does not claim the wake-surf rope");
+  if (itemBelongsToDepartment(rope, "sporting_goods", "sporting_goods", "islandwatersports"))
+    throw new Error("Deportes still lists the wake-surf rope");
+  /* A plain mooring rope has no surf word and is not surf gear. */
+  const plain = { name: "Dock Edge Mooring Rope 50ft", type: "Accesorios" };
+  if (isSurfSkate(plain)) throw new Error("the module claims a plain rope as surf/skate");
+  if (pageFn(plain, "dicks")) throw new Error("the page claims a plain rope as surf/skate");
+  /* Snorkeling gear stays in Deportes. */
+  const snorkel = { name: "Cressi Snorkel Mask and Fin Set", type: "M\u00e1scaras" };
+  if (isSurfSkate(snorkel)) throw new Error("the module claims snorkeling gear as surf/skate");
+  if (pageFn(snorkel, "dicks")) throw new Error("the page claims snorkeling gear as surf/skate");
+  /* The rope-hat false positive: "rope" without the surf word stays out. */
+  const hat = { name: "Melin Hydro Odysea Rope Hat", type: "Gorras y gorros" };
+  if (isSurfSkate(hat)) throw new Error("the module claims a rope hat as surf/skate");
+  if (pageFn(hat, "dicks")) throw new Error("the page claims a rope hat as surf/skate");
+});
+
+check("the Juguetes sweep refuses party supplies but keeps consoles (2026-09-26, Danny)", () => {
+  const html = HOME_SRC();
+  const rt0 = html.indexOf("function rawTitleOf(item){");
+  if (rt0 < 0) throw new Error("rawTitleOf moved");
+  const rt1 = html.indexOf("}", html.indexOf("productName", rt0)) + 1;
+  const t0 = html.indexOf("IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)");
+  const t1 = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", t0);
+  const toyJs = html.slice(html.lastIndexOf("/* ===", t0), html.lastIndexOf("/*", t1));
+  const j0 = html.indexOf("const TOY_KEYWORD_RX");
+  const j1 = html.indexOf("/* Pool-safe extended sizes", j0);
+  if (j0 < 0 || j1 < 0) throw new Error("the JUGUETES block moved");
+  const isToy = new Function(
+    html.slice(rt0, rt1) + ";" + toyJs + ";" + html.slice(j0, j1) + "; return isToy;")();
+  /* Consoles are toys (Danny 2026-09-26). */
+  const yes = [
+    [{ title: "Nintendo Switch 2 Console", brand: "Nintendo" }, "electronics"],
+    [{ title: "PlayStation 5 Slim Console", brand: "Sony" }, "electronics"],
+    [{ title: "Xbox Series X 1TB Console", brand: "Microsoft" }, "electronics"],
+    [{ title: "Jumbo Baby Animal Plush", brand: "Jumbo" }, "bebe"],
+  ];
+  /* Licensed party merchandise matches toy words but is not a toy. */
+  const no = [
+    [{ title: "Barbie Birthday Balloons 6 Pack", brand: "Party City" }, "party"],
+    [{ title: "Hot Wheels Paper Plates 8 Count", brand: "Party City" }, "party"],
+    [{ title: "Super Mario Party Napkins 16 Pack", brand: "Nintendo" }, "party"],
+    [{ title: "Xbox Party Supplies Kit", brand: "" }, "party"],
+    [{ title: "LEGO Ninjago Table Cover", brand: "LEGO" }, "party"],
+    [{ title: "Barbie Favor Bags 8 Pack", brand: "Party City" }, "party"],
+    [{ title: "Hot Wheels Favor Cups, 16oz", brand: "Party City" }, "party"],
+    [{ title: "Malibu Barbie Favor Cup", brand: "Party City" }, "party"],
+    [{ title: "Malibu Barbie Cardstock Favor Boxes, 4ct", brand: "Party City" }, "party"],
+  ];
+  for (const [item, bucket] of yes)
+    if (!isToy(item, "costco", bucket)) throw new Error(`not claimed as a toy: ${item.title}`);
+  for (const [item, bucket] of no)
+    if (isToy(item, "costco", bucket)) throw new Error(`party supplies claimed as a toy: ${item.title}`);
+});
+
+check("a real protective Barbie-signature helmet is Surf & Skate, never Juguetes (2026-09-26, Danny)", () => {
+  const { itemBelongsToDepartment } = loadPageDepartmentSlice();
+  const helmet = { name: "Triple Eight Deep Cover Helmet - Barbie Patin Signature Edition", type: "Cascos y protecciones" };
+  ok(itemBelongsToDepartment(helmet, "all", "surf_skate", "ccs"), "the Barbie helmet rides in Surf & Skate");
+  ok(!itemBelongsToDepartment(helmet, "all", "toys", "ccs"), "the Barbie helmet never enters Juguetes");
+  /* Toy-grade character boards still make the toy aisle. */
+  ok(itemBelongsToDepartment({ name: "Barbie 31in Skateboard", type: "Tablas de skate" }, "all", "toys", "walmart"),
+    "toy-grade Barbie skateboard stays a toy");
+});
+
+/* CONSOLES (2026-09-26, Danny): two rules. (1) In Juguetes, real
+   toys lead and consoles follow — toyLeadRank: toys 0, consoles 1.
+   (2) Consoles are also electronics: Electrónica claims them too, so a
+   PlayStation shopper finds them there. Dual presence is intended. A
+   video GAME is not a console: it stays a plain toy. */
+checkAsync("the console detector matches between module and page over real catalogues", async () => {
+  const { isConsole: moduleFn } = await import(root("scripts/lib/toys.js"));
+  const html = HOME_SRC();
+  const start = html.indexOf("IS THIS A GAME CONSOLE? (2026-09-26, Danny)");
+  if (start < 0) throw new Error("the page's isConsole mirror is missing");
+  const nextBlock = html.indexOf("IS THIS SURF OR SKATE GEAR? (2026-09-26, Danny)", start);
+  if (nextBlock < 0) throw new Error("the surf/skate mirror block moved");
+  const js = html.slice(html.lastIndexOf("/* ===", start), html.lastIndexOf("/*", nextBlock));
+  const pageFn = new Function(`${js}; return isConsole;`)();
+  const files = readdirSync(root(".")).filter((f) => f.endsWith("-catalog.json"));
+  if (!files.length) throw new Error("no catalogues found");
+  for (const f of files) {
+    const data = JSON.parse(readFileSync(root(f), "utf8"));
+    const items = Array.isArray(data) ? data : [];
+    if (!items.length) for (const r of Object.values(data.retailers || {})) {
+      const deps = r.departments || {};
+      for (const d of Object.values(deps)) {
+        if (Array.isArray(d)) items.push(...d);
+        else items.push(...(d.items || []));
+      }
+    }
+    for (const it of items) {
+      const m = !!moduleFn(it), g = !!pageFn(it);
+      if (m !== g) throw new Error(`module/page disagree on ${f}: ${surf9Name(it).slice(0, 60)}`);
+    }
+  }
+  /* Pins: the detector fires only on real console hardware. */
+  const pins = [
+    ["Nintendo Switch 2 Console", true],
+    ["PlayStation 5 Slim Console", true],
+    ["Xbox Series X 1TB Console", true],
+    ["Sony PS5 DualSense Wireless Controller", true],
+    ["LEGO Batman: Legacy of the Dark Knight - PlayStation 5", false],
+    ["Xbox Party Supplies Kit", false],
+    ["Jumbo Baby Animal Plush", false],
+  ];
+  for (const [title, want] of pins) {
+    const got = !!moduleFn({ title });
+    if (got !== want) throw new Error(`isConsole("${title}") = ${got}, want ${want}`);
+  }
+});
+
+checkAsync("consoles sort after real toys in Juguetes and are claimed by Electrónica (2026-09-26, Danny)", async () => {
+  const { toyLeadRank } = await import(root("scripts/lib/toys.js"));
+  const { itemBelongsToDepartment } = loadPageDepartmentSlice();
+  const plush = { title: "Jumbo Baby Animal Plush" };
+  const board = { title: "Barbie 31in Skateboard", type: "Tablas de skate" };
+  const ps5 = { title: "PlayStation 5 Slim Console" };
+  const game = { title: "LEGO Batman: Legacy of the Dark Knight - PlayStation 5" };
+  /* Lead rank: real toys 0, consoles 1. */
+  eq(toyLeadRank(plush), 0, "plush rank");
+  eq(toyLeadRank(board), 0, "toy board rank");
+  eq(toyLeadRank(ps5), 1, "console rank");
+  eq(toyLeadRank(game), 0, "video game rank");
+  /* Routing: consoles ride in both departments. The "juguetes" bucket
+     maps to no electronics category, so only the console hook can claim
+     an item for Electrónica here. */
+  ok(itemBelongsToDepartment(ps5, "juguetes", "toys", "costco"), "console left Juguetes");
+  ok(itemBelongsToDepartment(ps5, "juguetes", "electronics", "costco"), "console missing from Electrónica");
+  /* A video game is a toy, not electronics; a plush is not electronics. */
+  ok(itemBelongsToDepartment(game, "juguetes", "toys", "costco"), "video game left Juguetes");
+  ok(!itemBelongsToDepartment(game, "juguetes", "electronics", "costco"), "video game claimed by Electrónica");
+  ok(!itemBelongsToDepartment(plush, "juguetes", "electronics", "costco"), "plush claimed by Electrónica");
+});
+
+check("the mobile section nav strip is present and anchored to real sections (2026-09-26, Danny)", () => {
+  const html = HOME_SRC();
+  const i = html.indexOf('id="mobileSectionNav"');
+  if (i < 0) throw new Error("mobileSectionNav missing");
+  const open = html.slice(i, html.indexOf(">", i));
+  if (!open.includes("lg:hidden")) throw new Error("mobileSectionNav is not mobile-only");
+  if (!open.includes("overflow-x-auto")) throw new Error("mobileSectionNav can overflow the page");
+  /* Sticky under the 68px header, below the header's z-index. */
+  if (!open.includes("sticky")) throw new Error("mobileSectionNav is not sticky");
+  if (!/top:68px/.test(open)) throw new Error("mobileSectionNav sticky offset is not 68px");
+  if (!/z-index:20/.test(open)) throw new Error("mobileSectionNav z-index wrong");
+  const nav = html.slice(i, html.indexOf("</nav>", i));
+  for (const target of ["goSales()", "showPage('storesView')", "showPage('howView')",
+      "goHomeSection('whyUs')", "showPage('aboutView')", "goHomeSection('preguntasHome')"])
+    if (!nav.includes(target)) throw new Error(`mobile nav missing ${target}`);
+  /* Same chip look as the "Compra por categoría" pills: icon disc + label. */
+  if ((nav.match(/w-\[26px\] h-\[26px\] rounded-full/g) || []).length !== 6)
+    throw new Error("mobile nav chips lost the category-pill styling");
+  for (const id of ["whyUs", "preguntasHome"])
+    if (!html.includes(`id="${id}"`)) throw new Error(`anchor #${id} missing`);
+  /* Placement (2026-09-26, Danny): the bar lives in the mobile shopfront
+     flow directly under Aria Auto and above Categorías — not in the header. */
+  const mShop = html.indexOf('id="mobileShopfront"');
+  const auto = html.indexOf('aria-label="Aria Auto"', mShop);
+  const cats = html.indexOf('aria-label="Categorías"', mShop);
+  if (!(mShop < auto && auto < i && i < cats)) throw new Error("mobile nav is not between Aria Auto and Categorías");
+  const headerEnd = html.indexOf("</header>");
+  if (i < headerEnd) throw new Error("mobile nav is still inside the header");
+  /* Desktop copy gets no nav strip. */
+  const dShop = html.indexOf('id="desktopShopfront"');
+  if (html.slice(dShop).includes('id="mobileSectionNav"')) throw new Error("nav strip leaked into desktop");
+});
+
+check("the homepage order is hero, Aria Auto, nav, Categorías, rails, rest (2026-09-26, Danny)", () => {
+  const html = HOME_SRC();
+  const mShop = html.indexOf('id="mobileShopfront"');
+  const dShop = html.indexOf('id="desktopShopfront"');
+  const seq = [
+    'aria-label="Aria Auto"',
+    'id="mobileSectionNav"',
+    'aria-label="Categorías"',
+    'data-store-rail="victoriassecret"',
+    'data-store-rail="dicks"',
+    'aria-label="Ofertas"',
+  ];
+  let pos = mShop;
+  for (const token of seq) {
+    const nxt = html.indexOf(token, pos);
+    if (nxt < 0 || nxt > dShop) throw new Error(`mobile order broken at ${token}`);
+    pos = nxt;
+  }
+  /* Desktop: Aria Auto, Categorías, rails — no nav strip. */
+  let dpos = dShop;
+  for (const token of ['aria-label="Aria Auto"', 'aria-label="Categorías"', 'data-store-rail="victoriassecret"']) {
+    const nxt = html.indexOf(token, dpos);
+    if (nxt < 0) throw new Error(`desktop order broken at ${token}`);
+    dpos = nxt;
+  }
+  /* Rail order itself is unchanged. */
+  const rails = [...html.matchAll(/data-store-rail="([^"]*)"/g)].map((m) => m[1]);
+  const first8 = ["victoriassecret", "footlocker", "gymshark", "sephora", "macys", "kohls", "newbalance", "dicks"];
+  for (let k = 0; k < 8; k++) if (rails[k] !== first8[k]) throw new Error(`rail order changed at ${k}: ${rails[k]}`);
 });
 
 checkAsync("the surf_skate department answers through the module's itemBelongsToDepartment", async () => {
@@ -11762,14 +11980,15 @@ check("store cards, rails, storefronts and product pages disclose delivery", () 
   }
 });
 
-check("the homepage and checkout explain how shipping works", () => {
+check("the checkout explains how shipping works; the homepage strip is gone (2026-09-26, Danny)", () => {
   const src = HOME_SRC();
-  for (const id of ["mShippingExplainer", "dShippingExplainer"]) {
-    if (!src.includes(`id="${id}"`)) throw new Error(`the homepage lost #${id}`);
-  }
-  if (!/renderShippingExplainers/.test(src)) throw new Error("the explainer renderer is gone");
-  if (!/La tienda en EE\. UU\./.test(src) && !/tienda.*Miami.*puerta/.test(src))
-    throw new Error("the explainer lost its two-leg story");
+  /* Danny: the "Cómo funciona tu envío" two-leg strip was redundant on the
+     homepage (the flow is already explained in Cómo funciona) and wasted
+     mobile vertical space. It stays gone. */
+  for (const token of ["mShippingExplainer", "dShippingExplainer", "shippingExplainerHTML", "renderShippingExplainers"])
+    if (src.includes(token)) throw new Error(`the homepage strip is back: ${token}`);
+  /* The main Cómo funciona section (the 6-step walkthrough) survives. */
+  if (!src.includes('id="howView"')) throw new Error("the Cómo funciona section is gone");
   const co = readFileSync(root("checkout.html"), "utf8");
   if (!co.includes("checkoutExplainerWrap")) throw new Error("checkout lost its explainer");
   if (!/De Miami a tu puerta/.test(co)) throw new Error("checkout lost the Miami-to-door leg");
