@@ -23927,6 +23927,15 @@ function clearSilenceTimer(){
 let speechBuffer = '';   // final segments accumulated for the current turn
 let lastSpeechAt = 0;    // timestamp of the last speech activity
 
+/* "Aria" is routinely transcribed as "area" (2026-09-27: Danny said
+   "Aria", the engine heard "area"). Normalize it back in name-like
+   positions only — never inside real words like "área de juegos". */
+function normalizeAriaName(t){
+  return String(t || '')
+    .replace(/^(\s*)area\b/i, '$1Aria')
+    .replace(/\b(hola|oye|hey|buenas|disculpa|gracias)\s+area\b/gi, '$1 Aria');
+}
+
 function resetSilenceTimer(){
   clearSilenceTimer();
   silenceTimer = setTimeout(onSilenceTimeout, SILENCE_TIMEOUT_MS);
@@ -24095,7 +24104,7 @@ function spokenPunctuationToMarks(text){
 
 recognition.onresult = (e) => {
   const result = e.results[e.results.length - 1];
-  const transcript = result[0].transcript;
+  const transcript = normalizeAriaName(result[0].transcript);
 
   if (transcript.trim().length > 0) {
     // Any speech activity — interim or final — pushes the 2.5s window
