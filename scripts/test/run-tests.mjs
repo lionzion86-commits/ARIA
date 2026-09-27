@@ -979,6 +979,9 @@ const EXPECTED_EVERYDAY_ORDER = [
   /* ARIA FIGHT CLUB BATCH (2026-09-27, Danny): six fight-sports shops,
      registry order before Skims. */
   "venum", "tatami", "everlast", "mmawarehouse", "combatcorner", "fuji", "crocs",
+  /* BOOKS (2026-09-27, Danny): Assouline + Chronicle Books, registry order
+     after Crocs, before Skims. */
+  "assouline", "chronicle",
   "skims", "yesstyle"
 ];
 function everydayOrder(){

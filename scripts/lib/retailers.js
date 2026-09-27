@@ -506,6 +506,28 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* BOOKS (2026-09-27, Danny) — coffee table books: Assouline (luxury)
+     + Chronicle Books (illustrated), 481 products via Shopify collection
+     APIs. No logo files yet — wordmark pill fallback. Macy's pattern:
+     browse: true, search: false. Mirrors index.html. */
+  assouline: {
+    key: "assouline",
+    label: "Assouline",
+    color: "#000000",
+    tagline: "Libros de mesa de lujo — moda, arte y viajes",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
+  chronicle: {
+    key: "chronicle",
+    label: "Chronicle Books",
+    color: "#1A1A1A",
+    tagline: "Libros ilustrados — fotografía, arte y diseño",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   skims: {
     key: "skims",
     label: "Skims",

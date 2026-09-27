@@ -5789,7 +5789,7 @@ function loadDepartmentCache(){
        Danny — no separate section. Both files bucket everything under
        sporting_goods so the department picks it up with no other change;
        the aisle split below is what keeps skate, surf and fitness apart. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/crocs-catalog.json'];
+    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/crocs-catalog.json', '/books-catalog.json'];
     const files = CATALOGUE_FILES.map(url => fetchWithTimeout(url, FETCH_DEADLINE_MS)
       .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
       .then(normalizeCatalogueEnvelope)
@@ -14775,6 +14775,13 @@ const RETAILERS = {
      wordmark pill on black, the documented fallback. Macy's pattern:
      browse: true, search: false. Mirrors scripts/lib/retailers.js. */
   crocs:           { key: 'crocs',           label: 'Crocs',             color: '#000000',                             tagline: 'Clogs, sandalias y calzado cómodo',              kind: 'general', search: false, browse: true },
+  /* BOOKS (2026-09-27, Danny) — coffee table books: Assouline (luxury) +
+     Chronicle Books (illustrated), 481 products via Shopify collection
+     APIs. No logo files yet — wordmark pill fallback, the documented
+     pattern. Macy's pattern: browse: true, search: false.
+     Mirrors scripts/lib/retailers.js. */
+  assouline:       { key: 'assouline',       label: 'Assouline',         color: '#000000', tagline: 'Libros de mesa de lujo — moda, arte y viajes', kind: 'general', search: false, browse: true },
+  chronicle:       { key: 'chronicle',       label: 'Chronicle Books',   color: '#1A1A1A', tagline: 'Libros ilustrados — fotografía, arte y diseño', kind: 'general', search: false, browse: true },
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
 /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
    Delivery transparency is the merchandising strategy now — the stores
