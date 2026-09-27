@@ -1312,25 +1312,26 @@
      which is the one thing a slim bar must not do.
 
      ONE LINE ON A PHONE. Measured at 393px: the three story links and the Key
-     Club teaser fit on a single row with the type at 11.5px. Nothing
+     Club teaser fit on a single row with the type at 11px. Nothing
      wraps and nothing scrolls sideways -- a utility bar that wraps to
-     two lines is a second header.
+     two lines is a second header. The nav gap and button side-padding
+     tighten below sm to buy the margin; do not widen them without
+     re-measuring at 393px.
 
-     THE KEY CLUB IS A TEASER, NOT A LINK. It is a <span>, not a button:
-     there is nothing behind it yet, and a tappable thing that does
-     nothing is worse than a thing that plainly says "Próximamente".
+     THE KEY CLUB TEASER IS A REAL LINK (since 2026-09-25): it opens
+     keyclubView, where "Únete gratis" starts signup. No Próximamente.
      ============================================================ -->
 <div id="utilityBar" class="ariaNavyBand border-b" style="border-color:rgba(255,255,255,0.10)">
   <div class="max-w-[1240px] mx-auto px-2.5 sm:px-5 h-[32px] flex items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-[11.5px] leading-none">
-    <nav class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0" aria-label="Sobre Aria">
+    <nav class="flex items-center gap-1 sm:gap-2 flex-shrink-0" aria-label="Sobre Aria">
       <button onclick="showPage('howView')" data-utility="howView"
-        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Cómo funciona</button>
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0 sm:px-0.5 py-1" style="color:#DCE6FF">Cómo funciona</button>
       <span aria-hidden="true" style="color:rgba(220,230,255,0.38)">·</span>
       <button onclick="goHomeSection('whyUs')" data-utility="whyUs"
-        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Por qué Aria</button>
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0 sm:px-0.5 py-1" style="color:#DCE6FF">Por qué Aria</button>
       <span aria-hidden="true" style="color:rgba(220,230,255,0.38)">·</span>
       <button onclick="goHomeSection('precioHonesto')" data-utility="precioHonesto"
-        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Precio honesto</button>
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0 sm:px-0.5 py-1" style="color:#DCE6FF">Precio honesto</button>
     </nav>
     <!-- KEY CLUB IS JOINABLE NOW (2026-09-25): the page exists, so the
          teaser is a real link to keyclubView and the Próximamente tag is
