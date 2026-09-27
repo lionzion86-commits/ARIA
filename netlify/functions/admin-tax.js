@@ -80,6 +80,9 @@ function taxRow(order) {
     customerName: order?.customer?.name || order?.customer?.nombre || null,
     customerEmail: order.buyerEmail || order?.customer?.email || null,
     taxEstimatedPen: estimatedPen,
+    /* The dutiable base the estimate was set aside on (2026-09-27) —
+       what the goods really cost, never the marked-up card price. */
+    declaredValueUsd: Number.isFinite(Number(order.declaredValueUsd)) ? round2(Number(order.declaredValueUsd)) : null,
     taxActualPen: actualPen,
     sunatDocRef: order.sunatDocRef || null,
     taxReconciledAt: reconciledAt,

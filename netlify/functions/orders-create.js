@@ -19,7 +19,7 @@ import { corsHeaders, getSessionEmail } from "./_auth-helpers.js";
 import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
-import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE } from "../../weight-data.js";
+import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBaseUsd } from "../../weight-data.js";
 
 const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
@@ -118,6 +118,16 @@ export async function handler(event) {
     }
 
     const priceUsdTotal = items.reduce((sum, it) => sum + (Number(it.priceUsd) || 0) * (Number(it.qty) || 1), 0);
+    /* DUTIABLE BASE (2026-09-27): the import-tax threshold and estimate
+       are computed on what the goods really cost (raw x 1.07), NEVER on
+       the marked-up card price. The browser sends dutiableUsd per line;
+       the server resolves it through the same canonical helper, so a
+       tampered or legacy line (no stamp) gets the exact reversal and
+       cannot shift the tax base. */
+    const dutiableUsdTotal = items.reduce((sum, it) => {
+      const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+      return sum + (Number.isFinite(d) ? d : 0) * (Number(it.qty) || 1);
+    }, 0);
     const weightKgTotal = items.reduce((sum, it) => sum + (Number(it.weightKg) || 0) * (Number(it.qty) || 1), 0);
     const fxRateVenta = typeof body.fxRateVenta === "number" ? body.fxRateVenta : null;
     /* SMALL-ORDER FEE. The browser sends what it showed, but the server
@@ -146,10 +156,11 @@ export async function handler(event) {
        request must not be able to zero it, and a stale page must not be
        able to charge an old rate.
 
-       THE BASE IS THE ORDER'S OWN NUMBERS: goods from the items, freight
-       from the quote the customer was shown. The threshold is on the
-       goods (FOB), the rate is on goods + freight (CIF) — see
-       importTaxEstimateUsd().
+       THE BASE IS THE ORDER'S OWN NUMBERS: goods from the items'
+       dutiable base (declaredValueUsd — the true FOB, never the marked-up
+       card price), freight from the quote the customer was shown. The
+       threshold is on the goods (FOB), the rate is on goods + freight
+       (CIF) — see importTaxEstimateUsd().
 
        AND IT IS WHAT THE CUSTOMER PAYS, not what the courier bills. The
        quote's total_usd still carries AVI's own duty and is recorded
@@ -158,7 +169,7 @@ export async function handler(event) {
        it; when the real SUNAT figure comes in lower, the difference is
        credited back as saldo. taxActual and sunatDocRef are where that
        reconciliation lands. */
-    const taxEstimatedUsd = importTaxEstimateUsd(priceUsdTotal, freightUsdQuoted);
+    const taxEstimatedUsd = importTaxEstimateUsd(dutiableUsdTotal, freightUsdQuoted);
     const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd) * 100) / 100;
     const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
@@ -226,7 +237,13 @@ export async function handler(event) {
       amountMismatchPen: null,
       customer: body.customer || {},
       shipping: body.shipping || {},
-      items,
+      /* Per-line dutiable base, resolved server-side: the set-aside
+         bucket below is auditable line by line against the courier's
+         SUNAT invoice. */
+      items: items.map((it) => {
+        const d = dutiableBaseUsd(it.priceUsd, it.dutiableUsd);
+        return Number.isFinite(d) && !(Number(it.dutiableUsd) > 0) ? { ...it, dutiableUsd: d } : it;
+      }),
       weightEstimatedKg: Math.round(weightKgTotal * 100) / 100,
       priceScrapedUsdTotal: null, // admin view derives this from priceUsdTotal / (SALES_TAX_RATE*LIVE_PRICE_MARKUP) — same known constants as index.html, not re-sent over the wire
       pricePenCharged: chargedPen,      // after saldo Aria — what the card pays
@@ -252,12 +269,20 @@ export async function handler(event) {
          somewhere for its real figure to go, so no order is unresolvable
          later for want of a field.
 
+         THE SET-ASIDE BUCKET (2026-09-27): declaredValueUsd is the
+         dutiable sum — what the goods really cost (raw x 1.07), never
+         the marked-up card price — and taxEstimated* is computed on it.
+         This is the figure Danny reconciles against the courier's SUNAT
+         invoice after every transaction. Per-line dutiableUsd is stamped
+         on items above so the bucket is auditable line by line.
+
          THE RULE WHEN THEY DIFFER, so the UI cannot invent its own:
            taxActual < taxEstimated  -> credit the difference as saldo Aria.
            taxActual > taxEstimated  -> Aria absorbs it. The customer is
                                         never billed a second time.
          taxReconciledAt stays null until someone has actually done it;
          a null here means "not yet", never "nothing owed". */
+      declaredValueUsd: Math.round(dutiableUsdTotal * 100) / 100,
       taxEstimatedUsd,
       taxEstimatedPen,
       taxRateUsed: taxEstimatedUsd > 0 ? TAX_ESTIMATE_RATE : null,
