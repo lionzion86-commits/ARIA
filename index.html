@@ -1582,7 +1582,7 @@
     <section aria-label="Gym Rat" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F4AA; Gym Rat</span>
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gym Rat</span>
         <button onclick="openCatalog('department','gym_rat')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
@@ -1597,7 +1597,7 @@
     <section aria-label="Aria Beauty" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F484; Aria Beauty</span>
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Aria Beauty</span>
         <button onclick="openCatalog('department','beauty')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
@@ -1911,7 +1911,7 @@
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F4AA; Gym Rat</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Gym Rat</span>
           <button onclick="openCatalog('department','gym_rat')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
@@ -1926,7 +1926,7 @@
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">&#x1F484; Aria Beauty</span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Aria Beauty</span>
           <button onclick="openCatalog('department','beauty')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
@@ -4058,8 +4058,13 @@
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-4 max-w-[22ch]" style="color:#fff">
         Lo que te prometemos, por escrito.
       </h2>
+      <!-- COPY FIX (2026-09-27, Danny's PC QA): this paragraph used to read
+           "Si nuestro estimado se queda corto, asumimos la diferencia. El precio
+           que te cotizamos es el que pagas." -- word for word what the third
+           card below says. The promise was written down twice in the same
+           place; now the intro frames the four commitments instead. -->
       <p class="text-[15px] sm:text-[16.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#AFBBD6">
-        Si nuestro estimado se queda corto, asumimos la diferencia. El precio que te cotizamos es el que pagas.
+        Cuatro compromisos que asumimos con cada pedido. Sin letra pequeña, sin sorpresas.
       </p>
       <div data-precio-honesto-cards class="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6"></div>
     </div>
@@ -6119,6 +6124,12 @@ const CATEGORY_COVERS = {
      red gloves in a dark gym, cinematic. Replaces the boxing-glove emoji
      fallback so the pill reads photographic like the rest of the rail. */
   combat_sports:  'assets/category/combat_sports.jpg',
+  /* LIBROS / JUGUETES / FIESTA (2026-09-27, Danny's PC QA): every
+     category pill gets a real photograph -- no emoji, no abstract
+     fallback. Danny: "every category needs to have an actual picture." */
+  books:          'assets/category/books.jpg',
+  toys:            'assets/category/toys.jpg',
+  party:           'assets/category/party.jpg',
 
 };
 
@@ -6636,6 +6647,38 @@ function isSurfSkate(item, retailer){
 }
 
 /* ============================================================
+   IS THIS GYM APPAREL? (2026-09-27, Danny's PC QA)
+   "Everlast is gym also. It's not just fighting."
+   The combat retailers file gym clothing -- leggings, sports bras,
+   tanks, tees, shorts, sweats, hoodies -- in the combat bucket, and
+   it belongs in Gym Rat too. Fight gear (gloves, bags, wraps, gis,
+   pads, grappling shorts) stays only in Fight Club. Answered per
+   item from the scraper's own type facet; the fight-word veto runs
+   first so MUAY_THAI_SHORTS, BOXING_TRAINING and MMA gear never
+   cross over. Footwear never matches -- Gym Rat is zero-shoes by
+   Danny's rule. Dual presence, the Ofertas way.
+   ============================================================ */
+function _gymWords(s){
+  return ' ' + String(s ?? '').toUpperCase().replace(/[^A-Z]+/g, ' ').trim().replace(/\s+/g, ' ') + ' ';
+}
+const GYM_APPAREL_TYPE_VETO =
+  / (MUAY THAI|MMA|BJJ|BOXING|BOXEO|FIGHT|COMBAT|COMBATE|WRAPS?|GLOVES?|GUANTES?|PADS?|BAGS?|KITS?|PROTECTIVE|GEAR|GIS?) /;
+const GYM_APPAREL_SHORTS_NAME_VETO =
+  / (GRAPPLING|VALE TUDO|VT|MUAY|MMA|COMBAT|FIGHT) /;
+const GYM_APPAREL_TYPE_WORDS =
+  / (LEGGINGS?|SPORTS BRAS?|TANK TOPS?|CROP TOPS?|T SHIRTS?|SHORTS?|SWEAT ?SHIRTS?|SWEAT ?PANTS?|JOGGERS?|JOGGING|PANTS|HOODIES?|JACKETS?|COATS?|VESTS?|COMPRESSION|PERFORMANCE TOPS?|ATHLETIC) /;
+function isGymApparel(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  if (isFootwear(item, retailer)) return false;
+  const type = _gymWords(item.type);
+  if (type.length < 3 || GYM_APPAREL_TYPE_VETO.test(type)) return false;
+  /* Grappling / vale-tudo shorts are fight gear even though the type
+     facet just says SHORTS. */
+  if (type.indexOf(' SHORT') !== -1 && GYM_APPAREL_SHORTS_NAME_VETO.test(_gymWords(item.name))) return false;
+  return GYM_APPAREL_TYPE_WORDS.test(type);
+}
+
+/* ============================================================
    IS THIS AN AUTO PART? — MIRROR of scripts/lib/autoparts.js.
    Change one, change the other; a parity test compares them over the
    real catalogues. The module carries the full note; the short version:
@@ -6868,6 +6911,12 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
   if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
+  /* GYM RAT CLAIMS GYM APPAREL FROM FIGHT CLUB (2026-09-27, Danny):
+     "Everlast is gym also. It's not just fighting." The leggings,
+     sports bras, tanks, tees, shorts and sweats the combat retailers
+     file in the combat bucket belong in Gym Rat too; fight gear stays
+     only in Fight Club. Dual presence, the Ofertas way. */
+  if (deptKey === 'gym_rat' && BUCKET_SPEC[bucketName]?.category === 'combat' && isGymApparel(item, retailer)) return true;
   /* ELECTRÓNICA CLAIMS CONSOLES (2026-09-26, Danny): a PlayStation
      shopper checks electronics first. Dual presence with Juguetes is
      intended — departments overlap here exactly as Ofertas does. */
@@ -11872,11 +11921,18 @@ function catalogLoadMoreHTML(total, shownCount){
 }
 
 function catalogShowMore(){
-  catalogState.pageSize = (catalogState.pageSize || LISTING_PAGE_SIZE) + LISTING_PAGE_SIZE;
+  const prevCount = catalogState.pageSize || LISTING_PAGE_SIZE;
+  catalogState.pageSize = prevCount + LISTING_PAGE_SIZE;
   renderCatalogFeed();
-  // Keep the shopper where they were rather than jumping to the top.
+  /* STAY WITH THE NEW ROWS (2026-09-27, Danny's PC QA): the old code
+     scrolled to the grid's LAST child -- the new bottom -- teleporting
+     the shopper ~5 pages past the rows that just loaded, so the new
+     items were missed entirely. Now we land on the first newly-loaded
+     row, one page down: "load more" keeps you with the new items,
+     never throws you to the bottom. */
   const grid = document.getElementById('catalogGrid');
-  if (grid) grid.lastElementChild?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  const firstNew = grid && grid.children[prevCount];
+  if (firstNew) firstNew.scrollIntoView({ block: 'start', behavior: 'smooth' });
 }
 
 
@@ -17147,12 +17203,37 @@ function salePct(p){
     return Math.round((1 - price / was) * 100);
   return 0;
 }
+/* TRIVIAL-ITEM SALES (2026-09-27, Danny): foot socks, underwear and the
+   like are real products with real markdowns, but a 90%-off pair of socks
+   must not open the feed ahead of a 50%-off hero item. Board socks (board
+   covers) are real gear and are NOT trivial. */
+const TRIVIAL_SALE_RX = /\b(socks?|calcet[i\u00ed]nes?|medias|underwear|panties|panty|thongs?|tangas?|hosiery|boxer ?shorts?|briefs?)\b/i;
+const BOARDSOCK_RX = /board\s*socks?/i;
+/* SALES LEAD WITH PROMINENCE (2026-09-27, Danny): every feed opens with
+   the biggest sales -- but the lead is the biggest MEANINGFUL markdown.
+   Discount % stays the primary key, weighted by prominence: the card
+   price is the proxy (hero items cost more), and trivial items take an
+   extra demotion. salePct gates it, so a discount is never invented.
+   Non-sale items always rank below sale items. */
+function salesLeadScore(p){
+  const d = salePct(p);
+  if (!d) return 0;
+  const price = Number(p?.price);
+  const prominence = !Number.isFinite(price) ? 0.7
+    : price >= 80 ? 1
+    : price >= 40 ? 0.85
+    : price >= 20 ? 0.7 : 0.55;
+  const hay = `${p?.title || ''} ${p?.type || ''}`;
+  const trivial = TRIVIAL_SALE_RX.test(hay) && !BOARDSOCK_RX.test(hay);
+  return d * prominence * (trivial ? 0.65 : 1);
+}
 /* SALES LEAD (2026-09-27, Danny): the default feed leads with real
-   markdowns -- biggest % off first -- then regular products in the
-   feed's normal order (tieBreak). An explicit shopper sort bypasses
-   it; see renderSearchResults and renderCatalogFeed. */
+   markdowns -- biggest MEANINGFUL % off first (see salesLeadScore) --
+   then regular products in the feed's normal order (tieBreak). An
+   explicit shopper sort bypasses it; see renderSearchResults and
+   renderCatalogFeed. */
 function bySalesFirst(tieBreak){
-  return (a, b) => (salePct(b) - salePct(a)) || tieBreak(a, b);
+  return (a, b) => (salesLeadScore(b) - salesLeadScore(a)) || tieBreak(a, b);
 }
 /* SALE-SORT SLICE END */
 /* Ties break on door-to-door price, so "most relevant" still answers
