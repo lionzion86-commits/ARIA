@@ -15,13 +15,15 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageAdvanceQuerySlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice, loadPageSaleSortSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageAdvanceQuerySlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice, loadPageSaleSortSlice, loadPageComboSlice, loadPageDepartmentSpecSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
 import { estimateWeightDetail, categoryWeightKg } from "../lib/sales-sources.js";
 import * as salesSources from "../lib/sales-sources.js";
 import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_weight-resolve.js";
+import { validateBundleDiscounts } from "../../netlify/functions/_combo-validate.js";
+import { COMBO_DEALS } from "../../combo-deals.js";
 import * as weightResolve from "../../netlify/functions/_weight-resolve.js";
 import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE,
          importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
@@ -986,6 +988,9 @@ const EXPECTED_EVERYDAY_ORDER = [
      brand keys, registry order before Skims. */
   "townley", "morphe", "skin1004", "everymanjack", "brickell", "medicube",
   "laneige", "cosrx", "beautyofjoseon", "anua", "mediheal",
+  /* BOOKS (2026-09-27, Danny): Assouline + Chronicle Books, registry order
+     after Crocs, before Skims. */
+  "assouline", "chronicle",
   "skims", "yesstyle"
 ];
 function everydayOrder(){
@@ -1307,7 +1312,11 @@ check("every department has a curated photograph, and every one is on disk", () 
   /* ARIA FIGHT CLUB (2026-09-27): combat_sports ships on the drawn brand
      field until a curated photograph lands — a deliberate choice, recorded
      here the way the assertion demands. */
-  eq(uncovered.join(), "combat_sports", "a department is on the drawn cover — give it a photo or accept it here");
+  /* LIBROS (2026-09-27): books ships on the drawn brand field too. No
+     curated photograph exists yet, and a cover is art, not inventory —
+     the drawn field is the deliberate treatment until a real photo
+     lands. */
+  eq(uncovered.join(), "combat_sports,books", "a department is on the drawn cover — give it a photo or accept it here");
 });
 
 check("Ofertas takes a photograph but keeps its gold sign", () => {
@@ -12716,6 +12725,194 @@ check("TV stands stay: they are furniture, not televisions", () => {
   }
 });
 
+
+
+/* ============================================================
+   COMBO DEALS (2026-09-27, Danny) — "Combínalo y ahorra".
+
+   The bundle saving must be a GENUINE reduction: bundle price is
+   exactly (sum of the real card prices) − savingUsd, savingUsd is
+   strictly inside (0, sum), and the discount line may reduce the goods
+   total but never the dutiable (import-tax) base or the freight weight.
+   ============================================================ */
+const pageCombo = loadPageComboSlice();
+
+check("combo math: bundle is exactly sum minus saving", () => {
+  const m = pageCombo.comboBundleMath(140, 20);
+  eq(m.sum, 140, "sum");
+  eq(m.saving, 20, "saving");
+  eq(m.bundle, 120, "bundle");
+});
+
+check("combo math: rejects a saving that is not a genuine reduction", () => {
+  eq(pageCombo.comboBundleMath(140, 0), null, "zero saving");
+  eq(pageCombo.comboBundleMath(140, -5), null, "negative saving");
+  eq(pageCombo.comboBundleMath(140, 140), null, "saving equals sum");
+  eq(pageCombo.comboBundleMath(140, 200), null, "saving exceeds sum");
+  eq(pageCombo.comboBundleMath(0, 5), null, "zero sum");
+});
+
+check("combo discount line: negative price, zero dutiable, zero weight", () => {
+  const line = pageCombo.comboDiscountLineFields("combo-x", "El dúo", 20);
+  eq(line.lineType, "bundle-discount", "line type");
+  ok(line.priceUsd < 0, "price is negative");
+  eq(line.dutiableUsd, 0, "dutiable base untouched");
+  eq(line.weightKg, 0, "no freight weight");
+});
+
+check("combo discount line never moves the import-tax base", () => {
+  // The page's own dutiable helper: a negative price with no stamp is
+  // NaN, and cartTotals() counts NaN as 0 — the tax base is intact.
+  const line = pageCombo.comboDiscountLineFields("combo-x", "El dúo", 20);
+  const d = page.dutiableBaseUsd(line.priceUsd, line.dutiableUsd);
+  ok(!Number.isFinite(d), "dutiable contribution is NaN (counted as 0)");
+});
+
+check("combo-deals.js: every combo is honest data over real products", () => {
+  const combos = COMBO_DEALS;
+  ok(combos.length > 0, "has combos");
+  const cat = JSON.parse(readFileSync(root("books-catalog.json"), "utf8"));
+  const priceOf = {};
+  for (const [r, rd] of Object.entries(cat.retailers))
+    for (const dd of Object.values(rd.departments))
+      for (const it of dd.items) priceOf[r + "::" + it.name] = it.price;
+  const cardPrice = (raw) => Math.round(raw * 1.07 * 1.24 * 100) / 100;
+  const ids = new Set();
+  for (const c of combos) {
+    if (!c.id || ids.has(c.id)) throw new Error(`bad/duplicate combo id: ${c.id}`);
+    ids.add(c.id);
+    if (!Array.isArray(c.items) || c.items.length < 2) throw new Error(`${c.id}: fewer than 2 items`);
+    let sum = 0;
+    for (const it of c.items) {
+      const raw = priceOf[it.retailer + "::" + it.title];
+      if (!(raw > 0)) throw new Error(`${c.id}: ${it.retailer}::${String(it.title).slice(0, 40)} not in catalog`);
+      sum += cardPrice(raw);
+    }
+    sum = Math.round(sum * 100) / 100;
+    if (!(c.savingUsd > 0) || !(c.savingUsd < sum))
+      throw new Error(`${c.id}: saving ${c.savingUsd} is not a genuine reduction off ${sum}`);
+  }
+});
+
+check("combo deals: every book in the catalog has at least one pairing", () => {
+  const combos = COMBO_DEALS;
+  const cat = JSON.parse(readFileSync(root("books-catalog.json"), "utf8"));
+  const covered = new Set();
+  for (const c of combos) for (const it of c.items) covered.add(it.retailer + "::" + it.title);
+  const missing = [];
+  for (const [r, rd] of Object.entries(cat.retailers))
+    for (const dd of Object.values(rd.departments))
+      for (const it of dd.items)
+        if (!covered.has(r + "::" + it.name)) missing.push(it.name);
+  if (missing.length) throw new Error(`${missing.length} books without a combo, e.g. ${missing[0]}`);
+});
+
+check("combo deals: discount lines are excluded from freight everywhere", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  for (const fn of ["repairCartWeights", "cartTotals", "cartWeightReviewItems"]) {
+    const at = html.indexOf("function " + fn + "(");
+    if (at < 0) throw new Error(`${fn} is missing`);
+    const body = html.slice(at, at + 2500);
+    if (!body.includes("lineType === 'bundle-discount'"))
+      throw new Error(`${fn} does not skip bundle-discount lines`);
+  }
+  const co = readFileSync(root("checkout.html"), "utf8");
+  if (!/localWeightFallback[\s\S]{0,400}lineType === 'bundle-discount'/.test(co))
+    throw new Error("checkout localWeightFallback does not skip bundle-discount lines");
+});
+
+check("combo deals: bundle invariant is enforced on every cart mutation", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  for (const fn of ["syncBundleDiscounts", "addComboToCart", "renderComboModule", "resolveComboDeal", "combosForProduct"])
+    if (!new RegExp(`function ${fn}\\(`).test(html)) throw new Error(`${fn} is missing`);
+  if (!/removeFromCartByKey[\s\S]{0,300}syncBundleDiscounts\(\)/.test(html))
+    throw new Error("removeFromCartByKey does not re-sync bundle discounts");
+  if (!/function setCartQty[\s\S]{0,300}syncBundleDiscounts\(\)/.test(html))
+    throw new Error("setCartQty does not re-sync bundle discounts");
+  if (!/renderRelatedRail\(\{ retailer, title: name[\s\S]{0,400}renderComboModule\(\{ retailer, title: name/.test(html))
+    throw new Error("showProduct does not render the combo module");
+  if (!html.includes('id="comboDealWrap"')) throw new Error("comboDealWrap mount point is missing");
+  if (!html.includes("import { COMBO_DEALS } from './combo-deals.js'")) throw new Error("combo-deals.js module bridge is missing");
+  if (!html.includes("window.COMBO_DEALS = COMBO_DEALS")) throw new Error("combo-deals.js is not re-published for the inline script");
+});
+
+check("combo deals: server accepts an honest bundle order", () => {
+  const d = COMBO_DEALS[0];
+  const items = [
+    { retailer: d.items[0].retailer, title: d.items[0].title, priceUsd: 100, qty: 1 },
+    { retailer: d.items[1].retailer, title: d.items[1].title, priceUsd: 100, qty: 1 },
+    { lineType: "bundle-discount", comboId: d.id, title: "Descuento combo: " + d.label,
+      priceUsd: -d.savingUsd, qty: 1, weightKg: 0, dutiableUsd: 0 },
+  ];
+  eq(validateBundleDiscounts(items).ok, true, "honest order passes");
+  eq(validateBundleDiscounts(items.filter((it) => !it.lineType)).ok, true, "no-discount order passes");
+});
+
+check("combo deals: server rejects every forged discount line", () => {
+  const d = COMBO_DEALS[0];
+  const honest = [
+    { retailer: d.items[0].retailer, title: d.items[0].title, priceUsd: 100, qty: 1 },
+    { retailer: d.items[1].retailer, title: d.items[1].title, priceUsd: 100, qty: 1 },
+    { lineType: "bundle-discount", comboId: d.id, title: "Descuento combo: " + d.label,
+      priceUsd: -d.savingUsd, qty: 1, weightKg: 0, dutiableUsd: 0 },
+  ];
+  const discount = honest[2];
+  const bad = (patch) => validateBundleDiscounts([honest[0], honest[1], { ...discount, ...patch }]).ok;
+  eq(bad({ priceUsd: -(d.savingUsd + 50) }), false, "inflated saving");
+  eq(bad({ priceUsd: d.savingUsd }), false, "positive price");
+  eq(bad({ comboId: "combo-evil-1" }), false, "unknown combo");
+  eq(bad({ qty: 5 }), false, "discount without enough pairs");
+  eq(bad({ weightKg: 1 }), false, "discount with weight");
+  eq(bad({ dutiableUsd: 10 }), false, "discount with dutiable stamp");
+  eq(validateBundleDiscounts([discount]).ok, false, "orphaned discount");
+});
+
+check("combo deals: weight resolver gives discount lines zero weight", () => {
+  const book = { title: "Chanel 3-Book Slipcase", priceUsd: 119.23, qty: 1, weightKg: 1.2 };
+  const alone = resolveCartWeights([book]);
+  const res = resolveCartWeights([
+    { title: "Descuento combo: El dúo", priceUsd: -20, qty: 1, lineType: "bundle-discount", weightKg: 0 },
+    book,
+  ]);
+  eq(res.totalKg, alone.totalKg, "total kg ignores the discount line");
+  ok(!res.needsReview, "discount line never trips review");
+  eq(res.items.find((r) => r.source === "bundle-discount").lineKg, 0, "discount lineKg is 0");
+});
+
+
+/* ============================================================
+   LIBROS DEPARTMENT (2026-09-27). Books is a complete department:
+   the `books` bucket maps to category 'books', the department page,
+   tile, pill and rail all resolve, and the inline specs mirror the
+   module's. 481 real coffee-table books (Assouline + Chronicle).
+   ============================================================ */
+check("books: the page and module specs agree", () => {
+  const page = loadPageDepartmentSpecSlice();
+  eq(JSON.stringify(page.DEPARTMENT_SPEC.books), JSON.stringify(deptMap.DEPARTMENT_SPEC.books), "DEPARTMENT_SPEC.books parity");
+  eq(JSON.stringify(page.BUCKET_SPEC.books), JSON.stringify(deptMap.BUCKET_SPEC.books), "BUCKET_SPEC.books parity");
+  eq(page.DEPARTMENT_SPEC.books.category, "books", "department category");
+  eq(page.BUCKET_SPEC.books.category, "books", "bucket category");
+});
+
+check("books: a books-bucket item belongs to the Libros department", () => {
+  const item = { title: "Chanel 3-Book Slipcase (New Edition)" };
+  eq(deptMap.itemBelongsToDepartment(item, "books", "books", "assouline"), true, "assouline books -> books");
+  eq(deptMap.itemBelongsToDepartment(item, "books", "books", "chronicle"), true, "chronicle books -> books");
+  eq(deptMap.itemBelongsToDepartment(item, "books", "electronics", "assouline"), false, "books are not electronics");
+  eq(deptMap.itemBelongsToDepartment(item, "clothing", "books", "assouline"), false, "non-books bucket is not books");
+});
+
+check("books: the pill, rail and tile metadata are wired", () => {
+  const src = readFileSync(root("index.html"), "utf8");
+  if (!/\{ key: 'books', label: 'Libros'/.test(src)) throw new Error("CATEGORY_RAILS has no books entry");
+  if (!/CATEGORY_TAB_ORDER = \[[^\]]*'books'/.test(src)) throw new Error("CATEGORY_TAB_ORDER omits books");
+  if (!/books: \{ label: 'Libros'/.test(src)) throw new Error("DEPARTMENT_META has no books label");
+  const booksCache = JSON.parse(readFileSync(root("books-catalog.json"), "utf8"));
+  const retailers = deptMap.retailersForDepartment(booksCache, "books", ["assouline", "chronicle"]);
+  eq(retailers.length, 2, "both book retailers carry the department");
+  const n = retailers.reduce((sum, r) => sum + deptMap.departmentItems(booksCache.retailers[r], "books", r).length, 0);
+  eq(n, 481, "all 481 books resolve into the department");
+});
 
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
