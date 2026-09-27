@@ -17203,12 +17203,37 @@ function salePct(p){
     return Math.round((1 - price / was) * 100);
   return 0;
 }
+/* TRIVIAL-ITEM SALES (2026-09-27, Danny): foot socks, underwear and the
+   like are real products with real markdowns, but a 90%-off pair of socks
+   must not open the feed ahead of a 50%-off hero item. Board socks (board
+   covers) are real gear and are NOT trivial. */
+const TRIVIAL_SALE_RX = /\b(socks?|calcet[i\u00ed]nes?|medias|underwear|panties|panty|thongs?|tangas?|hosiery|boxer ?shorts?|briefs?)\b/i;
+const BOARDSOCK_RX = /board\s*socks?/i;
+/* SALES LEAD WITH PROMINENCE (2026-09-27, Danny): every feed opens with
+   the biggest sales -- but the lead is the biggest MEANINGFUL markdown.
+   Discount % stays the primary key, weighted by prominence: the card
+   price is the proxy (hero items cost more), and trivial items take an
+   extra demotion. salePct gates it, so a discount is never invented.
+   Non-sale items always rank below sale items. */
+function salesLeadScore(p){
+  const d = salePct(p);
+  if (!d) return 0;
+  const price = Number(p?.price);
+  const prominence = !Number.isFinite(price) ? 0.7
+    : price >= 80 ? 1
+    : price >= 40 ? 0.85
+    : price >= 20 ? 0.7 : 0.55;
+  const hay = `${p?.title || ''} ${p?.type || ''}`;
+  const trivial = TRIVIAL_SALE_RX.test(hay) && !BOARDSOCK_RX.test(hay);
+  return d * prominence * (trivial ? 0.65 : 1);
+}
 /* SALES LEAD (2026-09-27, Danny): the default feed leads with real
-   markdowns -- biggest % off first -- then regular products in the
-   feed's normal order (tieBreak). An explicit shopper sort bypasses
-   it; see renderSearchResults and renderCatalogFeed. */
+   markdowns -- biggest MEANINGFUL % off first (see salesLeadScore) --
+   then regular products in the feed's normal order (tieBreak). An
+   explicit shopper sort bypasses it; see renderSearchResults and
+   renderCatalogFeed. */
 function bySalesFirst(tieBreak){
-  return (a, b) => (salePct(b) - salePct(a)) || tieBreak(a, b);
+  return (a, b) => (salesLeadScore(b) - salesLeadScore(a)) || tieBreak(a, b);
 }
 /* SALE-SORT SLICE END */
 /* Ties break on door-to-door price, so "most relevant" still answers
