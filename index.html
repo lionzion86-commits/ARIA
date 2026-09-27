@@ -16865,6 +16865,14 @@ function normalizeLiveItem(item, hints){
        list. Empty string for a store that reports nothing, which simply
        does not split. */
     type: normalizeType(item.type ?? item.typeName ?? item.productType),
+    /* AXLE POSITION (2026-09-27, Danny): front vs rear brake pad weights
+       stay separated. Advance's catalog tags each pad/rotor with the
+       retailer's own Front/Rear `location` (from the scraped breadcrumb),
+       the same convention the cached AutoZone pads carry on raw.location.
+       Carried through so axleFromItem() can badge and filter catalog
+       items — the title regex below is only the fallback. Anything but
+       the exact 'Front'/'Rear' tag is dropped, never guessed. */
+    ...(item.location === 'Front' || item.location === 'Rear' ? { location: item.location } : null),
     catalogWeightKg,
     sizes, onSale: hasRealDiscount, originalPrice,
     /* Curvy's women-first band (see curvyBandOf): stamped in
@@ -18404,9 +18412,12 @@ function askAriaForPart(vehicleText, query){
    ============================================================ */
 const AXLE_LABEL_ES = { front: 'Delantero', rear: 'Trasero' };
 
-/** The retailer's own position field, or the title when it says so. */
+/** The retailer's own position field, or the title when it says so.
+    Catalog items carry the tag as `location` (normalizeLiveItem keeps it);
+    live/cached search results carry it as `raw.location`. Same tag,
+    same meaning: which axle this listing is for. */
 function axleFromItem(item){
-  const loc = String(item?.raw?.location || '').toLowerCase();
+  const loc = String(item?.raw?.location || item?.location || '').toLowerCase();
   if (loc === 'front') return 'front';
   if (loc === 'rear') return 'rear';
   const title = String(item?.title || '');
@@ -18422,6 +18433,15 @@ function partWeightForItem(item, query, vehicle){
      per-listing figure, already cushioned. */
   const w = Number(item?.raw?.weight_kg);
   if (Number.isFinite(w) && w > 0) return w;
+  /* A real per-listing catalog weight (the retailer's own figure x1.10
+     cushion at ingest, weightEstimated:false) beats re-estimating: for
+     Advance pads it is the axle-correct figure, front sets heavier than
+     rear. Danny's rule: estimate only what the retailer did not weigh.
+     The axle table below stays the fallback for items that never had one. */
+  if (item?.weightEstimated === false){
+    const cw = Number(item?.weightKg);
+    if (Number.isFinite(cw) && cw > 0) return cw;
+  }
   const axle = axleFromItem(item);
   if (!axle) return estimatePartWeightKg(query, vehicle);
   // The estimator already reads an axle out of the query text (see
