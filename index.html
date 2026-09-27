@@ -4970,6 +4970,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #ariaOrbFloat,
   #ariaOrbImg,
   #assistantIconSpark,
   #assistantIconSpark::before,
@@ -4994,7 +4995,7 @@
   75%  { transform: translate(-15px, -4px); }
   100% { transform: translate(0, 0); }
 }
-#ariaOrbImg {
+#ariaOrbFloat {
   animation: ariaOrbFloat 11s ease-in-out infinite;
   will-change: transform;
 }
@@ -5015,7 +5016,15 @@
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
   class="fixed z-40 w-16 h-16 rounded-full grid place-items-center focus-ring">
   <div id="assistantIconSpark" class="relative" style="width:100%;height:100%;">
-    <img id="ariaOrbImg" src="assets/aria-orb-pixar-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+    <!-- Aria's face, alive (2026-09-27, Danny): two pixel-registered frames
+         stacked — open eyes + closed eyes. The blink crossfades between them
+         (see ARIA BLINK in the script). Both frames are true-transparency
+         PNGs, so no white circle behind her. The bounded float lives on the
+         wrapper so both frames move as one. -->
+    <div id="ariaOrbFloat" style="width:100%;height:100%;position:relative;">
+      <img id="ariaOrbImg" src="assets/aria-orb-pixar-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+      <img id="ariaOrbBlink" src="assets/aria-orb-pixar-blink-320.png" alt="" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity 90ms ease-in-out;pointer-events:none;">
+    </div>
     <span class="aria-orb-ring" aria-hidden="true"></span>
   </div>
   <svg id="assistantIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" class="hidden relative"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -22374,6 +22383,32 @@ function setOrbState(state){
 }
 
 /* ============================================================
+   ARIA BLINK — "she blinks, she's alive" (2026-09-27, Danny).
+
+   Two pixel-registered frames (open / closed eyes) crossfade for one
+   natural blink every few seconds, occasionally a double. Purposeful,
+   bounded life only — the frames never leave the button, nothing drifts
+   over page content. Skipped under prefers-reduced-motion.
+   ============================================================ */
+(function(){
+  var blinkImg = document.getElementById('ariaOrbBlink');
+  if (!blinkImg) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  function doBlink(){
+    blinkImg.style.opacity = '1';
+    setTimeout(function(){ blinkImg.style.opacity = '0'; }, 150);
+  }
+  function schedule(){
+    setTimeout(function(){
+      doBlink();
+      if (Math.random() < 0.25) setTimeout(doBlink, 300); /* natural double-blink */
+      schedule();
+    }, 2600 + Math.random() * 4200);
+  }
+  setTimeout(function(){ doBlink(); schedule(); }, 1800); /* she's alive on arrival */
+})();
+
+/* ============================================================
    ORB MOTION — "she swims, she doesn't sit"
 
    2026-09-25 OVERRIDE (Danny, Chromebook review): the swim is retired —
@@ -24338,7 +24373,8 @@ function speakWithAria(audioBase64, ariaText){
    just to paint a favicon. Everything on-screen uses the derived
    assets/aria-orb-pixar-320.png (95 KB; the largest on-screen use is the
    86px assistant button, so 320px still covers ~3.7x DPR) and
-   assets/aria-orb-pixar-64.png (6 KB) for the favicon. Regenerate both
+   assets/aria-orb-pixar-64.png (6 KB) for the favicon. assets/aria-orb-pixar-blink-320.png
+   is the closed-eyes frame for the blink (pixel-registered to the open frame). Regenerate both
    from the master with sharp if the mascot art ever changes. The old
    faceless orb (orb.png/orb-320.png/orb-64.png) is retired. */
 (function(){
