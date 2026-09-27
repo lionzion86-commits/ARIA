@@ -8479,7 +8479,7 @@ check("searchAutoParts renders catalog sources as real products, not just the te
   if (!/if \(!source\.search\)\{[\s\S]*?source\.catalog[\s\S]*?advanceItemsForQuery/.test(body)) {
     throw new Error("catalog-backed sources are still skipped in the results loop");
   }
-  if (!/autoCatalogBySource\.set\(source\.id, items\)/.test(body)) {
+  if (!/autoCompareBySource\.set\(source\.id, \{ items, fitment: 'catalog' \}\)/.test(body)) {
     throw new Error("catalog items are not collected for the comparison strip");
   }
 });
@@ -8512,9 +8512,45 @@ check("comparison strip compares catalog items with honest fitment copy", () => 
   const i = html.indexOf("function renderAutoComparison(query){");
   if (i < 0) throw new Error("renderAutoComparison moved");
   const body = html.slice(i, html.indexOf("function showToast(msg){", i));
-  if (!/pushRows\(catalog, 'catalog'\)/.test(body)) throw new Error("catalog rows never reach the strip");
-  if (!/confirma con el N/.test(body)) throw new Error("catalog fitment is not labeled honestly");
+  if (!/autoCompareBySource\.entries\(\)/.test(body)) throw new Error("strip no longer reads the unified comparison model");
+  if (!/entries\.length < 2/.test(body)) throw new Error("strip lost its two-source threshold");
+  if (!/confirma con el N/.test(body)) throw new Error("unconfirmed/catalog fitment is not labeled honestly");
   if (/Todos con calce confirmado/.test(body)) throw new Error("stale blanket fitment claim is still in the strip");
+  if (/El mismo repuesto, tienda por tienda/.test(body)) throw new Error("strip still claims same-part equivalence it cannot prove");
+  if (!/Compara opciones, tienda por tienda/.test(body)) throw new Error("strip heading is not the honest comparison wording");
+});
+
+check("comparison strip counts an unconfirmed live source, not just confirmed fits", () => {
+  /* The real-world case the QA caught: AutoZone renders unconfirmed (no
+     compatibility list) while Advance renders from catalog. The strip
+     must show -- it compares prices, and both sources' prices are real. */
+  const html = readFileSync(root("index.html"), "utf8");
+  const i = html.indexOf("async function searchAutoParts(){");
+  if (i < 0) throw new Error("searchAutoParts moved");
+  const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
+  if (!/fitment: showHasData \? 'confirmed' : 'unconfirmed'/.test(body)) {
+    throw new Error("live sources are not labeled confirmed/unconfirmed for the strip");
+  }
+  if (!/fitment: 'catalog'/.test(body)) {
+    throw new Error("catalog source lost its fitment label for the strip");
+  }
+});
+
+check("cheapest store's carousel floats to the top", () => {
+  const html = readFileSync(root("index.html"), "utf8");
+  if (html.indexOf("function sortAutoBlocksByPrice(){") < 0) throw new Error("sortAutoBlocksByPrice missing");
+  if (html.indexOf("function setAutoBlockMinDoor(blockEl, items, query){") < 0) throw new Error("setAutoBlockMinDoor missing");
+  const i = html.indexOf("async function searchAutoParts(){");
+  const body = html.slice(i, html.indexOf("async function renderAutoSimilarRail", i));
+  const stamps = (body.match(/setAutoBlockMinDoor\(blockEl/g) || []).length;
+  if (stamps < 2) throw new Error("min-door price is not stamped on both live and catalog blocks");
+  if (!/sortAutoBlocksByPrice\(\);\n  renderAutoComparison\(query\);\n  renderAutoSimilarRail\(\);/.test(body)) {
+    throw new Error("final price sort is missing after all sources settle");
+  }
+  /* unpriced blocks sink: the comparator must handle missing data-min-door */
+  const h = html.indexOf("function sortAutoBlocksByPrice(){");
+  const hb = html.slice(h, html.indexOf("\n}", h));
+  if (!/isFinite\(da\), bHas = isFinite\(db\)/.test(hb)) throw new Error("sort does not handle blocks without a price");
 });
 
 check("detectAxle separates front, rear, both and neither", () => {

@@ -18715,9 +18715,15 @@ function autoPartNumberHTML(partNumber){
    Keyed by source so the comparison strip can say where each part came
    from, and so a source that answers late does not reorder the blocks. */
 let autoConfirmedBySource = new Map();
-/* Catalog-backed source items (Advance), collected for the comparison
-   strip alongside the confirmed-fit results above. */
-let autoCatalogBySource = new Map();
+/* COMPARISON MODEL (2026-09-27) -- everything each source's block actually
+   shows, keyed by source, with per-source fitment honesty. The strip needs
+   TWO sources with items; a live source whose store publishes no
+   compatibility list still counts (labeled "unconfirmed"), because its
+   prices are real and the shopper is comparing options, not certified
+   fitments. Without this the strip never rendered: AutoZone almost always
+   lands in the unconfirmed branch, leaving Advance alone below the
+   two-source threshold. */
+let autoCompareBySource = new Map();
 
 async function searchAutoParts(){
   if (!selectedVehicle){ showToast('Elige marca, modelo y año primero.'); return; }
@@ -18728,7 +18734,7 @@ async function searchAutoParts(){
   const wrap = document.getElementById('autoPartsResultsWrap');
   autoPartsRendered = [];   // a new search replaces what the cards index into
   autoConfirmedBySource = new Map();
-  autoCatalogBySource = new Map();
+  autoCompareBySource = new Map();
   wrap.classList.remove('hidden');
   wrap.innerHTML = `<div id="autoCompareWrap"></div><div id="autoSimilarWrap"></div>`
     + AUTO_PARTS_SOURCES.map(s => `<div id="autoBlock-${s.id}">${s.catalog ? autoCatalogBlockHTML(s) : s.pending ? autoPendingBlockHTML(s, selectedVehicle, query) : autoPartSkeleton(s.label)}</div>`).join('');
@@ -18743,8 +18749,9 @@ async function searchAutoParts(){
         const blockEl = document.getElementById(`autoBlock-${source.id}`);
         try {
           const items = await advanceItemsForQuery(query, 12);
-          autoCatalogBySource.set(source.id, items);
+          autoCompareBySource.set(source.id, { items, fitment: 'catalog' });
           blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
+          setAutoBlockMinDoor(blockEl, items, query);
         } catch (err){
           blockEl.innerHTML = autoCatalogBlockHTML(source);
         }
@@ -18757,7 +18764,14 @@ async function searchAutoParts(){
       const items = await source.search(selectedVehicle, query, 5);
       const confirmed = filterAutomotiveParts(vehicleFittedItems(items, selectedVehicle), query);
       autoConfirmedBySource.set(source.id, confirmed);
+      /* The strip compares what the block shows -- mirror renderAutoPartBlock's
+         fitted-or-all decision so the rows match the cards, and label the
+         fitment honestly instead of dropping unconfirmed sources. */
+      const showHasData = hasFitmentData(items, selectedVehicle);
+      const shown = filterAutomotiveParts(showHasData ? vehicleFittedItems(items, selectedVehicle) : items, query);
+      autoCompareBySource.set(source.id, { items: shown, fitment: showHasData ? 'confirmed' : 'unconfirmed' });
       blockEl.innerHTML = renderAutoPartBlock(source.label, { ok: true, items }, query, source.id);
+      setAutoBlockMinDoor(blockEl, shown, query);
     } catch (err) {
       /* A source whose scraper was never wired up (RockAuto today) is not
          an error the shopper can act on — it gets the same honest
@@ -18769,13 +18783,45 @@ async function searchAutoParts(){
     }
     renderAutoComparison(query);
   }));
+  sortAutoBlocksByPrice();
   renderAutoComparison(query);
   renderAutoSimilarRail();
 }
 
+/* CHEAPEST STORE FLOATS TO THE TOP (2026-09-27, Danny). After a source's
+   block renders we stamp its cheapest door price on the block, then sort
+   the blocks so the cheapest store's carousel sits first -- the shopper
+   sees the cheapest option without scrolling past a pricier store.
+   Blocks with no priced items (pending, error, empty) sink to the bottom.
+   The sort runs after every render because sources answer at different
+   speeds, plus once more after all settle. */
+function setAutoBlockMinDoor(blockEl, items, query){
+  if (!blockEl || !items || !items.length) return;
+  let min = Infinity;
+  for (const it of items){
+    if (!it || !(it.price > 0)) continue;
+    const d = doorToDoorUsd({ price: it.price, weightKg: partWeightForItem(it, query, selectedVehicle) });
+    if (d < min) min = d;
+  }
+  if (isFinite(min)) blockEl.dataset.minDoor = String(min);
+  sortAutoBlocksByPrice();
+}
+function sortAutoBlocksByPrice(){
+  const wrap = document.getElementById('autoPartsResultsWrap');
+  if (!wrap) return;
+  const blocks = [...wrap.querySelectorAll(':scope > [id^="autoBlock-"]')];
+  blocks.sort((a, b) => {
+    const da = parseFloat(a.dataset.minDoor), db = parseFloat(b.dataset.minDoor);
+    const aHas = isFinite(da), bHas = isFinite(db);
+    if (aHas && bHas) return da - db;
+    return aHas ? -1 : bHas ? 1 : 0;
+  });
+  for (const b of blocks) wrap.appendChild(b);
+}
+
 /* SIMILAR PARTS RAIL (2026-09-24) — "Similares de otras marcas". The
-   comparison strip answers "the same part, store by store"; this answers
-   the next question: the same TYPE of part from the other store's shelf.
+   comparison strip answers "which store is cheaper for this search"; this
+   answers the next question: the same TYPE of part from the other store's shelf.
    Built from the confirmed-fit results already in memory, grouped by
    part type, preferring the type with the most brand variety. Cards ride
    the same autoPartsRendered index as the main blocks, so a tap opens the
@@ -18830,51 +18876,47 @@ function renderAutoSimilarRail(){
 /* ============================================================
    THE COMPARISON STRIP — Google Flights, for brake pads.
 
-   The same part, across stores, ranked by what it costs AT YOUR DOOR:
-   product price plus the freight its own weight earns. Store attribution
-   on every row, because "which shop" is the second question after "does
-   it fit" and the answer changes the price.
+   Comparable options, across stores, ranked by what each costs AT YOUR
+   DOOR: product price plus the freight its own weight earns. Store
+   attribution on every row, because "which shop" is the second question
+   after "does it fit" and the answer changes the price. The heading never
+   claims two listings are the same part -- equivalence needs a shared
+   part number, and the strip is a price comparison of query-relevant
+   options.
 
-   It only renders when TWO OR MORE sources returned confirmed-fit parts.
-   With one source it would be the same list twice under a different
-   heading, which is noise pretending to be a feature. */
+   It renders when TWO OR MORE sources have items to compare. Fitment is
+   labeled per store: a source whose store publishes no compatibility list
+   says so instead of claiming a confirmed fit. */
 function renderAutoComparison(query){
   const wrap = document.getElementById('autoCompareWrap');
   if (!wrap) return;
-  const confirmed = [...autoConfirmedBySource.entries()].filter(([, items]) => items.length);
-  const catalog = [...autoCatalogBySource.entries()].filter(([, items]) => items.length);
-  if (confirmed.length + catalog.length < 2){ wrap.innerHTML = ''; return; }
+  const entries = [...autoCompareBySource.entries()].filter(([, e]) => e && e.items && e.items.length);
+  if (entries.length < 2){ wrap.innerHTML = ''; return; }
 
   const rows = [];
-  const pushRows = (entries, fitment) => {
-    for (const [sourceKey, items] of entries){
-      for (const it of items){
-        const weightKg = partWeightForItem(it, query, selectedVehicle);
-        rows.push({
-          sourceKey,
-          title: it.title,
-          price: it.price,
-          weightKg,
-          doorUsd: doorToDoorUsd({ price: it.price, weightKg }),
-          fitment,
-        });
-      }
+  for (const [sourceKey, { items, fitment }] of entries){
+    for (const it of items){
+      const weightKg = partWeightForItem(it, query, selectedVehicle);
+      rows.push({
+        sourceKey,
+        title: it.title,
+        price: it.price,
+        weightKg,
+        doorUsd: doorToDoorUsd({ price: it.price, weightKg }),
+        fitment,
+      });
     }
-  };
-  pushRows(confirmed, 'confirmed');
-  pushRows(catalog, 'catalog');
+  }
   rows.sort((a, b) => a.doorUsd - b.doorUsd);
   const best = rows[0];
-  /* Fitment honesty, per store: a catalog source never claims a
-     compatibility list it does not publish. */
-  const fitBits = [
-    ...confirmed.map(([k]) => `${autoSourceLabel(k)}: calce confirmado`),
-    ...catalog.map(([k]) => `${autoSourceLabel(k)}: confirma con el N.° de parte`),
-  ];
+  /* Fitment honesty, per store: nobody claims a compatibility list the
+     store does not publish. */
+  const fitBits = entries.map(([k, { fitment }]) =>
+    `${autoSourceLabel(k)}: ${fitment === 'confirmed' ? 'calce confirmado' : 'confirma con el N.° de parte'}`);
 
   wrap.innerHTML = `<div class="rounded-2xl border p-5 mb-8" style="border-color:var(--line); background:#fff">
     <div class="text-[15px] font-extrabold mb-1" style="color:var(--navy)">
-      El mismo repuesto, tienda por tienda
+      Compara opciones, tienda por tienda
     </div>
     <p class="text-[12px] mb-4" style="color:#6B7487">
       Ordenado por lo que pagas a tu puerta: producto + flete para tu ${escapeHtml(vehicleLabel(selectedVehicle))}. ${escapeHtml(fitBits.join(' \u00b7 '))}.
@@ -18888,7 +18930,7 @@ function renderAutoComparison(query){
         <div class="text-right flex-shrink-0">
           <div class="text-[13.5px] font-extrabold tabular" style="color:var(--navy)">${escapeHtml(fmtPriceLabel(r.doorUsd))}</div>
           ${solesUnderHTML(r.doorUsd, 'text-[10.5px] tabular')}
-          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}${r.fitment === 'catalog' ? ' · confirma N.° de parte' : ''}</div>
+          <div class="text-[10.5px]" style="color:#8A93A8">a tu puerta${r === best ? ' · mejor precio' : ''}${r.fitment === 'confirmed' ? '' : ' · confirma N.° de parte'}</div>
         </div>
       </div>`).join('')}</div>
   </div>`;
