@@ -675,14 +675,20 @@ export const FREIGHT_FEATURE_CEILING = 1.00;
    So a share is freight over the price ON THE CARD. Anyone can divide
    the two numbers they see and land on the same answer we did. This is
    the same rule doorToDoorUsd() sorts by, for the same reason. */
+import { dutiableBaseUsd } from "../../weight-data.js";
+
 export const IMPORT_TAX_THRESHOLD_USD = 200;
 export const IMPORT_TAX_RATE = 0.23;
 
-/** What a card prints for a product: with import tax over the threshold. */
-export function shownPriceUsd(priceUsd) {
+/** What a card prints for a product: one baked-in price. Over the $200
+    de minimis the import-tax component is computed on the DUTIABLE base
+    (what the goods really cost), never on the marked-up card price —
+    the same rule as displayPriceUsd() in index.html, which this mirrors. */
+export function shownPriceUsd(priceUsd, dutiableUsd) {
   const price = Number(priceUsd);
-  if (!Number.isFinite(price) || price <= IMPORT_TAX_THRESHOLD_USD) return price;
-  return Math.round(price * (1 + IMPORT_TAX_RATE) * 100) / 100;
+  const d = dutiableBaseUsd(priceUsd, dutiableUsd);
+  if (!Number.isFinite(price) || !Number.isFinite(d) || d <= IMPORT_TAX_THRESHOLD_USD) return price;
+  return Math.round((price + d * IMPORT_TAX_RATE) * 100) / 100;
 }
 
 /** Share of the price the shopper sees that freight represents. */

@@ -25,7 +25,7 @@ import { resolveItemWeight, resolveCartWeights } from "../../netlify/functions/_
 import * as weightResolve from "../../netlify/functions/_weight-resolve.js";
 import { smallOrderFeePen, SMALL_ORDER_FEE_PEN, SMALL_ORDER_THRESHOLD_PEN, SMALL_ORDER_FEE_NOTE,
          importTaxEstimateUsd, TAX_ESTIMATE_RATE, TAX_ESTIMATE_THRESHOLD_USD,
-         TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE } from "../../weight-data.js";
+         TAX_ESTIMATE_LABEL, TAX_ESTIMATE_NOTE, dutiableBaseUsd } from "../../weight-data.js";
 import { RETAILERS, searchableRetailers, isBeautyRetailer } from "../lib/retailers.js";
 import * as delivery from "../lib/retailer-delivery.js";
 import * as retailers from "../lib/retailers.js";
@@ -1518,9 +1518,19 @@ check("the displayed price is still what any share divides by", () => {
   // The denominator fix outlives the badge: the feature ceiling uses it.
   eq(itemWeight.shownPriceUsd(199), 199, "under the threshold, unchanged");
   eq(itemWeight.shownPriceUsd(200), 200, "at the threshold, unchanged");
-  eq(itemWeight.shownPriceUsd(250), 307.5, "over the threshold, tax included");
+  /* The base is dutiable now (2026-09-27): a bare 250 backs out to
+     201.61, over the line, so the figure is 250 + 201.61 x 23% —
+     never 250 x 1.23. */
+  eq(itemWeight.shownPriceUsd(250), 296.37, "over the threshold, tax on the dutiable base");
+  /* A $170 item marks up to $226: the threshold is on the $170, so the
+     card shows no tax. This is the whole point of the honest base. */
+  eq(itemWeight.shownPriceUsd(226, 170), 226, "threshold on dutiable, not on the card price");
+  eq(page.displayPriceUsd(226, 170), 226, "page agrees: no tax-on-margin");
   for (const usd of [5, 60, 199.99, 200, 200.01, 250, 1000]) {
     eq(page.displayPriceUsd(usd), itemWeight.shownPriceUsd(usd), `page mirror at $${usd}`);
+  }
+  for (const [usd, d] of [[226, 170], [250, 201.61], [1000, 806.45]]) {
+    eq(page.displayPriceUsd(usd, d), itemWeight.shownPriceUsd(usd, d), `page mirror at $${usd} on $${d} base`);
   }
 });
 
@@ -3211,6 +3221,94 @@ check("every surface that describes the charge quotes the charged rate", () => {
   }
 });
 
+/* ------------------------------------------------------------------
+   HONEST DUTIABLE BASE (2026-09-27) — tax on what the goods cost,
+   never on the marked-up card price. Card, cart, checkout and the
+   order record all read the same base, or the books rot.
+   ------------------------------------------------------------------ */
+group("honest dutiable base");
+
+check("the canonical helper resolves the base, stamped or reversed", () => {
+  eq(dutiableBaseUsd(226, 170), 170, "the stamped dutiable value wins");
+  eq(dutiableBaseUsd(1000, 806.45), 806.45, "Danny's $1000 example: the base is $806.45");
+  eq(dutiableBaseUsd(250), 201.61, "no stamp: the exact reversal of the price stack");
+  eq(dutiableBaseUsd(132.68), 107, "the $100-toy price backs out to its $107 base");
+  if (!Number.isNaN(dutiableBaseUsd(null, null))) throw new Error("garbage in must not become a number");
+  if (!Number.isNaN(dutiableBaseUsd(0, -5))) throw new Error("non-positive inputs must not become a number");
+});
+
+check("the page's mirror of the helper agrees with the module", () => {
+  const page = loadPageWeightSlice();
+  for (const [usd, d] of [[226, 170], [250, undefined], [1000, 806.45], [132.68, undefined]]) {
+    eq(page.dutiableBaseUsd(usd, d), dutiableBaseUsd(usd, d), `mirror at $${usd}`);
+  }
+  /* And the constant the reversal divides by is the same 1.24 in both
+     places — a drift here silently re-bases every legacy line. */
+  const pageSrc = readFileSync(root("index.html"), "utf8");
+  const pageMarkup = pageSrc.match(/const LIVE_PRICE_MARKUP = ([\d.]+)/)?.[1];
+  const moduleSrc = readFileSync(root("weight-data.js"), "utf8");
+  const moduleMarkup = moduleSrc.match(/const PRICE_STACK_MARKUP = ([\d.]+)/)?.[1];
+  eq(pageMarkup, "1.24", "index.html still prices on 1.24");
+  eq(moduleMarkup, pageMarkup, "weight-data.js reverses with the same 1.24");
+});
+
+check("the $200 threshold is tested on the dutiable base", () => {
+  const page = loadPageWeightSlice();
+  eq(page.priceIncludesImportTax(226, 170), false, "$170 of goods marking up to $226 owes nothing");
+  eq(page.priceIncludesImportTax(250, 201.61), true, "$201.61 of goods is over the line");
+  eq(page.priceIncludesImportTax(250), true, "fallback reversal: 250 backs out over the line");
+  eq(page.priceIncludesImportTax(199), false, "under the line stays under");
+});
+
+check("the card figure is price + 23% of the dutiable base", () => {
+  const page = loadPageWeightSlice();
+  /* Danny's $1000 example: the old code printed $1,230 (tax on the
+     markup); the honest figure is $1,185.48. */
+  eq(page.displayPriceUsd(1000, 806.45), 1185.48, "tax on the base, not on the margin");
+  eq(page.displayPriceUsd(226, 170), 226, "no tax line under the threshold");
+  eq(page.fmtDisplayPrice(1000, 806.45), "FMT(1185.48)", "fmtDisplayPrice threads the base");
+  eq(page.taxIncludedNoteHTML(226, 170).includes("incl. impuestos"), false, "no note under the threshold");
+  eq(page.taxIncludedNoteHTML(1000, 806.45).includes("incl. impuestos"), true, "note over the threshold");
+});
+
+check("the dutiable base is stamped at pricing and travels to the cart", () => {
+  const page = readFileSync(root("index.html"), "utf8");
+  if (!/const dutiableUsd = Number\.isFinite\(rawPrice\) \? round2\(rawPrice \* SALES_TAX_RATE\) : null;/.test(page)) {
+    throw new Error("normalizeLiveItem no longer stamps dutiableUsd at pricing");
+  }
+  if (!/return \{ title, brand, price, dutiableUsd,/.test(page)) {
+    throw new Error("the normalized item no longer carries dutiableUsd");
+  }
+  if (!/acc\.dutiableUsd \+=/.test(page)) throw new Error("cartTotals no longer sums the dutiable base");
+  if (!/renderTaxZoneBar\(totals\.dutiableUsd\)/.test(page)) throw new Error("the tax-zone bar is not on the dutiable total");
+  if (!/renderCustomsDisclosure\(totals\.dutiableUsd\)/.test(page)) throw new Error("the customs disclosure is not on the dutiable total");
+});
+
+check("checkout's declared value is the dutiable sum", () => {
+  const checkout = readFileSync(root("checkout.html"), "utf8");
+  if (!/dutiableBaseUsd\(it\.priceUsd, it\.dutiableUsd\)/.test(checkout)) {
+    throw new Error("checkout no longer resolves the dutiable base per line");
+  }
+  /* The estimate keeps its shape and rate — only its input changed to
+     the true base: 25% of (dutiable + freight). */
+  eq(importTaxEstimateUsd(201.61, 40), round2(241.61 * TAX_ESTIMATE_RATE), "estimate on dutiable + freight");
+  eq(importTaxEstimateUsd(199.99, 50), 0, "threshold still on the goods");
+});
+
+check("the order record carries the set-aside bucket", () => {
+  const src = stripComments(readFileSync(root("netlify/functions/orders-create.js"), "utf8"));
+  for (const field of ["declaredValueUsd", "dutiableUsdTotal", "taxEstimatedUsd", "taxEstimatedPen", "taxRateUsed"]) {
+    if (!new RegExp(`\\b${field}\\b`).test(src)) throw new Error(`the order record has no ${field}`);
+  }
+  if (!/importTaxEstimateUsd\(dutiableUsdTotal, freightUsdQuoted\)/.test(src)) {
+    throw new Error("the server's tax estimate is not on the dutiable total");
+  }
+  if (!/dutiableUsd: d/.test(src)) throw new Error("per-line dutiable base is not stamped on the stored items");
+  if (/taxEstimatedUsd\s*[:=]\s*(Number\()?body\./.test(src)) {
+    throw new Error("the charged tax comes from the request body");
+  }
+});
+
 group("checkout: someone else receives the parcel");
 
 check("the recipient fields are required only while they are visible", () => {
@@ -3287,7 +3385,7 @@ check("the order record has somewhere to put the real tax from day one", () => {
   }
   const code = stripComments(src);
   // Recomputed, never accepted: the same rule the small-order fee follows.
-  if (!/importTaxEstimateUsd\(priceUsdTotal, freightUsdQuoted\)/.test(code)) {
+  if (!/importTaxEstimateUsd\(dutiableUsdTotal, freightUsdQuoted\)/.test(code)) {
     throw new Error("the server takes the browser's tax figure instead of recomputing it");
   }
   if (/taxEstimatedUsd\s*[:=]\s*(Number\()?body\./.test(code)) {

@@ -72,6 +72,37 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
   return Math.round(cif * TAX_ESTIMATE_RATE * 100) / 100;
 }
 
+/* ============================================================
+   THE DUTIABLE BASE (2026-09-27) — WHAT THE TAX IS COMPUTED ON
+
+   Peru taxes the GOODS, not our margin. The dutiable base is what the
+   goods really cost: the raw US price plus Miami sales tax, BEFORE the
+   24% service markup. Every price on the site is built as
+   raw x 1.07 x 1.24 (see normalizeLiveItem() in index.html), so the base
+   backs out exactly as price / 1.24 — the same reversal the admin margin
+   view uses. Items stamped at pricing time carry dutiableUsd directly;
+   anything older (or tampered) gets the exact reversal here.
+
+   This helper is the one definition for module-land (checkout,
+   orders-create, item-weight). index.html mirrors it as a plain function
+   because it is not a module — the two must stay identical, and the
+   test suite pins that.
+   ============================================================ */
+const PRICE_STACK_MARKUP = 1.24; // mirrors LIVE_PRICE_MARKUP in index.html
+
+/**
+ * Resolve the dutiable base for a price, in USD.
+ * Prefer the stamped dutiableUsd; otherwise reverse the price stack.
+ * Returns NaN when neither is usable — callers must not sum NaN.
+ */
+export function dutiableBaseUsd(priceUsd, dutiableUsd) {
+  const d = Number(dutiableUsd);
+  if (Number.isFinite(d) && d > 0) return Math.round(d * 100) / 100;
+  const p = Number(priceUsd);
+  if (Number.isFinite(p) && p > 0) return Math.round((p / PRICE_STACK_MARKUP) * 100) / 100;
+  return NaN;
+}
+
 /** The row's own label and the promise printed under it. */
 export const TAX_ESTIMATE_LABEL = "Impuestos de importación (estimado)";
 export const TAX_ESTIMATE_NOTE =

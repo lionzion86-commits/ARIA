@@ -21,7 +21,9 @@ const END = "// Deliberately does NOT expose a clickthrough URL to the retailer'
    it, and stubbing it here would test the stub rather than the rule the
    shopper's card is drawn from. */
 const PRELUDE_START = "const IMPORT_TAX_THRESHOLD_USD = 200;";
-const PRELUDE_END = '/** The "incl. impuestos" line under a price, only when it is true. */';
+/* Extended past taxIncludedNoteHTML() itself (2026-09-27): the note is
+   part of what the dutiable-base tests assert on. */
+const PRELUDE_END = "/* One slim line, on every browsing surface";
 
 export function loadPageWeightSlice() {
   const html = readFileSync(INDEX, "utf8");
@@ -41,9 +43,18 @@ export function loadPageWeightSlice() {
     // in these tests calls it, but the declarations must resolve.
     escapeHtml: (x) => String(x),
     console,
+    /* fmtDisplayPrice() formats through fmtPriceLabel(), which lives
+       above the slice markers; the stub lets the tests assert that the
+       dutiable base is threaded through, not the exact dollar format. */
+    fmtPriceLabel: (usd) => 'FMT(' + usd + ')',
+    /* The tax prelude's dutiableBaseUsd() reads the page's own
+       LIVE_PRICE_MARKUP, which lives far below the slice markers, so the
+       constant is provided here — and a separate test pins that this 1.24
+       is the same 1.24 weight-data.js reverses with. */
+    LIVE_PRICE_MARKUP: 1.24,
   };
   vm.createContext(sandbox);
-  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, catalogWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
+  vm.runInContext(src + "\n;globalThis.__exports = { estimateRetailWeightKg, estimateRetailWeightDetail, footwearWeightKg, ballWeightKg, bulkyWeightKg, candleWeightKg, weightSanity, bandFor, titleWeight, beautyWeightDetail, catalogWeightDetail, isFragrance, fragranceLimitState, RETAIL_WEIGHT_ESTIMATES_KG, BEAUTY_FALLBACK_KG, MAX_FRAGRANCES_PER_SHIPMENT, FREIGHT_FEATURE_CEILING, FOOTWEAR_TIERS, freightQuotable, GENERIC_FALLBACK_KG, supplementWeightDetail, supplementWeightKg, beautyBandKg, BOOK_TIERS, BOOK_DEFAULT, bookTierFor, bookWeightKg, bookBandKg, displayPriceUsd, priceIncludesImportTax, dutiableBaseUsd, fmtDisplayPrice, taxIncludedNoteHTML, freightUsd, freightSharePct, doorToDoorUsd, CHARGE_PER_KG_USD };", sandbox, { filename: "index.html#weights" });
   return sandbox.__exports;
 }
 
