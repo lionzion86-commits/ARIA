@@ -5208,8 +5208,9 @@ check("the photo hero opens the home page, shopfront follows", () => {
      and it should hit you the moment you walk in, like it originally
      did. The photographic hero is the FIRST child of #homeView again,
      the shopfront follows it, and (2026-09-26, DANNY'S HOMEPAGE ORDER
-     V3) the Aria Auto house banner is the first section inside the
-     shopfront -- hero > Aria Auto > nav > Categorías > rails > rest. */
+     (2026-09-26, DANNY'S FINAL ORDER) OFERTAS is the first section
+     inside the shopfront -- hero > Ofertas > brand band > Aria Auto >
+     the "Compra por categoría" chip carousel > rails > rest. */
   const home = shopfrontSrc.slice(shopfrontSrc.indexOf('<div id="homeView"'));
   const body = home.slice(home.indexOf(">") + 1);
   const tags = [...body.matchAll(/<(?!!--)[a-zA-Z][^>]*>/g)].map(m => m[0]);
@@ -5230,8 +5231,8 @@ check("the photo hero opens the home page, shopfront follows", () => {
     throw new Error(`the shopfront does not follow the hero: ${second.slice(0, 70)}`);
   }
   const firstSection = (shopfront.match(/<(?:section|div)[^>]*aria-label="([^"]+)"/) || [])[1];
-  if (firstSection !== "Aria Auto") {
-    throw new Error(`the first section in the shopfront is ${firstSection}, want Aria Auto`);
+  if (firstSection !== "Ofertas") {
+    throw new Error(`the first section in the shopfront is ${firstSection}, want Ofertas`);
   }
 
   /* lg:hidden, NOT md:hidden. The nav is `hidden lg:flex`, so every
@@ -5243,7 +5244,7 @@ check("the photo hero opens the home page, shopfront follows", () => {
   if (/\bmd:hidden\b/.test(open)) throw new Error("the shopfront disappears at md, leaving tablets with neither rails nor nav");
 });
 
-check("Hero, Aria Auto, nav, Categorías, store rails, rest (2026-09-26, Danny)", () => {
+check("Hero, Ofertas, brand band, Aria Auto, category carousel, rails, rest (2026-09-26, Danny)", () => {
   /* THE ORDER IS THE FALLBACK CHAIN, and Danny settled it in his own
      words: "in case they don't find the ofertas they're looking for,
      they know categories is right underneath". Deals first because they
@@ -5270,18 +5271,18 @@ check("Hero, Aria Auto, nav, Categorías, store rails, rest (2026-09-26, Danny)"
      hits you the moment you walk in. The 2026-09-25 order holds after
      it, with the Costco rail and the Fiestas y Eventos vertical.
 
-     2026-09-26, DANNY'S HOMEPAGE ORDER V3: hero > Aria Auto > the sticky
-     mobile section-nav (phones only) > Categorías > the eight store rails
-     in mall order > everything else in its previous relative order
-     (Ofertas, the brand band, Marcas, Costco, SSENSE, Compra por categoría,
-     Todas las otras tiendas). Desktop: hero > Aria Auto > Categorías >
-     rails > rest, no nav strip.) */
+     2026-09-26, DANNY'S FINAL ORDER (supersedes V3): the section-nav
+     strip is gone; its story links (Cómo funciona, Por qué Aria) live
+     in the slim utility bar at the very top of the page. The run is
+     hero > Ofertas > brand band > Aria Auto > the "Compra por
+     categoría" chip carousel > the eight store rails in mall order >
+     Marcas, Costco, SSENSE, Todas las otras tiendas, Categorías.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Aria Auto > Categorías > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Ofertas > Compra en Estados Unidos > Marcas > Costco > SSENSE > Compra por categoría > Categorías > Todas las otras tiendas", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5292,7 +5293,7 @@ check("Hero, Aria Auto, nav, Categorías, store rails, rest (2026-09-26, Danny)"
   }
 });
 
-check("the desktop shopfront reads Aria Auto, Categorías, rails, rest (2026-09-26, Danny)", () => {
+check("the desktop shopfront reads Ofertas, brand band, Aria Auto, carousel, rails, rest (2026-09-26, Danny)", () => {
   /* 2026-09-25, DANNY'S MALL VISION: the laptop shares the phone's
      scroll order now -- deals, the eight store rails in mall order,
      departments. The Tiendas chips rail is superseded by the rails.
@@ -5303,10 +5304,10 @@ check("the desktop shopfront reads Aria Auto, Categorías, rails, rest (2026-09-
      (2026-09-25, DANNY'S IPHONE REVIEW: "Todas las otras tiendas" sits
      between the eight rails and Categorías on the laptop too.
 
-     2026-09-26, DANNY'S HOMEPAGE ORDER V3: same reorder as the phone --
-     Aria Auto > Categorías > the eight store rails in mall order >
-     everything else in its previous relative order. No nav strip on
-     desktop. */
+     2026-09-26, DANNY'S FINAL ORDER: same run as the phone -- Ofertas >
+     brand band > Aria Auto > the "Compra por categoría" chip carousel >
+     the eight store rails in mall order > Marcas, Costco, SSENSE,
+     Todas las otras tiendas, Categorías. No nav strip on desktop. */
   const desk = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
     shopfrontSrc.indexOf('id="whyUs"'),
@@ -5315,7 +5316,7 @@ check("the desktop shopfront reads Aria Auto, Categorías, rails, rest (2026-09-
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Aria Auto > Categorías > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Ofertas > Compra en Estados Unidos > Marcas > Costco > SSENSE > Compra por categoría > Categorías > Todas las otras tiendas", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -6078,7 +6079,7 @@ check("Party City cards badge the store by name, without a storefront", () => {
   if (/openStore\(\s*['"]partycity['"]\)/.test(shopfrontSrc)) throw new Error("something opens a partycity storefront");
 });
 
-check("the Aria Auto house banner sits directly under the hero, on both breakpoints (2026-09-26, Danny)", () => {
+check("the Aria Auto house banner sits between the brand band and the category carousel, on both breakpoints (2026-09-26, Danny)", () => {
   /* 2026-09-26, DANNY'S CALL (final position): the logo/branding moment
      lands first, then the black banner, then the rails -- at the very top
      it would read like the page title. One bold statement, no product
@@ -6103,16 +6104,17 @@ check("the Aria Auto house banner sits directly under the hero, on both breakpoi
   for (const [tag] of banners) {
     if (/ariaNavyBand/.test(tag)) throw new Error("the auto banner wears the navy rail language");
   }
-  // Position (2026-09-26, DANNY'S HOMEPAGE ORDER V3): directly under the
-  // hero, before Categorías and the first store rail, on both breakpoints.
+  // Position (2026-09-26, DANNY'S FINAL ORDER): after the brand band,
+  // before the "Compra por categoría" carousel, on both breakpoints.
   for (const [startMark, railId] of [["<div id=\"homeView\"", "mStoreRail-victoriassecret"],
       ["<div id=\"desktopShopfront\"", "dStoreRail-victoriassecret"]]) {
     const start = html.indexOf(startMark);
+    const band = html.indexOf('aria-label="Compra en Estados Unidos"', start);
     const banner = html.indexOf('aria-label="Aria Auto"', start);
-    const cats = html.indexOf('aria-label="Categorías"', start);
+    const car = html.indexOf('aria-label="Compra por categoría"', start);
     const rail = html.indexOf(`id="${railId}"`, start);
-    if (!(banner > 0 && cats > banner && rail > cats))
-      throw new Error("the Aria Auto banner is not directly under the hero");
+    if (!(band > 0 && banner > band && car > banner && rail > car))
+      throw new Error("the Aria Auto banner is not between the brand band and the category carousel");
   }
 });
 
@@ -6317,20 +6319,24 @@ check("the utility bar sits above the header and pushes nothing down", () => {
   eq((utilityBar.match(/whitespace-nowrap/g) || []).length >= 3, true, "something in the bar can wrap to a second line");
 });
 
-check("the bar's two links, and a Key Club that goes somewhere", () => {
-  /* BOTH LINKS GO THROUGH goHomeSection, which is the router the nav
-     already uses for a section of the home page — not a bare #hash that
-     would break when the shopper is on another view. */
-  if (!/onclick="goHomeSection\('whyUs'\)"/.test(utilityBar)) throw new Error("'Quiénes somos' does not go to the Por qué Aria section");
+check("the bar's three story links, and a Key Club that goes somewhere", () => {
+  /* THE STORY LINKS (2026-09-26, Danny): the section-nav strip is gone;
+     Cómo funciona and Por qué Aria live here instead -- subtle, at the
+     very top, one tap away. Precio honesto stays as the third link.
+     Section targets go through goHomeSection, the router the nav already
+     uses -- not a bare #hash that would break off the home view. */
+  if (!/onclick="showPage\('howView'\)"/.test(utilityBar)) throw new Error("'Cómo funciona' does not open the how-it-works page");
+  if (!/onclick="goHomeSection\('whyUs'\)"/.test(utilityBar)) throw new Error("'Por qué Aria' does not go to the story section");
   if (!/onclick="goHomeSection\('precioHonesto'\)"/.test(utilityBar)) throw new Error("'Precio honesto' does not go to the guarantee");
-  if (!/>Quiénes somos</.test(utilityBar)) throw new Error("the first link is not 'Quiénes somos'");
-  if (!/>Precio honesto</.test(utilityBar)) throw new Error("the second link is not 'Precio honesto'");
-  // And both targets exist to be landed on.
+  if (!/>Cómo funciona</.test(utilityBar)) throw new Error("the first link is not 'Cómo funciona'");
+  if (!/>Por qué Aria</.test(utilityBar)) throw new Error("the second link is not 'Por qué Aria'");
+  if (!/>Precio honesto</.test(utilityBar)) throw new Error("the third link is not 'Precio honesto'");
+  // And the targets exist to be landed on.
   for (const id of ["whyUs", "precioHonesto"]) {
     if (!hdrSrc.includes(`id="${id}"`)) throw new Error(`the bar links to #${id}, which is not on the page`);
   }
-
-  /* JOINABLE SINCE 2026-09-25. The Key Club page exists, so the teaser
+  if (!hdrSrc.includes('id="howView"')) throw new Error("the bar links to howView, which is not on the page");
+/* JOINABLE SINCE 2026-09-25. The Key Club page exists, so the teaser
      is a real link to keyclubView — a tappable thing that does nothing
      would be worse, but a link to a real page is the honest version.
      No more "Próximamente": "Únete gratis" on the page opens signup. */
@@ -11439,50 +11445,40 @@ checkAsync("consoles sort after real toys in Juguetes and are claimed by Electr�
   ok(!itemBelongsToDepartment(plush, "juguetes", "electronics", "costco"), "plush claimed by Electrónica");
 });
 
-check("the mobile section nav strip is present and anchored to real sections (2026-09-26, Danny)", () => {
+check("the section nav strip is gone; the story links live in the top utility bar (2026-09-26, Danny)", () => {
+  /* DANNY'S FINAL ORDER: the sticky six-chip strip under Aria Auto is
+     deleted -- its story links (Cómo funciona, Por qué Aria) moved to
+     the slim utility bar at the very top of the page, subtle text
+     buttons instead of a navy chip band. */
   const html = HOME_SRC();
-  const i = html.indexOf('id="mobileSectionNav"');
-  if (i < 0) throw new Error("mobileSectionNav missing");
-  const open = html.slice(i, html.indexOf(">", i));
-  if (!open.includes("lg:hidden")) throw new Error("mobileSectionNav is not mobile-only");
-  if (!open.includes("overflow-x-auto")) throw new Error("mobileSectionNav can overflow the page");
-  /* Sticky under the 68px header, below the header's z-index. */
-  if (!open.includes("sticky")) throw new Error("mobileSectionNav is not sticky");
-  if (!/top:68px/.test(open)) throw new Error("mobileSectionNav sticky offset is not 68px");
-  if (!/z-index:20/.test(open)) throw new Error("mobileSectionNav z-index wrong");
-  const nav = html.slice(i, html.indexOf("</nav>", i));
-  for (const target of ["goSales()", "showPage('storesView')", "showPage('howView')",
-      "goHomeSection('whyUs')", "showPage('aboutView')", "goHomeSection('preguntasHome')"])
-    if (!nav.includes(target)) throw new Error(`mobile nav missing ${target}`);
-  /* Same chip look as the "Compra por categoría" pills: icon disc + label. */
-  if ((nav.match(/w-\[26px\] h-\[26px\] rounded-full/g) || []).length !== 6)
-    throw new Error("mobile nav chips lost the category-pill styling");
+  if (html.includes('id="mobileSectionNav"')) throw new Error("mobileSectionNav is still on the page");
+  if (/mobileSectionNav/.test(html)) throw new Error("mobileSectionNav CSS or JS still references the strip");
+  if (!/onclick="showPage\('howView'\)"/.test(utilityBar)) throw new Error("utility bar lost 'Cómo funciona'");
+  if (!/onclick="goHomeSection\('whyUs'\)"/.test(utilityBar)) throw new Error("utility bar lost 'Por qué Aria'");
   for (const id of ["whyUs", "preguntasHome"])
     if (!html.includes(`id="${id}"`)) throw new Error(`anchor #${id} missing`);
-  /* Placement (2026-09-26, Danny): the bar lives in the mobile shopfront
-     flow directly under Aria Auto and above Categorías — not in the header. */
-  const mShop = html.indexOf('id="mobileShopfront"');
-  const auto = html.indexOf('aria-label="Aria Auto"', mShop);
-  const cats = html.indexOf('aria-label="Categorías"', mShop);
-  if (!(mShop < auto && auto < i && i < cats)) throw new Error("mobile nav is not between Aria Auto and Categorías");
-  const headerEnd = html.indexOf("</header>");
-  if (i < headerEnd) throw new Error("mobile nav is still inside the header");
-  /* Desktop copy gets no nav strip. */
+  /* No strip on either breakpoint. */
   const dShop = html.indexOf('id="desktopShopfront"');
-  if (html.slice(dShop).includes('id="mobileSectionNav"')) throw new Error("nav strip leaked into desktop");
+  if (html.slice(dShop).includes('mobileSectionNav')) throw new Error("nav strip leaked into desktop");
 });
 
-check("the homepage order is hero, Aria Auto, nav, Categorías, rails, rest (2026-09-26, Danny)", () => {
+check("the homepage order is hero, Ofertas, brand band, Aria Auto, carousel, rails, rest (2026-09-26, Danny)", () => {
+  /* DANNY'S FINAL ORDER (supersedes V3): hero > Ofertas > brand band >
+     Aria Auto > the "Compra por categoría" chip carousel > the store
+     rails > Marcas / Costco / SSENSE > Todas las otras tiendas >
+     Categorías. Same on desktop. */
   const html = HOME_SRC();
   const mShop = html.indexOf('id="mobileShopfront"');
   const dShop = html.indexOf('id="desktopShopfront"');
   const seq = [
+    'aria-label="Ofertas"',
+    'aria-label="Compra en Estados Unidos"',
     'aria-label="Aria Auto"',
-    'id="mobileSectionNav"',
-    'aria-label="Categorías"',
+    'aria-label="Compra por categoría"',
     'data-store-rail="victoriassecret"',
     'data-store-rail="dicks"',
-    'aria-label="Ofertas"',
+    'aria-label="Todas las otras tiendas"',
+    'aria-label="Categorías"',
   ];
   let pos = mShop;
   for (const token of seq) {
@@ -11490,9 +11486,9 @@ check("the homepage order is hero, Aria Auto, nav, Categorías, rails, rest (202
     if (nxt < 0 || nxt > dShop) throw new Error(`mobile order broken at ${token}`);
     pos = nxt;
   }
-  /* Desktop: Aria Auto, Categorías, rails — no nav strip. */
+  /* Desktop: same run, no nav strip. */
   let dpos = dShop;
-  for (const token of ['aria-label="Aria Auto"', 'aria-label="Categorías"', 'data-store-rail="victoriassecret"']) {
+  for (const token of ['aria-label="Ofertas"', 'aria-label="Aria Auto"', 'aria-label="Compra por categoría"', 'data-store-rail="victoriassecret"']) {
     const nxt = html.indexOf(token, dpos);
     if (nxt < 0) throw new Error(`desktop order broken at ${token}`);
     dpos = nxt;

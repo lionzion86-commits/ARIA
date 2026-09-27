@@ -595,11 +595,6 @@
      utility bar's two links, the desktop nav's, the footer's and any
      added later. 84 = the header plus a little air. */
   html{ scroll-padding-top:84px }
-  /* MOBILE SECTION NAV (2026-09-26, Danny): the section chip bar is a
-     separate sticky strip (top:68px, below the header) on phones, so
-     anchored sections keep 118px of air below lg. */
-  @media (max-width:1023.98px){ html{ scroll-padding-top:118px }
-    #mobileSectionNav::-webkit-scrollbar{ display:none } }
   /* ============================================================
      THE LIGHTBOX'S SIZING, HAND-WRITTEN.
 
@@ -1316,7 +1311,7 @@
      sticky band would have cost 30px of a phone screen permanently,
      which is the one thing a slim bar must not do.
 
-     ONE LINE ON A PHONE. Measured at 393px: the two links and the Key
+     ONE LINE ON A PHONE. Measured at 393px: the three story links and the Key
      Club teaser fit on a single row with the type at 11.5px. Nothing
      wraps and nothing scrolls sideways -- a utility bar that wraps to
      two lines is a second header.
@@ -1328,8 +1323,11 @@
 <div id="utilityBar" class="ariaNavyBand border-b" style="border-color:rgba(255,255,255,0.10)">
   <div class="max-w-[1240px] mx-auto px-2.5 sm:px-5 h-[32px] flex items-center justify-between gap-2 sm:gap-3 text-[11px] sm:text-[11.5px] leading-none">
     <nav class="flex items-center gap-1.5 sm:gap-2 flex-shrink-0" aria-label="Sobre Aria">
+      <button onclick="showPage('howView')" data-utility="howView"
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Cómo funciona</button>
+      <span aria-hidden="true" style="color:rgba(220,230,255,0.38)">·</span>
       <button onclick="goHomeSection('whyUs')" data-utility="whyUs"
-        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Quiénes somos</button>
+        class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Por qué Aria</button>
       <span aria-hidden="true" style="color:rgba(220,230,255,0.38)">·</span>
       <button onclick="goHomeSection('precioHonesto')" data-utility="precioHonesto"
         class="font-semibold whitespace-nowrap focus-ring rounded px-0.5 py-1" style="color:#DCE6FF">Precio honesto</button>
@@ -1476,148 +1474,10 @@
        ============================================================ -->
   <div id="mobileShopfront" class="lg:hidden">
 
-    <!-- OFERTAS: on the navy band, because a sale rail should read as
-         the brightest thing on the page and gold only sings on navy. -->
-    <!-- ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): one bold statement,
-         no product carousel. Aria Auto is a huge section nobody discovers
-         from the homepage -- the logo/branding moment lands first, then
-         this black banner, then the Victoria's Secret rails. Relatable
-         promise first (Aria Auto + price), AutoZone as the trust
-         kicker underneath. Permanent, one banner only. -->
-    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
-      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
-      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
-      <div class="relative px-5 py-8" style="z-index:1">
-        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
-        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
-        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone</p>
-        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
-      </div>
-    </section>
-
-      <!-- MOBILE SECTION NAV (2026-09-26, Danny): on phones the page sections
-       used to sit far below the carousels with the hamburger as the only way
-       to reach them - a menu nobody opens. This sticky chip strip sits in
-       the normal flow directly under Aria Auto and pins below the header
-       once scrolled past. Same chip look as the "Compra por categoría" pills.
-       lg:hidden: desktop never renders it. -->
-  <nav id="mobileSectionNav" class="lg:hidden sticky overflow-x-auto"
-       style="top:68px;z-index:20;background:linear-gradient(160deg,#0A1F44 0%,#12336E 55%,#0A1F44 100%);scrollbar-width:none"
-       aria-label="Secciones de la página">
-    <div class="flex items-center gap-2 px-3 py-2 w-max">
-      <button onclick="goSales()" class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring" style="background:rgba(255,255,255,.10);color:#fff"><span class="flex-shrink-0 w-[26px] h-[26px] rounded-full overflow-hidden grid place-items-center" style="background:#0B2233"><span class="text-[14px] leading-none">🔥</span></span><span class="text-[12.5px] font-extrabold whitespace-nowrap">Ofertas</span></button>
-      <button onclick="showPage('storesView')" class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring" style="background:rgba(255,255,255,.10);color:#fff"><span class="flex-shrink-0 w-[26px] h-[26px] rounded-full overflow-hidden grid place-items-center" style="background:#0B2233"><span class="text-[14px] leading-none">🏬</span></span><span class="text-[12.5px] font-extrabold whitespace-nowrap">Tiendas</span></button>
-      <button onclick="showPage('howView')" class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring" style="background:rgba(255,255,255,.10);color:#fff"><span class="flex-shrink-0 w-[26px] h-[26px] rounded-full overflow-hidden grid place-items-center" style="background:#0B2233"><span class="text-[14px] leading-none">❓</span></span><span class="text-[12.5px] font-extrabold whitespace-nowrap">Cómo funciona</span></button>
-      <button onclick="goHomeSection('whyUs')" class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring" style="background:rgba(255,255,255,.10);color:#fff"><span class="flex-shrink-0 w-[26px] h-[26px] rounded-full overflow-hidden grid place-items-center" style="background:#0B2233"><span class="text-[14px] leading-none">💎</span></span><span class="text-[12.5px] font-extrabold whitespace-nowrap">Por qué Aria</span></button>
-      <button onclick="showPage('aboutView')" class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring" style="background:rgba(255,255,255,.10);color:#fff"><span class="flex-shrink-0 w-[26px] h-[26px] rounded-full overflow-hidden grid place-items-center" style="background:#0B2233"><span class="text-[14px] leading-none">👥</span></span><span class="text-[12.5px] font-extrabold whitespace-nowrap">Nosotros</span></button>
-      <button onclick="goHomeSection('preguntasHome')" class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring" style="background:rgba(255,255,255,.10);color:#fff"><span class="flex-shrink-0 w-[26px] h-[26px] rounded-full overflow-hidden grid place-items-center" style="background:#0B2233"><span class="text-[14px] leading-none">💬</span></span><span class="text-[12.5px] font-extrabold whitespace-nowrap">Preguntas</span></button>
-    </div>
-  </nav>
-<!-- CATEGORÍAS -->
-    <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
-      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
-        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
-        <button onclick="openCategories()" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
-      </div>
-      <div id="mobileCatsRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
-    </section><!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
-         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
-        </span>
-        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
-        </span>
-        <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
-      <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#000000">Gymshark</span>
-        <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
-        </span>
-        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
-      <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Macy's</span>
-        </span>
-        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#C41230">Kohl's</span>
-        <button onclick="openStore('kohls')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <!-- STORE RAIL: NEW BALANCE (2026-09-26, Danny): between Kohl's and Dick's. -->
-    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#E21836">New Balance</span>
-        <button onclick="openStore('newbalance')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#D22630">Dick's Sporting Goods</span>
-        <button onclick="openStore('dicks')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <!-- HOME ORDER (2026-09-26, Danny): Ofertas -> brand band -> Aria Auto ->
+       Compra por categoría (chip carousel) -> store rails -> Marcas / Costco /
+       SSENSE -> Todas las otras tiendas -> Categorías. -->
+<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
       <div class="ariaGoldHair"></div>
       <div class="relative flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
         <div class="flex items-baseline gap-2 min-w-0">
@@ -1632,7 +1492,7 @@
       <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-  <!-- ============================================================
+<!-- ============================================================
        BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
        "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
        search sit directly under the Ofertas rail -- deals first because
@@ -1686,8 +1546,143 @@
     </div>
   </div>
 
-    
-    <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
+<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative px-5 py-8" style="z-index:1">
+        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone</p>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring mt-5">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
+
+<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
+        <button id="mCategoryTabMore" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
+      </div>
+      <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="mCategoryTabPills" role="tablist" aria-label="Elige una categoría"></div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="mCategoryTabBlurb"></span></div>
+      <div id="mCategoryTabRail" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
+         that is not one of the six featured rails, as one swipeable logo strip.
+         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
+         newly registered store appears here with no markup change. -->
+
+<!-- STORE RAIL: VICTORIA'S SECRET. The window display, not the directory: this store's
+         own sale + featured picks, on one swipeable shelf. The header opens the full store. -->
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
+        </span>
+        <button onclick="openStore('victoriassecret')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
+        </span>
+        <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+        <button onclick="openStore('gymshark')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
+        </span>
+        <button onclick="openStore('sephora')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
+      <div id="mStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Macy's</span>
+        </span>
+        <button onclick="openStore('macys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-macys" data-store-rail-row="macys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+<section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#C41230">Kohl's</span>
+        <button onclick="openStore('kohls')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <!-- STORE RAIL: NEW BALANCE (2026-09-26, Danny): between Kohl's and Dick's. -->
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#E21836">New Balance</span>
+        <button onclick="openStore('newbalance')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#D22630">Dick's Sporting Goods</span>
+        <button onclick="openStore('dicks')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="mStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+<!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher between the store
          picker and the Costco zone -- the catalogue's top clothing brands
          as one swipeable row. Painted by initBrandStrip(). -->
     <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
@@ -1702,6 +1697,7 @@
          curated cozy-home-first for Danny's women-shopper lens, no candy (see costcoCuratedItems).
          The header keeps the official logo + the big store name; the row
          is painted by initStoreRails like every other rail. -->
+
 <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -1716,7 +1712,9 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="mStoreRail-costco" data-store-rail-row="costco" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+
+<section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
         <span class="flex items-center gap-3 min-w-0">
@@ -1730,27 +1728,9 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section><section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
-        <button id="mCategoryTabMore" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
-      </div>
-      <div class="px-5 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="mCategoryTabPills" role="tablist" aria-label="Categorías"></div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="mCategoryTabBlurb"></span></div>
-      <div id="mCategoryTabRail" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
-    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
-         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
-         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
-         Sits after the store rails and before "Todas las otras tiendas".
-         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
-    <!-- OTRAS TIENDAS. The rest of the mall directory: every active retailer
-         that is not one of the six featured rails, as one swipeable logo strip.
-         Painted by renderOtherStoresStrip() from the RETAILERS registry, so a
-         newly registered store appears here with no markup change. -->
-    <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
+<section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
         <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
         <button onclick="showPage('storesView')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas las tiendas &#8594;</button>
@@ -1758,8 +1738,14 @@
       <div id="mOtherStoresRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
     </section>
 
-
-    
+<!-- CATEGORÍAS -->
+    <section aria-label="Categorías" class="border-b" style="border-color:var(--line); background:#fff">
+      <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
+        <h2 class="text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
+        <button onclick="openCategories()" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas →</button>
+      </div>
+      <div id="mobileCatsRow" class="flex gap-3 overflow-x-auto px-5 pb-4 ariaRail"></div>
+    </section>
 
   </div>
 
@@ -1781,144 +1767,8 @@
        ============================================================ -->
   <div id="desktopShopfront" class="hidden lg:block">
 
-    <!-- OFERTAS: the same navy band as the phone, at laptop scale. -->
-    <!-- ARIA AUTO HOUSE BANNER (desktop, 2026-09-26, Danny's call): same house
-         banner as the phone's -- one bold statement, category-led copy. -->
-    <section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
-      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
-      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
-      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
-        <div class="min-w-0">
-          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
-          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
-          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone</p>
-        </div>
-        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
-      </div>
-    </section>
-
-    <!-- CATEGORIAS -->
-    <section aria-label="Categorías" style="background:#fff">
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
-          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
-          <button onclick="openCategories()" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas &#8594;</button>
-        </div>
-        <div id="desktopCatsRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
-    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
-        </span>
-          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
-        </span>
-          <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
-      <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#000000">Gymshark</span>
-          <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-        <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
-        </span>
-          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
-      <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Macy's</span>
-        </span>
-          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-              style="background:#C41230">Kohl's</span>
-          <button onclick="openStore('kohls')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <!-- STORE RAIL: NEW BALANCE (2026-09-26, Danny): between Kohl's and Dick's. -->
-    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-              style="background:#E21836">New Balance</span>
-          <button onclick="openStore('newbalance')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
-            style="background:#D22630">Dick's Sporting Goods</span>
-          <button onclick="openStore('dicks')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
-      <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section><section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <!-- HOME ORDER, DESKTOP (2026-09-26, Danny): same run as the phone. -->
+<section aria-label="Ofertas" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
       <div class="ariaGoldHair"></div>
       <div class="relative max-w-[1240px] mx-auto">
         <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
@@ -1935,7 +1785,7 @@
       </div>
     </section>
 
-  <!-- ============================================================
+<!-- ============================================================
        BRAND BAND (2026-09-25, DANNY'S HOMEPAGE ORDER): the logo, the
        "Compra en Estados Unidos / Te lo llevamos a Perú" line and the
        search sit directly under the Ofertas rail -- deals first because
@@ -1989,8 +1839,163 @@
     </div>
   </div>
 
-    
-    <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
+<section aria-label="Aria Auto" class="ariaAutoBanner relative overflow-hidden">
+      <div class="ariaAutoBannerHair" aria-hidden="true"></div>
+      <div class="ariaAutoGhost" aria-hidden="true">AUTO</div>
+      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
+        <div class="min-w-0">
+          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Auto</h2>
+          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Repuestos para tu auto a una fracci&oacute;n del costo &mdash; frenos, filtros, amortiguadores y m&aacute;s, de todas las marcas.</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone</p>
+        </div>
+        <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
+
+    <!-- CATEGORIAS -->
+
+<section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
+          <button id="dCategoryTabMore" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
+        </div>
+        <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="dCategoryTabPills" role="tablist" aria-label="Elige una categoría"></div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="dCategoryTabBlurb"></span></div>
+      <div id="dCategoryTabRail" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
+         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
+         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
+         Sits after the store rails and before "Todas las otras tiendas".
+         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
+
+    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
+         mall directory between the six featured rails and Categorías. -->
+
+<!-- STORE RAIL: VICTORIA'S SECRET (desktop). Same shelf as the phone, wider stance. -->
+    <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/victoriassecret.png" alt="Victoria's Secret" data-retailer="victoriassecret" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Victoria's Secret</span>
+        </span>
+          <button onclick="openStore('victoriassecret')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
+        </span>
+          <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
+      <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#000000">Gymshark</span>
+          <button onclick="openStore('gymshark')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+        <div id="dStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/sephora.png" alt="Sephora" data-retailer="sephora" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Sephora</span>
+        </span>
+          <button onclick="openStore('sephora')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
+      <div id="dStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/macys.png" alt="Macy's" data-retailer="macys" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Macy's</span>
+        </span>
+          <button onclick="openStore('macys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+              style="background:#C41230">Kohl's</span>
+          <button onclick="openStore('kohls')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- STORE RAIL: NEW BALANCE (2026-09-26, Danny): between Kohl's and Dick's. -->
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+              style="background:#E21836">New Balance</span>
+          <button onclick="openStore('newbalance')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[15px] font-extrabold text-white px-3.5 py-2 rounded-lg leading-none"
+            style="background:#D22630">Dick's Sporting Goods</span>
+          <button onclick="openStore('dicks')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
+      <div id="dStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+<!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's. -->
     <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
@@ -2002,6 +2007,7 @@
     </section>
     <!-- COSTCO: THE TREASURE-HUNT SHELF (desktop, 2026-09-26, Danny's call).
          Same curated shelf as the phone -- electronics first, no candy. -->
+
 <section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -2018,7 +2024,9 @@
       <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="dStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+    </section>
+
+<section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
@@ -2034,28 +2042,9 @@
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Compra por categoría</span>
-          <button id="dCategoryTabMore" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categoría &#8594;</button>
-        </div>
-        <div class="px-8 pb-3 -mt-1 flex gap-2 overflow-x-auto" id="dCategoryTabPills" role="tablist" aria-label="Categorías"></div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="dCategoryTabBlurb"></span></div>
-      <div id="dCategoryTabRail" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
     </section>
 
-    <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
-         catalogue plus the warehouse clubs' party aisles, as four sub-rails:
-         Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
-         Sits after the store rails and before "Todas las otras tiendas".
-         Painted by initFiestasRails(); an empty sub-rail hides itself. -->
-
-    <!-- OTRAS TIENDAS (desktop). Same strip as the phone's: the rest of the
-         mall directory between the six featured rails and Categorías. -->
-    <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
+<section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
         <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
           <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Todas las otras tiendas</h2>
@@ -2065,35 +2054,30 @@
       </div>
     </section>
 
+<section aria-label="Categorías" style="background:#fff">
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-baseline justify-between gap-3 px-8 pt-6 pb-4">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Categorías</h2>
+          <button onclick="openCategories()" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--blue)">Ver todas &#8594;</button>
+        </div>
+        <div id="desktopCatsRow" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 
-    
   </div>
 
 <!-- ============================================================
-       ORDER ON THE HOME PAGE (2026-09-23; reordered 2026-09-26, Danny)
+       ORDER ON THE HOME PAGE (2026-09-26, Danny)
 
-       The phone used to read (2026-09-23): Ofertas -> Categorías (the compact
-       carousel) -> Tiendas -> the ARIA logo -> "Comprar por categoría"
-       (the long tiles). So the visitor met the categories, scrolled
-       past them to reach the brand and how any of this works, and then
-       met the categories AGAIN -- the same list twice, with the story
-       wedged between the two halves of it.
+       hero -> OFERTAS -> brand band (logo + search) -> Aria Auto ->
+       "Compra por categoría" (the chip carousel: Surf & Skate, kids,
+       toys... tapping a chip swaps the product rail) -> the store
+       rails -> Marcas / Costco / SSENSE -> Todas las otras tiendas ->
+       Categorías (tiles). Same run on desktop.
 
-       (2026-09-26, DANNY'S HOMEPAGE ORDER V3: hero -> Aria Auto -> the
-       sticky mobile section-nav (phones only) -> Categorías -> the store
-       rails -> everything else in its previous relative order. Desktop:
-       hero -> Aria Auto -> Categorías -> rails -> rest, no nav strip.
-       (2026-09-25, DANNY'S HOMEPAGE ORDER: the brand band -- logo,
-       "Compra en Estados Unidos / Te lo llevamos a Perú", search --
-       moved directly under the Ofertas rail in both shopfronts, and the
-       photo hero moved below the rails. The run is now: what is on
-       sale -> who we are -> the six store rails -> departments.)
-
-       DESKTOP ORDER (2026-09-25, Danny): the laptop now opens on its
-       own shopfront -- #desktopShopfront, right after the hero --
-       reading Ofertas -> Tiendas -> Categorias, then the (slimmed)
-       search hero, then the explainer below. The phone's order is
-       unchanged.
+       The story links (Cómo funciona, Por qué Aria, Precio honesto)
+       live in the slim utility bar at the very top of the page --
+       subtle, always one tap away, never a hamburger hunt.
        ============================================================ -->
   <!-- WHY SHOP WITH US -->
   <!-- ============================================================
@@ -3372,7 +3356,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
       <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3385,7 +3370,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-newbalance" data-store-rail-row="newbalance" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Sephora" data-store-rail="sephora" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #FFFFFF 20%, #FFFFFF 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3401,7 +3387,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 1–3 días.</span></div>
       <div id="tStoreRail-sephora" data-store-rail-row="sephora" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Macy's" data-store-rail="macys" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21A2C 20%, #E21A2C 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3417,7 +3404,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-macys" data-store-rail-row="macys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Kohl's" data-store-rail="kohls" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C41230 20%, #C41230 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3430,7 +3418,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-kohls" data-store-rail-row="kohls" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Dick's Sporting Goods" data-store-rail="dicks" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3441,7 +3430,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3457,7 +3447,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Costco" data-store-rail="costco" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31837 20%, #E31837 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
       <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3473,7 +3464,8 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–7 días.</span></div>
       <div id="tStoreRail-costco" data-store-rail-row="costco" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3486,7 +3478,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
         <div id="tStoreRail-gymshark" data-store-rail-row="gymshark" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="SSENSE" data-store-rail="ssense" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #B9C0C7 20%, #B9C0C7 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3502,7 +3495,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Nautilus Spearfishing" data-store-rail="nautilus" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Nautilus Spearfishing" data-store-rail="nautilus" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #213236 20%, #213236 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3518,7 +3512,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-nautilus" data-store-rail-row="nautilus" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Island Water Sports" data-store-rail="islandwatersports" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Island Water Sports" data-store-rail="islandwatersports" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #373435 20%, #373435 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3534,7 +3529,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-islandwatersports" data-store-rail-row="islandwatersports" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Quiet Storm Surf Shop" data-store-rail="quietstorm" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Quiet Storm Surf Shop" data-store-rail="quietstorm" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #141414 20%, #141414 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3550,7 +3546,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-quietstorm" data-store-rail-row="quietstorm" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Surf World" data-store-rail="surfworld" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Surf World" data-store-rail="surfworld" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #00A9DC 20%, #00A9DC 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3566,7 +3563,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-surfworld" data-store-rail-row="surfworld" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Surf Station" data-store-rail="surfstation" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Surf Station" data-store-rail="surfstation" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3582,7 +3580,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-surfstation" data-store-rail-row="surfstation" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Mainland Skate & Surf" data-store-rail="mainland" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Mainland Skate & Surf" data-store-rail="mainland" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0F6FEF 20%, #0F6FEF 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3598,7 +3597,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-mainland" data-store-rail-row="mainland" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Parrot Surf & Skate" data-store-rail="parrot" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Parrot Surf & Skate" data-store-rail="parrot" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #111111 20%, #111111 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3614,7 +3614,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-parrot" data-store-rail-row="parrot" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="CCS" data-store-rail="ccs" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="CCS" data-store-rail="ccs" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #2AADEB 20%, #2AADEB 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3630,7 +3631,8 @@
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-ccs" data-store-rail-row="ccs" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
-    </section><section aria-label="Val Surf" data-store-rail="valsurf" class="ariaNavyBand relative overflow-hidden">
+    </section>
+<section aria-label="Val Surf" data-store-rail="valsurf" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0F506F 20%, #0F506F 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
