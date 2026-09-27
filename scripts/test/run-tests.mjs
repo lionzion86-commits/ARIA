@@ -5373,14 +5373,16 @@ check("Hero, Ofertas, brand band, Aria Auto, category carousel, rails, rest (202
      strip is gone; its story links (Cómo funciona, Por qué Aria) live
      in the slim utility bar at the very top of the page. The run is
      hero > Ofertas > brand band > Aria Auto > the "Compra por
-     categoría" chip carousel > the eight store rails in mall order >
-     Marcas, Costco, SSENSE, Todas las otras tiendas, Categorías.) */
+     categoría" chip carousel > the permanent Gym Rat rail (2026-09-27,
+     Danny: the category is that good) > the eight store rails in mall
+     order > Marcas, Costco, SSENSE, Todas las otras tiendas,
+     Categorías.) */
   const homeSlice = shopfrontSrc.slice(
     shopfrontSrc.indexOf('<div id="homeView"'),
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5414,7 +5416,7 @@ check("the desktop shopfront reads Ofertas, brand band, Aria Auto, carousel, rai
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -9254,6 +9256,28 @@ check("the category pills open on Danny's order: Surf & Skate, Gym Rat, Moda Ni�
      thing a shopper sees, not a tap away. */
   if (!/let activeCategoryTab = CATEGORY_TAB_ORDER\[0\]/.test(src))
     throw new Error("the carousel no longer opens on the first pill");
+});
+
+check("Gym Rat keeps a permanent homepage rail (2026-09-27, Danny)", () => {
+  /* Danny: the category is that good -- it gets an always-visible rail
+     under the tab browser on both layouts, painted from the same shelf
+     as the pill. It must stand down while the Gym Rat pill is active
+     (no double rail) and while the shelf is empty. */
+  const src = HOME_SRC();
+  const sections = [...src.matchAll(/<section[^>]*data-gym-rat-rail[^>]*>([\s\S]*?)<\/section>/g)];
+  if (sections.length !== 2)
+    throw new Error(`expected a mobile and a desktop Gym Rat rail, found ${sections.length}`);
+  for (const [, body] of sections){
+    if (!/data-category-rail-row="gym_rat"/.test(body))
+      throw new Error("a Gym Rat rail is not wired to the shared category-rail painter");
+    if (!/openCatalog\('department','gym_rat'\)/.test(body))
+      throw new Error("a Gym Rat rail lost its Ver categoria door");
+  }
+  /* The toggle lives in renderCategoryTabs so it runs on every tab
+     switch, not just the first paint. */
+  const fn = forwardSlice(src, "function renderCategoryTabs(){", "\n}\n", "renderCategoryTabs");
+  if (!/activeCategoryTab === 'gym_rat'/.test(fn))
+    throw new Error("the permanent rail no longer stands down when the Gym Rat pill is active");
 });
 
 check("store rail names truncate instead of overlapping Ver tienda", () => {
