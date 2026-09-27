@@ -15,7 +15,7 @@
 import { readFileSync, existsSync, readdirSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageAdvanceQuerySlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice } from "./_page-script.mjs";
+import { loadPageTierSlice, loadPageBudgetSlice, loadPageSubcategorySlice, loadPageWeightSlice, loadPageTileSlice, loadPageQuerySlice, loadPageAutoGlossarySlice, loadPageShippingSlice, loadPageSupportSlice, loadPageFeeSlice, loadPageFitmentSlice, loadPageAutoSourcesSlice, loadPageEnvelopeSlice, loadPageImageUrlSlice, loadPageBrandSlice, loadPageDealSpreadSlice, loadPageRelatedSlice, loadPageFootwearSlice, loadPageCatalogSearchSlice, loadPageSizeSlice, loadPageCurvySlice, loadPageCurvyBandSlice, loadPageDepartmentSlice, loadPageCarouselSlice, loadPageCarouselCardSlice, loadPageAutoPartSlice, loadPageAxleSlice, loadPageAdvanceQuerySlice, loadPageStoreDoorSlice, loadPageChatRoutingSlice, loadPageHomeRowSlice, loadPageStoreRailSlice, loadPageCategoryRailSlice, loadPageCurvyStoreCardsSlice, loadPageFiestasSlice, loadPageCartSlice, loadPageSizeGuideSlice, loadPageSaleSortSlice } from "./_page-script.mjs";
 
 import * as beauty from "../lib/beauty-weight.js";
 import * as itemWeight from "../lib/item-weight.js";
@@ -7832,6 +7832,128 @@ group("search synonyms: one concept, many words");
   });
 }
 
+
+/* ==================================================================
+   SEARCH SPEED + SALES-FIRST + CHECKOUT CLEANUP (2026-09-27, Danny).
+
+   Ysmena Piedra's QA: search was too slow on mobile, browsing must lead
+   with real sales (biggest % off first), and checkout's shopper-facing
+   "Valor total declarado" line confused shoppers next to the product
+   subtotal. Three groups pin all three fixes.
+   ================================================================== */
+group("Search speed: the inverted index");
+
+{
+  const cs = loadPageCatalogSearchSlice();
+  const P = (title, brand) => ({ title, brand: brand || "", retailer: "macys", price: 20 });
+
+  /* Builds the pool the way relatedPool() does: precomputed word sets
+     plus the inverted index attached to the array. */
+  function indexedPool(items){
+    for (const it of items) it._wordSet = cs.catalogWordsOf(it);
+    const windex = new Map();
+    for (const it of items) for (const w of it._wordSet){
+      let lst = windex.get(w);
+      if (!lst) windex.set(w, lst = []);
+      lst.push(it);
+    }
+    const pool = items.slice();
+    pool._windex = windex;
+    return pool;
+  }
+
+  check("the index returns bit-identical results to the full scan", () => {
+    const items = [
+      P("Nike Air Force 1 Sneakers", "Nike"),
+      P("Red Summer Dress", "Zara"),
+      P("Vitamin D3 5000 IU", "Nature Made"),
+      P("Leather Handbag", "Coach"),
+      P("Cotton T-Shirt", "Hanes"),
+      P("Blue Denim Jeans", "Levi's"),
+    ];
+    const pool = indexedPool(items);
+    const plain = items.slice(); // same objects, no index
+    for (const q of ["nike", "dress", "vitamin d3", "handbag", "jeans", "zapatos", "perfume", "xyznotaword"]) {
+      const a = cs.rankCatalogMatches(pool, q, {});
+      const b = cs.rankCatalogMatches(plain, q, {});
+      const sig = (r) => r.items.map((i) => i.title + "|" + i.matchScore.toFixed(6)).join("\n")
+        + `#exact=${r.exact}#partial=${r.partial}`;
+      if (sig(a) !== sig(b)) throw new Error(`"${q}" diverged between the indexed path and the full scan`);
+    }
+  });
+
+  check("the indexed path answers a 15k-item pool in well under a second", () => {
+    const words = ["dress", "nike", "vitamin", "leather", "cotton", "denim", "running", "casual", "summer", "winter"];
+    const items = [];
+    for (let i = 0; i < 15000; i++){
+      items.push(P(`${words[i % words.length]} product ${i} ${words[(i * 7) % words.length]}`, "Brand" + (i % 50)));
+    }
+    const pool = indexedPool(items);
+    const t0 = Date.now();
+    const res = cs.rankCatalogMatches(pool, "dress", {});
+    const ms = Date.now() - t0;
+    if (!res.items.length) throw new Error("the indexed search found nothing");
+    if (ms > 1500) throw new Error(`indexed search took ${ms}ms over 15k items -- the speed fix regressed`);
+  });
+}
+
+group("Sales lead: discounts first, biggest first");
+
+{
+  const { salePct, bySalesFirst } = loadPageSaleSortSlice();
+  const P = (title, price, originalPrice, onSale) => ({ title, price, originalPrice, onSale });
+
+  check("salePct only ever claims a real markdown", () => {
+    eq(salePct(P("A", 80, 100, true)), 20, "20% off");
+    eq(salePct(P("B", 75, 100, true)), 25, "25% off");
+    eq(salePct(P("C", 80, 100, false)), 0, "no onSale flag -- never invent a discount");
+    eq(salePct(P("D", 80, null, true)), 0, "no original price");
+    eq(salePct(P("E", 100, 80, true)), 0, "originalPrice below price");
+    eq(salePct(P("F", 100, 100, true)), 0, "no markdown");
+    eq(salePct(P("G", 50, undefined, undefined)), 0, "regular product");
+  });
+
+  check("bySalesFirst leads with the biggest real discount, then the tie-break order", () => {
+    const items = [
+      P("regular-a", 10),
+      P("sale-10", 90, 100, true),
+      P("sale-50", 50, 100, true),
+      P("regular-b", 5),
+      P("fake-sale", 90, 100, false), // no flag: counts as a regular product
+      P("sale-25", 75, 100, true),
+    ];
+    const tie = (a, b) => a.title.localeCompare(b.title);
+    const ordered = items.slice().sort(bySalesFirst(tie)).map((i) => i.title);
+    eq(ordered.join(","), "sale-50,sale-25,sale-10,fake-sale,regular-a,regular-b",
+      "discounts by % desc, then regulars in tie-break order");
+  });
+
+  check("search and the catalogue both default to the sales-first sort", () => {
+    const html = readFileSync(root("index.html"), "utf8");
+    if (!html.includes('<option value="salesFirst">Ofertas primero</option>'))
+      throw new Error("the sort dropdowns lost the Ofertas primero default");
+    if (!html.includes("bySalesFirst(byMatchScore)"))
+      throw new Error("renderSearchResults no longer leads with sales");
+    if (!html.includes("const baseSort = salesLead ? salesFirst : priceSort;"))
+      throw new Error("renderCatalogFeed no longer leads with sales");
+  });
+}
+
+group("Checkout: no shopper-facing declared value");
+
+{
+  check("the summary hides the dutiable value but keeps it internally", () => {
+    const html = readFileSync(root("checkout.html"), "utf8");
+    if (html.includes("Valor total declarado"))
+      throw new Error('the shopper-facing "Valor total declarado" line is back');
+    if (html.includes('id="sumValor"'))
+      throw new Error("the sumValor element is back");
+    if (!html.includes("function currentValor()"))
+      throw new Error("currentValor() is gone -- the internal dutiable value must survive");
+    if (!html.includes("taxPolicyNote"))
+      throw new Error("the yellow $200 import-tax explainer is gone");
+  });
+}
 
 /* ==================================================================
    BRAND AND RETAILER NAMES ARE SEARCHABLE (2026-09-24).
