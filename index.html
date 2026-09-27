@@ -22386,7 +22386,7 @@ function setOrbState(state){
    ARIA BLINK — "she blinks, she's alive" (2026-09-27, Danny).
 
    Two pixel-registered frames (open / closed eyes) crossfade for one
-   natural blink every few seconds, occasionally a double. Purposeful,
+   natural half-second blink every few seconds, occasionally a double. Purposeful,
    bounded life only — the frames never leave the button, nothing drifts
    over page content. Skipped under prefers-reduced-motion.
    ============================================================ */
@@ -22394,18 +22394,25 @@ function setOrbState(state){
   var blinkImg = document.getElementById('ariaOrbBlink');
   if (!blinkImg) return;
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  /* Snappy and real (2026-09-27, Danny): the whole blink — close, hold,
+     reopen — lands in about half a second. The first blink waits until the
+     page has fully settled so load jank can never stretch it. */
+  blinkImg.style.transition = 'opacity 120ms ease-in-out';
   function doBlink(){
+    if (blinkImg.style.opacity === '1') return; /* never stack */
     blinkImg.style.opacity = '1';
-    setTimeout(function(){ blinkImg.style.opacity = '0'; }, 150);
+    setTimeout(function(){ blinkImg.style.opacity = '0'; }, 200);
   }
   function schedule(){
     setTimeout(function(){
       doBlink();
-      if (Math.random() < 0.25) setTimeout(doBlink, 300); /* natural double-blink */
+      if (Math.random() < 0.25) setTimeout(doBlink, 380); /* natural double-blink */
       schedule();
     }, 2600 + Math.random() * 4200);
   }
-  setTimeout(function(){ doBlink(); schedule(); }, 1800); /* she's alive on arrival */
+  function start(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); }
+  if (document.readyState === 'complete') start();
+  else window.addEventListener('load', start);
 })();
 
 /* ============================================================
