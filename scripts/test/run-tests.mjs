@@ -5386,7 +5386,7 @@ check("Hero, Ofertas, brand band, Aria Auto, category carousel, rails, rest (202
     shopfrontSrc.indexOf('<div id="desktopShopfront"'),
   );
   const order = [...homeSlice.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
+  eq(order.join(" > "), "Todo USA ahora en Lima > Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Marcas > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Costco > SSENSE > Todas las otras tiendas > Categorías", "the home page's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -5420,7 +5420,7 @@ check("the desktop shopfront reads Ofertas, brand band, Aria Auto, carousel, rai
   const open = desk.slice(0, desk.indexOf(">") + 1);
   if (!/\bhidden\b/.test(open) || !/\blg:block\b/.test(open)) throw new Error("the desktop shopfront is not hidden below lg");
   const order = [...desk.matchAll(/<(?:section|div)[^>]*aria-label="([^"]+)"/g)].map(m => m[1]);
-  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Marcas > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
+  eq(order.join(" > "), "Ofertas > Compra en Estados Unidos > Aria Auto > Compra por categoría > Elige una categoría > Gym Rat > Hogar > Marcas > Victoria's Secret > Foot Locker > Gymshark > Sephora > Macy's > Kohl's > New Balance > Dick's Sporting Goods > Costco > SSENSE > Todas las otras tiendas > Categorías", "the desktop shopfront's scroll order");
 
   // Each section owns exactly one rail, and the rails are the ids the
   // renderers write into.
@@ -6270,7 +6270,8 @@ check("every brand-strip logo resolves to a real, loadable asset", () => {
   // Macy's private labels (bariii, styleco), which have no published mark.
   for (const key of ["ourlegacy", "y3", "sacai", "entirestudios", "adriannapapell",
       "xscape", "kikokostadinov", "paulsmith", "studionicholson", "we11done",
-      "kasper", "rickowensdrkshdw", "luudan", "incinternationalconcepts"]) {
+      "kasper", "rickowensdrkshdw", "luudan", "incinternationalconcepts",
+      "fendi", "miumiu"]) {
     if (!entries.some(([, k]) => k === key)) throw new Error(`brand logo missing from the map: ${key}`);
   }
 });
