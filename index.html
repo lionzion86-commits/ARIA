@@ -2715,7 +2715,7 @@
       Volver
     </button>
     <div class="flex items-center gap-3 mb-2">
-      <span id="catalogIcon" class="text-[28px]"></span>
+      <span id="catalogIcon" class="w-[44px] h-[44px] rounded-2xl overflow-hidden flex-shrink-0 grid place-items-center" style="background:#fff;border:1px solid var(--line)"></span>
       <h1 id="catalogTitle" class="text-[26px] sm:text-[32px] font-extrabold tracking-[-0.02em]"></h1>
     </div>
     <p id="catalogSubtitle" class="text-[13px] text-zinc-500 mb-5"></p>
@@ -5890,6 +5890,29 @@ const DEPARTMENT_META = {
 const BRAND_META = {
   nike: { label: 'Nike', icon: '✔️' },
 };
+
+
+function brandLogoFor(key){ return BRAND_LOGOS[key] || null; }
+/* Dark marks (white artwork, e.g. Fear of God) need a dark plaque behind
+   them or they vanish on the white heading box. */
+function brandLogoDark(key){ const e = BRAND_LOGOS[key]; return !!(e && e.dark); }
+/* Heading mark for a catalog page: real logo for brands, real photo for
+   departments, navy monogram when neither exists. Never an emoji. */
+function catalogIconHTML(kind, key, label){
+  if (kind === 'brand'){
+    const logo = brandLogoFor(key);
+    if (logo){
+      const dark = brandLogoDark(key);
+      return '<span class="w-full h-full grid place-items-center rounded-2xl overflow-hidden" style="background:' + (dark ? 'var(--navy)' : '#fff') + '" aria-hidden="true">'
+        + '<img src="' + logo.src + '" alt="" loading="lazy" decoding="async" class="w-[80%] h-[80%] object-contain"></span>';
+    }
+  } else if (typeof categoryCoverFor === 'function'){
+    const cover = categoryCoverFor(key);
+    if (cover) return '<img src="' + cover + '" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">';
+  }
+  const ch = String(label || key || '?').trim().charAt(0).toUpperCase() || '?';
+  return '<span class="w-full h-full grid place-items-center text-[20px] font-extrabold" style="background:var(--navy);color:#fff" aria-hidden="true">' + escapeHtml(ch) + '</span>';
+}
 function metaFor(map, key){
   return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '🛍️' };
 }
@@ -10256,7 +10279,8 @@ async function openCatalog(kind, key, opts = {}){
   applyStoreTheme('catalogView', retailerFilter);
   await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
-  document.getElementById('catalogIcon').textContent = meta.icon;
+  document.getElementById('catalogIcon').innerHTML = catalogIconHTML(kind, key,
+    kind === 'brand' ? brandLabelFor(key, meta.label) : meta.label);
   document.getElementById('catalogTitle').textContent =
     kind === 'brand' ? brandLabelFor(key, meta.label) : meta.label;
   document.getElementById('catalogSubtitle').textContent = 'Buscando en nuestras tiendas…';
