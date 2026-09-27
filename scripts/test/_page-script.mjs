@@ -531,7 +531,7 @@ export function loadPageDealSpreadSlice() {
     throw new Error("index.html discountPct moved — update scripts/test/_page-script.mjs");
   }
   vm.runInContext(html.slice(from, to) + "\n" + html.slice(dpctStart, dpctEnd)
-    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory };",
+    + "\n;globalThis.__exports = { spreadDealsByStore, MOBILE_RAIL_LEAD, ofertasLeadSort, ofertasLeadRank, OFERTAS_LEAD_BRANDS, OFERTAS_LEAD_N, gymRatLeadRank, gymRatIsAccessory, interleaveRetailerCap, OFERTAS_MAX_RUN };",
     sandbox, { filename: "index.html#deal-spread" });
   return sandbox.__exports;
 }

@@ -8506,6 +8506,33 @@ function spreadDealsByStore(sorted, lead){
   return first.concat(held);
 }
 
+/* NO SHOP OWNS THE RAIL (2026-09-27, Danny): one store's deep markdowns
+   ran fifteen cards in a row in Ofertas. So the whole order is interleaved:
+   at most OFERTAS_MAX_RUN cards in a row from one retailer, and when the
+   cap hits, the next-best markdown from a different shop jumps the queue.
+   Card 1 is untouched -- it stays the single biggest markdown. Nothing is
+   dropped and nothing is re-ranked beyond the cap: a held-back card keeps
+   its place in the queue and comes back the moment the cap allows.
+   IT DEGRADES ON PURPOSE. If only one retailer's cards remain, they all
+   still show -- a full rail beats a short one. */
+const OFERTAS_MAX_RUN = 3;
+function interleaveRetailerCap(items, maxRun, initial){
+  const pool = Array.isArray(items) ? [...items] : [];
+  const out = [];
+  const keyOf = p => String((p && p.retailer) || '').toLowerCase();
+  let runRetailer = (initial && initial.retailer != null) ? String(initial.retailer) : null;
+  let runCount = (initial && Number.isFinite(Number(initial.count))) ? Number(initial.count) : 0;
+  while (pool.length){
+    let idx = pool.findIndex(p => keyOf(p) !== runRetailer || runCount < maxRun);
+    if (idx < 0) idx = 0; // only one shop left: show it, do not stall
+    const p = pool.splice(idx, 1)[0];
+    const k = keyOf(p);
+    if (k === runRetailer) runCount += 1; else { runRetailer = k; runCount = 1; }
+    out.push(p);
+  }
+  return { items: out, tail: { retailer: runRetailer, count: runCount } };
+}
+
 /* OFERTAS FRONT (2026-09-26, Danny): the lead sells the section.
    Brands that pull go first — Victoria's Secret, Sephora, Macy's,
    Gymshark, YoungLA — so Gym Rat sale items sit toward the front next
@@ -8544,9 +8571,14 @@ function ofertasLeadSort(items){
     lead.push(p);
   }
   /* Lead order: lead brands first, discount deciding within each brand.
-     The rest keeps pure discount order — nothing is dropped. */
+     Then the whole order is interleaved so no shop owns the rail: the
+     rest carries the lead's trailing run, so the cap holds across the
+     lead/rest boundary too. Coats and near-duplicates never enter the
+     lead; they interleave inside the rest like everything else. */
   lead.sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
-  return lead.concat(rest);
+  const leadOut = interleaveRetailerCap(lead, OFERTAS_MAX_RUN);
+  const restOut = interleaveRetailerCap(rest, OFERTAS_MAX_RUN, leadOut.tail);
+  return leadOut.items.concat(restOut.items);
 }
 
 /* GYM RAT LEAD SORT (2026-09-26, Danny): the front of Gym Rat is hero gym
@@ -8579,7 +8611,10 @@ function renderMobileDealsRail(){
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number(p.originalPrice) > Number(p.price) && p.image)
     .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
-  const deals = spreadDealsByStore(priced, MOBILE_RAIL_LEAD).slice(0, MOBILE_RAIL_DEALS);
+  /* The spread opens on five different shops; the interleave keeps it
+     that way down the whole rail -- at most OFERTAS_MAX_RUN in a row
+     from one retailer. */
+  const deals = interleaveRetailerCap(spreadDealsByStore(priced, MOBILE_RAIL_LEAD), OFERTAS_MAX_RUN).items.slice(0, MOBILE_RAIL_DEALS);
   mobileDealsRendered = deals;
   /* TWO ROWS, ONE LIST (2026-09-25). The phone's rail and the desktop
      shopfront's rail show the same deals in the same order, so a tap

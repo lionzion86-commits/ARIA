@@ -12447,6 +12447,55 @@ check("ofertasLeadSort holds heavy coats and near-duplicates out of the lead, an
 });
 
 
+check("no shop owns the rail: at most three cards in a row per retailer", () => {
+  /* DANNY (2026-09-27): "only Victoria's Secret shows in ofertas" -- one
+     shop's deep markdowns ran fifteen cards in a row. The whole Ofertas
+     order is interleaved: card 1 stays the single biggest markdown, then
+     no more than OFERTAS_MAX_RUN in a row from one retailer. Nothing is
+     dropped, nothing is duplicated. The cap is best-effort by design: when
+     only one shop's cards remain, they still all show. */
+  const { interleaveRetailerCap, OFERTAS_MAX_RUN, ofertasLeadSort, OFERTAS_LEAD_N } = loadPageDealSpreadSlice();
+  eq(OFERTAS_MAX_RUN, 3, "the per-retailer run cap drifted");
+  const deal = (retailer, pct, id) => ({ retailer, pct, id });
+  const maxRun = list => {
+    let best = 0, cur = 0, prev = null;
+    for (const d of list) { cur = (d.retailer === prev) ? cur + 1 : 1; prev = d.retailer; best = Math.max(best, cur); }
+    return best;
+  };
+
+  // THE CASE THAT PROMPTED IT: fifteen deep VS markdowns, six others --
+  // enough breakers that the cap is fully satisfiable.
+  const vsHeavy = [];
+  for (let i = 0; i < 15; i++) vsHeavy.push(deal("victoriassecret", 95 - i, "vs" + i));
+  vsHeavy.push(deal("macys", 70, "m1"), deal("sephora", 65, "s1"), deal("gymshark", 60, "g1"),
+               deal("macys", 55, "m2"), deal("sephora", 50, "s2"), deal("target", 45, "t1"));
+  vsHeavy.sort((a, b) => b.pct - a.pct);
+  const out = interleaveRetailerCap(vsHeavy, OFERTAS_MAX_RUN).items;
+  eq(out.length, vsHeavy.length, "the interleave dropped a card");
+  eq(new Set(out.map(d => d.id)).size, vsHeavy.length, "the interleave duplicated a card");
+  eq(out[0].id, "vs0", "card 1 is no longer the single biggest markdown");
+  if (maxRun(out) > OFERTAS_MAX_RUN) throw new Error(`a ${maxRun(out)}-card run survived the interleave`);
+
+  // DEGRADES, NEVER STALLS: one shop alone is still a rail.
+  const solo = [deal("macys", 90, "a"), deal("macys", 80, "b"), deal("macys", 70, "c"), deal("macys", 60, "d")];
+  eq(interleaveRetailerCap(solo, OFERTAS_MAX_RUN).items.map(d => d.id).join(), "a,b,c,d",
+    "a single-store day lost cards to the cap");
+
+  // THE CAP HOLDS ACROSS THE LEAD/REST BOUNDARY, and coats still never lead.
+  const items = [];
+  for (let i = 0; i < 8; i++) items.push({ retailer: "victoriassecret", title: "VS Find " + i, price: 20, originalPrice: 100 });
+  for (let i = 0; i < 4; i++) items.push({ retailer: "macys", title: "Macy Find " + i, price: 25, originalPrice: 100 });
+  for (let i = 0; i < 8; i++) items.push({ retailer: "victoriassecret", title: "VS More " + i, price: 30, originalPrice: 100 });
+  for (let i = 0; i < 2; i++) items.push({ retailer: "sephora", title: "Sephora Find " + i, price: 35, originalPrice: 100 });
+  items.push({ retailer: "macys", title: "Women's Hooded Puffer Coat", price: 10, originalPrice: 100 });
+  const sorted = ofertasLeadSort(items);
+  eq(sorted.length, items.length, "ofertasLeadSort dropped a product under the cap");
+  if (maxRun(sorted) > OFERTAS_MAX_RUN) throw new Error(`a ${maxRun(sorted)}-card run survived ofertasLeadSort`);
+  const coatIdx = sorted.map(d => d.title).indexOf("Women's Hooded Puffer Coat");
+  if (coatIdx < OFERTAS_LEAD_N) throw new Error(`a heavy coat leads at index ${coatIdx}`);
+});
+
+
 /* ================================================================
    DELIVERY TRANSPARENCY (2026-09-26, Danny's brief): store-by-store
    Miami timing, shown on store and product pages and in cart/checkout
