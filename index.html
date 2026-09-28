@@ -1634,6 +1634,16 @@
       </div>
       <div id="mBrandStrip" data-brand-strip class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
     </section>
+    <!-- BOLSOS (2026-09-28, Danny): handbags from every brand in the mall -- Walmart to designer --
+         in one swipeable rail, right under "Las marcas que visten". Painted by initBolsosRail();
+         an empty rail hides its section instead of showing a shelf with nothing on it. -->
+    <section aria-label="Bolsos" data-bolsos-section class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
+      </div>
+      <div id="mBolsosRail" data-bolsos-rail class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
          catalogue plus the warehouse clubs' party aisles, as four sub-rails:
          Decoración, Sorpresas, Menaje descartable, Dulces y Chocolates.
@@ -1960,6 +1970,17 @@
         <p class="text-[13px] mt-0.5" style="color:#6B7487">De las tiendas de moda del mall, directo a tu puerta.</p>
       </div>
       <div id="dBrandStrip" data-brand-strip class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- BOLSOS (desktop, 2026-09-28, Danny): same handbag rail as the phone's. -->
+    <section aria-label="Bolsos" data-bolsos-section class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
+      </div>
+      <div id="dBolsosRail" data-bolsos-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
       </div>
     </section>
 
@@ -10031,6 +10052,129 @@ function initFiestasRails(){
   }).catch(() => { /* a failed cache leaves headers standing, cards absent */ });
 }
 window.addEventListener('DOMContentLoaded', initFiestasRails);
+
+/* ============================================================
+   BOLSOS (2026-09-28, Danny): handbags from every brand in the mall --
+   Walmart to designer -- in one swipeable rail under "Las marcas que
+   visten". Same house rules as the other rails: real products with a
+   price and a photo, never priceless, never imageless, deduped. The
+   selector is pure (bolsosPicks) so the test suite can run it over the
+   real files; initBolsosRail() paints both widths lazily on
+   IntersectionObserver, and an empty rail hides its section instead of
+   showing a shelf with nothing on it.
+   ============================================================ */
+const BOLSOS_RAIL_TOTAL = 24; // shelf length; fewer without apology
+const BOLSOS_MAX_PER_RETAILER = 6; // breadth over depth: every brand in the mall gets shelf space
+/* Departments that ARE handbags, whatever the retailer calls the rest. */
+const BOLSOS_DEPT_RX = /purs|handbag|bolso|cartera|satchel/i;
+/* Handbag words in a product title ... */
+const BOLSOS_TITLE_RX = /\b(handbag|purse|bolso|cartera|carteras|tote|crossbody|satchel|hobo|baguette|shoulder\s*bag|mini\s*bag|top\s*handle|wristlet|pochette|bucket\s*bag|clutch)\b/i;
+/* ... that are NOT handbags. "Clutch kits" are auto parts (see the
+   retailer skip below); "baggy" is clothing; charms and organizers
+   ride on bags but are not bags. */
+const BOLSOS_EXCLUDE_RX = /\b(luggage|suitcase|backpack|mochila|diaper|pa[\u00f1n]al|laptop|duffel|duffle|baggy|drawstring|charm|cooler|weekender|fanny\s*pack|belt\s*bag|lunch\s*bag|cosmetic|makeup|pencil|shoe\s*bag|laundry|storage|gift\s*bag|trash|organizer)\b/i;
+/* Retailers that never sell handbags: advanceauto's "clutch" is a
+   transmission part, not a purse. */
+const BOLSOS_SKIP_RETAILERS = new Set(['advanceauto', 'autozone', 'bhphoto']);
+/* Danny's mall positioning: designer leads, value closes. Unlisted
+   retailers sit in the middle. */
+const BOLSOS_TIER = { miumiu: 0, ssense: 0, fendi: 0, revolve: 0,
+  macys: 1, lanebryant: 1, skims: 1, baublebar: 1, jwpei: 1, meliebianco: 1, statebags: 1, yesstyle: 1 };
+function bolsosTierOf(retailer){ const t = BOLSOS_TIER[retailer]; return t == null ? 2 : t; }
+function bolsosDiscount(p){
+  const o = Number(p.originalPrice);
+  return (Number.isFinite(o) && o > Number(p.price)) ? Math.round((1 - Number(p.price) / o) * 100) : 0;
+}
+function bolsosIsHandbag(raw, deptName){
+  const title = rawTitleOf(raw);
+  if (!title || BOLSOS_EXCLUDE_RX.test(title)) return false;
+  if (BOLSOS_DEPT_RX.test(deptName || '')) return true;
+  return BOLSOS_TITLE_RX.test(title);
+}
+/* Pure: the merged department cache in, an ordered shelf out. */
+function bolsosPicks(cache){
+  const retailers = cache?.retailers || {};
+  const seen = new Set();
+  const picks = [];
+  for (const retailer of Object.keys(retailers)){
+    if (BOLSOS_SKIP_RETAILERS.has(retailer)) continue;
+    const departments = retailers[retailer]?.departments || {};
+    for (const [deptName, bucket] of Object.entries(departments)){
+      for (const raw of bucket?.items || []){
+        if (!notQuarantined(raw)) continue;
+        if (!bolsosIsHandbag(raw, deptName)) continue;
+        let it = null;
+        try { it = normalizeLiveItem(raw, { retailer }); } catch { continue; }
+        if (!it || !it.title) continue;
+        const k = retailer + '::' + it.title;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        if (!Number.isFinite(Number(it.price)) || Number(it.price) <= 0 || !it.image) continue;
+        /* The pool the raw came from carries the retailer on the item, not
+           in the hints -- attach it the way relatedPool() does, or the
+           card badge and the product page lose the store. */
+        picks.push({ ...it, retailer });
+      }
+    }
+  }
+  picks.sort((a, b) =>
+    (bolsosTierOf(a.retailer) - bolsosTierOf(b.retailer)) ||
+    (bolsosDiscount(b) - bolsosDiscount(a)) ||
+    (Number(b.price) - Number(a.price)));
+  /* One brand may not eat the shelf: walk the ordered picks and deal at
+     most BOLSOS_MAX_PER_RETAILER cards per retailer, tier order kept. */
+  const perRetailer = {};
+  const shelf = [];
+  for (const it of picks){
+    const n = perRetailer[it.retailer] || 0;
+    if (n >= BOLSOS_MAX_PER_RETAILER) continue;
+    perRetailer[it.retailer] = n + 1;
+    shelf.push(it);
+    if (shelf.length >= BOLSOS_RAIL_TOTAL) break;
+  }
+  return shelf;
+}
+
+let bolsosRendered = []; // one shelf shared by both widths
+let bolsosStarted = false;
+
+function openBolsosProduct(idx){
+  const p = bolsosRendered[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, dutiableUsd: p.dutiableUsd ?? null });
+}
+
+function initBolsosRail(){
+  if (bolsosStarted) return;
+  const rows = [...document.querySelectorAll('[data-bolsos-rail]')];
+  if (!rows.length) return;
+  bolsosStarted = true;
+  const hideSection = () => {
+    document.querySelectorAll('[data-bolsos-section]').forEach(sec => { sec.hidden = true; });
+  };
+  const paint = (row) => {
+    row.innerHTML = bolsosRendered.map((p, i) => railCardHTML(p,
+      `openBolsosProduct(${i})`,
+      `data-bolsos-card="${i}"`)).join('');
+  };
+  loadDepartmentCache().then(cache => {
+    bolsosRendered = bolsosPicks(cache);
+    /* An empty shelf is worse than none: the section stands down. */
+    if (!bolsosRendered.length){ hideSection(); return; }
+    if ('IntersectionObserver' in window){
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); } });
+      }, { rootMargin: '600px 0px' });
+      rows.forEach(r => io.observe(r));
+    } else {
+      rows.forEach(paint);
+    }
+  }).catch(() => { /* a failed cache leaves headers standing, cards absent */ });
+}
+window.addEventListener('DOMContentLoaded', initBolsosRail);
 
 /* Fiestas' door on the Categorías row: the same card chassis as the
    department tiles, but it scrolls to the vertical's section instead of
