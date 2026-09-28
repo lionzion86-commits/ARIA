@@ -515,6 +515,28 @@
   }
   [data-dept-theme="moms"] #catalogSort{ border-color:#EAD27A !important; }
   [data-dept-theme="moms"] .ariaCarouselTitle{ color:#8A6D00 !important; }
+  /* PER-CATEGORY BACKDROP THEMES (2026-09-28, Danny): every department /
+     category gets its own identity colour - no more plain-white category
+     pages. Each block reads its base wash from --dept-glow (set by
+     applyDeptTheme from DEPT_THEMES), so a theme colour flips with ONE
+     line in the map. Light washes only, melting into --paper: product
+     cards keep their white surfaces and all text stays dark and readable.
+     The navy men block is the one dark exception - Danny's call - so its
+     header text flips light while cards stay white, mirroring the navy
+     search-results page. */
+  [data-dept-theme="women"]{ background:linear-gradient(180deg, var(--dept-glow,#F5C4DC) 0%, color-mix(in srgb, var(--dept-glow,#F5C4DC) 32%, var(--paper)) 340px, var(--paper) 620px); }
+  /* KIDS: baby blue. One-line swap in DEPT_THEMES (glow -> #FFF4B8) flips to Danny's baby-yellow alternative. */
+  [data-dept-theme="kids"]{ background:linear-gradient(180deg, var(--dept-glow,#C4E6FB) 0%, color-mix(in srgb, var(--dept-glow,#C4E6FB) 32%, var(--paper)) 340px, var(--paper) 620px); }
+  [data-dept-theme="surf_skate"]{ background:linear-gradient(180deg, var(--dept-glow,#8FC6EE) 0%, color-mix(in srgb, var(--dept-glow,#8FC6EE) 32%, var(--paper)) 340px, var(--paper) 620px); }
+  /* Every department without its own DEPT_THEMES row lands here: a soft
+     brand-blue tint, never plain white. */
+  [data-dept-theme="default"]{ background:linear-gradient(180deg, var(--dept-glow,#D9E8FB) 0%, color-mix(in srgb, var(--dept-glow,#D9E8FB) 32%, var(--paper)) 340px, var(--paper) 620px); }
+  [data-dept-theme="men"]{ background:linear-gradient(180deg, var(--dept-glow,#16386F) 0%, color-mix(in srgb, var(--dept-glow,#16386F) 55%, var(--paper)) 380px, var(--paper) 660px); }
+  [data-dept-theme="men"] #catalogTitle{ color:#fff }
+  [data-dept-theme="men"] #catalogSubtitle{ color:#B9C6E4 }
+  [data-dept-theme="men"] .themeBack{ color:#9DB9F5 !important }
+  [data-dept-theme="men"] .ariaCarouselTitle{ color:#E4EAF8 !important }
+  [data-dept-theme="men"] #catalogSort{ border-color:#3D5A96 !important }
   /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
      used to sit on their brand-colour swatch, which made Foot Locker
      (all-black artwork on #000) read as a solid black rectangle and
@@ -15451,16 +15473,37 @@ function applyStoreTheme(viewId, retailer){
 const DEPT_THEMES = {
   /* ARIA MOMS: pastel canary yellow — his mom's call, yellow when you
      don't know if it's a boy or a girl. */
-  moms: { glow: '#FFF4B8' },
+  moms: { attr: 'moms', glow: '#FFF4B8' },
+  /* PER-CATEGORY BACKDROPS (2026-09-28, Danny): each department gets its
+     own identity colour. Flip a colour with one line here — the CSS
+     gradient reads --dept-glow from the map. */
+  women: { attr: 'women', glow: '#F5C4DC' },
+  men: { attr: 'men', glow: '#16386F' },
+  /* KIDS: baby blue. Flip this one line to glow:'#FFF4B8' for Danny's
+     baby-yellow alternative. */
+  kids: { attr: 'kids', glow: '#C4E6FB' },
+  surf_skate: { attr: 'surf_skate', glow: '#8FC6EE' },
 };
+/* Every department WITHOUT its own row above lands here: a soft
+   brand-blue tint, so no category page is plain white. */
+const DEFAULT_DEPT_THEME = { attr: 'default', glow: '#D9E8FB' };
 function deptThemeFor(kind, key){
-  return kind === 'department' ? (DEPT_THEMES[String(key || '').toLowerCase()] || null) : null;
+  if (kind !== 'department') return null;
+  return DEPT_THEMES[String(key || '').toLowerCase()] || DEFAULT_DEPT_THEME;
 }
 function applyDeptTheme(viewId, kind, key, retailerFilter){
   const el = document.getElementById(viewId);
   if (!el) return;
-  if (!retailerFilter && deptThemeFor(kind, key)) el.setAttribute('data-dept-theme', String(key).toLowerCase());
-  else el.removeAttribute('data-dept-theme');
+  const theme = !retailerFilter && deptThemeFor(kind, key);
+  if (theme){
+    el.setAttribute('data-dept-theme', theme.attr);
+    /* The wash colour lives in the theme map — a one-line glow swap
+       repaints the whole backdrop (see the KIDS row above). */
+    el.style.setProperty('--dept-glow', theme.glow);
+  } else {
+    el.removeAttribute('data-dept-theme');
+    el.style.removeProperty('--dept-glow');
+  }
 }
 /* TIERS — how the Tiendas directory is GROUPED, and nothing else.
    MIRROR of scripts/lib/retailers.js; a parity test pins the two.
@@ -21802,6 +21845,9 @@ let salesStaleNote = '';
 function goSales(retailer){
   pushRoute({ view: 'salesView', retailer: retailer || null });
   showPage('salesView');
+  /* OFERTAS is a department too (key 'sale') - brand-blue tinted backdrop,
+     never plain white (2026-09-28, Danny). */
+  applyDeptTheme('salesView', 'department', 'sale', retailer);
   // Already built at load; rebuilt only if something cleared it.
   if (!document.querySelector('.salesStoreFilter')) initSalesFilters();
   applySalesStoreFilter(retailer);
