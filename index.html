@@ -23891,6 +23891,25 @@ async function runAssistantLiveSearch(query){
   if (btn){ btn.remove(); }
 }
 
+/* RATE-LIMIT COOLDOWN (2026-09-27): Groq 429s the account when it's had
+   too many requests. Every failed reply used to burn up to 4 sequential
+   calls (stream + cold retry + 2 fallback), actively deepening the hole —
+   Danny saw "Tuve un problema" on every single message. One 429 now
+   parks the brain for 60s: the shopper gets an honest "dame un minutito"
+   and zero new Groq calls go out until the bucket recovers. */
+let ariaRateLimitedUntil = 0;
+function ariaRateLimited(){ return Date.now() < ariaRateLimitedUntil; }
+function parkBrainForRateLimit(){ ariaRateLimitedUntil = Date.now() + 60000; }
+/* The stream endpoint reports Groq failures as its own 502 with the real
+   status inside the error text ("Groq respondió 429"), so a 429 is
+   detected by status OR by the detail string — never by res.status
+   alone. */
+function isGroqRateLimit(err){
+  if (!err) return false;
+  if (err.status === 429) return true;
+  const d = err.detail || err.message || '';
+  return /\b429\b/.test(String(d));
+}
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
@@ -24009,6 +24028,17 @@ async function runAssistantBrain(text){
     /* THE TYPING INDICATOR STAYS UP UNTIL THE FIRST TOKEN and not a
        moment longer -- the sink removes it in the same frame it appends
        the bubble, so the two never overlap and nothing jumps. */
+    /* RATE-LIMIT COOLDOWN: the product cards are already on screen
+       (local search), so a parked brain only costs the prose — never the
+       results. No new Groq calls until the bucket recovers. */
+    streamAssistantReply.lastError = null;
+    if (ariaRateLimited()) {
+      hideAssistantTyping();
+      addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
+      addAssistantNote('Código: Groq 429 — pausa breve, sin nuevas llamadas');
+      reopenMicForRetry();
+      return;
+    }
     const sink = beginAssistantReply();
     let streamed = sink ? await streamAssistantReply(payload, sink) : null;
     /* COLD-START RETRY (2026-09-27, Danny: replies kept dying with
@@ -24021,12 +24051,19 @@ async function runAssistantBrain(text){
       streamAssistantReply.timedOut = false;
       streamed = await streamAssistantReply(payload, sink);
     }
-    /* RATE-LIMIT BACKOFF (2026-09-27): the stream already reported a
-       429 — hammering the fallback instantly makes it worse. Give the
-       bucket a few seconds to recover before spending the fallback
-       attempts. */
-    if (!streamed && streamAssistantReply.lastError && streamAssistantReply.lastError.status === 429) {
-      await new Promise(r => setTimeout(r, 6000));
+    /* RATE-LIMIT (2026-09-27): the stream just got 429ed — the fallback
+       would 429 too. Skip it entirely instead of spending more calls
+       deepening the hole, and park the brain for 60s. (The old check
+       read res.status, but the endpoint reports its own 502 with the
+       real status inside the error text — isGroqRateLimit reads that.) */
+    if (!streamed && isGroqRateLimit(streamAssistantReply.lastError)) {
+      parkBrainForRateLimit();
+      if (sink) sink.discard();
+      hideAssistantTyping();
+      addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
+      addAssistantNote('Código: Groq 429 — ' + (streamAssistantReply.lastError.detail || 'límite de Groq'));
+      reopenMicForRetry();
+      return;
     }
 
     if (!streamed) {
@@ -24072,11 +24109,15 @@ async function runAssistantBrain(text){
         hideAssistantTyping();
         /* The generic bubble stays for shoppers, but the real reason
            rides along in the quiet note channel (never spoken) — a
-           "Groq 429" beats "something broke" when diagnosing. */
+           "Groq 429" beats "something broke" when diagnosing. A 429
+           also parks the brain: no point letting the next message burn
+           more calls into the same wall. */
+        const wasRateLimit = isGroqRateLimit(fallbackError);
+        if (wasRateLimit) parkBrainForRateLimit();
         let fCode = 'sin respuesta';
         if (res) fCode = 'HTTP ' + res.status + (fallbackError && fallbackError.detail ? ' — ' + fallbackError.detail : '');
         else if (fallbackError && fallbackError.kind === 'timeout') fCode = 'timeout 25s';
-        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
+        addAssistantMessage('bot', wasRateLimit ? 'Dame un minutito, por favor — ¿lo intentamos de nuevo?' : 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
         addAssistantNote('Código: ' + fCode);
         reopenMicForRetry();
         return;

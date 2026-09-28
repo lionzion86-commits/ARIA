@@ -56,6 +56,15 @@ export async function handler(event) {
     });
 
     const chatData = await chatResponse.json();
+    /* FORWARD THE REAL UPSTREAM FAILURE (2026-09-27): "No reply from
+       model" swallowed 429s and made every outage undiagnosable — the
+       client now shows the code, so give it the code. */
+    if (!chatResponse.ok) {
+      const gErr = chatData && chatData.error;
+      const gMsg = gErr && (gErr.message || gErr.code || gErr);
+      console.error('[aria-chat-groq] Groq error', chatResponse.status, gMsg);
+      return { statusCode: 502, headers, body: JSON.stringify({ error: `Groq respondió ${chatResponse.status}` + (gMsg ? ` — ${gMsg}` : '') }) };
+    }
     // Dictated punctuation words ("comma", "punto") must never reach the
     // shopper as words — sanitizeSpokenPunctuation turns them into the
     // marks they mean, so the bubble, the voice and the history all agree.
