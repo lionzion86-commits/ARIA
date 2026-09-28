@@ -138,6 +138,16 @@
                  dutiable value stays internal (currentValor() and its
                  threshold/quote/tax/paperwork uses are untouched). -->
             <div class="flex justify-between"><span>Flete</span><span id="sumFlete" class="tabular font-semibold" style="color:var(--navy)">—</span></div>
+            <!-- PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province
+                 leg, rendered only when the destination is outside Lima.
+                 Soles-denominated, like the small-order fee. -->
+            <div id="sumProvinciaRow" class="flex items-start justify-between gap-2" hidden>
+              <span class="flex flex-col">
+                <span>Envío a provincia</span>
+                <span id="sumProvinciaNote" class="text-[11px]" style="color:#8A93A8"></span>
+              </span>
+              <span id="sumProvincia" class="tabular font-semibold" style="color:var(--navy)">—</span>
+            </div>
             <!-- SMALL-ORDER FEE (2026-09-20). Rendered only when it
                  applies, as its own named line with the threshold stated
                  underneath. It is the real cost of receiving, checking
@@ -374,7 +384,7 @@
           <div class="grid sm:grid-cols-2 gap-4 mb-4">
             <div>
               <label class="block text-[12px] font-bold mb-1.5">Origen</label>
-              <div class="h-[46px] rounded-xl px-4 flex items-center gap-2 text-[14px] font-semibold" style="background:var(--sky); color:var(--navy)">🇺🇸 Estados Unidos</div>
+              <div class="h-[46px] rounded-xl px-4 flex items-center gap-2 text-[14px] font-semibold" style="background:var(--sky); color:var(--navy)">Estados Unidos</div>
             </div>
             <div>
               <label for="destCity" class="block text-[12px] font-bold mb-1.5">Ciudad de destino</label>
@@ -385,6 +395,19 @@
                 <option>Piura</option><option>Chiclayo</option><option>Huancayo</option><option>Ica</option><option>Otra</option>
               </select>
             </div>
+          </div>
+          <!-- PROVINCIA LAST-MILE (2026-09-27, Danny): the customer picks
+               their courier here. Lima gets Aria's own reparto; provincias
+               get the partner couriers. The estimate shows BEFORE payment,
+               next to the selector — never after. -->
+          <div class="mb-4">
+            <label for="courierSelect" class="block text-[12px] font-bold mb-1.5">Courier de última milla</label>
+            <select id="courierSelect" name="courierSelect" required
+              class="w-full h-[46px] bg-white border rounded-xl px-3.5 text-[14px] outline-none focus-ring" style="border-color:var(--line)">
+              <option value="" disabled selected>Primero selecciona tu ciudad de destino</option>
+            </select>
+            <p id="courierEta" class="text-[12px] leading-snug mt-2 font-semibold" style="color:var(--navy)" hidden></p>
+            <p class="text-[11.5px] leading-snug mt-1.5" style="color:#8A93A8">Llegamos a todo el Perú. En Lima repartimos nosotros; a provincias tu pedido viaja con nuestros couriers aliados.</p>
           </div>
           <div class="grid sm:grid-cols-2 gap-4 mb-4">
             <div>
@@ -497,6 +520,10 @@
            MIAMI_TO_DOOR_MIN, MIAMI_TO_DOOR_MAX } from './scripts/lib/retailer-delivery.js';
   import { MAX_FRAGRANCES_PER_SHIPMENT, fragranceLimitState } from './scripts/lib/beauty-weight.js';
   import { SUPPORT_LINKS } from './scripts/lib/support.js';
+  /* PROVINCIA LAST-MILE (2026-09-27, Danny): the single courier list and
+     the flat Lima → province fee. The server imports the same module so
+     the charged fee can never disagree with the displayed one. */
+  import { couriersFor, isLimaDest, provinciaFeePen, lastMileEtaEs } from './couriers.js';
 
   /* Support addresses come from one constant, here as on index.html. The
      href authored in the footer markup is the no-JS fallback; this keeps
@@ -593,6 +620,62 @@
   const fxVenta = document.getElementById('fxVenta');
   const fxOrigen = document.getElementById('fxOrigen');
   const payBtn = document.getElementById('payBtn');
+  const destCitySel = document.getElementById('destCity');
+  const courierSelect = document.getElementById('courierSelect');
+  const courierEta = document.getElementById('courierEta');
+
+  /* PROVINCIA LAST-MILE (2026-09-27, Danny): the Lima hub sorts by
+     province and hands the last mile to partner couriers. The dropdown
+     reads the single LAST_MILE_COURIERS list, so offering is filtered by
+     destination — Lima gets Aria's own reparto, provincias get the
+     partners plus the assigned fallback. The estimate renders next to
+     the selector, BEFORE payment, and the flat fee lands in the summary
+     as its own soles line. Additive: nothing in the quote or payment
+     path changes shape. */
+  function selectedCourier(){
+    const id = courierSelect.value;
+    return couriersFor(destCitySel.value).find(c => c.id === id) || null;
+  }
+  function syncCourierOptions(){
+    const city = destCitySel.value;
+    const options = city ? couriersFor(city) : [];
+    const prev = courierSelect.value;
+    courierSelect.innerHTML = options.length
+      ? '<option value="" disabled selected>Selecciona tu courier</option>'
+      : '<option value="" disabled selected>Primero selecciona tu ciudad de destino</option>';
+    for (const c of options){
+      const o = document.createElement('option');
+      o.value = c.id;
+      o.textContent = c.name;
+      courierSelect.appendChild(o);
+    }
+    if (options.some(c => c.id === prev)) courierSelect.value = prev;
+    syncCourierEta();
+  }
+  function syncCourierEta(){
+    const c = selectedCourier();
+    const city = destCitySel.value;
+    if (!city){ courierEta.hidden = true; return; }
+    courierEta.textContent = lastMileEtaEs(city, c ? c.name : '');
+    courierEta.hidden = false;
+    document.getElementById('sumProvinciaNote').textContent =
+      (!isLimaDest(city) && c) ? `Tramo Lima → ${city} con ${c.name}` : '';
+  }
+  /* Flat Lima → province leg, soles-denominated like the small-order fee.
+     0 for Lima or before a destination is chosen — the row stays hidden
+     rather than guessing. */
+  function currentProvinciaFeePen(){
+    const city = destCitySel.value;
+    if (!city) return 0;
+    return provinciaFeePen(city);
+  }
+  function renderProvinciaRow(fee){
+    document.getElementById('sumProvincia').textContent = fmtWalletPen(fee);
+    document.getElementById('sumProvinciaRow').hidden = !(fee > 0);
+  }
+  destCitySel.addEventListener('change', () => { syncCourierOptions(); renderSummary(); });
+  courierSelect.addEventListener('change', () => { syncCourierEta(); renderSummary(); });
+  syncCourierOptions();
 
   // BUG FIX (2026-09-17): checkout used to convert to soles with a
   // hardcoded 3.8 rate. Real compra/venta rates now come from SUNAT via
@@ -967,6 +1050,16 @@
     };
   }
 
+  /* PROVINCIA LAST-MILE. What goes on the order and onto the partner
+     courier's manifest for the Lima → province leg. Routing info, not a
+     price instruction: the server re-derives the fee from destCity
+     itself, so a tampered request cannot move it. */
+  function courierPayload(){
+    const c = selectedCourier();
+    if (!c) return null;
+    return { id: c.id, name: c.name, isLima: isLimaDest(destCitySel.value) };
+  }
+
   function renderSmallOrderRow(fee){
     document.getElementById('sumSmallOrderLabel').textContent = SMALL_ORDER_FEE_LABEL;
     document.getElementById('sumSmallOrderNote').textContent = SMALL_ORDER_FEE_NOTE;
@@ -978,7 +1071,9 @@
     const kg = currentKg();
     const valor = currentValor();
     const smallOrderFee = currentSmallOrderFeePen();
+    const provFee = currentProvinciaFeePen();
     renderSmallOrderRow(smallOrderFee);
+    renderProvinciaRow(provFee);
     sumWeight.textContent = kg.toFixed(2) + ' kg';
 
     /* A freight line that reads "—" and a total that reads S/ 0.00 are not
@@ -997,7 +1092,7 @@
       if (q){
         setMoney(sumFlete, q.flete_usd, ' (estimado)');
         sumTotal.innerHTML = fmtPrimary(totals.totalUsd) + ' (estimado)'
-          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee)) : '');
+          + (fxRates ? solesUnderPen(round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee)) : '');
       } else {
         sumFlete.textContent = '—';
         sumTotal.textContent = '—';
@@ -1017,8 +1112,9 @@
     // rate the total is in USD and a soles balance cannot be applied
     // honestly, so the row stays hidden rather than guessing a rate.
     // The small-order fee is part of the order total, so saldo applies
-    // against it too and it is inside every figure below.
-    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee) : 0;
+    // against it too and it is inside every figure below. The provincia
+    // leg is treated the same way.
+    const orderTotalPen = fxRates ? round2(totals.totalUsd * fxRates.venta + smallOrderFee + provFee) : 0;
 
     /* A weight we do not believe must not become a price. Everything on
        the line is still shown — the customer can see what is in the
@@ -1364,6 +1460,10 @@
             addrPostal: document.getElementById('addrPostal').value.trim(),
             addrRef: document.getElementById('addrRef').value.trim(),
             destCity: document.getElementById('destCity').value,
+            // The last-mile courier for the Lima → province leg (null for
+            // Lima's own reparto when nothing was picked). The server
+            // stores this on the order for the manifest sort.
+            courier: courierPayload(),
           },
           // Null unless the buyer ticked the box. The server re-checks
           // that a recipient carries a document before accepting it.
@@ -1382,6 +1482,10 @@
           // so the order record and the margin view carry it rather than
           // having to re-derive it from a subtotal and a threshold.
           smallOrderFeePen: currentSmallOrderFeePen(),
+          // The Lima → province courier leg, in soles, exactly as shown.
+          // Sent so the record shows what the customer saw; the server
+          // recomputes it from destCity and charges its own answer.
+          provinciaFeePen: currentProvinciaFeePen(),
         }),
       });
       const data = await res.json();

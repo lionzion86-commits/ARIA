@@ -20,6 +20,10 @@ import { readWallet, postTransaction, applicableCreditPen } from "./_wallet.js";
 import { peruDateKey, normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 import { randomBytes } from "node:crypto";
 import { smallOrderFeePen, importTaxEstimateUsd, TAX_ESTIMATE_RATE, dutiableBaseUsd } from "../../weight-data.js";
+/* PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province leg. The
+   browser sends what it showed, but the charge is decided here from
+   destCity — a tampered request must not be able to zero it. */
+import { provinciaFeePen as provinciaFeeFor } from "../../couriers.js";
 
 const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
 const HELD_MESSAGE = "Estamos en lanzamiento y queremos que tu pedido llegue perfecto: procesamos un número limitado de pedidos por día. Si el cupo de hoy se completa, tu carrito se guarda automáticamente y tu pedido entra primero mañana. Gracias por ser parte del inicio de Aria.";
@@ -149,6 +153,14 @@ export async function handler(event) {
       : Math.round((priceUsdTotal + freightUsdQuoted) * fxRateVenta * 100) / 100;
     const smallOrderFeePenCharged = orderBasePen != null ? smallOrderFeePen(orderBasePen) : 0;
 
+    /* PROVINCIA LAST-MILE (2026-09-27): the flat Lima → province courier
+       leg, recomputed from destCity — never accepted from the client —
+       for the same reason as the small-order fee and the tax above. The
+       courier choice itself rides along inside body.shipping for the
+       manifest sort; it carries no price. */
+    const destCity = (body.shipping && body.shipping.destCity) || "";
+    const provinciaFeePenCharged = provinciaFeeFor(destCity);
+
     /* IMPORT TAX — RECOMPUTED, NOT ACCEPTED (2026-09-21).
 
        The browser sends what it showed so the record can prove the two
@@ -174,7 +186,7 @@ export async function handler(event) {
     const customerTotalUsd = Math.round((priceUsdTotal + freightUsdQuoted + taxEstimatedUsd) * 100) / 100;
     const taxEstimatedPen = fxRateVenta ? Math.round(taxEstimatedUsd * fxRateVenta * 100) / 100 : null;
     const totalPen = fxRateVenta
-      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged) * 100) / 100
+      ? Math.round((customerTotalUsd * fxRateVenta + smallOrderFeePenCharged + provinciaFeePenCharged) * 100) / 100
       : null;
     /* SALDO ARIA. The browser asks for an amount; the server decides it.
        The balance is re-read here and capped against both the real
@@ -257,6 +269,8 @@ export async function handler(event) {
       // Itemised on the record, not folded into the total, so the margin
       // view can tell handling revenue apart from freight and product.
       smallOrderFeePen: smallOrderFeePenCharged,
+      // The Lima → province courier leg, itemised the same way.
+      provinciaFeePen: provinciaFeePenCharged,
       totalUsd: customerTotalUsd,          // what the customer is charged, in USD
       courierTotalUsd: quote.total_usd,    // what AVI quoted, duty and all — margin view only
       gatewayFeeEstimatePen,
