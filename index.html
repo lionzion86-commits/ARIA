@@ -556,6 +556,16 @@
      smaller than the full-size rails. */
   .storeRailCompact [data-store-rail-card]{ width:142px }
   .storeRailCompact [data-store-rail-card] > span.relative{ height:142px }
+  /* SKELETON SHIMMER (2026-09-28, perf): rails paint their footprint
+     instantly while their catalog data streams in. Same footprint as
+     the cards, so there is no layout shift when the real cards land. */
+  @keyframes ariaShimmer{ 0%{ background-position:-400px 0 } 100%{ background-position:400px 0 } }
+  .ariaSkeleton{
+    background:linear-gradient(90deg,#EDF0F6 25%,#DFE5EF 37%,#EDF0F6 63%);
+    background-size:800px 100%;
+    animation:ariaShimmer 1.5s ease infinite;
+  }
+  @media (prefers-reduced-motion: reduce){ .ariaSkeleton{ animation:none } }
   /* ARIA AUTO HOUSE BANNER (2026-09-26, Danny's call): Aria Auto is a huge
      section nobody discovers from the homepage -- a shopper browsing deals
      never learns it exists. A full-width house banner (not an ad, not a
@@ -5896,50 +5906,103 @@ function fetchWithTimeout(url, ms){
   return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
 }
 
+/* PROGRESSIVE CATALOG LOADING (2026-09-28, perf). The homepage used to
+   fetch every catalog file (~90MB) before painting a single card. Now
+   each source is fetched once, cached by URL, and merged into
+   departmentCacheData.retailers the moment it arrives. Above-the-fold
+   sections trigger only the files they need; an IntersectionObserver
+   fires the rest about one viewport ahead of the scroll; a background
+   warm finishes the set so search still sees everything.
+   loadDepartmentCache() keeps its contract: it resolves to the
+   fully-merged cache. */
+/* department-cache.json, split per retailer so Foot Locker's ~900KB can
+   load without Walmart's megabyte riding along. Written alongside the
+   monolith by scripts/refresh-department-cache.js; the monolith stays
+   for back-compat with older branches. */
+const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-target.json', '/department-cache-oldnavy.json', '/department-cache-footlocker.json'];
+/* CATALOGUE FILES, one per browse-only store. A missing or broken one
+   must not take the rest down with it: each catches its own failure,
+   so that store simply has nothing to show, which openStore already
+   handles honestly.
+
+   Adding a store here is one line. Nothing else in the merge cares
+   which file a retailer came from, so a file-backed store behaves
+   like a scraped one everywhere downstream — search, categories,
+   aisles, budget and Ofertas all read the merged object. */
+/* DICK'S + PACSUN (2026-09-25). Skate + surf live INSIDE Deportes per
+   Danny — no separate section. Both files bucket everything under
+   sporting_goods so the department picks it up with no other change;
+   the aisle split below is what keeps skate, surf and fitness apart. */
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json'];
+/* Which source file carries which retailer keys — generated from the
+   files' own envelopes, so a rail can fetch its retailer without
+   downloading the file first to learn that. Regenerate if a catalog's
+   retailer set changes. */
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"]};
+/* One promise per source URL: the eager rail, the scroll observer, the
+   background warm and search all share the same fetch — nothing is
+   ever downloaded twice in one page life. */
+const catalogSourceCache = new Map();
+function fetchCatalogPart(url){
+  if (!catalogSourceCache.has(url)){
+    /* The split department-cache parts already wear the scraped
+       envelope; the per-store catalogue files need normalizing. */
+    const normalize = DEPT_CACHE_PARTS.indexOf(url) === -1;
+    catalogSourceCache.set(url, fetchWithTimeout(url, FETCH_DEADLINE_MS)
+      .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
+      .then(f => normalize ? normalizeCatalogueEnvelope(f) : f)
+      .then(withoutRestrictedDepartments)
+      .then(withoutUnshippableItems)
+      .then(aliasEnvelopeTitles)
+      .then(env => {
+        /* Merge on arrival: whatever is in hand is shoppable, the rest
+           keeps streaming. departmentCacheData is the one canonical
+           object; every reader looks at its .retailers live. */
+        Object.assign(departmentCacheData.retailers, env?.retailers || {});
+        return env;
+      })
+      .catch(() => null));
+  }
+  return catalogSourceCache.get(url);
+}
+function sourcesForRetailers(retailerKeys){
+  const want = new Set((retailerKeys || []).map(k => String(k).toLowerCase()));
+  return Object.keys(SOURCE_RETAILERS).filter(url =>
+    (SOURCE_RETAILERS[url] || []).some(k => want.has(String(k).toLowerCase())));
+}
+/* Fetch (once each) and merge only the sources carrying these
+   retailers. A store rail calls this with [itsKey]; the brand strip
+   with its six; Fiestas with its three. Resolves to the canonical
+   cache, so existing readers keep working untouched. */
+async function ensureRetailers(retailerKeys){
+  await Promise.all(sourcesForRetailers(retailerKeys).map(fetchCatalogPart));
+  return departmentCacheData;
+}
 function loadDepartmentCache(){
   if (!departmentCachePromise){
-    let loaded = 0;
-    const count = (v) => { loaded++; return v; };
-    const scraped = fetchWithTimeout('/department-cache.json', FETCH_DEADLINE_MS)
-      .then(r => { if (!r.ok) throw new Error('department-cache ' + r.status); return r.json(); })
-      .then(count)
-      .catch(() => ({ retailers: {} }));
-    /* CATALOGUE FILES, one per browse-only store. A missing or broken one
-       must not take the scraped cache down with it: the rest of the site
-       keeps working and that store simply has nothing to show, which
-       openStore already handles honestly. Each catches its own failure
-       for exactly that reason.
-
-       Adding a store here is one line. Nothing else in the merge cares
-       which file a retailer came from, so a file-backed store behaves
-       like a scraped one everywhere downstream — search, categories,
-       aisles, budget and Ofertas all read the merged object. */
-    /* DICK'S + PACSUN (2026-09-25). Skate + surf live INSIDE Deportes per
-       Danny — no separate section. Both files bucket everything under
-       sporting_goods so the department picks it up with no other change;
-       the aisle split below is what keeps skate, surf and fitness apart. */
-    const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json'];
-    const files = CATALOGUE_FILES.map(url => fetchWithTimeout(url, FETCH_DEADLINE_MS)
-      .then(r => { if (!r.ok) throw new Error(url + ' ' + r.status); return r.json(); })
-      .then(normalizeCatalogueEnvelope)
-      .then(count)
-      .catch(() => ({ retailers: {} })));
-
-    departmentCachePromise = Promise.all([scraped, ...files])
-      .then(parts => parts.map(withoutRestrictedDepartments))
-      .then(parts => parts.map(withoutUnshippableItems))
-      .then(parts => parts.map(aliasEnvelopeTitles))
-      .then(parts => {
+    const all = DEPT_CACHE_PARTS.concat(CATALOGUE_FILES);
+    departmentCachePromise = Promise.all(all.map(fetchCatalogPart)).then(() => {
       // Not "some store is thin" -- NOTHING answered. That is a broken
       // page, not an empty department, and it is retryable.
-      departmentCacheFailed = loaded === 0;
-      return {
-        ...parts[0],
-        retailers: Object.assign({}, ...parts.map(p => p?.retailers || {})),
-      };
+      departmentCacheFailed = Object.keys(departmentCacheData.retailers).length === 0;
+      return departmentCacheData;
     });
   }
   return departmentCachePromise;
+}
+/* A retry has to be able to succeed: clear every memoised catalogue
+   promise -- per-source, merged, and pool -- so the next load
+   re-fetches instead of replaying a cached failure. */
+function resetCatalogState(){
+  departmentCachePromise = null;
+  departmentCacheData = { retailers: {} };
+  departmentCacheFailed = false;
+  relatedPoolCache = null;
+  catalogSourceCache.clear();
+  poolByKey.clear();
+  progressivePool.length = 0;
+  poolIngestedRetailers.clear();
+  salesEnrichDone = false;
 }
 
 const DEPARTMENT_META = {
@@ -7522,7 +7585,7 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
 function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '' } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
   return src
-    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" class="w-full h-full"${
+    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" class="w-full h-full"${
         fallbackSrc ? ` data-img-fallback="${escapeHtml(fallbackSrc)}"` : ''}
              style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
     : photoPlaceholderHTML();
@@ -7802,6 +7865,12 @@ function homeRowTiles(){
 }
 
 function initDepartmentTiles(){
+  /* PERF (2026-09-28): the tiles wait for the catalogue, but they must
+     not TRIGGER its full download at boot. They start when their
+     section nears the viewport -- or when the background warm beats
+     them to it, whichever comes first. */
+  const tilesGrid = document.getElementById('catGrid');
+  const startTiles = () => {
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
     paintStoreBrandLines(data);
@@ -7831,6 +7900,13 @@ function initDepartmentTiles(){
     // The phone's third rail, from the SAME tiles — never a second list.
     renderMobileCatsRail(tiles);
   });
+  };
+  if (tilesGrid && 'IntersectionObserver' in window){
+    const tilesIO = new IntersectionObserver((es) => {
+      es.forEach(e => { if (e.isIntersecting){ tilesIO.disconnect(); startTiles(); } });
+    }, { rootMargin: '1000px 0px' });
+    tilesIO.observe(tilesGrid);
+  } else startTiles();
 }
 window.addEventListener('DOMContentLoaded', initDepartmentTiles);
 
@@ -7987,20 +8063,30 @@ function relatedProducts(anchor, pool, opts){
    also what lets the anchor match on ANY bucket it belongs to rather
    than whichever one happened to be read first. */
 let relatedPoolCache = null;
-async function relatedPool(){
-  if (relatedPoolCache) return relatedPoolCache;
-  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
-  const byKey = new Map();
-  for (const [retailer, bucket] of Object.entries(departmentCacheData?.retailers || {})){
+/* THE POOL GROWS WITH THE CATALOGUE (2026-09-28, perf). relatedPool()
+   used to need the whole ~90MB in hand before it could answer. Now
+   retailers are ingested as their sources arrive: a store rail ingests
+   just its own retailer, relatedPool() ingests everything after the
+   full load. One array, one key map; the search index rebuilds whenever
+   the pool grows, so search always sees a consistent snapshot. */
+const poolByKey = new Map();
+const progressivePool = [];
+const poolIngestedRetailers = new Set();
+function ingestRetailersIntoPool(retailerKeys){
+  let added = false;
+  for (const retailer of retailerKeys || []){
+    if (poolIngestedRetailers.has(retailer)) continue;
+    poolIngestedRetailers.add(retailer);
+    const bucket = departmentCacheData?.retailers?.[retailer];
+    if (!bucket) continue;
     for (const [department, entry] of Object.entries(bucket?.departments || {})){
       for (const raw of entry?.items || []){
         /* THE SAME RULE BROWSING USES. departmentItemsFor() drops a
            product whose image verdict is "quarantined" -- no image of it
            could be cleared of baked-in price text, so it is withheld
-           until a human looks. This pool feeds the related rail and now
-           the search results too, and neither may show what the
-           department grid withholds. No committed catalogue carries the
-           flag today, so this is a no-op now and a guard later. */
+           until a human looks. This pool feeds the related rail and the
+           search results, and neither may show what the department grid
+           withholds. */
         if (!notQuarantined(raw)) continue;
         /* One malformed record must never take down the whole search:
            skip the poison item and keep the rest of the catalogue. */
@@ -8008,29 +8094,46 @@ async function relatedPool(){
         try { it = normalizeLiveItem(raw, { retailer, department }); } catch { continue; }
         if (!it || !it.title) continue;
         const key = retailer + '::' + it.title;
-        const had = byKey.get(key);
+        const had = poolByKey.get(key);
         if (had){ if (!had.departments.includes(department)) had.departments.push(department); continue; }
         const pooled = { ...it, retailer, departments: [department] };
         /* SEARCH SPEED (2026-09-27). Tokenising every title on every
            search cost ~3s in Node (~10s on a phone CPU) over the 61k-item
-           pool. The pool is memoized, so each item's word sets are
-           precomputed once here; rankCatalogMatches and scoreCatalogItem
-           reuse them. Ad-hoc items without them fall back to the
-           computed path. */
+           pool. The pool grows incrementally now, so each item's word
+           sets are precomputed once at ingest; rankCatalogMatches and
+           scoreCatalogItem reuse them. */
         pooled._wordSet = catalogWordsOf(pooled);
         pooled._brandWordSet = new Set(searchTokens(pooled.brand || ''));
         /* Category too: catalogItemCategory re-tokenises the title, and
            with a category intent it ran once per candidate per search. */
         pooled._cat = catalogItemCategory(pooled);
-        byKey.set(key, pooled);
+        poolByKey.set(key, pooled);
+        progressivePool.push(pooled);
+        added = true;
       }
     }
   }
-  relatedPoolCache = [...byKey.values()];
+  /* The attached search index is only valid for the pool it was built
+     on; the next relatedPool() call rebuilds it. */
+  if (added) relatedPoolCache = null;
+}
+/* Just these retailers' items, ingested and returned as the shared pool
+   array. A store rail's picks only ever look at their own retailer's
+   items, so a partial pool answers them exactly. */
+async function poolForRetailers(retailerKeys){
+  await ensureRetailers(retailerKeys);
+  ingestRetailersIntoPool(retailerKeys);
+  return progressivePool;
+}
+async function relatedPool(){
+  if (relatedPoolCache) return relatedPoolCache;
+  await loadDepartmentCache();
+  ingestRetailersIntoPool(Object.keys(departmentCacheData?.retailers || {}));
+  relatedPoolCache = progressivePool;
   /* SEARCH SPEED (2026-09-27): inverted word index over the pool. A
      search only ever scores items containing a matching word form, so
      rankCatalogMatches pulls that subset up front instead of scanning
-     all 61k items per search. Attached to the array rather than the
+     the whole pool per search. Attached to the array rather than the
      items, so ad-hoc pools without it take the old path unchanged. */
   const windex = new Map();
   for (const it of relatedPoolCache){
@@ -9739,6 +9842,110 @@ function momsDeptRailsHTML(items, noKeys){
 
 let storeRailsStarted = false;
 
+/* SKELETONS (2026-09-28, perf). Every rail paints its footprint the
+   instant the page boots -- same card sizes, shimmer where the photos
+   will be -- so the shopper never stares at a blank gap while a
+   catalogue streams in. The skeleton IS the card's box, so there is no
+   layout shift when the real cards land. */
+function railSkeletonHTML(n, cardCls){
+  const cards = [];
+  for (let i = 0; i < (n || 6); i++){
+    cards.push(`<div class="${cardCls}" aria-hidden="true">`
+      + `<span class="block w-full h-[172px] rounded-2xl ariaSkeleton"></span>`
+      + `<span class="block h-[11px] mt-3 mx-3 rounded-full ariaSkeleton"></span>`
+      + `<span class="block h-[11px] mt-2 mr-10 ml-3 rounded-full ariaSkeleton"></span>`
+      + `</div>`);
+  }
+  return cards.join('');
+}
+function paintRailSkeletons(){
+  const railRows = [...document.querySelectorAll(
+    '[data-store-rail-row],[data-category-rail-row],[data-bolsos-rail],[data-fiestas-rail-row]')];
+  for (const row of railRows){
+    if (!row.children.length) row.innerHTML = railSkeletonHTML(6, 'flex-shrink-0 w-[172px]');
+  }
+  for (const id of ['mobileDealsRow', 'desktopDealsRow', 'mCategoryTabRail', 'dCategoryTabRail']){
+    const el = document.getElementById(id);
+    if (el && !el.children.length) el.innerHTML = railSkeletonHTML(4, 'flex-shrink-0 w-[172px]');
+  }
+  for (const el of document.querySelectorAll('[data-brand-strip]')){
+    if (!el.children.length) el.innerHTML = railSkeletonHTML(8, 'flex-shrink-0 w-[120px]');
+  }
+  for (const id of ['mobileCatsRow', 'desktopCatsRow']){
+    const el = document.getElementById(id);
+    if (el && !el.children.length) el.innerHTML = railSkeletonHTML(6, 'flex-shrink-0 w-[148px]');
+  }
+  /* The Categorías tile grid waits on the catalogue; it gets a quiet
+     placeholder grid instead of a blank band. */
+  const catGrid = document.getElementById('catGrid');
+  if (catGrid && !catGrid.children.length){
+    catGrid.innerHTML = Array.from({ length: 8 }, () =>
+      `<div class="rounded-2xl ariaSkeleton" style="height:120px" aria-hidden="true"></div>`).join('');
+  }
+}
+
+/* The category zone's picks, from the full pool. A global (not a
+   closure) so the post-enrich repaint can recompute them without
+   re-fetching: same predicate the department page uses, so a rail never
+   shows what its department would refuse. Sale items lead, featured
+   picks fill; every card keeps its brand and its store badge. */
+async function computeCategoryZonePicks(ofertasKeys){
+  const pool = await relatedPool();
+  for (const cat of CATEGORY_RAILS){
+    const stores = cat.stores || Object.keys(departmentCacheData?.retailers || {});
+    const test = (p) => p && stores.indexOf(String(p.retailer || '').toLowerCase()) !== -1
+      && (!cat.test || cat.test(p));
+    /* Pool-only rails take the sale lead from the pool too: the pool is
+       the committed department cache, so the shelf matches the
+       department page exactly. */
+    const saleSrc = cat.poolOnly
+      ? (Array.isArray(pool) ? pool : [])
+      : (Array.isArray(saleItemsCache) ? saleItemsCache : []);
+    categoryRailsRendered[cat.key] = categoryRailPicks(stores,
+      saleSrc.filter(test),
+      (Array.isArray(pool) ? pool : []).filter(test),
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null });
+  }
+  /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
+     The pills and the single rail render once the pool lands; an empty
+     shelf earns no pill. */
+  try { renderCategoryTabs(); } catch (e) {}
+}
+
+/* REPAINT AFTER ENRICH (2026-09-28, perf): the file-backed markdowns
+   arrive after the fast paint; anything already on screen re-leads
+   with them so the shelf matches the old boot order exactly. Rows
+   whose picks did not change are left untouched -- no flicker. */
+function railPicksKey(picks){
+  return (picks || []).map(p => `${p.retailer || ''}::${p.title || ''}::${p.price || ''}`).join('|');
+}
+async function repaintRailsAfterEnrich(){
+  const dealsRendered = (typeof mobileDealsRendered !== 'undefined' && Array.isArray(mobileDealsRendered))
+    ? mobileDealsRendered : [];
+  const ofertasKeys = new Set(dealsRendered.map(p => `${p.retailer || ''}::${p.title || ''}`));
+  const pool = await relatedPool();
+  for (const key of Object.keys(storeRailsRendered)){
+    const picks = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
+    if (railPicksKey(picks) === railPicksKey(storeRailsRendered[key])) continue;
+    storeRailsRendered[key] = picks;
+    for (const row of document.querySelectorAll(`[data-store-rail-row="${key}"]`)){
+      if (!picks.length){ const s = row.closest('section'); if (s) s.hidden = true; continue; }
+      row.innerHTML = picks.map((p, i) => railCardHTML(p,
+        `openStoreRailProduct('${jsAttr(key)}',${i})`,
+        `data-store-rail-card="${escapeHtml(key)}" data-idx="${i}"`)).join('')
+        + storeRailMoreHTML(key);
+    }
+  }
+  if (categoryZoneComputed){
+    await computeCategoryZonePicks(ofertasKeys);
+    for (const row of document.querySelectorAll('[data-category-rail-row]')){
+      if (row.children.length) paintCategoryRail(row);
+    }
+  }
+}
+
+let categoryZoneComputed = false;
+const railLoadPromises = {}; // rail key -> in-flight pick promise; one fetch per rail, shared by its rows
 function initStoreRails(){
   if (storeRailsStarted) return;
   const rows = [...document.querySelectorAll('[data-store-rail-row],[data-category-rail-row]')];
@@ -9749,38 +9956,42 @@ function initStoreRails(){
   const dealsRendered = (typeof mobileDealsRendered !== 'undefined' && Array.isArray(mobileDealsRendered))
     ? mobileDealsRendered : [];
   const ofertasKeys = new Set(dealsRendered.map(p => `${p.retailer || ''}::${p.title || ''}`));
-  relatedPool().then(pool => {
-    for (const key of STORE_RAIL_STORES){
-      storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
+  /* PERF (2026-09-28): picks are computed per rail, from just that
+     rail's data, when its section nears the viewport -- not from the
+     whole catalogue up front. The pick functions are untouched, so a
+     shelf shows exactly what it showed before; only the wait moved. */
+  const computeStorePicks = (key) => {
+    if (!railLoadPromises[key]){
+      railLoadPromises[key] = (async () => {
+        const pool = await poolForRetailers([key]);
+        storeRailsRendered[key] = storeRailPicks(key, saleItemsCache, pool, ofertasKeys);
+        return storeRailsRendered[key];
+      })().catch(() => (storeRailsRendered[key] = []));
     }
-    /* CATEGORY RAILS (2026-09-26, Danny): the front page's category
-       carousels mix every store's products by CATEGORY, not by store --
-       the same predicate the department page uses, so a rail never shows
-       what its department would refuse. Sale items lead, featured picks
-       fill; every card keeps its brand and its store badge. */
-    for (const cat of CATEGORY_RAILS){
-      const stores = cat.stores || Object.keys(departmentCacheData?.retailers || {});
-      const test = (p) => p && stores.indexOf(String(p.retailer || '').toLowerCase()) !== -1
-        && (!cat.test || cat.test(p));
-      /* Pool-only rails take the sale lead from the pool too: the pool is
-         the committed department cache, so the shelf matches the
-         department page exactly. */
-      const saleSrc = cat.poolOnly
-        ? (Array.isArray(pool) ? pool : [])
-        : (Array.isArray(saleItemsCache) ? saleItemsCache : []);
-      categoryRailsRendered[cat.key] = categoryRailPicks(stores,
-        saleSrc.filter(test),
-        (Array.isArray(pool) ? pool : []).filter(test),
-        ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null });
-    }
-    /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
-       The pills and the single rail render once the pool lands; an empty
-       shelf earns no pill. */
-    try { renderCategoryTabs(); } catch (e) {}
-    const paint = (row) => {
-      if (row.hasAttribute('data-category-rail-row')){ paintCategoryRail(row); return; }
+    return railLoadPromises[key];
+  };
+  /* CATEGORY RAILS (2026-09-26, Danny): the front page's category
+     carousels mix every store's products by CATEGORY, not by store --
+     the same predicate the department page uses, so a rail never shows
+     what its department would refuse. These rails genuinely need the
+     full pool; by the time the shopper scrolls here the store rails
+     above have already warmed most of it, so this fetches only the
+     rest. The pick computation lives in computeCategoryZonePicks so the
+     post-enrich repaint can reuse it. */
+  const computeCategoryZone = async () => {
+    if (categoryZoneComputed) return;
+    categoryZoneComputed = true;
+    await computeCategoryZonePicks(ofertasKeys);
+  };
+  const paint = async (row) => {
+    try {
+      if (row.hasAttribute('data-category-rail-row')){
+        await computeCategoryZone();
+        paintCategoryRail(row);
+        return;
+      }
       const key = row.getAttribute('data-store-rail-row');
-      const picks = storeRailsRendered[key] || [];
+      const picks = await computeStorePicks(key);
       /* An empty shelf is worse than none: the section hides instead
          of showing a store with nothing in its window. */
       if (!picks.length){ const s = row.closest('section'); if (s) s.hidden = true; return; }
@@ -9788,16 +9999,20 @@ function initStoreRails(){
         `openStoreRailProduct('${jsAttr(key)}',${i})`,
         `data-store-rail-card="${escapeHtml(key)}" data-idx="${i}"`)).join('')
         + storeRailMoreHTML(key);
-    };
-    if ('IntersectionObserver' in window){
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); } });
-      }, { rootMargin: '600px 0px' });
-      rows.forEach(r => io.observe(r));
-    } else {
-      rows.forEach(paint);
-    }
-  }).catch(() => { /* a failed pool leaves headers standing, cards absent */ });
+    } catch { /* a failed load leaves headers standing, cards absent */ }
+  };
+  if ('IntersectionObserver' in window){
+    /* About one viewport of lookahead: the data is already arriving by
+       the time the shelf scrolls into view. Rows above the fold fire at
+       once -- that is what makes the first screen fast instead of
+       everything-at-once slow. */
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ io.unobserve(e.target); paint(e.target); } });
+    }, { rootMargin: '1000px 0px' });
+    rows.forEach(r => io.observe(r));
+  } else {
+    rows.forEach(paint);
+  }
 }
 
 /* Department cards at rail scale, wearing the same curated covers as
@@ -9921,13 +10136,31 @@ function brandStripTileHTML(b){
     <span class="brandTile-count">${b.count} productos</span>
   </button>`;
 }
+let brandStripStarted = false;
 async function initBrandStrip(){
-  /* A failed pool leaves the strip empty, never a broken boot. */
-  try {
-    if (!departmentCacheData?.retailers) await relatedPool();
-    const html = brandStripBrands().map(brandStripTileHTML).join('');
-    document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
-  } catch { /* the shelf stays empty */ }
+  if (brandStripStarted) return;
+  const strips = [...document.querySelectorAll('[data-brand-strip]')];
+  if (!strips.length) return;
+  brandStripStarted = true;
+  /* PERF (2026-09-28): the strip aggregates six retailers -- fetch just
+     those, and only when it nears the viewport. It sits under the
+     category rails, so booting it eagerly cost six catalogue files. */
+  const load = async () => {
+    /* A failed pool leaves the strip empty, never a broken boot. */
+    try {
+      await poolForRetailers(BRAND_STRIP_RETAILERS);
+      const html = brandStripBrands().map(brandStripTileHTML).join('');
+      document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
+    } catch { /* the shelf stays empty */ }
+  };
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver((es) => {
+      es.forEach(e => { if (e.isIntersecting){ io.disconnect(); load(); } });
+    }, { rootMargin: '1000px 0px' });
+    strips.forEach(el => io.observe(el));
+  } else {
+    load();
+  }
 }
 
 /* ============================================================
@@ -10092,20 +10325,35 @@ function initFiestasRails(){
       if (!anyStanding) sec.hidden = true;
     });
   };
-  loadDepartmentCache().then(cache => {
-    for (const rail of FIESTAS_RAILS){
-      fiestasRailsRendered[rail.key] = fiestasRailPicks(rail.key, cache);
-    }
-    if ('IntersectionObserver' in window){
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); hideEmptyVertical(); } });
-      }, { rootMargin: '600px 0px' });
-      rows.forEach(r => io.observe(r));
-    } else {
-      rows.forEach(paint);
-      hideEmptyVertical();
-    }
-  }).catch(() => { /* a failed cache leaves headers standing, cards absent */ });
+  /* PERF (2026-09-28): Fiestas needs three retailers, not the whole
+     catalogue -- and not at boot either. The ~1.9MB of party catalogs
+     starts loading when the vertical nears the viewport; the picks are
+     computed once, then each sub-rail paints on its own lookahead. */
+  const load = () => {
+    ensureRetailers(['partycity', 'costco', 'samsclub']).then(cache => {
+      for (const rail of FIESTAS_RAILS){
+        fiestasRailsRendered[rail.key] = fiestasRailPicks(rail.key, cache);
+      }
+      if ('IntersectionObserver' in window){
+        const io = new IntersectionObserver((entries) => {
+          entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); hideEmptyVertical(); } });
+        }, { rootMargin: '600px 0px' });
+        rows.forEach(r => io.observe(r));
+      } else {
+        rows.forEach(paint);
+        hideEmptyVertical();
+      }
+    }).catch(() => { /* a failed cache leaves headers standing, cards absent */ });
+  };
+  const section = document.querySelector('[data-fiestas-section]');
+  if (section && 'IntersectionObserver' in window){
+    const sio = new IntersectionObserver((es) => {
+      es.forEach(e => { if (e.isIntersecting){ sio.disconnect(); load(); } });
+    }, { rootMargin: '1000px 0px' });
+    sio.observe(section);
+  } else {
+    load();
+  }
 }
 window.addEventListener('DOMContentLoaded', initFiestasRails);
 
@@ -10211,24 +10459,30 @@ function initBolsosRail(){
   const hideSection = () => {
     document.querySelectorAll('[data-bolsos-section]').forEach(sec => { sec.hidden = true; });
   };
-  const paint = (row) => {
-    row.innerHTML = bolsosRendered.map((p, i) => railCardHTML(p,
-      `openBolsosProduct(${i})`,
-      `data-bolsos-card="${i}"`)).join('');
+  const loadAndPaint = async () => {
+    try {
+      /* PERF (2026-09-28): the shelf mixes every store's handbags, so it
+         waits for the full catalogue -- but only once the shopper
+         scrolls near, not at boot. */
+      const cache = await loadDepartmentCache();
+      bolsosRendered = bolsosPicks(cache);
+      /* An empty shelf is worse than none: the section stands down. */
+      if (!bolsosRendered.length){ hideSection(); return; }
+      for (const row of rows){
+        row.innerHTML = bolsosRendered.map((p, i) => railCardHTML(p,
+          `openBolsosProduct(${i})`,
+          `data-bolsos-card="${i}"`)).join('');
+      }
+    } catch { /* a failed cache leaves headers standing, cards absent */ }
   };
-  loadDepartmentCache().then(cache => {
-    bolsosRendered = bolsosPicks(cache);
-    /* An empty shelf is worse than none: the section stands down. */
-    if (!bolsosRendered.length){ hideSection(); return; }
-    if ('IntersectionObserver' in window){
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => { if (e.isIntersecting){ paint(e.target); io.unobserve(e.target); } });
-      }, { rootMargin: '600px 0px' });
-      rows.forEach(r => io.observe(r));
-    } else {
-      rows.forEach(paint);
-    }
-  }).catch(() => { /* a failed cache leaves headers standing, cards absent */ });
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
+    }, { rootMargin: '1000px 0px' });
+    rows.forEach(r => io.observe(r));
+  } else {
+    loadAndPaint();
+  }
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
 
@@ -10280,11 +10534,16 @@ function initMobileShopfront(){
   if (mobileShopfrontStarted) return;
   if (!document.getElementById('mobileDealsRow')) return;
   mobileShopfrontStarted = true;
+  /* Skeletons first: the page has a body before it has data. */
+  try { paintRailSkeletons(); } catch (e) {}
   /* OFERTAS FIRST, then the store rails: the rails deprioritise what
      Ofertas already leads on, so they need its keys. */
   runSalesScan()
     .then(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); })
     .catch(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); });
+  /* The idle enrich scheduled inside runSalesScan doubles as the
+     background warm: it finishes loading the catalogue for search and
+     the deeper shelves. Every source is fetched once and shared. */
 }
 window.addEventListener('DOMContentLoaded', () => {
   initMobileShopfront();
@@ -11243,9 +11502,7 @@ function catalogEmptyStateHTML(){
    promise, so clearing that memo is the whole point of this function --
    calling openCatalog on its own would re-await the same failed result. */
 function retryCatalog(kind, key, retailerFilter){
-  departmentCachePromise = null;
-  departmentCacheData = null;
-  departmentCacheFailed = false;
+  resetCatalogState();
   openCatalog(kind, key, retailerFilter ? { retailerFilter } : {});
 }
 
@@ -12141,10 +12398,7 @@ function storeResultsGoBack(){
    tab that loaded before a catalogue published gets a second chance
    without a full page reload. */
 function retryStore(retailer){
-  departmentCachePromise = null;
-  departmentCacheData = null;
-  departmentCacheFailed = false;
-  relatedPoolCache = null;
+  resetCatalogState();
   openStore(retailer);
 }
 
@@ -15837,7 +16091,7 @@ function retailerBadgeHTML(retailer, heightPx = 28){
   // object-fit matters: a wordmark like Foot Locker's is ~9:1, so a
   // max-width of 4x the height used to squash it horizontally rather than
   // scale it. Contain keeps every logo in proportion at any size.
-  return `<img src="${logoFile}" alt="${escapeHtml(label)}" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle" onerror="handleLogoError(this, '${escapeHtml(retailer)}')">`;
+  return `<img src="${logoFile}" alt="${escapeHtml(label)}" loading="lazy" decoding="async" style="height:${heightPx}px; max-width:${heightPx * 8}px; object-fit:contain" class="inline-block align-middle" onerror="handleLogoError(this, '${escapeHtml(retailer)}')">`;
 }
 
 /* THE STORE DOORWAY (2026-09-25, Danny). The product page's store
@@ -22528,44 +22782,84 @@ async function fileBackedDeals(){
   return out;
 }
 
+/* Set once the file-backed markdowns have been folded into the deals
+   feed; the fast paint below must not be replayed. */
+let salesEnrichDone = false;
 async function runSalesScan(){
   await loadFxRate();
 
-  /* Deals from stores with a FILE rather than an actor. Fetched
-     alongside the cache, not after it, because a cold cache must not
-     mean an empty Ofertas when hundreds of real markdowns are sitting in
-     a committed catalogue. */
-  const fromFiles = await fileBackedDeals();
-
+  /* PERF (2026-09-28): Ofertas used to wait on the whole catalogue
+     (~90MB) before painting. Now the fast path paints from the deals
+     API alone; the file-backed markdowns fold in as the catalogue
+     streams in behind it. Same feed, same order -- the second paint
+     only ever ADDS markdowns the API did not know about. */
   // 1. Cache first — a visitor should never wait on a full live scrape
   //    when a real, recent scan already exists.
   let cached = null;
   try {
     const res = await fetchWithTimeout('/.netlify/functions/sales-cache', FETCH_DEADLINE_MS);
     if (res.ok) cached = await res.json();
-  } catch { /* fall through to a live scan */ }
+  } catch { /* fall through to the empty state below */ }
 
-  if (cached?.items?.length || fromFiles.length){
-    const scraped = (cached?.items || []).map(refreshCachedWeight);
+  if (cached?.items?.length){
+    const scraped = (cached.items || []).map(refreshCachedWeight);
     // One feed. The tier a store sits in on Tiendas has no say here:
     // an SSENSE markdown competes on the same row as a Walmart one.
-    saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+    saleItemsCache = scraped.filter(passesOfertasGate);
     salesGeneratedAt = cached?.generatedAt || null;
     salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
     renderSalesGrid();
-    return;
+  } else {
+    /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL.
+       This used to launch a twelve-actor live scan from the browser. It
+       now says plainly that the deals are being rebuilt — the scheduled
+       refresher is the only thing that runs an actor, and everything else
+       on the site (search, categories, the on-demand store search) still
+       works while this one section is waiting. */
+    saleItemsCache = [];
+    salesGeneratedAt = null;
+    salesStaleNote = '';
+    renderSalesGrid();
   }
+  /* The catalogue's own markdowns join the feed once it arrives -- on
+     idle, never at boot: the fast paint above is the whole point, and a
+     fresh API cache already carries these deals. The same idle pass
+     finishes loading the catalogue behind the shelves, so search and
+     the deeper sections find it warm. One extra paint, only when there
+     is something new to show. */
+  const enrichSoon = () => { enrichSalesFromCatalog().catch(() => {}); };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(enrichSoon, { timeout: 15000 });
+  else setTimeout(enrichSoon, 8000);
+}
 
-  /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL.
-     This used to launch a twelve-actor live scan from the browser. It
-     now says plainly that the deals are being rebuilt — the scheduled
-     refresher is the only thing that runs an actor, and everything else
-     on the site (search, categories, the on-demand store search) still
-     works while this one section is waiting. */
-  saleItemsCache = [];
-  salesGeneratedAt = null;
-  salesStaleNote = '';
-  renderSalesGrid();
+/* File-backed deals, folded in after the fast paint. fileBackedDeals()
+   reads the merged cache, so it costs nothing once the background warm
+   (or the shopper's scrolling) has loaded the catalogue. Additive and
+   deduplicated: a markdown already in the feed is never doubled. */
+async function enrichSalesFromCatalog(){
+  if (salesEnrichDone) return;
+  await loadDepartmentCache();
+  salesEnrichDone = true;
+  let fromFiles = [];
+  try { fromFiles = await fileBackedDeals(); } catch { return; }
+  if (!fromFiles.length) return;
+  const seen = new Set(saleItemsCache.map(p => `${p.retailer || ''}::${p.title || ''}::${p.price || ''}`));
+  let added = false;
+  for (const p of fromFiles){
+    const k = `${p.retailer || ''}::${p.title || ''}::${p.price || ''}`;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    saleItemsCache.push(p);
+    added = true;
+  }
+  if (added){
+    saleItemsCache = saleItemsCache.filter(passesOfertasGate);
+    renderSalesGrid();
+    try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
+    /* Shelves that painted before the markdowns arrived re-lead with
+       them, matching the old boot order exactly. */
+    await repaintRailsAfterEnrich();
+  }
 }
 
 function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100); }
