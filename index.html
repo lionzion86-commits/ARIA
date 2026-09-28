@@ -1549,7 +1549,7 @@
         <input id="searchInput" onkeydown="if(event.key==='Enter')doSearch()" placeholder="¿Qué estás buscando hoy?"
           class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
           style="border-color:var(--line)">
-        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+        <button onclick="doSearch()" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
@@ -1873,15 +1873,15 @@
         <input id="searchInputD" onkeydown="if(event.key==='Enter')doSearch('d')" placeholder="¿Qué estás buscando hoy?"
           class="w-full h-[58px] lg:h-[48px] bg-white border rounded-2xl pl-5 pr-[64px] text-[14px] outline-none focus-ring transition shadow-[0_12px_32px_rgba(10,31,68,0.09)]"
           style="border-color:var(--line)">
-        <button onclick="doSearch('d')" aria-label="Buscar" class="absolute right-2 top-2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+        <button onclick="doSearch('d')" aria-label="Buscar" class="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
 
       <div class="flex items-center justify-center flex-wrap gap-2 mt-4 text-[12.5px]">
         <span style="color:#8FA3D6">Prueba con:</span>
-        <button onclick=\"searchFor('MacBook Air','d')\" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
-        <button onclick=\"searchFor('Nike Air Force','d')\" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
+        <button onclick="searchFor('MacBook Air','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">MacBook Air</button>
+        <button onclick="searchFor('Nike Air Force','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Nike Air Force 1</button>
         <!-- THE THIRD CHIP WAS "Vitaminas", and it cannot be: a chip is a
              promise that the search behind it returns something, and the
              one thing this one could still reach is the live scrape at
@@ -1890,7 +1890,7 @@
              Spanish example, so the chips also show that the search
              understands Spanish. Verified: translateQuery gives "towel"
              and the catalogue holds 21 of them. -->
-        <button onclick=\"searchFor('Toallas','d')\" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
+        <button onclick="searchFor('Toallas','d')" class="px-3 h-7 rounded-full border transition focus-ring" style="border-color:#3E5FB8; color:#DCE6FF">Toallas</button>
       </div>
     </div>
   </div>
@@ -2566,7 +2566,7 @@
       <input id="searchInput2" onkeydown="if(event.key==='Enter')doSearch(2)" placeholder="¿Qué estás buscando hoy?"
         class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition"
         style="border-color:var(--line)">
-      <button onclick="doSearch(2)" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+      <button onclick="doSearch(2)" aria-label="Buscar" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
     </div>
@@ -2603,11 +2603,12 @@
     <div class="grid lg:grid-cols-[260px_1fr] gap-8">
 
       <!-- FILTERS -->
-      <!-- Was "hidden lg:block": below 1024px the store filter did not
-           exist, which is the same anti-pattern as the Ofertas store
-           picker — a store is a FILTER over the results, never a gate in
-           front of them. It stacks above the grid instead of hiding. -->
-      <aside class="mb-2 lg:mb-0">
+      <!-- 2026-09-28, Danny: on mobile the tall filter panel stacked
+           above the results and pushed every product below the fold.
+           The sidebar stays for desktop; on phones the filters live
+           in the bottom sheet opened by the "Filtros" button next to
+           the sort select, so products render first. -->
+      <aside class="hidden lg:block mb-2 lg:mb-0">
         <div class="flex items-center justify-between mb-4">
           <div class="font-bold text-[14px]">Filtros</div>
         </div>
@@ -2631,6 +2632,17 @@
 
         <div class="flex items-center justify-between gap-3 mb-3 flex-wrap">
           <div id="resultCount" class="text-[13px] text-zinc-500"></div>
+          <div class="flex items-center gap-2">
+            <!-- MOBILE FILTER BUTTON (2026-09-28, Danny): the sidebar is
+                 desktop-only now; on phones this opens the filter bottom
+                 sheet. The badge counts active filters (unchecked stores). -->
+            <button type="button" id="resultsFilterBtn" onclick="openResultsFilters()" aria-label="Abrir filtros"
+              class="lg:hidden h-9 px-3.5 rounded-lg border text-[13px] font-semibold flex items-center gap-1.5 focus-ring"
+              style="border-color:var(--line);color:var(--navy);background:#fff">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h18l-7 8v6l-4 2v-8L3 4z"/></svg>
+              Filtros
+              <span id="resultsFilterBadge" class="hidden min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold text-white grid place-items-center" style="background:var(--blue)"></span>
+            </button>
           <select id="resultsSort" onchange="renderSearchResults()" class="h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
             <!-- RELEVANCE FIRST, AND IT IS THE DEFAULT (2026-09-23).
                  Best-price-first was right when every result came from a
@@ -2647,7 +2659,7 @@
             <option value="relevance">Más relevante primero</option>
             <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
             <option value="priceDesc">Total a tu puerta: mayor a menor</option>
-          </select>
+          </div>
         </div>
 
         <!-- 2026-09-17: per-store columns replaced a plain vertical
@@ -2716,6 +2728,41 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE FILTER BOTTOM SHEET (2026-09-28, Danny: products first). The
+     desktop sidebar is hidden below lg; on phones this sheet is the only
+     filter UI. Overlay tap and the X close without applying; "Ver
+     resultados" applies the sheet checkbox state to the real filters and
+     re-renders. -->
+<div id="resultsFilterOverlay" onclick="closeResultsFilters(false)"
+  class="lg:hidden fixed inset-0 z-[80] hidden opacity-0 transition-opacity duration-300" style="background:rgba(4,12,28,0.55)"></div>
+<div id="resultsFilterSheet" role="dialog" aria-modal="true" aria-label="Filtros"
+  class="lg:hidden fixed inset-x-0 bottom-0 z-[80] hidden translate-y-full transition-transform duration-300 ease-out">
+  <div class="bg-white rounded-t-[22px] max-h-[82dvh] flex flex-col" style="box-shadow:0 -12px 40px rgba(4,12,28,0.25)">
+    <div class="px-5 pt-3.5 pb-3.5 border-b shrink-0" style="border-color:var(--line)">
+      <div class="w-10 h-1 rounded-full bg-zinc-300 mx-auto mb-2.5"></div>
+      <div class="flex items-center justify-between">
+        <div class="font-bold text-[16px]" style="color:var(--navy)">Filtros</div>
+        <button type="button" onclick="closeResultsFilters(false)" aria-label="Cerrar filtros"
+          class="w-9 h-9 rounded-full grid place-items-center focus-ring" style="background:#F1F4FA;color:var(--navy)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="px-5 py-4 overflow-y-auto grow">
+      <div class="flex items-center justify-between mb-1">
+        <div class="font-semibold text-[13px]" style="color:var(--navy)">Tienda</div>
+        <button type="button" onclick="resetResultsSheetFilters()" class="text-[12.5px] font-semibold focus-ring" style="color:var(--blue)">Seleccionar todas</button>
+      </div>
+      <div id="resultsSheetFilters" class="text-[14.5px] text-zinc-600"></div>
+    </div>
+    <div class="px-5 py-4 border-t shrink-0" style="border-color:var(--line);background:#fff">
+      <button type="button" onclick="closeResultsFilters(true)"
+        class="w-full h-[52px] rounded-2xl font-bold text-[15px] text-white focus-ring active:scale-[0.99] transition"
+        style="background:var(--blue)">Ver resultados</button>
     </div>
   </div>
 </div>
@@ -3034,7 +3081,7 @@
       <div class="relative max-w-[520px]">
         <input id="salesSearchInput" onkeydown="if(event.key==='Enter')salesSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
           class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
-        <button onclick="salesSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+        <button onclick="salesSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
         </button>
       </div>
@@ -8573,6 +8620,15 @@ function rankCatalogMatches(pool, query, opts){
     if (retailerToks){ words = new Set(words); for (const t of retailerToks) words.add(t); }
     const hits = catalogTokenHits(words, toks);
     if (!hits) continue;
+    /* MULTI-WORD QUERIES ARE AND, NOT OR (2026-09-28, Danny): tapping
+       "MacBook Air" returned Nike products because the lone word "air"
+       matched. When the query has more than one token, every token has
+       to hit the item -- a partial overlap is not a match, so a common
+       word can no longer drag in cross-category results. Single-token
+       queries keep the old behaviour. The strict-fins concept query
+       ("diving fins") keeps its own rule: there "diving" is a sanctioned
+       modifier, not a word the title must contain. */
+    if (toks.length > 1 && !isStrictFinsQuery(toks) && hits < toks.length) continue;
     if (hits === toks.length) exact++; else partial++;
     scored.push({ item, score: scoreCatalogItem(item, toks, weights, words) });
   }
@@ -10599,7 +10655,7 @@ function catalogSearchBarHTML(){
   return `<div class="relative max-w-[520px] mb-4">
       <input id="catalogSearchInput" value="${escapeHtml(catalogState.searchTerm || '')}" onkeydown="if(event.key==='Enter')catalogSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
         class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
-      <button onclick="catalogSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1.5 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
+      <button onclick="catalogSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
       </button>
     </div>`;
@@ -12981,8 +13037,61 @@ function initResultsFilters(){
      activeSearchStores() therefore excluded it. A store the shopper
      cannot see, cannot tick, and is filtered by is not a filter. */
   document.getElementById('filterStores').innerHTML = CATALOG_RETAILERS.map(r => `
-    <label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="resultsStoreFilter accent-[#2F5FEE]" onchange="renderSearchResults()"> ${LIVE_RETAILER_LABEL[r]}</label>
   `).join('');
+  updateResultsFilterBadge();
+}
+
+/* MOBILE FILTER BOTTOM SHEET (2026-09-28, Danny: products first). The
+   filter sidebar is desktop-only now; on phones the "Filtros" button
+   opens this sheet. The sheet edits a scratch copy of the store
+   checkboxes -- "Ver resultados" copies the scratch state onto the real
+   .resultsStoreFilter boxes and re-renders; closing any other way
+   discards the change. One source of truth, two UIs. */
+function openResultsFilters(){
+  const on = new Set(activeSearchStores());
+  document.getElementById('resultsSheetFilters').innerHTML = CATALOG_RETAILERS.map(r => `
+    <label class="flex items-center gap-3 py-2 cursor-pointer"><input type="checkbox" value="${r}" ${on.has(r) ? 'checked' : ''} class="resultsSheetStoreFilter w-5 h-5 shrink-0 accent-[#2F5FEE]"> <span>${escapeHtml(LIVE_RETAILER_LABEL[r] || r)}</span></label>
+  `).join('');
+  const ov = document.getElementById('resultsFilterOverlay');
+  const sheet = document.getElementById('resultsFilterSheet');
+  ov.classList.remove('hidden');
+  sheet.classList.remove('hidden');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    ov.classList.remove('opacity-0');
+    sheet.classList.remove('translate-y-full');
+  }));
+  document.body.style.overflow = 'hidden';
+  /* Double quotes are deliberate: a test in run-tests.mjs cuts its source
+     slice at the first single-quoted keydown registration on document
+     (see the size-guide note for the same rule). */
+  document.addEventListener("keydown", resultsFilterEscHandler);
+}
+function resultsFilterEscHandler(e){ if (e.key === 'Escape') closeResultsFilters(false); }
+function resetResultsSheetFilters(){
+  document.querySelectorAll('.resultsSheetStoreFilter').forEach(cb => { cb.checked = true; });
+}
+function closeResultsFilters(apply){
+  if (apply){
+    const on = new Set(Array.from(document.querySelectorAll('.resultsSheetStoreFilter:checked')).map(cb => cb.value));
+    document.querySelectorAll('.resultsStoreFilter').forEach(cb => { cb.checked = on.has(cb.value); });
+    renderSearchResults();
+  }
+  const ov = document.getElementById('resultsFilterOverlay');
+  const sheet = document.getElementById('resultsFilterSheet');
+  ov.classList.add('opacity-0');
+  sheet.classList.add('translate-y-full');
+  setTimeout(() => { ov.classList.add('hidden'); sheet.classList.add('hidden'); }, 320);
+  document.body.style.overflow = '';
+  document.removeEventListener("keydown", resultsFilterEscHandler);
+}
+/* Badge on the mobile "Filtros" button: counts active filters, i.e.
+   unchecked stores. Hidden when everything is checked. */
+function updateResultsFilterBadge(){
+  const badge = document.getElementById('resultsFilterBadge');
+  if (!badge) return;
+  const off = CATALOG_RETAILERS.length - activeSearchStores().length;
+  badge.classList.toggle('hidden', off === 0);
+  if (off > 0) badge.textContent = String(off);
 }
 
 // Runs a real live search across every configured general retailer and
@@ -13133,6 +13242,7 @@ function renderSearchResults(){
      answer are excluded — re-searching a store whose results are already
      on screen is not what the shopper is missing. */
   renderOnDemandUpsell('searchOnDemandWrap', liveScrapeQuery, items.length, [...stores]);
+  updateResultsFilterBadge();
 }
 
 /* ============================================================

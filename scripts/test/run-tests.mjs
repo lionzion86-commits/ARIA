@@ -7402,16 +7402,70 @@ group("Search answers from the catalogue first");
   });
 
   check("thin is counted in FULL matches, never in the total", () => {
-    /* The catalogue holds no Air Force and twelve Nikes. Twelve results
-       with zero full matches is exactly when the live offer has to be
+    /* The catalogue holds no Air Force and twelve Nikes. Since 2026-09-28
+       multi-word queries are AND, not OR (Danny: "MacBook Air" must never
+       return Nike shoes), so the twelve partials are not results at all --
+       and zero full matches is exactly when the live offer has to be
        loud, so the count that decides it cannot be the total. */
     const pool = Array.from({ length: 12 }, (_, i) => P(`Nike thing ${i}`, "Nike"));
     const res = cs.rankCatalogMatches(pool, "nike air force", {});
     if (res.exact !== 0) throw new Error("something matched all of 'nike air force'");
-    if (res.partial !== 12) throw new Error(`expected 12 partial matches, got ${res.partial}`);
-    if (!cs.catalogResultsAreThin(res)) throw new Error("12 partial matches and 0 full ones did not read as thin");
+    if (res.items.length !== 0) throw new Error(`partial matches leaked into the feed: ${res.items.length}`);
+    if (res.partial !== 0) throw new Error(`expected 0 partial matches, got ${res.partial}`);
+    if (!cs.catalogResultsAreThin(res)) throw new Error("0 full matches did not read as thin");
     const solid = cs.rankCatalogMatches(Array.from({ length: 4 }, (_, i) => P(`Cargo Pants ${i}`)), "pants", {});
     if (cs.catalogResultsAreThin(solid)) throw new Error("4 full matches read as thin");
+  });
+
+  check("multi-word queries are AND, not OR -- MacBook Air never returns Nike", () => {
+    /* REPORTED LIVE 2026-09-28 (Danny): tapping the "MacBook Air" pill
+       returned Nike products, because the lone word "air" matched. A
+       multi-word query now requires EVERY token to hit the item, so a
+       common word can no longer drag in cross-category results.
+       "Nike Air Force" likewise answers with Air Force products only,
+       not every Nike Air. */
+    const pool = [
+      P("Apple MacBook Air 13-inch Laptop M2", "Apple"),
+      P("Apple MacBook Air 15-inch Laptop M3", "Apple"),
+      P("Nike Air Force 1 Sneakers", "Nike"),
+      P("Nike Air Max 90", "Nike"),
+    ];
+    const mac = cs.rankCatalogMatches(pool, "macbook air", {}).items.map((i) => i.title);
+    if (mac.length !== 2 || !mac.every((t) => /MacBook/i.test(t)))
+      throw new Error(`"macbook air" leaked cross-category: ${JSON.stringify(mac)}`);
+    const naf = cs.rankCatalogMatches(pool, "nike air force", {}).items.map((i) => i.title);
+    if (naf.length !== 1 || !/Air Force/.test(naf[0]))
+      throw new Error(`"nike air force" leaked generic Nike Air: ${JSON.stringify(naf)}`);
+    // Single-token queries keep the old behaviour.
+    const nike = cs.rankCatalogMatches(pool, "nike", {}).items.map((i) => i.title);
+    if (nike.length !== 2) throw new Error(`single-token "nike" changed behaviour: ${nike.length}`);
+  });
+
+  check("mobile search filters live in a bottom sheet, not a tall panel", () => {
+    /* REPORTED LIVE 2026-09-28 (Danny): on phones the search results view
+       opened with a tall filter panel (blue background, brand checkboxes
+       down the left) and the shopper had to scroll past all of it to
+       reach the first product. Same disease PR #152 cured on the
+       categories view. On mobile the filters now live behind a "Filtros"
+       button that slides up a bottom sheet; the desktop sidebar stays. */
+    const html = readFileSync(root("index.html"), "utf8");
+    if (!/<aside class="hidden lg:block/.test(html)) {
+      throw new Error("the results filter aside is not desktop-only; it stacks above the products on phones again");
+    }
+    const btnAt = html.indexOf('id="resultsFilterBtn"');
+    const btnTag = btnAt < 0 ? "" : html.slice(btnAt, html.indexOf(">", btnAt));
+    if (btnAt < 0 || !/lg:hidden/.test(btnTag) || !/openResultsFilters\(\)/.test(btnTag)) {
+      throw new Error("no mobile-only Filtros button opening the sheet");
+    }
+    if (!/id="resultsFilterSheet"/.test(html)) throw new Error("the filter bottom sheet markup is gone");
+    if (!/id="resultsFilterOverlay"/.test(html)) throw new Error("the sheet overlay is gone");
+    if (!/closeResultsFilters\(true\)/.test(html)) throw new Error("the sheet has no apply action");
+    for (const fn of ["openResultsFilters", "closeResultsFilters", "updateResultsFilterBadge", "resetResultsSheetFilters"]) {
+      if (!new RegExp(`function ${fn}\\(`).test(html)) throw new Error(`${fn} is not defined`);
+    }
+    // The sheet must start translated off-screen and toggle, not render open.
+    const sheet = html.slice(html.indexOf('id="resultsFilterSheet"'), html.indexOf('id="resultsFilterSheet"') + 400);
+    if (!/translate-y-full/.test(sheet)) throw new Error("the sheet does not start off-screen");
   });
 
   check("an accented word is one token, not two", () => {
@@ -7529,10 +7583,11 @@ check("an item's own category is read three ways, and each one matters", () => {
   });
 
   check("the feed is capped, and the cap keeps the best", () => {
-    const pool = [...Array.from({ length: 200 }, (_, i) => P(`Pants ${i}`)), P("Cargo Pants", "Nike")];
+    const pool = [...Array.from({ length: 200 }, (_, i) => P(`Nike Pants ${i}`, "Nike")), P("Cargo Pants", "Adidas")];
     const res = cs.rankCatalogMatches(pool, "nike pants", {});
     if (res.items.length !== cs.CATALOG_SEARCH_LIMIT) throw new Error(`cap is ${cs.CATALOG_SEARCH_LIMIT}, got ${res.items.length}`);
     if (res.items[0].brand !== "Nike") throw new Error("the cap dropped the best match");
+    if (res.items.some((i) => i.brand === "Adidas")) throw new Error("a partial match survived the AND gate");
   });
 }
 
