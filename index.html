@@ -23175,7 +23175,7 @@ function hideGreetBubble(){
   setTimeout(hideGreetBubble, 12000);
 })();
 
-function addAssistantMessage(role, text, audioBase64){
+function addAssistantMessage(role, text, audioBase64, opts){
   const wrap = document.getElementById('assistantMessages');
   const bubble = document.createElement('div');
   if (role === 'bot') {
@@ -23189,7 +23189,12 @@ function addAssistantMessage(role, text, audioBase64){
   }
   wrap.appendChild(bubble);
   wrap.scrollTop = wrap.scrollHeight;
-  if (role === 'bot') speakAssistantReply(text, audioBase64);
+  /* ERRORS ARE SEEN, NOT HEARD (2026-09-27, Danny: the mic "confuses
+     itself"). Speaking "Tuve un problema..." aloud lets the reopened mic
+     transcribe Aria's own voice as a brand-new user turn — a self-feeding
+     confusion loop. The bubble carries the error; the mic reopens so the
+     retry can come by voice. */
+  if (role === 'bot' && (!opts || opts.speak !== false)) speakAssistantReply(text, audioBase64);
 }
 
 /* ONE SPEAK PATH, whether the reply landed in one piece or was streamed
@@ -23204,7 +23209,7 @@ function addAssistantMessage(role, text, audioBase64){
    Spanish voice, reopening the mic when the utterance ends under the same
    half-duplex contract as Ara's audio. */
 function speakText(text){
-  const reopen = () => { if (continuousMode && !assistantThinking) startListening(); };
+  const reopen = () => { if (continuousMode && !assistantThinking) { echoGuardUntil = Date.now() + 800; startListening(); } };
   try {
     if (!('speechSynthesis' in window) || !text) { setTimeout(reopen, 400); return; }
     window.speechSynthesis.cancel();
@@ -23224,6 +23229,7 @@ function speakAssistantReply(text, audioBase64){
      shopper's reaction while she is talking. Each speak path reopens it
      when the audio actually ends. */
   intentionalStop = true;
+  intentionalStopAt = Date.now();
   clearSpeechCapTimer();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   setAssistantMicState(false);
@@ -23394,7 +23400,7 @@ async function streamAssistantReply(payload, sink){
       body: JSON.stringify(payload),
       signal: ctrl.signal,
     });
-  } catch { clearTimeout(abortTimer); return null; }
+  } catch { clearTimeout(abortTimer); streamAssistantReply.timedOut = ctrl.signal.aborted; return null; }
   if (!res.ok || !res.body || typeof res.body.getReader !== 'function') { clearTimeout(abortTimer); return null; }
   if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) { clearTimeout(abortTimer); return null; }
 
@@ -23865,6 +23871,7 @@ async function runAssistantBrain(text){
      intentionalStop keeps onend from treating this as an accidental drop
      and reopening the mic behind our back. */
   intentionalStop = true;
+  intentionalStopAt = Date.now();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   setAssistantMicState(false);
   loadFxRate(); // kick off/reuse the memoized fetch; addAssistantProductCard awaits it below before rendering a price
@@ -23977,6 +23984,16 @@ async function runAssistantBrain(text){
        the bubble, so the two never overlap and nothing jumps. */
     const sink = beginAssistantReply();
     let streamed = sink ? await streamAssistantReply(payload, sink) : null;
+    /* COLD-START RETRY (2026-09-27, Danny: replies kept dying with
+       "Tuve un problema..." on first use). A 25s stream timeout almost
+       always means a cold function, not a dead one — and the timed-out
+       request warmed it, so one immediate retry lands on warm infra
+       instead of failing over to the buffered endpoint (a second cold
+       function) and burning another 25s. */
+    if (!streamed && sink && streamAssistantReply.timedOut) {
+      streamAssistantReply.timedOut = false;
+      streamed = await streamAssistantReply(payload, sink);
+    }
 
     if (!streamed) {
       /* NOTHING WAS RENDERED (the endpoint is not deployed, the browser
@@ -23987,27 +24004,36 @@ async function runAssistantBrain(text){
       /* The buffered fallback gets the same 25s budget -- a hung
          fallback is the freeze this whole brief is about. On timeout
          the shopper gets the existing retry line, not a spinner. */
-      const fallCtrl = new AbortController();
-      const fallTimer = setTimeout(() => fallCtrl.abort(), 25000);
-      let res;
-      try {
-        res = await fetch('/.netlify/functions/aria-chat-groq', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-          signal: fallCtrl.signal,
-        });
-      } catch {
-        clearTimeout(fallTimer);
+      /* COLD-START RETRY (2026-09-27): same as the stream — a 25s timeout
+         is a cold function, and the dead attempt warmed it. One immediate
+         retry; a genuine network failure (not our timer) still errors fast. */
+      let res = null;
+      for (let attempt = 0; attempt < 2 && !res; attempt++) {
+        const fallCtrl = new AbortController();
+        const fallTimer = setTimeout(() => fallCtrl.abort(), 25000);
+        try {
+          res = await fetch('/.netlify/functions/aria-chat-groq', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            signal: fallCtrl.signal,
+          });
+        } catch (e) {
+          res = null;
+          if (!fallCtrl.signal.aborted) break; /* real network failure — no retry */
+        } finally {
+          clearTimeout(fallTimer);
+        }
+      }
+      if (!res) {
         hideAssistantTyping();
-        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
     reopenMicForRetry();
         return;
       }
-      clearTimeout(fallTimer);
       if (!res.ok) {
         hideAssistantTyping();
-        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?');
+        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
     reopenMicForRetry();
         return;
       }
@@ -24037,7 +24063,7 @@ async function runAssistantBrain(text){
 
   } catch (err) {
     hideAssistantTyping();
-    addAssistantMessage('bot', 'Tuve un problema con la conexión, ¿intentamos de nuevo?');
+    addAssistantMessage('bot', 'Tuve un problema con la conexión, ¿intentamos de nuevo?', null, { speak: false });
     reopenMicForRetry();
   } finally {
     clearTimeout(progressTimer);
@@ -24119,6 +24145,9 @@ function clearSilenceTimer(){
    speaking); only a manual tap or a goodbye closes it.
    ================================================================== */
 let speechBuffer = '';   // final segments accumulated for the current turn
+let echoGuardUntil = 0;  // ECHO GUARD (2026-09-27): results before this timestamp are her own speaker tail, not the shopper
+let intentionalStopAt = 0; // STALE-SESSION GUARD (2026-09-27): last deliberate stop() time
+let lastStartAt = 0;       // last time start() actually began a session
 let lastSpeechAt = 0;    // timestamp of the last speech activity
 
 /* "Aria" is routinely transcribed as "area" (2026-09-27: Danny said
@@ -24152,6 +24181,7 @@ function endTurnAndSend(){
   clearSilenceTimer();
   clearSpeechCapTimer();
   intentionalStop = true;
+  intentionalStopAt = Date.now();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
@@ -24297,6 +24327,23 @@ function spokenPunctuationToMarks(text){
 }
 
 recognition.onresult = (e) => {
+  /* ECHO GUARD (2026-09-27, Danny: the mic "confuses itself"). The first
+     instants after her voice stops can still carry the speaker's tail
+     through the mic — results inside the guard window are her echo, not
+     the shopper, and are dropped before they can touch the silence timer
+     or the speech buffer. Stragglers arriving after a deliberate stop are
+     equally stale (see STALE-SESSION GUARD below): the turn they belonged
+     to already shipped, and keeping them would re-send it as a phantom turn. */
+  if (Date.now() < echoGuardUntil) return;
+  /* STALE-SESSION GUARD (2026-09-27). A stop() issued after the latest
+     start() means this result is a straggler from the deliberately
+     closed session — the turn it belonged to already shipped, so it is
+     dropped instead of re-shipping as a phantom turn. This used to be a
+     plain boolean, which stuck: the stop() inside speakAssistantReply is
+     usually a no-op that never produces onend, so the flag was never
+     cleared for the next session and the mic sat "on" transcribing
+     nothing. Timestamps cannot stick — a fresh start() always wins. */
+  if (intentionalStopAt > lastStartAt) return;
   const result = e.results[e.results.length - 1];
   const transcript = normalizeAriaName(result[0].transcript);
 
@@ -24377,7 +24424,7 @@ recognition.onend = () => {
 
 function startListening(){
   if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
-  try { recognition.start(); } catch(e) { /* already listening */ }
+  try { recognition.start(); lastStartAt = Date.now(); } catch(e) { /* already listening */ }
 }
 
 function toggleContinuousMode(){
@@ -24415,7 +24462,10 @@ function speakWithAria(audioBase64, ariaText){
          and STAYS open — an empty silence window no longer kills the
          listen, so the shopper gets a real window to react. Tap the mic
          to mute; the 2-minute cap is the backstop. */
-      if (continuousMode && !assistantThinking) startListening();
+      if (continuousMode && !assistantThinking) {
+        echoGuardUntil = Date.now() + 800; /* her speaker tail, not the shopper */
+        startListening();
+      }
     };
     ariaAudioPlayer.onpause = () => { if (orbState === 'speaking') setOrbState('idle'); };
     ariaAudioPlayer.onerror = () => setOrbState('idle');
