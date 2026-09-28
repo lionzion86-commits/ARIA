@@ -3049,11 +3049,11 @@
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
 
       <!-- SALES FILTERS -->
-      <!-- Was "hidden lg:block": below 1024px the store filter did not
-           exist at all, and picking a store on mobile meant going through
-           the store-picker page that Ofertas no longer lands on. Same fix
-           as categoriesView — it stacks above the grid instead of hiding. -->
-      <aside class="mb-2 lg:mb-0">
+      <!-- Desktop: sidebar. Below lg the sidebar is hidden and the
+           "Filtros" button opens a bottom sheet instead (2026-09-28,
+           Danny iPhone QA: the stacked checkbox list pushed the products
+           two screens down on mobile). -->
+      <aside class="mb-2 lg:mb-0 hidden lg:block">
         <div class="flex items-center justify-between mb-4">
           <div class="font-bold text-[14px] text-white">Filtros</div>
         </div>
@@ -3066,8 +3066,16 @@
       </aside>
 
       <!-- SALES GRID -->
-      <div>
+      <!-- WHITE PANEL (2026-09-28, Danny iPhone QA): the navy board made
+           the dark card text unreadable — prices and descriptions vanished
+           into the background. The grid sits on white again; the navy
+           stays on the page chrome (banner, search, filters). -->
+      <div class="rounded-2xl bg-white p-4 sm:p-5">
         <div class="flex items-center justify-between mb-4 gap-3">
+          <button type="button" onclick="openSalesFilters()" class="lg:hidden h-9 px-4 rounded-lg border text-[13px] font-bold focus-ring inline-flex items-center gap-2" style="border-color:var(--line);color:var(--navy);background:#fff">
+            Filtros
+            <span id="salesFilterBadge" class="hidden min-w-[20px] h-5 px-1 rounded-full text-[11px] font-extrabold grid place-items-center text-white" style="background:var(--blue)"></span>
+          </button>
           <select id="salesSort" onchange="renderSalesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
             <option value="discount">Mayor descuento</option>
             <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
@@ -3080,6 +3088,41 @@
       </div>
     </div>
     </div><!-- /ofertas board -->
+  </div>
+</div>
+
+<!-- MOBILE FILTER BOTTOM SHEET (2026-09-28, Danny: products first). Same
+     pattern as the search results sheet (PR #156): the desktop sidebar is
+     hidden below lg; on phones this sheet is the only filter UI. Overlay
+     tap and the X close without applying; "Ver resultados" applies the
+     sheet checkbox state to the real filters and re-renders. -->
+<div id="salesFilterOverlay" onclick="closeSalesFilters(false)"
+  class="lg:hidden fixed inset-0 z-[80] hidden opacity-0 transition-opacity duration-300" style="background:rgba(4,12,28,0.55)"></div>
+<div id="salesFilterSheet" role="dialog" aria-modal="true" aria-label="Filtros"
+  class="lg:hidden fixed inset-x-0 bottom-0 z-[80] hidden translate-y-full transition-transform duration-300 ease-out">
+  <div class="bg-white rounded-t-[22px] max-h-[82dvh] flex flex-col" style="box-shadow:0 -12px 40px rgba(4,12,28,0.25)">
+    <div class="px-5 pt-3.5 pb-3.5 border-b shrink-0" style="border-color:var(--line)">
+      <div class="w-10 h-1 rounded-full bg-zinc-300 mx-auto mb-2.5"></div>
+      <div class="flex items-center justify-between">
+        <div class="font-bold text-[16px]" style="color:var(--navy)">Filtros</div>
+        <button type="button" onclick="closeSalesFilters(false)" aria-label="Cerrar filtros"
+          class="w-9 h-9 rounded-full grid place-items-center focus-ring" style="background:#F1F4FA;color:var(--navy)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
+        </button>
+      </div>
+    </div>
+    <div class="px-5 py-4 overflow-y-auto grow">
+      <div class="flex items-center justify-between mb-1">
+        <div class="font-semibold text-[13px]" style="color:var(--navy)">Tienda</div>
+        <button type="button" onclick="resetSalesSheetFilters()" class="text-[12.5px] font-semibold focus-ring" style="color:var(--blue)">Seleccionar todas</button>
+      </div>
+      <div id="salesSheetFilters" class="text-[14.5px] text-zinc-600"></div>
+    </div>
+    <div class="px-5 py-4 border-t shrink-0" style="border-color:var(--line);background:#fff">
+      <button type="button" onclick="closeSalesFilters(true)"
+        class="w-full h-[52px] rounded-2xl font-bold text-[15px] text-white focus-ring active:scale-[0.99] transition"
+        style="background:var(--blue)">Ver resultados</button>
+    </div>
   </div>
 </div>
 
@@ -21911,6 +21954,55 @@ function initSalesFilters(){
   ).join('');
 }
 
+/* MOBILE FILTER BOTTOM SHEET for the Ofertas page (2026-09-28, Danny:
+   products first on mobile). Same pattern as the search results sheet:
+   the sheet edits a scratch copy of the store checkboxes — "Ver
+   resultados" copies the scratch state onto the real .salesStoreFilter
+   boxes and re-renders; closing any other way discards the change. */
+function openSalesFilters(){
+  const on = new Set(Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value));
+  document.getElementById('salesSheetFilters').innerHTML = CATALOG_RETAILERS.map(r => `
+    <label class="flex items-center gap-3 py-2 cursor-pointer"><input type="checkbox" value="${r}" ${on.has(r) ? 'checked' : ''} class="salesSheetStoreFilter w-5 h-5 shrink-0 accent-[#2F5FEE]"> <span>${escapeHtml(LIVE_RETAILER_LABEL[r] || r)}</span></label>
+  `).join('');
+  const ov = document.getElementById('salesFilterOverlay');
+  const sheet = document.getElementById('salesFilterSheet');
+  ov.classList.remove('hidden');
+  sheet.classList.remove('hidden');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    ov.classList.remove('opacity-0');
+    sheet.classList.remove('translate-y-full');
+  }));
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', salesFilterEscHandler);
+}
+function salesFilterEscHandler(e){ if (e.key === 'Escape') closeSalesFilters(false); }
+function resetSalesSheetFilters(){
+  document.querySelectorAll('.salesSheetStoreFilter').forEach(cb => { cb.checked = true; });
+}
+function closeSalesFilters(apply){
+  if (apply){
+    const on = new Set(Array.from(document.querySelectorAll('.salesSheetStoreFilter:checked')).map(cb => cb.value));
+    document.querySelectorAll('.salesStoreFilter').forEach(cb => { cb.checked = on.has(cb.value); });
+    renderSalesGrid();
+  }
+  const ov = document.getElementById('salesFilterOverlay');
+  const sheet = document.getElementById('salesFilterSheet');
+  ov.classList.add('opacity-0');
+  sheet.classList.add('translate-y-full');
+  setTimeout(() => { ov.classList.add('hidden'); sheet.classList.add('hidden'); }, 320);
+  document.body.style.overflow = '';
+  document.removeEventListener('keydown', salesFilterEscHandler);
+}
+/* Badge on the mobile "Filtros" button: counts unchecked stores. Hidden
+   when everything is checked. */
+function updateSalesFilterBadge(){
+  const badge = document.getElementById('salesFilterBadge');
+  if (!badge) return;
+  const off = CATALOG_RETAILERS.length - document.querySelectorAll('.salesStoreFilter:checked').length;
+  badge.classList.toggle('hidden', off === 0);
+  if (off > 0) badge.textContent = String(off);
+}
+
 // BUG FIX (2026-09-17): "Categorías" used to just scroll to the homepage's
 // small teaser grid — this is a real page with its own sort (name/product
 // count) and store filter, same UI pattern as the Ofertas page. Built from
@@ -22541,6 +22633,7 @@ function renderSalesGrid(){
     ? `${items.length} oferta${items.length === 1 ? '' : 's'} real${items.length === 1 ? '' : 'es'}`
     : '';
   renderSalesFreshness();
+  updateSalesFilterBadge();
 }
 
 initSalesFilters();
