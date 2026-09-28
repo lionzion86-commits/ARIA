@@ -9998,6 +9998,17 @@ const railLoadPromises = {}; // rail key -> in-flight pick promise; one fetch pe
 function initStoreRails(){
   if (storeRailsStarted) return;
   const rows = [...document.querySelectorAll('[data-store-rail-row],[data-category-rail-row]')];
+  /* TABBED CATEGORY BROWSER (2026-09-28): the [data-category-rail-row]
+     featured rails all live inside [hidden] sections, which an
+     IntersectionObserver can never see -- so they can never be the trigger
+     for the zone computation. The tabbed browser's own rails are always in
+     normal flow, so they take over as the trigger: when the shopper nears
+     "Compra por categoría", the zone computes and renderCategoryTabs()
+     paints the pills plus this very rail. */
+  for (const tabRailId of ['mCategoryTabRail', 'dCategoryTabRail']){
+    const tabRail = document.getElementById(tabRailId);
+    if (tabRail && rows.indexOf(tabRail) === -1) rows.push(tabRail);
+  }
   if (!rows.length) return;
   storeRailsStarted = true;
   /* Ofertas paints before this runs (see initMobileShopfront), so the
@@ -10034,6 +10045,12 @@ function initStoreRails(){
   };
   const paint = async (row) => {
     try {
+      if (row.id === 'mCategoryTabRail' || row.id === 'dCategoryTabRail'){
+        /* The tabbed browser's own rail: computing the zone paints its
+           pills and replaces this rail's skeletons via renderCategoryTabs. */
+        await computeCategoryZone();
+        return;
+      }
       if (row.hasAttribute('data-category-rail-row')){
         await computeCategoryZone();
         paintCategoryRail(row);
