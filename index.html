@@ -1428,7 +1428,7 @@
     <a href="#" onclick="showPage('howView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Cómo funciona</a>
     <a href="#" onclick="openCategories();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Categorías</a>
     <a href="#" onclick="openAriaAuto();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Aria Auto</a>
-    <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:var(--blue)">Ofertas</a>
+    <a href="#" onclick="goSales();closeMobileMenu();return false;" class="block px-5 py-3.5 border-b font-bold" style="border-color:var(--line); color:#5B9BD5">Ofertas</a>
     <a href="#precioHonesto" onclick="goHomeSection('precioHonesto');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Precio Honesto</a>
     <a href="#" onclick="showPage('storesView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Tiendas en Estados Unidos</a>
     <a href="#" onclick="showPage('aboutView');closeMobileMenu();return false;" class="block px-5 py-3.5 border-b" style="border-color:var(--line)">Nosotros</a>
@@ -3825,14 +3825,24 @@
 </div>
 
 <!-- ============ ARIA AUTO VIEW ============ -->
+  <style>
+    /* ARIA AUTO HERO (2026-09-28, Danny): mechanic-shop photo, blue tint, navy gradient */
+    .ariaAutoHero{position:relative;overflow:hidden;background:#0A1F44}
+    .ariaAutoHero .aaBg{position:absolute;inset:0;background:url('assets/aria-auto/shop-bg.jpg') center/cover no-repeat;opacity:.5}
+    .ariaAutoHero .aaShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,31,68,.88) 0%,rgba(10,31,68,.66) 45%,rgba(10,31,68,.93) 100%)}
+    /* NAV RESTYLE (2026-09-28, Danny): gold links, Ofertas highlighted light blue */
+    .ariaNavLink{color:#F4C463;opacity:1;font-weight:700}
+    .ariaNavLink:hover{opacity:.82}
+    .ariaNavLink[data-nav="salesView"]{color:#5B9BD5}
+    #mobileMenu a{color:#F4C463}
+  </style>
 <div id="ariaAutoView" class="view">
-  <!-- INTERIOR PAGE SYSTEM (2026-09-20): white nav, then a navy band
-       carrying the title and one line of context, then the page's own
-       content in cards. Same treatment as Tiendas, Cómo funciona and
-       Nosotros, so the four stop reading like four different sites. -->
-  <section class="ariaNavyBand relative overflow-hidden">
+  <!-- ARIA AUTO HERO (2026-09-28, Danny): mechanic-shop photo w/ blue tint + navy gradient -->
+  <section class="ariaAutoHero">
+    <div class="aaBg" aria-hidden="true"></div>
+    <div class="aaShade" aria-hidden="true"></div>
     <div class="ariaGoldHair"></div>
-    <div class="max-w-[1080px] mx-auto px-5 py-14 sm:py-16">
+    <div class="relative max-w-[1080px] mx-auto px-5 py-14 sm:py-16">
       <div class="max-w-[62ch]">
         <div class="ariaKicker mb-4">Aria Auto</div>
         <h1 class="text-[32px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
