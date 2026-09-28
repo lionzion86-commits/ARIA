@@ -30,7 +30,7 @@
 // matters more than the duplication it removes — a shopper getting a
 // different Aria depending on whether streaming worked today is the
 // failure this shares a module to prevent.
-import { chatRequestBody, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL, EMPTY_REPLY_FALLBACK_ES } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -46,22 +46,48 @@ export async function handler(event) {
   try {
     const body = JSON.parse(event.body || "{}");
 
-    const chatResponse = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(chatRequestBody(body)),
-    });
-
-    const chatData = await chatResponse.json();
+    /* EMPTY-REPLY RETRY (2026-09-27): Groq intermittently answers 200
+       with zero content — especially on product-grounded prompts — and a
+       second request on a fresh backend almost always answers. One quiet
+       retry here; a 429 is never retried (it returns immediately below)
+       and the client never sees the hiccup. */
+    let chatResponse = null;
+    let chatData = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      chatResponse = await fetch(GROQ_CHAT_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(chatRequestBody(body)),
+      });
+      chatData = await chatResponse.json();
+      if (!chatResponse.ok || chatData?.choices?.[0]?.message?.content) break;
+      console.error("[aria-chat-groq] empty reply, retrying once");
+    }
+    /* FORWARD THE REAL UPSTREAM FAILURE (2026-09-27): "No reply from
+       model" swallowed 429s and made every outage undiagnosable — the
+       client now shows the code, so give it the code. */
+    if (!chatResponse.ok) {
+      const gErr = chatData && chatData.error;
+      const gMsg = gErr && (gErr.message || gErr.code || gErr);
+      console.error('[aria-chat-groq] Groq error', chatResponse.status, gMsg);
+      return { statusCode: 502, headers, body: JSON.stringify({ error: `Groq respondió ${chatResponse.status}` + (gMsg ? ` — ${gMsg}` : '') }) };
+    }
     // Dictated punctuation words ("comma", "punto") must never reach the
     // shopper as words — sanitizeSpokenPunctuation turns them into the
     // marks they mean, so the bubble, the voice and the history all agree.
     const reply = sanitizeSpokenPunctuation(chatData?.choices?.[0]?.message?.content);
     if (!reply) {
-      return { statusCode: 502, headers, body: JSON.stringify({ error: "No reply from model" }) };
+      /* LAST LINE OF DEFENSE (2026-09-28): Groq answered twice with zero
+         content (see REASONING_EFFORT — the model spent its token budget
+         thinking). The shopper gets an honest one-liner, SPOKEN aloud by
+         the client like any other reply, instead of a dead "No reply
+         from model". The `fallback` flag lets the client note the code
+         quietly without changing the bubble. */
+      console.error("[aria-chat-groq] empty reply twice, graceful fallback");
+      return { statusCode: 200, headers, body: JSON.stringify({ reply: EMPTY_REPLY_FALLBACK_ES, fallback: true, audio: null }) };
     }
 
     // Grok TTS (still the cheaper voice option). A voice failure must not

@@ -23891,6 +23891,35 @@ async function runAssistantLiveSearch(query){
   if (btn){ btn.remove(); }
 }
 
+/* RATE-LIMIT COOLDOWN (2026-09-27): Groq 429s the account when it's had
+   too many requests. Every failed reply used to burn up to 4 sequential
+   calls (stream + cold retry + 2 fallback), actively deepening the hole —
+   Danny saw "Tuve un problema" on every single message. One 429 now
+   parks the brain for 60s: the shopper gets an honest "dame un minutito"
+   and zero new Groq calls go out until the bucket recovers. */
+let ariaRateLimitedUntil = 0;
+function ariaRateLimited(){ return Date.now() < ariaRateLimitedUntil; }
+function parkBrainForRateLimit(){ ariaRateLimitedUntil = Date.now() + 60000; }
+/* The stream endpoint reports Groq failures as its own 502 with the real
+   status inside the error text ("Groq respondió 429"), so a 429 is
+   detected by status OR by the detail string — never by res.status
+   alone. */
+function isGroqRateLimit(err){
+  if (!err) return false;
+  if (err.status === 429) return true;
+  const d = err.detail || err.message || '';
+  return /\b429\b/.test(String(d));
+}
+/* Groq's 429 names its own recovery ("try again in 2.775s"). Honor it:
+   wait that long plus a 1s buffer, clamped to 2–15s. Default 6s when the
+   hint is missing. */
+function groqRetryAfterMs(err){
+  const d = String((err && (err.detail || err.message)) || '');
+  const m = d.match(/try again in ([\d.]+)s/i);
+  let s = m ? parseFloat(m[1]) : 6;
+  if (isNaN(s)) s = 6;
+  return Math.min(Math.max(s + 1, 2), 15) * 1000;
+}
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
@@ -24009,7 +24038,18 @@ async function runAssistantBrain(text){
     /* THE TYPING INDICATOR STAYS UP UNTIL THE FIRST TOKEN and not a
        moment longer -- the sink removes it in the same frame it appends
        the bubble, so the two never overlap and nothing jumps. */
-    const sink = beginAssistantReply();
+    /* RATE-LIMIT COOLDOWN: the product cards are already on screen
+       (local search), so a parked brain only costs the prose — never the
+       results. No new Groq calls until the bucket recovers. */
+    streamAssistantReply.lastError = null;
+    if (ariaRateLimited()) {
+      hideAssistantTyping();
+      addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
+      addAssistantNote('Código: Groq 429 — pausa breve, sin nuevas llamadas');
+      reopenMicForRetry();
+      return;
+    }
+    let sink = beginAssistantReply();
     let streamed = sink ? await streamAssistantReply(payload, sink) : null;
     /* COLD-START RETRY (2026-09-27, Danny: replies kept dying with
        "Tuve un problema..." on first use). A 25s stream timeout almost
@@ -24021,12 +24061,30 @@ async function runAssistantBrain(text){
       streamAssistantReply.timedOut = false;
       streamed = await streamAssistantReply(payload, sink);
     }
-    /* RATE-LIMIT BACKOFF (2026-09-27): the stream already reported a
-       429 — hammering the fallback instantly makes it worse. Give the
-       bucket a few seconds to recover before spending the fallback
-       attempts. */
-    if (!streamed && streamAssistantReply.lastError && streamAssistantReply.lastError.status === 429) {
-      await new Promise(r => setTimeout(r, 6000));
+    /* SMART 429 RETRY (2026-09-27): Groq's 429 names its own recovery
+       ("try again in 2.775s") — one patient retry on the same endpoint
+       beats four hammer blows. A second 429 means the bucket is truly
+       dry: park the brain 60s and say so honestly. The fallback is
+       skipped on a 429 — it would 429 too. */
+    if (!streamed && isGroqRateLimit(streamAssistantReply.lastError)) {
+      const waitMs = groqRetryAfterMs(streamAssistantReply.lastError);
+      if (sink) sink.discard();
+      showAssistantTyping();
+      await new Promise(r => setTimeout(r, waitMs));
+      sink = beginAssistantReply();
+      streamAssistantReply.lastError = null;
+      streamed = sink ? await streamAssistantReply(payload, sink) : null;
+      if (!streamed && isGroqRateLimit(streamAssistantReply.lastError)) {
+        parkBrainForRateLimit();
+        if (sink) sink.discard();
+        hideAssistantTyping();
+        addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
+        addAssistantNote('Código: Groq 429 — ' + (streamAssistantReply.lastError.detail || 'límite de Groq'));
+        reopenMicForRetry();
+        return;
+      }
+      /* Either the retry worked (handled as a normal stream below) or it
+         failed some other way (falls through to the buffered fallback). */
     }
 
     if (!streamed) {
@@ -24072,17 +24130,25 @@ async function runAssistantBrain(text){
         hideAssistantTyping();
         /* The generic bubble stays for shoppers, but the real reason
            rides along in the quiet note channel (never spoken) — a
-           "Groq 429" beats "something broke" when diagnosing. */
+           "Groq 429" beats "something broke" when diagnosing. A 429
+           also parks the brain: no point letting the next message burn
+           more calls into the same wall. */
+        const wasRateLimit = isGroqRateLimit(fallbackError);
+        if (wasRateLimit) parkBrainForRateLimit();
         let fCode = 'sin respuesta';
         if (res) fCode = 'HTTP ' + res.status + (fallbackError && fallbackError.detail ? ' — ' + fallbackError.detail : '');
         else if (fallbackError && fallbackError.kind === 'timeout') fCode = 'timeout 25s';
-        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
+        addAssistantMessage('bot', wasRateLimit ? 'Dame un minutito, por favor — ¿lo intentamos de nuevo?' : 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
         addAssistantNote('Código: ' + fCode);
         reopenMicForRetry();
         return;
       }
       const data = await res.json();
       hideAssistantTyping();
+      /* GRACEFUL FALLBACK (2026-09-28): the buffered endpoint answers 200
+         with a one-liner when Groq twice returns zero content. It is spoken
+         like any reply; the code rides the quiet note channel. */
+      if (data.fallback) addAssistantNote('Código: Groq devolvió vacío tras reintento (fallback local)');
       const reply = data.reply || 'Lo siento, no pude responder eso.';
       rememberAssistantTurn(text, reply);
       addAssistantMessage('bot', reply, data.audio);
