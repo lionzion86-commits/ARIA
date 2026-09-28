@@ -465,6 +465,22 @@ async function main() {
   for (const [retailer, bucket] of Object.entries(cache.retailers)) {
     console.log(`  ${retailer}: ${Object.keys(bucket.departments).length} departments, ${Object.keys(bucket.brands).length} brands`);
   }
+  /* PER-RETAILER SPLITS (2026-09-28, perf): the homepage loads each
+     retailer's slice on its own, so Foot Locker's ~900KB can travel
+     without Walmart's megabyte riding along. The monolith above stays
+     as the canonical artifact; these slices wear the same envelope
+     shape so the frontend's normalizer treats them identically. */
+  const SPLIT_RETAILERS = ["walmart", "target", "oldnavy", "footlocker"];
+  for (const retailer of SPLIT_RETAILERS) {
+    const bucket = cache.retailers[retailer];
+    if (!bucket) {
+      console.log(`  split: no ${retailer} bucket, skipping department-cache-${retailer}.json`);
+      continue;
+    }
+    const splitOut = new URL(`../department-cache-${retailer}.json`, import.meta.url);
+    await fs.writeFile(splitOut, JSON.stringify({ generatedAt: cache.generatedAt, retailers: { [retailer]: bucket } }, null, 2));
+    console.log(`  split: wrote ${splitOut.pathname}`);
+  }
 }
 
 main().catch((err) => {
