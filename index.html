@@ -24622,7 +24622,20 @@ async function runAssistantBrain(text){
   // instead of round-tripping to the chat API.
   const lowerText = text.toLowerCase();
   if (SALE_KEYWORDS.some(k => lowerText.includes(k))) {
-    addAssistantMessage('bot', '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.');
+    /* LILY SPEAKS THE SHORTCUT (2026-09-28, Danny's demo). This path used
+       to talk through the browser's speechSynthesis -- the robot voice,
+       silent on iPhones where it misfires -- because it never reaches the
+       chat endpoints that render Lily's audio. The line is short, so the
+       TTS round-trip is about a second: the text paints now, her voice
+       follows over the Ofertas page. Browser voice stays the fallback. */
+    const salesLine = '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
+    addAssistantMessage('bot', salesLine, null, { speak: false });
+    try {
+      fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: salesLine }) })
+        .then(r => (r && r.ok) ? r.json() : null)
+        .then(d => { if (d && d.audio) speakWithAria(d.audio, salesLine); else speakText(salesLine); })
+        .catch(() => speakText(salesLine));
+    } catch (e) { speakText(salesLine); }
     goSales();
     dismissAssistantForNavigation();
     continuousMode = false; // navigating away ends the voice conversation
