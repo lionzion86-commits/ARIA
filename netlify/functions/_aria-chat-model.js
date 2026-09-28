@@ -133,33 +133,72 @@ export function chatRequestBody(body) {
   };
 }
 
+/* ============================================================
+   ARIA'S VOICE: ELEVENLABS "LILY" (2026-09-28, Danny's pick)
+
+   WAS xAI TTS, voice "ara" — which Danny heard as flat. Lily is a
+   Peruvian Spanish voice from the ElevenLabs Voice Library, and Peru is
+   who this shop sells to, so the accent is the point rather than a
+   preference.
+
+   ONE VOICE, ONE CALL SITE. Every place the assistant speaks — the
+   opening greeting, a buffered reply, a streamed reply — renders its
+   audio here. aria-chat.js used to carry its own second copy of the TTS
+   call, which is how the greeting could have kept the old voice after
+   the chat had moved; a test now pins that it does not.
+
+   THE KEY IS SERVER-SIDE AND STAYS THERE. xi-api-key is read from the
+   environment inside this Netlify function. The browser never names a
+   voice and never sees a credential, so neither can be swapped or
+   spoofed from the client — a test pins that too.
+   ============================================================ */
+export const ELEVENLABS_TTS_URL = "https://api.elevenlabs.io/v1/text-to-speech";
+/* Lily — Peruvian Spanish. ELEVENLABS_VOICE_ID overrides this without a
+   deploy, so a voice change is a dashboard edit rather than a PR. */
+export const ELEVENLABS_VOICE_ID_DEFAULT = "ek0qR5Bu0N3aPdijsdae";
+/* eleven_turbo_v2_5 — the low-latency half of the brief's two options,
+   multilingual and ~250-300ms to first byte against multilingual_v2's
+   ~600-800ms. Audio here is rendered from the FINISHED reply and, on
+   the streaming path, arrives after the text is already on screen — so
+   the model that keeps first-audio soonest is the one that protects the
+   latency work already in flight. */
+export const ELEVENLABS_TTS_MODEL = "eleven_turbo_v2_5";
+
 /**
- * Ara's voice for a finished reply, or null.
+ * Lily's voice for a finished reply, or null.
  *
  * BEST EFFORT, AND IT ALWAYS WAS. A voice failure must never cost the
  * customer the text reply, so every path here returns null rather than
  * throwing, and the browser's own speech synthesis covers the gap
- * client-side. Lifted out of aria-chat-groq.js unchanged so the
- * streaming endpoint keeps the behaviour the site already has instead
- * of quietly dropping Ara's voice — the brief said not to ADD audio,
- * not to take away what is there.
+ * client-side. That contract is unchanged by the provider swap: what
+ * used to be "no Ara" is now "no Lily", and the bubble still speaks.
  */
 export async function speechFor(reply) {
-  if (!reply || !process.env.GROK_API_KEY) return null;
+  if (!reply || !process.env.ELEVENLABS_API_KEY) return null;
   try {
     // The voice must never speak punctuation words ("comma", "punto"):
-    // the reply is sanitized before Grok renders it, so what the shopper
-    // hears is what the bubble shows. See sanitizeSpokenPunctuation.
+    // the reply is sanitized before ElevenLabs renders it, so what the
+    // shopper hears is what the bubble shows. See
+    // sanitizeSpokenPunctuation.
     const speakable = sanitizeSpokenPunctuation(reply);
-    const res = await fetch("https://api.x.ai/v1/tts", {
+    /* A reply that is nothing but punctuation words sanitizes down to
+       marks alone, and sending "," to a TTS API buys a billed request
+       for a sound no one needs. */
+    if (!speakable) return null;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID || ELEVENLABS_VOICE_ID_DEFAULT;
+    const res = await fetch(`${ELEVENLABS_TTS_URL}/${encodeURIComponent(voiceId)}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GROK_API_KEY}`,
+        "xi-api-key": process.env.ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
+        Accept: "audio/mpeg",
       },
-      body: JSON.stringify({ voice_id: "ara", text: speakable, language: "es" }),
+      body: JSON.stringify({ text: speakable, model_id: ELEVENLABS_TTS_MODEL }),
     });
     if (!res.ok) return null;
+    /* MP3, which is what the client already plays: index.html sets
+       `data:audio/mp3;base64,` and did so for xAI too, so the swap needs
+       no client change. Accept: audio/mpeg keeps that true. */
     return Buffer.from(await res.arrayBuffer()).toString("base64");
   } catch {
     return null;
