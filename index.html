@@ -541,6 +541,13 @@
      is transparent by design, so on navy it gets its own white surface.
      White cards popping on navy, exactly like the search-results page. */
   [data-dept-theme="men"] .ariaCardText{ background:#fff; border-radius:14px; padding:10px 12px 12px; margin-top:10px }
+  /* MEN: helper text that sits DIRECTLY on the navy wash (load-more
+     counts, thin-result notes) flips light too — the #6B7487 that reads
+     fine on paper vanishes on navy. !important beats the inline colors
+     these strings carry. Card interiors are untouched: their white
+     surfaces keep dark price text everywhere. */
+  [data-dept-theme="men"] .themeDim{ color:#B9C6E4 !important }
+  [data-dept-theme="men"] .themeDimStrong{ color:#FFFFFF !important }
   /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
      used to sit on their brand-colour swatch, which made Foot Locker
      (all-black artwork on #000) read as a solid black rectangle and
@@ -11368,8 +11375,8 @@ function renderCatalogFeed(){
     <div id="catalogGrid" class="${LISTING_GRID_CLASS}">${
       shown.map(it => listingCardHTML(it, it.retailer, { showSizeRun: catalogState.key === 'curvy' })).join('')}</div>
     ${catalogLoadMoreHTML(items.length, shown.length)}
-    ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
-    ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">
+    ${term && !items.length ? `<div class="text-[13px] py-6 themeDim" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
+    ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6 themeDim" style="color:#6B7487">
       Nada aquí por ${escapeHtml(budgetLabelInline(budgetBand))} — el total incluye el flete a tu puerta.
       <button onclick="setCatalogBudget(null)" class="underline font-bold" style="color:var(--blue)">Ver todos los precios</button>
     </div>` : ''}
@@ -12090,7 +12097,7 @@ function catalogLoadMoreHTML(total, shownCount){
     <button onclick="catalogShowMore()" class="h-12 px-7 rounded-full text-white text-[14px] font-bold focus-ring transition" style="background:var(--blue)">
       Ver más productos
     </button>
-    <div class="text-[12px]" style="color:#6B7487">${shownCount} de ${total} · quedan ${left}</div>
+    <div class="text-[12px] themeDim" style="color:#6B7487">${shownCount} de ${total} · quedan ${left}</div>
   </div>`;
 }
 
