@@ -11,9 +11,11 @@
    whether streaming happened to be available that day, which is exactly
    what the brief forbids.
 
-   So the request is built here, once, and both endpoints send it
-   verbatim. The only line either of them changes is `stream`. A test
-   pins that the two differ in nothing else.
+   So the turn is built here, once, and both endpoints send the same turn.
+   Each translates it to its own provider's wire params (the only thing
+   that differs is the provider shape, plus `stream`), so the model, the
+   grounding and the system prompt cannot drift between the primary and
+   the fallback. A test pins that the two differ in nothing else.
 
    WHAT IS NOT HERE: routing. Which retailers are searched, what counts
    as a product, when a search happens at all — all of that is the
@@ -99,6 +101,24 @@ export const TEMPERATURE = 0.7;
 export const REASONING_EFFORT = "low";
 export const MAX_TOKENS = 600;
 
+/* OPENAI PRIMARY (2026-09-28). gpt-6-luna, verified against the
+   official model catalog (platform.openai.com/docs/models): "our most
+   efficient model for focused, high-volume tasks", reasoning "none"
+   supported, streaming and function calling available.
+   `reasoning_effort: "none"` is mandatory — it is what makes this a
+   non-reasoning call (the production failure mode documented at
+   REASONING_EFFORT is a reasoning model burning its budget before the
+   first word). `temperature` is deliberately absent: sources conflict
+   on whether GPT-6 accepts it at effort "none", and an unverified
+   param that 400s breaks every chat. GPT-6 takes
+   max_completion_tokens, not max_tokens. Official short-context
+   pricing: $0.10 input / $0.01 cached input / $0.50 output per 1M
+   tokens. */
+export const OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions";
+export const OPENAI_MODEL = "gpt-6-luna";
+export const OPENAI_REASONING_EFFORT = "none";
+export const OPENAI_MAX_COMPLETION_TOKENS = 250;
+
 /* LAST LINE OF DEFENSE (2026-09-28). If Groq answers twice with zero
    content, the shopper gets this honest one-liner instead of a dead
    "No reply from model" — short enough to speak aloud safely, and it
@@ -106,8 +126,13 @@ export const MAX_TOKENS = 600;
 export const EMPTY_REPLY_FALLBACK_ES =
   "Ay, se me fue la idea por un segundo — ¿me repites tu pregunta?";
 
-/** The exact JSON body both endpoints POST to Groq, minus `stream`. */
-export function chatRequestBody(body) {
+/** The exact turn Aria answers, built once. The primary endpoint POSTs
+ * the OpenAI shape (minus `stream`); provider "groq" builds the same
+ * turn for the fallback endpoint — same messages, same grounding,
+ * same system prompt — translated to the params Groq's
+ * OpenAI-compatible API takes. The two wire shapes carry an identical
+ * turn; the personality cannot drift between them. */
+export function chatRequestBody(body, provider = "openai") {
   const message = typeof body?.message === "string" ? body.message : "";
   // History was already being sent by the caller and silently dropped
   // before sanitizeHistory landed, so every turn was answered with no
@@ -117,47 +142,79 @@ export function chatRequestBody(body) {
   // Recipient gender/age the client extracted; see recipientRulesEs.
   const recipient = body?.recipient && typeof body.recipient === "object" ? body.recipient : null;
 
+  const messages = [
+    { role: "system", content: buildSystemPrompt(products, recipient) },
+    ...history,
+    { role: "user", content: message },
+  ];
+
+  if (provider === "groq") {
+    return {
+      model: GROQ_MODEL,
+      messages,
+      temperature: TEMPERATURE,
+      max_tokens: MAX_TOKENS,
+      /* gpt-oss-120b is a reasoning model; without this it spends the
+         whole token budget thinking and never answers (see
+         REASONING_EFFORT). Groq's OpenAI-compatible endpoint honors it. */
+      reasoning_effort: REASONING_EFFORT,
+    };
+  }
+
   return {
-    model: GROQ_MODEL,
-    messages: [
-      { role: "system", content: buildSystemPrompt(products, recipient) },
-      ...history,
-      { role: "user", content: message },
-    ],
-    temperature: TEMPERATURE,
-    max_tokens: MAX_TOKENS,
-    /* gpt-oss-120b is a reasoning model; without this it spends the
-       whole token budget thinking and never answers (see
-       REASONING_EFFORT). Groq's OpenAI-compatible endpoint honors it. */
-    reasoning_effort: REASONING_EFFORT,
+    model: OPENAI_MODEL,
+    messages,
+    /* "none" is what makes this a non-reasoning call — without it the
+       model can burn the budget thinking before the first word, the
+       exact production failure REASONING_EFFORT documents above. */
+    reasoning_effort: OPENAI_REASONING_EFFORT,
+    /* GPT-6 takes max_completion_tokens, not max_tokens. */
+    max_completion_tokens: OPENAI_MAX_COMPLETION_TOKENS,
   };
 }
 
+export const ELEVENLABS_TTS_URL = "https://api.elevenlabs.io/v1/text-to-speech";
+/* Lily — the Peruvian Spanish voice Danny picked from the Voice Library
+   2026-09-28. ELEVENLABS_VOICE_ID overrides the default without a
+   deploy; the client never names a voice, so it cannot be swapped or
+   spoofed from the browser. */
+export const ELEVENLABS_VOICE_ID_DEFAULT = "ek0qR5Bu0N3aPdijsdae";
+/* eleven_flash_v2_5 — ElevenLabs' lowest-latency TTS model (~75ms
+   TTFB), 32 languages. Latency is the whole point of the sentence
+   pipeline, so the voice model is pinned, not defaulted. */
+export const ELEVENLABS_TTS_MODEL = "eleven_flash_v2_5";
+
 /**
- * Ara's voice for a finished reply, or null.
+ * Lily's voice for a reply, or null.
  *
  * BEST EFFORT, AND IT ALWAYS WAS. A voice failure must never cost the
  * customer the text reply, so every path here returns null rather than
  * throwing, and the browser's own speech synthesis covers the gap
- * client-side. Lifted out of aria-chat-groq.js unchanged so the
- * streaming endpoint keeps the behaviour the site already has instead
- * of quietly dropping Ara's voice — the brief said not to ADD audio,
- * not to take away what is there.
+ * client-side. (Was xAI TTS, voice "ara"; the ~$5/mo xAI voice
+ * subscription goes away with this.)
  */
 export async function speechFor(reply) {
-  if (!reply || !process.env.GROK_API_KEY) return null;
+  if (!reply || !process.env.ELEVENLABS_API_KEY) return null;
   try {
     // The voice must never speak punctuation words ("comma", "punto"):
-    // the reply is sanitized before Grok renders it, so what the shopper
-    // hears is what the bubble shows. See sanitizeSpokenPunctuation.
+    // the reply is sanitized before ElevenLabs renders it, so what the
+    // shopper hears is what the bubble shows. See
+    // sanitizeSpokenPunctuation.
     const speakable = sanitizeSpokenPunctuation(reply);
-    const res = await fetch("https://api.x.ai/v1/tts", {
+    if (!speakable) return null;
+    const voiceId = process.env.ELEVENLABS_VOICE_ID || ELEVENLABS_VOICE_ID_DEFAULT;
+    const res = await fetch(`${ELEVENLABS_TTS_URL}/${voiceId}`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.GROK_API_KEY}`,
+        "xi-api-key": process.env.ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
+        "Accept": "audio/mpeg",
       },
-      body: JSON.stringify({ voice_id: "ara", text: speakable, language: "es" }),
+      body: JSON.stringify({
+        text: speakable,
+        model_id: ELEVENLABS_TTS_MODEL,
+        voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.2, use_speaker_boost: true },
+      }),
     });
     if (!res.ok) return null;
     return Buffer.from(await res.arrayBuffer()).toString("base64");
@@ -167,9 +224,9 @@ export async function speechFor(reply) {
 }
 
 /**
- * The text delta carried by one Groq SSE line, or null.
+ * The text delta carried by one SSE line, or null.
  *
- * Groq speaks OpenAI's dialect: each `data:` line is a chunk whose
+ * Both providers speak OpenAI's SSE dialect: each `data:` line is a chunk whose
  * choices[0].delta.content holds the new text, and the stream ends with
  * the literal `data: [DONE]`. Chunks arrive split across TCP reads, so
  * the CALLER owns the buffering — this only ever judges one complete
@@ -195,11 +252,11 @@ export function isDoneLine(line) {
   return String(line || "").trim() === "data: [DONE]";
 }
 
-/* Groq reports mid-stream failures as an SSE event instead of an HTTP
-   error: `data: {"error": {"message": "Rate limit reached...", "code":
-   "rate_limit_exceeded"}}` with HTTP 200. Without this, a 429 arrives
-   looking exactly like an empty reply and the client's 429 handling
-   never fires. Returns { message, code } or null. */
+/* Both providers report mid-stream failures as an SSE event instead of
+   an HTTP error: `data: {"error": {"message": "Rate limit reached...",
+   "code": "rate_limit_exceeded"}}` with HTTP 200. Without this, a 429
+   arrives looking exactly like an empty reply and the client's 429
+   handling never fires. Returns { message, code } or null. */
 export function sseErrorFromLine(line) {
   const trimmed = String(line || "").trim();
   if (!trimmed.startsWith("data:")) return null;

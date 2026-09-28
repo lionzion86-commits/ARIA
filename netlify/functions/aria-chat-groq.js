@@ -1,4 +1,5 @@
-// Aria's chat brain: Groq/Llama for text, Grok for TTS.
+// Aria's chat brain: OpenAI primary, Groq/Llama buffered fallback for
+// text, ElevenLabs Lily for TTS.
 //
 // GROUNDING (2026-09-18)
 // This used to take only { message } and answer from the model's own
@@ -17,19 +18,20 @@
 // `products`. Everything the reply may assert about availability, price
 // and retailer comes from that list.
 //
-// STILL HERE, AND ON PURPOSE (2026-09-22). aria-chat-stream.js renders
-// the same reply token by token and is what index.html tries first. This
-// endpoint is the fallback it drops back to — a Netlify deploy that does
-// not flush an event stream, an old cached page, a browser without
-// ReadableStream. It is also the only shape that can answer at all from
-// a V1 Lambda handler, which is what this is.
+// STILL HERE, AND ON PURPOSE (2026-09-22, repointed 2026-09-28).
+// aria-chat-stream.js renders the OpenAI primary reply token by token
+// and is what index.html tries first. This endpoint is the fallback it
+// drops back to — a Netlify deploy that does not flush an event stream,
+// an old cached page, a browser without ReadableStream. It is also the
+// only shape that can answer at all from a V1 Lambda handler, which is
+// what this is.
 //
-// The request it sends is built by _aria-chat-model.js, which the
-// streaming endpoint also uses, so the two cannot answer differently:
-// same model, same temperature, same cap, same system prompt. That
-// matters more than the duplication it removes — a shopper getting a
-// different Aria depending on whether streaming worked today is the
-// failure this shares a module to prevent.
+// The request it sends is built by _aria-chat-model.js with provider
+// "groq", which the streaming endpoint also uses for the primary, so
+// the two cannot answer differently: same turn, same grounding, same
+// system prompt. That matters more than the duplication it removes — a
+// shopper getting a different Aria depending on whether streaming
+// worked today is the failure this shares a module to prevent.
 import { chatRequestBody, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL, EMPTY_REPLY_FALLBACK_ES } from "./_aria-chat-model.js";
 
 export async function handler(event) {
@@ -60,7 +62,7 @@ export async function handler(event) {
           Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(chatRequestBody(body)),
+        body: JSON.stringify(chatRequestBody(body, "groq")),
       });
       chatData = await chatResponse.json();
       if (!chatResponse.ok || chatData?.choices?.[0]?.message?.content) break;
@@ -90,9 +92,9 @@ export async function handler(event) {
       return { statusCode: 200, headers, body: JSON.stringify({ reply: EMPTY_REPLY_FALLBACK_ES, fallback: true, audio: null }) };
     }
 
-    // Grok TTS (still the cheaper voice option). A voice failure must not
-    // cost the customer the text reply, so the audio is best-effort — see
-    // speechFor(), which is the same call this file used to make inline.
+    // Lily's voice via ElevenLabs, best effort (see speechFor). A voice
+    // failure must not cost the customer the text reply, so the audio
+    // is best-effort — the same call this file used to make inline.
     const audioBase64 = await speechFor(reply);
 
     return {
