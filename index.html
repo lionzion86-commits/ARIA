@@ -2936,6 +2936,11 @@
           <div id="productViewDescWrap" class="mb-4" hidden>
             <h2 class="text-[12px] font-extrabold uppercase mb-1.5" style="color:var(--navy); letter-spacing:0.09em">Descripción</h2>
             <p id="productViewDesc" class="text-[13.5px] leading-relaxed max-w-[62ch]" style="color:#3A4256"></p>
+            <!-- LEER MÁS (2026-09-28): long descriptions collapse behind
+                 this toggle instead of being cut mid-word. -->
+            <button id="productViewDescToggle" type="button" hidden
+              class="mt-1.5 text-[13px] font-bold underline underline-offset-2 focus-ring"
+              style="color:var(--blue)" aria-expanded="false">Leer más</button>
           </div>
           <!-- BUG FIX (cart rework): size now has to be picked before the
                item can sit in the cart as a concrete line item, so this
@@ -14657,13 +14662,44 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      Spanish, carried on opts by every showProduct() caller. textContent,
      never innerHTML — this string originates in catalogue data. The wrap
      is emptied and hidden when there is none, so the previous product's
-     description cannot survive onto this one. */
+     description cannot survive onto this one.
+     2026-09-28: long descriptions collapse behind a Leer más / Leer menos
+     toggle (cut at a word boundary, never mid-word). Short ones show fully. */
   const descWrap = document.getElementById('productViewDescWrap');
   const descEl = document.getElementById('productViewDesc');
+  const descToggle = document.getElementById('productViewDescToggle');
   const descText = String(opts?.description || '').trim();
+  const DESC_CLAMP = 280;
   if (descWrap && descEl){
-    descEl.textContent = descText;
+    let collapsed = false;
+    if (descText.length > DESC_CLAMP){
+      let cut = descText.lastIndexOf(' ', DESC_CLAMP);
+      if (cut < DESC_CLAMP * 0.6) cut = DESC_CLAMP;
+      descEl.textContent = descText.slice(0, cut) + '…';
+      collapsed = true;
+    } else {
+      descEl.textContent = descText;
+    }
     descWrap.hidden = !descText;
+    if (descToggle){
+      descToggle.hidden = !collapsed;
+      descToggle.textContent = 'Leer más';
+      descToggle.setAttribute('aria-expanded', 'false');
+      descToggle.onclick = () => {
+        const expanded = descToggle.getAttribute('aria-expanded') === 'true';
+        if (expanded){
+          let cut = descText.lastIndexOf(' ', DESC_CLAMP);
+          if (cut < DESC_CLAMP * 0.6) cut = DESC_CLAMP;
+          descEl.textContent = descText.slice(0, cut) + '…';
+          descToggle.textContent = 'Leer más';
+          descToggle.setAttribute('aria-expanded', 'false');
+        } else {
+          descEl.textContent = descText;
+          descToggle.textContent = 'Leer menos';
+          descToggle.setAttribute('aria-expanded', 'true');
+        }
+      };
+    }
   }
 
   const sizeWrap = document.getElementById('productSizeWrap');
@@ -17734,9 +17770,13 @@ function normalizeLiveItem(item, hints){
        translated to Spanish (1-2 sentences) by the catalog enrichment pass.
        descriptionSource is 'retailer' when the text came from the store's
        own PDP and 'generated' when it is a factual fallback line from
-       name/brand/type. Rendered by showProduct() via textContent. */
+       name/brand/type. Rendered by showProduct() via textContent.
+       2026-09-28: the FULL text passes through. The old .slice(0, 600)
+       cut descriptions mid-word with no way to expand (reported live).
+       showProduct() shows long text behind a Leer más / Leer menos
+       toggle instead — never a hard cut. */
     description: typeof item.description === 'string' && item.description.trim()
-      ? item.description.trim().slice(0, 600) : null,
+      ? item.description.trim() : null,
     descriptionSource: item.descriptionSource === 'retailer' ? 'retailer'
       : (item.description ? 'generated' : null) };
 }
