@@ -15134,6 +15134,13 @@ let pendingAutoPartNumber = null;
 function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsSize, sizeCategory, rating, images, catalogWeightKg, opts){
   const returnView = ALL_VIEWS.find(v => document.getElementById(v)?.classList.contains('active')) || 'homeView';
   pushRoute({ view: 'productView', retailer, name });
+  /* THE TAP COMMITS FIRST (2026-09-28, launch-critical). The URL is already the product's,
+     so the view switches here, BEFORE any data-dependent DOM write. A single bad field in
+     real catalog data could otherwise throw between pushRoute and the view switch below,
+     stranding the shopper on the old page with a changed URL -- the dead-card symptom
+     where tapping a card visibly does nothing. The population below fills the shell that
+     is already on screen. */
+  showPage('productView');
   /* The dutiable base travels with the product page (2026-09-27): the
      tax-included figure on it and the cart line it becomes both read
      this, never the marked-up price. Resolved here so a caller without
@@ -15306,7 +15313,7 @@ function showProduct(retailer, name, totalUsd, weightKg, imageUrl, sizes, needsS
      only useful — and only shown — when sizes are on the page. */
   document.getElementById('sizeGuideLink').hidden = sizeWrap.hidden;
 
-  showPage('productView');
+  /* showPage('productView') moved above: the tap commits before population. */
 
   /* THE RAIL IS DRAWN FROM THIS CALL, NOT FROM A ROUTE OR A LISTENER.
      showProduct() is the one door onto this page -- a card, a search
