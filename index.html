@@ -7989,7 +7989,15 @@ function relatedProducts(anchor, pool, opts){
 let relatedPoolCache = null;
 async function relatedPool(){
   if (relatedPoolCache) return relatedPoolCache;
-  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
+  /* SEARCH POOL RACE FIX (2026-09-28). departmentCacheData starts as
+     { retailers: {} } and the old guard `if (!departmentCacheData?.retailers)`
+     treated that EMPTY object as loaded data -- an empty object is truthy.
+     So a search run before the catalogue finished loading (44 files) built
+     an empty pool, memoized it in relatedPoolCache, and every later search
+     returned nothing: "no encontramos Adidas" with Adidas in the catalogue.
+     loadDepartmentCache() is memoized, so awaiting it here is free when the
+     data is already in hand and correct when it is still in flight. */
+  departmentCacheData = await loadDepartmentCache();
   const byKey = new Map();
   for (const [retailer, bucket] of Object.entries(departmentCacheData?.retailers || {})){
     for (const [department, entry] of Object.entries(bucket?.departments || {})){
@@ -9924,7 +9932,9 @@ function brandStripTileHTML(b){
 async function initBrandStrip(){
   /* A failed pool leaves the strip empty, never a broken boot. */
   try {
-    if (!departmentCacheData?.retailers) await relatedPool();
+    /* Race fix (2026-09-28): relatedPool() is memoized, so always await
+       it instead of trusting the possibly-still-empty initial object. */
+    await relatedPool();
     const html = brandStripBrands().map(brandStripTileHTML).join('');
     document.querySelectorAll('[data-brand-strip]').forEach(el => { el.innerHTML = html; });
   } catch { /* the shelf stays empty */ }
@@ -21382,7 +21392,9 @@ async function renderCrossSellRail(){
   if (!wrap) return;
   if (!cart.length){ wrap.innerHTML = ''; return; }
 
-  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
+  /* Same race as relatedPool (2026-09-28): await the memoized loader
+     instead of trusting the possibly-still-empty initial object. */
+  departmentCacheData = await loadDepartmentCache();
   // Bail if the cart changed (or emptied) while the cache was loading —
   // this render is now stale.
   if (!cart.length) return;
