@@ -23022,7 +23022,13 @@ function openSaleProduct(idx){
    div; the image and title are click targets, and Comprar is the single
    real focusable control. */
 function saleCardHTML(p, idx){
-  return productCardHTML(p, { open: `openSaleProduct(${idx})` });
+  /* OFERTAS CARDS SIT ON NAVY (2026-09-28, Danny iPhone QA). The Ofertas
+     board is a navy gradient and the cards have no white shell of their
+     own (white cards are the separate PR #168), so productCardHTML's
+     default navy-on-light treatments go invisible here: the sale price
+     and the outlined Comprar button both vanish. dark:true flips the
+     price and CTA to their on-navy treatments. */
+  return productCardHTML(p, { open: `openSaleProduct(${idx})`, dark: true });
 }
 
 /* The one large card, shared by the Ofertas feed and Aria Auto's part
@@ -23039,6 +23045,7 @@ function saleCardHTML(p, idx){
                   product's price at another store. */
 function productCardHTML(p, opts){
   const open = opts.open;
+  const dark = opts.dark === true; /* on-navy card: Ofertas board */
   const rating = Number(p.rating);
   const hasRating = Number.isFinite(rating) && rating > 0;
 
@@ -23144,8 +23151,8 @@ function productCardHTML(p, opts){
                navy with the soles line small and grey beneath it, which
                is a hierarchy the card can carry without competing with
                the photograph. -->
-          <span class="text-[14px] font-bold tabular leading-none" style="color:var(--navy)">${hasPrice ? fmtDisplayPrice(price, p.dutiableUsd) : 'Precio no disponible'}</span>
-          ${hasOriginal ? `<span class="text-[12px] text-zinc-400 line-through tabular">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
+          <span class="${dark ? 'text-[16px] font-extrabold' : 'text-[14px] font-bold'} tabular leading-none" style="color:${dark ? '#fff' : 'var(--navy)'}">${hasPrice ? fmtDisplayPrice(price, p.dutiableUsd) : 'Precio no disponible'}</span>
+          ${hasOriginal ? `<span class="text-[12px] ${dark ? 'font-normal' : 'text-zinc-400'} line-through tabular" style="${dark ? 'color:#AFBBD6' : ''}">${fmtUSD(displayPriceUsd(original))}</span>` : ''}
         </div>
         ${hasPrice ? solesUnderHTML(displayPriceUsd(price, p.dutiableUsd), 'text-[11px] tabular mt-0.5') : ''}
       </div>
@@ -23184,7 +23191,9 @@ function productCardHTML(p, opts){
             treatment, and this branch's rule that a card may never
             offer a purchase the page behind it cannot complete. */''}
       <div class="mb-3"></div>
-      <button onclick="${open}" class="ariaExploraMas w-full focus-ring" style="min-height:40px; font-size:12.5px; padding:0 12px">${hasPrice ? 'Comprar' : 'Ver detalle'}</button>
+      ${dark
+      ? `<button onclick="${open}" class="w-full focus-ring" style="min-height:42px;border-radius:999px;background:#fff;color:var(--navy);font-size:13px;font-weight:800;letter-spacing:0.01em">${hasPrice ? 'Comprar' : 'Ver detalle'}</button>`
+      : `<button onclick="${open}" class="ariaExploraMas w-full focus-ring" style="min-height:40px; font-size:12.5px; padding:0 12px">${hasPrice ? 'Comprar' : 'Ver detalle'}</button>`}
     </div>
   </div>`;
 }
