@@ -46,16 +46,26 @@ export async function handler(event) {
   try {
     const body = JSON.parse(event.body || "{}");
 
-    const chatResponse = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(chatRequestBody(body)),
-    });
-
-    const chatData = await chatResponse.json();
+    /* EMPTY-REPLY RETRY (2026-09-27): Groq intermittently answers 200
+       with zero content — especially on product-grounded prompts — and a
+       second request on a fresh backend almost always answers. One quiet
+       retry here; a 429 is never retried (it returns immediately below)
+       and the client never sees the hiccup. */
+    let chatResponse = null;
+    let chatData = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      chatResponse = await fetch(GROQ_CHAT_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(chatRequestBody(body)),
+      });
+      chatData = await chatResponse.json();
+      if (!chatResponse.ok || chatData?.choices?.[0]?.message?.content) break;
+      console.error("[aria-chat-groq] empty reply, retrying once");
+    }
     /* FORWARD THE REAL UPSTREAM FAILURE (2026-09-27): "No reply from
        model" swallowed 429s and made every outage undiagnosable — the
        client now shows the code, so give it the code. */
