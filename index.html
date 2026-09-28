@@ -23910,6 +23910,16 @@ function isGroqRateLimit(err){
   const d = err.detail || err.message || '';
   return /\b429\b/.test(String(d));
 }
+/* Groq's 429 names its own recovery ("try again in 2.775s"). Honor it:
+   wait that long plus a 1s buffer, clamped to 2–15s. Default 6s when the
+   hint is missing. */
+function groqRetryAfterMs(err){
+  const d = String((err && (err.detail || err.message)) || '');
+  const m = d.match(/try again in ([\d.]+)s/i);
+  let s = m ? parseFloat(m[1]) : 6;
+  if (isNaN(s)) s = 6;
+  return Math.min(Math.max(s + 1, 2), 15) * 1000;
+}
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
@@ -24039,7 +24049,7 @@ async function runAssistantBrain(text){
       reopenMicForRetry();
       return;
     }
-    const sink = beginAssistantReply();
+    let sink = beginAssistantReply();
     let streamed = sink ? await streamAssistantReply(payload, sink) : null;
     /* COLD-START RETRY (2026-09-27, Danny: replies kept dying with
        "Tuve un problema..." on first use). A 25s stream timeout almost
@@ -24051,19 +24061,30 @@ async function runAssistantBrain(text){
       streamAssistantReply.timedOut = false;
       streamed = await streamAssistantReply(payload, sink);
     }
-    /* RATE-LIMIT (2026-09-27): the stream just got 429ed — the fallback
-       would 429 too. Skip it entirely instead of spending more calls
-       deepening the hole, and park the brain for 60s. (The old check
-       read res.status, but the endpoint reports its own 502 with the
-       real status inside the error text — isGroqRateLimit reads that.) */
+    /* SMART 429 RETRY (2026-09-27): Groq's 429 names its own recovery
+       ("try again in 2.775s") — one patient retry on the same endpoint
+       beats four hammer blows. A second 429 means the bucket is truly
+       dry: park the brain 60s and say so honestly. The fallback is
+       skipped on a 429 — it would 429 too. */
     if (!streamed && isGroqRateLimit(streamAssistantReply.lastError)) {
-      parkBrainForRateLimit();
+      const waitMs = groqRetryAfterMs(streamAssistantReply.lastError);
       if (sink) sink.discard();
-      hideAssistantTyping();
-      addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
-      addAssistantNote('Código: Groq 429 — ' + (streamAssistantReply.lastError.detail || 'límite de Groq'));
-      reopenMicForRetry();
-      return;
+      showAssistantTyping();
+      await new Promise(r => setTimeout(r, waitMs));
+      sink = beginAssistantReply();
+      streamAssistantReply.lastError = null;
+      streamed = sink ? await streamAssistantReply(payload, sink) : null;
+      if (!streamed && isGroqRateLimit(streamAssistantReply.lastError)) {
+        parkBrainForRateLimit();
+        if (sink) sink.discard();
+        hideAssistantTyping();
+        addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
+        addAssistantNote('Código: Groq 429 — ' + (streamAssistantReply.lastError.detail || 'límite de Groq'));
+        reopenMicForRetry();
+        return;
+      }
+      /* Either the retry worked (handled as a normal stream below) or it
+         failed some other way (falls through to the buffered fallback). */
     }
 
     if (!streamed) {

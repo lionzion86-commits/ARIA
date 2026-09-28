@@ -98,7 +98,13 @@ export default async function handler(req) {
      the client gets a normal status code and falls back cleanly, rather
      than opening an event stream that immediately says "sorry". */
   if (!upstream.ok || !upstream.body) {
-    return json(502, { error: `Groq respondió ${upstream.status}` });
+    /* Forward the real upstream failure incl. Groq's own retry hint
+       ("try again in 2.775s") — the client parses it for the smart 429
+       retry instead of guessing. */
+    let gDetail = null;
+    try { const ej = await upstream.json(); const ge = ej && ej.error; gDetail = ge && (ge.message || ge.code || ge); } catch (e2) { /* not JSON */ }
+    console.error('[aria-chat-stream] Groq error', upstream.status, gDetail);
+    return json(502, { error: `Groq respondió ${upstream.status}` + (gDetail ? ` — ${gDetail}` : '') });
   }
 
   const encoder = new TextEncoder();
