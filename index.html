@@ -1390,7 +1390,7 @@
       <a href="#" data-nav="ariaAutoView" onclick="openAriaAuto();return false;" class="ariaNavLink"><span aria-hidden="true">🚗</span>Aria Auto</a>
       <a href="#" data-nav="salesView" onclick="goSales();return false;" class="ariaNavLink"><span aria-hidden="true">🔥</span>Ofertas</a>
       <a href="#precioHonesto" data-nav="precioHonesto" onclick="goHomeSection('precioHonesto');return false;" class="ariaNavLink">Precio Honesto</a>
-      <a href="#" data-nav="storesView" onclick="showPage('storesView');return false;" class="ariaNavLink">Tiendas en EE.&nbsp;UU.</a>
+      <a href="#" data-nav="storesView" onclick="showPage('storesView');return false;" class="ariaNavLink">Tiendas en Estados Unidos</a>
       <a href="#" data-nav="aboutView" onclick="showPage('aboutView');return false;" class="ariaNavLink">Nosotros</a>
       <a href="#" data-nav="returnsView" onclick="showPage('returnsView');return false;" class="ariaNavLink">Devoluciones</a>
     </nav>
@@ -3106,6 +3106,12 @@
     </div>
   </section>
 
+  <!-- CATEGORIES ON NAVY (2026-09-27, Danny): the whole browse surface sits
+       on the brand navy band now -- white cards only. Headings, blurbs and
+       the "Ver todo" doors are re-inked for the dark surface in
+       renderCategoriesGrid; the filter sidebar is re-inked in this block. -->
+  <div class="ariaNavyBand relative overflow-hidden">
+    <div class="ariaGoldHair"></div>
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
 
@@ -3119,19 +3125,19 @@
     <div class="grid lg:grid-cols-[240px_1fr] gap-8">
       <aside>
         <div class="flex items-center justify-between mb-4">
-          <div class="font-bold text-[14px]">Filtros</div>
+          <div class="font-bold text-[14px]" style="color:#fff">Filtros</div>
         </div>
         <div class="space-y-6 text-[13px]">
           <div>
-            <div class="font-semibold mb-2.5">Tienda</div>
-            <div id="categoriesStoreFilters" class="space-y-2 text-zinc-600"></div>
+            <div class="font-semibold mb-2.5" style="color:#fff">Tienda</div>
+            <div id="categoriesStoreFilters" class="space-y-2"></div>
           </div>
         </div>
       </aside>
 
       <div>
         <div class="flex items-center justify-between mb-4 gap-3">
-          <div id="categoriesCount" class="text-[13px] text-zinc-500"></div>
+          <div id="categoriesCount" class="text-[13px]" style="color:#AFBBD6"></div>
           <select id="categoriesSort" onchange="renderCategoriesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
             <option value="name">Nombre (A-Z)</option>
             <option value="count">Más productos primero</option>
@@ -3142,6 +3148,7 @@
         <div id="categoriesGrid" class="grid grid-cols-1 gap-5"></div>
       </div>
     </div>
+  </div>
   </div>
 </div>
 
@@ -5489,7 +5496,7 @@ function taxIncludedNoteHTML(usd, dutiableUsd, cls = 'text-[11px] mt-0.5'){
    adding the attribute and nothing else. */
 const HONEST_PRICING_BANNER_HTML = `
   <div class="rounded-xl px-4 py-2.5 mb-5 text-[12.5px] font-bold leading-snug" style="background:var(--yellow); color:var(--navy)">
-    💛 Precios honestos: los pedidos de hasta $${IMPORT_TAX_THRESHOLD_USD} no pagan impuestos de importación; lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya los incluye (~${Math.round(IMPORT_TAX_RATE * 100)}%). Lo que ves es lo que pagas.
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="#0B2233" aria-hidden="true" style="display:inline-block;vertical-align:-2px"><path d="M12 21C7 16.5 3 13 3 8.8 3 6 5.2 4 7.8 4c1.7 0 3.2.9 4.2 2.3C13 4.9 14.5 4 16.2 4 18.8 4 21 6 21 8.8c0 4.2-4 7.7-9 12.2Z"/></svg> Precios honestos: los pedidos de hasta $${IMPORT_TAX_THRESHOLD_USD} no pagan impuestos de importación; lo que supera los $${IMPORT_TAX_THRESHOLD_USD} ya los incluye (~${Math.round(IMPORT_TAX_RATE * 100)}%). Lo que ves es lo que pagas.
   </div>`;
 
 /* The founder's photo is a real asset the founder supplies. Until the
@@ -9342,6 +9349,34 @@ const CATEGORY_RAILS = [
 const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'surf_skate', 'kids', 'women', 'men', 'home_decor', 'shoes', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
+/* CATEGORY ICONS (2026-09-27, Danny): real line icons, not phone emojis.
+   One cohesive stroke set -- 24 grid, 1.8 weight, round caps -- in the same
+   gold-stroke language as the Precio Honesto promise icons. currentColor so
+   each surface picks the ink: gold on the navy headings and pill dots. */
+const CATEGORY_ICON_SVGS = {
+  surf_skate: '<path d="M14.5 3.5c2 2 2.5 5.5 1.5 9.5-1 4-3 7-5.5 8.5-2-2-2.5-5.5-1.5-9.5 1-4 3-7 5.5-8.5Z"/><path d="M2.5 18.5c1.6 0 2.4-.9 4-.9s2.4.9 4 .9 2.4-.9 4-.9"/>',
+  combat_sports: '<path d="M7.5 11.5V8a4.5 4.5 0 0 1 9 0v3.5"/><rect x="5" y="11.5" width="14" height="7" rx="3.5"/><path d="M5 15.5h14"/>',
+  women: '<path d="M9.5 3 7.5 5l1.8 2.6L6.5 21h11L14.7 7.6 16.5 5 14.5 3a2.5 2.5 0 0 1-5 0Z"/>',
+  men: '<path d="M9.5 3h5l-.8 3.5 1.8 2.5L12 21l-3.5-12L10.3 6.5 9.5 3Z"/><path d="M9.5 3a2.5 2.5 0 0 0 5 0"/>',
+  kids: '<path d="M9 4 4 7l2 3 2-1.2V20h8V8.8L18 10l2-3-5-3a3 3 0 0 1-6 0Z"/>',
+  shoes: '<path d="M3.5 16.5v-6l4-1 4.5 4.5H19a2 2 0 0 1 2 2v.5h-17.5Z"/><path d="M7.5 9.5v7"/><path d="M3.5 19.5h17.5"/>',
+  home_goods: '<path d="M3.5 10.5 12 3.5l8.5 7"/><path d="M5.5 9.8V20h13V9.8"/><path d="M9.8 20v-5.2h4.4V20"/>',
+  home_decor: '<path d="M5 10V6.5A1.5 1.5 0 0 1 6.5 5h11A1.5 1.5 0 0 1 19 6.5V10"/><path d="M3.5 11.5h17a1 1 0 0 1 1 1V17a2 2 0 0 1-2 2h-15a2 2 0 0 1-2-2v-4.5a1 1 0 0 1 1-1Z"/><path d="M6 19v1.5M18 19v1.5"/>',
+  curvy: '<path d="M8.5 3.5 4.5 6l1.8 3.4 2.2-.9v12h7v-12l2.2.9L19.5 6l-4-2.5a3.5 3.5 0 0 1-7 0Z"/><circle cx="12" cy="12" r=".9" fill="currentColor" stroke="none"/>',
+  gym_rat: '<path d="M7 7.5v9M17 7.5v9M3.5 10v4M20.5 10v4M7 12h10"/>',
+  electronics: '<rect x="4.5" y="4.5" width="15" height="10.5" rx="1.5"/><path d="M2.5 19.5h19"/>',
+  toys: '<circle cx="12" cy="13" r="5.5"/><circle cx="7" cy="8" r="2.2"/><circle cx="17" cy="8" r="2.2"/><circle cx="10" cy="12.2" r=".6" fill="currentColor" stroke="none"/><circle cx="14" cy="12.2" r=".6" fill="currentColor" stroke="none"/><path d="M10.3 15.2c.5.6 1.1.9 1.7.9s1.2-.3 1.7-.9"/>',
+  party: '<path d="M12 3.5a4.5 4.5 0 0 1 4.5 4.5c0 3.2-2.8 5.5-4.5 5.5S7.5 11.2 7.5 8A4.5 4.5 0 0 1 12 3.5Z"/><path d="M12 13.5 11 17l-1.5 4"/>',
+  beauty: '<path d="M10 9h4v11.5h-4z"/><path d="M10 9V7l.8-2.6L12 3l1.2 1.4L14 7v2"/><path d="M8.5 20.5h7"/>',
+  books: '<path d="M12 6.5C10 5 7 4.5 4 4.5v14c3 0 6 .5 8 2 2-1.5 5-2 8-2v-14c-3 0-6 .5-8 2Z"/><path d="M12 6.5v14"/>',
+  moms: '<path d="M10 3h4v2.5l1.2 2.5v10.5a2 2 0 0 1-2 2h-2.4a2 2 0 0 1-2-2V8L10 5.5V3Z"/><path d="M10 8h4"/><path d="M9.8 12.5h4.4"/>',
+  default: '<path d="M6 8.5h12l-1 11.5H7L6 8.5Z"/><path d="M9 8.5V6.5a3 3 0 0 1 6 0v2"/>',
+};
+function categoryIconSVG(key){
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full" aria-hidden="true">'
+    + (CATEGORY_ICON_SVGS[key] || CATEGORY_ICON_SVGS['default']) + '</svg>';
+}
+
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
    emoji where it does not (Aria Party, Juguetes). */
 function categoryTabPillHTML(cat, activeKey){
@@ -9349,7 +9384,7 @@ function categoryTabPillHTML(cat, activeKey){
   const cover = (typeof CATEGORY_COVERS !== 'undefined' && CATEGORY_COVERS[cat.key]) || '';
   const art = cover
     ? `<img src="${cover}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">`
-    : `<span class="text-[14px] leading-none">${escapeHtml(cat.icon || '🏷️')}</span>`;
+    : `<span class="block w-[15px] h-[15px]" style="color:#F4C463" aria-hidden="true">${categoryIconSVG(cat.key)}</span>`;
   return `<button role="tab" aria-selected="${on ? 'true' : 'false'}" data-cat-tab="${escapeHtml(cat.key)}"`
     + ` onclick="setCategoryTab('${jsAttr(cat.key)}')"`
     + ` class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring"`
@@ -9969,7 +10004,7 @@ window.addEventListener('DOMContentLoaded', initFiestasRails);
 function fiestasCatTileHTML(){
   return `<button onclick="openCatalog('department','party')" data-fiestas-cat="1"
     class="flex-shrink-0 w-[148px] text-left rounded-2xl overflow-hidden border focus-ring" style="border-color:var(--line); background:#fff">
-    <span class="block w-full h-[104px] overflow-hidden grid place-items-center text-[26px]" style="background:linear-gradient(160deg,#0A1F44,#0D2A5C)" aria-hidden="true">🎉</span>
+    <span class="block w-full h-[104px] overflow-hidden grid place-items-center" style="background:linear-gradient(160deg,#0A1F44,#0D2A5C);color:#F4C463" aria-hidden="true"><span class="block w-[34px] h-[34px]">${categoryIconSVG('party')}</span></span>
     <span class="block px-3 py-2.5">
       <span class="block text-[13px] font-extrabold leading-tight" style="color:var(--navy)">Aria Party</span>
       <span class="block text-[11px] mt-0.5 tabular" style="color:#6B7487">Todo para tu fiesta</span>
@@ -21817,7 +21852,7 @@ function initSalesFilters(){
 // nothing on this page can build a tile for one — see collectTiles.
 function initCategoriesFilters(){
   document.getElementById('categoriesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
-    `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
+    `<label class="flex items-center gap-2" style="color:#C9D4EC"><input type="checkbox" checked value="${r}" class="categoriesStoreFilter accent-[#2F5FEE]" onchange="renderCategoriesGrid()"> ${LIVE_RETAILER_LABEL[r]}</label>`
   ).join('');
 }
 
@@ -21886,10 +21921,10 @@ async function renderCategoriesGrid(){
     <section aria-label="${escapeHtml(cat.label || '')}" class="mb-8">
       <div class="flex items-center justify-between gap-3 mb-3">
         <span class="min-w-0">
-          <span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:var(--navy)">${cat.icon ? escapeHtml(cat.icon) + ' ' : ''}${escapeHtml(cat.label || '')}</span>
-          ${cat.blurb ? `<span class="block text-[12px] font-semibold mt-0.5" style="color:#6B7487">${escapeHtml(cat.blurb)}</span>` : ''}
+          <span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:#fff"><span class="inline-block w-[20px] h-[20px] mr-2 align-[-3px]" style="color:#F4C463" aria-hidden="true">${categoryIconSVG(cat.key)}</span>${escapeHtml(cat.label || '')}</span>
+          ${cat.blurb ? `<span class="block text-[12px] font-semibold mt-0.5" style="color:#AFBBD6">${escapeHtml(cat.blurb)}</span>` : ''}
         </span>
-        <button onclick="${cat.open || ''}" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>
+        <button onclick="${cat.open || ''}" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>
       </div>
       <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${picks.map((p, i) => railCardHTML(p,
         `openCategoriesViewProduct('${jsAttr(cat.key)}',${i})`,
