@@ -10566,7 +10566,7 @@ function curvyStoreCardsHTML(){
         <span class="block text-[16px] font-extrabold uppercase tracking-wide text-white truncate">${escapeHtml(label)}</span>
         <span class="block text-[12.5px] font-semibold mt-0.5" style="color:#F4C463">${count} producto${count === 1 ? '' : 's'}</span>
       </span>
-      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '&#10003;' : '&rsaquo;'}</span>
+      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' : '&rsaquo;'}</span>
     </button>`;
   };
   return `<div id="curvyStoreCards" class="flex flex-col gap-3 mb-5">${stores.map(card).join('')}</div>`;
@@ -22234,44 +22234,61 @@ async function fileBackedDeals(){
   return out;
 }
 
+/* FILE-BACKED DEALS, merged whenever they land. The 44 catalogue files
+   total 60MB+; they must never gate the first paint, so they accumulate
+   here in the background and every paint combines them with whatever the
+   fast sales-cache function returned. */
+let fileDealsCache = [];
+
 async function runSalesScan(){
   await loadFxRate();
 
-  /* Deals from stores with a FILE rather than an actor. Fetched
-     alongside the cache, not after it, because a cold cache must not
-     mean an empty Ofertas when hundreds of real markdowns are sitting in
-     a committed catalogue. */
-  const fromFiles = await fileBackedDeals();
+  /* One feed. The tier a store sits in on Tiendas has no say here:
+     an SSENSE markdown competes on the same row as a Walmart one. */
+  const paintDeals = (scraped, generatedAt, staleNote) => {
+    saleItemsCache = [...scraped, ...fileDealsCache].filter(passesOfertasGate);
+    salesGeneratedAt = generatedAt;
+    salesStaleNote = staleNote;
+    /* renderSalesGrid targets the Ofertas page grid; on the home page
+       those elements do not exist. */
+    if (document.getElementById('salesGrid')) renderSalesGrid();
+    renderMobileDealsRail();
+  };
 
-  // 1. Cache first — a visitor should never wait on a full live scrape
-  //    when a real, recent scan already exists.
+  // FAST PATH FIRST (2026-09-27): the sales-cache function answers in
+  // ~2s while the catalogues behind fileBackedDeals can take a minute on
+  // a slow connection. Paint from the cache the moment it lands instead
+  // of holding every section hostage to 60MB of JSON.
   let cached = null;
   try {
     const res = await fetchWithTimeout('/.netlify/functions/sales-cache', FETCH_DEADLINE_MS);
     if (res.ok) cached = await res.json();
-  } catch { /* fall through to a live scan */ }
+  } catch { /* file-backed deals still paint below */ }
 
-  if (cached?.items?.length || fromFiles.length){
-    const scraped = (cached?.items || []).map(refreshCachedWeight);
-    // One feed. The tier a store sits in on Tiendas has no say here:
-    // an SSENSE markdown competes on the same row as a Walmart one.
-    saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
-    salesGeneratedAt = cached?.generatedAt || null;
-    salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
-    renderSalesGrid();
-    return;
+  const scrapedNow = () => (cached?.items || []).map(refreshCachedWeight);
+  const freshnessNow = () => cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
+  if (cached?.items?.length){
+    paintDeals(scrapedNow(), cached.generatedAt || null, freshnessNow());
   }
 
-  /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL.
-     This used to launch a twelve-actor live scan from the browser. It
-     now says plainly that the deals are being rebuilt — the scheduled
-     refresher is the only thing that runs an actor, and everything else
-     on the site (search, categories, the on-demand store search) still
-     works while this one section is waiting. */
-  saleItemsCache = [];
-  salesGeneratedAt = null;
-  salesStaleNote = '';
-  renderSalesGrid();
+  /* SLOW PATH IN THE BACKGROUND. Deals from stores with a FILE rather
+     than an actor (Macy's et al) merge into the same feed whenever the
+     catalogues finish loading -- the rail repaints with strictly more
+     deals, never fewer. A cold cache plus zero file deals still says
+     plainly that the offers are being rebuilt. */
+  fileBackedDeals().then(fromFiles => {
+    fileDealsCache = fromFiles;
+    if (fromFiles.length || cached?.items?.length){
+      paintDeals(scrapedNow(), cached?.generatedAt || null, freshnessNow());
+    } else {
+      /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL. */
+      saleItemsCache = [];
+      salesGeneratedAt = null;
+      salesStaleNote = '';
+      if (document.getElementById('salesGrid')) renderSalesGrid();
+      renderMobileDealsRail();
+    }
+  }).catch(() => { if (!cached?.items?.length) renderMobileDealsRail(); });
 }
 
 function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100); }
@@ -23228,10 +23245,16 @@ async function greetAssistantStreaming(){
   if (!streamed || !streamed.reply) {
     if (sink) sink.discard();
     addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
+    ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
     return;
   }
   const reply = sink.finish(streamed.reply) || ARIA_GREETING_FALLBACK;
   hideAssistantTyping();
+  /* THE GREETING IS A TURN TOO (2026-09-27). It used to never reach
+     ariaChatHistory, so the shopper's first real question went out with an
+     empty history and the model -- seeing the greeting script plus zero
+     prior turns -- greeted AGAIN instead of answering. */
+  ariaChatHistory.push({ role: 'assistant', content: reply });
   speakAssistantReply(reply, streamed.audio);
 }
 
