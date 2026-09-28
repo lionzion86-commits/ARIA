@@ -173,3 +173,23 @@ export function deltaFromLine(line) {
 export function isDoneLine(line) {
   return String(line || "").trim() === "data: [DONE]";
 }
+
+/* Groq reports mid-stream failures as an SSE event instead of an HTTP
+   error: `data: {"error": {"message": "Rate limit reached...", "code":
+   "rate_limit_exceeded"}}` with HTTP 200. Without this, a 429 arrives
+   looking exactly like an empty reply and the client's 429 handling
+   never fires. Returns { message, code } or null. */
+export function sseErrorFromLine(line) {
+  const trimmed = String(line || "").trim();
+  if (!trimmed.startsWith("data:")) return null;
+  const payload = trimmed.slice(5).trim();
+  if (!payload || payload === "[DONE]") return null;
+  try {
+    const chunk = JSON.parse(payload);
+    const err = chunk && chunk.error;
+    if (!err) return null;
+    return { message: err.message || err.code || String(err), code: err.code };
+  } catch {
+    return null;
+  }
+}

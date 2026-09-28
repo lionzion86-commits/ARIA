@@ -44,7 +44,7 @@
    which aria-chat-groq.js also uses, so the two endpoints cannot answer
    differently. The only line this one alters is `stream: true`.
    ============================================================ */
-import { chatRequestBody, deltaFromLine, isDoneLine, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -132,6 +132,18 @@ export default async function handler(req) {
           buffered = lines.pop() ?? "";
           for (const line of lines) {
             if (isDoneLine(line)) continue;
+            /* A 429 here wears HTTP 200 — forward it as the error event
+               the client already knows how to 429-handle, with Groq's
+               own retry hint intact. */
+            const sseErr = sseErrorFromLine(line);
+            if (sseErr) {
+              const code = sseErr.code === 429 || /rate limit/i.test(sseErr.message) ? 429 : (sseErr.code || "error");
+              const msg = `Groq respondió ${code}` + (sseErr.message ? ` — ${sseErr.message}` : "");
+              console.error("[aria-chat-stream] Groq SSE error", msg);
+              send(controller, { error: msg });
+              controller.close();
+              return;
+            }
             const delta = deltaFromLine(line);
             if (delta === null) continue;
             reply += delta;
@@ -139,6 +151,15 @@ export default async function handler(req) {
           }
         }
         buffered += decoder.decode();
+        const tailErr = sseErrorFromLine(buffered);
+        if (tailErr) {
+          const code = tailErr.code === 429 || /rate limit/i.test(tailErr.message) ? 429 : (tailErr.code || "error");
+          const msg = `Groq respondió ${code}` + (tailErr.message ? ` — ${tailErr.message}` : "");
+          console.error("[aria-chat-stream] Groq SSE error (tail)", msg);
+          send(controller, { error: msg });
+          controller.close();
+          return;
+        }
         const tail = deltaFromLine(buffered);
         if (tail) { reply += tail; send(controller, { t: tail }); }
 
