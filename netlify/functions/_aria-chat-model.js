@@ -84,10 +84,27 @@ export function sanitizeSpokenPunctuation(text) {
 export const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 export const TEMPERATURE = 0.7;
-/* Aria answers in 2-3 sentences (see BASE_PROMPT_ES), so this is a
-   safety rail rather than a target. It matters more under streaming:
-   the cap is what bounds how long a stream can stay open. */
-export const MAX_TOKENS = 250;
+/* REASONING BUDGET (2026-09-28) — ROOT CAUSE of the deterministic
+   "No reply from model". openai/gpt-oss-120b is a REASONING model: it
+   thinks in a `reasoning` channel (delta.reasoning, channel:"analysis")
+   before writing `content`. Groq counts reasoning tokens against
+   max_tokens. With the default medium effort, a real shopping question
+   burned the whole 250-token budget on reasoning (usage proved it:
+   completion_tokens=250, reasoning_tokens=248, content chars=0) and the
+   stream closed with zero content — every time, deterministically. The
+   parser was never wrong; the model simply never got to speak.
+   "low" spends ~30 reasoning tokens instead of ~250, and 600 gives the
+   reply headroom without an unbounded stream. Aria answers in 2-3
+   sentences, so 600 is a rail, not a target. */
+export const REASONING_EFFORT = "low";
+export const MAX_TOKENS = 600;
+
+/* LAST LINE OF DEFENSE (2026-09-28). If Groq answers twice with zero
+   content, the shopper gets this honest one-liner instead of a dead
+   "No reply from model" — short enough to speak aloud safely, and it
+   invites the retry by voice. Never shown as an error code. */
+export const EMPTY_REPLY_FALLBACK_ES =
+  "Ay, se me fue la idea por un segundo — ¿me repites tu pregunta?";
 
 /** The exact JSON body both endpoints POST to Groq, minus `stream`. */
 export function chatRequestBody(body) {
@@ -109,6 +126,10 @@ export function chatRequestBody(body) {
     ],
     temperature: TEMPERATURE,
     max_tokens: MAX_TOKENS,
+    /* gpt-oss-120b is a reasoning model; without this it spends the
+       whole token budget thinking and never answers (see
+       REASONING_EFFORT). Groq's OpenAI-compatible endpoint honors it. */
+    reasoning_effort: REASONING_EFFORT,
   };
 }
 

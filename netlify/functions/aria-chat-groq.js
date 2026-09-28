@@ -30,7 +30,7 @@
 // matters more than the duplication it removes — a shopper getting a
 // different Aria depending on whether streaming worked today is the
 // failure this shares a module to prevent.
-import { chatRequestBody, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL, EMPTY_REPLY_FALLBACK_ES } from "./_aria-chat-model.js";
 
 export async function handler(event) {
   const headers = {
@@ -80,7 +80,14 @@ export async function handler(event) {
     // marks they mean, so the bubble, the voice and the history all agree.
     const reply = sanitizeSpokenPunctuation(chatData?.choices?.[0]?.message?.content);
     if (!reply) {
-      return { statusCode: 502, headers, body: JSON.stringify({ error: "No reply from model" }) };
+      /* LAST LINE OF DEFENSE (2026-09-28): Groq answered twice with zero
+         content (see REASONING_EFFORT — the model spent its token budget
+         thinking). The shopper gets an honest one-liner, SPOKEN aloud by
+         the client like any other reply, instead of a dead "No reply
+         from model". The `fallback` flag lets the client note the code
+         quietly without changing the bubble. */
+      console.error("[aria-chat-groq] empty reply twice, graceful fallback");
+      return { statusCode: 200, headers, body: JSON.stringify({ reply: EMPTY_REPLY_FALLBACK_ES, fallback: true, audio: null }) };
     }
 
     // Grok TTS (still the cheaper voice option). A voice failure must not

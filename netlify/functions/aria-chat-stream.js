@@ -43,6 +43,14 @@
    reply-length cap and the system prompt come from _aria-chat-model.js,
    which aria-chat-groq.js also uses, so the two endpoints cannot answer
    differently. The only line this one alters is `stream: true`.
+
+   EMPTY-REPLY RETRY (2026-09-28). gpt-oss-120b can answer HTTP 200 with
+   zero content deltas when it spends its token budget reasoning (see
+   REASONING_EFFORT in _aria-chat-model.js) — deterministic per prompt,
+   not a flake. One internal retry on a fresh connection covers the
+   hiccup; a second empty answer becomes an error event so the client
+   falls through to the buffered endpoint, whose own last line is a
+   graceful spoken fallback. The client NEVER sees "No reply from model".
    ============================================================ */
 import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
 
@@ -68,6 +76,70 @@ const json = (status, body) => new Response(JSON.stringify(body), {
   headers: { ...CORS, "Content-Type": "application/json" },
 });
 
+async function fetchGroq(body) {
+  return fetch(GROQ_CHAT_URL, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ ...chatRequestBody(body), stream: true }),
+  });
+}
+
+/* The client-facing message for a Groq SSE error event. A 429 here wears
+   HTTP 200 — it keeps the shape the client already 429-handles, with
+   Groq's own retry hint intact. */
+function sseGroqErrorMessage(sseErr) {
+  const code = sseErr.code === 429 || /rate limit/i.test(sseErr.message) ? 429 : (sseErr.code || "error");
+  return `Groq respondió ${code}` + (sseErr.message ? ` — ${sseErr.message}` : "");
+}
+
+/* Reads one Groq SSE stream to completion. onDelta fires per content
+   delta (already forwarded to the shopper). Returns the full reply text
+   — possibly "" when Groq spent the whole budget reasoning. Throws
+   { sseGroqError: true, message } on an SSE error event; anything else
+   thrown is a transport failure. */
+async function readGroqReply(upstream, onDelta) {
+  const reader = upstream.body.getReader();
+  const decoder = new TextDecoder();
+  let buffered = "";
+  let reply = "";
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      /* `stream: true` on the decoder matters: a multi-byte
+         character (and Spanish is full of them) can be split across
+         two TCP reads, and decoding each read independently turns
+         "envío" into a replacement character. */
+      buffered += decoder.decode(value, { stream: true });
+      /* SSE events are newline-delimited and a read can end
+         mid-line, so only complete lines are judged and the
+         remainder stays buffered for the next read. */
+      const lines = buffered.split("\n");
+      buffered = lines.pop() ?? "";
+      for (const line of lines) {
+        if (isDoneLine(line)) continue;
+        const sseErr = sseErrorFromLine(line);
+        if (sseErr) throw { sseGroqError: true, message: sseGroqErrorMessage(sseErr) };
+        const delta = deltaFromLine(line);
+        if (delta === null) continue;
+        reply += delta;
+        onDelta(delta);
+      }
+    }
+    buffered += decoder.decode();
+    const tailErr = sseErrorFromLine(buffered);
+    if (tailErr) throw { sseGroqError: true, message: sseGroqErrorMessage(tailErr) };
+    const tail = deltaFromLine(buffered);
+    if (tail) { reply += tail; onDelta(tail); }
+    return reply;
+  } finally {
+    try { await reader.cancel(); } catch { /* already closed */ }
+  }
+}
+
 export default async function handler(req) {
   if (req.method === "OPTIONS") return new Response("", { status: 200, headers: CORS });
   if (req.method !== "POST") return json(405, { error: "Method not allowed" });
@@ -82,14 +154,7 @@ export default async function handler(req) {
 
   let upstream;
   try {
-    upstream = await fetch(GROQ_CHAT_URL, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ ...chatRequestBody(body), stream: true }),
-    });
+    upstream = await fetchGroq(body);
   } catch (error) {
     return json(502, { error: error.message });
   }
@@ -112,87 +177,89 @@ export default async function handler(req) {
 
   const stream = new ReadableStream({
     async start(controller) {
-      const reader = upstream.body.getReader();
-      const decoder = new TextDecoder();
-      let buffered = "";
+      const fail = (msg) => { send(controller, { error: msg }); controller.close(); };
       let reply = "";
       try {
-        for (;;) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          /* `stream: true` on the decoder matters: a multi-byte
-             character (and Spanish is full of them) can be split across
-             two TCP reads, and decoding each read independently turns
-             "envío" into a replacement character. */
-          buffered += decoder.decode(value, { stream: true });
-          /* SSE events are newline-delimited and a read can end
-             mid-line, so only complete lines are judged and the
-             remainder stays buffered for the next read. */
-          const lines = buffered.split("\n");
-          buffered = lines.pop() ?? "";
-          for (const line of lines) {
-            if (isDoneLine(line)) continue;
-            /* A 429 here wears HTTP 200 — forward it as the error event
-               the client already knows how to 429-handle, with Groq's
-               own retry hint intact. */
-            const sseErr = sseErrorFromLine(line);
-            if (sseErr) {
-              const code = sseErr.code === 429 || /rate limit/i.test(sseErr.message) ? 429 : (sseErr.code || "error");
-              const msg = `Groq respondió ${code}` + (sseErr.message ? ` — ${sseErr.message}` : "");
-              console.error("[aria-chat-stream] Groq SSE error", msg);
-              send(controller, { error: msg });
-              controller.close();
-              return;
-            }
-            const delta = deltaFromLine(line);
-            if (delta === null) continue;
-            reply += delta;
-            send(controller, { t: delta });
-          }
-        }
-        buffered += decoder.decode();
-        const tailErr = sseErrorFromLine(buffered);
-        if (tailErr) {
-          const code = tailErr.code === 429 || /rate limit/i.test(tailErr.message) ? 429 : (tailErr.code || "error");
-          const msg = `Groq respondió ${code}` + (tailErr.message ? ` — ${tailErr.message}` : "");
-          console.error("[aria-chat-stream] Groq SSE error (tail)", msg);
-          send(controller, { error: msg });
-          controller.close();
-          return;
-        }
-        const tail = deltaFromLine(buffered);
-        if (tail) { reply += tail; send(controller, { t: tail }); }
-
-        if (!reply) {
-          send(controller, { error: "No reply from model" });
-          controller.close();
-          return;
-        }
-
-        /* VOICE IS DECOUPLED FROM TEXT (2026-09-27). Done used to wait for
-           Grok's TTS round trip, so the words sat on screen in silence while
-           the audio rendered. Now done carries the text immediately and the
-           audio follows as its own trailing event; the client speaks whenever
-           it lands, and a TTS failure never delays or blocks the reply. Best
-           effort, as it has always been: no audio event means the browser's
-           own voice takes over client-side. The reply is sanitized (see
-           sanitizeSpokenPunctuation) so dictated punctuation words never
-           reach the shopper as words, in the bubble or the voice. */
-        send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply) });
-        const audio = await speechFor(reply);
-        if (audio) send(controller, { audio });
-        controller.close();
+        reply = await readGroqReply(upstream, (d) => send(controller, { t: d }));
       } catch (error) {
-        /* MID-STREAM FAILURE KEEPS WHAT IT HAS. Whatever Aria had
-           already said stays on screen and is returned as the reply, so
-           a dropped connection leaves a short answer rather than
+        /* An SSE error event (incl. a 429 wearing HTTP 200) is reported
+           exactly once, in the shape the client already handles. */
+        if (error && error.sseGroqError) {
+          console.error("[aria-chat-stream] Groq SSE error", error.message);
+          fail(error.message);
+          return;
+        }
+        /* MID-STREAM TRANSPORT FAILURE KEEPS WHAT IT HAS. Whatever Aria
+           had already said stays on screen and is returned as the reply,
+           so a dropped connection leaves a short answer rather than
            deleting a paragraph the shopper was reading. */
         if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), truncated: true });
-        else send(controller, { error: error.message });
+        else fail(error && error.message ? error.message : "error de conexión");
         controller.close();
-      } finally {
-        try { await reader.cancel(); } catch { /* already closed */ }
+        return;
       }
+
+      if (!reply) {
+        /* EMPTY PARSE, ONE INTERNAL RETRY (2026-09-28). Groq answered
+           200 with zero content deltas — almost always the reasoning
+           budget being spent before the first word (see
+           REASONING_EFFORT). A fresh connection gets a fresh roll; the
+           first attempt sent no deltas, so nothing is rendered twice. */
+        console.error("[aria-chat-stream] empty reply, one internal retry");
+        let retryUpstream = null;
+        try {
+          retryUpstream = await fetchGroq(body);
+        } catch (error) {
+          fail(error && error.message ? error.message : "error de conexión");
+          return;
+        }
+        if (!retryUpstream.ok || !retryUpstream.body) {
+          let gDetail = null;
+          try { const ej = await retryUpstream.json(); const ge = ej && ej.error; gDetail = ge && (ge.message || ge.code || ge); } catch (e2) { /* not JSON */ }
+          const msg = `Groq respondió ${retryUpstream.status}` + (gDetail ? ` — ${gDetail}` : '');
+          console.error('[aria-chat-stream] Groq error (retry)', retryUpstream.status, gDetail);
+          fail(msg);
+          return;
+        }
+        try {
+          reply = await readGroqReply(retryUpstream, (d) => send(controller, { t: d }));
+        } catch (error) {
+          if (error && error.sseGroqError) {
+            console.error("[aria-chat-stream] Groq SSE error (retry)", error.message);
+            fail(error.message);
+            return;
+          }
+          if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), truncated: true });
+          else fail(error && error.message ? error.message : "error de conexión");
+          controller.close();
+          return;
+        }
+      }
+
+      if (!reply) {
+        /* Still nothing after a fresh retry: this is not a 429 and not
+           a transport failure, so it becomes the error event the client
+           already falls through to the buffered endpoint on. The
+           buffered endpoint's own last line is a graceful spoken
+           fallback — the shopper never sees "No reply from model". */
+        console.error("[aria-chat-stream] empty reply twice, falling through to buffered endpoint");
+        fail("Groq devolvió una respuesta vacía tras reintento");
+        return;
+      }
+
+      /* VOICE IS DECOUPLED FROM TEXT (2026-09-27). Done used to wait for
+         Grok's TTS round trip, so the words sat on screen in silence while
+         the audio rendered. Now done carries the text immediately and the
+         audio follows as its own trailing event; the client speaks whenever
+         it lands, and a TTS failure never delays or blocks the reply. Best
+         effort, as it has always been: no audio event means the browser's
+         own voice takes over client-side. The reply is sanitized (see
+         sanitizeSpokenPunctuation) so dictated punctuation words never
+         reach the shopper as words, in the bubble or the voice. */
+      send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply) });
+      const audio = await speechFor(reply);
+      if (audio) send(controller, { audio });
+      controller.close();
     },
   });
 

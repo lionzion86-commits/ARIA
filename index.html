@@ -24145,6 +24145,10 @@ async function runAssistantBrain(text){
       }
       const data = await res.json();
       hideAssistantTyping();
+      /* GRACEFUL FALLBACK (2026-09-28): the buffered endpoint answers 200
+         with a one-liner when Groq twice returns zero content. It is spoken
+         like any reply; the code rides the quiet note channel. */
+      if (data.fallback) addAssistantNote('Código: Groq devolvió vacío tras reintento (fallback local)');
       const reply = data.reply || 'Lo siento, no pude responder eso.';
       rememberAssistantTurn(text, reply);
       addAssistantMessage('bot', reply, data.audio);
