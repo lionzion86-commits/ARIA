@@ -23400,9 +23400,32 @@ async function streamAssistantReply(payload, sink){
       body: JSON.stringify(payload),
       signal: ctrl.signal,
     });
-  } catch { clearTimeout(abortTimer); streamAssistantReply.timedOut = ctrl.signal.aborted; return null; }
-  if (!res.ok || !res.body || typeof res.body.getReader !== 'function') { clearTimeout(abortTimer); return null; }
-  if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) { clearTimeout(abortTimer); return null; }
+  } catch (err) {
+    clearTimeout(abortTimer);
+    const streamTimedOut = ctrl.signal.aborted;
+    streamAssistantReply.timedOut = streamTimedOut;
+    /* ERROR CODES (2026-09-27, Danny): a failed reply used to die
+       silently — the shopper got a generic bubble and nobody, not even
+       the console, knew whether it was a timeout, a 429, or a dead key.
+       The reason is stashed here and surfaced with the retry note. */
+    streamAssistantReply.lastError = { kind: streamTimedOut ? 'timeout' : 'network', detail: err && err.message };
+    console.error('[aria-chat] stream fetch failed:', streamAssistantReply.lastError);
+    return null;
+  }
+  if (!res.ok || !res.body || typeof res.body.getReader !== 'function') {
+    clearTimeout(abortTimer);
+    let streamDetail = null;
+    try { const ej = await res.json(); streamDetail = ej && ej.error; } catch (e2) { /* not JSON */ }
+    streamAssistantReply.lastError = { kind: 'http', status: res.status, detail: streamDetail };
+    console.error('[aria-chat] stream bad response:', streamAssistantReply.lastError);
+    return null;
+  }
+  if (!/text\/event-stream/i.test(res.headers.get('content-type') || '')) {
+    clearTimeout(abortTimer);
+    streamAssistantReply.lastError = { kind: 'not-stream', status: res.status };
+    console.error('[aria-chat] stream wrong content-type:', streamAssistantReply.lastError);
+    return null;
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -23451,6 +23474,10 @@ async function streamAssistantReply(payload, sink){
   // Died after it had started: keep what the shopper is already reading.
   if (sink.started) return { reply: sink.text, audio: null, truncated: true };
   // Nothing rendered, so the buffered endpoint can still answer cleanly.
+  if (failed) {
+    streamAssistantReply.lastError = { kind: 'stream-event', detail: failed };
+    console.error('[aria-chat] stream error event:', failed);
+  }
   return null;
 }
 
@@ -23994,6 +24021,13 @@ async function runAssistantBrain(text){
       streamAssistantReply.timedOut = false;
       streamed = await streamAssistantReply(payload, sink);
     }
+    /* RATE-LIMIT BACKOFF (2026-09-27): the stream already reported a
+       429 — hammering the fallback instantly makes it worse. Give the
+       bucket a few seconds to recover before spending the fallback
+       attempts. */
+    if (!streamed && streamAssistantReply.lastError && streamAssistantReply.lastError.status === 429) {
+      await new Promise(r => setTimeout(r, 6000));
+    }
 
     if (!streamed) {
       /* NOTHING WAS RENDERED (the endpoint is not deployed, the browser
@@ -24008,6 +24042,7 @@ async function runAssistantBrain(text){
          is a cold function, and the dead attempt warmed it. One immediate
          retry; a genuine network failure (not our timer) still errors fast. */
       let res = null;
+      let fallbackError = null;
       for (let attempt = 0; attempt < 2 && !res; attempt++) {
         const fallCtrl = new AbortController();
         const fallTimer = setTimeout(() => fallCtrl.abort(), 25000);
@@ -24018,23 +24053,32 @@ async function runAssistantBrain(text){
             body: JSON.stringify(payload),
             signal: fallCtrl.signal,
           });
+          if (!res.ok) {
+            let fDetail = null;
+            try { const fj = await res.json(); fDetail = fj && fj.error; } catch (e2) { /* not JSON */ }
+            fallbackError = { kind: 'http', status: res.status, detail: fDetail };
+            console.error('[aria-chat] fallback bad response:', fallbackError);
+          }
         } catch (e) {
           res = null;
+          fallbackError = { kind: fallCtrl.signal.aborted ? 'timeout' : 'network', detail: e && e.message };
+          console.error('[aria-chat] fallback fetch failed:', fallbackError);
           if (!fallCtrl.signal.aborted) break; /* real network failure — no retry */
         } finally {
           clearTimeout(fallTimer);
         }
       }
-      if (!res) {
+      if (!res || !res.ok) {
         hideAssistantTyping();
+        /* The generic bubble stays for shoppers, but the real reason
+           rides along in the quiet note channel (never spoken) — a
+           "Groq 429" beats "something broke" when diagnosing. */
+        let fCode = 'sin respuesta';
+        if (res) fCode = 'HTTP ' + res.status + (fallbackError && fallbackError.detail ? ' — ' + fallbackError.detail : '');
+        else if (fallbackError && fallbackError.kind === 'timeout') fCode = 'timeout 25s';
         addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
-    reopenMicForRetry();
-        return;
-      }
-      if (!res.ok) {
-        hideAssistantTyping();
-        addAssistantMessage('bot', 'Tuve un problema respondiendo eso, ¿intentamos de nuevo?', null, { speak: false });
-    reopenMicForRetry();
+        addAssistantNote('Código: ' + fCode);
+        reopenMicForRetry();
         return;
       }
       const data = await res.json();
@@ -24063,7 +24107,9 @@ async function runAssistantBrain(text){
 
   } catch (err) {
     hideAssistantTyping();
+    console.error('[aria-chat] runAssistantBrain failed:', err);
     addAssistantMessage('bot', 'Tuve un problema con la conexión, ¿intentamos de nuevo?', null, { speak: false });
+    addAssistantNote('Código: ' + ((err && err.message) || 'error'));
     reopenMicForRetry();
   } finally {
     clearTimeout(progressTimer);
