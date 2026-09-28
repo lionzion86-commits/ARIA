@@ -11845,7 +11845,7 @@ function renderCatalogFeed(){
       </select>
     </div>
     <div id="catalogGrid" class="${LISTING_GRID_CLASS}">${
-      shown.map(it => listingCardHTML(it, it.retailer, { showSizeRun: catalogState.key === 'curvy' })).join('')}</div>
+      shown.map(it => listingCardHTML(it, it.retailer, { showSizeRun: catalogState.key === 'curvy', dark: storeThemeIsDark(catalogState.retailerFilter) })).join('')}</div>
     ${catalogLoadMoreHTML(items.length, shown.length)}
     ${term && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
     ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6" style="color:#6B7487">
@@ -12483,7 +12483,7 @@ async function openStoreResults(retailer, query){
     document.getElementById('storeResultsSubtitle').textContent = items.length
       ? `${items.length} resultado${items.length > 1 ? 's' : ''} para "${query}"`
       : `Sin resultados en vivo para "${query}" en este momento.`;
-    document.getElementById('storeResultsGrid').innerHTML = items.map(it => listingCardHTML(it, retailer)).join('');
+    document.getElementById('storeResultsGrid').innerHTML = items.map(it => listingCardHTML(it, retailer, { dark: storeThemeIsDark(retailer) })).join('');
   } catch (err) {
     document.getElementById('storeResultsSubtitle').textContent = 'No pudimos completar esta búsqueda — intenta de nuevo.';
   }
@@ -13695,6 +13695,11 @@ function renderSearchResults(){
     ? items.map((p, i) => productCardHTML(p, {
         open: `openSearchProduct(${i})`,
         extraHTML: alsoAtHTML(p),
+        /* SEARCH RESULTS SIT ON NAVY (2026-09-28, price-contrast audit):
+           #resultsView is a navy gradient and these cards have no white
+           shell, so the light price treatment goes invisible -- same
+           break the Ofertas cards had. */
+        dark: true,
       })).join('')
     : emptySearchFeedHTML();
 
@@ -16028,6 +16033,16 @@ const STORE_THEMES = {
   autozone: { glow: '#1C8A4B' },
 };
 function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
+/* DARK-THEME DETECTION (2026-09-28, price-contrast audit). Store ambients
+   are dark-only -- the CSS assumes light text over a dark wash -- except
+   the auto stores, which keep Aria Auto's light surfaces. A product card
+   rendered on a dark ambient needs its on-dark treatment (the same `dark`
+   flag the Ofertas cards use, Danny-approved), or navy prices vanish
+   into the background. */
+function storeThemeIsDark(retailer){
+  if (!storeThemeFor(retailer)) return false;
+  return retailerFor(retailer)?.kind !== 'auto';
+}
 /* Paint or clear the ambient on a view container. Wired into openStore /
    openCatalog / openStoreResults, so back/forward route restores
    (applyRoute) re-apply it through the same path — never show a themed
