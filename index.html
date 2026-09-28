@@ -25,7 +25,7 @@
      ariashop.pe > verificacion por etiqueta HTML, copia el codigo y pegalo en content.
      Sin el codigo real esta etiqueta no hace nada (es inerte). -->
 <meta name="google-site-verification" content="REEMPLAZAR_CON_CODIGO_DE_SEARCH_CONSOLE">
-<link rel="icon" type="image/png" href="assets/orb-64.png">
+<link rel="icon" type="image/png" href="assets/aria-orb-pixar-64.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Rajdhani:wght@300;500;600;700&display=swap" rel="stylesheet">
@@ -4991,6 +4991,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #ariaOrbFloat,
   #ariaOrbImg,
   #assistantIconSpark,
   #assistantIconSpark::before,
@@ -5015,7 +5016,7 @@
   75%  { transform: translate(-15px, -4px); }
   100% { transform: translate(0, 0); }
 }
-#ariaOrbImg {
+#ariaOrbFloat {
   animation: ariaOrbFloat 11s ease-in-out infinite;
   will-change: transform;
 }
@@ -5036,7 +5037,15 @@
 <button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
   class="fixed z-40 w-16 h-16 rounded-full grid place-items-center focus-ring">
   <div id="assistantIconSpark" class="relative" style="width:100%;height:100%;">
-    <img id="ariaOrbImg" src="assets/orb-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+    <!-- Aria's face, alive (2026-09-27, Danny): two pixel-registered frames
+         stacked — open eyes + closed eyes. The blink crossfades between them
+         (see ARIA BLINK in the script). Both frames are true-transparency
+         PNGs, so no white circle behind her. The bounded float lives on the
+         wrapper so both frames move as one. -->
+    <div id="ariaOrbFloat" style="width:100%;height:100%;position:relative;">
+      <img id="ariaOrbImg" src="assets/aria-orb-pixar-320.png" alt="Aria" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+      <img id="ariaOrbBlink" src="assets/aria-orb-pixar-blink-320.png" alt="" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity 90ms ease-in-out;pointer-events:none;">
+    </div>
     <span class="aria-orb-ring" aria-hidden="true"></span>
   </div>
   <svg id="assistantIconClose" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" class="hidden relative"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -22414,6 +22423,40 @@ function setOrbState(state){
 }
 
 /* ============================================================
+   ARIA BLINK — "she blinks, she's alive" (2026-09-27, Danny).
+
+   Two pixel-registered frames (open / closed eyes) crossfade for one
+   natural half-second blink every few seconds, occasionally a double. Purposeful,
+   bounded life only — the frames never leave the button, nothing drifts
+   over page content. Skipped under prefers-reduced-motion.
+   ============================================================ */
+(function(){
+  var blinkImg = document.getElementById('ariaOrbBlink');
+  if (!blinkImg) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  /* Snappy and real (2026-09-27, Danny): the whole blink — close, hold,
+     reopen — lands in about half a second. The first blink waits until the
+     page has fully settled so load jank can never stretch it. */
+  blinkImg.style.transition = 'opacity 120ms ease-in-out';
+  function doBlink(){
+    if (blinkImg.style.opacity === '1') return; /* never stack */
+    blinkImg.style.opacity = '1';
+    setTimeout(function(){ blinkImg.style.opacity = '0'; }, 200);
+  }
+  function schedule(){
+    setTimeout(function(){
+      doBlink();
+      if (Math.random() < 0.25) setTimeout(doBlink, 380); /* natural double-blink */
+      schedule();
+    }, 2000 + Math.random() * 2600);
+  /* 2026-09-27, Danny: ~2-4.6s between blinks reads more alive than ~6s */
+  }
+  function start(){ setTimeout(function(){ doBlink(); schedule(); }, 2500); }
+  if (document.readyState === 'complete') start();
+  else window.addEventListener('load', start);
+})();
+
+/* ============================================================
    ORB MOTION — "she swims, she doesn't sit"
 
    2026-09-25 OVERRIDE (Danny, Chromebook review): the swim is retired —
@@ -24372,13 +24415,16 @@ function speakWithAria(audioBase64, ariaText){
    canonical mascot is one static image, rendered as a circular avatar
    via CSS, not an animated character.
 
-   SIZES (2026-09-18): assets/orb.png is the 1600x1600 master and is
-   deliberately NOT referenced by any markup -- at 2.2 MB it was being
-   pulled down on every page load just to paint a favicon. Everything
-   on-screen uses the derived assets/orb-320.png (58 KB; the largest
-   on-screen use is the 86px assistant button, so 320px still covers
-   ~3.7x DPR) and assets/orb-64.png (4 KB) for the favicon. Regenerate
-   both from the master with sharp if the mascot art ever changes. */
+   SIZES (2026-09-27, Danny): assets/aria-orb-pixar.png is the 1600x1600
+   master of the approved Pixar face and is deliberately NOT referenced
+   by any markup -- at ~1.1 MB it would be pulled down on every page load
+   just to paint a favicon. Everything on-screen uses the derived
+   assets/aria-orb-pixar-320.png (95 KB; the largest on-screen use is the
+   86px assistant button, so 320px still covers ~3.7x DPR) and
+   assets/aria-orb-pixar-64.png (6 KB) for the favicon. assets/aria-orb-pixar-blink-320.png
+   is the closed-eyes frame for the blink (pixel-registered to the open frame). Regenerate both
+   from the master with sharp if the mascot art ever changes. The old
+   faceless orb (orb.png/orb-320.png/orb-64.png) is retired. */
 (function(){
   const AC = new (window.AudioContext || window.webkitAudioContext)();
   function pop(){
