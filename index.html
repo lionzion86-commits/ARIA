@@ -26055,33 +26055,45 @@ function goBrandFromChat(brandKey){
    always answers in Spanish. */
 const CHAT_DOMAIN_FALLBACKS = [
   { label: 'Nautilus Spearfishing', sub: 'Arpones, aletas, trajes y equipo de buceo', action: 'store', key: 'nautilus',
-    keys: ['arpon', 'speargun', 'spearfishing', 'spearfish', 'scuba', 'buceo', 'diving', 'apnea', 'freedive', 'freediving', 'aleta', 'aletas', 'fins', 'neopreno', 'neoprene', 'wetsuit', 'traje de neopreno', 'snorkel', 'esnorquel', 'careta de buceo', 'mascara de buceo', 'rashguard', 'rash guard', 'cuchillo de buceo', 'boya de buceo', 'cinturon de pesas', 'pesca submarina'] },
+    keys: ['arpon', 'arpones', 'speargun', 'spearfishing', 'spearfish', 'scuba', 'buceo', 'diving', 'apnea', 'freedive', 'freediving', 'aleta', 'aletas', 'fins', 'neopreno', 'neoprene', 'wetsuit', 'traje de neopreno', 'traje de buceo', 'traje humedo', 'snorkel', 'esnorquel', 'tubo de snorkel', 'visor de buceo', 'careta de buceo', 'mascara de buceo', 'chapaletas', 'rashguard', 'rash guard', 'cuchillo de buceo', 'boya de buceo', 'boya', 'flotador de pesca', 'cinturon de pesas', 'cinturon de plomos', 'plomos', 'pesca submarina', 'submarinismo', 'cazasubmarina', 'arpon de liga', 'ligas de arpon', 'arpon neumatico', 'fusil hawaiano', 'botines de buceo', 'escarpines', 'guantes de buceo', 'guantes de neopreno', 'carrete de arpon', 'reel', 'monofilamento', 'cabo de arpon', 'linterna de buceo'] },
   { label: 'Surf & Skate', sub: 'Tablas, skates, ropa y accesorios', action: 'department', key: 'surf_skate',
-    keys: ['surf', 'surfing', 'surfeo', 'surfboard', 'tabla de surf', 'bodyboard', 'body board', 'skate', 'skateboard', 'patineta', 'patin'] },
+    keys: ['surf', 'surfing', 'surfeo', 'surfboard', 'tabla', 'tabla de surf', 'tabla de skate', 'correr tabla', 'correr olas', 'tablista', 'bodyboard', 'body board', 'skimboard', 'paddle surf', 'paddleboard', 'sup', 'stand up paddle', 'skate', 'skateboard', 'longboard', 'patineta', 'patin', 'skater', 'quilla', 'quillas', 'pita', 'leash', 'cera para tabla', 'parafina para tabla'] },
   { label: 'Gym Rat', sub: 'Ropa y equipo para entrenar', action: 'department', key: 'gym_rat',
-    keys: ['gym', 'gimnasio', 'pesa', 'pesas', 'mancuerna', 'mancuernas', 'dumbbell', 'kettlebell', 'pesa rusa', 'barra de pesas', 'banco de pesas', 'gymrat', 'entrenamiento con pesas'] },
+    keys: ['gym', 'gimnasio', 'pesa', 'pesas', 'fierros', 'hacer fierros', 'mancuerna', 'mancuernas', 'dumbbell', 'kettlebell', 'pesa rusa', 'barra de pesas', 'banco de pesas', 'banca', 'press de banca', 'sentadilla', 'peso muerto', 'disco', 'discos', 'rack de pesas', 'gymrat', 'entrenamiento con pesas', 'entrenamiento funcional', 'funcional', 'crossfit', 'caminadora', 'trotadora', 'eliptica', 'bicicleta estatica', 'soga para saltar', 'cuerda para saltar', 'guantes de gym', 'guantes de entrenamiento', 'cinturon de levantamiento', 'rodilleras', 'shaker', 'tomatodo', 'leggings', 'licras', 'top deportivo', 'ropa de gym', 'ropa deportiva'] },
   { label: 'Aria Fight Club', sub: 'Boxeo, MMA, jiu-jitsu y mas', action: 'department', key: 'combat_sports',
-    keys: ['mma', 'boxeo', 'boxing', 'jiu jitsu', 'bjj', 'muay thai', 'kickboxing', 'karate', 'taekwondo', 'judo', 'guante de boxeo', 'guantes de boxeo', 'pelea', 'artes marciales'] },
+    keys: ['mma', 'boxeo', 'boxing', 'jiu jitsu', 'jiu-jitsu', 'jiujitsu', 'bjj', 'muay thai', 'muaythai', 'muay', 'thai', 'tay', 'kickboxing', 'kick boxing', 'karate', 'taekwondo', 'judo', 'lucha libre', 'lucha', 'pelea', 'artes marciales', 'sparring', 'guantes', 'guante de boxeo', 'guantes de boxeo', 'guantes de thai', 'guantes de muay thai', 'guantes de mma', 'vendas', 'vendas para boxeo', 'vendas de boxeo', 'canilleras', 'canilleras de muay thai', 'canilleras de thai', 'short de thai', 'short de boxeo', 'shorts de muay thai', 'short muay thai', 'zapatos de boxeo', 'botines de boxeo', 'protector bucal', 'bucal', 'saco de boxeo', 'pera de boxeo', 'pera loca', 'careta', 'cabezal', 'manopla', 'manoplas'] },
   { label: 'Aria Beauty', sub: 'Maquillaje, skincare y fragancias', action: 'department', key: 'beauty',
-    keys: ['maquillaje', 'makeup', 'labial', 'lipstick', 'skincare', 'crema', 'cremas', 'perfume', 'fragancia', 'colonia', 'cologne', 'base de maquillaje', 'rimel', 'sombra de ojos', 'rubor', 'cuidado de la piel', 'serum', 'suero facial'] },
+    keys: ['maquillaje', 'makeup', 'labial', 'pinta labios', 'lipstick', 'skincare', 'crema', 'cremas', 'perfume', 'fragancia', 'colonia', 'cologne', 'base de maquillaje', 'rimel', 'delineador', 'eyeliner', 'mascara de pestanas', 'pestanas postizas', 'sombra de ojos', 'rubor', 'polvo compacto', 'polvo facial', 'corrector', 'iluminador', 'highlighter', 'bronceador', 'cuidado de la piel', 'serum', 'suero facial', 'mascarilla facial', 'exfoliante', 'tonico facial', 'bloqueador solar', 'bloqueador', 'protector solar', 'desmaquillante', 'agua micelar', 'esmalte', 'esmalte de unas', 'quitaesmalte', 'unas', 'manicure', 'pedicure', 'plancha de cabello', 'rizadora', 'secadora de cabello', 'tinte de cabello', 'tinte', 'shampoo', 'acondicionador'] },
   { label: 'Aria Beauty', sub: 'Cuidado personal para hombre y mujer', action: 'department', key: 'beauty',
-    keys: ['barba', 'beard', 'afeitadora', 'shaver', 'rasuradora', 'desodorante', 'deodorant', 'antitranspirante', 'body wash', 'gel de bano', 'axe', 'old spice', 'dove men', 'gillette', 'nivea men'] },
+    keys: ['barba', 'beard', 'afeitadora', 'shaver', 'rasuradora', 'desodorante', 'deodorant', 'antitranspirante', 'body wash', 'gel de bano', 'jabon liquido', 'jabon de cuerpo', 'axe', 'old spice', 'dove men', 'gillette', 'nivea men', 'aftershave', 'balsamo para barba', 'aceite para barba', 'cera para barba', 'recortadora', 'cortadora de cabello', 'maquina de afeitar', 'maquina de cortar cabello', 'perfiladora', 'hojas de afeitar', 'crema de afeitar', 'espuma de afeitar', 'talco', 'depiladora', 'cera depilatoria', 'rastrillo', 'prestobarba', 'colonia de hombre'] },
   { label: 'Juguetes', sub: 'Juguetes para todas las edades', action: 'department', key: 'toys',
-    keys: ['juguete', 'juguetes', 'toy', 'toys', 'lego', 'legos', 'muneca', 'doll', 'peluche', 'peluches', 'stuffed animal', 'juego de mesa', 'board game', 'hot wheels', 'carrito de juguete', 'figura de accion'] },
+    keys: ['juguete', 'juguetes', 'toy', 'toys', 'lego', 'legos', 'muneca', 'muneco', 'doll', 'barbie', 'peluche', 'peluches', 'stuffed animal', 'juego de mesa', 'board game', 'hot wheels', 'carrito', 'carrito de juguete', 'pista de carros', 'figura de accion', 'dinosaurio', 'dinosaurios', 'superheroe', 'fisher price', 'nerf', 'pistola de agua', 'pistola nerf', 'rompecabezas', 'didactico', 'juguete didactico', 'triciclo', 'scooter', 'patin del diablo', 'cometa', 'yoyo', 'trompo', 'canicas', 'plastilina', 'play doh', 'slime', 'xbox', 'playstation', 'nintendo', 'videojuego', 'bicicleta para nino'] },
   { label: 'Repuestos', sub: 'Autopartes y repuestos', action: 'department', key: 'auto_parts',
-    keys: ['repuesto', 'repuestos', 'autoparte', 'autopartes', 'auto parte', 'freno', 'frenos', 'brake', 'pastilla de freno', 'amortiguador', 'filtro de aceite', 'bujia', 'neumatico', 'llanta', 'llantas', 'aceite de motor'] },
+    keys: ['repuesto', 'repuestos', 'autoparte', 'autopartes', 'auto parte', 'carro', 'auto', 'freno', 'frenos', 'brake', 'pastilla de freno', 'disco de freno', 'zapatas de freno', 'amortiguador', 'filtro de aceite', 'filtro de aire', 'bujia', 'cable de bujia', 'neumatico', 'llanta', 'llantas', 'aro', 'aros', 'tapa de aro', 'aceite de motor', 'refrigerante', 'bateria de carro', 'bateria', 'alternador', 'arrancador', 'faja de motor', 'correa de distribucion', 'radiador', 'faro', 'faros', 'foco', 'espejo retrovisor', 'parabrisas', 'plumilla', 'limpiaparabrisas', 'embrague', 'caja de cambios', 'tubo de escape', 'claxon', 'gato hidraulico'] },
   { label: 'Hogar', sub: 'Muebles, cocina y decoracion', action: 'department', key: 'home_goods',
-    keys: ['hogar', 'mueble', 'muebles', 'furniture', 'cocina', 'kitchen', 'decoracion', 'sala', 'dormitorio', 'organizador', 'almacenaje', 'ropa de cama', 'toalla', 'cortina'] },
+    keys: ['hogar', 'mueble', 'muebles', 'furniture', 'cocina', 'kitchen', 'decoracion', 'sala', 'comedor', 'bano', 'dormitorio', 'organizador', 'almacenaje', 'ropa de cama', 'juego de sabanas', 'edredon', 'almohada', 'colchon', 'toalla', 'cortina', 'lampara', 'espejo', 'cuadro', 'florero', 'vela', 'velas', 'ambientador', 'juego de ollas', 'olla', 'ollas', 'sarten', 'licuadora', 'cafetera', 'hervidor', 'tetera', 'tostadora', 'refrigeradora', 'aspiradora', 'plancha', 'tabla de planchar', 'tendedero', 'escoba', 'recogedor', 'trapeador'] },
   { label: 'Electronica', sub: 'Audio, accesorios y gadgets', action: 'department', key: 'electronics',
-    keys: ['audifono', 'audifonos', 'headphone', 'headphones', 'earbud', 'earbuds', 'cargador', 'charger', 'bocina', 'speaker', 'parlante', 'electronica', 'smartwatch', 'reloj inteligente', 'tablet', 'camara', 'camera'] },
+    keys: ['audifono', 'audifonos', 'headphone', 'headphones', 'earbud', 'earbuds', 'cargador', 'charger', 'cable usb', 'power bank', 'bateria portatil', 'bocina', 'speaker', 'parlante', 'parlante inteligente', 'asistente virtual', 'electronica', 'smartwatch', 'reloj inteligente', 'tablet', 'laptop', 'mouse', 'teclado', 'monitor', 'impresora', 'camara', 'camera', 'camara web', 'webcam', 'microfono', 'drone', 'celular', 'funda para celular', 'case para celular', 'mica', 'foco inteligente', 'enchufe inteligente'] },
   { label: 'Zapatos', sub: 'Calzado para todos', action: 'department', key: 'shoes',
-    keys: ['zapato', 'zapatos', 'zapatilla', 'zapatillas', 'shoe', 'shoes', 'sneaker', 'sneakers', 'tenis', 'bota', 'botas', 'boot', 'boots', 'sandalia', 'sandalias', 'sandal', 'tacon', 'tacones'] },
+    keys: ['zapato', 'zapatos', 'zapatilla', 'zapatillas', 'zapatilla de correr', 'calzado', 'shoe', 'shoes', 'sneaker', 'sneakers', 'tenis', 'chimpunes', 'zapatos de futbol', 'bota', 'botas', 'boot', 'boots', 'botin', 'botines', 'sandalia', 'sandalias', 'sandal', 'chancleta', 'chancletas', 'hawaianas', 'crocs', 'alpargata', 'alpargatas', 'tacon', 'tacones', 'taco aguja', 'plataforma', 'mocasin', 'mocasines', 'oxford', 'zapatos de vestir', 'ballerina', 'balerinas'] },
   { label: 'Ropa', sub: 'Moda para hombre, mujer y ninos', action: 'department', key: 'clothing',
-    keys: ['ropa', 'clothes', 'clothing', 'camisa', 'camisas', 'shirt', 'pantalon', 'pantalones', 'pants', 'vestido', 'vestidos', 'dress', 'jeans', 'casaca', 'jacket', 'chompa', 'short', 'shorts', 'falda', 'skirt', 'blusa', 'polo', 'polera'] },
+    keys: ['ropa', 'clothes', 'clothing', 'camisa', 'camisas', 'shirt', 'polo', 'franela', 'bividi', 'bividis', 'polera', 'poleron', 'hoodie', 'hudi', 'sudadera', 'chompa', 'casaca', 'jacket', 'saco', 'chaleco', 'terno', 'corbata', 'pantalon', 'pantalones', 'pants', 'pantalon de vestir', 'jogger', 'jean', 'jeans', 'blue jean', 'short', 'shorts', 'falda', 'minifalda', 'vestido', 'vestidos', 'dress', 'blusa', 'enterizo', 'mameluco', 'ropa de bano', 'traje de bano', 'bikini', 'ropa interior', 'calzoncillo', 'calzoncillos', 'brasier', 'sosten', 'panty', 'panties', 'medias', 'pantimedias', 'pijama', 'bata'] },
   { label: 'Mama y Bebe', sub: 'Todo para mama y bebe', action: 'department', key: 'moms',
-    keys: ['bebe', 'bebé', 'baby', 'panales', 'diaper', 'cuna', 'crib', 'carriola', 'stroller', 'biberon', 'lactancia', 'embarazo', 'pregnancy', 'mama', 'recien nacido'] },
+    keys: ['bebe', 'bebé', 'baby', 'panal', 'panales', 'diaper', 'toallitas humedas', 'cuna', 'crib', 'moises', 'corral', 'andador', 'carriola', 'coche', 'stroller', 'panalera', 'biberon', 'tetero', 'chupon', 'babero', 'ropa de bebe', 'lactancia', 'almohada de lactancia', 'extractor de leche', 'embarazo', 'gestante', 'pregnancy', 'mama', 'recien nacido', 'monitor de bebe'] },
   { label: 'Ofertas', sub: 'Descuentos y liquidaciones de hoy', action: 'department', key: 'sale',
-    keys: ['liquidacion', 'clearance', 'remate'] },
+    keys: ['oferta', 'ofertas', 'descuento', 'descuentos', 'promocion', 'promociones', 'promo', 'barato', 'barata', 'baratos', 'economico', 'dos por uno', 'black friday', 'cyber monday', 'sale', 'deal', 'deals', 'rebaja', 'rebajas', 'ganga', 'liquidacion', 'clearance', 'remate'] },
+  { label: 'Diseñador y lujo', sub: 'Gucci, Prada, Dior y mas', action: 'department', key: 'luxury',
+    keys: ['lujo', 'luxury', 'disenador', 'disenadores', 'marca de lujo', 'marcas de lujo', 'premium', 'cartera de disenador', 'gucci', 'prada', 'dior', 'chanel', 'hermes', 'louis vuitton', 'fendi', 'versace', 'givenchy', 'valentino', 'balenciaga', 'saint laurent', 'burberry', 'cartier', 'tiffany'] },
+];
+/* Collision overrides: checked after policy exclusions, before the domain
+   map. A bare keyword in one domain can swallow a longer phrase that belongs
+   elsewhere ("tabla" eats "tabla de planchar"), so exact-phrase overrides win. */
+const CHAT_DOMAIN_OVERRIDES = [
+  { keys: ['tabla de planchar'], label: 'Hogar', sub: 'Muebles, cocina y decoracion', action: 'department', key: 'home_goods' },
+  { keys: ['gimnasio para bebe'], label: 'Mama y Bebe', sub: 'Todo para mama y bebe', action: 'department', key: 'moms' },
+  { keys: ['patin del diablo'], label: 'Juguetes', sub: 'Juguetes para todas las edades', action: 'department', key: 'toys' },
+  { keys: ['traje de bano', 'ropa de bano'], label: 'Ropa', sub: 'Moda para hombre, mujer y ninos', action: 'department', key: 'clothing' },
+  { keys: ['ganga'], label: 'Ofertas', sub: 'Descuentos y liquidaciones de hoy', action: 'department', key: 'sale' },
 ];
 /* Policy exclusions: the honest no. Checked before the domain map so a
    "vitamina" query never gets a fake redirect to a section that cannot
@@ -26102,6 +26114,11 @@ function findDomainFallback(text){
   for (const ex of CHAT_POLICY_EXCLUSIONS){
     for (const k of ex.keys){
       if (norm.indexOf(' ' + normChatDomain(k).trim() + ' ') !== -1) return Object.assign({ policy: true }, ex);
+    }
+  }
+  for (const ov of CHAT_DOMAIN_OVERRIDES){
+    for (const k of ov.keys){
+      if (norm.indexOf(' ' + normChatDomain(k).trim() + ' ') !== -1) return Object.assign({ policy: false }, ov);
     }
   }
   for (const d of CHAT_DOMAIN_FALLBACKS){
