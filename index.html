@@ -6328,6 +6328,11 @@ const DEPARTMENT_META = {
      surf-skate-spearfishing shops, answered per item by isSurfSkate
      below, the Zapatos way. Tile appears by itself via collectTiles. */
   surf_skate: { label: 'Surf & Skate', icon: '' },
+  /* PESCA SUBMARINA (2026-09-29, Danny): the spearfishing destination --
+     a top-level portal, not nested in Deportes. Gear-type tiles (Arpones,
+     Aletas, Boyas...) browsable across all dive shops. Danny's name,
+     verbatim. */
+  spearfishing: { label: 'Pesca Submarina', icon: '' },
   /* ARIA FIGHT CLUB (2026-09-27, Danny): the fighting-sports destination —
      jiu-jitsu, boxing, kickboxing, Muay Thai, MMA. Danny's name, verbatim. */
   combat_sports: { label: 'Aria Fight Club', icon: '' },
@@ -6413,6 +6418,8 @@ const CATEGORY_ICON_PATHS = {
   curvy: '<path d="M3.5 11.5V4.5a1 1 0 0 1 1-1H11.5l8 8-8 8z"/><circle cx="8.5" cy="8.5" r="1.4"/><path d="M12.5 12v5M10 14.5h5"/>',
   gym_rat: '<path d="M7 7.5v9M17 7.5v9M3.5 10v4M20.5 10v4M7 12h10"/>',
   surf_skate: '<path d="M14.5 2.8c2.6 3.8 2.6 8.4 0 12.2-2.6-3.8-2.6-8.4 0-12.2z"/><path d="M2.5 20.5c2.2 0 2.2-1.8 4.4-1.8s2.2 1.8 4.4 1.8 2.2-1.8 4.4-1.8 2.2 1.8 4.4 1.8"/>',
+  /* PESCA SUBMARINA (2026-09-29): speargun -- shaft, bands, trigger. */
+  spearfishing: '<path d="M3 17 15 5"/><path d="M15 5l3-3"/><path d="M13 7l-2.5 2.5M11 5L8.5 7.5"/><circle cx="17.5" cy="17.5" r="3"/><path d="M15.5 15.5 12 12"/>',
   combat_sports: '<path d="M8.5 20.5v-3"/><path d="M8.5 17.5H6a2 2 0 0 1-2-2v-1.5a6.5 6.5 0 0 1 13 0V17a3.5 3.5 0 0 1-3.5 3.5h-5z"/><path d="M8.5 17.5v-4h5"/>',
   men: '<path d="M9.5 2.5h5L17 7l-5 3.5L7 7z"/><path d="M12 10.5 10 14l2 7.5L14 14z"/>',
   women: '<path d="M9.5 3 7.5 8l2.8 1.8L6.5 21h11l-3.8-11.2L16.5 8 14.5 3a2.5 2.5 0 0 1-5 0z"/>',
@@ -6945,6 +6952,11 @@ const DEPARTMENT_SPEC = {
      from the surf shops stay out; spearfishing gear stays in
      Deportes. Overlaps store pages exactly as Ofertas does. */
   surf_skate:      { anyCategory: true, surfSkateOnly: true },
+  /* PESCA SUBMARINA (2026-09-29, Danny): spearfishing gear is a KIND OF
+     ITEM answered per item by isSpearfishing below, the Zapatos way.
+     Wetsuits dual-list here AND in Surf & Skate -- departments overlap
+     here exactly as Ofertas overlaps everything. */
+  spearfishing:    { anyCategory: true, spearfishingOnly: true },
   /* SECCION HOMBRE (2026-09-29, Danny): the men's grooming destination --
      body wash, deodorant, shaving, beard care, trimmers. Target's
      grooming_men bucket files here by category. */
@@ -7228,6 +7240,148 @@ function isSurfSkate(item, retailer){
 }
 
 /* ============================================================
+   PESCA SUBMARINA (2026-09-29, Danny): the spearfishing destination.
+   A speargun is a KIND OF ITEM answered per item, the Zapatos way --
+   it lives across Nautilus, Surf Station, Island Water Sports, Parrot,
+   Dick's and ValSurf. The native `type` facet is the primary signal
+   (Spanish shopper-facing labels like "Arpones", "Aletas de buceo");
+   Dick's files English machine tokens ("SnorkelingGearEquipment").
+
+   Wetsuits ("Trajes de neopreno") dual-list here AND in Surf & Skate --
+   departments overlap here exactly as Ofertas overlaps everything.
+
+   GEAR-TYPE TILES: the department landing breaks into Danny's ten
+   gear types (his terms, verbatim). Sogas y lineas is carved out of
+   "Repuestos y accesorios de pesca submarina" by title keywords, the
+   way Fight Club carves disciplines by keyword.
+   ============================================================ */
+const SPEAR_GEAR_SPEC = [
+  { key: 'arpones',    label: 'Arpones' },
+  { key: 'boyas',      label: 'Boyas y flotadores' },
+  { key: 'aletas',     label: 'Aletas' },
+  { key: 'mascaras',   label: 'Máscaras y snorkels' },
+  { key: 'trajes',     label: 'Trajes de neopreno' },
+  { key: 'cuchillos',  label: 'Cuchillos de buceo' },
+  { key: 'pesas',      label: 'Pesas y cinturones' },
+  { key: 'guantes',    label: 'Guantes, botines y escarpines' },
+  { key: 'sogas',      label: 'Sogas y líneas' },
+  { key: 'repuestos',  label: 'Repuestos y accesorios' },
+];
+const SPEAR_GEAR_KEYS = new Set(SPEAR_GEAR_SPEC.map(r => r.key));
+/* Native type facet -> gear key. Dick's English tokens included. */
+const SPEAR_TYPE_TO_GEAR = {
+  'Arpones': 'arpones',
+  'Arpones de vara': 'arpones',
+  'Boyas y flotadores': 'boyas',
+  'Aletas de buceo': 'aletas',
+  'Máscaras y snorkels': 'mascaras',
+  'SnorkelingGearEquipment': 'mascaras',
+  'Trajes de neopreno': 'trajes',
+  'Wetsuits': 'trajes',
+  'Cuchillos de buceo': 'cuchillos',
+  'Pesas y cinturones': 'pesas',
+  'Guantes y botines': 'guantes',
+  'Repuestos y accesorios de pesca submarina': 'repuestos',
+  'Accesorios de pesca submarina': 'repuestos',
+  'Linternas de buceo': 'repuestos',
+};
+/* Sogas y lineas lives inside "Repuestos..." -- carved by title. */
+const SPEAR_SOGA_TITLE =
+  /\b(sogas?|l[ií]neas?|lines?|reels?|carretes?|cuerdas?|dyneema|cabos?|shooting\s?lines?)\b/i;
+/* Guard: a surf leash ("pita") is surf gear, not a spearfishing line. */
+const SPEAR_SOGA_VETO =
+  /\b(leash|pita|tabla de surf|surfboard)\b/i;
+function spearGearOfItem(item){
+  if (!item || typeof item !== 'object') return null;
+  const type = String(item.type || '').trim();
+  let gear = SPEAR_TYPE_TO_GEAR[type] || null;
+  if (gear === 'repuestos'){
+    const title = String(item.title || item.name || '');
+    if (SPEAR_SOGA_TITLE.test(title) && !SPEAR_SOGA_VETO.test(title)) return 'sogas';
+  }
+  return gear;
+}
+function isSpearfishing(item, retailer){
+  return spearGearOfItem(item) !== null;
+}
+function groupSpearGear(items){
+  const bucket = new Map();
+  const face = new Map();
+  let typed = 0;
+  for (const item of items || []){
+    const key = spearGearOfItem(item);
+    if (!key) continue;
+    typed += 1;
+    bucket.set(key, (bucket.get(key) || 0) + 1);
+    if (!face.has(key)){
+      const img = item?.image || item?.thumbnail || (Array.isArray(item?.images) ? item.images[0] : null);
+      if (typeof img === 'string' && img) face.set(key, img);
+    }
+  }
+  const rows = SPEAR_GEAR_SPEC.filter(r => bucket.get(r.key))
+    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key), image: face.get(r.key) || null }));
+  const total = (items || []).length;
+  return { rows, typed, total, untyped: total - typed };
+}
+/* The gear-type pill row above the Pesca Submarina grid. Todo is the
+   default and shows the whole feed; a gear type narrows it. Same chip
+   treatment as the Fight Club discipline pills. */
+function spearGearChipsHTML(grouped){
+  const active = catalogState.subKey;
+  const isAll = !active || active === SUB_ALL;
+  const chip = (isOn, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}</button>`;
+  return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4" role="radiogroup" aria-label="Tipo de equipo">
+    ${chip(isAll, 'Todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
+    ${grouped.rows.map(r => chip(active === r.key, escapeHtml(r.label), r.count, `setCatalogSub('${jsAttr(r.key)}')`)).join('')}
+  </div>`;
+}
+/* ============================================================
+   DEPORTES HUB (2026-09-29, Danny): hub and spoke. Deportes is the
+   hub -- one carousel per sport, each a MIXED teaser from all stores.
+   Clicking through opens the sport's own department (the spoke):
+   Pesca Submarina -> gear-type tiles, Fight Club -> discipline pills,
+   Surf & Skate -> by shop/by brand. Carousel teases, department
+   organizes. This is the template; more sports wire in the same way.
+   ============================================================ */
+const spearHubCache = new WeakMap();
+function spearfishingHubItems(){
+  const data = departmentCacheData;
+  if (!data || typeof data !== 'object') return [];
+  const cached = spearHubCache.get(data);
+  if (cached) return cached;
+  const out = [];
+  const retailers = data.retailers || {};
+  for (const [retailer, rdata] of Object.entries(retailers)){
+    for (const raw of retailerItemsFor(rdata)){
+      if (!isSpearfishing(raw, retailer)) continue;
+      const it = normalizeLiveItem(raw, { retailer, department: 'spearfishing' });
+      if (it && it.title) out.push({ ...it, retailer });
+    }
+  }
+  spearHubCache.set(data, out);
+  return out;
+}
+function sportHubCarouselHTML(){
+  /* Only Pesca Submarina for now -- the template other sports follow. */
+  const items = spearfishingHubItems();
+  if (items.length < 4) return '';
+  const sorted = items.slice().sort((a, b) => (discountPct(b) - discountPct(a)) || 0);
+  const picks = sorted.slice(0, 12);
+  return `<section aria-label="Pesca Submarina" class="mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="ariaCarouselTitle text-[20px] font-extrabold tracking-[-0.02em]" style="color:var(--navy)">Pesca Submarina</h2>
+      <button onclick="openCatalog('department','spearfishing')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:var(--navy)">Ver todo &#8594;</button>
+    </div>
+    <div class="ariaCarousel no-scrollbar" role="list">
+      ${picks.map((it) => carouselCardHTML(it, it.retailer)).join('')}
+    </div>
+  </section>`;
+}
+
+/* ============================================================
    IS THIS GYM APPAREL? (2026-09-27, Danny's PC QA)
    "Everlast is gym also. It's not just fighting."
    The combat retailers file gym clothing -- leggings, sports bras,
@@ -7489,6 +7643,7 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.onSaleOnly) return rawItemOnSale(item);
   if (dept.footwearOnly) return isFootwear(item, retailer);
   if (dept.surfSkateOnly) return isSurfSkate(item, retailer);
+  if (dept.spearfishingOnly) return isSpearfishing(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
   if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
@@ -11480,6 +11635,7 @@ function itemsInSubcategory(items, key){
      a glove serves Boxeo and Muay Thai at once -- so they filter through
      fightClubCategoriesOfItem instead of the single-aisle lookup. */
   if (FIGHT_CLUB_KEYS.has(key)) return (items || []).filter(it => fightClubCategoriesOfItem(it).includes(key));
+  if (SPEAR_GEAR_KEYS.has(key)) return (items || []).filter(it => spearGearOfItem(it) === key);
   if (LATINO_DESIGNER_KEYS.has(key)) return (items || []).filter(it => latinoDesignerOfItem(it) === key);
   return (items || []).filter(it => subcategoryOfItem(it) === key);
 }
@@ -12529,8 +12685,9 @@ function renderCatalogFeed(){
   /* FIGHT CLUB (2026-09-28, Danny): discipline pills, not the aisle list --
      Todo shows the whole feed by default, a pill narrows it. */
   const isFightClub = catalogState.kind === 'department' && catalogState.key === 'combat_sports';
+  const isSpearfishingDept = catalogState.kind === 'department' && catalogState.key === 'spearfishing';
   const isLatinoDesigners = catalogState.kind === 'department' && catalogState.key === 'latino_designers';
-  const grouped = isFightClub ? groupFightClub(gendered) : isLatinoDesigners ? groupLatinoDesigners(gendered) : groupBySubcategory(gendered);
+  const grouped = isFightClub ? groupFightClub(gendered) : isLatinoDesigners ? groupLatinoDesigners(gendered) : isSpearfishingDept ? groupSpearGear(gendered) : groupBySubcategory(gendered);
   const splittable = isFightClub ? false : shouldSplit(grouped);
   const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
 
@@ -12652,9 +12809,10 @@ function renderCatalogFeed(){
      below it. Search, budget and sort all flow through `items`. */
   sections.innerHTML = `
     ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null })}
+    ${isSports ? sportHubCarouselHTML() : ''}
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
-    ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
+    ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : isSpearfishingDept ? spearGearChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
@@ -16949,6 +17107,9 @@ const DEPT_THEMES = {
      baby-yellow alternative. */
   kids: { attr: 'kids', glow: '#C4E6FB' },
   surf_skate: { attr: 'surf_skate', glow: '#8FC6EE' },
+  /* PESCA SUBMARINA (2026-09-29, Danny): deep ocean blue -- the dive
+     destination gets its own water. */
+  spearfishing: { attr: 'spearfishing', glow: '#5B9BD5' },
 };
 /* Every department WITHOUT its own row above lands here: a soft
    brand-blue tint, so no category page is plain white. */
