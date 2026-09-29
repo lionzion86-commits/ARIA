@@ -21709,7 +21709,9 @@ async function renderCrossSellRail(){
   if (!wrap) return;
   if (!cart.length){ wrap.innerHTML = ''; return; }
 
-  if (!departmentCacheData?.retailers) departmentCacheData = await loadDepartmentCache();
+  /* Same race as relatedPool (2026-09-28): await the memoized loader
+     instead of trusting the possibly-still-empty initial object. */
+  departmentCacheData = await loadDepartmentCache();
   // Bail if the cart changed (or emptied) while the cache was loading —
   // this render is now stale.
   if (!cart.length) return;
