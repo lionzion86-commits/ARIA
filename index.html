@@ -24837,7 +24837,7 @@ function startOrbSwim(){
 const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)';
 
 /* What Aria says when the greeting endpoint gives us nothing usable. Matches her signature greeting script (GREETING_SCRIPT_ES in netlify/functions/_aria-prompt.js). No emoji: this line can be spoken aloud by the browser-voice fallback. */
-const ARIA_GREETING_FALLBACK = '¡Hola! Soy Aria, tu shopper personal. ¿Qué estás buscando?';
+const ARIA_GREETING_FALLBACK = '¡Hola! Soy Aria, tu shopper personal. ¿Qué buscas hoy?';
 
 function isMobileChat(){
   return !!(window.matchMedia && window.matchMedia(ARIA_CHAT_MOBILE_MQ).matches);
