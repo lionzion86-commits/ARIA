@@ -10683,8 +10683,8 @@ const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose'
 /* LATINO DESIGNERS (2026-09-29, Danny): the five Disenadores Latinos
    marques get dual placement -- their own section AND the brand strip,
    right after the luxury block, so shoppers can find and support them. */
-const BRAND_STRIP_LATINO = ['farmrio','johannaortiz','aguabendita','silviatcherassi','patbo'];
-const BRAND_STRIP_LATINO_LABELS = { farmrio:'Farm Rio', johannaortiz:'Johanna Ortiz', aguabendita:'Agua Bendita', silviatcherassi:'Silvia Tcherassi', patbo:'PatBO' };
+const BRAND_STRIP_LATINO = ['farmrio','johannaortiz','aguabendita','silviatcherassi','patbo','osklen','lennyniemeyer','adrianadegreas','andresotalora','dondeesteban','amirslama','alexandrebirman','sarahchofakian','aguabyaguabendita','capittana'];
+const BRAND_STRIP_LATINO_LABELS = { farmrio:'Farm Rio', johannaortiz:'Johanna Ortiz', aguabendita:'Agua Bendita', silviatcherassi:'Silvia Tcherassi', patbo:'PatBO', osklen:'Osklen', lennyniemeyer:'Lenny Niemeyer', adrianadegreas:'Adriana Degreas', andresotalora:'Andres Otalora', dondeesteban:'Donde Esteban', amirslama:'Amir Slama', alexandrebirman:'Alexandre Birman', sarahchofakian:'Sarah Chofakian', aguabyaguabendita:'Agua by Agua Bendita', capittana:'Capittana' };
 function brandStripBrands(){
   const data = departmentCacheData?.retailers || {};
   const counts = new Map();
@@ -11634,6 +11634,7 @@ function itemsInSubcategory(items, key){
   if (FIGHT_CLUB_KEYS.has(key)) return (items || []).filter(it => fightClubCategoriesOfItem(it).includes(key));
   if (SPEAR_GEAR_KEYS.has(key)) return (items || []).filter(it => spearGearOfItem(it) === key);
   if (LATINO_DESIGNER_KEYS.has(key)) return (items || []).filter(it => latinoDesignerOfItem(it) === key);
+  if (LATINO_TYPE_KEYS.has(key)) return (items || []).filter(it => latinoProductTypeOfItem(it) === key);
   return (items || []).filter(it => subcategoryOfItem(it) === key);
 }
 /* ============================================================
@@ -11747,8 +11748,8 @@ function fightClubChipsHTML(grouped){
 }
 
 /* ============================================================
-   DISENADORES LATINOS: BRAND PILLS (2026-09-28, Danny).
-   Five South American designers via Farfetch US. Same pill-row pattern
+   DISENADORES LATINOS: BRAND PILLS (2026-09-28, Danny; expanded 2026-09-29).
+   Fifteen South American designers via Farfetch US (+ Capittana/Peru, pull pending). Same pill-row pattern
    as Fight Club: Todo is the default and shows the whole feed, a brand
    pill narrows it. Classification is by the normalized brand field
    (farfetch-catalog.json carries only these five designers), so every
@@ -11760,8 +11761,74 @@ const LATINO_DESIGNERS_SPEC = [
   { key: 'patbo',          label: 'PatBO',          match: 'patbo' },
   { key: 'johannaortiz',   label: 'Johanna Ortiz',  match: 'johanna ortiz' },
   { key: 'silviatcherassi',label: 'Silvia Tcherassi',match: 'silvia tcherassi' },
+  { key: 'osklen',         label: 'Osklen',         match: 'osklen' },
+  { key: 'lennyniemeyer',  label: 'Lenny Niemeyer', match: 'lenny niemeyer' },
+  { key: 'adrianadegreas', label: 'Adriana Degreas',match: 'adriana degreas' },
+  { key: 'andresotalora',  label: 'Andres Otalora', match: 'andres otalora' },
+  { key: 'dondeesteban',   label: 'Donde Esteban',  match: 'donde esteban' },
+  { key: 'amirslama',      label: 'Amir Slama',     match: 'amir slama' },
+  { key: 'alexandrebirman',label: 'Alexandre Birman',match: 'alexandre birman' },
+  { key: 'sarahchofakian', label: 'Sarah Chofakian',match: 'sarah chofakian' },
+  { key: 'aguabyaguabendita',label: 'Agua by Agua Bendita', match: 'agua by agua bendita' },
+  { key: 'capittana',        label: 'Capittana',      match: 'capittana' },
 ];
 const LATINO_DESIGNER_KEYS = new Set(LATINO_DESIGNERS_SPEC.map(r => r.key));
+
+/* ============================================================
+   DISENADORES LATINOS: PRODUCT-TYPE TILES (2026-09-29, Danny).
+   "Like the iPhone when cell phones came out -- oh my God this is
+   so simple." Product type is the PRIMARY navigation: shoppers tap
+   what they want (swim, shoes, bags...) and see it across ALL
+   designers. Brand pills stay as the secondary filter.
+   Classification is keyword-driven off the English product name.
+   Order matters: swim/bags/jewelry/shoes/hats/accessories are
+   checked before the ropa default catches everything else.
+   ============================================================ */
+const LATINO_PRODUCT_TYPES = [
+  { key: 'trajes_bano', label: 'Trajes de Baño', keywords: ['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
+  { key: 'carteras',    label: 'Carteras',    keywords: ['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key: 'joyas',       label: 'Joyas',       keywords: ['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
+  { key: 'zapatos',     label: 'Zapatos',     keywords: ['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
+  { key: 'sombreros',   label: 'Sombreros',   keywords: ['hat','cap','beanie','fedora','visor'] },
+  { key: 'accesorios',  label: 'Accesorios',  keywords: ['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
+  { key: 'ropa',        label: 'Ropa',        keywords: [] },
+];
+const LATINO_TYPE_KEYS = new Set(LATINO_PRODUCT_TYPES.map(r => r.key));
+
+function latinoProductTypeOfItem(item){
+  const n = String(item?.name || '').toLowerCase();
+  for (const t of LATINO_PRODUCT_TYPES){
+    if (!t.keywords.length) continue;
+    if (t.keywords.some(k => n.includes(k))) return t.key;
+  }
+  return 'ropa';
+}
+
+/* Group items by product type for the tile counts. */
+function groupLatinoByType(items){
+  const bucket = new Map();
+  for (const item of items || []){
+    const key = latinoProductTypeOfItem(item);
+    bucket.set(key, (bucket.get(key) || 0) + 1);
+  }
+  const rows = LATINO_PRODUCT_TYPES.filter(r => bucket.get(r.key))
+    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key) }));
+  const total = (items || []).length;
+  return { rows, total };
+}
+
+/* The product-type tile grid: the primary navigation for
+   Disenadores Latinos. Big tappable tiles, one per type. */
+function latinoTypeTilesHTML(grouped){
+  const tiles = grouped.rows.map(r => `
+    <button onclick="setCatalogSub('${r.key}')" aria-label="${r.label}"
+      class="flex flex-col items-center justify-center gap-1 rounded-2xl border py-5 px-3 focus-ring transition"
+      style="border-color:var(--line); background:#fff; min-height:96px">
+      <span class="text-[15px] font-extrabold text-center" style="color:var(--navy)">${r.label}</span>
+      <span class="text-[12px] font-semibold tabular" style="color:#6B7487">${r.count} producto${r.count === 1 ? '' : 's'}</span>
+    </button>`).join('');
+  return `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-5" aria-label="Comprar por tipo de producto">${tiles}</div>`;
+}
 
 function latinoDesignerOfItem(item){
   const b = String(item?.brand || '').toLowerCase().trim();
@@ -12809,6 +12876,7 @@ function renderCatalogFeed(){
     ${isSports ? sportHubCarouselHTML() : ''}
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
+    ${isLatinoDesigners && !catalogState.subKey ? latinoTypeTilesHTML(groupLatinoByType(gendered)) : ''}
     ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : isSpearfishingDept ? spearGearChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
