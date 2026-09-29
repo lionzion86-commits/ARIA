@@ -25447,6 +25447,12 @@ function buildChatSearchQuery(text, recipient){
        the query that goes looking needs the same treatment. */
     .replace(/\b(?:b[uú]sca(?:me)?|buscar|enc[uú]entra(?:me)?|encontrar|nec[eé]sito|quiero|quisiera|mu[eé]strame|ens[eé][ñn]ame|dame|tienes?|tienen|hay|ver)\b/gi, ' ')
     .replace(/\b(un|una|unos|unas|el|la|los|las|algun|alguna|algunos|algunas)\b/gi, ' ')
+    /* SHOW-ALL WORDS, OUT (2026-09-28, Danny). "Muéstrame todas las
+       Adidas" left "todas" in the query, and multi-word queries are AND
+       -- "todas" matches no title, so every Adidas on the shelf was
+       filtered out and the shopper was told we had none. "Toda(s)" and
+       "todo(s)" are quantifiers, never product words. */
+    .replace(/\b(todas?|todos?)\b/gi, ' ')
     .replace(/\b(de|del|mi|mis|que|tiene|a[ñn]os?)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
@@ -25509,6 +25515,13 @@ const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion'
    per question, because two of these stacked in a transcript is noise.
    ============================================================ */
 let assistantLiveOffered = '';
+
+/* FOLLOW-UP REPAIR STATE (2026-09-28, Danny). The previous turn's catalog
+   query and whether it came back empty, so a bare "muéstrame todas" /
+   "just show me all" after a miss re-searches the product instead of
+   searching the words of the repair itself. */
+let lastChatSearchQuery = '';
+let lastChatSearchEmpty = false;
 
 function addAssistantLiveOffer(query){
   const wrap = document.getElementById('assistantMessages');
@@ -25650,7 +25663,15 @@ async function runAssistantBrain(text){
   }
 
   const recipient = extractRecipient(text, ariaChatHistory);
-  const searchQuery = buildChatSearchQuery(text, recipient);
+  /* FOLLOW-UP "SHOW ME ALL" (2026-09-28, Danny). He asked "Muéstrame
+     todas las Adidas", the brain asked which model, he answered "just
+     show me all" -- and the new turn searched the literal words "just
+     show me all" instead of Adidas. A bare affirmation or show-all reply
+     that repairs an empty search reuses the previous turn's query. */
+  const chatFollowupRe = /^(s[ií]|dale|ya|ok(?:ay)?|bueno|vale|claro|por\s*favor|just\s+show\s+me\s+all|show\s+me\s+all|show\s+all|mu[eé]strame\s+tod[oa]s?|ens[eé][ñn]ame\s+tod[oa]s?|tod[oa]s?)$/i;
+  const reuseChatQuery = lastChatSearchQuery && lastChatSearchEmpty && chatFollowupRe.test(text.trim());
+  const searchQuery = reuseChatQuery ? lastChatSearchQuery : buildChatSearchQuery(text, recipient);
+  lastChatSearchQuery = searchQuery;
   assistantLiveOffered = '';   // a new question gets its own offer
   const willSearch = searchQuery.length >= 3 && !CHAT_NON_SHOPPING_RE.test(text);
 
@@ -25659,7 +25680,7 @@ async function runAssistantBrain(text){
      typing indicator stays up until the reply lands. A live multi-store
      search can run 20-30 seconds; a blank, silent panel for that long
      reads as frozen, and people close it. */
-  addAssistantNote(willSearch ? chatAckEs(text) : 'Dame un segundo, reviso eso…');
+  addAssistantNote(willSearch ? (reuseChatQuery ? `Buscando ${searchQuery}… dame un segundo.` : chatAckEs(text)) : 'Dame un segundo, reviso eso…');
   showAssistantTyping();
   if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
@@ -25715,6 +25736,7 @@ async function runAssistantBrain(text){
          page. */
       if (!foundItems.length || catalogResultsAreThin(cat)) addAssistantLiveOffer(searchQuery);
     }
+    lastChatSearchEmpty = willSearch && foundItems.length === 0;
     /* ONE PAYLOAD, TWO ENDPOINTS. The streaming function and the
        buffered one take the identical body and build the identical Groq
        request (see _aria-chat-model.js), so which one answers cannot

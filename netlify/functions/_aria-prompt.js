@@ -89,6 +89,12 @@ export const SHIPPING_RULES_ES = `REGLAS SOBRE PRECIOS, ENVÍO E IMPUESTOS — O
 
 7. Lo que SÍ puedes afirmar sobre el servicio (política real del sitio): compramos el producto en la tienda de Estados Unidos, lo consolidamos en nuestro almacén de Miami, gestionamos el trámite de aduana en Perú, y la entrega es puerta a puerta en todo el Perú. El total se ve completo en el checkout antes de pagar, y no hay cobros sorpresa al recibir.`;
 
+/* SHOW-ALL (2026-09-28, Danny). "Muéstrame todas las Adidas" means ALL
+   of them: never answer it by asking which model, color or size they
+   want -- present the results as they come. Only offer to narrow down
+   when the search returned nothing. */
+const SHOW_ALL_RULE_ES = `MOSTRAR TODO: si el cliente dice "todas", "todos", "toda", "todo" o "all" (quiere ver TODO lo disponible), NUNCA le pidas que especifique modelo, color, talla o marca: presenta los resultados tal como vienen. Solo ofrece afinar la búsqueda si no hubo ningún resultado.`;
+
 // Binds what the reply may assert about availability, price and retailer to
 // the products the caller actually retrieved for this turn.
 // Who the gift is for, when the shopper said. The client extracts this
@@ -124,6 +130,7 @@ export function productRulesEs(products, recipient) {
   if (!products.length) {
     return `BÚSQUEDA SIN RESULTADOS: la búsqueda en vivo no devolvió productos para este mensaje, así que no se mostrará ninguna tarjeta.
 - Si el cliente preguntaba por un producto, di que no lo encontraste disponible EN ESTE MOMENTO y ofrece buscar otra cosa o afinar la búsqueda. No afirmes que Aria nunca vende esa categoría.
+- Si nombras lo que buscaste, usa las palabras exactas del cliente, nunca un fragmento cortado o inventado.
 - No inventes productos, precios ni tiendas.`;
   }
   const list = products
@@ -143,6 +150,7 @@ export function buildSystemPrompt(products = [], recipient = null) {
   return [
     BASE_PROMPT_ES,
     GREETING_SCRIPT_ES,
+    SHOW_ALL_RULE_ES,
     SHIPPING_RULES_ES,
     recipientRulesEs(recipient),
     productRulesEs(products, recipient),
