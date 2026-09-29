@@ -10837,7 +10837,119 @@ function shouldSplit(g){
 
 function itemsInSubcategory(items, key){
   if (!key) return items || [];
+  /* FIGHT CLUB (2026-09-28, Danny): discipline pills are multi-category --
+     a glove serves Boxeo and Muay Thai at once -- so they filter through
+     fightClubCategoriesOfItem instead of the single-aisle lookup. */
+  if (FIGHT_CLUB_KEYS.has(key)) return (items || []).filter(it => fightClubCategoriesOfItem(it).includes(key));
   return (items || []).filter(it => subcategoryOfItem(it) === key);
+}
+/* ============================================================
+   ARIA FIGHT CLUB: DISCIPLINE PILLS (2026-09-28, Danny).
+   ~2,000 products and no way to find a gi scrolling four-by-four.
+   The pills break the view by discipline: Jiu-Jitsu, Boxeo, Muay Thai,
+   MMA -- plus Todo, which is the default and shows everything.
+
+   Classification is keyword-driven off the title (Spanish + English).
+   A product may belong to more than one discipline: boxing gloves
+   serve Muay Thai too (Danny), headgear and mouthguards serve all
+   three striking disciplines. Anything the keywords do not catch --
+   gym apparel, bags, accessories -- stays visible under Todo; the
+   pills never hide products.
+   ============================================================ */
+const FIGHT_CLUB_SPEC = [
+  { key: 'jiujitsu', label: 'Jiu-Jitsu' },
+  { key: 'boxeo',    label: 'Boxeo' },
+  { key: 'muaythai', label: 'Muay Thai' },
+  { key: 'mma',      label: 'MMA' },
+];
+const FIGHT_CLUB_KEYS = new Set(FIGHT_CLUB_SPEC.map(r => r.key));
+
+function fightClubCategoriesOfItem(item){
+  const t = ' ' + String(item?.title || '').toLowerCase() + ' ';
+  const cats = new Set();
+  const wb = (re) => re.test(t);
+  /* Explicit discipline mentions. */
+  if (wb(/\bmuay\s?thai\b/) || wb(/\bthai\b/)) cats.add('muaythai');
+  if (wb(/\bmma\b/) || wb(/\bufc\b/) || t.includes('vale tudo')) cats.add('mma');
+  if (t.includes('kickbox')){ cats.add('boxeo'); cats.add('muaythai'); }
+  /* Jiu-jitsu: gis, no-gi, rash guards, spats, belts. */
+  if (wb(/\bgi\b/) || t.includes('kimono')) cats.add('jiujitsu');
+  if (/no[\s-]?gi\b/.test(t) || t.includes('nogi')) cats.add('jiujitsu');
+  if (t.includes('rashguard') || t.includes('rash guard')) cats.add('jiujitsu');
+  if (wb(/\bspats?\b/)) cats.add('jiujitsu');
+  if (wb(/\bbjj\b/) || t.includes('jiu jitsu') || t.includes('jiu-jitsu')) cats.add('jiujitsu');
+  if (wb(/\bbelts?\b/) && !t.includes('weight')) cats.add('jiujitsu');
+  /* Gloves: shared between Boxeo and Muay Thai unless MMA-specific. */
+  const isGlove = wb(/\bgloves?\b/) || wb(/\bmitts?\b/);
+  const isMMAglove = isGlove && (cats.has('mma') || t.includes('hybrid') || t.includes('grappling') || /\b4\s?oz\b/.test(t));
+  if (isGlove){
+    if (isMMAglove) cats.add('mma');
+    else { cats.add('boxeo'); cats.add('muaythai'); }
+  } else if (t.includes('grappling')) cats.add('jiujitsu');
+  /* Boxeo gear. */
+  if (t.includes('boxing') || t.includes('boxeo')) cats.add('boxeo');
+  if (wb(/\bwraps?\b/) || t.includes('venda')){ cats.add('boxeo'); cats.add('muaythai'); }
+  if (t.includes('shoe') && (t.includes('boxing') || t.includes('boxeo'))) cats.add('boxeo');
+  if (t.includes('heavy bag') || t.includes('punching bag') || t.includes('speed bag') || t.includes('double end') || wb(/\bsaco\b/)){ cats.add('boxeo'); cats.add('muaythai'); }
+  if (/\bhb\d+\b/.test(t) && t.includes('bag')){ cats.add('boxeo'); cats.add('muaythai'); }
+  if (t.includes('thai pad') || t.includes('kick pad') || t.includes('thigh pad')) cats.add('muaythai');
+  if (t.includes('focus mitt') || t.includes('punch mitt')){ cats.add('boxeo'); cats.add('muaythai'); }
+  if (t.includes('paddle')){ cats.add('boxeo'); cats.add('muaythai'); }
+  /* Muay Thai: shin guards. */
+  if (t.includes('shin guard') || t.includes('canillera') || t.includes('espinillera')) cats.add('muaythai');
+  /* Protective shared across the striking disciplines. */
+  if (t.includes('headgear') || t.includes('head gear') || t.includes('head guard')){ cats.add('boxeo'); cats.add('muaythai'); cats.add('mma'); }
+  if (t.includes('mouthguard') || t.includes('mouth guard') || t.includes('bucal')){ cats.add('boxeo'); cats.add('muaythai'); cats.add('mma'); }
+  if (wb(/\bgroin\b/)){ cats.add('boxeo'); cats.add('muaythai'); cats.add('mma'); }
+  /* Shorts: BJJ/no-gi/grappling to Jiu-Jitsu, MMA/fight to MMA,
+     generic fight shorts to both. */
+  if (wb(/\bshorts\b/)){
+    if (wb(/\bbjj\b/) || t.includes('jiu jitsu') || t.includes('jiu-jitsu') || /no[\s-]?gi\b/.test(t) || t.includes('grappling')) cats.add('jiujitsu');
+    if (cats.has('mma') || t.includes('ufc') || t.includes('vale tudo') || wb(/\bfight\b/)) cats.add('mma');
+    if (!cats.has('jiujitsu') && !cats.has('mma')){ cats.add('jiujitsu'); cats.add('mma'); }
+  }
+  return [...cats];
+}
+
+/* Same row shape as groupBySubcategory so the chips read honest counts:
+   a shared product counts in each of its disciplines. */
+function groupFightClub(items){
+  const bucket = new Map();
+  const face = new Map();
+  let typed = 0;
+  for (const item of items || []){
+    const keys = fightClubCategoriesOfItem(item);
+    if (!keys.length) continue;
+    typed += 1;
+    for (const key of keys){
+      bucket.set(key, (bucket.get(key) || 0) + 1);
+      if (!face.has(key)){
+        const img = item?.image || item?.thumbnail || (Array.isArray(item?.images) ? item.images[0] : null);
+        if (typeof img === 'string' && img) face.set(key, img);
+      }
+    }
+  }
+  const rows = FIGHT_CLUB_SPEC.filter(r => bucket.get(r.key))
+    .map(r => ({ key: r.key, label: r.label, count: bucket.get(r.key), image: face.get(r.key) || null }));
+  const total = (items || []).length;
+  return { rows, typed, total, untyped: total - typed };
+}
+
+/* The discipline pill row above the Fight Club grid. Todo is the
+   default and shows the whole feed; a discipline narrows it. Same
+   chip treatment as the aisle rows, so it reads as navigation. */
+function fightClubChipsHTML(grouped){
+  const active = catalogState.subKey;
+  const isAll = !active || active === SUB_ALL;
+  const chip = (isOn, label, count, onclick) => `
+    <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
+      style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+    </button>`;
+  return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4" role="radiogroup" aria-label="Disciplina">
+    ${chip(isAll, 'Todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
+    ${grouped.rows.map(r => chip(active === r.key, escapeHtml(r.label), r.count, `setCatalogSub('${jsAttr(r.key)}')`)).join('')}
+  </div>`;
 }
 
 /* The grid every listing surface uses: 2-across, large cards, the
@@ -11709,8 +11821,11 @@ function renderCatalogFeed(){
      Computed from the ACTIVE feed, so the counts match what a tap will
      actually show — an aisle promising 228 and delivering 12 because a
      store filter is on is worse than no aisle at all. */
-  const grouped = groupBySubcategory(gendered);
-  const splittable = shouldSplit(grouped);
+  /* FIGHT CLUB (2026-09-28, Danny): discipline pills, not the aisle list --
+     Todo shows the whole feed by default, a pill narrows it. */
+  const isFightClub = catalogState.kind === 'department' && catalogState.key === 'combat_sports';
+  const grouped = isFightClub ? groupFightClub(gendered) : groupBySubcategory(gendered);
+  const splittable = isFightClub ? false : shouldSplit(grouped);
   const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
 
   /* THE LANDING. A splittable department with no aisle chosen and no
@@ -11831,7 +11946,7 @@ function renderCatalogFeed(){
     ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null })}
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
-    ${splittable ? catalogAisleChipsHTML(grouped) : ''}
+    ${isFightClub ? fightClubChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
     ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
