@@ -11997,8 +11997,20 @@ const LATINO_DESIGNER_COUNTRY = {
   sarahchofakian: 'Brasil', aguabyaguabendita: 'Colombia', capittana: 'Perú',
 };
 
-/* Hero image for a designer's banner: first on-sale product with a
-   photo, else first product with a photo. */
+/* DESIGNER HERO OVERRIDES (2026-09-29, Danny's iPhone QA).
+   Editorial model shots for designers whose product photos don't carry
+   the brand (cropped details, flat ghost shots). Capittana is the bar:
+   a model wearing the clothes, fashion-house energy. Local assets in
+   assets/latino/designers/. Each key here is owned by exactly one agent;
+   do not add other designers without coordinating. */
+const LATINO_DESIGNER_HERO_IMG = {
+  silviatcherassi: 'assets/latino/designers/silviatcherassi.jpg',
+  patbo: 'assets/latino/designers/patbo.jpg',
+  alexandrebirman: 'assets/latino/designers/alexandrebirman.jpg',
+};
+
+/* Hero image for a designer's banner: editorial override first, else
+   first on-sale product with a photo, else first product with a photo. */
 function latinoDesignerHero(designerItems){
   const withImg = (designerItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
   return withImg.find(it => it.onSale) || withImg[0] || null;
@@ -12011,8 +12023,10 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const n = (designerItems || []).length;
   const country = LATINO_DESIGNER_COUNTRY[spec.key] || '';
   /* Curated hero image wins over the product-derived one (2026-09-29, Danny):
-     a fashion-house tile needs a model shot, not a cropped product photo. */
-  const curated = spec.heroImage || '';
+     a fashion-house tile needs a model shot, not a cropped product photo.
+     Two override paths unified: spec.heroImage (PR #220) and
+     LATINO_DESIGNER_HERO_IMG map (PR #221). */
+  const curated = spec.heroImage || LATINO_DESIGNER_HERO_IMG[spec.key] || '';
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
