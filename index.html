@@ -1364,6 +1364,8 @@
      load: the store's real name on its brand colour. A missing asset must
      never surface as a black box, a broken-image icon or raw alt text. */
   .store-logo-fallback{display:inline-flex; align-items:center; max-width:100%; height:26px; padding:0 10px; border-radius:999px; color:#fff; font-size:12px; font-weight:800; letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  /* TIENDAS STRIP + ENTRY TILES (2026-09-28): jump targets land clear of any sticky chrome. */
+  [data-tiendas-strip], section[aria-label="Marcas"], section[aria-label="Explora"], [data-category-tabs], [data-store-rail]{ scroll-margin-top:8px; }
 </style>
 </head>
 <body class="antialiased">
@@ -1558,6 +1560,42 @@
         </button>
       </div>
       <div id="mobileDealsRow" class="relative flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
+<!-- ENTRY TILES (2026-09-28, Danny): the shopper's first decision, directly under
+     Ofertas at eye's reach -- shop by category, by store, or by brand. Text-only
+     headings, zero emojis. Each tap smooth-scrolls to the section it names. -->
+    <section aria-label="Explora" class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="grid grid-cols-3 gap-3 px-5 pt-5 pb-2">
+        <button onclick="entryJump('categorias')" class="rounded-2xl border bg-white px-3 py-4 text-left focus-ring" style="border-color:var(--line)">
+          <span class="block text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">CATEGORÍAS</span>
+          <span class="block text-[11.5px] mt-1" style="color:#6B7487">Departamentos</span>
+          <span class="block mt-2 h-[3px] w-8 rounded-full" style="background:#F4C463"></span>
+        </button>
+        <button onclick="entryJump('tiendas')" class="rounded-2xl border bg-white px-3 py-4 text-left focus-ring" style="border-color:var(--line)">
+          <span class="block text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">TIENDAS</span>
+          <span class="block text-[11.5px] mt-1" style="color:#6B7487">39 tiendas</span>
+          <span class="block mt-2 h-[3px] w-8 rounded-full" style="background:#F4C463"></span>
+        </button>
+        <button onclick="entryJump('marcas')" class="rounded-2xl border bg-white px-3 py-4 text-left focus-ring" style="border-color:var(--line)">
+          <span class="block text-[15px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">MARCAS</span>
+          <span class="block text-[11.5px] mt-1" style="color:#6B7487">Top marcas</span>
+          <span class="block mt-2 h-[3px] w-8 rounded-full" style="background:#F4C463"></span>
+        </button>
+      </div>
+    </section>
+
+<!-- TIENDAS STRIP (2026-09-28, Danny): every shoppable store's logo in one compact
+     horizontal strip, each independently tappable to jump to that store's storefront
+     (rail scroll, or the store page when the store has no homepage rail). Stores with
+     zero catalogue items are excluded -- no dead storefronts. Painted by
+     paintTiendasStrip() from TIENDAS_STRIP. -->
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="px-5 pt-4 pb-1 flex items-baseline justify-between gap-3">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas</h2>
+        <span class="text-[12px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
+      </div>
+      <div id="mTiendasStripRow" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
     </section>
 
 <!-- ============================================================
@@ -1891,6 +1929,40 @@
           </button>
         </div>
         <div id="desktopDealsRow" class="relative flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+<!-- ENTRY TILES (desktop, 2026-09-28, Danny): same three taps as the phone's. -->
+    <section aria-label="Explora" class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="grid grid-cols-3 gap-4 px-8 pt-6 pb-2">
+        <button onclick="entryJump('categorias')" class="rounded-2xl border bg-white px-5 py-5 text-left focus-ring" style="border-color:var(--line)">
+          <span class="block text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">CATEGORÍAS</span>
+          <span class="block text-[12.5px] mt-1" style="color:#6B7487">Departamentos</span>
+          <span class="block mt-2 h-[3px] w-10 rounded-full" style="background:#F4C463"></span>
+        </button>
+        <button onclick="entryJump('tiendas')" class="rounded-2xl border bg-white px-5 py-5 text-left focus-ring" style="border-color:var(--line)">
+          <span class="block text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">TIENDAS</span>
+          <span class="block text-[12.5px] mt-1" style="color:#6B7487">39 tiendas</span>
+          <span class="block mt-2 h-[3px] w-10 rounded-full" style="background:#F4C463"></span>
+        </button>
+        <button onclick="entryJump('marcas')" class="rounded-2xl border bg-white px-5 py-5 text-left focus-ring" style="border-color:var(--line)">
+          <span class="block text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">MARCAS</span>
+          <span class="block text-[12.5px] mt-1" style="color:#6B7487">Top marcas</span>
+          <span class="block mt-2 h-[3px] w-10 rounded-full" style="background:#F4C463"></span>
+        </button>
+      </div>
+      </div>
+    </section>
+
+<!-- TIENDAS STRIP (desktop, 2026-09-28, Danny): same strip as the phone's. -->
+    <section aria-label="Tiendas" data-tiendas-strip class="relative overflow-hidden" style="background:#F7F9FD">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-5 pb-1 flex items-baseline justify-between gap-3">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Tiendas</h2>
+        <span class="text-[13px] font-semibold flex-shrink-0" style="color:#6B7487">Toca un logo para ir a su tienda</span>
+      </div>
+      <div id="dTiendasStripRow" class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
       </div>
     </section>
 
@@ -10316,6 +10388,86 @@ function brandStripTileHTML(b){
     <span class="brandTile-count">${b.count} productos</span>
   </button>`;
 }
+/* TIENDAS STRIP (2026-09-28, Danny): quick-jump logos for every store with a
+   shoppable catalogue -- >0 items across the *-catalog.json files and
+   department-cache.json, counted 2026-09-28 (39 stores; Victoria's Secret and
+   Sephora have empty catalogues, so they are excluded: no dead storefronts).
+   Featured rails first in rail order, then the rest by catalogue size. A store
+   with no logo asset renders the same text pill storeLogoFallback() paints. */
+const TIENDAS_STRIP = [
+  {k:'footlocker',l:'Foot Locker',c:'#000000',logo:'logos/footlocker.png'},
+  {k:'gymshark',l:'Gymshark',c:'#000000',logo:''},
+  {k:'macys',l:'Macy\'s',c:'#E21A2C',logo:'logos/macys.png'},
+  {k:'kohls',l:'Kohl\'s',c:'#C41230',logo:''},
+  {k:'newbalance',l:'New Balance',c:'#E21836',logo:'logos/brands/newbalance.svg'},
+  {k:'dicks',l:'Dick\'s',c:'#D22630',logo:''},
+  {k:'costco',l:'Costco',c:'#E31837',logo:'logos/costco.svg'},
+  {k:'ssense',l:'SSENSE',c:'#000000',logo:'logos/ssense.png'},
+  {k:'nautilus',l:'Nautilus Spearfishing',c:'#213236',logo:'logos/nautilus.png'},
+  {k:'islandwatersports',l:'Island Water Sports',c:'#373435',logo:'logos/islandwatersports.svg'},
+  {k:'quietstorm',l:'Quiet Storm Surf Shop',c:'#141414',logo:'logos/quietstorm.png'},
+  {k:'surfworld',l:'Surf World',c:'#00A9DC',logo:'logos/surfworld.png'},
+  {k:'surfstation',l:'Surf Station',c:'#111111',logo:'logos/surfstation.png'},
+  {k:'mainland',l:'Mainland Skate & Surf',c:'#0F6FEF',logo:'logos/mainland.png'},
+  {k:'parrot',l:'Parrot Surf & Skate',c:'#111111',logo:'logos/parrot.png'},
+  {k:'ccs',l:'CCS',c:'#2AADEB',logo:'logos/ccs.png'},
+  {k:'valsurf',l:'Val Surf',c:'#0F506F',logo:'logos/valsurf.png'},
+  {k:'miumiu',l:'Miu Miu',c:'#000000',logo:'logos/miumiu.png'},
+  {k:'bhphoto',l:'B&H Photo',c:'#A7392F',logo:''},
+  {k:'advanceauto',l:'Advance Auto Parts',c:'#EA1927',logo:''},
+  {k:'skims',l:'Skims',c:'#605848',logo:'logos/skims.png'},
+  {k:'yesstyle',l:'YesStyle',c:'#50A838',logo:'logos/yesstyle.png'},
+  {k:'venum',l:'Venum',c:'#000000',logo:''},
+  {k:'walmart',l:'Walmart',c:'#0071CE',logo:'logos/walmart.svg'},
+  {k:'alphalete',l:'Alphalete',c:'#000000',logo:''},
+  {k:'target',l:'Target',c:'#CC0000',logo:'logos/target.svg'},
+  {k:'youngla',l:'YoungLA',c:'#000000',logo:''},
+  {k:'ulta',l:'Ulta Beauty',c:'#F88038',logo:'logos/ulta.png'},
+  {k:'partycity',l:'Party City',c:'#0A1F44',logo:''},
+  {k:'tatami',l:'Tatami Fightwear',c:'#1A1A1A',logo:''},
+  {k:'everlast',l:'Everlast',c:'#000000',logo:''},
+  {k:'lanebryant',l:'Lane Bryant',c:'#C41230',logo:''},
+  {k:'oldnavy',l:'Old Navy',c:'#001E62',logo:'logos/oldnavy.svg'},
+  {k:'samsclub',l:'Sam\'s Club',c:'#0B6CFF',logo:'logos/samsclub.svg'},
+  {k:'mmawarehouse',l:'MMAWarehouse',c:'#1A1A1A',logo:''},
+  {k:'revolve',l:'Revolve',c:'#000000',logo:'logos/revolve.png'},
+  {k:'combatcorner',l:'Combat Corner',c:'#000000',logo:''},
+  {k:'pacsun',l:'PacSun',c:'#111111',logo:''},
+  {k:'fuji',l:'FUJI Sports',c:'#1A1A1A',logo:''},
+];
+function tiendaTileHTML(s){
+  const art = s.logo
+    ? "<img src=\"" + s.logo + "\" alt=\"" + escapeHtml(s.l) + "\" loading=\"lazy\" decoding=\"async\" data-retailer=\"" + s.k + "\" class=\"h-[30px] w-auto max-w-full object-contain\" style=\"min-width:0\" onerror=\"this.setAttribute('data-logo-failed','1');window.storeLogoFallback&&storeLogoFallback(this)\">"
+    : "<span class=\"store-logo-fallback\" style=\"background:" + s.c + "\">" + escapeHtml(s.l) + "</span>";
+  return "<button onclick=\"tiendaJump('" + s.k + "')\" aria-label=\"" + escapeHtml(s.l) + "\" class=\"flex-shrink-0 w-[84px] rounded-2xl border bg-white px-2 py-2 grid place-items-center focus-ring\" style=\"border-color:var(--line);min-height:56px;min-width:0;overflow:hidden\">" + art + "</button>";
+}
+function paintTiendasStrip(){
+  const html = TIENDAS_STRIP.map(tiendaTileHTML).join("");
+  const m = document.getElementById("mTiendasStripRow");
+  const d = document.getElementById("dTiendasStripRow");
+  if (m) m.innerHTML = html;
+  if (d) d.innerHTML = html;
+}
+/* First visible match wins: the page carries one copy per breakpoint and only
+   one is displayed. */
+function visibleSection(sel){
+  return [...document.querySelectorAll(sel)].find(e => e.offsetWidth || e.offsetHeight) || null;
+}
+/* Logo tap: a store with a homepage rail scrolls to it; a catalogue-only store
+   opens its storefront page instead. */
+function tiendaJump(key){
+  const rail = visibleSection('[data-store-rail="' + key + '"]');
+  if (rail){ rail.scrollIntoView({behavior:"smooth", block:"start"}); return; }
+  openStore(key);
+}
+/* Entry tiles: the shopper's first decision, directly under Ofertas. */
+function entryJump(where){
+  const sel = where === "categorias" ? "[data-category-tabs]"
+    : where === "tiendas" ? "[data-tiendas-strip]"
+    : 'section[aria-label="Marcas"]';
+  const el = visibleSection(sel);
+  if (el) el.scrollIntoView({behavior:"smooth", block:"start"});
+}
 let brandStripStarted = false;
 async function initBrandStrip(){
   if (brandStripStarted) return;
@@ -10749,6 +10901,7 @@ function initMobileShopfront(){
      the deeper shelves. Every source is fetched once and shared. */
 }
 window.addEventListener('DOMContentLoaded', () => {
+  try { paintTiendasStrip(); } catch (e) {}
   initMobileShopfront();
   const mq = window.matchMedia(MOBILE_SHOPFRONT_MQ);
   // addListener is the Safari-15-and-older spelling; some iPhones still run it.
