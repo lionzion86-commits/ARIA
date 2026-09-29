@@ -11997,8 +11997,20 @@ const LATINO_DESIGNER_COUNTRY = {
   sarahchofakian: 'Brasil', aguabyaguabendita: 'Colombia', capittana: 'Perú',
 };
 
-/* Hero image for a designer's banner: first on-sale product with a
-   photo, else first product with a photo. */
+/* DESIGNER HERO OVERRIDES (2026-09-29, Danny's iPhone QA).
+   Editorial model shots for designers whose product photos don't carry
+   the brand (cropped details, flat ghost shots). Capittana is the bar:
+   a model wearing the clothes, fashion-house energy. Local assets in
+   assets/latino/designers/. Each key here is owned by exactly one agent;
+   do not add other designers without coordinating. */
+const LATINO_DESIGNER_HERO_IMG = {
+  silviatcherassi: 'assets/latino/designers/silviatcherassi.jpg',
+  patbo: 'assets/latino/designers/patbo.jpg',
+  alexandrebirman: 'assets/latino/designers/alexandrebirman.jpg',
+};
+
+/* Hero image for a designer's banner: editorial override first, else
+   first on-sale product with a photo, else first product with a photo. */
 function latinoDesignerHero(designerItems){
   const withImg = (designerItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
   return withImg.find(it => it.onSale) || withImg[0] || null;
@@ -12010,9 +12022,10 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const hero = latinoDesignerHero(designerItems);
   const n = (designerItems || []).length;
   const country = LATINO_DESIGNER_COUNTRY[spec.key] || '';
+  const heroOverride = LATINO_DESIGNER_HERO_IMG[spec.key] || '';
   const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
-  const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
-  const retry = src ? imageRetryUrl(src) : '';
+  const src = heroOverride || (raw ? upgradeImageUrl(safeUrl(raw) || '') : '');
+  const retry = (!heroOverride && src) ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
   return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
