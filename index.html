@@ -26047,7 +26047,102 @@ function goBrandFromChat(brandKey){
   openCatalog('brand', brandKey);
 }
 
-/* The live fan-out, unchanged in what it does -- same stores, same
+/* DOMAIN FALLBACK (2026-09-29, Danny). She never dead-ends: when the
+   shelf has nothing for the query, she names the domain she heard and
+   walks the shopper to the closest section instead of printing
+   "no encontre". The brand router runs first; this is the net below it.
+   English lingo is recognized ("speargun", "fins", "wetsuit"); she
+   always answers in Spanish. */
+const CHAT_DOMAIN_FALLBACKS = [
+  { label: 'Nautilus Spearfishing', sub: 'Arpones, aletas, trajes y equipo de buceo', action: 'store', key: 'nautilus',
+    keys: ['arpon', 'speargun', 'spearfishing', 'spearfish', 'scuba', 'buceo', 'diving', 'apnea', 'freedive', 'freediving', 'aleta', 'aletas', 'fins', 'neopreno', 'neoprene', 'wetsuit', 'traje de neopreno', 'snorkel', 'esnorquel', 'careta de buceo', 'mascara de buceo', 'rashguard', 'rash guard', 'cuchillo de buceo', 'boya de buceo', 'cinturon de pesas', 'pesca submarina'] },
+  { label: 'Surf & Skate', sub: 'Tablas, skates, ropa y accesorios', action: 'department', key: 'surf_skate',
+    keys: ['surf', 'surfing', 'surfeo', 'surfboard', 'tabla de surf', 'bodyboard', 'body board', 'skate', 'skateboard', 'patineta', 'patin'] },
+  { label: 'Gym Rat', sub: 'Ropa y equipo para entrenar', action: 'department', key: 'gym_rat',
+    keys: ['gym', 'gimnasio', 'pesa', 'pesas', 'mancuerna', 'mancuernas', 'dumbbell', 'kettlebell', 'pesa rusa', 'barra de pesas', 'banco de pesas', 'gymrat', 'entrenamiento con pesas'] },
+  { label: 'Aria Fight Club', sub: 'Boxeo, MMA, jiu-jitsu y mas', action: 'department', key: 'combat_sports',
+    keys: ['mma', 'boxeo', 'boxing', 'jiu jitsu', 'bjj', 'muay thai', 'kickboxing', 'karate', 'taekwondo', 'judo', 'guante de boxeo', 'guantes de boxeo', 'pelea', 'artes marciales'] },
+  { label: 'Aria Beauty', sub: 'Maquillaje, skincare y fragancias', action: 'department', key: 'beauty',
+    keys: ['maquillaje', 'makeup', 'labial', 'lipstick', 'skincare', 'crema', 'cremas', 'perfume', 'fragancia', 'colonia', 'cologne', 'base de maquillaje', 'rimel', 'sombra de ojos', 'rubor', 'cuidado de la piel', 'serum', 'suero facial'] },
+  { label: 'Aria Beauty', sub: 'Cuidado personal para hombre y mujer', action: 'department', key: 'beauty',
+    keys: ['barba', 'beard', 'afeitadora', 'shaver', 'rasuradora', 'desodorante', 'deodorant', 'antitranspirante', 'body wash', 'gel de bano', 'axe', 'old spice', 'dove men', 'gillette', 'nivea men'] },
+  { label: 'Juguetes', sub: 'Juguetes para todas las edades', action: 'department', key: 'toys',
+    keys: ['juguete', 'juguetes', 'toy', 'toys', 'lego', 'legos', 'muneca', 'doll', 'peluche', 'peluches', 'stuffed animal', 'juego de mesa', 'board game', 'hot wheels', 'carrito de juguete', 'figura de accion'] },
+  { label: 'Repuestos', sub: 'Autopartes y repuestos', action: 'department', key: 'auto_parts',
+    keys: ['repuesto', 'repuestos', 'autoparte', 'autopartes', 'auto parte', 'freno', 'frenos', 'brake', 'pastilla de freno', 'amortiguador', 'filtro de aceite', 'bujia', 'neumatico', 'llanta', 'llantas', 'aceite de motor'] },
+  { label: 'Hogar', sub: 'Muebles, cocina y decoracion', action: 'department', key: 'home_goods',
+    keys: ['hogar', 'mueble', 'muebles', 'furniture', 'cocina', 'kitchen', 'decoracion', 'sala', 'dormitorio', 'organizador', 'almacenaje', 'ropa de cama', 'toalla', 'cortina'] },
+  { label: 'Electronica', sub: 'Audio, accesorios y gadgets', action: 'department', key: 'electronics',
+    keys: ['audifono', 'audifonos', 'headphone', 'headphones', 'earbud', 'earbuds', 'cargador', 'charger', 'bocina', 'speaker', 'parlante', 'electronica', 'smartwatch', 'reloj inteligente', 'tablet', 'camara', 'camera'] },
+  { label: 'Zapatos', sub: 'Calzado para todos', action: 'department', key: 'shoes',
+    keys: ['zapato', 'zapatos', 'zapatilla', 'zapatillas', 'shoe', 'shoes', 'sneaker', 'sneakers', 'tenis', 'bota', 'botas', 'boot', 'boots', 'sandalia', 'sandalias', 'sandal', 'tacon', 'tacones'] },
+  { label: 'Ropa', sub: 'Moda para hombre, mujer y ninos', action: 'department', key: 'clothing',
+    keys: ['ropa', 'clothes', 'clothing', 'camisa', 'camisas', 'shirt', 'pantalon', 'pantalones', 'pants', 'vestido', 'vestidos', 'dress', 'jeans', 'casaca', 'jacket', 'chompa', 'short', 'shorts', 'falda', 'skirt', 'blusa', 'polo', 'polera'] },
+  { label: 'Mama y Bebe', sub: 'Todo para mama y bebe', action: 'department', key: 'moms',
+    keys: ['bebe', 'bebé', 'baby', 'panales', 'diaper', 'cuna', 'crib', 'carriola', 'stroller', 'biberon', 'lactancia', 'embarazo', 'pregnancy', 'mama', 'recien nacido'] },
+  { label: 'Ofertas', sub: 'Descuentos y liquidaciones de hoy', action: 'department', key: 'sale',
+    keys: ['liquidacion', 'clearance', 'remate'] },
+];
+/* Policy exclusions: the honest no. Checked before the domain map so a
+   "vitamina" query never gets a fake redirect to a section that cannot
+   help. Vitamins and supplements cannot clear Peru customs (2026-09-28,
+   Danny). */
+const CHAT_POLICY_EXCLUSIONS = [
+  { keys: ['vitamina', 'vitaminas', 'vitamin', 'suplemento', 'suplementos', 'supplement', 'proteina en polvo', 'protein powder', 'creatina', 'creatine', 'pre workout', 'preworkout', 'multivitaminico', 'omega 3', 'colageno'],
+    line: 'No manejamos vitaminas ni suplementos, la aduana de Peru no los deja pasar. Pero dime que mas buscas y te ayudo.',
+    label: 'Gym Rat', sub: 'Ropa y equipo para entrenar', action: 'department', key: 'gym_rat' },
+];
+function normChatDomain(t){
+  return ' ' + String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+/* First policy exclusions (the honest no), then the domain map. Returns
+   the matched entry with policy:true for exclusions. */
+function findDomainFallback(text){
+  const norm = normChatDomain(text);
+  for (const ex of CHAT_POLICY_EXCLUSIONS){
+    for (const k of ex.keys){
+      if (norm.indexOf(' ' + normChatDomain(k).trim() + ' ') !== -1) return Object.assign({ policy: true }, ex);
+    }
+  }
+  for (const d of CHAT_DOMAIN_FALLBACKS){
+    for (const k of d.keys){
+      if (norm.indexOf(' ' + normChatDomain(k).trim() + ' ') !== -1) return Object.assign({ policy: false }, d);
+    }
+  }
+  return null;
+}
+/* The section's call to action: the same navy button the brand router
+   uses, opening the closest section for the domain she heard. */
+function addAssistantSectionOffer(label, sub, action, key){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'assistantNote my-2';
+  const call = action === 'store'
+    ? 'goStoreFromChat(' + JSON.stringify(key).replace(/"/g, '&quot;') + ')'
+    : 'goDeptFromChat(' + JSON.stringify(key).replace(/"/g, '&quot;') + ')';
+  el.innerHTML = `<button type="button" data-assistant-section onclick="${call}"
+      class="w-full text-left rounded-xl p-3 focus-ring" style="background:var(--navy)">
+      <div class="text-[13.5px] font-bold text-white">Ver ${escapeHtml(label)}</div>
+      <div class="text-[12px] mt-0.5" style="color:rgba(255,255,255,0.82)">${escapeHtml(sub)}</div>
+    </button>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function goStoreFromChat(storeKey){
+  dismissAssistantForNavigation();
+  continuousMode = false;
+  assistantThinking = false;
+  openStore(storeKey);
+}
+function goDeptFromChat(deptKey){
+  dismissAssistantForNavigation();
+  continuousMode = false;
+  assistantThinking = false;
+  openCatalog('department', deptKey);
+}
+
+/* The live fan-out, unchanged in what it does -- same stores, same/* The live fan-out, unchanged in what it does -- same stores, same
    over-fetch, same recipient gate, same streaming of each store's finds
    as that store answers. It is simply reached by a tap now instead of
    by asking a question. */
@@ -26278,6 +26373,28 @@ async function runAssistantBrain(text){
       if (!foundItems.length || catalogResultsAreThin(cat)) addAssistantLiveOffer(searchQuery);
     }
     lastChatSearchEmpty = willSearch && foundItems.length === 0;
+    /* DOMAIN FALLBACK (2026-09-29, Danny): never a dead end. The brand
+       router caught named brands and the shelf came back empty, so name
+       the domain heard in the query and walk the shopper to the closest
+       section. Policy exclusions (vitamins/supplements) get the honest
+       no. Deterministic like the brand router: no Groq round trip, no
+       contradiction, no Apify spend. */
+    if (willSearch && foundItems.length === 0){
+      const dfb = findDomainFallback(text + ' ' + searchQuery);
+      if (dfb){
+        hideAssistantTyping();
+        setOrbState('idle');
+        const dfbLine = dfb.policy ? dfb.line : `No tengo ese modelo exacto, pero mira nuestra sección de ${dfb.label}.`;
+        addAssistantMessage('bot', dfbLine, null, { speak: false });
+        ariaChatHistory.push({ role: 'assistant', content: dfbLine });
+        addAssistantSectionOffer(dfb.label, dfb.sub, dfb.action, dfb.key);
+        if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+        assistantThinking = false;
+        speakWithLily(dfbLine);
+        reopenMicForRetry();
+        return;
+      }
+    }
     /* ONE PAYLOAD, TWO ENDPOINTS. The streaming function and the
        buffered one take the identical body and build the identical Groq
        request (see _aria-chat-model.js), so which one answers cannot
