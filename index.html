@@ -24693,8 +24693,13 @@ async function greetAssistantStreaming(){
   } catch { streamed = null; }
   if (!streamed || !streamed.reply) {
     if (sink) sink.discard();
-    addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
+    /* LILY FIRST (2026-09-29, Danny). The fallback used to speak through
+       the browser's robot voice because addAssistantMessage got no audio.
+       Now it tries Lily via aria-tts first; the robot voice is the last
+       resort, not the default. */
+    addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
     ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
+    speakWithLily(ARIA_GREETING_FALLBACK);
     return;
   }
   const reply = sink.finish(streamed.reply) || ARIA_GREETING_FALLBACK;
@@ -24786,6 +24791,19 @@ function speakText(text){
   } catch(e) {
     setTimeout(reopen, 400);
   }
+}
+
+/* LILY-FIRST SPEAK (2026-09-29, Danny). Tries Lily via the aria-tts
+   endpoint; falls back to the browser's robot voice only if Lily is truly
+   unavailable. The robot voice is never the first choice. */
+function speakWithLily(text){
+  const fallback = () => { if (typeof speakText === 'function') speakText(text); };
+  try {
+    fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
+      .then(r => (r && r.ok) ? r.json() : null)
+      .then(d => { if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
+      .catch(fallback);
+  } catch (e) { fallback(); }
 }
 
 function speakAssistantReply(text, audioBase64){
@@ -24948,7 +24966,13 @@ function beginAssistantReply(){
    would render a second answer under the first. A stream that dies
    mid-reply returns what it had, marked truncated.
    ============================================================ */
-async function streamAssistantReply(payload, sink){
+async function streamAssistantReply(payload, sink, onDelta){
+  /* onDelta (2026-09-29 fix): the sentence-pipelined voice path passes a
+     per-delta callback so completed sentences reach the TTS endpoint
+     while the text is still streaming. PR #169 added the call sites but
+     never wired the parameter through — every delta was dropped, no
+     sentence audio was ever requested, and the server (correctly) sent
+     no trailing audio when ttsPipeline is set, so replies went silent. */
   if (typeof ReadableStream === 'undefined' || typeof TextDecoder === 'undefined') return null;
   /* A HUNG FIRST BYTE IS A FROZEN CHAT. The 25s budget covers time-to-
      first-token only: once tokens are flowing the shopper is reading, so
@@ -25019,7 +25043,7 @@ async function streamAssistantReply(payload, sink){
            event first and Ara's audio as a trailing event, so the words
            never wait on the TTS round trip. */
         if (typeof evt.audio === 'string' && evt.audio){ pendingAudio = evt.audio; continue; }
-        if (typeof evt.t === 'string') { clearTimeout(abortTimer); sink.push(evt.t); }
+        if (typeof evt.t === 'string') { clearTimeout(abortTimer); sink.push(evt.t); if (typeof onDelta === 'function'){ try { onDelta(evt.t); } catch(_e){} } }
       }
     }
   } catch (err) {
@@ -25231,6 +25255,7 @@ function settleTtsAudio(st){
   setOrbState("idle");
   if (!st.everPlayed){
     if (st.doneAudio) speakWithAria(st.doneAudio, st.fullReply);
+    else if (st.fullReply && typeof speakWithLily === "function") speakWithLily(st.fullReply);
     else if (typeof speakText === "function") speakText(st.fullReply);
   }
   if (typeof st.onSettled === "function") st.onSettled();
