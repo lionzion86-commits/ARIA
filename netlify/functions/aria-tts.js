@@ -1,13 +1,20 @@
-// Lily-voice TTS for short deterministic assistant lines.
+// Sentence-level TTS for the pipelined voice path (2026-09-28).
 //
-// The Ofertas shortcut in index.html answers locally and never reaches the
-// chat endpoints, so it used to speak through the browser's speechSynthesis
-// (the robot voice, silent on iPhones where it misfires). This endpoint
-// renders the same shared speechFor() the greeting and the chat use, so the
-// voice can never drift from Lily. Best effort, like speechFor itself: a
-// failure returns { audio: null } and the client falls back to the browser
-// voice rather than leaving the shopper in silence.
+// The client accumulates streamed text and, each time a sentence
+// completes, POSTs it here instead of waiting for the whole reply.
+// One sentence in, one MP3 out — base64 in JSON, the same audio shape
+// the chat endpoints use. The voice is fixed server-side (Lily); the
+// client never names a voice.
+//
+// BEST EFFORT, like every voice path here: a 4xx/5xx just skips the
+// sentence — the text on screen is the source of truth, and the
+// browser's speech synthesis covers a total voice outage client-side.
 import { speechFor } from "./_aria-chat-model.js";
+
+/* A sentence is at most a few hundred characters; 1000 is a rail
+   against abuse, not a target. ElevenLabs bills per character, so an
+   unbounded input is an unbounded charge. */
+const MAX_CHARS = 1000;
 
 export async function handler(event) {
   const headers = {
@@ -15,23 +22,36 @@ export async function handler(event) {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   };
+
   if (event.httpMethod === "OPTIONS") {
     return { statusCode: 200, headers, body: "" };
   }
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: "Method not allowed" }) };
+  }
+
   try {
-    const body = JSON.parse(event.body || "{}");
-    const text = typeof body.text === "string" ? body.text.slice(0, 500) : "";
+    let text = "";
+    try {
+      const body = JSON.parse(event.body || "{}");
+      if (typeof body.text === "string") text = body.text.trim();
+    } catch {
+      /* not JSON — text stays empty, rejected below */
+    }
+    if (!text) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: "empty text" }) };
+    }
+    if (text.length > MAX_CHARS) text = text.slice(0, MAX_CHARS);
+
+    // speechFor is ElevenLabs/Lily and never throws: null means the
+    // voice is unavailable (no key, provider error), not a bug here.
     const audio = await speechFor(text);
-    return {
-      statusCode: 200,
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ audio }),
-    };
-  } catch {
-    return {
-      statusCode: 200,
-      headers: { ...headers, "Content-Type": "application/json" },
-      body: JSON.stringify({ audio: null }),
-    };
+    if (!audio) {
+      return { statusCode: 502, headers, body: JSON.stringify({ error: "TTS unavailable" }) };
+    }
+    return { statusCode: 200, headers, body: JSON.stringify({ audio }) };
+  } catch (error) {
+    console.error("[aria-tts]", error && error.message);
+    return { statusCode: 500, headers, body: JSON.stringify({ error: "tts failed" }) };
   }
 }

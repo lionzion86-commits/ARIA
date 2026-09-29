@@ -24336,9 +24336,13 @@ if (assistantOpen && document.getElementById('assistantMessages').children.lengt
 async function greetAssistantStreaming(){
   const msg = 'Saluda siguiendo tu guión de bienvenida y pregunta qué está buscando el cliente.';
   const sink = beginAssistantReply();
+  /* The greeting pipelines its voice like every other reply: the first
+     sentence's audio renders while the rest streams (see the TTS
+     PIPELINE below). */
+  const tts = ttsNewPipeline();
   let streamed = null;
   try {
-    streamed = sink ? await streamAssistantReply({ message: msg, history: [] }, sink) : null;
+    streamed = sink ? await streamAssistantReply({ message: msg, history: [], ttsPipeline: true }, sink, (d) => feedTts(tts, d, false)) : null;
   } catch { streamed = null; }
   if (!streamed || !streamed.reply) {
     if (sink) sink.discard();
@@ -24353,7 +24357,7 @@ async function greetAssistantStreaming(){
      empty history and the model -- seeing the greeting script plus zero
      prior turns -- greeted AGAIN instead of answering. */
   ariaChatHistory.push({ role: 'assistant', content: reply });
-  speakAssistantReply(reply, streamed.audio);
+  finishTtsPipeline(tts, reply, streamed.audio);
 }
 
 /* The sheet re-measures whenever the visible area changes: the keyboard
@@ -24693,6 +24697,209 @@ async function streamAssistantReply(payload, sink){
     console.error('[aria-chat] stream error event:', failed);
   }
   return null;
+}
+
+/* ============================================================
+   SENTENCE-PIPELINED VOICE (2026-09-28)
+
+   THE PROBLEM. The voice waited for the whole reply: text streamed in
+   token by token while the shopper stared at words in silence, then one
+   TTS round trip for the entire paragraph before a sound played. On a
+   phone that gap read as broken.
+
+   THE FIX. As streamed deltas arrive, completed sentences are detected
+   and each is POSTed to /.netlify/functions/aria-tts immediately — the
+   first sentence's audio renders while the second sentence's text is
+   still streaming. Audio plays back strictly in sentence order even
+   when the TTS responses land out of order, and a failed sentence is
+   skipped, never stuck: the text on screen is the source of truth, the
+   voice is best effort.
+
+   FALLBACKS, IN ORDER. If no sentence audio ever played: the done
+   event's full-reply audio (callers without the ttsPipeline flag), then
+   the browser's own Spanish voice. The mic reopens only after the last
+   sentence ends — the same turn-taking contract as the full-audio path.
+   ============================================================ */
+
+/* ==== TTS PIPELINE CORE (pure — extracted by scripts/test/run-tests.mjs; keep DOM and fetch out of this block) ==== */
+/* Splits streamed text into speakable sentences. Returns { sentences,
+   rest }: every sentence ending at a real boundary, plus the unspoken
+   tail. A boundary is terminal punctuation (. ! ? …) followed by
+   whitespace — a boundary at the very end of the buffer is NOT emitted
+   unless isFinal, because the thought may still be streaming. When
+   isFinal, the tail is emitted too: the stream ended, nothing more is
+   coming.
+
+   NOT boundaries (protected before splitting):
+   - decimals: "S/ 9.90", "$1,234.56"
+   - caps abbreviations: "EE. UU."
+   - common Spanish abbreviations: Sr. Sra. Dr. Av. Ud. etc. */
+function splitSentences(text, isFinal){
+  const src = String(text || "");
+  const NUL = String.fromCharCode(0);
+  /* Each protection is length-preserving (. -> NUL, 1 for 1), so indices
+     into the protected string map 1:1 back onto the original buffer. */
+  const t = src
+    .replace(/(\d)\.(\d)/g, "$1" + NUL + "$2")
+    .replace(/\b([A-ZÁÉÍÓÚÑ]{1,2})\./g, "$1" + NUL)
+    .replace(/\b(Sr|Sra|Srta|Dr|Dra|Av|Ud|Uds|No|N[uú]m|Tel|Ej|etc)\./gi, (m) => m.slice(0, -1) + NUL);
+  const sentences = [];
+  const re = /([\s\S]*?[.!?…]+)(\s+|$)/g;
+  let m, consumed = 0;
+  while ((m = re.exec(t)) !== null){
+    if (m[2] === "" && !isFinal) break; /* boundary at the buffer edge — may be incomplete */
+    const sent = m[1].split(NUL).join(".").trim();
+    if (sent.length >= 2) sentences.push(sent);
+    consumed = m.index + m[0].length;
+  }
+  let rest = src.slice(consumed);
+  if (isFinal){
+    if (rest.trim().length >= 2) sentences.push(rest.trim());
+    rest = "";
+  }
+  return { sentences, rest };
+}
+
+/* One pipeline per assistant turn. slots[i] is "pending", a base64 MP3,
+   or "failed". requested counts sentences handed to TTS; playCursor is
+   the next sentence due to play. */
+function ttsNewPipeline(){
+  return { buffer: "", slots: [], requested: 0, playCursor: 0, playerBusy: false,
+           streamDone: false, settled: false, everPlayed: false,
+           fullReply: "", doneAudio: null, onSettled: null };
+}
+/* A sentence's TTS resolved (base64) or failed (null). Playback always
+   goes through ttsPeek/ttsConsume in order, so a later sentence never
+   jumps the queue even when its audio lands first. */
+function ttsResolve(st, idx, audioOrNull){
+  st.slots[idx] = audioOrNull || "failed";
+}
+function ttsAdvance(st){
+  while (st.playCursor < st.requested && st.slots[st.playCursor] === "failed") st.playCursor++;
+}
+/* The next playable audio: "pending" while its TTS is in flight,
+   undefined when nothing is queued, else the base64 MP3. */
+function ttsPeek(st){
+  ttsAdvance(st);
+  if (st.playCursor >= st.requested) return undefined;
+  return st.slots[st.playCursor];
+}
+/* Consumes the peeked audio for playback. Returns the base64, or null
+   when nothing is playable right now. */
+function ttsConsume(st){
+  const next = ttsPeek(st);
+  if (typeof next !== "string" || next === "pending" || next === "failed") return null;
+  st.playCursor++;
+  st.everPlayed = true;
+  return next;
+}
+/* True when the stream ended, every sentence resolved, and the queue is
+   fully played — the only state in which the turn may settle. */
+function ttsDrained(st){
+  if (!st.streamDone) return false;
+  ttsAdvance(st);
+  for (let i = 0; i < st.requested; i++) if (st.slots[i] === "pending") return false;
+  return st.playCursor >= st.requested;
+}
+/* ==== END TTS PIPELINE CORE ==== */
+
+/* Feeds streamed deltas into the pipeline. Completed sentences are
+   handed to the TTS endpoint at once; the tail waits for more text (or
+   the final flush). */
+function feedTts(st, delta, isFinal){
+  if (st.settled) return;
+  if (delta) st.buffer += delta;
+  if (isFinal) st.streamDone = true;
+  const out = splitSentences(st.buffer, isFinal);
+  st.buffer = out.rest;
+  /* A pathological reply with no sentence boundary must not grow the
+     buffer forever: force a split at a word boundary past 800 chars. */
+  if (!isFinal && st.buffer.length > 800){
+    const cut = st.buffer.lastIndexOf(" ", 700);
+    const at = cut > 200 ? cut : 700;
+    const forced = st.buffer.slice(0, at).trim();
+    st.buffer = st.buffer.slice(at).trim();
+    if (forced.length >= 2) out.sentences.push(forced);
+  }
+  for (const sent of out.sentences) requestSentenceAudio(st, sent);
+  pumpTtsAudio(st);
+}
+
+function requestSentenceAudio(st, text){
+  const idx = st.requested++;
+  st.slots[idx] = "pending";
+  const ctrl = new AbortController();
+  /* A hung TTS request must never wedge the turn: 9s, then the sentence
+     is skipped and the queue moves on. */
+  const timer = setTimeout(() => ctrl.abort(), 9000);
+  fetch("/.netlify/functions/aria-tts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+    signal: ctrl.signal,
+  })
+    .then((r) => (r.ok ? r.json().catch(() => null) : null))
+    .then((d) => ttsResolve(st, idx, d && d.audio))
+    .catch(() => ttsResolve(st, idx, null))
+    .finally(() => { clearTimeout(timer); pumpTtsAudio(st); });
+}
+
+/* Plays the next ready sentence, in order. */
+function pumpTtsAudio(st){
+  if (st.playerBusy || st.settled) return;
+  const next = ttsPeek(st);
+  if (next === "pending" || next === undefined){ settleTtsAudio(st); return; }
+  const base64 = ttsConsume(st);
+  if (!base64){ settleTtsAudio(st); return; }
+  st.playerBusy = true;
+  playTtsAudio(base64, () => { st.playerBusy = false; pumpTtsAudio(st); });
+}
+
+function playTtsAudio(base64, onEnded){
+  try {
+    setOrbState("speaking");
+    ariaAudioPlayer.src = "data:audio/mp3;base64," + base64;
+    /* The speaking pulse is driven by the audio element, so the orb
+       beats for exactly as long as Aria is actually audible. */
+    ariaAudioPlayer.onplaying = () => setOrbState("speaking");
+    ariaAudioPlayer.onended = () => { setOrbState("idle"); onEnded(); };
+    ariaAudioPlayer.onpause = () => {};
+    ariaAudioPlayer.onerror = () => { setOrbState("idle"); onEnded(); };
+    const pr = ariaAudioPlayer.play();
+    /* Autoplay blocked (iOS outside a gesture): skip the sentence and
+       keep the queue moving — the text is already on screen. */
+    if (pr && typeof pr.catch === "function") pr.catch(() => { setOrbState("idle"); onEnded(); });
+  } catch (err) { setOrbState("idle"); onEnded(); }
+}
+
+/* Settles the turn when the stream is done, every sentence resolved,
+   and the queue fully played. Falls back to the done-event audio, then
+   the browser voice, when no sentence audio ever played. */
+function settleTtsAudio(st){
+  if (st.settled || st.playerBusy || !st.streamDone) return;
+  for (let i = 0; i < st.requested; i++) if (st.slots[i] === "pending") return;
+  ttsAdvance(st);
+  if (st.playCursor < st.requested) return; /* playable audio still queued — the pump plays it */
+  st.settled = true;
+  setOrbState("idle");
+  if (!st.everPlayed){
+    if (st.doneAudio) speakWithAria(st.doneAudio, st.fullReply);
+    else if (typeof speakText === "function") speakText(st.fullReply);
+  }
+  if (typeof st.onSettled === "function") st.onSettled();
+}
+
+/* Called with the stream's final reply. Flushes the tail as a last
+   sentence; the pipeline then plays out, falls back if needed, and
+   reopens the mic under the same turn-taking contract as the
+   full-audio path. */
+function finishTtsPipeline(st, reply, doneAudio){
+  st.fullReply = reply || "";
+  st.doneAudio = doneAudio || null;
+  st.onSettled = () => {
+    if (continuousMode) setTimeout(() => { if (continuousMode && !assistantThinking) startListening(); }, 400);
+  };
+  feedTts(st, "", true);
 }
 
 function addAssistantProductCard(item, retailer){
@@ -25260,6 +25467,11 @@ async function runAssistantBrain(text){
       recipient: (recipient.gender || recipient.ageBand)
         ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
         : null,
+      /* SENTENCE-PIPELINED VOICE (2026-09-28). The client renders each
+         sentence's audio via aria-tts as its text completes, so the
+         stream endpoint skips the full-reply TTS round trip and the done
+         event carries text only. */
+      ttsPipeline: true,
     };
 
     /* THE TYPING INDICATOR STAYS UP UNTIL THE FIRST TOKEN and not a
@@ -25277,7 +25489,13 @@ async function runAssistantBrain(text){
       return;
     }
     let sink = beginAssistantReply();
-    let streamed = sink ? await streamAssistantReply(payload, sink) : null;
+    /* Sentence audio starts rendering the moment the first sentence's
+       text completes — the TTS PIPELINE above. One pipeline per turn; it
+       survives the cold-start/429 retries below because a retried stream
+       never fed it a delta (a null stream rendered nothing). */
+    const tts = ttsNewPipeline();
+    const onTtsDelta = (d) => feedTts(tts, d, false);
+    let streamed = sink ? await streamAssistantReply(payload, sink, onTtsDelta) : null;
     /* COLD-START RETRY (2026-09-27, Danny: replies kept dying with
        "Tuve un problema..." on first use). A 25s stream timeout almost
        always means a cold function, not a dead one — and the timed-out
@@ -25286,7 +25504,7 @@ async function runAssistantBrain(text){
        function) and burning another 25s. */
     if (!streamed && sink && streamAssistantReply.timedOut) {
       streamAssistantReply.timedOut = false;
-      streamed = await streamAssistantReply(payload, sink);
+      streamed = await streamAssistantReply(payload, sink, onTtsDelta);
     }
     /* SMART 429 RETRY (2026-09-27): Groq's 429 names its own recovery
        ("try again in 2.775s") — one patient retry on the same endpoint
@@ -25300,7 +25518,7 @@ async function runAssistantBrain(text){
       await new Promise(r => setTimeout(r, waitMs));
       sink = beginAssistantReply();
       streamAssistantReply.lastError = null;
-      streamed = sink ? await streamAssistantReply(payload, sink) : null;
+      streamed = sink ? await streamAssistantReply(payload, sink, onTtsDelta) : null;
       if (!streamed && isGroqRateLimit(streamAssistantReply.lastError)) {
         parkBrainForRateLimit();
         if (sink) sink.discard();
@@ -25396,7 +25614,12 @@ async function runAssistantBrain(text){
        is the existing narration channel: quieter than a reply, never
        spoken, never sent back to the model. */
     if (streamed.truncated) addAssistantNote('Se me cortó ahí, ¿te lo repito?');
-    speakAssistantReply(reply, streamed.audio);
+    /* PIPELINED VOICE. Sentence audio has been rendering alongside the
+       text since the first sentence completed, so the first sound lands
+       about one TTS round trip after the first words — not after the
+       whole reply. finishTtsPipeline flushes the tail, falls back when a
+       sentence failed, and reopens the mic after the last sentence. */
+    finishTtsPipeline(tts, reply, streamed.audio);
 
   } catch (err) {
     hideAssistantTyping();

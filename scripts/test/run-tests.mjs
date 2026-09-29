@@ -13124,6 +13124,202 @@ check("books: the pill, rail and tile metadata are wired", () => {
   eq(n, 481, "all 481 books resolve into the department");
 });
 
+/* ============================================================
+   ASSISTANT ENGINE UPGRADE (2026-09-28). OpenAI primary
+   (gpt-6-luna, reasoning none, streamed) with the buffered Groq
+   endpoint kept as fallback; ElevenLabs Lily for voice; sentence-level
+   TTS pipelining client-side.
+   ============================================================ */
+group("assistant engine: OpenAI primary request construction");
+check("chatRequestBody defaults to the OpenAI primary", () => {
+  const b = chatModel.chatRequestBody({ message: "hola", history: [], products: [], recipient: null });
+  eq(b.model, "gpt-6-luna", "primary model id");
+  eq(b.reasoning_effort, "none", "reasoning disabled");
+  eq(b.max_completion_tokens, 250, "GPT-6 token cap");
+  ok(!("temperature" in b), "no temperature on the OpenAI wire body");
+  ok(!("max_tokens" in b), "no max_tokens on the OpenAI wire body");
+  ok(!("reasoning" in b), "no reasoning channel param");
+  eq(b.messages[b.messages.length - 1].content, "hola", "user message last");
+  eq(b.messages[0].role, "system", "system prompt first");
+});
+check("chatRequestBody groq provider keeps the fallback wire shape", () => {
+  const b = chatModel.chatRequestBody({ message: "hola", history: [], products: [], recipient: null }, "groq");
+  eq(b.model, "openai/gpt-oss-120b", "fallback model");
+  eq(b.temperature, 0.7, "fallback temperature");
+  eq(b.max_tokens, 600, "fallback cap");
+  eq(b.reasoning_effort, "low", "fallback reasoning effort");
+});
+check("primary and fallback build the same turn", () => {
+  const inBody = {
+    message: "busco zapatillas",
+    history: [{ role: "user", content: "hola" }],
+    products: [{ title: "Nike Air" }],
+    recipient: null,
+  };
+  const a = chatModel.chatRequestBody(inBody);
+  const g = chatModel.chatRequestBody(inBody, "groq");
+  eq(JSON.stringify(a.messages), JSON.stringify(g.messages), "identical messages, identical personality");
+});
+check("no fictional model ids", () => {
+  const src = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
+  if (/gpt-5\.6-terra/.test(src)) throw new Error("gpt-5.6-terra must never appear in code");
+});
+
+group("assistant engine: endpoint wiring");
+check("stream endpoint: OpenAI primary, ttsPipeline honored", () => {
+  const src = readFileSync(root("netlify/functions/aria-chat-stream.js"), "utf8");
+  ok(src.includes("OPENAI_CHAT_URL"), "primary posts to OpenAI");
+  ok(src.includes("process.env.OPENAI_API_KEY"), "primary uses the OpenAI key");
+  ok(src.includes("ttsPipeline"), "sentence pipeline flag honored");
+  if (/GROQ_API_KEY/.test(src)) throw new Error("stream endpoint must not key on Groq");
+  if (/api\.x\.ai/.test(src)) throw new Error("no xAI left in the stream endpoint");
+});
+check("buffered endpoint stays the Groq fallback", () => {
+  const src = readFileSync(root("netlify/functions/aria-chat-groq.js"), "utf8");
+  ok(src.includes('chatRequestBody(body, "groq")'), "fallback builds the groq wire body");
+  ok(src.includes("GROQ_CHAT_URL"), "fallback posts to Groq");
+});
+check("greeting uses the shared OpenAI path and Lily", () => {
+  const src = readFileSync(root("netlify/functions/aria-chat.js"), "utf8");
+  ok(src.includes("OPENAI_CHAT_URL"), "greeting posts to OpenAI");
+  ok(src.includes("chatRequestBody(body)"), "greeting builds the shared turn");
+  ok(src.includes("speechFor"), "greeting uses Lily");
+  if (/x\.ai/.test(src)) throw new Error("no xAI left in the greeting");
+});
+
+group("assistant engine: ElevenLabs voice");
+check("speechFor is ElevenLabs Lily, best effort", () => {
+  const src = readFileSync(root("netlify/functions/_aria-chat-model.js"), "utf8");
+  ok(src.includes("https://api.elevenlabs.io/v1/text-to-speech"), "ElevenLabs endpoint");
+  ok(src.includes("ek0qR5Bu0N3aPdijsdae"), "Lily voice id default");
+  ok(src.includes("eleven_flash_v2_5"), "flash model pinned");
+  ok(src.includes("xi-api-key"), "xi-api-key header");
+  ok(src.includes("audio/mpeg"), "Accept audio/mpeg");
+  if (/api\.x\.ai/.test(src)) throw new Error("no xAI TTS left");
+});
+checkAsync("aria-tts endpoint: method, input bounds, best-effort voice", async () => {
+  delete process.env.ELEVENLABS_API_KEY;
+  const tts = await import("../../netlify/functions/aria-tts.js");
+  let r = await tts.handler({ httpMethod: "GET" });
+  eq(r.statusCode, 405, "GET rejected");
+  r = await tts.handler({ httpMethod: "OPTIONS" });
+  eq(r.statusCode, 200, "CORS preflight ok");
+  r = await tts.handler({ httpMethod: "POST", body: "{}" });
+  eq(r.statusCode, 400, "empty text rejected");
+  r = await tts.handler({ httpMethod: "POST", body: "not json" });
+  eq(r.statusCode, 400, "non-JSON rejected");
+  /* No key in the test env: speechFor returns null and the endpoint
+     reports TTS unavailable instead of throwing. */
+  r = await tts.handler({ httpMethod: "POST", body: JSON.stringify({ text: "Hola, ¿cómo estás?" }) });
+  eq(r.statusCode, 502, "no key means 502, not a throw");
+  const j = JSON.parse(r.body);
+  eq(j.error, "TTS unavailable", "best-effort error shape");
+});
+
+group("assistant engine: secret absence");
+check("no keys or voice ids leak into code or the client", () => {
+  const fns = [
+    "netlify/functions/_aria-chat-model.js",
+    "netlify/functions/aria-chat-stream.js",
+    "netlify/functions/aria-chat-groq.js",
+    "netlify/functions/aria-chat.js",
+    "netlify/functions/aria-tts.js",
+  ];
+  for (const f of fns) {
+    const src = stripComments(readFileSync(root(f), "utf8"));
+    if (/sk-[A-Za-z0-9]{10,}/.test(src)) throw new Error(`${f} contains an OpenAI-like key`);
+    if (/xi-api-key/.test(src) && /["'][A-Za-z0-9]{20,}["']/.test(src.replace(/xi-api-key/g, ""))) {
+      throw new Error(`${f} hardcodes an ElevenLabs key`);
+    }
+  }
+  const page = readFileSync(root("index.html"), "utf8");
+  if (/ek0qR5Bu0N3aPdijsdae/.test(page)) throw new Error("voice id must not ship to the client");
+  if (/ELEVENLABS_API_KEY/.test(page)) throw new Error("ElevenLabs key name must not ship to the client");
+  if (/OPENAI_API_KEY/.test(page)) throw new Error("OpenAI key name must not ship to the client");
+});
+
+/* The sentence splitter and queue core live in index.html (the page
+   cannot import), marked by TTS PIPELINE CORE comments. The tests run
+   the real page code, extracted verbatim. */
+function loadTtsCore() {
+  const page = readFileSync(root("index.html"), "utf8");
+  const start = page.indexOf("/* ==== TTS PIPELINE CORE");
+  const endMark = page.indexOf("==== END TTS PIPELINE CORE ====");
+  if (start < 0 || endMark < 0) throw new Error("TTS pipeline core markers missing in index.html");
+  const end = page.lastIndexOf("/*", endMark);
+  const fns = {};
+  new Function(
+    "fns",
+    page.slice(start, end) +
+      ";Object.assign(fns,{splitSentences,ttsNewPipeline,ttsResolve,ttsAdvance,ttsPeek,ttsConsume,ttsDrained});",
+  )(fns);
+  return fns;
+}
+
+group("assistant engine: sentence splitting");
+check("splitSentences emits complete sentences, holds the tail", () => {
+  const { splitSentences } = loadTtsCore();
+  const r = splitSentences("Hola. ¿Qué tal? Bien", false);
+  eq(JSON.stringify(r.sentences), JSON.stringify(["Hola.", "¿Qué tal?"]), "two complete sentences");
+  eq(r.rest, "Bien", "tail held for more text");
+});
+check("splitSentences protects decimals and abbreviations", () => {
+  const { splitSentences } = loadTtsCore();
+  const r = splitSentences("Cuesta S/ 9.90 en tiendas de EE. UU. hoy. ¿Te gusta?", false);
+  eq(r.sentences.length, 2, "two sentences");
+  eq(r.sentences[0], "Cuesta S/ 9.90 en tiendas de EE. UU. hoy.", "decimal and EE. UU. intact");
+  const r2 = splitSentences("El Sr. Pérez llegó.", true);
+  eq(r2.sentences[0], "El Sr. Pérez llegó.", "Sr. not a boundary");
+});
+check("splitSentences flushes the tail when the stream ends", () => {
+  const { splitSentences } = loadTtsCore();
+  const r = splitSentences("Dame un segundo", true);
+  eq(JSON.stringify(r.sentences), JSON.stringify(["Dame un segundo"]), "tail spoken");
+  eq(r.rest, "", "rest cleared");
+  const empty = splitSentences("", true);
+  eq(empty.sentences.length, 0, "empty stays empty");
+});
+
+group("assistant engine: sentence audio queue");
+check("out-of-order TTS responses play in sentence order", () => {
+  const { ttsNewPipeline, ttsResolve, ttsPeek, ttsConsume } = loadTtsCore();
+  const st = ttsNewPipeline();
+  st.requested = 3;
+  st.slots = ["pending", "pending", "pending"];
+  ttsResolve(st, 1, "audio-dos");
+  eq(ttsPeek(st), "pending", "head still in flight — nothing plays early");
+  ttsResolve(st, 0, "audio-uno");
+  eq(ttsConsume(st), "audio-uno", "first sentence first");
+  eq(ttsConsume(st), "audio-dos", "second sentence second");
+  ttsResolve(st, 2, null);
+  eq(ttsConsume(st), null, "failed sentence skipped, not stuck");
+  ok(st.everPlayed, "everPlayed set once audio played");
+});
+check("ttsDrained only when the stream is done and every slot resolved", () => {
+  const { ttsNewPipeline, ttsResolve, ttsConsume, ttsDrained } = loadTtsCore();
+  const st = ttsNewPipeline();
+  st.requested = 1;
+  st.slots = ["pending"];
+  eq(ttsDrained(st), false, "stream not done");
+  st.streamDone = true;
+  eq(ttsDrained(st), false, "slot still pending");
+  ttsResolve(st, 0, "audio");
+  eq(ttsDrained(st), false, "resolved but not yet played");
+  ttsConsume(st);
+  eq(ttsDrained(st), true, "drained");
+});
+
+group("assistant engine: client wiring");
+check("client pipelines sentence audio per turn", () => {
+  const page = readFileSync(root("index.html"), "utf8");
+  ok(page.includes("ttsPipeline: true"), "payload flags the pipeline");
+  ok(page.includes("/.netlify/functions/aria-tts"), "sentence endpoint called");
+  ok(page.includes("finishTtsPipeline(tts, reply, streamed.audio)"), "pipeline settled per turn");
+  ok(!page.includes("speakAssistantReply(reply, streamed.audio)"), "full-audio speak path replaced on the stream");
+  ok(page.includes("ttsPipeline: true }, sink, (d) => feedTts(tts, d, false)"), "greeting pipelines too");
+});
+
+
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 for (const f of failures) console.log(`  FAIL  ${f}\n`);
 process.exit(failures.length ? 1 : 0);
