@@ -10048,6 +10048,51 @@ function beautyDeptRailsHTML(items, noKeys){
   }
   return blocks.join('');
 }
+/* JOYERIA - 6 THEME RAILS (2026-09-28, Danny): "do them all". Themes cut
+   ACROSS the 11 type aisles (a Disney personalized bracelet is three things
+   at once), so they are rails, never aisles - they do not partition and
+   never touch the aisle counts. Keyword rules mirror the classification
+   brief (jewelry-genres-2026-09-28.md) exactly; validated item counts:
+   Personalizado 840, Deportes 642, Disney 413, Sets 381, Zodiaco 367,
+   Ninos 197. Text-only labels, zero emojis. */
+function jewelryThemeWords(title){
+  return ' ' + String(title || '').toLowerCase().replace(/[^a-z]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+}
+function jewelryThemeHas(nw, words){
+  for (const w of words) if (nw.indexOf(' ' + w + ' ') !== -1) return true;
+  return false;
+}
+const JEWELRY_THEMES = [
+  { key: 'joyt-personalizado', label: 'Personalizado',          words: ['initial','initials','nameplate','custom','personalized','letter','letters'] },
+  { key: 'joyt-deportes',      label: 'Deportes y universidad', words: ['nfl','mlb','university','varsity'] },
+  { key: 'joyt-disney',        label: 'Disney',                 words: ['disney','mickey','minnie','mouse'] },
+  { key: 'joyt-sets',          label: 'Sets de regalo',         words: ['set','sets'] },
+  { key: 'joyt-zodiaco',       label: 'Zodíaco y significado',  words: ['zodiac','birthstone','angel'] },
+  { key: 'joyt-ninos',         label: 'Niños',                  words: null }, /* whole-word kids / kid */
+];
+function jewelryThemeItems(items, theme){
+  const out = [];
+  for (const it of items || []){
+    const nw = jewelryThemeWords(it.title || it.name);
+    const hit = theme.words ? jewelryThemeHas(nw, theme.words)
+      : (nw.indexOf(' kids ') !== -1 || nw.indexOf(' kid ') !== -1);
+    if (hit) out.push(it);
+  }
+  return out;
+}
+const JEWELRY_THEME_RAIL_MIN = 4;
+function jewelryDeptRailsHTML(items){
+  const blocks = [];
+  for (const theme of JEWELRY_THEMES){
+    const aisle = jewelryThemeItems(items, theme);
+    if (aisle.length < JEWELRY_THEME_RAIL_MIN) continue;
+    const picks = categoryRailPicks(null, aisle, aisle, new Set(), CATEGORY_RAIL_TOTAL);
+    if (!picks.length) continue;
+    blocks.push(deptRailSectionHTML('jewelry-theme-' + theme.key, theme.label,
+      deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks));
+  }
+  return blocks.join('');
+}
 /* ARIA MOMS SUBCATEGORY CAROUSELS (2026-09-27, Danny): the moms
    department landing leads with one FULL carousel per subcategory --
    Coches first (Danny's hero aisle: every type of stroller), then
@@ -11052,6 +11097,25 @@ const SUBCATEGORY_SPEC = [
   { key: 'carriers',    label: 'Portabebés',          types: ['PORTABEBE', 'CARRIER'] },
   { key: 'highchairs',  label: 'Sillas de comer',     types: ['SILLA_DE_COMER', 'HIGH_CHAIR'] },
   { key: 'maternity',   label: 'Maternidad',          types: ['MATERNIDAD', 'MATERNITY', 'PREGNANCY'] },
+
+  /* ---- JOYERIA POR TIPO (2026-09-28, Danny): the 11 type aisles inside
+     Joyeria y Accesorios - plain Spanish type names, no theme names here.
+     BaubleBar ships a clean type vocabulary; Melie Bianco's CHARMS are bag
+     charms (BaubleBar's are bracelet charms) and its ACCESSORIES are
+     scarves - the retailer disambiguates in jewelryTypeAisle() below, since
+     these types arrays carry no retailer. Editorial order: biggest mission
+     first. */
+  { key: 'joy-pulseras',       label: 'Pulseras',          types: ['BRACELETS', 'BODY_JEWELRY'] },
+  { key: 'joy-collares',       label: 'Collares',          types: ['NECKLACES'] },
+  { key: 'joy-aretes',         label: 'Aretes',            types: ['EARRINGS'] },
+  { key: 'joy-charms',         label: 'Charms',            types: ['CHARMS', 'CHARM_HUGGER'] },
+  { key: 'joy-charms-cartera', label: 'Charms de cartera', types: ['BAG_CHARMS'] },
+  { key: 'joy-anillos',        label: 'Anillos',           types: ['RINGS'] },
+  { key: 'joy-pelo',           label: 'Pelo',              types: ['HAIR_ACCESSORIES', 'EARS_HEADBANDS'] },
+  { key: 'joy-pines',          label: 'Broches y pines',   types: ['PINS'] },
+  { key: 'joy-tobilleras',     label: 'Tobilleras',        types: ['ANKLETS'] },
+  { key: 'joy-llaveros',       label: 'Llaveros',          types: ['KEYCHAIN'] },
+  { key: 'joy-bufandas',       label: 'Bufandas',          types: ['ACCESSORIES'] },
 ];
 
 const SUBCATEGORY_BY_TYPE = new Map();
@@ -11077,7 +11141,40 @@ function subcategoryForType(raw){
 function subcategoryLabel(key){
   return (SUBCATEGORY_SPEC.find(r => r.key === key) || {}).label || null;
 }
+/* JOYERIA POR TIPO - retailer-aware type resolution (2026-09-28, Danny).
+   BaubleBar's CHARMS are bracelet charms; Melie Bianco's CHARMS are bag
+   charms - the same vocabulary word files into two different aisles, so
+   the retailer disambiguates. GIFT_SETS has no fixed aisle: a headband set
+   files under Pelo, the rest are charm sets. Runs before the generic type
+   lookup; returns null for non-jewelry types so nothing else moves. */
+function jewelryTypeAisle(item){
+  const t = normalizeType(item?.type ?? '');
+  if (!t) return null;
+  const retailer = item?.retailer || '';
+  switch (t){
+    case 'BRACELETS': return 'joy-pulseras';
+    case 'BODY_JEWELRY': return 'joy-pulseras'; /* belly chains - nearest type */
+    case 'NECKLACES': return 'joy-collares';
+    case 'EARRINGS': return 'joy-aretes';
+    case 'CHARMS': return retailer === 'meliebianco' ? 'joy-charms-cartera' : 'joy-charms';
+    case 'CHARM_HUGGER': return 'joy-charms';
+    case 'BAG_CHARMS': return 'joy-charms-cartera';
+    case 'RINGS': return 'joy-anillos';
+    case 'HAIR_ACCESSORIES': case 'EARS_HEADBANDS': return 'joy-pelo';
+    case 'PINS': return 'joy-pines';
+    case 'ANKLETS': return 'joy-tobilleras';
+    case 'KEYCHAIN': return 'joy-llaveros';
+    case 'ACCESSORIES': return retailer === 'meliebianco' ? 'joy-bufandas' : null;
+    case 'GIFT_SETS': {
+      const n = String(item?.title || item?.name || '').toLowerCase();
+      return n.indexOf('headband') !== -1 ? 'joy-pelo' : 'joy-charms';
+    }
+    default: return null;
+  }
+}
 function subcategoryOfItem(item){
+  const jt = jewelryTypeAisle(item);
+  if (jt) return jt;
   return subcategoryForType(item?.type ?? item?.typeName ?? item?.productType ?? null);
 }
 function groupBySubcategory(items){
@@ -12137,6 +12234,8 @@ function renderCatalogFeed(){
         
         : (catalogState.kind === 'department' && catalogState.key === 'moms' && !retailerFilter && !catalogState.subKey)
         ? momsDeptRailsHTML(gendered, new Set()) 
+        : (catalogState.kind === 'department' && catalogState.key === 'jewelry' && !retailerFilter)
+        ? jewelryDeptRailsHTML(gendered)
         : '';
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, gendered);
     revealActiveChips(sections);
