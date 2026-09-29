@@ -7583,7 +7583,17 @@ function collectTiles(){
    product entirely. That is the whole trade: the grid breathes white so
    the products read as the design, and the brand is felt everywhere the
    products are not. */
-const CARD_SHELL_CLASS = 'group h-full flex flex-col';
+/* WHITE CARDS OVERRIDE (2026-09-28, Danny's directive): the chromeless
+   treatment above put quiet grey/navy text directly on the page's tinted
+   bands, and on navy bands (Ofertas, dark rails) the pricing became
+   unreadable. Every product card is now white, everywhere a card with
+   pricing appears. The shell gets bg-white back; navy/blue stay at page
+   level AROUND the cards. All card text colors were audited for contrast
+   on white (navy price, #4A5568 title, #6B7487 secondary lines) -- no
+   re-inking needed. railCardHTML, the candy cross-sell rail, and the
+   assistant's product cards were already white; this brings the shared
+   productCardHTML shell in line with them. */
+const CARD_SHELL_CLASS = 'group h-full flex flex-col bg-white rounded-2xl';
 
 /* THE CATEGORY BANNER IS NOT A PRODUCT CARD, and the Farfetch note says
    so itself: its "Compra hombre / Compra niños" pattern is full-bleed
