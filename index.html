@@ -10132,7 +10132,7 @@ function surfSkateDeptRailsHTML(byRetailer){
    rather than standing empty. The aisle tiles and 'Ver todo' still render
    below (see the department landing). */
 const BEAUTY_SUB_RAIL_MIN = 4;
-const BEAUTY_SUB_ROWS = ['face', 'masks', 'makeup', 'lips', 'eyes', 'skincare', 'mens', 'nails', 'fragrance'];
+const BEAUTY_SUB_ROWS = ['face', 'masks', 'makeup', 'lips', 'eyes', 'skincare', 'fragrance'];
 const PDRN_LEAD_RX = /pdrn/i;
 function beautyDeptRailsHTML(items, noKeys){
   const blocks = [];
@@ -11259,10 +11259,8 @@ const SUBCATEGORY_SPEC = [
   { key: 'lips',        label: 'Labios',              types: ['LABIOS', 'LIP', 'LIPSTICK', 'LIP_GLOSS', 'LIP_BALM'] },
   { key: 'eyes',        label: 'Ojos',                types: ['OJOS', 'EYE', 'MASCARA', 'EYELINER', 'EYESHADOW', 'BROW'] },
   { key: 'skincare',    label: 'Cuidado de la piel',  types: ['CUIDADO_DE_LA_PIEL', 'SKINCARE', 'SKIN_CARE', 'MOISTURIZER', 'SERUM', 'CLEANSER', 'SUNSCREEN'] },
-  /* HOMBRE (2026-09-27, Danny): men's care is its OWN category inside
-     Aria Beauty -- shaving, skincare, hair, fragrance for men. */
-  { key: 'mens',        label: 'Hombre',              types: ['CUIDADO_PARA_HOMBRES', 'MENS_CARE', 'MENS_GROOMING', 'FOR_MEN'] },
-  { key: 'nails',       label: 'U\u00f1as',              types: ['UNAS', 'NAIL', 'NAIL_POLISH', 'MANICURE'] },
+  /* HOMBRE + UNAS REMOVED (2026-09-29, Danny -- no dead ends): men's grooming
+     and nail data do not exist yet. Re-add when pulls land. */
   { key: 'fragrance',   label: 'Fragancia',           types: ['FRAGANCIA', 'FRAGRANCE', 'PERFUME', 'EAU_DE_PARFUM', 'COLOGNE', 'BODY_MIST'] },
   /* ---- ARIA MOMS (2026-09-27, Danny) ----------------------------------
      The premium moms department: strollers of every type, breast pumps,
@@ -11719,7 +11717,14 @@ async function openCatalog(kind, key, opts = {}){
      section is a women's destination; Hombres is one tap away. */
   catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE,
     curvyGender: (kind === 'department' && key === 'curvy') ? 'women' : null };
-  renderCatalogFeed();
+  /* NEVER A BLANK PAGE (2026-09-29, Danny): if render throws, show the
+     empty state with retry instead of a dead page. */
+  try { renderCatalogFeed(); }
+  catch (e) {
+    console.error('[catalog]', e);
+    departmentCacheFailed = true;
+    try { renderCatalogFeed(); } catch (e2) { console.error('[catalog-retry]', e2); }
+  }
 }
 
 // A store chip is navigation, not a silent swap: it re-enters this same
@@ -16504,18 +16509,18 @@ const RETAILERS = {
   ezpz:           { key: 'ezpz',           label: 'ezpz',            color: '#000000', tagline: 'Platos y vasos para niños',                        kind: 'general', search: false, browse: true },
   statebags:      { key: 'statebags',      label: 'State Bags',      color: '#000000', tagline: 'Mochilas y loncheras para niños',                  kind: 'general', search: false, browse: true },
   /* ARIA BEAUTY BRAND AISLES (2026-09-27, Danny): browsable brand keys inside beauty-catalog.json. Wordmark pills until logos land. */
-  townley:         { key: 'townley',         label: 'Townley Girl',        color: '#EC008C', tagline: 'Maquillaje lavable para niñas',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  morphe:          { key: 'morphe',          label: 'Morphe',              color: '#000000', tagline: 'Sets de brochas y maquillaje',               kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  skin1004:        { key: 'skin1004',        label: 'SKIN1004',            color: '#7A8B5C', tagline: 'Centella asiática coreana',                  kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  everymanjack:    { key: 'everymanjack',    label: 'Every Man Jack',      color: '#14342B', tagline: 'Cuidado masculino',                        kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  brickell:        { key: 'brickell',        label: 'Brickell',            color: '#0A1F44', tagline: 'Skincare premium para hombres',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  medicube:        { key: 'medicube',        label: 'Medicube',            color: '#C0272D', tagline: 'Mascarillas coreanas PDRN',                  kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  townley:         { key: 'townley',         label: 'Townley Girl',        color: '#EC008C', tagline: 'Maquillaje lavable para niñas',              kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
+  morphe:          { key: 'morphe',          label: 'Morphe',              color: '#000000', tagline: 'Sets de brochas y maquillaje',               kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
+  skin1004:        { key: 'skin1004',        label: 'SKIN1004',            color: '#7A8B5C', tagline: 'Centella asiática coreana',                  kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
+  everymanjack:    { key: 'everymanjack',    label: 'Every Man Jack',      color: '#14342B', tagline: 'Cuidado masculino',                        kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
+  brickell:        { key: 'brickell',        label: 'Brickell',            color: '#0A1F44', tagline: 'Skincare premium para hombres',            kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
+  medicube:        { key: 'medicube',        label: 'Medicube',            color: '#C0272D', tagline: 'Mascarillas coreanas PDRN',                  kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   /* K-BEAUTY HERO BRANDS (2026-09-27, Danny): "brands like Laneige". */
   laneige:         { key: 'laneige',         label: 'Laneige',             color: '#4AA8DE', tagline: 'Sleeping masks y skincare coreano',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  cosrx:           { key: 'cosrx',           label: 'COSRX',               color: '#000000', tagline: 'Skincare coreano — acné y textura',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  cosrx:           { key: 'cosrx',           label: 'COSRX',               color: '#000000', tagline: 'Skincare coreano — acné y textura',            kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   beautyofjoseon:  { key: 'beautyofjoseon',  label: 'Beauty of Joseon',    color: '#2B2B2B', tagline: 'Belleza tradicional coreana',                kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  anua:            { key: 'anua',            label: 'Anua',                color: '#6A9A5B', tagline: 'Skincare coreano minimalista',               kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  mediheal:        { key: 'mediheal',        label: 'Mediheal',            color: '#0066B3', tagline: 'Mascarillas coreanas',                       kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  anua:            { key: 'anua',            label: 'Anua',                color: '#6A9A5B', tagline: 'Skincare coreano minimalista',               kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
+  mediheal:        { key: 'mediheal',        label: 'Mediheal',            color: '#0066B3', tagline: 'Mascarillas coreanas',                       kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   /* BOOKS (2026-09-27, Danny) — coffee table books: Assouline (luxury) +
      Chronicle Books (illustrated), 481 products via Shopify collection
      APIs. No logo files yet — wordmark pill fallback, the documented
