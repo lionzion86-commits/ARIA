@@ -11815,10 +11815,10 @@ function fightClubChipsHTML(grouped){
    product lands in exactly one brand.
    ============================================================ */
 const LATINO_DESIGNERS_SPEC = [
-  { key: 'farmrio',        label: 'Farm Rio',       match: 'farm rio' },
-  { key: 'aguabendita',    label: 'Agua Bendita',   match: 'agua bendita' },
+  { key: 'farmrio',        label: 'Farm Rio',       match: 'farm rio', heroImage: 'assets/designers/farm-rio.jpg' },
+  { key: 'aguabendita',    label: 'Agua Bendita',   match: 'agua bendita', heroImage: 'assets/designers/agua-bendita.jpg' },
   { key: 'patbo',          label: 'PatBO',          match: 'patbo' },
-  { key: 'johannaortiz',   label: 'Johanna Ortiz',  match: 'johanna ortiz' },
+  { key: 'johannaortiz',   label: 'Johanna Ortiz',  match: 'johanna ortiz', heroImage: 'assets/designers/johanna-ortiz.jpg' },
   { key: 'silviatcherassi',label: 'Silvia Tcherassi',match: 'silvia tcherassi' },
   { key: 'osklen',         label: 'Osklen',         match: 'osklen' },
   { key: 'lennyniemeyer',  label: 'Lenny Niemeyer', match: 'lenny niemeyer' },
@@ -12022,10 +12022,14 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const hero = latinoDesignerHero(designerItems);
   const n = (designerItems || []).length;
   const country = LATINO_DESIGNER_COUNTRY[spec.key] || '';
-  const heroOverride = LATINO_DESIGNER_HERO_IMG[spec.key] || '';
-  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
-  const src = heroOverride || (raw ? upgradeImageUrl(safeUrl(raw) || '') : '');
-  const retry = (!heroOverride && src) ? imageRetryUrl(src) : '';
+  /* Curated hero image wins over the product-derived one (2026-09-29, Danny):
+     a fashion-house tile needs a model shot, not a cropped product photo.
+     Two override paths unified: spec.heroImage (PR #220) and
+     LATINO_DESIGNER_HERO_IMG map (PR #221). */
+  const curated = spec.heroImage || LATINO_DESIGNER_HERO_IMG[spec.key] || '';
+  const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
+  const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
+  const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
   return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
