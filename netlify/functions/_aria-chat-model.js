@@ -260,7 +260,7 @@ export async function speechFor(reply) {
       body: JSON.stringify({
         text: speakable,
         model_id: ELEVENLABS_TTS_MODEL,
-        voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.2, use_speaker_boost: true },
+        voice_settings: { stability: 0.35, similarity_boost: 0.75, style: 0.55, use_speaker_boost: true },
       }),
     });
     if (!res.ok) return null;
