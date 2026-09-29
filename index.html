@@ -619,6 +619,21 @@
   .ariaAutoCta{ display:inline-flex; align-items:center; justify-content:center;
     height:48px; padding:0 26px; border-radius:16px; background:#F59E0B; color:#0B0D10;
     font-size:15px; font-weight:800; letter-spacing:-0.01em }
+  /* DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
+     entry point the section was missing -- a full-width fashion-week
+     moment (runway photo, navy scrim, gold accents) that breaks the
+     scroll between Compra por categoría and the store rails, the way
+     the Aria Auto banner does. Tapping it opens the designer department. */
+  .ariaLatinoBanner{ background:#0A1F44 }
+  .ariaLatinoBannerImg{ position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:center }
+  .ariaLatinoBannerScrim{ position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(10,31,68,.94) 15%, rgba(10,31,68,.60) 55%, rgba(10,31,68,.30) 100%) }
+  .ariaLatinoBannerHair{ position:absolute; left:0; right:0; top:0; height:2px;
+    background:linear-gradient(90deg, transparent, rgba(201,162,39,.9), transparent) }
+  .ariaHouseCta{ display:inline-flex; align-items:center; justify-content:center;
+    height:48px; padding:0 26px; border-radius:16px; background:#C9A227; color:#0B2233;
+    font-size:15px; font-weight:800; letter-spacing:-0.01em }
   /* STORE RAIL BANDS (2026-09-25, Danny's iPhone QA): the six store rails
      sit on the mall's evening navy instead of white-on-white, so the page
      feels full and each rail reads as a lit storefront window. White cards
@@ -1656,7 +1671,22 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)" id="mCategoryTabBlurb"></span></div>
       <div id="mCategoryTabRail" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
-
+    <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
+         entry point the section was missing -- a full-width fashion-week
+         moment between Compra por categoría and the store rails, the way
+         the Aria Auto banner breaks the scroll. Opens the designer
+         department. -->
+    <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
+      <img src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
+      <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
+      <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
+      <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
+        <div class="ariaKicker mb-2">La pasarela latinoamericana</div>
+        <h2 class="text-[27px] sm:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Diseñadores Latinos</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[38ch]" style="color:rgba(255,255,255,.78)">La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y m&#225;s &mdash; comprados en Estados Unidos, entregados en Per&#250;.</p>
+        <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
+      </div>
+    </section>
     <!-- PERMANENT GYM RAT RAIL (2026-09-27, Danny): the category is that
          good, so it keeps an always-visible rail right under the tab
          browser. Painted from the same gym_rat shelf as the pill via the
@@ -2037,7 +2067,22 @@
       <div id="dCategoryTabRail" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
-
+    <!-- DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
+         entry point the section was missing -- a full-width fashion-week
+         moment between Compra por categoría and the store rails, the way
+         the Aria Auto banner breaks the scroll. Opens the designer
+         department. -->
+    <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
+      <img src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
+      <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
+      <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
+      <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
+        <div class="ariaKicker mb-2">La pasarela latinoamericana</div>
+        <h2 class="text-[27px] sm:text-[34px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Diseñadores Latinos</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[38ch]" style="color:rgba(255,255,255,.78)">La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y m&#225;s &mdash; comprados en Estados Unidos, entregados en Per&#250;.</p>
+        <button onclick="openCatalog('department','latino_designers');return false;" class="ariaHouseCta focus-ring mt-5">Explora los dise&#241;adores &#8594;</button>
+      </div>
+    </section>
     <!-- PERMANENT GYM RAT RAIL (desktop, 2026-09-27, Danny). Same shelf as
          the phone's: always visible under the tab browser, stands down
          while the Gym Rat pill is active. -->
