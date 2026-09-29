@@ -11820,10 +11820,13 @@ const LATINO_DESIGNERS_SPEC = [
   { key: 'patbo',          label: 'PatBO',          match: 'patbo' },
   { key: 'johannaortiz',   label: 'Johanna Ortiz',  match: 'johanna ortiz' },
   { key: 'silviatcherassi',label: 'Silvia Tcherassi',match: 'silvia tcherassi' },
-  { key: 'osklen',         label: 'Osklen',         match: 'osklen' },
-  { key: 'lennyniemeyer',  label: 'Lenny Niemeyer', match: 'lenny niemeyer' },
+  { key: 'osklen',         label: 'Osklen',         match: 'osklen',
+    hero: 'https://cdn-images.farfetch-contents.com/30/79/77/04/30797704_60536361_1000.jpg' }, /* 2026-09-29 Danny: full model shot, not cropped product */
+  { key: 'lennyniemeyer',  label: 'Lenny Niemeyer', match: 'lenny niemeyer',
+    hero: 'https://cdn-images.farfetch-contents.com/21/71/90/14/21719014_51821403_1000.jpg' }, /* 2026-09-29 Danny: full model shot, not cropped product */
   { key: 'adrianadegreas', label: 'Adriana Degreas',match: 'adriana degreas' },
-  { key: 'andresotalora',  label: 'Andres Otalora', match: 'andres otalora' },
+  { key: 'andresotalora',  label: 'Andres Otalora', match: 'andres otalora',
+    hero: 'https://cdn-images.farfetch-contents.com/34/06/78/47/34067847_65054656_1000.jpg' }, /* 2026-09-29 Danny: full model shot, not cropped product */
   { key: 'dondeesteban',   label: 'Donde Esteban',  match: 'donde esteban' },
   { key: 'amirslama',      label: 'Amir Slama',     match: 'amir slama' },
   { key: 'alexandrebirman',label: 'Alexandre Birman',match: 'alexandre birman' },
@@ -11831,6 +11834,17 @@ const LATINO_DESIGNERS_SPEC = [
   { key: 'aguabyaguabendita',label: 'Agua by Agua Bendita', match: 'agua by agua bendita' },
   { key: 'capittana',        label: 'Capittana',      match: 'capittana' },
 ];
+
+/* DESIGNER HERO IMAGE OVERRIDES (2026-09-29, Danny's QA). The banner hero
+   picker grabs the first product image, which for some designers is a
+   cropped product shot (earrings, ghost-mannequin dresses). These curated
+   editorial images take precedence -- full model/brand shots, never a
+   cropped product photo. Local assets so they cannot break. */
+const LATINO_DESIGNER_HERO_IMG = {
+  'amirslama':     'assets/latino/amirslama-hero.jpg',
+  'adrianadegreas':'assets/latino/runway-hero.jpg',
+  'dondeesteban':  'assets/latino/backstage.jpg',
+};
 const LATINO_DESIGNER_KEYS = new Set(LATINO_DESIGNERS_SPEC.map(r => r.key));
 
 /* ============================================================
@@ -11999,7 +12013,10 @@ const LATINO_DESIGNER_COUNTRY = {
 
 /* Hero image for a designer's banner: first on-sale product with a
    photo, else first product with a photo. */
-function latinoDesignerHero(designerItems){
+function latinoDesignerHero(designerItems, spec){
+  /* 2026-09-29 Danny: curated editorial hero wins over product-picked image.
+     A cropped product photo (half a tie, half a shirt) is never a banner. */
+  if (spec && spec.hero) return { image: spec.hero };
   const withImg = (designerItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
   return withImg.find(it => it.onSale) || withImg[0] || null;
 }
@@ -12007,10 +12024,11 @@ function latinoDesignerHero(designerItems){
 /* The storefront banner: a wide editorial entrance. Tapping opens
    the designer's full collection. */
 function latinoDesignerBannerHTML(spec, designerItems){
-  const hero = latinoDesignerHero(designerItems);
+  const hero = latinoDesignerHero(designerItems, spec);
   const n = (designerItems || []).length;
   const country = LATINO_DESIGNER_COUNTRY[spec.key] || '';
-  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
+  const overrideImg = (typeof LATINO_DESIGNER_HERO_IMG !== 'undefined' && LATINO_DESIGNER_HERO_IMG[spec.key]) || '';
+  const raw = overrideImg || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
   const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
