@@ -11865,6 +11865,89 @@ function latinoDesignerChipsHTML(grouped){
   </div>`;
 }
 
+/* ============================================================
+   DISENADORES LATINOS: DESIGNER STOREFRONTS (2026-09-29, Danny).
+   "When a shopper sees it, they should feel like they're walking
+   into Alexandre Birman's store, not clicking a filter."
+
+   Every designer gets their own storefront block -- their own room
+   in the gallery: a wide editorial banner (the entrance) + their own
+   product carousel (the shop floor). Even a 1-product designer gets
+   a real home: the rail has no minimum item count, it shows what
+   they have and grows as the catalog grows. If a designer ever sees
+   it, they'll see we gave them a real home -- and they'll tell
+   other designers.
+
+   The banner photo is a REAL PRODUCT from that designer: first
+   on-sale item with an image, else first item with an image. Navy
+   gradient keeps the white type readable; a diagonal sheen keeps it
+   shiny. No photo is not a state here -- every carried designer has
+   product photos, and a failed load drops the frame instead of a
+   broken-image glyph.
+   ============================================================ */
+const LATINO_DESIGNER_COUNTRY = {
+  farmrio: 'Brasil', aguabendita: 'Colombia', patbo: 'Brasil',
+  johannaortiz: 'Colombia', silviatcherassi: 'Colombia', osklen: 'Brasil',
+  lennyniemeyer: 'Brasil', adrianadegreas: 'Brasil', andresotalora: 'Colombia',
+  dondeesteban: 'Colombia', amirslama: 'Brasil', alexandrebirman: 'Brasil',
+  sarahchofakian: 'Brasil', aguabyaguabendita: 'Colombia', capittana: 'Perú',
+};
+
+/* Hero image for a designer's banner: first on-sale product with a
+   photo, else first product with a photo. */
+function latinoDesignerHero(designerItems){
+  const withImg = (designerItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
+  return withImg.find(it => it.onSale) || withImg[0] || null;
+}
+
+/* The storefront banner: a wide editorial entrance. Tapping opens
+   the designer's full collection. */
+function latinoDesignerBannerHTML(spec, designerItems){
+  const hero = latinoDesignerHero(designerItems);
+  const n = (designerItems || []).length;
+  const country = LATINO_DESIGNER_COUNTRY[spec.key] || '';
+  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
+  const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
+  const retry = src ? imageRetryUrl(src) : '';
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
+  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+    ${photo}
+    <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
+    <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
+    <span class="absolute inset-x-0 bottom-0 p-5 flex flex-col items-start gap-1">
+      ${country ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(country)}</span>` : ''}
+      <span class="text-[26px] font-extrabold leading-none text-white" style="letter-spacing:-0.02em">${escapeHtml(spec.label)}</span>
+      <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'} · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span></span>
+    </span>
+  </button>`;
+}
+
+/* A designer's own product rail: their shop floor under their banner.
+   No minimum item count -- a 1-product designer still gets their rail,
+   and it grows as their catalog grows. */
+function latinoDesignerRailHTML(spec, designerItems){
+  const picks = carouselPickItems(designerItems, 12);
+  if (!picks.length) return '';
+  const cards = picks.map(it => carouselCardHTML(it, it.retailer || 'farfetch')).join('');
+  return `<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(spec.label)}">${cards}</div>`;
+}
+
+/* The storefront section: one banner + rail per designer, biggest
+   collection first. Renders on the department landing only. */
+function latinoDesignerStorefrontsHTML(items){
+  const specs = LATINO_DESIGNERS_SPEC
+    .map(spec => ({ spec, items: (items || []).filter(it => latinoDesignerOfItem(it) === spec.key) }))
+    .filter(x => x.items.length > 0)
+    .sort((a, b) => b.items.length - a.items.length);
+  if (!specs.length) return '';
+  const blocks = specs.map(({ spec, items: dItems }) =>
+    `<section aria-label="${escapeHtml(spec.label)}">${latinoDesignerBannerHTML(spec, dItems)}${latinoDesignerRailHTML(spec, dItems)}</section>`).join('');
+  return `<div class="mt-1 mb-6">
+    <h2 class="text-[20px] font-extrabold mb-4" style="letter-spacing:-0.02em;color:var(--navy)">Nuestros diseñadores</h2>
+    ${blocks}
+  </div>`;
+}
+
 /* The grid every listing surface uses: 2-across, large cards, the
    browsing density Ofertas was approved at. Named so a new surface
    cannot quietly invent a tighter one. */
@@ -12877,6 +12960,7 @@ function renderCatalogFeed(){
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
     ${isLatinoDesigners && !catalogState.subKey ? latinoTypeTilesHTML(groupLatinoByType(gendered)) : ''}
+    ${isLatinoDesigners && !catalogState.subKey ? latinoDesignerStorefrontsHTML(gendered) : ''}
     ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : isSpearfishingDept ? spearGearChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
