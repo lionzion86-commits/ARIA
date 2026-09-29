@@ -12785,7 +12785,7 @@ function storeCardHTML(r){
          A store's logo is their art, not ours to restyle, so the muting
          now applies to the plate and to the wordmark treatment, never to
          a real logo. -->
-    <div class="h-[112px] grid place-items-center px-2" style="background:${pending ? '#F4F5F7' : '#fff'}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
+    <div class="h-[112px] grid place-items-center px-2" style="background:${pending ? '#F4F5F7' : (r.darkLogo && r.logo ? 'var(--navy)' : '#fff')}; ${pending && !r.logo ? 'filter:grayscale(1); opacity:.62' : ''}">
       ${mark}
     </div>
     <div class="px-4 py-3.5 border-t flex-1 flex flex-col" style="border-color:var(--line)">
@@ -12967,8 +12967,12 @@ function otherStoreTileHTML(r){
      "every store mark fills its zone" test): width:100% so small files grow
      into the plate, max-height/max-width caps, contain-fit, never a fixed
      height. A store's logo is their art -- it is never stretched. */
+  /* WHITE-LOGO FIX (2026-09-29, Danny): white-on-transparent marks are
+     invisible on the white plate, and they load fine so the onerror text
+     fallback never fires. darkLogo stores get the site navy plate. */
+  const darkPlate = r.darkLogo && r.logo;
   const plate = r.logo
-    ? `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 bg-white border rounded-2xl" style="border-color:var(--line)">
+    ? `<span class="grid place-items-center h-[64px] md:h-[76px] px-3 border rounded-2xl" style="${darkPlate ? 'background:var(--navy); border-color:var(--navy)' : 'background:#fff; border-color:var(--line)'}">
          <img src="${r.logo}" alt="${escapeHtml(r.label)}" data-retailer="${escapeHtml(r.key)}" loading="lazy" decoding="async"
               style="width:100%; max-height:34px; max-width:75%; object-fit:contain"
               onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
@@ -16435,7 +16439,7 @@ const RETAILERS = {
      it has a real catalogue (macys-catalog.json); `search: false` keeps
      it out of the live fan-out, which has no actor for it. See the note
      on the Macy's row in scripts/lib/retailers.js. */
-  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png',      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
+  macys:           { key: 'macys',           label: "Macy's",            color: '#E21A2C', logo: 'logos/macys.png', darkLogo: true,      tagline: 'Moda mujer, marcas y vestidos',                kind: 'general', search: false, browse: true },
   /* KOHL'S (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. kohls-catalog.json (707 products,
      mostly women's apparel; 74 no-price records dropped, never shown)
@@ -16496,10 +16500,10 @@ const RETAILERS = {
      logos (Nautilus, Quiet Storm, Surf World) render on the dark plaque
      variant (storeRailPlaqueDark, applied in the rail markup).
      Mirrors scripts/lib/retailers.js. */
-  nautilus:         { key: 'nautilus',         label: 'Nautilus Spearfishing', color: '#213236', logo: 'logos/nautilus.png',         tagline: 'Pesca submarina — arpones y buceo',      kind: 'general', search: false, browse: true },
+  nautilus:         { key: 'nautilus',         label: 'Nautilus Spearfishing', color: '#213236', logo: 'logos/nautilus.png', darkLogo: true,         tagline: 'Pesca submarina — arpones y buceo',      kind: 'general', search: false, browse: true },
   islandwatersports: { key: 'islandwatersports', label: 'Island Water Sports', color: '#373435', logo: 'logos/islandwatersports.svg', tagline: 'Surf shop de Florida — tablas y playa', kind: 'general', search: false, browse: true },
-  quietstorm:      { key: 'quietstorm',      label: 'Quiet Storm Surf Shop', color: '#141414', logo: 'logos/quietstorm.png',      tagline: 'Surf shop — tablas, skate y ropa',        kind: 'general', search: false, browse: true },
-  surfworld:       { key: 'surfworld',       label: 'Surf World',          color: '#00A9DC', logo: 'logos/surfworld.png',       tagline: 'Surf shop Fort Lauderdale',               kind: 'general', search: false, browse: true },
+  quietstorm:      { key: 'quietstorm',      label: 'Quiet Storm Surf Shop', color: '#141414', logo: 'logos/quietstorm.png', darkLogo: true,      tagline: 'Surf shop — tablas, skate y ropa',        kind: 'general', search: false, browse: true },
+  surfworld:       { key: 'surfworld',       label: 'Surf World',          color: '#00A9DC', logo: 'logos/surfworld.png', darkLogo: true,       tagline: 'Surf shop Fort Lauderdale',               kind: 'general', search: false, browse: true },
   surfstation:     { key: 'surfstation',     label: 'Surf Station',        color: '#111111', logo: 'logos/surfstation.png',     tagline: 'Surf, skate y ropa desde 1984',            kind: 'general', search: false, browse: true },
   mainland:        { key: 'mainland',        label: 'Mainland Skate & Surf', color: '#0F6FEF', logo: 'logos/mainland.png',        tagline: 'Skate shop — tablas y marcas',             kind: 'general', search: false, browse: true },
   parrot:          { key: 'parrot',          label: 'Parrot Surf & Skate', color: '#111111', logo: 'logos/parrot.png',          tagline: 'Surf y skate — tablas y neopreno',         kind: 'general', search: false, browse: true },
@@ -16647,9 +16651,9 @@ const RETAILERS = {
      catalogue that arrived carries NEITHER Gucci NOR Prada. The real
      names are read from the data by topBrandsFor(), so the card can
      only ever promise a label the store is actually carrying. */
-  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png',     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
+  ssense:          { key: 'ssense',          label: 'SSENSE',            color: '#000000', logo: 'logos/ssense.png', darkLogo: true,     tagline: 'Diseñador y lujo, importado igual que todo lo demás', kind: 'general', tier: 'luxury', search: false, browse: true },
   miumiu:          { key: 'miumiu',          label: 'Miu Miu',           color: '#000000', logo: 'logos/miumiu.png',     tagline: 'Bolsos, calzado y moda italiana',              kind: 'general', tier: 'luxury', search: false, browse: true },
-  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png',   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  yesstyle:        { key: 'yesstyle',        label: 'YesStyle',          color: '#50A838', logo: 'logos/yesstyle.png', darkLogo: true,   tagline: 'Belleza coreana y japonesa',                   kind: 'general', search: false, browse: true, catalog: 'beauty' },
   /* THE LUXURY THREE SIT BELOW SSENSE ON PURPOSE. SSENSE is the only
      store in this tier with a catalogue behind it, and renderStoresGrid
      preserves declaration order — three "conectando" cards above it
