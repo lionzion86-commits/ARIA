@@ -11,7 +11,11 @@
    matters, and it was chosen by measuring the real catalogues rather
    than by assuming:
 
-   1. A PUBLISHED TYPE. SSENSE and Macy's ship a `type` on every item —
+   1. A PUBLISHED TYPE — with one exception: an explicit NOT_FOOTWEAR
+      title veto (shoelaces, insoles, bootcut trousers) outranks even
+      the type, because the type field is sometimes just wrong
+      (2026-09-29: CCS files shoelaces as 'Zapatillas'). SSENSE and
+      Macy's ship a `type` on every item —
       "SLIPPERS & LOAFERS", "LACE UPS & OXFORDS", "SHOE". That is the
       retailer's own classification and beats anything we could infer.
       It accounts for 463 of the 539 shoes on this site — SSENSE 442,
@@ -61,9 +65,12 @@ const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MO
 const FOOTWEAR_TITLE =
   /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 
-/* Every one of these was a real false positive, not a hypothetical. */
+/* Every one of these was a real false positive, not a hypothetical.
+   "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and
+   "Sock Boots" are real SSENSE footwear, so the socks veto carries a
+   negative lookahead and does not fire when a footwear noun follows. */
 const NOT_FOOTWEAR =
-  /\b(socks?|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
+  /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
 
 /** Retailers whose whole catalogue is footwear. See signal 2 above. */
 export const FOOTWEAR_RETAILERS = new Set(["footlocker"]);
@@ -88,9 +95,24 @@ export function isFootwearTitle(title) {
  */
 export function isFootwear(item, retailer) {
   if (!item || typeof item !== "object") return false;
-  /* A PUBLISHED TYPE SETTLES IT, EITHER WAY. Signal 1 is the most
-     trustworthy, so it has to be able to say NO as well as yes —
-     otherwise a keyword overrules the retailer's own classification.
+  const title = item.title || item.name || item.productTitle || item.productName || "";
+  /* A NEGATIVE TITLE OUTRANKS A PUBLISHED TYPE, and it has to be
+     CHECKED FIRST to do so (2026-09-29, Danny: shoelaces in the
+     Zapatillas rail). CCS files its shoelaces and Remind insoles
+     under type 'Zapatillas', and SSENSE files bootcut trousers
+     under 'BOOTS' and oxford shirts under 'SHOES' — the retailer's
+     type field is wrong there, and the title ('shoelaces',
+     'insoles', 'bootcut', 'oxford shirt') is unambiguous.
+     NOT_FOOTWEAR is a deliberately narrow list of real false
+     positives, so it vetoes before the type is read. The published
+     type still outranks the positive title keyword (the
+     oxford-cloth blazer stays out), and the veto still outranks a
+     footwear store (Foot Locker's crew socks). */
+  if (NOT_FOOTWEAR.test(title)) return false;
+  /* A PUBLISHED TYPE SETTLES IT, EITHER WAY — with the one
+     exception above. Signal 1 is the most trustworthy, so it has
+     to be able to say NO as well as yes — otherwise a keyword
+     overrules the retailer's own classification.
 
      MEASURED, and the reason this is not just tidiness: "oxford" is a
      shoe and also a CLOTH. Before this, SSENSE's "Gray Oxford Single
@@ -98,17 +120,6 @@ export function isFootwear(item, retailer) {
      strength of the fabric, while their own type fields said BLAZERS
      and JACKETS. The retailer was right and we were arguing with it. */
   if (item.type) return isFootwearType(item.type);
-  const title = item.title || item.name || item.productTitle || item.productName || "";
-  /* A NEGATIVE TITLE OUTRANKS A FOOTWEAR STORE, and it has to be
-     CHECKED FIRST to do so. This read `if (footwear store) return true`
-     before looking at the title at all, which meant "Nike Everyday Crew
-     Socks 3pk" from Foot Locker was footwear — the comment described an
-     intention the code did not carry out, and a test caught it.
-
-     It matters because Foot Locker really does sell socks, hoodies and
-     bags; they are simply not in today's cache. The day they arrive
-     they must not walk into Zapatos wearing the store's badge. */
-  if (NOT_FOOTWEAR.test(title)) return false;
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
 }

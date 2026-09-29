@@ -6106,6 +6106,15 @@ function withoutRestrictedDepartments(envelope){
    "for sofas", freezer trays, a perfume called Wardrobe).
    ============================================================ */
 const UNSHIPPABLE_TV_RX = /\btvs?\b|television|televisor|smart[-\s]?tv|\bqled\b|\boled\b/i;
+/* AXE DEODORANTS (2026-09-29, Danny's call): Axe body sprays and
+   deodorants/antiperspirants are commodities already sold in Peru —
+   nobody pays cross-border freight for them. Brand + deodorant
+   signal, so Axe body wash, shampoo and hair styling stay, other
+   brands' deodorants stay, and the axe-throwing game (not the
+   brand) stays. Name-based, like the TV rule, so a re-pull can
+   never bring them back. */
+const AXE_DEODORANT_RX = /\baxe\b/i;
+const AXE_DEODORANT_TYPE_RX = /\b(deodorant|desodorante|antiperspirant|antitranspirante|body\s*sprays?)\b/i;
 const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): a stand or console that holds a TV is not a television. */
 const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero/i;
@@ -6133,6 +6142,7 @@ function isShippableItem(p){
   if (!p) return false;
   const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
   if (UNSHIPPABLE_TV_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
+  if (AXE_DEODORANT_RX.test(hay) && AXE_DEODORANT_TYPE_RX.test(hay)) return false;
   if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
   if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
   const w = Number(p.weightKg);
@@ -7049,7 +7059,10 @@ gym_rat:         { category: 'gymrat' },
    catalogues. The module carries the full note; the short version:
 
    THREE SIGNALS, MOST TRUSTWORTHY FIRST.
-   1. A PUBLISHED TYPE, and it settles the question EITHER WAY. SSENSE
+   1. A PUBLISHED TYPE, and it settles the question EITHER WAY — with
+      one exception: an explicit NOT_FOOTWEAR title veto (shoelaces,
+      insoles, bootcut trousers) outranks even the type, because the
+      type field is sometimes just wrong (2026-09-29). SSENSE
       and Macy's ship one on every item. It finds 463 of the 539 shoes
       here, and it is also what keeps SSENSE's "Oxford Single Blazer"
       out — oxford is a cloth as well as a shoe, and the retailer's own
@@ -7066,7 +7079,10 @@ gym_rat:         { category: 'gymrat' },
    ============================================================ */
 const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
 const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
-const NOT_FOOTWEAR = /\b(socks?|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
+/* "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and "Sock
+   Boots" are real SSENSE footwear, so the socks veto carries a negative
+   lookahead and does not fire when a footwear noun follows the word. */
+const NOT_FOOTWEAR = /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
 const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 
 /* DEPORTES IS NOT A SHOE STORE (2026-09-24). Walmart and Target file
@@ -7093,14 +7109,20 @@ function isFootwearTitle(title){
 }
 function isFootwear(item, retailer){
   if (!item || typeof item !== 'object') return false;
-  if (item.type) return isFootwearType(item.type);
   const title = item.title || item.name || item.productTitle || item.productName || '';
-  /* A negative title outranks a footwear store, and has to be CHECKED
-     FIRST to do so — this returned true on the store rule before ever
-     reading the title, which made Foot Locker's crew socks footwear.
-     It sells socks and hoodies in real life; they are just not in
-     today's cache. */
+  /* A NEGATIVE TITLE OUTRANKS A PUBLISHED TYPE, and has to be CHECKED
+     FIRST to do so (2026-09-29, Danny: shoelaces in the Zapatillas
+     rail). CCS files its shoelaces and Remind insoles under type
+     'Zapatillas', and SSENSE files bootcut trousers under 'BOOTS'
+     and oxford shirts under 'SHOES' — the retailer's type field is
+     wrong there, and the title ('shoelaces', 'insoles', 'bootcut',
+     'oxford shirt') is unambiguous. NOT_FOOTWEAR is a deliberately
+     narrow list of real false positives, so it vetoes before the
+     type is read. The published type still outranks the positive
+     title keyword (the oxford-cloth blazer stays out), and the veto
+     still outranks a footwear store (Foot Locker's crew socks). */
   if (NOT_FOOTWEAR.test(title)) return false;
+  if (item.type) return isFootwearType(item.type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
 }
