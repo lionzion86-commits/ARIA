@@ -23251,11 +23251,25 @@ let salesEnrichDone = false;
 async function runSalesScan(){
   await loadFxRate();
 
-  /* PERF (2026-09-28): Ofertas used to wait on the whole catalogue
-     (~90MB) before painting. Now the fast path paints from the deals
-     API alone; the file-backed markdowns fold in as the catalogue
-     streams in behind it. Same feed, same order -- the second paint
-     only ever ADDS markdowns the API did not know about. */
+  /* Deals from stores with a FILE rather than an actor. Served from a
+     precomputed feed (ofertas-feed.json) built offline by running the
+     browser's own fileBackedDeals() logic against the committed
+     catalogues. One ~5MB fetch instead of downloading ~90MB of catalogues
+     and normalizing ~70k items on the shopper's main thread — which froze
+     the tab outright (2026-09-28). */
+  let fromFiles = [];
+  let feedGeneratedAt = null;
+  try {
+    const res = await fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS);
+    if (res.ok){
+      const feed = await res.json();
+      if (Array.isArray(feed.items)){
+        fromFiles = feed.items;
+        feedGeneratedAt = feed.generatedAt || null;
+      }
+    }
+  } catch { /* fall through to the cache/empty state below */ }
+
   // 1. Cache first — a visitor should never wait on a full live scrape
   //    when a real, recent scan already exists.
   let cached = null;
@@ -23268,9 +23282,10 @@ async function runSalesScan(){
     const scraped = (cached.items || []).map(refreshCachedWeight);
     // One feed. The tier a store sits in on Tiendas has no say here:
     // an SSENSE markdown competes on the same row as a Walmart one.
-    saleItemsCache = scraped.filter(passesOfertasGate);
-    salesGeneratedAt = cached?.generatedAt || null;
-    salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale) : '';
+    saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+    salesGeneratedAt = cached?.generatedAt || feedGeneratedAt || null;
+    salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale)
+      : (feedGeneratedAt ? salesFreshnessNote(feedGeneratedAt, false) : '');
     renderSalesGrid();
   } else {
     /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL.
@@ -23331,6 +23346,25 @@ function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100
 // openSaleProduct(i) against this instead of inlining a nine-argument
 // showProduct() call into three separate onclick attributes.
 let salesRendered = [];
+let salesVisibleCount = 0;
+const SALES_PAGE_SIZE = 48;
+function showMoreSales(){
+  salesVisibleCount = Math.min(salesRendered.length, salesVisibleCount + SALES_PAGE_SIZE);
+  const grid = document.getElementById('salesGrid');
+  const moreBtn = grid.querySelector('.col-span-full.text-center.py-6');
+  if (moreBtn) moreBtn.remove();
+  const start = salesVisibleCount - SALES_PAGE_SIZE;
+  const frag = document.createElement('template');
+  frag.innerHTML = salesRendered.slice(start, salesVisibleCount).map((p, i) => saleCardHTML(p, start + i)).join('');
+  grid.append(...frag.content.childNodes);
+  const remaining = salesRendered.length - salesVisibleCount;
+  if (remaining > 0){
+    const div = document.createElement('div');
+    div.className = 'col-span-full text-center py-6';
+    div.innerHTML = `<button onclick="showMoreSales()" class="px-6 py-3 rounded-full text-[14px] font-semibold" style="background:var(--navy);color:#fff">Mostrar ${Math.min(remaining, SALES_PAGE_SIZE)} más (${remaining.toLocaleString('es-PE')} restantes)</button>`;
+    grid.append(div);
+  }
+}
 
 function openSaleProduct(idx){
   const p = salesRendered[idx];
@@ -23546,14 +23580,24 @@ function renderSalesGrid(){
   else items.sort(byDoorToDoor(sortBy));
 
   salesRendered = items;
+  salesVisibleCount = Math.min(items.length, SALES_PAGE_SIZE);
   /* An empty grid is now always one of two honest things, never a live
      scan: either the filters excluded everything, or the shared cache has
      not been built yet. Neither is worth a shopper's money to resolve. */
   const emptyMessage = saleItemsCache.length
     ? 'Ninguna oferta de las tiendas seleccionadas. Activa más tiendas en los filtros.'
     : 'Estamos actualizando las ofertas. Mientras tanto puedes buscar cualquier producto arriba — el buscador funciona con normalidad.';
+  /* Paginated: injecting thousands of cards at once janks low-end phones.
+     Render the first page; the button below appends more. */
+  const visible = items.slice(0, salesVisibleCount);
+  const moreCount = items.length - visible.length;
   document.getElementById('salesGrid').innerHTML = items.length
-    ? items.map((p, i) => saleCardHTML(p, i)).join('')
+    ? visible.map((p, i) => saleCardHTML(p, i)).join('')
+      + (moreCount > 0
+        ? `<div class="col-span-full text-center py-6">` +
+          `<button onclick="showMoreSales()" class="px-6 py-3 rounded-full text-[14px] font-semibold" style="background:var(--navy);color:#fff">` +
+          `Mostrar ${Math.min(moreCount, SALES_PAGE_SIZE)} más (${moreCount.toLocaleString('es-PE')} restantes)</button></div>`
+        : '')
     : `<div class="col-span-full text-center py-16 text-[13.5px]" style="color:#6B7487">${emptyMessage}</div>`;
   // No longer claims "en vivo" — these may well be served from the cache,
   // and the freshness badge states exactly when that cache was built.
