@@ -9524,6 +9524,15 @@ const NOT_A_TOY_RX = /\b(throw|blanket|bedding|comforter|duvet|sheet|pillow|pill
    a real "juguetes" department stays a toy department, and toy-grade
    skateboards are claimed before this check. */
 const PARTY_NOT_A_TOY_RX = /\b(balloons?|globos?|napkins?|servilletas?|plates?|platos?|table\s*covers?|manteles?|favors?|streamers?|serpentinas?|pi[nñ]atas?|cotill[oó]n|confetti)\b|\bparty\s*(supplies|supply|kits?|packs?|sets?|decor|decorations?)\b/i;
+/* Party-retailer tableware/decor are not toys (2026-09-28, Danny):
+   "Malibu Barbie Plastic Drink Pouches" and "Malibu Barbie Rimless
+   Plastic Sunglasses" matched the "barbie" toy keyword but are Party
+   City tableware/favors -- Aria Party's shelf, never Juguetes. Scoped
+   to the party retailer on purpose: a "pouch" from another store can
+   still be a toy accessory. Tattoos/stickers deliberately NOT here --
+   kids' party tattoos read as favors/toys, they stay in Juguetes.
+   "cup" stays out (toy tea sets are still toys). */
+const PARTY_CONTEXT_NOT_A_TOY_RX = /\b(pouches?|drinkware|(rimless\s+)?plastic\s+(sun)?glasses|banners?|backdrops?|centerpieces?)\b/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
@@ -9537,6 +9546,10 @@ function isToy(item, retailer, bucketName){
   if (NOT_A_TOY_RX.test(hay)) return false;
   /* Party supplies are party merchandise, not toys (Danny 2026-09-26). */
   if (PARTY_NOT_A_TOY_RX.test(hay)) return false;
+  /* Party-retailer tableware/decor (2026-09-28, Danny): retailer-aware
+     backstop -- pouches, plastic drinkware/glasses, banners etc. from
+     Party City are party merchandise, never Juguetes. */
+  if (String(retailer || '').toLowerCase() === 'partycity' && PARTY_CONTEXT_NOT_A_TOY_RX.test(hay)) return false;
   return true;
 }
 /* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
