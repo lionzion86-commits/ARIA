@@ -8426,7 +8426,12 @@ function initDepartmentTiles(){
      not TRIGGER its full download at boot. They start when their
      section nears the viewport -- or when the background warm beats
      them to it, whichever comes first. */
-  const tilesGrid = document.getElementById('catGrid');
+  /* FIX (2026-09-29): the observer below used to watch #catGrid, which lives
+     in the DESKTOP shopfront (hidden lg:block). On phones catGrid is
+     display:none -- an IntersectionObserver can never see a display:none
+     element -- so startTiles never ran and the mobile "Compra por
+     categoría" rail kept its skeletons forever. The watch targets are the
+     rails that are actually in normal flow at this width. */
   const startTiles = () => {
   loadDepartmentCache().then(data => {
     departmentCacheData = data;
@@ -8458,11 +8463,14 @@ function initDepartmentTiles(){
     renderMobileCatsRail(tiles);
   });
   };
-  if (tilesGrid && 'IntersectionObserver' in window){
+  const watchTargets = ['mobileCatsRow', 'desktopCatsRow', 'catGrid']
+    .map(id => document.getElementById(id)).filter(Boolean);
+  if (watchTargets.length && 'IntersectionObserver' in window){
+    let tilesStarted = false;
     const tilesIO = new IntersectionObserver((es) => {
-      es.forEach(e => { if (e.isIntersecting){ tilesIO.disconnect(); startTiles(); } });
+      es.forEach(e => { if (e.isIntersecting && !tilesStarted){ tilesStarted = true; tilesIO.disconnect(); startTiles(); } });
     }, { rootMargin: '1000px 0px' });
-    tilesIO.observe(tilesGrid);
+    watchTargets.forEach(el => tilesIO.observe(el));
   } else startTiles();
 }
 window.addEventListener('DOMContentLoaded', initDepartmentTiles);
