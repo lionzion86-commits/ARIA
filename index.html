@@ -51,6 +51,8 @@
   body{font-family:'Manrope',sans-serif; background:var(--paper); color:var(--navy); -webkit-font-smoothing:antialiased}
   .tabular{font-variant-numeric:tabular-nums}
   .no-scrollbar::-webkit-scrollbar{display:none}.no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+  /* All horizontal chip/scroll rows opt into touch panning (2026-09-29) */
+  .themeChips{ touch-action:pan-x pan-y; }
   ::selection{background:var(--blue);color:#fff}
   .focus-ring:focus-visible{outline:2px solid var(--blue); outline-offset:2px}
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
@@ -122,7 +124,18 @@
      STORE_THEMES) — only the rail title is re-inked per theme. */
   .ariaCarousel{ display:flex; gap:14px; overflow-x:auto; scroll-snap-type:x mandatory;
     -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
-    margin:0 -20px; padding:6px 20px 16px; }
+    margin:0 -20px; padding:6px 20px 16px;
+    /* MOBILE SWIPE FIX (2026-09-29, Danny's iPhone QA): designer rails
+       would not swipe on iOS. Explicit touch-action declares this element
+       handles horizontal panning -- without it the browser may route the
+       gesture to the page's vertical scroll and the rail feels dead. */
+    touch-action:pan-x pan-y; }
+  /* On touch devices mandatory snap can fight the swipe on iOS --
+     proximity keeps the snap feel without sticking. */
+  @media (hover:none){ .ariaCarousel{ scroll-snap-type:x proximity; } }
+  /* Carousel photos must never start a native image-drag instead of a
+     swipe (iOS treats img as draggable by default). */
+  .ariaCarouselCard img{ -webkit-user-drag:none; }
   /* SHOWCASE SIZING (2026-09-24) — Danny: the cards are the window, and
      the window has to be big enough to see through. On a 390px phone one
      card owns the viewport with a peek of the next — large enough to read
@@ -1094,7 +1107,8 @@
                      height:clamp(116px, 30vw, 188px) }
   .ariaBeautyBanner > img{ position:absolute; inset:0; width:100%; height:100%;
                            object-fit:cover; object-position:50% 42% }
-  .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none }
+  .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x pan-y; }
+  @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
   /* BRAND STRIP LOGOS (2026-09-26, Danny's QA: text-only tiles were
@@ -8083,7 +8097,7 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
 function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '' } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
   return src
-    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" class="w-full h-full"${
+    ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
         fallbackSrc ? ` data-img-fallback="${escapeHtml(fallbackSrc)}"` : ''}
              style="object-fit:contain; object-position:center; padding:10px" onerror="${fallback}">`
     : photoPlaceholderHTML();
