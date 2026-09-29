@@ -11880,16 +11880,7 @@ const LATINO_DESIGNERS_SPEC = [
   { key: 'capittana',        label: 'Capittana',      match: 'capittana' },
 ];
 
-/* DESIGNER HERO IMAGE OVERRIDES (2026-09-29, Danny's QA). The banner hero
-   picker grabs the first product image, which for some designers is a
-   cropped product shot (earrings, ghost-mannequin dresses). These curated
-   editorial images take precedence -- full model/brand shots, never a
-   cropped product photo. Local assets so they cannot break. */
-const LATINO_DESIGNER_HERO_IMG = {
-  'amirslama':     'assets/latino/amirslama-hero.jpg',
-  'adrianadegreas':'assets/latino/runway-hero.jpg',
-  'dondeesteban':  'assets/latino/backstage.jpg',
-};
+/* DESIGNER HERO IMAGE OVERRIDES: consolidated into the single complete declaration below (2026-09-29 hotfix: duplicate const killed all carousels). */
 const LATINO_DESIGNER_KEYS = new Set(LATINO_DESIGNERS_SPEC.map(r => r.key));
 
 /* ============================================================
