@@ -117,6 +117,9 @@ export const CHARGE_PER_KG_USD = 13;
 // bill rigid boxed goods at their dimensional weight; the courier
 // contract bills actual scale weight only, so the box no longer enters
 // the quote and these are plain masses.
+/* WEIGHT IMPOSTOR GUARD (2026-09-29, Danny's iPhone QA). Baby/security
+   monitors are not display monitors. */
+const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
 const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
@@ -124,7 +127,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
   // Footwear is owned by footwearWeightKg() — one source, sized by what
   // is in the box rather than one number for every pair.
-  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: "cited" },
+  { match: /underwear|boxer|\bbriefs?\b|panty|panties/i, kg: 0.08, tier: "cited" },
   { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
   /* 2026-09-19: these were the biggest slice of the "unclassified guess"
      review queue — a clothing-heavy catalogue with no row for trousers,
@@ -155,7 +158,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   // Rigid boxed goods. All reasoned.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
-  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned" },
+  { match: /\bmonitor\b/i, not: MONITOR_IMPOSTOR_RE, kg: 5.5, tier: "reasoned" },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned" },
   { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned" },
   { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned" },
@@ -230,7 +233,7 @@ export function categoryWeightKg(title, hints = {}) {
   if (ball != null) return ball;
   /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
      tvWeightKg stays defined below for reference only. */
-  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
+  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t)));
   if (!hit) return null;
   return withBuffer(hit.kg, hit.tier);
 }
