@@ -11817,6 +11817,44 @@ function groupLatinoByType(items){
   return { rows, total };
 }
 
+/* LATINO ATELIER HERO (2026-09-29, Danny): the department opens like a
+   fashion show, not a category page. Full-bleed runway moment with navy
+   gradient, gold eyebrow, white title. The backstage/atelier strip below
+   it is the "detras de la pasarela" beat. Only on the landing, never
+   inside a drill-down. */
+function latinoAtelierHeroHTML(){
+  return `<section aria-label="Pasarela latina" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">
+    <div class="relative overflow-hidden" style="min-height:300px">
+      <img src="assets/latino/runway-hero.jpg" alt="Pasarela de moda latinoamericana"
+        class="absolute inset-0 w-full h-full" style="object-fit:cover" loading="eager" decoding="async"
+        onerror="this.remove()">
+      <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(10,16,32,.25) 0%, rgba(10,16,32,.05) 35%, rgba(10,16,32,.88) 100%)"></div>
+      <div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(10,16,32,.75) 0%, rgba(10,16,32,0) 60%)"></div>
+      <div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:300px">
+        <span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#E8B94A">Alta costura latina</span>
+        <h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Dise&ntilde;adores Latinos</h2>
+        <p class="text-[14px] sm:text-[15px] leading-snug max-w-[34ch]" style="color:rgba(255,255,255,.82)">La pasarela latinoamericana, en tu puerta. El talento de Brasil, Colombia y Per&uacute;, comprado en Estados Unidos y entregado en Per&uacute;.</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-3 px-4 sm:px-6 pt-3" aria-label="Detr&aacute;s de la pasarela">
+      <div class="relative overflow-hidden rounded-2xl" style="min-height:120px">
+        <img src="assets/latino/backstage.jpg" alt="Bastidores: el taller del dise&ntilde;ador"
+          class="absolute inset-0 w-full h-full" style="object-fit:cover" loading="lazy" decoding="async"
+          onerror="this.remove()">
+        <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(10,16,32,0) 30%, rgba(10,16,32,.78) 100%)"></div>
+        <span class="absolute bottom-2.5 left-3 text-[12px] font-extrabold tracking-[0.14em] uppercase" style="color:#fff">El taller</span>
+      </div>
+      <div class="relative overflow-hidden rounded-2xl" style="min-height:120px">
+        <img src="assets/latino/atelier.jpg" alt="Mesa de trabajo del atelier"
+          class="absolute inset-0 w-full h-full" style="object-fit:cover" loading="lazy" decoding="async"
+          onerror="this.remove()">
+        <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(10,16,32,0) 30%, rgba(10,16,32,.78) 100%)"></div>
+        <span class="absolute bottom-2.5 left-3 text-[12px] font-extrabold tracking-[0.14em] uppercase" style="color:#fff">El atelier</span>
+      </div>
+    </div>
+  </section>`;
+}
+
 /* The product-type tile grid: the primary navigation for
    Disenadores Latinos. Big tappable tiles, one per type. */
 function latinoTypeTilesHTML(grouped){
@@ -11827,7 +11865,14 @@ function latinoTypeTilesHTML(grouped){
       <span class="text-[15px] font-extrabold text-center" style="color:var(--navy)">${r.label}</span>
       <span class="text-[12px] font-semibold tabular" style="color:#6B7487">${r.count} producto${r.count === 1 ? '' : 's'}</span>
     </button>`).join('');
-  return `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-5" aria-label="Comprar por tipo de producto">${tiles}</div>`;
+  return `<section aria-label="Comprar por tipo de producto" class="rounded-3xl px-4 sm:px-5 py-5 mb-6 -mx-1" style="background:linear-gradient(160deg,#0d1526 0%,#16233f 60%,#0d1526 100%)">
+    <div class="flex items-center gap-3 mb-4 px-1">
+      <span class="h-px flex-1" style="background:linear-gradient(90deg,transparent,#E8B94A)"></span>
+      <span class="text-[12px] font-extrabold tracking-[0.2em] uppercase whitespace-nowrap" style="color:#E8B94A">El vestidor</span>
+      <span class="h-px flex-1" style="background:linear-gradient(90deg,#E8B94A,transparent)"></span>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${tiles}</div>
+  </section>`;
 }
 
 function latinoDesignerOfItem(item){
@@ -12955,6 +13000,7 @@ function renderCatalogFeed(){
      feed's own top items, so the rail always agrees with the grid
      below it. Search, budget and sort all flow through `items`. */
   sections.innerHTML = `
+     ${isLatinoDesigners && !catalogState.subKey ? latinoAtelierHeroHTML() : ''}
     ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null })}
     ${isSports ? sportHubCarouselHTML() : ''}
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
