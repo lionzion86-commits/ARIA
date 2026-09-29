@@ -11820,10 +11820,13 @@ const LATINO_DESIGNERS_SPEC = [
   { key: 'patbo',          label: 'PatBO',          match: 'patbo' },
   { key: 'johannaortiz',   label: 'Johanna Ortiz',  match: 'johanna ortiz', heroImage: 'assets/designers/johanna-ortiz.jpg' },
   { key: 'silviatcherassi',label: 'Silvia Tcherassi',match: 'silvia tcherassi' },
-  { key: 'osklen',         label: 'Osklen',         match: 'osklen' },
-  { key: 'lennyniemeyer',  label: 'Lenny Niemeyer', match: 'lenny niemeyer' },
+  { key: 'osklen',         label: 'Osklen',         match: 'osklen',
+    hero: 'https://cdn-images.farfetch-contents.com/30/79/77/04/30797704_60536361_1000.jpg' }, /* 2026-09-29 Danny: full model shot, not cropped product */
+  { key: 'lennyniemeyer',  label: 'Lenny Niemeyer', match: 'lenny niemeyer',
+    hero: 'https://cdn-images.farfetch-contents.com/21/71/90/14/21719014_51821403_1000.jpg' }, /* 2026-09-29 Danny: full model shot, not cropped product */
   { key: 'adrianadegreas', label: 'Adriana Degreas',match: 'adriana degreas' },
-  { key: 'andresotalora',  label: 'Andres Otalora', match: 'andres otalora' },
+  { key: 'andresotalora',  label: 'Andres Otalora', match: 'andres otalora',
+    hero: 'https://cdn-images.farfetch-contents.com/34/06/78/47/34067847_65054656_1000.jpg' }, /* 2026-09-29 Danny: full model shot, not cropped product */
   { key: 'dondeesteban',   label: 'Donde Esteban',  match: 'donde esteban' },
   { key: 'amirslama',      label: 'Amir Slama',     match: 'amir slama' },
   { key: 'alexandrebirman',label: 'Alexandre Birman',match: 'alexandre birman' },
@@ -11831,6 +11834,17 @@ const LATINO_DESIGNERS_SPEC = [
   { key: 'aguabyaguabendita',label: 'Agua by Agua Bendita', match: 'agua by agua bendita' },
   { key: 'capittana',        label: 'Capittana',      match: 'capittana' },
 ];
+
+/* DESIGNER HERO IMAGE OVERRIDES (2026-09-29, Danny's QA). The banner hero
+   picker grabs the first product image, which for some designers is a
+   cropped product shot (earrings, ghost-mannequin dresses). These curated
+   editorial images take precedence -- full model/brand shots, never a
+   cropped product photo. Local assets so they cannot break. */
+const LATINO_DESIGNER_HERO_IMG = {
+  'amirslama':     'assets/latino/amirslama-hero.jpg',
+  'adrianadegreas':'assets/latino/runway-hero.jpg',
+  'dondeesteban':  'assets/latino/backstage.jpg',
+};
 const LATINO_DESIGNER_KEYS = new Set(LATINO_DESIGNERS_SPEC.map(r => r.key));
 
 /* ============================================================
@@ -12000,13 +12014,14 @@ const LATINO_DESIGNER_COUNTRY = {
 /* DESIGNER HERO OVERRIDES (2026-09-29, Danny's iPhone QA).
    Editorial model shots for designers whose product photos don't carry
    the brand (cropped details, flat ghost shots). Capittana is the bar:
-   a model wearing the clothes, fashion-house energy. Local assets in
-   assets/latino/designers/. Each key here is owned by exactly one agent;
-   do not add other designers without coordinating. */
+   a model wearing the clothes, fashion-house energy. */
 const LATINO_DESIGNER_HERO_IMG = {
   silviatcherassi: 'assets/latino/designers/silviatcherassi.jpg',
   patbo: 'assets/latino/designers/patbo.jpg',
   alexandrebirman: 'assets/latino/designers/alexandrebirman.jpg',
+  amirslama: 'assets/latino/amirslama-hero.jpg',
+  adrianadegreas: 'assets/latino/runway-hero.jpg',
+  dondeesteban: 'assets/latino/backstage.jpg',
 };
 
 /* Hero image for a designer's banner: editorial override first, else
@@ -12024,8 +12039,7 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const country = LATINO_DESIGNER_COUNTRY[spec.key] || '';
   /* Curated hero image wins over the product-derived one (2026-09-29, Danny):
      a fashion-house tile needs a model shot, not a cropped product photo.
-     Two override paths unified: spec.heroImage (PR #220) and
-     LATINO_DESIGNER_HERO_IMG map (PR #221). */
+     spec.heroImage (PR #220) and LATINO_DESIGNER_HERO_IMG map (PR #221/222). */
   const curated = spec.heroImage || LATINO_DESIGNER_HERO_IMG[spec.key] || '';
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
