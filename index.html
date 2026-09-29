@@ -1113,6 +1113,11 @@
   .brandTile--dark{ background:#111318; border-color:#23262e }
   .brandTile--dark .brandTile-name{ color:#fff }
   .brandTile--dark .brandTile-count{ color:rgba(255,255,255,.62) }
+  /* VENUM NAVY (2026-09-29, Danny): black Venum mark pops on navy instead
+     of disappearing on the near-black --dark plaque. */
+  .brandTile--navy{ background:#1B2F5E; border-color:#2a4480 }
+  .brandTile--navy .brandTile-name{ color:#fff }
+  .brandTile--navy .brandTile-count{ color:rgba(255,255,255,.62) }
   /* DESKTOP SHOPFRONT (2026-09-25). The phone's three rails at laptop
      scale: the same cards the same renderers write, in a wider stance,
      so a 1280px window shows five or six deals instead of two. The
@@ -10795,7 +10800,7 @@ const BRAND_LOGOS = {
   baublebar: { src: 'logos/brands/baublebar.png' },
   jwpei: { src: 'logos/brands/jwpei.png' },
   crocs: { src: 'logos/brands/crocs.svg' },
-  venum: { src: 'logos/brands/venum.png', dark: true },
+  venum: { src: 'logos/brands/venum.png', navy: true },
   meliebianco: { src: 'logos/brands/meliebianco.png' },
   tatamifightwear: { src: 'logos/brands/tatamifightwear.svg' },
   everlast: { src: 'logos/brands/everlast.svg' },
@@ -10815,6 +10820,24 @@ const BRAND_LOGOS = {
   balenciaga: { src: 'logos/brands/balenciaga.svg' },
   armanibeauty: { src: 'logos/brands/emporioarmani.svg' },
   yvessaintlaurent: { src: 'logos/brands/saintlaurent.svg' },
+  /* 2026-09-29, sixth wave: Disenadores Latinos wordmarks (Danny's QA:
+     text-only tiles in "Las marcas que visten"). Osklen is the official
+     mark (Wikimedia Commons); the rest are elegant fashion-house
+     typographic treatments -- for these houses the wordmark IS the logo. */
+  farmrio: { src: 'logos/brands/farmrio.svg' },
+  johannaortiz: { src: 'logos/brands/johannaortiz.svg' },
+  aguabendita: { src: 'logos/brands/aguabendita.svg' },
+  silviatcherassi: { src: 'logos/brands/silviatcherassi.svg' },
+  patbo: { src: 'logos/brands/patbo.svg' },
+  alexandrebirman: { src: 'logos/brands/alexandrebirman.svg' },
+  amirslama: { src: 'logos/brands/amirslama.svg' },
+  dondeesteban: { src: 'logos/brands/dondeesteban.svg' },
+  adrianadegreas: { src: 'logos/brands/adrianadegreas.svg' },
+  andresotalora: { src: 'logos/brands/andresotalora.svg' },
+  lennyniemeyer: { src: 'logos/brands/lennyniemeyer.svg' },
+  osklen: { src: 'logos/brands/osklen.png' },
+  capittana: { src: 'logos/brands/capittana.svg' },
+  hermes: { src: 'logos/brands/hermes.svg' },
 };
 function brandStripTileHTML(b){
   const logo = BRAND_LOGOS[b.key];
@@ -10824,7 +10847,7 @@ function brandStripTileHTML(b){
          onerror="this.closest('.brandTile-logo').style.display='none'"></span>`
     : '';
   return `<button type="button" onclick="openCatalog('brand','${jsAttr(b.key)}')" data-brand-strip-item="${escapeHtml(b.key)}"
-    class="brandTile${logo && logo.dark ? ' brandTile--dark' : ''} focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]">
+    class="brandTile${logo && logo.dark ? ' brandTile--dark' : ''}{logo && logo.navy ? ' brandTile--navy' : ''} focus-ring transition hover:shadow-[0_8px_20px_rgba(10,31,68,0.08)]">
     ${logoHTML}
     <span class="brandTile-name">${label}</span>
     <span class="brandTile-count">${b.count} productos</span>
