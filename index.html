@@ -11715,10 +11715,13 @@ async function openCatalog(kind, key, opts = {}){
   applyDeptTheme('catalogView', kind, key, retailerFilter);
   await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
-  document.getElementById('catalogIcon').innerHTML = catalogIconHTML(kind, key,
-    kind === 'brand' ? brandLabelFor(key, meta.label) : meta.label);
-  document.getElementById('catalogTitle').textContent =
-    kind === 'brand' ? brandLabelFor(key, meta.label) : meta.label;
+  /* NATIVE TAXONOMY (2026-09-29): the key IS the Spanish label already --
+     metaFor's title-cased fallback would mangle "Máscaras y snorkels". */
+  const kindLabel = kind === 'brand' ? brandLabelFor(key, meta.label)
+    : kind === 'nativetype' ? key
+    : meta.label;
+  document.getElementById('catalogIcon').innerHTML = catalogIconHTML(kind, key, kindLabel);
+  document.getElementById('catalogTitle').textContent = kindLabel;
   document.getElementById('catalogSubtitle').textContent = 'Buscando en nuestras tiendas…';
   /* A beauty category leads with the four-per-shipment fragrance limit,
      for the same reason a beauty store does: it can invalidate a whole
@@ -11751,6 +11754,8 @@ async function openCatalog(kind, key, opts = {}){
   for (const retailer of (fiestasRetailers || CATALOG_RETAILERS)){
     const raws = kind === 'fiestas'
       ? fiestasItemsFor(data.retailers[retailer], key, retailer)
+      : kind === 'nativetype'
+      ? retailerItemsFor(data.retailers[retailer]).filter(it => String(it?.type || '').trim() === key)
       : departmentItemsFor(data.retailers[retailer], kind, key, retailer);
     const items = raws
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
@@ -13119,6 +13124,39 @@ function jumpToBrandLetter(letter){
   list.scrollTo({ top: Math.max(0, top - 4), behavior: 'smooth' });
 }
 
+/* NATIVE STORE TAXONOMY (2026-09-29, Danny). A dive shop's shelves are
+   Arpones and Aletas de buceo, not the site's global Ropa / Deportes /
+   Zapatos -- mapping Nautilus into the global departments put a diving
+   glove under "Zapatos" and dive boots under "Curvy".
+
+   Returns [[nativeType, items], ...] sorted by count desc, or null when
+   the store should keep the global department mapping. A store qualifies
+   when its items carry shopper-facing native `type` values: mixed-case
+   Spanish labels like "Arpones" or "Tablas de surf". Normalized machine
+   tokens are ALL CAPS English (DRESS, JACKETS) -- those stay on the
+   global mapping, which is the better shelf for them. */
+function nativeTypeGroupsFor(retailerData){
+  const items = retailerItemsFor(retailerData);
+  if (!items.length) return null;
+  const groups = new Map();
+  let typed = 0, nativeLooking = 0;
+  for (const it of items){
+    const t = String(it?.type || '').trim();
+    if (!t) continue;
+    typed++;
+    if (t !== t.toUpperCase()) nativeLooking++;
+    if (!groups.has(t)) groups.set(t, []);
+    groups.get(t).push(it);
+  }
+  if (typed < items.length * 0.5) return null;
+  if (nativeLooking < typed * 0.7) return null;
+  const entries = [...groups.entries()]
+    .filter(([t]) => t !== t.toUpperCase())
+    .sort((a, b) => b[1].length - a[1].length);
+  if (entries.length < 2) return null;
+  return entries;
+}
+
 async function openStore(retailer){
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
@@ -13188,13 +13226,24 @@ async function openStore(retailer){
   /* The ITEMS, not just the count: the tile shows a real product photo
      from the department behind it, so the list has to look at what is
      actually in there. This is the same read the count already did. */
-  const carried = Object.keys(DEPARTMENT_SPEC)
-    .map(key => [key, departmentItemsFor(retailerData, 'department', key, retailer)])
-    .filter(([, items]) => items.length > 0);
-  // Ropa is redundant next to the gendered pages for a fashion retailer —
-  // it is the same stock split three ways.
-  const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
-  const deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
+  /* NATIVE TAXONOMY FIRST (2026-09-29, Danny). When the store's own
+     catalogue carries native categories, the tiles are the store's
+     shelves -- not the global departments. Falls back to the global
+     mapping for stores whose types are normalized tokens or missing. */
+  const nativeEntries = nativeTypeGroupsFor(retailerData);
+  const isNativeTaxonomy = !!nativeEntries;
+  let deptEntries;
+  if (isNativeTaxonomy){
+    deptEntries = nativeEntries;
+  } else {
+    const carried = Object.keys(DEPARTMENT_SPEC)
+      .map(key => [key, departmentItemsFor(retailerData, 'department', key, retailer)])
+      .filter(([, items]) => items.length > 0);
+    // Ropa is redundant next to the gendered pages for a fashion retailer —
+    // it is the same stock split three ways.
+    const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
+    deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
+  }
   const storeTotal = deptEntries.reduce((n, [, items]) => n + items.length, 0);
   /* Brands are this store's, and only this store's, counted off its own
      stock (retailerBrandBuckets).
@@ -13262,11 +13311,13 @@ async function openStore(retailer){
   });
   document.getElementById('storeViewSections').innerHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${
     deptEntries.map(([key, items]) => browseTileHTML({
-      label: metaFor(DEPARTMENT_META, key).label,
+      label: isNativeTaxonomy ? key : metaFor(DEPARTMENT_META, key).label,
       count: items.length,
       image: deptPhoto(items),
       pct: storeTotal ? Math.round((items.length / storeTotal) * 100) : 0,
-      onclick: `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`,
+      onclick: isNativeTaxonomy
+        ? `openCatalog('nativetype','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`
+        : `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`,
     })).join('')
   }</div>`;
   if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
