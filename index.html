@@ -10545,13 +10545,20 @@ const BOLSOS_DEPT_RX = /purs|handbag|bolso|cartera|satchel/i;
 const BOLSOS_TITLE_RX = /\b(handbag|purse|bolso|cartera|carteras|tote|crossbody|satchel|hobo|baguette|shoulder\s*bag|mini\s*bag|top\s*handle|wristlet|pochette|bucket\s*bag|clutch)\b/i;
 /* ... that are NOT handbags. "Clutch kits" are auto parts (see the
    retailer skip below); "baggy" is clothing; charms and organizers
-   ride on bags but are not bags. */
-const BOLSOS_EXCLUDE_RX = /\b(luggage|suitcase|backpack|mochila|diaper|pa[\u00f1n]al|laptop|duffel|duffle|baggy|drawstring|charm|cooler|weekender|fanny\s*pack|belt\s*bag|lunch\s*bag|cosmetic|makeup|pencil|shoe\s*bag|laundry|storage|gift\s*bag|trash|organizer)\b/i;
+   ride on bags but are not bags; "apron" kills Kohl's BBQ apron sets
+   that match on "tote". */
+const BOLSOS_EXCLUDE_RX = /\b(luggage|suitcase|backpack|mochila|diaper|pa[\u00f1n]al|laptop|duffel|duffle|baggy|drawstring|charm|cooler|weekender|fanny\s*pack|belt\s*bag|lunch\s*bag|cosmetic|makeup|pencil|shoe\s*bag|laundry|storage|gift\s*bag|trash|organizer|apron)\b/i;
+/* Apparel that sneaks into purse departments (JW Pei's "purses" holds
+   dresses): rejected by item title even when the department name says
+   purses. "top" is phrase-matched only -- a bare \btop\b would kill
+   legit "top handle" bags. */
+const BOLSOS_APPAREL_RX = /\b(dress|vestido|gown|halter|jumpsuit|romper|skirt|falda|blouse|blusa|sweater|cardigan|blazer|jacket|chaqueta|jeans|pants|pantalones|shorts|leggings|bodysuit)\b|(halter|tube|crop|tank|corset)\s*top/i;
 /* Retailers that never sell handbags: advanceauto's "clutch" is a
    transmission part, not a purse. */
 const BOLSOS_SKIP_RETAILERS = new Set(['advanceauto', 'autozone', 'bhphoto']);
-/* Danny's mall positioning: designer leads, value closes. Unlisted
-   retailers sit in the middle. */
+/* Price tiers for the interleave: tier 0 designer, tier 1 mid, tier 2
+   value. Unlisted retailers sit in the middle. The rail deals one card
+   per tier per round, so expensive and cheap mix down the row. */
 const BOLSOS_TIER = { miumiu: 0, ssense: 0, fendi: 0, revolve: 0,
   macys: 1, lanebryant: 1, skims: 1, baublebar: 1, jwpei: 1, meliebianco: 1, statebags: 1, yesstyle: 1 };
 function bolsosTierOf(retailer){ const t = BOLSOS_TIER[retailer]; return t == null ? 2 : t; }
@@ -10561,7 +10568,7 @@ function bolsosDiscount(p){
 }
 function bolsosIsHandbag(raw, deptName){
   const title = rawTitleOf(raw);
-  if (!title || BOLSOS_EXCLUDE_RX.test(title)) return false;
+  if (!title || BOLSOS_APPAREL_RX.test(title) || BOLSOS_EXCLUDE_RX.test(title)) return false;
   if (BOLSOS_DEPT_RX.test(deptName || '')) return true;
   return BOLSOS_TITLE_RX.test(title);
 }
@@ -10591,20 +10598,36 @@ function bolsosPicks(cache){
       }
     }
   }
+  /* Sale cards lead their tier, then biggest discount, then priciest. */
+  const bolsosSaleFirst = p => (p.onSale || bolsosDiscount(p) > 0) ? 0 : 1;
   picks.sort((a, b) =>
     (bolsosTierOf(a.retailer) - bolsosTierOf(b.retailer)) ||
+    (bolsosSaleFirst(a) - bolsosSaleFirst(b)) ||
     (bolsosDiscount(b) - bolsosDiscount(a)) ||
     (Number(b.price) - Number(a.price)));
-  /* One brand may not eat the shelf: walk the ordered picks and deal at
-     most BOLSOS_MAX_PER_RETAILER cards per retailer, tier order kept. */
+  /* Danny (2026-09-28): never a wall of designer followed by a wall of
+     cheap -- deal round-robin across the tiers so the rail reads
+     expensive, mid, cheap, expensive, mid, cheap. One brand may not eat
+     the shelf either: at most BOLSOS_MAX_PER_RETAILER cards per retailer. */
+  const bolsosQueues = [[], [], []];
+  for (const it of picks) bolsosQueues[bolsosTierOf(it.retailer)].push(it);
   const perRetailer = {};
   const shelf = [];
-  for (const it of picks){
-    const n = perRetailer[it.retailer] || 0;
-    if (n >= BOLSOS_MAX_PER_RETAILER) continue;
-    perRetailer[it.retailer] = n + 1;
-    shelf.push(it);
-    if (shelf.length >= BOLSOS_RAIL_TOTAL) break;
+  let bolsosDealt = true;
+  while (shelf.length < BOLSOS_RAIL_TOTAL && bolsosDealt){
+    bolsosDealt = false;
+    for (let t = 0; t < 3 && shelf.length < BOLSOS_RAIL_TOTAL; t++){
+      const q = bolsosQueues[t];
+      while (q.length){
+        const it = q.shift();
+        const n = perRetailer[it.retailer] || 0;
+        if (n >= BOLSOS_MAX_PER_RETAILER) continue; /* brand is full; try its next card */
+        perRetailer[it.retailer] = n + 1;
+        shelf.push(it);
+        bolsosDealt = true;
+        break;
+      }
+    }
   }
   return shelf;
 }
