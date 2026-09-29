@@ -6974,6 +6974,16 @@ const DEPARTMENT_SPEC = {
      a part stays in its store page too — departments overlap here exactly
      as Ofertas overlaps everything. */
   auto_parts:      { anyCategory: true, autoPartsOnly: true },
+  /* DISENADORES LATINOS (2026-09-29, Danny): South American designers
+     via Farfetch US -- Farm Rio, Agua Bendita, PatBO, Johanna Ortiz,
+     Silvia Tcherassi. A KIND OF ITEM answered per item by
+     latinoDesignerOfItem below, the Zapatos way. The brand pills filter
+     the feed; Todo is the default. */
+  latino_designers: { anyCategory: true, latinoDesignersOnly: true },
+  /* LUJO (2026-09-29): the assistant routes 'lujo', 'Gucci', 'Prada' here.
+     A KIND OF ITEM: luxury-tier retailers (SSENSE, Miu Miu) plus the
+     marquee designer brands shoppers ask for by name. */
+  luxury:          { anyCategory: true, luxuryOnly: true },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -7259,6 +7269,19 @@ function spearGearOfItem(item){
 }
 function isSpearfishing(item, retailer){
   return spearGearOfItem(item) !== null;
+}
+/* LUJO (2026-09-29): luxury-tier retailers plus marquee designer brands.
+   The assistant routes 'lujo', 'Gucci', 'Prada', 'Dior' here -- this is
+   the department that answers. */
+const LUXURY_RETAILERS = new Set(['ssense', 'miumiu', 'fendi', 'goldengoose']);
+const LUXURY_BRANDS = /\b(gucci|prada|dior|chanel|hermes|louis vuitton|fendi|versace|givenchy|valentino|balenciaga|saint laurent|burberry|cartier|tiffany|miu miu|golden goose|rick owens)\b/i;
+function isLuxuryItem(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  if (retailer && LUXURY_RETAILERS.has(retailer)) return true;
+  if (item.store && LUXURY_RETAILERS.has(item.store)) return true;
+  const brand = String(item.brand || '');
+  if (LUXURY_BRANDS.test(brand)) return true;
+  return false;
 }
 function groupSpearGear(items){
   const bucket = new Map();
@@ -7601,6 +7624,8 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.surfSkateOnly) return isSurfSkate(item, retailer);
   if (dept.spearfishingOnly) return isSpearfishing(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
+  if (dept.latinoDesignersOnly) return latinoDesignerOfItem(item) !== null;
+  if (dept.luxuryOnly) return isLuxuryItem(item, retailer);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
   if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
   /* GYM RAT CLAIMS GYM APPAREL FROM FIGHT CLUB (2026-09-27, Danny):
@@ -10045,7 +10070,7 @@ const CATEGORY_RAILS = [
      Silvia Tcherassi. Brand pills filter the feed; Todo is the default. */
   { key: 'latino_designers', label: 'Diseñadores Latinos', icon: '', stores: null, poolOnly: true,
     blurb: 'El talento latino, sin salir de casa. Disenadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Peru.',
-    test: (p) => p.retailer === 'farfetch',
+    test: (p) => latinoDesignerOfItem(p) !== null,
     open: "openCatalog('department','latino_designers')" },
   { key: 'women', label: 'Moda Mujer', icon: '', stores: null, poolOnly: true,
     blurb: 'Moda de mujer, de todas las tiendas.',
@@ -10714,7 +10739,7 @@ function brandStripBrands(){
 const BRAND_LOGOS = {
   fendi: { src: 'logos/brands/fendi.svg' },
   miumiu: { src: 'logos/brands/miumiu.svg' },
-  victoriassecret: { src: 'logos/brands/victoriassecret.svg' },
+  victoriassecret: { src: 'logos/brands/victoriassecret.svg' , retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.'},
   pink: { src: 'logos/brands/pink.svg' },
   nike: { src: 'logos/brands/nike.svg' },
   rickowens: { src: 'logos/brands/rickowens.svg' },
@@ -16580,7 +16605,7 @@ const RETAILERS = {
      from the real mark (#E21836). Mirrors scripts/lib/retailers.js. */
   newbalance:      { key: 'newbalance',      label: 'New Balance',       color: '#E21836', tagline: 'Zapatillas y ropa deportiva',                            kind: 'general', search: false, browse: true },
   walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'De todo, a buen precio',                      kind: 'general', search: true },
-  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true },
+  autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png',   tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true , retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.'},
   /* ADVANCE AUTO PARTS (2026-09-26) — the Macy's pattern for Aria Auto:
      browse: true, search: false. advanceauto-catalog.json (120 brake
      parts with real converted weights) is committed at repo root. The
@@ -16605,7 +16630,7 @@ const RETAILERS = {
      catalogue (paintStoreBrandLines), so naming them by hand prints the
      same two names twice on one card and goes stale the first time the
      export changes. */
-  sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  sephora:         { key: 'sephora',         label: 'Sephora',           color: '#000000', logo: 'logos/sephora.png',                   tagline: 'Maquillaje, skincare y perfumes',              kind: 'general', search: false, browse: true, catalog: 'beauty' , retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.'},
   /* MACY'S (2026-09-22) — browsable, not searchable. `browse: true` says
      it has a real catalogue (macys-catalog.json); `search: false` keeps
      it out of the live fan-out, which has no actor for it. See the note
@@ -16764,9 +16789,9 @@ const RETAILERS = {
   brickell:        { key: 'brickell',        label: 'Brickell',            color: '#0A1F44', tagline: 'Skincare premium para hombres',            kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   medicube:        { key: 'medicube',        label: 'Medicube',            color: '#C0272D', tagline: 'Mascarillas coreanas PDRN',                  kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   /* K-BEAUTY HERO BRANDS (2026-09-27, Danny): "brands like Laneige". */
-  laneige:         { key: 'laneige',         label: 'Laneige',             color: '#4AA8DE', tagline: 'Sleeping masks y skincare coreano',            kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  laneige:         { key: 'laneige',         label: 'Laneige',             color: '#4AA8DE', tagline: 'Sleeping masks y skincare coreano',            kind: 'general', search: false, browse: true, catalog: 'beauty' , retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.'},
   cosrx:           { key: 'cosrx',           label: 'COSRX',               color: '#000000', tagline: 'Skincare coreano — acné y textura',            kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
-  beautyofjoseon:  { key: 'beautyofjoseon',  label: 'Beauty of Joseon',    color: '#2B2B2B', tagline: 'Belleza tradicional coreana',                kind: 'general', search: false, browse: true, catalog: 'beauty' },
+  beautyofjoseon:  { key: 'beautyofjoseon',  label: 'Beauty of Joseon',    color: '#2B2B2B', tagline: 'Belleza tradicional coreana',                kind: 'general', search: false, browse: true, catalog: 'beauty' , retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.'},
   anua:            { key: 'anua',            label: 'Anua',                color: '#6A9A5B', tagline: 'Skincare coreano minimalista',               kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   mediheal:        { key: 'mediheal',        label: 'Mediheal',            color: '#0066B3', tagline: 'Mascarillas coreanas',                       kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   /* BOOKS (2026-09-27, Danny) — coffee table books: Assouline (luxury) +
