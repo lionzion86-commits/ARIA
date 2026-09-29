@@ -24704,7 +24704,7 @@ function startOrbSwim(){
 const ARIA_CHAT_MOBILE_MQ = '(max-width: 1023px)';
 
 /* What Aria says when the greeting endpoint gives us nothing usable. Matches her signature greeting script (GREETING_SCRIPT_ES in netlify/functions/_aria-prompt.js). No emoji: this line can be spoken aloud by the browser-voice fallback. */
-const ARIA_GREETING_FALLBACK = '¡Bienvenido a Aria Shop! Soy tu shopper personal. Vámonos de compras — dime qué buscas y te lo encuentro al mejor precio en todas las tiendas de Estados Unidos.';
+const ARIA_GREETING_FALLBACK = '¡Hola! Soy Aria, tu shopper personal. ¿Qué estás buscando?';
 
 function isMobileChat(){
   return !!(window.matchMedia && window.matchMedia(ARIA_CHAT_MOBILE_MQ).matches);
@@ -24901,35 +24901,21 @@ if (assistantOpen && document.getElementById('assistantMessages').children.lengt
    written, voice follows when it lands. Any failure lands on the same written
    fallback line the old path used. */
 async function greetAssistantStreaming(){
-  const msg = 'Saluda siguiendo tu guión de bienvenida y pregunta qué está buscando el cliente.';
-  const sink = beginAssistantReply();
-  /* The greeting pipelines its voice like every other reply: the first
-     sentence's audio renders while the rest streams (see the TTS
-     PIPELINE below). */
-  const tts = ttsNewPipeline();
-  let streamed = null;
-  try {
-    streamed = sink ? await streamAssistantReply({ message: msg, history: [], ttsPipeline: true }, sink, (d) => feedTts(tts, d, false)) : null;
-  } catch { streamed = null; }
-  if (!streamed || !streamed.reply) {
-    if (sink) sink.discard();
-    /* LILY FIRST (2026-09-29, Danny). The fallback used to speak through
-       the browser's robot voice because addAssistantMessage got no audio.
-       Now it tries Lily via aria-tts first; the robot voice is the last
-       resort, not the default. */
-    addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
-    ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
-    speakWithLily(ARIA_GREETING_FALLBACK);
-    return;
-  }
-  const reply = sink.finish(streamed.reply) || ARIA_GREETING_FALLBACK;
+  /* INSTANT STATIC GREETING (2026-09-29, Danny: short, sweet, fast). The
+     greeting used to ride the Groq stream -- cold function + first
+     sentence + TTS was ~5s before Lily spoke. The greeting is now a fixed
+     short line, so it skips the model entirely: the text paints in the
+     same tick the chat opens and Lily's TTS fetch fires at once, so first
+     audio is a single TTS round trip. */
+  ariaReplyVoiceStarted = false;
+  addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
+  /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
+     ariaChatHistory, or the shopper's first real question goes out with
+     an empty history and the model greets AGAIN instead of answering. */
+  ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
   hideAssistantTyping();
-  /* THE GREETING IS A TURN TOO (2026-09-27). It used to never reach
-     ariaChatHistory, so the shopper's first real question went out with an
-     empty history and the model -- seeing the greeting script plus zero
-     prior turns -- greeted AGAIN instead of answering. */
-  ariaChatHistory.push({ role: 'assistant', content: reply });
-  finishTtsPipeline(tts, reply, streamed.audio);
+  setOrbState('idle');
+  speakWithLily(ARIA_GREETING_FALLBACK);
 }
 
 /* The sheet re-measures whenever the visible area changes: the keyboard
@@ -25016,12 +25002,17 @@ function speakText(text){
 /* LILY-FIRST SPEAK (2026-09-29, Danny). Tries Lily via the aria-tts
    endpoint; falls back to the browser's robot voice only if Lily is truly
    unavailable. The robot voice is never the first choice. */
-function speakWithLily(text){
-  const fallback = () => { if (typeof speakText === 'function') speakText(text); };
+/* Set while Lily's voice is actually carrying a reply (speakWithAria /
+   playTtsAudio). An interim "dame un segundo" passes a guard against it so
+   a late TTS fetch never talks over the answer that already started. */
+let ariaReplyVoiceStarted = false;
+function speakWithLily(text, guard){
+  const cancelled = () => { try { return !!(guard && !guard()); } catch(e){ return false; } };
+  const fallback = () => { if (!cancelled() && typeof speakText === 'function') speakText(text); };
   try {
     fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
       .then(r => (r && r.ok) ? r.json() : null)
-      .then(d => { if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
+      .then(d => { if (cancelled()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
       .catch(fallback);
   } catch (e) { fallback(); }
 }
@@ -25448,6 +25439,7 @@ function pumpTtsAudio(st){
 
 function playTtsAudio(base64, onEnded){
   try {
+    ariaReplyVoiceStarted = true;
     setOrbState("speaking");
     ariaAudioPlayer.src = "data:audio/mp3;base64," + base64;
     /* The speaking pulse is driven by the audio element, so the orb
@@ -25863,6 +25855,65 @@ function addAssistantLiveOffer(query){
   wrap.scrollTop = wrap.scrollHeight;
 }
 
+/* BRAND ROUTER (2026-09-29, Danny). The shelf's own brand list, counted
+   off what is actually stocked: every retailer's brand buckets merged by
+   key, so the assistant routes to exactly the brands the brand directory
+   can show. Memoized per page load. */
+let chatBrandIndexCache = null;
+async function chatBrandIndex(){
+  if (chatBrandIndexCache) return chatBrandIndexCache;
+  await loadDepartmentCache();
+  const byKey = new Map();
+  for (const data of Object.values(departmentCacheData?.retailers || {})){
+    let buckets = {};
+    try { buckets = retailerBrandBuckets(data) || {}; } catch(e){ buckets = {}; }
+    for (const [key, b] of Object.entries(buckets)){
+      const n = Array.isArray(b?.items) ? b.items.length : 0;
+      const cur = byKey.get(key);
+      if (cur) cur.count += n;
+      else byKey.set(key, { key, label: String(b?.label || key), count: n });
+    }
+  }
+  /* Longest label first: "Tommy Hilfiger" must win over "Tommy". */
+  chatBrandIndexCache = [...byKey.values()].sort((a, b) => b.label.length - a.label.length);
+  return chatBrandIndexCache;
+}
+function normBrandText(t){
+  return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+/* Whole-word/phrase match of a stocked brand label inside the shopper's
+   message. Accents folded on both sides ("L'Oréal" ~ "loreal"). */
+function findBrandMention(text, brands){
+  const norm = ' ' + normBrandText(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  for (const b of brands || []){
+    const bl = normBrandText(b.label).replace(/\s+/g, ' ').trim();
+    if (bl.length < 2) continue;
+    if (norm.indexOf(' ' + bl + ' ') !== -1) return b;
+  }
+  return null;
+}
+/* The router's call to action: a navy button that opens the brand's page
+   -- every carrying store, the same shelf the directory shows. */
+function addAssistantBrandOffer(brandKey, brandLabel, count){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'assistantNote my-2';
+  el.innerHTML = `<button type="button" data-assistant-brand onclick="goBrandFromChat(${JSON.stringify(brandKey).replace(/"/g, '&quot;')})"
+      class="w-full text-left rounded-xl p-3 focus-ring" style="background:var(--navy)">
+      <div class="text-[13.5px] font-bold text-white">Ver todo ${escapeHtml(brandLabel)}</div>
+      <div class="text-[12px] mt-0.5" style="color:rgba(255,255,255,0.82)">${count} productos en nuestras tiendas</div>
+    </button>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+function goBrandFromChat(brandKey){
+  dismissAssistantForNavigation();
+  continuousMode = false;
+  assistantThinking = false;
+  openCatalog('brand', brandKey);
+}
+
 /* The live fan-out, unchanged in what it does -- same stores, same
    over-fetch, same recipient gate, same streaming of each store's finds
    as that store answers. It is simply reached by a tap now instead of
@@ -25949,6 +26000,7 @@ function groqRetryAfterMs(err){
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
+  ariaReplyVoiceStarted = false;
   /* TURN-TAKING (2026-09-27). The mic closes for the whole think phase:
      intentionalStop keeps onend from treating this as an accidental drop
      and reopening the mic behind our back. */
@@ -26005,10 +26057,41 @@ async function runAssistantBrain(text){
      typing indicator stays up until the reply lands. A live multi-store
      search can run 20-30 seconds; a blank, silent panel for that long
      reads as frozen, and people close it. */
-  addAssistantNote(willSearch ? (reuseChatQuery ? `Buscando ${searchQuery}… dame un segundo.` : chatAckEs(text)) : 'Dame un segundo, reviso eso…');
+  const interimNote = willSearch ? (reuseChatQuery ? `Buscando ${searchQuery}… dame un segundo.` : chatAckEs(text)) : 'Dame un segundo, reviso eso…';
+  addAssistantNote(interimNote);
+  /* SPOKEN INTERIM STATUS (2026-09-29, Danny). The "dame un segundo"
+     bubble used to sit silent while she "looked" -- a silent wait reads as
+     broken. She says it through Lily now; the guard keeps a late TTS fetch
+     from talking over the reply if the answer already started speaking. */
+  speakWithLily(interimNote, () => !ariaReplyVoiceStarted);
   showAssistantTyping();
   if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
+
+  /* BRAND ROUTER (2026-09-29, Danny). The assistant is a ROUTER, not a
+     search engine: a named brand resolves to the brand's page -- the same
+     shelf a human reaches from the brand directory -- instead of a text
+     search that can print "no encontré" for a brand plainly on the site.
+     Deterministic: no Groq round trip, no Apify spend. */
+  if (willSearch){
+    const brandHit = findBrandMention(searchQuery, await chatBrandIndex());
+    if (brandHit){
+      hideAssistantTyping();
+      setOrbState('idle');
+      const bLabel = brandHit.label;
+      const line = brandHit.count > 0
+        ? `¡Claro! Aquí tienes todo lo de ${bLabel} en nuestras tiendas.`
+        : `En este momento no tenemos ${bLabel} disponible, pero dime qué buscas y te encuentro algo parecido.`;
+      addAssistantMessage('bot', line, null, { speak: false });
+      ariaChatHistory.push({ role: 'assistant', content: line });
+      if (brandHit.count > 0) addAssistantBrandOffer(brandHit.key, bLabel, brandHit.count);
+      if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+      assistantThinking = false;
+      speakWithLily(line);
+      reopenMicForRetry();
+      return;
+    }
+  }
 
   const foundItems = [];
   const shownKeys = new Set();
@@ -26625,6 +26708,7 @@ function unlockAudioForMobile(){
 
 function speakWithAria(audioBase64, ariaText){
         currentAriaSpeech = ariaText || '';
+  ariaReplyVoiceStarted = true;
   try {
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + audioBase64;
