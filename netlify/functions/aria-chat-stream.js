@@ -52,7 +52,7 @@
    falls through to the buffered endpoint, whose own last line is a
    graceful spoken fallback. The client NEVER sees "No reply from model".
    ============================================================ */
-import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
+import { chatRequestBody, deltaFromLine, isDoneLine, sseErrorFromLine, sanitizeSpokenPunctuation, sanitizeEmojiNarration, speechFor, GROQ_CHAT_URL } from "./_aria-chat-model.js";
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -193,7 +193,7 @@ export default async function handler(req) {
            had already said stays on screen and is returned as the reply,
            so a dropped connection leaves a short answer rather than
            deleting a paragraph the shopper was reading. */
-        if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), truncated: true });
+        if (reply) send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)), truncated: true });
         else fail(error && error.message ? error.message : "error de conexión");
         controller.close();
         return;
@@ -229,7 +229,7 @@ export default async function handler(req) {
             fail(error.message);
             return;
           }
-          if (reply) send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply), truncated: true });
+          if (reply) send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)), truncated: true });
           else fail(error && error.message ? error.message : "error de conexión");
           controller.close();
           return;
@@ -256,7 +256,7 @@ export default async function handler(req) {
          own voice takes over client-side. The reply is sanitized (see
          sanitizeSpokenPunctuation) so dictated punctuation words never
          reach the shopper as words, in the bubble or the voice. */
-      send(controller, { done: true, reply: sanitizeSpokenPunctuation(reply) });
+      send(controller, { done: true, reply: sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply)) });
       const audio = await speechFor(reply);
       if (audio) send(controller, { audio });
       controller.close();

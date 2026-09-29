@@ -295,11 +295,11 @@
 </main>
 
 <nav class="tabs" id="tabs" hidden>
-  <button data-tab="orders"   aria-selected="true"  onclick="go('orders')"><span class="ico">&#128230;</span>Pedidos</button>
-  <button data-tab="payments" aria-selected="false" onclick="go('payments')"><span class="ico">&#128179;</span>Pagos</button>
-  <button data-tab="pipeline" aria-selected="false" onclick="go('pipeline')"><span class="ico">&#128260;</span>Tubería</button>
-  <button data-tab="couriers" aria-selected="false" onclick="go('couriers')"><span class="ico">&#128666;</span>Envíos</button>
-  <button data-tab="more"     aria-selected="false" onclick="go('more')"><span class="ico">&#9776;</span>Más</button>
+  <button data-tab="orders"   aria-selected="true"  onclick="go('orders')"><span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.3 7 12 12l8.7-5"/><path d="M12 22V12"/></svg></span>Pedidos</button>
+  <button data-tab="payments" aria-selected="false" onclick="go('payments')"><span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg></span>Pagos</button>
+  <button data-tab="pipeline" aria-selected="false" onclick="go('pipeline')"><span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.5 9a9 9 0 0 1 14.9-3.4L23 10"/><path d="M1 14l4.6 4.4A9 9 0 0 0 20.5 15"/></svg></span>Tubería</button>
+  <button data-tab="couriers" aria-selected="false" onclick="go('couriers')"><span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><rect x="1" y="3" width="15" height="13" rx="1"/><path d="M16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span>Envíos</button>
+  <button data-tab="more"     aria-selected="false" onclick="go('more')"><span class="ico"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true" style="vertical-align:-3px"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/></svg></span>Más</button>
 </nav>
 
 <script>
@@ -997,7 +997,7 @@ function pipelineCard(o) {
         <div class="sub">${when(o.createdAt)} · ${esc(o.customerName || o.customerEmail || "—")}</div>
       </div>
       <div style="text-align:right; display:flex; flex-direction:column; gap:4px; align-items:flex-end">
-        ${o.expressSelected ? `<span class="pill warn">⚡ Ni bien llegue${fee}</span>` : ""}
+        ${o.expressSelected ? `<span class="pill warn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg> Ni bien llegue${fee}</span>` : ""}
         ${payPill(o.paymentStatus)}
         <span class="pill ${stageTone(o)}">${esc(o.currentStageLabel || o.currentStage || "—")}</span>
       </div>
@@ -1037,7 +1037,7 @@ function renderPipeline() {
     <div class="field" style="margin-bottom:0"><span>Modo de entrega</span>
       <div class="seg" id="pipeExpress" role="group" aria-label="Filtro express">
         <button data-x="all" class="${state.pipelineExpress === "all" ? "on" : ""}" onclick="setPipelineFilter('express', 'all')">Todos</button>
-        <button data-x="express" class="${state.pipelineExpress === "express" ? "on" : ""}" onclick="setPipelineFilter('express', 'express')">⚡ Ni bien llegue</button>
+        <button data-x="express" class="${state.pipelineExpress === "express" ? "on" : ""}" onclick="setPipelineFilter('express', 'express')"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg> Ni bien llegue</button>
         <button data-x="consolidated" class="${state.pipelineExpress === "consolidated" ? "on" : ""}" onclick="setPipelineFilter('express', 'consolidated')">Todo junto</button>
       </div>
     </div>
@@ -1103,11 +1103,11 @@ function renderMoreMenu() {
       <span class="chev">›</span>
     </button>`;
   return `<h2>Más</h2>` +
-    item("batches", "🧳", "Lotes", "Consolidados por courier, peso y mínimo de 1 kg") +
-    item("claims", "⏰", "Reclamos", "Ventanas de reclamo por lote") +
-    item("tax", "🧾", "Impuestos", "Estimado contra real SUNAT") +
-    item("express", "⚡", "Express", "Pedidos «ni bien llegue» y su control") +
-    item("ledger", "📄", "Libro", "Libro mayor y descarga CSV");
+    item("batches", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></svg>', "Lotes", "Consolidados por courier, peso y mínimo de 1 kg") +
+    item("claims", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>', "Reclamos", "Ventanas de reclamo por lote") +
+    item("tax", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.6-2 1.6-2-1.6L10 21l-2-1.6L6 21z"/><path d="M9 8h6M9 12h6"/></svg>', "Impuestos", "Estimado contra real SUNAT") +
+    item("express", '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>', "Express", "Pedidos «ni bien llegue» y su control") +
+    item("ledger", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>', "Libro", "Libro mayor y descarga CSV");
 }
 
 function renderMore() {
@@ -1186,7 +1186,7 @@ function renderBatches() {
       <div class="row"><span class="k">Pedidos</span><span class="v">${n}</span></div>
       <div class="row"><span class="k">Peso total</span>
         <span class="v">${kg != null && isFinite(Number(kg)) ? Number(kg).toFixed(2) + " kg" : '<span class="muted">—</span>'}
-          <span class="pill ${b.meetsMinimum ? "ok" : "warn"}" style="margin-left:6px">${b.meetsMinimum ? "✓" : "⚠"} mín ${min} kg</span>
+          <span class="pill ${b.meetsMinimum ? "ok" : "warn"}" style="margin-left:6px">${b.meetsMinimum ? "✓" : '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-2px"><path d="M12 3 2 21h20z"/><path d="M12 10v5"/></svg>'} mín ${min} kg</span>
         </span></div>
       ${wsrc ? `<div class="row"><span class="k">Origen del peso</span><span class="v" style="font-weight:500">${esc(wsrc)}</span></div>` : ""}
       ${b.linceAvailableAt ? `<div class="row"><span class="k">Disponible en Lince</span><span class="v">${when(b.linceAvailableAt)}</span></div>` : ""}
@@ -1323,9 +1323,9 @@ async function setTaxFilter(f) {
 
 /* ---- más → express ---------------------------------------------------------
    The "red sticker": Danny's $8 toggle between «todo junto» (free,
-   consolidated, the default) and «⚡ ni bien llegue». Setting it is one
+   consolidated, the default) and «[bolt] ni bien llegue». Setting it is one
    POST; unsetting is the same POST with selected:false. The per-card
-   «Quitar ⚡» button exists because on a phone, retyping the order id to
+   «Quitar [bolt]» button exists because on a phone, retyping the order id to
    undo is the kind of friction that makes ops skip the undo. */
 async function setExpress(orderId, selected, feeUsd) {
   const res = await fetch(ORDERS_UPDATE_API, {
@@ -1348,7 +1348,7 @@ async function saveExpress() {
   try {
     const ex = await setExpress(orderId, selected, isFinite(fee) ? fee : 8);
     msg.innerHTML = ex.selected
-      ? `✓ <strong>${esc(orderId)}</strong> ahora va <strong>⚡ ni bien llegue</strong>${ex.feeUsd != null ? ` (${usd(ex.feeUsd)})` : ""}.`
+      ? `✓ <strong>${esc(orderId)}</strong> ahora va <strong><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg> ni bien llegue</strong>${ex.feeUsd != null ? ` (${usd(ex.feeUsd)})` : ""}.`
       : `✓ <strong>${esc(orderId)}</strong> volvió a <strong>todo junto</strong>.`;
     document.getElementById("exp-order").value = "";
     state.expressOrders = await LOADER.expressOrders();
@@ -1374,11 +1374,11 @@ function renderExpress() {
   const head = moreHead("Express");
   const control = `
   <div class="card">
-    <div class="title" style="margin-bottom:8px">Marcar pedido con ⚡</div>
+    <div class="title" style="margin-bottom:8px">Marcar pedido con <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg></div>
     <label class="field"><span>Id del pedido</span>
       <input id="exp-order" class="mono" placeholder="p. ej. AR-1024" autocomplete="off" autocapitalize="characters"></label>
     <label class="check"><input type="checkbox" id="exp-toggle" checked>
-      <span>⚡ Ni bien llegue <span class="muted">(desmárcalo para quitarlo)</span></span></label>
+      <span><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg> Ni bien llegue <span class="muted">(desmárcalo para quitarlo)</span></span></label>
     <label class="field" style="margin:9px 0 0"><span>Cargo express (USD)</span>
       <input id="exp-fee" type="number" step="0.01" inputmode="decimal" value="8" style="max-width:150px"></label>
     <div class="btns" style="margin-top:11px">
@@ -1394,16 +1394,16 @@ function renderExpress() {
           <div class="title mono" style="font-size:12.5px">${esc(o.orderId)}</div>
           <div class="sub">${esc(o.customerName || o.customerEmail || "—")} · ${when(o.createdAt)}</div>
         </div>
-        <span class="pill warn">⚡${o.expressFeeUsd != null ? " " + usd(o.expressFeeUsd) : ""}</span>
+        <span class="pill warn"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>${o.expressFeeUsd != null ? " " + usd(o.expressFeeUsd) : ""}</span>
       </div>
       <div class="row"><span class="k">Total</span><span class="v">${pen(o.totalPen)}</span></div>
       <div class="row"><span class="k">Etapa</span><span class="v" style="font-weight:500">${esc(o.currentStageLabel || o.currentStage || "—")}</span></div>
       <div class="btns" style="margin-top:9px">
-        <button class="btn" onclick="unsetExpress('${esc(o.orderId)}')">Quitar ⚡</button>
+        <button class="btn" onclick="unsetExpress('${esc(o.orderId)}')"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg> Quitar</button>
       </div>
     </div>`).join("");
   return head + control +
-    `<h2>Con ⚡ activo · ${d.total != null ? d.total : (d.orders || []).length}</h2>` +
+    `<h2>Con <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="vertical-align:-2px"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg> activo · ${d.total != null ? d.total : (d.orders || []).length}</h2>` +
     (cards
       ? `<div class="cols">${cards}</div>`
       : `<div class="card"><div class="title">Ninguno</div><p class="note" style="margin-top:6px">Ningún pedido va «ni bien llegue» ahora mismo.</p></div>`);

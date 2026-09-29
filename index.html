@@ -11218,7 +11218,7 @@ function curvyStoreCardsHTML(){
         <span class="block text-[16px] font-extrabold uppercase tracking-wide text-white truncate">${escapeHtml(label)}</span>
         <span class="block text-[12.5px] font-semibold mt-0.5" style="color:#F4C463">${count} producto${count === 1 ? '' : 's'}</span>
       </span>
-      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '&#10003;' : '&rsaquo;'}</span>
+      <span class="flex-shrink-0 text-[22px] font-bold pr-1" style="color:${active ? '#F4C463' : 'rgba(255,255,255,0.55)'}" aria-hidden="true">${active ? '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>' : '&rsaquo;'}</span>
     </button>`;
   };
   return `<div id="curvyStoreCards" class="flex flex-col gap-3 mb-5">${stores.map(card).join('')}</div>`;
@@ -24097,10 +24097,16 @@ async function greetAssistantStreaming(){
   if (!streamed || !streamed.reply) {
     if (sink) sink.discard();
     addAssistantMessage('bot', ARIA_GREETING_FALLBACK);
+    ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
     return;
   }
   const reply = sink.finish(streamed.reply) || ARIA_GREETING_FALLBACK;
   hideAssistantTyping();
+  /* THE GREETING IS A TURN TOO (2026-09-27). It used to never reach
+     ariaChatHistory, so the shopper's first real question went out with an
+     empty history and the model -- seeing the greeting script plus zero
+     prior turns -- greeted AGAIN instead of answering. */
+  ariaChatHistory.push({ role: 'assistant', content: reply });
   speakAssistantReply(reply, streamed.audio);
 }
 

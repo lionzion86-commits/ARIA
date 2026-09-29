@@ -81,6 +81,32 @@ export function sanitizeSpokenPunctuation(text) {
   );
 }
 
+/* EMOJI NARRATION (2026-09-27). Told "no emojis", the model sometimes writes
+   what the emoji would have been — "(thumbs up)", "(sonrisa)" — instead of
+   dropping it. Only parentheticals made SOLELY of emoji-description words are
+   stripped; real asides like "(incl. impuestos)" are untouched. Runs on the
+   finished reply, next to sanitizeSpokenPunctuation. */
+const EMOJI_NARRATION_WORDS = new Set(
+  "thumb thumbs up down ok check pulgar sonrisa sonriendo sonrie guino abrazo aplausos aplaudiendo fuego estrella llanto llorando risa riendo carcajada beso fiesta regalo rezando manos"
+    .split(" ")
+);
+// Bare "(up)" / "(ok)" are too generic to strip on their own.
+const EMOJI_NARRATION_GENERIC_SINGLETON = new Set(["up", "down", "ok", "check", "manos", "arriba", "abajo"]);
+const foldAscii = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+export function sanitizeEmojiNarration(text) {
+  let t = String(text || "");
+  if (!t) return t;
+  t = t.replace(/\(([^()]{1,40})\)/g, (m, inner) => {
+    const words = foldAscii(inner).trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 1 && words.length <= 3 && words.every((w) => EMOJI_NARRATION_WORDS.has(w))) {
+      if (words.length === 1 && EMOJI_NARRATION_GENERIC_SINGLETON.has(words[0])) return m;
+      return "";
+    }
+    return m;
+  });
+  return t.replace(/[ \t]{2,}/g, " ").replace(/ +\n/g, "\n").replace(/\s+([,.!?;:])/g, "$1").trim();
+}
+
 export const GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions";
 export const GROQ_MODEL = "openai/gpt-oss-120b";
 export const TEMPERATURE = 0.7;
@@ -177,10 +203,11 @@ export async function speechFor(reply) {
   if (!reply || !process.env.ELEVENLABS_API_KEY) return null;
   try {
     // The voice must never speak punctuation words ("comma", "punto"):
+    // The voice must never speak punctuation words ("comma", "punto"):
     // the reply is sanitized before ElevenLabs renders it, so what the
     // shopper hears is what the bubble shows. See
     // sanitizeSpokenPunctuation.
-    const speakable = sanitizeSpokenPunctuation(reply);
+    const speakable = sanitizeEmojiNarration(sanitizeSpokenPunctuation(reply));
     /* A reply that is nothing but punctuation words sanitizes down to
        marks alone, and sending "," to a TTS API buys a billed request
        for a sound no one needs. */
