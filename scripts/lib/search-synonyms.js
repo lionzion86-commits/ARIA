@@ -125,6 +125,15 @@ export const SEARCH_SYNONYM_GROUPS = [
       "buzo", "buzos",
     ],
   },
+  /* REPORTED LIVE 2026-09-29 (Danny, iPhone): "gi" is the martial-arts
+     uniform — the same concept as "kimono". Searching "gi" returned zero
+     results despite many BJJ gis in the catalogue. "gi" and "gis" are
+     whole-word-only (3 letters or fewer), so "gi" never matches "gift"
+     or "giant"; "kimono" keeps its plural shortcut. */
+  {
+    concept: "gi",
+    words: ["gi", "gis", "kimono", "kimonos"],
+  },
 ];
 
 const WORD_TO_GROUP = new Map();
