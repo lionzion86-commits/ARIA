@@ -1704,6 +1704,20 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Maquillaje, skincare y perfumes.</span></div>
       <div data-category-rail-row="beauty" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+    <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): Foot Locker is out
+         as a store rail -- its shoes join skate (CCS), surf and outlet
+         pairs in one always-visible Zapatos/Zapatillas carousel. Cheap
+         eye-magnets lead via cheapFirst. Same shared painter, same
+         stand-down rule as Gym Rat / Beauty. -->
+    <section aria-label="Zapatos" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Zapatos / Zapatillas</span>
+        <button onclick="openCatalog('department','shoes')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
+      <div data-category-rail-row="shoes" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 
 <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
          the name-drop sits before the store rails -- the catalogue's top clothing brands
@@ -1751,21 +1765,6 @@
       </div>
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="mStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
-    </section>
-<section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
-      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
-        <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
-        </span>
-        <button onclick="openStore('footlocker')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-      </div>
-      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
-      <div id="mStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #9AA3B2 20%, #9AA3B2 80%, transparent)"></div>
@@ -1877,6 +1876,21 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5 días.</span></div>
       <div id="mStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+<section aria-label="Farfetch" data-store-rail="farfetch" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9CCD1 20%, #C9CCD1 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/farfetch.svg" alt="Farfetch" data-retailer="farfetch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Farfetch</span>
+        </span>
+        <button onclick="openStore('farfetch')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div id="mStoreRail-farfetch" data-store-rail-row="farfetch" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
 
 <section aria-label="Todas las otras tiendas" class="border-b" style="border-color:var(--line); background:#F7F9FD">
       <div class="flex items-baseline justify-between gap-3 px-5 pt-4 pb-3">
@@ -2077,6 +2091,18 @@
         <div data-category-rail-row="beauty" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
+    <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): desktop. -->
+    <section aria-label="Zapatos" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Zapatos / Zapatillas</span>
+          <button onclick="openCatalog('department','shoes')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
+        <div data-category-rail-row="shoes" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny. -->
     <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
@@ -2124,23 +2150,6 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="dStoreRail-victoriassecret" data-store-rail-row="victoriassecret" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
-      </div>
-    </section>
-<section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden storeRailCompact">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
-      <div class="max-w-[1240px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
-        </span>
-          <button onclick="openStore('footlocker')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
-      <div id="dStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <section aria-label="Gymshark" data-store-rail="gymshark" class="ariaNavyBand relative overflow-hidden storeRailCompact">
@@ -2266,6 +2275,23 @@
       <div id="dStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
+<section aria-label="Farfetch" data-store-rail="farfetch" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9CCD1 20%, #C9CCD1 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/farfetch.svg" alt="Farfetch" data-retailer="farfetch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Farfetch</span>
+        </span>
+          <button onclick="openStore('farfetch')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+      <div id="dStoreRail-farfetch" data-store-rail-row="farfetch" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
 
 <section aria-label="Todas las otras tiendas" style="background:#F7F9FD">
       <div class="max-w-[1240px] mx-auto">
@@ -3719,24 +3745,7 @@
       <h2 class="text-[26px] sm:text-[34px] font-extrabold tracking-[-0.03em] leading-[1.1] mb-3" style="color:var(--navy)">Cada tienda, en su vitrina.</h2>
       <p class="text-[14.5px] leading-relaxed max-w-[58ch] mb-10" style="color:#4A5568">Las ofertas y los destacados de cada tienda, sin salir de esta p&aacute;gina. Toca &laquo;Ver tienda&raquo; para entrar al cat&aacute;logo completo.</p>
     </div>
-    <section aria-label="Foot Locker" data-store-rail="footlocker" class="ariaNavyBand relative overflow-hidden">
-  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E2231A 20%, #E2231A 80%, transparent)"></div>
-      <div class="max-w-[1120px] mx-auto">
-        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
-          <span class="flex items-center gap-3 min-w-0">
-          <span class="storeRailPlaque"><img src="logos/footlocker.png" alt="Foot Locker" data-retailer="footlocker" loading="lazy" decoding="async"
-           class="h-[22px] w-auto max-w-[120px] object-contain"
-           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
-          </span>
-          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Foot Locker</span>
-        </span>
-          <button onclick="openStore('footlocker')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
-        </div>
-        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–5 días.</span></div>
-      <div id="tStoreRail-footlocker" data-store-rail-row="footlocker" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
-      </div>
-    </section>
-<section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden">
+    <section aria-label="New Balance" data-store-rail="newbalance" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E21836 20%, #E21836 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
         <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
@@ -3810,6 +3819,18 @@
       <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
+    <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): tablet. -->
+    <section aria-label="Zapatos" data-featured-rail class="ariaNavyBand relative overflow-hidden" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Zapatos / Zapatillas</span>
+          <button onclick="openCatalog('department','shoes')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
+        <div data-category-rail-row="shoes" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
 <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #E31C79 20%, #E31C79 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -3875,6 +3896,23 @@
       <div id="tStoreRail-ssense" data-store-rail-row="ssense" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
+<section aria-label="Farfetch" data-store-rail="farfetch" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9CCD1 20%, #C9CCD1 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/farfetch.svg" alt="Farfetch" data-retailer="farfetch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Farfetch</span>
+        </span>
+          <button onclick="openStore('farfetch')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+      <div id="tStoreRail-farfetch" data-store-rail-row="farfetch" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
 <section aria-label="Nautilus Spearfishing" data-store-rail="nautilus" class="ariaNavyBand relative overflow-hidden">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #213236 20%, #213236 80%, transparent)"></div>
       <div class="max-w-[1120px] mx-auto">
@@ -6603,6 +6641,9 @@ const CATEGORY_COVERS = {
   books:          'assets/category/books.jpg',
   toys:            'assets/category/toys.jpg',
   party:           'assets/category/party.jpg',
+  /* DISENADORES LATINOS (2026-09-29, Danny): real product photo (Johanna
+     Ortiz bag) replaces the "D" letter fallback. */
+  latino_designers: 'assets/category/latino_designers.jpg',
 
 };
 
@@ -9338,8 +9379,9 @@ function renderMobileDealsRail(){
    its shelf is the Gym Rat catalogue's Gymshark picks. */
 /* RELIABLE-FIRST (2026-09-26, Danny): the window displays lead with the strongest shippers.
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
-   SSENSE anchors the end: browsable and honest, but red-tier and slow. */
-const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'footlocker', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'costco', 'ssense', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+   SSENSE and Farfetch anchor the luxury end: browsable and honest,
+   but slow. (Farfetch added 2026-09-29, Danny.) */
+const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'costco', 'ssense', 'farfetch', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category
@@ -9407,6 +9449,43 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
      the back, never candy) and the rail takes the first twelve of it. */
   if (String(key || '').toLowerCase() === 'costco' && Array.isArray(pool))
     return costcoCuratedItems(pool).slice(0, STORE_RAIL_TOTAL);
+  /* FARFETCH OPENS ON THE CLEARANCE RACK (2026-09-29, Danny): Peruvians
+     already buy direct from Farfetch, so Aria's 24% markup only stays
+     competitive on markdowns. The shelf leads with every genuine
+     markdown sorted by discount depth (his standing rule #1: biggest
+     discounts first); the fill after that is halo first (most expensive),
+     cheap last. The sale comes from this rail's own catalogue pool, not
+     the sales feed -- Farfetch is not in the feed. */
+  if (String(key || '').toLowerCase() === 'farfetch' && Array.isArray(pool)){
+    const pctFF = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
+    const seenFF = new Set();
+    const deduped = pool
+      .filter(p => p && p.retailer === 'farfetch' && p.image
+        && Number.isFinite(Number(p.price)) && Number(p.price) > 0)
+      .filter(p => {
+        const k = 'farfetch::' + (p.title || '');
+        if (seenFF.has(k)) return false;
+        seenFF.add(k);
+        return true;
+      });
+    /* Markdowns first, the deepest discount at the front. */
+    const saleFF = deduped
+      .filter(p => Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
+      .sort((a, b) => pctFF(b) - pctFF(a));
+    const picksFF = saleFF.slice(0, STORE_RAIL_SALE);
+    const pickedKeys = new Set(picksFF.map(p => 'farfetch::' + (p.title || '')));
+    /* Then halo (most expensive) first, cheap last. */
+    if (picksFF.length < STORE_RAIL_TOTAL){
+      const rest = deduped
+        .filter(p => !pickedKeys.has('farfetch::' + (p.title || '')))
+        .sort((a, b) => Number(b.price) - Number(a.price));
+      for (const p of rest){
+        if (picksFF.length >= STORE_RAIL_TOTAL) break;
+        picksFF.push(p);
+      }
+    }
+    return picksFF;
+  }
   const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
   const pct = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
   const seen = new Set();
@@ -9580,6 +9659,10 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      self-contained (no page globals) for the vm tests; the Juguetes rail
      entry opts in with toysFirst: true. */
   const toyRankFn = (opts && typeof opts.toyRankFn === 'function') ? opts.toyRankFn : null;
+  /* ZAPATOS CHEAP-FIRST (2026-09-29, Danny): cheap pairs lead -- price
+     ascending beats discount depth on this rail. */
+  const cheapFirst = Boolean(opts && opts.cheapFirst);
+  const priceNum = (p) => Number(p.price);
   const toyRank = (p) => toyRankFn ? toyRankFn(p) : 0;
   /* SURF & SKATE (2026-09-26, Danny): sales lead -- unless the sale is
      socks. Foot socks and fin socks are minor accessories; a markdown on
@@ -9601,6 +9684,10 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
+      if (cheapFirst){
+        const pa = priceNum(a), pb = priceNum(b);
+        if (pa !== pb) return pa - pb;
+      }
       return (toyRank(a) - toyRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
   const picks = sale.slice(0, CATEGORY_RAIL_SALE);
@@ -9615,6 +9702,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      rail before consoles and toy-grade boards do. */
   const fillPool = (toyRankFn && Array.isArray(fillPoolBase))
     ? [...fillPoolBase].sort((a, b) => toyRank(a) - toyRank(b))
+    : (cheapFirst && Array.isArray(fillPoolBase))
+    ? [...fillPoolBase].sort((a, b) => priceNum(a) - priceNum(b))
     : fillPoolBase;
   if (picks.length < max && Array.isArray(fillPool)){
     for (const it of fillPool){
@@ -9789,6 +9878,9 @@ const CATEGORY_RAILS = [
   { key: 'shoes', label: 'Zapatos', icon: '', stores: null, poolOnly: true,
     blurb: 'Calzado de todas las tiendas.',
     test: (p) => isFootwear(p, p.retailer),
+    /* CHEAP-FIRST (2026-09-29, Danny): the $20-30 eye-magnets lead the
+       Zapatos rail -- shoppers' eyes gravitate to cheap pairs. */
+    cheapFirst: true,
     open: "openCatalog('department','shoes')" },
   { key: 'home_goods', label: 'Hogar', icon: '', stores: null, poolOnly: true,
     blurb: 'Todo para tu casa, de todas las tiendas.',
@@ -10204,7 +10296,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
@@ -10359,8 +10451,24 @@ function mobileCatCardHTML(t, kind){
    counts over the fashion departments of the fashion retailers. Painted
    by initBrandStrip, called next to initStoreRails. */
 const BRAND_STRIP_DEPTS = ['clothing','men','women','kids','curvy','shoes','footwear','combat_sports','jewelry','purses'];
-const BRAND_STRIP_RETAILERS = ['victoriassecret','macys','footlocker','ssense','dicks','oldnavy','crocs','venum','everlast','tatami','combatcorner','mmawarehouse','fuji','baublebar','jwpei','meliebianco','statebags'];
-const BRAND_STRIP_MAX = 24;
+const BRAND_STRIP_RETAILERS = ['victoriassecret','macys','footlocker','ssense','dicks','oldnavy','crocs','venum','everlast','tatami','combatcorner','mmawarehouse','fuji','baublebar','jwpei','meliebianco','statebags','miumiu'];
+const BRAND_STRIP_MAX = 40;
+/* LUXURY LEAD (2026-09-29, Danny, FINAL): cream of the crop first.
+   These halo brands lead the strip in this exact order -- shoppers hunt
+   luxury by name, and leading with top-tier designers makes the whole
+   site feel premium from the first tile. Keys verified against the real
+   catalogue 2026-09-29 (counts: miumiu 2271, poloralphlauren 81,
+   givenchy 42, yvessaintlaurent 39, dior 37, burberry 37, valentino 35,
+   gucci 22, balenciaga 22, prada 16, armanibeauty 13, chanel 12,
+   versace 7, hermes 7, goldengoose 4). Fendi / Tiffany / Cartier are
+   true zeros -- never pinned, never faked. */
+const BRAND_STRIP_LUXURY = ['miumiu','goldengoose','gucci','poloralphlauren','givenchy','yvessaintlaurent','burberry','dior','valentino','balenciaga','prada','armanibeauty','chanel','versace','hermes'];
+const BRAND_STRIP_LUXURY_LABELS = { miumiu:'Miu Miu', goldengoose:'Golden Goose', gucci:'Gucci', poloralphlauren:'Ralph Lauren', givenchy:'Givenchy', yvessaintlaurent:'Saint Laurent', burberry:'Burberry', dior:'Dior', valentino:'Valentino', balenciaga:'Balenciaga', prada:'Prada', armanibeauty:'Armani', chanel:'Chanel', versace:'Versace', hermes:'Herm\u00e8s' };
+/* LATINO DESIGNERS (2026-09-29, Danny): the five Disenadores Latinos
+   marques get dual placement -- their own section AND the brand strip,
+   right after the luxury block, so shoppers can find and support them. */
+const BRAND_STRIP_LATINO = ['farmrio','johannaortiz','aguabendita','silviatcherassi','patbo'];
+const BRAND_STRIP_LATINO_LABELS = { farmrio:'Farm Rio', johannaortiz:'Johanna Ortiz', aguabendita:'Agua Bendita', silviatcherassi:'Silvia Tcherassi', patbo:'PatBO' };
 function brandStripBrands(){
   const data = departmentCacheData?.retailers || {};
   const counts = new Map();
@@ -10379,7 +10487,35 @@ function brandStripBrands(){
       else counts.set(key, { key, label: String(bucket.label || key), count: n });
     }
   }
-  return [...counts.values()].sort((a, b) => b.count - a.count).slice(0, BRAND_STRIP_MAX);
+  /* Luxury injection: the halo brands mostly live outside the fashion
+     pool (fragrances in beauty/ulta, fashion in ssense) -- scan every
+     retailer's every department so each pinned brand carries its real
+     count. A brand with zero products is never added (no dead tiles). */
+  for (const key of [...BRAND_STRIP_LUXURY, ...BRAND_STRIP_LATINO]){
+    if (counts.has(key)) continue;
+    let n = 0, label = (BRAND_STRIP_LUXURY_LABELS[key] || BRAND_STRIP_LATINO_LABELS[key]) || key;
+    for (const rd of Object.values(data)){
+      for (const bucket of Object.values(rd?.departments || {})){
+        for (const raw of bucket?.items || []){
+          if (!raw || typeof raw !== 'object') continue;
+          if (brandKeyOf(raw.brand) !== key) continue;
+          n++;
+          const lb = String(raw.brand || '').trim();
+          if (lb && !((BRAND_STRIP_LUXURY_LABELS[key] || BRAND_STRIP_LATINO_LABELS[key]))) label = lb;
+        }
+      }
+    }
+    if (n > 0) counts.set(key, { key, label, count: n });
+  }
+  const sorted = [...counts.values()].sort((a, b) => b.count - a.count);
+  const pinOrder = [...BRAND_STRIP_LUXURY, ...BRAND_STRIP_LATINO];
+  const pinned = [];
+  const rest = [];
+  for (const b of sorted){
+    (pinOrder.indexOf(b.key) !== -1 ? pinned : rest).push(b);
+  }
+  pinned.sort((a, b) => pinOrder.indexOf(a.key) - pinOrder.indexOf(b.key));
+  return [...pinned, ...rest].slice(0, BRAND_STRIP_MAX);
 }
 /* BRAND STRIP LOGOS (2026-09-26). Official logo SVGs in logos/brands/,
    keyed by brandKeyOf(label). `dark: true` tiles get a dark plaque because
@@ -10438,6 +10574,31 @@ const BRAND_LOGOS = {
   rickowensdrkshdw: { src: 'logos/brands/rickowensdrkshdw.png' },
   luudan: { src: 'logos/brands/luudan.svg' },
   incinternationalconcepts: { src: 'logos/brands/incinternationalconcepts.png', dark: true },
+  /* 2026-09-29, fourth wave: official marks for the strip's remaining
+     text-only tiles (all sourced free: Wikimedia Commons + brand sites). */
+  baublebar: { src: 'logos/brands/baublebar.png' },
+  jwpei: { src: 'logos/brands/jwpei.png' },
+  crocs: { src: 'logos/brands/crocs.svg' },
+  venum: { src: 'logos/brands/venum.png', dark: true },
+  meliebianco: { src: 'logos/brands/meliebianco.png' },
+  tatamifightwear: { src: 'logos/brands/tatamifightwear.svg' },
+  everlast: { src: 'logos/brands/everlast.svg' },
+  apc: { src: 'logos/brands/apc.svg' },
+  goldengoose: { src: 'logos/brands/goldengoose.svg' },
+  /* 2026-09-29, fifth wave: halo luxury marques for Danny's luxury-lead
+     strip (all Wikimedia Commons SVGs, visually verified). Hermes has no
+     clean published mark -- stays an honest text tile. */
+  gucci: { src: 'logos/brands/gucci.svg' },
+  chanel: { src: 'logos/brands/chanel.svg' },
+  dior: { src: 'logos/brands/dior.svg' },
+  prada: { src: 'logos/brands/prada.svg' },
+  versace: { src: 'logos/brands/versace.svg' },
+  valentino: { src: 'logos/brands/valentino.svg' },
+  burberry: { src: 'logos/brands/burberry.svg' },
+  givenchy: { src: 'logos/brands/givenchy.svg' },
+  balenciaga: { src: 'logos/brands/balenciaga.svg' },
+  armanibeauty: { src: 'logos/brands/emporioarmani.svg' },
+  yvessaintlaurent: { src: 'logos/brands/saintlaurent.svg' },
 };
 function brandStripTileHTML(b){
   const logo = BRAND_LOGOS[b.key];
@@ -16429,8 +16590,8 @@ const RETAILERS = {
      browse: true, search: false. farfetch-catalog.json (Latino designer
      pull: Farm Rio, Agua Bendita, Johanna Ortiz, Silvia Tcherassi, PatBO)
      is committed at repo root. Surfaces through the Disenadores Latinos
-     department, not as a standalone store row. */
-  farfetch:        { key: 'farfetch',        label: 'Farfetch',        color: '#000000', tagline: 'Disenadores latinos — Farm Rio, Johanna Ortiz y mas', kind: 'general', search: false, browse: true },
+     department AND as a standalone store rail (2026-09-29, Danny). */
+  farfetch:        { key: 'farfetch',        label: 'Farfetch',        color: '#000000', logo: 'logos/farfetch.svg', tagline: 'Disenadores latinos — Farm Rio, Johanna Ortiz y mas', kind: 'general', search: false, browse: true },
 };
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
@@ -23613,19 +23774,40 @@ async function runSalesScan(){
      browser's own fileBackedDeals() logic against the committed
      catalogues. One ~5MB fetch instead of downloading ~90MB of catalogues
      and normalizing ~70k items on the shopper's main thread — which froze
-     the tab outright (2026-09-28). */
+     the tab outright (2026-09-28).
+     PERF (2026-09-29): boot reads the 650KB lite head
+     (ofertas-feed-lite.json, first 800 items, built by
+     scripts/build-ofertas-lite.mjs) so the rail paints ~7x faster on a
+     phone; the full feed merges in on idle below. */
   let fromFiles = [];
   let feedGeneratedAt = null;
+  let feedIsLite = false;
+  let scraped = [];
   try {
-    const res = await fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS);
+    const res = await fetchWithTimeout('/ofertas-feed-lite.json', FETCH_DEADLINE_MS);
     if (res.ok){
       const feed = await res.json();
       if (Array.isArray(feed.items)){
         fromFiles = feed.items;
         feedGeneratedAt = feed.generatedAt || null;
+        feedIsLite = !!feed.lite;
       }
     }
-  } catch { /* fall through to the cache/empty state below */ }
+  } catch { /* fall through to the full feed below */ }
+  if (!fromFiles.length){
+    /* The lite file is missing or unreadable: read the full feed
+       directly so the page never renders empty for a build slip. */
+    try {
+      const res = await fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS);
+      if (res.ok){
+        const feed = await res.json();
+        if (Array.isArray(feed.items)){
+          fromFiles = feed.items;
+          feedGeneratedAt = feed.generatedAt || null;
+        }
+      }
+    } catch { /* fall through to the cache/empty state below */ }
+  }
 
   // 1. Cache first — a visitor should never wait on a full live scrape
   //    when a real, recent scan already exists.
@@ -23636,7 +23818,7 @@ async function runSalesScan(){
   } catch { /* fall through to the empty state below */ }
 
   if (cached?.items?.length){
-    const scraped = (cached.items || []).map(refreshCachedWeight);
+    scraped = (cached.items || []).map(refreshCachedWeight);
     // One feed. The tier a store sits in on Tiendas has no say here:
     // an SSENSE markdown competes on the same row as a Walmart one.
     saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
@@ -23656,15 +23838,53 @@ async function runSalesScan(){
     salesStaleNote = '';
     renderSalesGrid();
   }
+  /* The full feed merges in on idle: same items, same order, just the
+     ~4.8MB the lite head skipped. Deduped by retailer::title, then one
+     repaint -- only when there is actually something new to show. */
+  let fullFeedMerged = false;
+  const mergeFullFeed = async () => {
+    if (!feedIsLite || fullFeedMerged) return;
+    fullFeedMerged = true;
+    try {
+      const res = await fetchWithTimeout('/ofertas-feed.json', FETCH_DEADLINE_MS);
+      if (!res.ok) return;
+      const feed = await res.json();
+      if (!Array.isArray(feed.items)) return;
+      const seen = new Set(fromFiles.map(p => `${p.retailer || ''}::${p.title || ''}`));
+      let added = false;
+      for (const p of feed.items){
+        const k = `${p.retailer || ''}::${p.title || ''}`;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        fromFiles.push(p);
+        added = true;
+      }
+      if (!added) return;
+      saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
+      renderSalesGrid();
+      try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
+    } catch { /* the lite feed stands on its own */ }
+  };
+  if (typeof requestIdleCallback === 'function') requestIdleCallback(() => { mergeFullFeed().catch(() => {}); }, { timeout: 20000 });
+  else setTimeout(() => { mergeFullFeed().catch(() => {}); }, 10000);
   /* The catalogue's own markdowns join the feed once it arrives -- on
      idle, never at boot: the fast paint above is the whole point, and a
      fresh API cache already carries these deals. The same idle pass
      finishes loading the catalogue behind the shelves, so search and
      the deeper sections find it warm. One extra paint, only when there
-     is something new to show. */
+     is something new to show.
+     PERF (2026-09-29): Safari has no requestIdleCallback, so the old
+     setTimeout(8000) fallback fired the ~90MB full-catalogue download on
+     every iPhone 8s after boot -- saturating the radio and stalling
+     main-thread JSON.parse. Mobile warms the catalogue on demand
+     (search, categories and store pages all fetch what they need); the
+     automatic enrich stays a desktop behaviour. */
   const enrichSoon = () => { enrichSalesFromCatalog().catch(() => {}); };
-  if (typeof requestIdleCallback === 'function') requestIdleCallback(enrichSoon, { timeout: 15000 });
-  else setTimeout(enrichSoon, 8000);
+  const isMobileWidth = window.matchMedia && window.matchMedia('(max-width: 1023px)').matches;
+  if (!isMobileWidth){
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(enrichSoon, { timeout: 15000 });
+    else setTimeout(enrichSoon, 8000);
+  }
 }
 
 /* File-backed deals, folded in after the fast paint. fileBackedDeals()

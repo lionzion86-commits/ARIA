@@ -911,6 +911,19 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* FARFETCH (2026-09-29, Danny): the Latino-designer source becomes a
+     proper store rail, sale-first. Mirrors index.html. */
+  farfetch: {
+    key: "farfetch",
+    label: "Farfetch",
+    color: "#000000",
+    logo: "logos/farfetch.svg",
+    tagline: "Disenadores latinos — Farm Rio, Johanna Ortiz y mas",
+    kind: "general",
+    tier: "luxury",
+    search: false,
+    browse: true,
+  },
   miumiu: {
     key: "miumiu",
     label: "Miu Miu",
