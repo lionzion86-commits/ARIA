@@ -10851,8 +10851,9 @@ function itemsInSubcategory(items, key){
 
    Classification is keyword-driven off the title (Spanish + English).
    A product may belong to more than one discipline: boxing gloves
-   serve Muay Thai too (Danny), headgear and mouthguards serve all
-   three striking disciplines. Anything the keywords do not catch --
+   serve Muay Thai and MMA too (Danny 2026-09-28), shin guards serve
+   Muay Thai and MMA, headgear and mouthguards serve all three
+   striking disciplines. Anything the keywords do not catch --
    gym apparel, bags, accessories -- stays visible under Todo; the
    pills never hide products.
    ============================================================ */
@@ -10879,12 +10880,12 @@ function fightClubCategoriesOfItem(item){
   if (wb(/\bspats?\b/)) cats.add('jiujitsu');
   if (wb(/\bbjj\b/) || t.includes('jiu jitsu') || t.includes('jiu-jitsu')) cats.add('jiujitsu');
   if (wb(/\bbelts?\b/) && !t.includes('weight')) cats.add('jiujitsu');
-  /* Gloves: shared between Boxeo and Muay Thai unless MMA-specific. */
+  /* Gloves: shared across the striking disciplines unless MMA-specific. */
   const isGlove = wb(/\bgloves?\b/) || wb(/\bmitts?\b/);
   const isMMAglove = isGlove && (cats.has('mma') || t.includes('hybrid') || t.includes('grappling') || /\b4\s?oz\b/.test(t));
   if (isGlove){
     if (isMMAglove) cats.add('mma');
-    else { cats.add('boxeo'); cats.add('muaythai'); }
+    else { cats.add('boxeo'); cats.add('muaythai'); cats.add('mma'); }
   } else if (t.includes('grappling')) cats.add('jiujitsu');
   /* Boxeo gear. */
   if (t.includes('boxing') || t.includes('boxeo')) cats.add('boxeo');
@@ -10895,8 +10896,8 @@ function fightClubCategoriesOfItem(item){
   if (t.includes('thai pad') || t.includes('kick pad') || t.includes('thigh pad')) cats.add('muaythai');
   if (t.includes('focus mitt') || t.includes('punch mitt')){ cats.add('boxeo'); cats.add('muaythai'); }
   if (t.includes('paddle')){ cats.add('boxeo'); cats.add('muaythai'); }
-  /* Muay Thai: shin guards. */
-  if (t.includes('shin guard') || t.includes('canillera') || t.includes('espinillera')) cats.add('muaythai');
+  /* Shin guards: Muay Thai's signature, and MMA fighters train in them too (Danny 2026-09-28). */
+  if (t.includes('shin guard') || t.includes('canillera') || t.includes('espinillera')){ cats.add('muaythai'); cats.add('mma'); }
   /* Protective shared across the striking disciplines. */
   if (t.includes('headgear') || t.includes('head gear') || t.includes('head guard')){ cats.add('boxeo'); cats.add('muaythai'); cats.add('mma'); }
   if (t.includes('mouthguard') || t.includes('mouth guard') || t.includes('bucal')){ cats.add('boxeo'); cats.add('muaythai'); cats.add('mma'); }
