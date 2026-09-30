@@ -12978,6 +12978,40 @@ function carouselPickItems(items, max, leadRank){
   }
   return merchandised(deduped).slice(0, limit);
 }
+/* CURATED DESTACADOS (Danny 2026-09-30): Destacados must be intentional, not leftovers.
+   One best sale per category: highest honest discount (5-70% via isSaleItem, under $150),
+   must have a real photo. Sorted by discount desc — biggest savings first, category-diverse
+   by construction. If a category has no qualifying sale, it's skipped. */
+function curatedDestacadosPicks(deptEntries, max){
+  const picks = [];
+  for (const [key, items] of (deptEntries || [])){
+    if (!Array.isArray(items) || !items.length) continue;
+    let best = null;
+    let bestPct = -1;
+    for (const it of items){
+      if (!it) continue;
+      /* Honest sale only: 5-70% discount, under $150 (isSaleItem, Danny 2026-09-30) */
+      if (typeof isSaleItem === 'function' && !isSaleItem(it)) continue;
+      /* Must have a real product photo — no placeholders in Destacados */
+      if (typeof carouselHasPhoto === 'function' && !carouselHasPhoto(it)) continue;
+      const pct = (typeof carouselDiscountPct === 'function') ? carouselDiscountPct(it) : 0;
+      if (pct > bestPct){
+        bestPct = pct;
+        best = it;
+      }
+    }
+    if (best) picks.push(best);
+  }
+  /* Biggest discounts first — but each category appears at most once */
+  picks.sort((a, b) => {
+    const pa = (typeof carouselDiscountPct === 'function') ? carouselDiscountPct(a) : 0;
+    const pb = (typeof carouselDiscountPct === 'function') ? carouselDiscountPct(b) : 0;
+    return pb - pa;
+  });
+  const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : 12;
+  return picks.slice(0, limit);
+}
+
 function carouselMixItems(deptEntries, max){
   const lists = (deptEntries || [])
     .map(([, items]) => (items || []).filter(Boolean))
@@ -14384,7 +14418,7 @@ async function openStore(retailer){
      big shelf (432 panties) does not eat the whole window. */
   document.getElementById('storeViewSections').innerHTML += storeCarouselHTML({
     id: 'storeRail', title: 'Destacados',
-    items: carouselMixItems(deptEntries, CAROUSEL_MAX), retailer,
+    items: curatedDestacadosPicks(deptEntries, CAROUSEL_MAX), retailer,
   });
   /* CATEGORY CAROUSELS (2026-09-30, Danny): Walmart and Target get
      merchandised shelves -- Ofertas, Moda Mujer, Zapatos, Deportes,
