@@ -1707,7 +1707,7 @@
          the Aria Auto banner breaks the scroll. Opens the designer
          department. -->
     <section aria-label="Diseñadores Latinos" class="ariaLatinoBanner relative overflow-hidden">
-      <img src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="lazy" decoding="async" onerror="this.remove()">
+      <img src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" class="ariaLatinoBannerImg" loading="${eager ? 'eager' : 'lazy'}" decoding="async" onerror="this.remove()">
       <div class="ariaLatinoBannerScrim" aria-hidden="true"></div>
       <div class="ariaLatinoBannerHair" aria-hidden="true"></div>
       <div class="relative px-5 sm:px-8 py-10 sm:py-12" style="z-index:1">
@@ -1768,8 +1768,9 @@
     <!-- ARIA LUXURY (2026-09-30, Danny): the luxury department. Distinctly premium backdrop
          (runway/boutique), gold accents. Inclusive luxury: the $27 purse belongs here
          just as much as the $782 one. -->
-    <section aria-label="Aria Luxury" data-aria-luxury class="relative overflow-hidden" style="background:#FFFFFF">
+    <div data-luxury-wrap class="relative overflow-hidden" style="background:#FFFFFF">
       <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/luxury/aria-luxury-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+    <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="relative px-5 pt-6 pb-1">
         <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Aria Luxury</h2>
@@ -1780,7 +1781,7 @@
     <!-- BOLSOS (2026-09-28, Danny): handbags from every brand in the mall -- Walmart to designer --
          in one swipeable rail, right under "Aria Luxury". Painted by initBolsosRail();
          an empty rail hides its section instead of showing a shelf with nothing on it. -->
-    <section aria-label="Bolsos" data-bolsos-section class="relative overflow-hidden" style="background:#FFFFFF">
+    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
         <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
@@ -1791,6 +1792,31 @@
     <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): fine jewelry in the Aria Luxury department.
          Five style rails, NEVER mixed: Elegante, Punk rocker, Otaku, Edgy, Boho/Hippie.
          Painted by initJoyasRails(); an empty style rail hides itself. -->
+    <!-- JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry ONLY in Aria Luxury.
+         Exceptional pieces from the luxury houses -- Miu Miu, Cartier, etc.
+         The affordable BaubleBar styles live in the standalone
+         "Joyas y accesorios" department below. Painted by initJoyasLujoRail(). -->
+    <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas de lujo</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
+      </div>
+      <div id="mJoyasLujoRail" data-joyas-lujo-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+<!-- MODA DE DISEÑADOR (2026-09-30, Danny): high-end fashion in Aria Luxury.
+         Designer clothes from the houses in this section -- Miu Miu, Gucci,
+         Saint Laurent, Dior, Valentino, Balenciaga, Prada. Mostly women's.
+         Painted by initModaRail(). -->
+    <section aria-label="Moda de dise\u00f1ador" data-moda-section class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de dise\u00f1ador</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Alta moda de las casas m\u00e1s exclusivas.</p>
+      </div>
+      <div id="mModaRail" data-moda-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+</div>
     <section aria-label="Joyas y accesorios" data-joyas-section class="relative overflow-hidden" style="background:#FFFFFF">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
@@ -2202,8 +2228,9 @@
     </section>
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
          ARIA LUXURY (2026-09-30, Danny): renamed, premium backdrop. -->
-    <section aria-label="Aria Luxury" data-aria-luxury class="relative overflow-hidden" style="background:#FFFFFF">
+    <div data-luxury-wrap-desktop class="relative overflow-hidden" style="background:#FFFFFF">
       <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/luxury/aria-luxury-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+    <section aria-label="Aria Luxury" data-aria-luxury class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="relative max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
@@ -2215,7 +2242,7 @@
     </section>
 
     <!-- BOLSOS (desktop, 2026-09-28, Danny): same handbag rail as the phone's. -->
-    <section aria-label="Bolsos" data-bolsos-section class="relative overflow-hidden" style="background:#F7F9FD">
+    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
         <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
@@ -2224,6 +2251,7 @@
       <div id="dBolsosRail" data-bolsos-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
       </div>
     </section>
+</div>
 
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
          catalogue plus the warehouse clubs' party aisles, as four sub-rails:
@@ -6361,7 +6389,24 @@ function fetchCatalogPart(url){
         /* Merge on arrival: whatever is in hand is shoppable, the rest
            keeps streaming. departmentCacheData is the one canonical
            object; every reader looks at its .retailers live. */
-        Object.assign(departmentCacheData.retailers, env?.retailers || {});
+        /* DEEP MERGE (2026-09-30, Danny): two catalog files can carry the same
+           retailer key (jewelry-catalog.json and baublebar-catalog.json both
+           use 'baublebar'). A shallow Object.assign lets whichever file loads
+           last wipe the other's departments -- a race that emptied the Joyas
+           rails. Merge at the departments level instead. */
+        for (const [rkey, bucket] of Object.entries(env?.retailers || {})){
+          const existing = departmentCacheData.retailers[rkey];
+          if (existing && bucket && typeof bucket === 'object' &&
+              bucket.departments && typeof bucket.departments === 'object' &&
+              existing.departments && typeof existing.departments === 'object'){
+            existing.departments = Object.assign({}, existing.departments, bucket.departments);
+            for (const k of Object.keys(bucket)){
+              if (k !== 'departments') existing[k] = bucket[k];
+            }
+          } else {
+            departmentCacheData.retailers[rkey] = bucket;
+          }
+        }
         return env;
       })
       .catch(() => null));
@@ -8356,7 +8401,7 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
   </div>`;
 }
 
-function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '' } = {}){
+function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '', eager = false } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
   return src
     ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
@@ -8748,7 +8793,7 @@ function railCardHTML(p, onclick, attr, opts){
     class="flex-shrink-0 w-[172px] text-left rounded-2xl overflow-hidden focus-ring"
     style="background:${dark ? '#1a2744' : '#fff'}">
     <span class="relative block w-full h-[172px] overflow-hidden" style="background:#fff">
-      ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) })}
+      ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image), eager: true })}
       ${hasOriginal ? `<span class="absolute top-2 left-2 text-[13px] font-extrabold px-2 py-1 rounded-full"
         style="background:#F4C463; color:var(--navy)">-${pct}%</span>` : ''}
     </span>
@@ -10403,6 +10448,12 @@ const CATEGORY_RAILS = [
     blurb: 'El talento latino, sin salir de casa. Disenadores de Brasil y Colombia, comprados en Estados Unidos y entregados en Peru.',
     test: (p) => latinoDesignerOfItem(p) !== null,
     open: "openCatalog('department','latino_designers')" },
+  /* JOYAS Y ACCESORIOS (2026-09-30, Danny): standalone affordable-jewelry
+     department. NOT part of Aria Luxury (which has "Joyas de lujo"). */
+  { key: 'joyas_accesorios', label: 'Joyas y accesorios', icon: '', stores: null, poolOnly: true,
+    blurb: 'Piezas para cada estilo, del delicado al audaz.',
+    test: (p) => isJoyasItem(p),
+    open: "openCatalog('department','joyas_accesorios')" },
   { key: 'women', label: 'Moda Mujer', icon: '', stores: null, poolOnly: true,
     blurb: 'Moda de mujer, de todas las tiendas.',
     test: (p) => railBucketCategoryIs(p, 'apparel') && railBucketGenderIs(p, 'women'),
@@ -11788,6 +11839,166 @@ function openJoyasProduct(styleKey, idx){
   if (p && typeof openProduct === 'function') openProduct(p);
 }
 window.addEventListener('DOMContentLoaded', initJoyasRails);
+/* JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry ONLY for Aria Luxury.
+   Exceptional pieces from the luxury houses -- Miu Miu, Cartier, etc.
+   Affordable BaubleBar styles live in the standalone "Joyas y accesorios"
+   department, never here. */
+const JEWELRY_TYPE_RX = /\bjewelry\b/i;
+const JEWELRY_NAME_RX = /\b(earring|necklace|bracelet|ring|brooch|pendant|arete|collar|pulsera|anillo|joya)s?\b/i;
+let joyasLujoStarted = false;
+let joyasLujoRendered = [];
+function joyasLujoPicks(cache){
+  const retailers = cache?.retailers || {};
+  const seen = new Set();
+  const picks = [];
+  for (const retailer of Object.keys(retailers)){
+    if (retailer === 'baublebar') continue;
+    const departments = retailers[retailer]?.departments || {};
+    for (const [deptName, bucket] of Object.entries(departments)){
+      for (const raw of bucket?.items || []){
+        if (!notQuarantined(raw)) continue;
+        if (!isLuxuryItem(raw, retailer)) continue;
+        const t = String(raw.type || '');
+        const name = String(raw.title || raw.name || '');
+        if (!(JEWELRY_TYPE_RX.test(t) || JEWELRY_NAME_RX.test(name))) continue;
+        if (typeof bolsosIsHandbag === 'function' && bolsosIsHandbag(raw, deptName)) continue;
+        let it = null;
+        try { it = normalizeLiveItem(raw, { retailer }); } catch { continue; }
+        if (!it || !it.title) continue;
+        const k = retailer + '::' + it.title;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        if (!Number.isFinite(Number(it.price)) || Number(it.price) <= 0 || !it.image) continue;
+        picks.push({ ...it, retailer });
+      }
+    }
+  }
+  const disc = p => {
+    const o = Number(p.originalPrice), n = Number(p.price);
+    return (o > n) ? (o - n) / o : 0;
+  };
+  picks.sort((a, b) => disc(b) - disc(a) || Number(b.price) - Number(a.price));
+  return picks.slice(0, 48);
+}
+function initJoyasLujoRail(){
+  if (joyasLujoStarted) return;
+  const rows = [...document.querySelectorAll('[data-joyas-lujo-rail]')];
+  if (!rows.length) return;
+  joyasLujoStarted = true;
+  const loadAndPaint = async () => {
+    try {
+      const cache = await loadDepartmentCache();
+      joyasLujoRendered = joyasLujoPicks(cache);
+      if (!joyasLujoRendered.length){
+        document.querySelectorAll('[data-joyas-lujo-section]').forEach(sec => { sec.hidden = true; });
+        return;
+      }
+      for (const row of rows){
+        row.innerHTML = joyasLujoRendered.map((p, i) => railCardHTML(p,
+          `openJoyasLujoProduct(${i})`,
+          `data-joyas-lujo-card="${i}"`)).join('');
+      }
+    } catch { /* failed cache leaves headers standing */ }
+  };
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
+    }, { rootMargin: '1000px 0px' });
+    rows.forEach(r => io.observe(r));
+  } else {
+    loadAndPaint();
+  }
+}
+function openJoyasLujoProduct(idx){
+  const p = joyasLujoRendered[idx];
+  if (p && typeof openProduct === 'function') openProduct(p);
+}
+window.addEventListener('DOMContentLoaded', initJoyasLujoRail);
+
+/* MODA DE DISENADOR (2026-09-30, Danny): high-end fashion for Aria Luxury.
+   Designer clothes from the luxury houses in this section. Mostly women's.
+   Bags, shoes and jewelry have their own rails -- this is clothing only. */
+const MODA_TYPE_RX = /\b(ready_to_wear|clothing|apparel|dress|gown|top|blouse|pants|skirt|jacket|coat|knitwear|sweater)\b/i;
+let modaStarted = false;
+let modaRendered = [];
+function modaPicks(cache){
+  const retailers = cache?.retailers || {};
+  const seen = new Set();
+  const picks = [];
+  for (const retailer of Object.keys(retailers)){
+    if (retailer === 'baublebar') continue;
+    const departments = retailers[retailer]?.departments || {};
+    for (const [deptName, bucket] of Object.entries(departments)){
+      for (const raw of bucket?.items || []){
+        if (!notQuarantined(raw)) continue;
+        if (!isLuxuryItem(raw, retailer)) continue;
+        const t = String(raw.type || '');
+        const name = String(raw.title || raw.name || '');
+        const isClothing = MODA_TYPE_RX.test(t) || (typeof isWomenFashionItem === 'function' && isWomenFashionItem(raw));
+        if (!isClothing) continue;
+        if (typeof bolsosIsHandbag === 'function' && bolsosIsHandbag(raw, deptName)) continue;
+        if (typeof isShoeItem === 'function' && isShoeItem(raw)) continue;
+        if (JEWELRY_TYPE_RX.test(t) || JEWELRY_NAME_RX.test(name)) continue;
+        let it = null;
+        try { it = normalizeLiveItem(raw, { retailer }); } catch { continue; }
+        if (!it || !it.title) continue;
+        const k = retailer + '::' + it.title;
+        if (seen.has(k)) continue;
+        seen.add(k);
+        if (!Number.isFinite(Number(it.price)) || Number(it.price) <= 0 || !it.image) continue;
+        picks.push({ ...it, retailer });
+      }
+    }
+  }
+  const disc = p => {
+    const o = Number(p.originalPrice), n = Number(p.price);
+    return (o > n) ? (o - n) / o : 0;
+  };
+  picks.sort((a, b) => disc(b) - disc(a) || Number(b.price) - Number(a.price));
+  return picks.slice(0, 48);
+}
+function initModaRail(){
+  if (modaStarted) return;
+  const rows = [...document.querySelectorAll('[data-moda-rail]')];
+  if (!rows.length) return;
+  modaStarted = true;
+  const loadAndPaint = async () => {
+    try {
+      const cache = await loadDepartmentCache();
+      modaRendered = modaPicks(cache);
+      if (!modaRendered.length){
+        document.querySelectorAll('[data-moda-section]').forEach(sec => { sec.hidden = true; });
+        return;
+      }
+      for (const row of rows){
+        row.innerHTML = modaRendered.map((p, i) => railCardHTML(p,
+          `openModaProduct(${i})`,
+          `data-moda-card="${i}"`)).join('');
+      }
+    } catch { /* failed cache leaves headers standing */ }
+  };
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
+    }, { rootMargin: '1000px 0px' });
+    rows.forEach(r => io.observe(r));
+  } else {
+    loadAndPaint();
+  }
+}
+function openModaProduct(idx){
+  const p = modaRendered[idx];
+  if (p && typeof openProduct === 'function') openProduct(p);
+}
+window.addEventListener('DOMContentLoaded', initModaRail);
+
+/* JOYAS Y ACCESORIOS department test (2026-09-30, Danny): the affordable
+   jewelry department -- BaubleBar styles. Luxury houses stay in Aria Luxury. */
+function isJoyasItem(p){
+  if (!p || typeof p !== 'object') return false;
+  return String(p.retailer || '').toLowerCase() === 'baublebar';
+}
+
 
 
 /* Fiestas' door on the Categorías row: the same card chassis as the
