@@ -7545,7 +7545,7 @@ function spearGearChipsHTML(grouped){
   const chip = (isOn, label, count, onclick) => `
     <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
-      <span>${label}</span>${count == null ? ' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}</button>`;
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}</button>`;
   return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4" role="radiogroup" aria-label="Tipo de equipo">
     ${chip(isAll, 'Todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
     ${grouped.rows.map(r => chip(active === r.key, escapeHtml(r.label), r.count, `setCatalogSub('${jsAttr(r.key)}')`)).join('')}
@@ -8198,7 +8198,7 @@ const CATEGORY_SHELL_CLASS = 'group bg-white rounded-2xl overflow-hidden h-full 
    window instead, so it is generous on a phone and a letterbox on a
    desktop. */
 function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null, round = true }){
-  const sizing = heightClass ? ' : `aspect-ratio:${aspect}; `;
+  const sizing = heightClass ? '' : `aspect-ratio:${aspect}; `;
   /* THE ROUNDING MOVED HERE WITH THE WHITE. The shell used to be a
      rounded, clipping box and the photo simply filled it; with the card
      gone the photo field is the only thing left to round, and it has to
@@ -12045,7 +12045,7 @@ function fightClubChipsHTML(grouped){
   const chip = (isOn, label, count, onclick) => `
     <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
-      <span>${label}</span>${count == null ? ' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
     </button>`;
   return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4" role="radiogroup" aria-label="Disciplina">
     ${chip(isAll, 'Todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
@@ -12213,7 +12213,7 @@ function latinoDesignerChipsHTML(grouped){
   const chip = (isOn, label, count, onclick) => `
     <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
-      <span>${label}</span>${count == null ? ' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
     </button>`;
   return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4" role="radiogroup" aria-label="Disenador">
     ${chip(isAll, 'Todo', grouped.total, `setCatalogSub('${SUB_ALL}')`)}
@@ -12988,7 +12988,7 @@ function catalogAisleChipsHTML(grouped){
   const chip = (isOn, label, count, onclick) => `
     <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
-      <span>${label}</span>${count == null ? ' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
     </button>`;
   return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
     ${chip(false, '&#8592; Categorías', null, 'setCatalogSub(null)')}
@@ -19586,7 +19586,7 @@ function budgetChipsHTML(items, activeKey, onclickFor){
   const chip = (isOn, label, count, onclick) => `
     <button onclick="${onclick}" aria-pressed="${isOn}" class="h-9 px-3.5 rounded-full border text-[12.5px] font-bold inline-flex items-center gap-2 focus-ring transition flex-shrink-0"
       style="border-color:${isOn ? 'var(--navy)' : 'var(--line)'}; background:${isOn ? 'var(--navy)' : '#fff'}; color:${isOn ? '#fff' : 'var(--navy)'}">
-      <span>${label}</span>${count == null ? ' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
+      <span>${label}</span>${count == null ? '' : `<span class="tabular font-semibold" style="opacity:.65">${count}</span>`}
     </button>`;
   return `<div class="themeChips flex gap-2 overflow-x-auto no-scrollbar pb-1 mb-4">
     <span class="chipLabel text-[12px] font-bold self-center flex-shrink-0 pr-1" style="color:#6B7487">Presupuesto</span>
@@ -21880,7 +21880,7 @@ function renderAutoPartBlock(label, result, query, sourceKey){
     <p class="text-[11.5px] mb-3" style="color:${hasData ? '#8A93A8' : '#8A6B1F'}">${scopeLine}</p>
     ${selector}
     <div class="ariaCarousel">${cards}</div>
-    ${hasData ? ' : `<div class="mt-4">
+    ${hasData ? '' : `<div class="mt-4">
       <button onclick="askAriaForPart('${jsAttr(vehicleLabel(vehicle))}', '${jsAttr(query)}')" class="h-10 px-4 rounded-full border text-[13px] font-bold focus-ring transition" style="border-color:var(--line); color:var(--navy)">
         ¿Prefieres que lo confirmemos nosotros? Escríbenos
       </button>
@@ -23436,7 +23436,7 @@ function addCrossSellToCart(idx){
      into a $0 line item. addToCart refuses and says so; all this has
      to do is not claim a success that did not happen. */
   if (!addToCart({ retailer: it.retailer, title: it.title, priceUsd: it.price, weightKg: it.weightKg,
-    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: ' })) return;
+    weightEstimated: it.weightEstimated !== false, image: it.image || '', selectedSize: '' })) return;
   showToast('Agregado al carrito.');
   renderCartView();
 }
@@ -23651,7 +23651,7 @@ function renderAdminShipping(){
             <div class="text-[11.5px] mt-0.5 leading-snug" style="color:#6B7487">${shippingEsc(p.note || '')}</div>
           </div>
           <div class="flex items-center gap-2 flex-shrink-0">
-            ${p.isPrimary ? ' : `<button onclick="setShippingPrimary('${jsAttr(p.key)}')" class="h-8 px-3 rounded-full border text-[11.5px] font-bold focus-ring" style="border-color:var(--line)">Hacer primario</button>`}
+            ${p.isPrimary ? '' : `<button onclick="setShippingPrimary('${jsAttr(p.key)}')" class="h-8 px-3 rounded-full border text-[11.5px] font-bold focus-ring" style="border-color:var(--line)">Hacer primario</button>`}
             <button onclick="toggleShippingProvider('${jsAttr(p.key)}', ${p.enabled ? 'false' : 'true'})"
               class="h-8 px-3 rounded-full text-[11.5px] font-bold focus-ring ${p.enabled ? 'text-white' : 'border'}"
               style="${p.enabled ? 'background:#2E6B3E' : 'border-color:var(--line); color:#8A6B1F'}">
@@ -23724,7 +23724,7 @@ function shipmentRowHTML(s){
         <div class="flex flex-wrap gap-1.5 mt-2 justify-end">
           ${nextShippingStatuses(s.status).map(st => `
             <button onclick="adminAdvanceStatus('${jsAttr(s.shipmentId)}','${jsAttr(st)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line)">${shippingEsc(statusLabelEs(st))}</button>`).join('')}
-          ${isTerminalStatus(s.status) ? ' : `
+          ${isTerminalStatus(s.status) ? '' : `
             <button onclick="adminOverrideProvider('${jsAttr(s.shipmentId)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line)">Mover courier</button>
             <button onclick="adminCancelShipment('${jsAttr(s.shipmentId)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line); color:#C0392B">Cancelar</button>`}
           ${s.status === 'delivered' ? `<button onclick="adminConfirmDelivery('${jsAttr(s.shipmentId)}')" class="h-7 px-2.5 rounded-full border text-[11px] font-bold focus-ring" style="border-color:var(--line)">Ver confirmación</button>` : ''}
@@ -27883,6 +27883,10 @@ sweepFounderPhoto();
 initRouter();
 </script>
 <div data-netlify-deploy-id="6abcb225dbad37000830451e" data-netlify-site-id="f38a1e33-872d-4536-81ec-7fe2c249117e" data-vcs="github" style="position:fixed">
+  
+  <script async src="/.netlify/scripts/cdp"></script>
+</div>
+<div data-netlify-deploy-id="6abcb323cd98de00084baf7e" data-netlify-site-id="f38a1e33-872d-4536-81ec-7fe2c249117e" data-vcs="github" style="position:fixed">
   
   <script async src="/.netlify/scripts/cdp"></script>
 </div>
