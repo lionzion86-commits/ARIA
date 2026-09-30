@@ -14620,6 +14620,14 @@ function isShoeItem(it){
   if (NOT_FOOTWEAR_RX.test(name)) return false;
   return true;
 }
+function hasRealImage(it){
+  /* Danny 2026-09-30: no product without a real image. "Foto en camino" is not an image. */
+  const img = it.image || it.imageUrl || it.img;
+  if (!img || typeof img !== 'string') return false;
+  if (img.includes('foto-en-camino') || img.includes('placeholder') || img.includes('no-image')) return false;
+  return img.startsWith('http') && img.length > 20;
+}
+
 function isSaleItem(it){
   /* Danny 2026-09-30: Ofertas must show VISIBLE discounts. The onSale flag alone isn't enough —
      we need originalPrice to display the crossed-out price and % badge. No badge = not a deal. */
