@@ -11634,13 +11634,16 @@ function initMobileShopfront(){
   if (mobileShopfrontStarted) return;
   if (!document.getElementById('mobileDealsRow')) return;
   mobileShopfrontStarted = true;
+  window.__trace = function(m){ var d=document.getElementById('js-trace'); if(!d){ d=document.createElement('div'); d.id='js-trace'; d.style.cssText='position:fixed;bottom:0;left:0;right:0;background:#004;color:#fff;font:11px monospace;padding:8px;z-index:999999;white-space:pre-wrap;max-height:30vh;overflow:auto;'; document.documentElement.appendChild(d); } d.textContent += m+'\n'; };
+  __trace('initMobileShopfront started');
   /* Skeletons first: the page has a body before it has data. */
   try { paintRailSkeletons(); } catch (e) {}
   /* OFERTAS FIRST, then the store rails: the rails deprioritise what
      Ofertas already leads on, so they need its keys. */
+  __trace('calling runSalesScan');
   runSalesScan()
-    .then(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); })
-    .catch(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); });
+    .then(() => { __trace('runSalesScan resolved, saleItemsCache='+((typeof saleItemsCache!=='undefined'&&saleItemsCache)?saleItemsCache.length:'undef')); renderMobileDealsRail(); __trace('renderMobileDealsRail done'); initStoreRails(); __trace('initStoreRails done'); initBrandStrip(); })
+    .catch((e) => { __trace('runSalesScan REJECTED: '+(e&&e.message)); renderMobileDealsRail(); initStoreRails(); initBrandStrip(); });
   /* The idle enrich scheduled inside runSalesScan doubles as the
      background warm: it finishes loading the catalogue for search and
      the deeper shelves. Every source is fetched once and shared. */
