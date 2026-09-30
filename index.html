@@ -6475,7 +6475,7 @@ function catalogIconHTML(kind, key, label){
   return '<span class="w-full h-full grid place-items-center text-[20px] font-extrabold" style="background:var(--navy);color:#fff" aria-hidden="true">' + escapeHtml(ch) + '</span>';
 }
 function metaFor(map, key){
-  return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: ' };
+  return map[key] || { label: key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()), icon: '' };
 }
 /* ============================================================
    BRANDED ICON SET (2026-09-28, Danny: zero emojis site-wide).
