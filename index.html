@@ -1814,30 +1814,23 @@
     </section>
 </section>
     
-    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): fine jewelry in the Aria Luxury department.
-         Five style rails, NEVER mixed: Elegante, Punk rocker, Otaku, Edgy, Boho/Hippie.
-         Painted by initJoyasRails(); an empty style rail hides itself. -->
+    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
+         homepage -- every style interleaved on a single shelf, each card
+         carrying its style label. The expanded department gives every
+         jewelry brand its own carousel. Painted by initJoyasRails(). -->
     
 </div>
     <section aria-label="Joyas y accesorios" data-joyas-section class="relative overflow-hidden" style="background:#FFFFFF">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
-      <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas y accesorios</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas para cada estilo, del delicado al audaz.</p>
+      <div class="relative px-5 pt-6 pb-1 flex items-end justify-between gap-3">
+        <div class="min-w-0">
+          <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas y accesorios</h2>
+          <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas para cada estilo, del delicado al audaz.</p>
+        </div>
+        <button onclick="openCatalog('department','joyas_accesorios')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>
       </div>
       <div class="relative" data-joyas-rails>
-        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Elegante</h3></div>
-        <div data-joyas-rail="elegante" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
-        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Boho / Hippie</h3></div>
-        <div data-joyas-rail="boho_hippie" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
-        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Personalizado</h3></div>
-        <div data-joyas-rail="personalizado" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
-        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Otaku</h3></div>
-        <div data-joyas-rail="otaku" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
-        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Edgy</h3></div>
-        <div data-joyas-rail="edgy" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
-        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Punk rocker</h3></div>
-        <div data-joyas-rail="punk_rocker" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-1 ariaRail"></div>
+        <div data-joyas-rail="mixed" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
       </div>
     </section>
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
@@ -7127,6 +7120,10 @@ const DEPARTMENT_SPEC = {
      charms and accessories) file under a jewelry bucket. Own section,
      alongside Carteras — Danny's call. */
   jewelry:         { category: 'jewelry' },
+  /* JOYAS Y ACCESORIOS (2026-09-30, Danny): the affordable-jewelry
+     department -- BaubleBar (+ Melie Bianco charms and accessories).
+     A KIND OF ITEM answered per item by isJoyasItem, the Zapatos way. */
+  joyas_accesorios: { anyCategory: true, joyasOnly: true },
   /* CARTERAS (2026-09-27, Danny): purses are almost a category in
      themselves — own browsable section, own carousel. JW PEI, Melie
      Bianco and BaubleBar's totes file under a purses bucket. */
@@ -7959,6 +7956,7 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.latinoDesignersOnly) return latinoDesignerOfItem(item) !== null;
   if (dept.luxuryOnly) return isLuxuryItem(item, retailer);
+  if (dept.joyasOnly) return isJoyasItem(item);
   if (dept.partyOnly) return isParty(item, retailer, bucketName);
   if (dept.toysOnly) return isToyGradeSkate(item) || isToy(item, retailer, bucketName);
   /* GYM RAT CLAIMS GYM APPAREL FROM FIGHT CLUB (2026-09-27, Danny):
@@ -8127,8 +8125,15 @@ function departmentItemsFor(retailerData, kind, key, retailer){
          so the band travels on a copy of the item, and normalizeLiveItem
          carries it through to the sort. A copy, not a mutation: the cached
          raw objects are shared across departments. */
-      out.push(key === 'curvy' && raw && typeof raw === 'object'
-        ? { ...raw, curvyBand: curvyBandOf(raw, bucketName) }
+      /* JOYAS STYLE STAMP (2026-09-30, Danny): the style department travels
+         on a copy of the item -- downstream the feed is flattened, so the
+         card's style label reads it from the item itself. A copy, not a
+         mutation: the cached raw objects are shared across departments. */
+      const joyasStyle = key === 'joyas_accesorios' ? joyasStyleKeyOf(bucketName) : null;
+      out.push(raw && typeof raw === 'object' && (key === 'curvy' || joyasStyle)
+        ? { ...raw,
+            ...(key === 'curvy' ? { curvyBand: curvyBandOf(raw, bucketName) } : null),
+            ...(joyasStyle ? { joyasStyle } : null) }
         : raw);
     }
   }
@@ -8799,6 +8804,7 @@ function railCardHTML(p, onclick, attr, opts){
     <span class="block px-3 pt-2.5 pb-3">
       <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16, { dark })}</span>
       ${brandEyebrowHTML(p.brand, { tag: 'span', cls: 'block text-[10px] mb-0.5', color: ink })}
+      ${(opts && opts.styleLabel) ? `<span class="inline-block text-[9.5px] font-bold uppercase tracking-[0.08em] px-2 py-0.5 rounded-full mb-1.5" style="background:#F6F1E3;color:#8A6D1F;border:1px solid #E3D3A3">${escapeHtml(opts.styleLabel)}</span>` : ''}
       <span class="block text-[12.5px] font-bold leading-snug mb-1.5" style="color:${ink}; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden">${escapeHtml(p.title)}</span>
       <span class="block">
         <span class="flex items-baseline gap-1.5">
@@ -10825,6 +10831,21 @@ function jewelryThemeItems(items, theme){
   return out;
 }
 const JEWELRY_THEME_RAIL_MIN = 4;
+/* JOYAS STYLE LABELS (2026-09-30, Danny): every affordable-jewelry card
+   carries its style genre -- the BaubleBar catalog files each piece under
+   one of these six style departments. Cards show the label so the single
+   mixed homepage carousel still reads every genre. */
+const JOYAS_STYLE_LABELS = {
+  elegante: 'Elegante', boho_hippie: 'Boho', personalizado: 'Personalizado',
+  otaku: 'Otaku', edgy: 'Edgy', punk_rocker: 'Punk'
+};
+function joyasStyleKeyOf(bucketName){
+  const k = String(bucketName || '').toLowerCase();
+  return Object.prototype.hasOwnProperty.call(JOYAS_STYLE_LABELS, k) ? k : null;
+}
+function joyasStyleLabelOf(p){
+  return JOYAS_STYLE_LABELS[(p && p.joyasStyle) || ''] || null;
+}
 function jewelryDeptRailsHTML(items){
   const blocks = [];
   for (const theme of JEWELRY_THEMES){
@@ -10836,6 +10857,48 @@ function jewelryDeptRailsHTML(items){
       deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks));
   }
   return blocks.join('');
+}
+/* JOYAS Y ACCESORIOS EXPANDED (2026-09-30, Danny): the expanded
+   department gives every jewelry brand its own banner + carousel --
+   BaubleBar, Melie Bianco, and any brand that lands later. Each shelf is
+   sale-led through the same picker the category rails use, and every card
+   carries its style label so each brand shelf still reads every genre. A
+   brand with fewer than JOYAS_BRAND_RAIL_MIN items stands down rather
+   than showing a stub rail. */
+const JOYAS_BRAND_RAIL_MIN = 4;
+let joyasBrandRendered = {};
+function joyasBrandStorefrontsHTML(items){
+  const byBrand = new Map();
+  for (const it of items || []){
+    const b = String((it && it.brand) || '').trim() || 'BaubleBar';
+    if (!byBrand.has(b)) byBrand.set(b, []);
+    byBrand.get(b).push(it);
+  }
+  const blocks = [];
+  for (const [brand, aisle] of byBrand){
+    if (aisle.length < JOYAS_BRAND_RAIL_MIN) continue;
+    const picks = categoryRailPicks(['baublebar'], aisle, aisle, new Set(), CATEGORY_RAIL_TOTAL);
+    if (!picks.length) continue;
+    const railId = 'joyasbrand-' + brand.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    joyasBrandRendered[railId] = picks;
+    const cards = picks.map((p, i) => railCardHTML(p,
+      `openJoyasBrandProduct('${jsAttr(railId)}',${i})`,
+      `data-joyas-brand-card="${escapeHtml(railId)}" data-idx="${i}"`,
+      { styleLabel: joyasStyleLabelOf(p) })).join('');
+    blocks.push(`<section aria-label="${escapeHtml('Joyas ' + brand)}" class="mb-9">
+      <div class="flex items-center justify-between gap-3 mb-3">${deptMixedRailHeadHTML(brand, aisle.length + ' productos')}</div>
+      <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>
+    </section>`);
+  }
+  if (!blocks.length) return '';
+  return `<div class="mt-1 mb-6">
+    <h2 class="text-[20px] font-extrabold mb-4" style="letter-spacing:-0.02em;color:var(--navy)">Nuestras marcas</h2>
+    ${blocks.join('')}
+  </div>`;
+}
+function openJoyasBrandProduct(railId, idx){
+  const p = (joyasBrandRendered[railId] || [])[idx];
+  if (p && typeof openProduct === 'function') openProduct(p);
 }
 /* ARIA MOMS SUBCATEGORY CAROUSELS (2026-09-27, Danny): the moms
    department landing leads with one FULL carousel per subcategory --
@@ -11794,9 +11857,12 @@ function initBolsosRail(){
   loadAndPaint();
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
-/* JOYAS Y ACCESORIOS (2026-09-30, Danny): five style rails in the Aria Luxury
-   department, NEVER mixed. Each style gets its own rail from the BaubleBar
-   catalog departments. An empty style rail hides itself. */
+/* JOYAS Y ACCESORIOS (2026-09-30, Danny): ONE mixed carousel on the
+   homepage. Every style (Elegante, Boho, Personalizado, Otaku, Edgy, Punk)
+   is picked sale-led, then round-robin interleaved so the single shelf
+   reads the whole range instead of one genre. Each card carries its style
+   label. The expanded department gives every jewelry brand its own
+   carousel (joyasBrandStorefrontsHTML). */
 let joyasStarted = false;
 const JOYAS_STYLE_RAILS = ['elegante','boho_hippie','personalizado','otaku','edgy','punk_rocker'];
 function joyasPicksForStyle(cache, deptKey){
@@ -11835,36 +11901,33 @@ function initJoyasRails(){
   const loadAndPaint = async () => {
     try {
       const cache = await loadDepartmentCache();
-      let anyRendered = false;
-      for (const row of rows){
-        const styleKey = row.getAttribute('data-joyas-rail');
+      const perStyle = [];
+      for (const styleKey of JOYAS_STYLE_RAILS){
         const picks = joyasPicksForStyle(cache, styleKey);
-        joyasRendered[styleKey] = picks;
-        if (!picks.length){
-          /* Empty style rail hides its header + row. */
-          const header = row.previousElementSibling;
-          if (header) header.style.display = 'none';
-          row.style.display = 'none';
-          continue;
-        }
-        anyRendered = true;
-        row.innerHTML = picks.map((p, i) => railCardHTML(p,
-          `openJoyasProduct('${styleKey}',${i})`,
-          `data-joyas-card="${styleKey}-${i}"`)).join('');
+        if (picks.length) perStyle.push(picks.map(p => ({ ...p, joyasStyle: styleKey })));
       }
-      if (!anyRendered){
+      /* Round-robin interleave: one Elegante, one Boho, one Personalizado...
+         so the shelf never reads as a single genre. */
+      const mixed = [];
+      for (let i = 0; perStyle.some(l => l.length > i); i++)
+        for (const l of perStyle) if (l[i]) mixed.push(l[i]);
+      const picks = mixed.slice(0, 48);
+      joyasRendered = { mixed: picks };
+      if (!picks.length){
         document.querySelectorAll('[data-joyas-section]').forEach(sec => { sec.hidden = true; });
+        return;
+      }
+      for (const row of rows){
+        row.innerHTML = picks.map((p, i) => railCardHTML(p,
+          `openJoyasProduct('mixed',${i})`,
+          `data-joyas-card="mixed-${i}"`,
+          { styleLabel: joyasStyleLabelOf(p) })).join('');
       }
     } catch { /* failed cache leaves headers standing, cards absent */ }
   };
-  if ('IntersectionObserver' in window){
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
-    }, { rootMargin: '1000px 0px' });
-    rows.forEach(r => io.observe(r));
-  } else {
-    loadAndPaint();
-  }
+  /* EAGER (2026-09-30): the rail paints on boot, never on a scroll trigger
+     that can silently never fire. */
+  loadAndPaint();
 }
 function openJoyasProduct(styleKey, idx){
   const p = (joyasRendered[styleKey] || [])[idx];
@@ -13894,6 +13957,7 @@ function renderCatalogFeed(){
   const isTennisDept = catalogState.kind === 'department' && catalogState.key === 'tennis';
   const isLatinoDesigners = catalogState.kind === 'department' && catalogState.key === 'latino_designers';
   const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
+  const isJoyasAccesorios = catalogState.kind === 'department' && catalogState.key === 'joyas_accesorios';
   const grouped = isFightClub ? groupFightClub(gendered) : isLatinoDesigners ? groupLatinoDesigners(gendered) : isSpearfishingDept ? groupSpearGear(gendered) : isSoccerDept ? groupSoccerGear(gendered) : isTennisDept ? groupTennisGear(gendered) : groupBySubcategory(gendered);
   const splittable = isFightClub ? false : shouldSplit(grouped);
   const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
@@ -14028,6 +14092,7 @@ function renderCatalogFeed(){
     ${isLatinoDesigners && !catalogState.subKey ? latinoTypeTilesHTML(groupLatinoByType(gendered)) : ''}
     ${isLatinoDesigners && !catalogState.subKey ? latinoDesignerStorefrontsHTML(gendered) : ''}
     ${isGymRat && !catalogState.subKey ? gymRatBrandStorefrontsHTML(all) : ''}
+    ${isJoyasAccesorios && !catalogState.subKey ? joyasBrandStorefrontsHTML(gendered) : ''}
     ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : isSpearfishingDept ? spearGearChipsHTML(grouped) : isSoccerDept ? spearGearChipsHTML(grouped) : isTennisDept ? spearGearChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
@@ -21139,6 +21204,9 @@ function normalizeLiveItem(item, hints){
        departmentItemsFor, read by the feed sort. Absent on every other
        department -- the sort treats a missing band as unknown/middle. */
     ...(typeof item.curvyBand === 'number' ? { curvyBand: item.curvyBand } : null),
+    /* JOYAS STYLE (2026-09-30, Danny): the affordable-jewelry style genre,
+       stamped in departmentItemsFor, read by the card's style label. */
+    ...(typeof item.joyasStyle === 'string' && item.joyasStyle ? { joyasStyle: item.joyasStyle } : null),
     /* DESCRIPCIÓN (2026-09-25): the retailer's own product description,
        translated to Spanish (1-2 sentences) by the catalog enrichment pass.
        descriptionSource is 'retailer' when the text came from the store's
