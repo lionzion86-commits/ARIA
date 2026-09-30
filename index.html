@@ -15048,7 +15048,10 @@ function initResultsFilters(){
      activeSearchStores() therefore excluded it. A store the shopper
      cannot see, cannot tick, and is filtered by is not a filter. */
   document.getElementById('filterStores').innerHTML = CATALOG_RETAILERS.map(r => `
-  `).join('');
+    <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;">
+      <input type="checkbox" class="resultsStoreFilter" value="${r.key}" checked style="width:18px;height:18px;accent-color:#D4AF37;">
+      <span style="font-size:14px;">${r.label}</span>
+    </label>`).join('');
   updateResultsFilterBadge();
 }
 
