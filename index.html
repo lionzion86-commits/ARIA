@@ -11044,8 +11044,10 @@ function mobileCatCardHTML(t, kind){
    walks every retailer), so the strip aggregates brandBucketsFromItems
    counts over the fashion departments of the fashion retailers. Painted
    by initBrandStrip, called next to initStoreRails. */
-const BRAND_STRIP_DEPTS = ['clothing','men','women','kids','curvy','shoes','footwear','combat_sports','jewelry','purses'];
-const BRAND_STRIP_RETAILERS = ['victoriassecret','macys','footlocker','ssense','dicks','oldnavy','crocs','venum','everlast','tatami','combatcorner','mmawarehouse','fuji','baublebar','jwpei','meliebianco','statebags','miumiu'];
+const BRAND_STRIP_DEPTS = ['clothing','men','women','kids','curvy','shoes','footwear','jewelry','purses'];
+/* FIGHT BRANDS OUT (2026-09-30, Danny): Tatami, Venum, Everlast and the fight
+   shops live in Gym Rat / Fight Club, never in the Aria Luxury brand strip. */
+const BRAND_STRIP_RETAILERS = ['victoriassecret','macys','footlocker','ssense','dicks','oldnavy','crocs','baublebar','jwpei','meliebianco','statebags','miumiu'];
 const BRAND_STRIP_MAX = 40;
 /* LUXURY LEAD (2026-09-29, Danny, FINAL): cream of the crop first.
    These halo brands lead the strip in this exact order -- shoppers hunt
@@ -11749,14 +11751,9 @@ function initBolsosRail(){
       }
     } catch { /* a failed cache leaves headers standing, cards absent */ }
   };
-  if ('IntersectionObserver' in window){
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
-    }, { rootMargin: '1000px 0px' });
-    rows.forEach(r => io.observe(r));
-  } else {
-    loadAndPaint();
-  }
+  /* EAGER (2026-09-30, Danny): the luxury rails paint on boot, never on a
+     scroll trigger that can silently never fire. */
+  loadAndPaint();
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
 /* JOYAS Y ACCESORIOS (2026-09-30, Danny): five style rails in the Aria Luxury
@@ -11856,8 +11853,10 @@ function joyasLujoPicks(cache){
         if (!notQuarantined(raw)) continue;
         if (!isLuxuryItem(raw, retailer)) continue;
         const t = String(raw.type || '');
-        const name = String(raw.title || raw.name || '');
-        if (!(JEWELRY_TYPE_RX.test(t) || JEWELRY_NAME_RX.test(name))) continue;
+        /* TYPE-ONLY (Danny 2026-09-30): a "Camp Collar Shirt" is a shirt, not
+           jewelry -- name-matching "collar"/"necklace"/"ring" produced nothing
+           but apparel false positives. Real jewelry wears type=JEWELRY. */
+        if (!JEWELRY_TYPE_RX.test(t)) continue;
         if (typeof bolsosIsHandbag === 'function' && bolsosIsHandbag(raw, deptName)) continue;
         let it = null;
         try { it = normalizeLiveItem(raw, { retailer }); } catch { continue; }
@@ -11897,14 +11896,9 @@ function initJoyasLujoRail(){
       }
     } catch { /* failed cache leaves headers standing */ }
   };
-  if ('IntersectionObserver' in window){
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
-    }, { rootMargin: '1000px 0px' });
-    rows.forEach(r => io.observe(r));
-  } else {
-    loadAndPaint();
-  }
+  /* EAGER (2026-09-30, Danny): the luxury rails paint on boot, never on a
+     scroll trigger that can silently never fire. */
+  loadAndPaint();
 }
 function openJoyasLujoProduct(idx){
   const p = joyasLujoRendered[idx];
@@ -11916,6 +11910,11 @@ window.addEventListener('DOMContentLoaded', initJoyasLujoRail);
    Designer clothes from the luxury houses in this section. Mostly women's.
    Bags, shoes and jewelry have their own rails -- this is clothing only. */
 const MODA_TYPE_RX = /\b(ready_to_wear|clothing|apparel|dress|gown|top|blouse|pants|skirt|jacket|coat|knitwear|sweater)\b/i;
+/* MODA DE DISENADOR is women's (Danny 2026-09-30): the ssense catalogue file
+   is men-only, so it never feeds this rail. Non-clothing luxury types
+   (jewelry, handbags, eyewear, shoes, accessories) have their own rails. */
+const MODA_SKIP_RETAILERS = new Set(['ssense']);
+const MODA_EXCLUDE_TYPE_RX = /\b(jewelry|handbag|small_leather|eyewear|shoes|footwear|accessory|sunglasses)\b/i;
 let modaStarted = false;
 let modaRendered = [];
 function modaPicks(cache){
@@ -11924,6 +11923,7 @@ function modaPicks(cache){
   const picks = [];
   for (const retailer of Object.keys(retailers)){
     if (retailer === 'baublebar') continue;
+    if (MODA_SKIP_RETAILERS.has(retailer)) continue;
     const departments = retailers[retailer]?.departments || {};
     for (const [deptName, bucket] of Object.entries(departments)){
       for (const raw of bucket?.items || []){
@@ -11931,6 +11931,7 @@ function modaPicks(cache){
         if (!isLuxuryItem(raw, retailer)) continue;
         const t = String(raw.type || '');
         const name = String(raw.title || raw.name || '');
+        if (MODA_EXCLUDE_TYPE_RX.test(t)) continue;
         const isClothing = MODA_TYPE_RX.test(t) || (typeof isWomenFashionItem === 'function' && isWomenFashionItem(raw));
         if (!isClothing) continue;
         if (typeof bolsosIsHandbag === 'function' && bolsosIsHandbag(raw, deptName)) continue;
@@ -11974,14 +11975,9 @@ function initModaRail(){
       }
     } catch { /* failed cache leaves headers standing */ }
   };
-  if ('IntersectionObserver' in window){
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
-    }, { rootMargin: '1000px 0px' });
-    rows.forEach(r => io.observe(r));
-  } else {
-    loadAndPaint();
-  }
+  /* EAGER (2026-09-30, Danny): the luxury rails paint on boot, never on a
+     scroll trigger that can silently never fire. */
+  loadAndPaint();
 }
 function openModaProduct(idx){
   const p = modaRendered[idx];
