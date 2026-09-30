@@ -13935,6 +13935,62 @@ function storeCategoryCarouselHTML(def, items, retailer){
 }
 
 
+
+/* ============================================================
+   STORE GALLERY ROOMS (2026-09-30, Danny): Every store gets the
+   Diseñadores Latinos gallery feel -- a hero banner with a beautiful
+   image per category, product carousel underneath. Gallery "rooms",
+   not database grids.
+   ============================================================ */
+/* Hero banner for a store category room. Modeled on
+   latinoDesignerBannerHTML: 16/9 aspect, product photo background,
+   navy scrim, category name, product count. Tapping opens the
+   category where a destination exists. */
+function storeGalleryBannerHTML({label, items, onclick, kicker}){
+  const hero = latinoDesignerHero(items);
+  const n = (items || []).length;
+  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
+  const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
+  const retry = src ? imageRetryUrl(src) : '';
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
+  const inner = `
+    ${photo}
+    <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
+    <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
+    <span class="absolute inset-x-0 bottom-0 p-5 flex flex-col items-start gap-1">
+      ${kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(kicker)}</span>` : ''}
+      <span class="text-[26px] font-extrabold leading-none text-white" style="letter-spacing:-0.02em">${escapeHtml(label)}</span>
+      <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'}${onclick ? ' · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span>' : ''}</span>
+    </span>`;
+  const cls = "block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4";
+  const style = "position:relative;aspect-ratio:16/9;background:var(--navy)";
+  if (onclick){
+    return `<button onclick="${onclick}" aria-label="Ver ${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</button>`;
+  }
+  return `<div aria-label="${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</div>`;
+}
+/* A gallery room: hero banner + product carousel underneath. */
+function storeGalleryRoomHTML({label, items, retailer, onclick, kicker}){
+  const picks = carouselPickItems(items, 15);
+  if (picks.length < CAROUSEL_MIN_ITEMS) return '';
+  const cards = picks.map((it) => carouselCardHTML(it, retailer)).join('');
+  return `<section aria-label="${escapeHtml(label)}">${storeGalleryBannerHTML({label, items, onclick, kicker})}<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(label)}">${cards}</div></section>`;
+}
+/* Gallery room for a STORE_CATEGORY_DEFS entry (walmart/target/costco).
+   The banner opens the category page where one exists. */
+function storeCategoryGalleryHTML(def, items, retailer, storeLabel){
+  if (!items || items.length < CAROUSEL_MIN_ITEMS) return '';
+  let onclick = '';
+  if (def.dept){
+    onclick = `openCatalog('department','${jsAttr(def.dept)}',{retailerFilter:'${jsAttr(retailer)}'})`;
+  } else if (def.saleOnly){
+    onclick = `openCatalog('department','sale',{retailerFilter:'${jsAttr(retailer)}'})`;
+  }
+  /* Keyword categories (Moda Mujer, Zapatos) have no dedicated catalog
+     page; their banner is a visual header, the carousel is the way in. */
+  return storeGalleryRoomHTML({label: def.label, items, retailer, onclick: onclick || null, kicker: storeLabel});
+}
+
 async function openStore(retailer){
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
@@ -14091,30 +14147,53 @@ async function openStore(retailer){
      merchandised shelves -- Ofertas, Moda Mujer, Zapatos, Deportes,
      Hogar, Decoracion, Dulces -- instead of just the count tiles.
      Other stores keep the tile grid. */
+  /* GALLERY ROOMS (2026-09-30, Danny): every store gets the
+     Diseñadores Latinos feel -- hero banner + carousel per category. */
+  const __storeLabel = (meta && meta.label) || retailer;
   if (STORE_CATEGORY_STORES.includes(retailer)){
     let catHTML = '';
     for (const def of STORE_CATEGORY_DEFS){
       const catItems = storeCategoryItems(retailerData, def);
-      catHTML += storeCategoryCarouselHTML(def, catItems, retailer);
+      catHTML += storeCategoryGalleryHTML(def, catItems, retailer, __storeLabel);
     }
     if (catHTML){
       document.getElementById('storeViewSections').innerHTML += catHTML;
       if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
       return;
     }
-    /* Fall through to tiles if no category had enough items. */
+    /* Fall through to gallery rooms if no category had enough items. */
   }
-  document.getElementById('storeViewSections').innerHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${
-    deptEntries.map(([key, items]) => browseTileHTML({
-      label: isNativeTaxonomy ? key : metaFor(DEPARTMENT_META, key).label,
-      count: items.length,
-      image: deptPhoto(items),
-      pct: storeTotal ? Math.round((items.length / storeTotal) * 100) : 0,
-      onclick: isNativeTaxonomy
-        ? `openCatalog('nativetype','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`
-        : `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`,
-    })).join('')
-  }</div>`;
+  /* GALLERY ROOMS FOR EVERY STORE (2026-09-30, Danny): the tile grid
+     is replaced by Diseñadores Latinos-style rooms -- hero banner +
+     carousel per department. An Ofertas room leads where the store has
+     enough marked-down stock. */
+  let galleryHTML = '';
+  /* Ofertas room: sale items across all departments, biggest discount first. */
+  const __saleItems = allRetailerItems(retailerData).filter(isSaleItem);
+  if (__saleItems.length >= CAROUSEL_MIN_ITEMS){
+    galleryHTML += storeGalleryRoomHTML({
+      label: 'Ofertas',
+      items: __saleItems,
+      retailer,
+      onclick: `openCatalog('department','sale',{retailerFilter:'${jsAttr(retailer)}'})`,
+      kicker: __storeLabel,
+    });
+  }
+  /* One room per department the store actually carries. */
+  for (const [key, items] of deptEntries){
+    const __label = isNativeTaxonomy ? key : metaFor(DEPARTMENT_META, key).label;
+    const __onclick = isNativeTaxonomy
+      ? `openCatalog('nativetype','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`
+      : `openCatalog('department','${jsAttr(key)}',{retailerFilter:'${jsAttr(retailer)}'})`;
+    galleryHTML += storeGalleryRoomHTML({
+      label: __label,
+      items,
+      retailer,
+      onclick: __onclick,
+      kicker: __storeLabel,
+    });
+  }
+  document.getElementById('storeViewSections').innerHTML += galleryHTML;
   if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
 }
 
