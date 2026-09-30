@@ -27858,24 +27858,24 @@ window.addEventListener('DOMContentLoaded', function(){
       (orig > price ? '<div style="font-size:11px;color:#999;text-decoration:line-through;">$'+orig.toFixed(2)+'</div>' : '') +
       '</div></div>';
   }
-  fetch('/ofertas-feed-lite.json').then(function(r){return r.json();}).then(function(d){
-    var allItems = d.items || [];
+  // Use full feed for variety, de-prioritize CCS skate
+  fetch('/ofertas-feed.json').then(function(r){return r.json();}).then(function(d){
+    var allItems = d.items || d || [];
     var saleItems = allItems.filter(function(p){ return Number(p.price)>0 && Number(p.originalPrice)>Number(p.price) && p.image; });
-    // Sort by biggest discount first, then shuffle within tiers for variety
+    // Sort: biggest discount first, but penalize CCS to get variety
     saleItems.sort(function(a,b){
       var da = 1 - Number(a.price)/Number(a.originalPrice);
       var db = 1 - Number(b.price)/Number(b.originalPrice);
-      return db - da;
+      var pa = String(a.retailer||'').toLowerCase() === 'ccs' ? -0.15 : 0;
+      var pb = String(b.retailer||'').toLowerCase() === 'ccs' ? -0.15 : 0;
+      return (db+pb) - (da+pa);
     });
-    // Take top 40 by discount, then pick 20 spread out for variety
-    var top = saleItems.slice(0,40);
-    var picked = [];
-    for(var i=0; i<20 && i<top.length; i++){ picked.push(top[(i*2) % top.length]); }
-    var ofertasHtml = picked.map(cardHTML).join('');
+    var ofertasHtml = saleItems.slice(0,24).map(cardHTML).join('');
     ['mobileDealsRow','desktopDealsRow'].forEach(function(id){
       var row = document.getElementById(id);
       if(row && ofertasHtml) row.innerHTML = ofertasHtml;
     });
+    // Store rails
     document.querySelectorAll('[data-store-rail]').forEach(function(rail){
       var store = rail.getAttribute('data-store-rail');
       var storeItems = saleItems.filter(function(p){
