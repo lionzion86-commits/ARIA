@@ -129,6 +129,8 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   // is in the box rather than one number for every pair.
   { match: /underwear|boxer|\bbriefs?\b|panty|panties/i, kg: 0.08, tier: "cited" },
   { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
+  /* JEWELRY (2026-09-30, Danny): mirrors index.html. */
+  { match: /\b(necklace|collar|bracelet|pulsera|earrings?|aretes|pendant|dije|brooch|broche|charm|dije|anklet|tobillera|jewelry|joyer[ií]a|bisuter[ií]a|anillo|wedding band)\b/i, not: /\bring\s+light\b|\bjewelry\s+box\b/i, kg: 0.1, tier: "cited" },
   /* 2026-09-19: these were the biggest slice of the "unclassified guess"
      review queue — a clothing-heavy catalogue with no row for trousers,
      shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
@@ -157,6 +159,8 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
   // Rigid boxed goods. All reasoned.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
+  /* PORTABLE SPEAKERS (2026-09-30): mirrors index.html. */
+  { match: /\b(portable|bluetooth|mini|pocket|port[áa]til)\b[^,]{0,30}\b(speakers?|parlante|bocina)\b|\b(speakers?|parlante|bocina)\b[^,]{0,30}\b(portable|bluetooth|mini|pocket|port[áa]til)\b/i, not: /\bparty\s?box\b/i, kg: 1, tier: "reasoned" },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
   { match: /\bmonitor\b/i, not: MONITOR_IMPOSTOR_RE, kg: 5.5, tier: "reasoned" },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned" },

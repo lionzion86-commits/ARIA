@@ -121,7 +121,10 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(cornhole|picnic table|park bench|garden bench|sandbox|see ?saw)\b/i, kg: 13 },
   // Both flagged by the bounds on the first audit run, so they got real
   // rows rather than sitting on the floor the bound gave them.
-  { match: /\b(projector screen|movie screen)\b/i, kg: 12 },
+  /* PROJECTOR-SCREEN IMPOSTOR (2026-09-30): a projector that INCLUDES a
+     screen ("Projector Screen Included") is not a standalone screen.
+     Mirrors index.html. */
+  { match: /\b(projector screen|movie screen)\b/i, not: PROJECTOR_SCREEN_BUNDLED_RE, kg: 12 },
   { match: /\b(car cover|vehicle cover)\b/i, kg: 5 },
   { match: /\b(tent)\b/i, not: TENT_IMPOSTOR_RE, kg: 8 },
   // Long but genuinely light — they state feet and weigh almost nothing,
@@ -494,6 +497,12 @@ const LONG_BUT_LIGHT_RE =
 export const PROJECTOR_RE = /\b(projectors?|proyectores?|proyector)\b/i;
 const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bulb|l[áa]mpara|case|funda|stand|tr[ií]pode|tripod|cable)\b/i;
 
+/* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi
+   Bluetooth Projector (Projector Screen Included)" is a ~2 kg portable
+   projector that ships WITH a light fabric screen — not the 12 kg
+   standalone projection screen the bulky row prices. Mirrors index.html. */
+const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
+
 export const WEIGHT_SANITY_BOUNDS = [
   /* Beauty runs FIRST and low. A cosmetic is the one category on this
      site that legitimately weighs 20 grams, and several fragrance houses
@@ -542,6 +551,10 @@ export const WEIGHT_SANITY_BOUNDS = [
      their own objects and two of them already have rows elsewhere. */
   { key: "proyector",
     test: (t) => PROJECTOR_RE.test(t) && !PROJECTOR_ACCESSORY_RE.test(t),
+    minKg: 0.5, maxKg: 12 },
+  /* Bundled-screen projector band (2026-09-30) — mirrors index.html. */
+  { key: "proyector con pantalla",
+    test: (t) => PROJECTOR_SCREEN_BUNDLED_RE.test(t),
     minKg: 0.5, maxKg: 12 },
   /* No "televisor" row: Danny banned TVs and TV mounts outright (2026-09-26),
      so no television can ever reach the estimator — and the row's \btv\b

@@ -19282,6 +19282,11 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   // is in the box rather than one number for every pair.
   { match: /underwear|boxer|\bbriefs?\b|panty|panties/i, kg: 0.08, tier: 'cited' }, // ~30-70g/pair (crescendoapparel.com)
   { match: /\bsocks?\b/i, kg: 0.1, tier: 'cited' },
+  /* JEWELRY (2026-09-30, Danny): a necklace is grams, not kilos. Without a
+     row these fell to the 0.6 kg generic and quoted ~$10 of freight on a
+     50 g pendant. Boxed fashion jewelry ~0.1 kg. The not-guard keeps
+     "ring light" and "jewelry box" out — neither is wearable jewelry. */
+  { match: /\b(necklace|collar|bracelet|pulsera|earrings?|aretes|pendant|dije|brooch|broche|charm|dije|anklet|tobillera|jewelry|joyer[ií]a|bisuter[ií]a|anillo|wedding band)\b/i, not: /\bring\s+light\b|\bjewelry\s+box\b/i, kg: 0.1, tier: 'cited' },
   /* 2026-09-19: these were the biggest slice of the "unclassified guess"
      review queue — a clothing-heavy catalogue with no row for trousers,
      shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
@@ -19314,6 +19319,11 @@ const RETAIL_WEIGHT_ESTIMATES_KG = [
   // masses now. Mirrors RETAIL_WEIGHT_FALLBACK_KG in
   // scripts/lib/sales-sources.js; test-sales-parity asserts both agree.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: 'reasoned' },
+  /* PORTABLE SPEAKERS (2026-09-30): a "JBL Flip Bluetooth Speaker" is ~1 kg
+     boxed, not the 4 kg soundbar the row below prices. Placed first so the
+     generic speaker row never sees it. PartyBox-style boomboxes stay out
+     via the not-guard — those really are 10 kg. */
+  { match: /\b(portable|bluetooth|mini|pocket|port[áa]til)\b[^,]{0,30}\b(speakers?|parlante|bocina)\b|\b(speakers?|parlante|bocina)\b[^,]{0,30}\b(portable|bluetooth|mini|pocket|port[áa]til)\b/i, not: /\bparty\s?box\b/i, kg: 1, tier: 'reasoned' },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: 'reasoned' },
   { match: /\bmonitor\b/i, not: MONITOR_IMPOSTOR_RE, kg: 5.5, tier: 'reasoned' },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: 'reasoned' },
@@ -19600,7 +19610,10 @@ const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(cornhole|picnic table|park bench|garden bench|sandbox|see ?saw)\b/i, kg: 13 },
   // Both flagged by the bounds on the first audit run, so they got real
   // rows rather than sitting on the floor the bound gave them.
-  { match: /\b(projector screen|movie screen)\b/i, kg: 12 },
+  /* PROJECTOR-SCREEN IMPOSTOR (2026-09-30): a projector that INCLUDES a
+     screen ("Projector Screen Included") is not a standalone screen —
+     the bundled fabric screen weighs grams, the projector ~2 kg. */
+  { match: /\b(projector screen|movie screen)\b/i, not: PROJECTOR_SCREEN_BUNDLED_RE, kg: 12 },
   { match: /\b(car cover|vehicle cover)\b/i, kg: 5 },
   { match: /\b(tent)\b/i, not: TENT_IMPOSTOR_RE, kg: 8 },
   // Long but genuinely light — they state feet and weigh almost nothing,
@@ -20197,6 +20210,17 @@ const LONG_BUT_LIGHT_RE = /\b(cable|cord|hose|rope|twine|tape|wire|chain|leash|s
 const PROJECTOR_RE = /\b(projectors?|proyectores?|proyector)\b/i;
 const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bulb|l[áa]mpara|case|funda|stand|tr[ií]pode|tripod|cable)\b/i;
 
+/* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi
+   Bluetooth Projector (Projector Screen Included)" is a ~2 kg portable
+   projector that ships WITH a light fabric screen — not the 12 kg
+   standalone projection screen the bulky row prices. Without this guard
+   the bundled-screen mention fired the 12 kg row and the card quoted
+   16.2 kg of freight on a projector Danny could lift with two fingers.
+   First alternative needs a projector mention that is NOT the
+   "projector screen" compound itself; the second catches the
+   "Screen Included" phrasing directly. */
+const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
+
 /* ============================================================
    VITAMINS AND SUPPLEMENTS — a table, not a constant
 
@@ -20453,6 +20477,14 @@ const WEIGHT_SANITY_BOUNDS = [
      row a "5G WiFi Bluetooth Projector" published a 0.065 kg quote. */
   { key: "proyector",
     test: (t) => PROJECTOR_RE.test(t) && !PROJECTOR_ACCESSORY_RE.test(t),
+    minKg: 0.5, maxKg: 12 },
+  /* A projector that ships WITH a screen is still a projector for banding:
+     the bundled-screen guard routes it to the 1-2.2 kg projector rows, and
+     this band fails the quote closed if any future row ever prices it like
+     a standalone screen again. After "proyector" — that row's accessory
+     exclusion can never match these titles, so no conflict. */
+  { key: "proyector con pantalla",
+    test: (t) => PROJECTOR_SCREEN_BUNDLED_RE.test(t),
     minKg: 0.5, maxKg: 12 },
   /* No "televisor" row: Danny banned TVs and TV mounts outright (2026-09-26),
      so no television can ever reach the estimator — and the row's \btv\b
