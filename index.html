@@ -8018,6 +8018,21 @@ function retailerBrandBuckets(retailerData){
 }
 
 function departmentItemsFor(retailerData, kind, key, retailer){
+  if (kind === 'keyword'){
+    /* Keyword categories (2026-09-30, Danny): the room's predicate IS the
+       listing -- carousel and "Ver mas" page can never disagree. */
+    const kd = (typeof KEYWORD_CATEGORY_DEFS !== 'undefined' && KEYWORD_CATEGORY_DEFS[key]) || null;
+    if (!kd) return [];
+    const out = [];
+    for (const bucket of Object.values((retailerData && retailerData.departments) || {})){
+      for (const raw of (bucket && bucket.items) || []){
+        if (!notQuarantined(raw)) continue;
+        if (!kd.pred(raw)) continue;
+        out.push(raw);
+      }
+    }
+    return out;
+  }
   if (kind === 'brand'){
     return (retailerBrandBuckets(retailerData)[key]?.items || []).filter(notQuarantined);
   }
@@ -12356,7 +12371,7 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
@@ -12434,7 +12449,7 @@ function gymRatBrandBannerHTML(spec, brandItems){
   const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
   const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
   return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
@@ -12559,6 +12574,7 @@ async function openCatalog(kind, key, opts = {}){
      metaFor's title-cased fallback would mangle "Máscaras y snorkels". */
   const kindLabel = kind === 'brand' ? brandLabelFor(key, meta.label)
     : kind === 'nativetype' ? key
+    : kind === 'keyword' ? ((typeof KEYWORD_CATEGORY_DEFS !== 'undefined' && KEYWORD_CATEGORY_DEFS[key] && KEYWORD_CATEGORY_DEFS[key].label) || key)
     : meta.label;
   document.getElementById('catalogIcon').innerHTML = catalogIconHTML(kind, key, kindLabel);
   document.getElementById('catalogTitle').textContent = kindLabel;
@@ -14152,13 +14168,19 @@ function nativeTypeGroupsFor(retailerData){
    A category with fewer than CAROUSEL_MIN_ITEMS items gets no carousel --
    the surface keeps its old layout rather than a broken-looking row.
    ============================================================ */
+/* STORE GALLERY ORDER (2026-09-30, Danny): Ofertas leads; kids get their
+   own rooms (Ninas / Ninos -- never mixed into Moda Mujer); Juguetes takes
+   the dolls and collectibles; Zapatos only shows real footwear. */
 const STORE_CATEGORY_DEFS = [
   { key: 'ofertas',    label: 'Ofertas',     saleOnly: true },
-  { key: 'moda_mujer', label: 'Moda Mujer',  womenOnly: true },
-  { key: 'zapatos',    label: 'Zapatos',     shoesOnly: true },
+  { key: 'moda_mujer', label: 'Moda Mujer',  keyword: 'moda_mujer' },
+  { key: 'ninas',      label: 'Ni\u00f1as', keyword: 'ninas' },
+  { key: 'ninos',      label: 'Ni\u00f1os', keyword: 'ninos' },
+  { key: 'juguetes',   label: 'Juguetes',    keyword: 'juguetes' },
+  { key: 'zapatos',    label: 'Zapatos',     keyword: 'zapatos' },
   { key: 'deportes',   label: 'Deportes',    dept: 'sporting_goods' },
   { key: 'hogar',      label: 'Hogar',       dept: 'home_goods' },
-  { key: 'decoracion', label: 'Decoración',  dept: 'home_decor' },
+  { key: 'decoracion', label: 'Decoraci\u00f3n',  dept: 'home_decor' },
   { key: 'dulces',     label: 'Dulces',      dept: 'candy_chocolate' },
 ];
 const STORE_CATEGORY_STORES = ['walmart', 'target'];
@@ -14175,25 +14197,97 @@ const GALLERY_HERO_IMAGES = {
   juguetes: 'assets/gallery-heroes/juguetes.jpg',
   electronica: 'assets/gallery-heroes/electronica.jpg',
   dulces: 'assets/gallery-heroes/dulces.jpg',
+  /* Ninos/Ninas reuse the adult fashion heroes (2026-09-30, Danny) --
+     no dedicated kids hero was shot; a blank banner is worse. */
+  ninas: 'assets/gallery-heroes/moda-mujer.jpg',
+  ninos: 'assets/gallery-heroes/moda-hombre.jpg',
+};
+/* KEYWORD CATEGORIES (2026-09-30, Danny): gallery rooms built from strict
+   product-type predicates instead of native departments. ONE predicate drives
+   the room's carousel AND the "Ver mas" full listing, so the two can never
+   disagree about what belongs. Function declarations hoist, so referencing
+   the predicates here is safe. */
+const KEYWORD_CATEGORY_DEFS = {
+  moda_mujer: { label: 'Moda Mujer', pred: isWomenFashionItem },
+  zapatos:    { label: 'Zapatos',    pred: isShoeItem },
+  juguetes:   { label: 'Juguetes',   pred: isToyItem },
+  ninos:      { label: 'Ni\u00f1os', pred: isBoysFashionItem },
+  ninas:      { label: 'Ni\u00f1as', pred: isGirlsFashionItem },
 };
 /* Keywords for women's fashion: answered per item, the Zapatos way. */
 const WOMEN_FASHION_RX = /\bwomen'?s\b|\bladies\b|\bdama\b|\bmujer\b|\bfemale\b|\bdress\b|\bskirt\b|\bblouse\b|\bvestido\b|\bfalda\b|\bblusa\b/i;
-/* Keywords for shoes. */
-const SHOES_RX = /\bshoe(s)?\b|\bsneaker(s)?\b|\bboot(s)?\b|\bsandal(s)?\b|\bheel(s)?\b|\bzapato(s)?\b|\btenis\b|\bfootwear\b/i;
-/* Exclude non-apparel "women" hits (wall art, etc.) and non-shoe "shoe" hits. */
+/* Exclude non-apparel "women" hits (wall art, etc.). */
 const WOMEN_NON_APPAREL_RX = /\bwall\s*art\b|\bframed\b|\bcanvas\b|\bposter\b|\bsketch\b|\bportrait\b/i;
-const SHOE_NON_SHOE_RX = /\bshoe\s*(rack|organizer|storage|cabinet)\b|\bpicture\s*frame\b/i;
-
+/* KIDS DETECTION (2026-09-30, Danny): Moda Mujer is ADULT women's fashion.
+   Barbie dolls are toys (-> Juguetes); Disney "Big Girls" dresses are
+   children's clothing (-> Moda Ninos/Ninas). A product is not women's
+   fashion because its title contains the word "dress". */
+function isKidsItem(it){
+  const name = String(it.title || it.name || '');
+  /* The "baby doll" dress/nightgown style is adult -- never a child. */
+  if (/\bbaby\s*doll\b/i.test(name)) return false;
+  if (/\bdoll\b/i.test(name)) return true; /* dolls are toys */
+  if (/\bbarbie\b/i.test(name)) return true;
+  if (/\b(baby|toddler|infants?|newborn|kids?)\b/i.test(name)) return true;
+  if (/\b(big|little)\s+girls?\b/i.test(name)) return true;
+  /* Children's sizes tied to girls: "Girls 10-12", "10/12 Girls". */
+  if (/\bgirls?\b[^a-z]{0,24}\b\d{1,2}\b/i.test(name)) return true;
+  if (/\b\d{1,2}\s*[-\/\u2013]\s*\d{1,2}\b[^a-z]{0,24}\bgirls?\b/i.test(name)) return true;
+  if (/\bboys?\b/i.test(name)) return true;
+  return false;
+}
+/* Kids' apparel (not dolls): the Moda Ninos/Ninas pool. */
+const KIDS_APPAREL_RX = /\bdress(es)?\b|\bshirt\b|\bt-shirt\b|\btee\b|\btop\b|\bblouse\b|\bskirt\b|\bpants\b|\bjeans\b|\bleggings\b|\bshorts\b|\bjacket\b|\bhoodie\b|\bsweater\b|\bcoat\b|\bpajamas?\b|\bswimsuit\b|\bbikini\b|\bonesie\b|\bbodysuit\b|\bromper\b|\boveralls\b|\buniform\b|\bcostume\b/i;
+function isKidsFashionItem(it){
+  if (!isKidsItem(it)) return false;
+  const name = String(it.title || it.name || '');
+  if (/\bbaby\s*doll\b/i.test(name)) return false;
+  if (/\bdoll\b/i.test(name)) return false; /* dolls are toys, not fashion */
+  return KIDS_APPAREL_RX.test(name);
+}
+/* Ninos/Ninas split (2026-09-30, Danny): explicit boys -> Ninos only,
+   explicit girls -> Ninas only, unisex kids' items appear in both. */
+const GIRLS_MARK_RX = /\bgirls?\b|\bbarbie\b|\bprincess\b|\bminnie\b|\bfrozen\b|\bmoana\b|\bunicorn\b/i;
+const BOYS_MARK_RX = /\bboys?\b/i;
+function isGirlsFashionItem(it){
+  if (!isKidsFashionItem(it)) return false;
+  const name = String(it.title || it.name || '');
+  if (BOYS_MARK_RX.test(name) && !GIRLS_MARK_RX.test(name)) return false;
+  return true;
+}
+function isBoysFashionItem(it){
+  if (!isKidsFashionItem(it)) return false;
+  const name = String(it.title || it.name || '');
+  if (GIRLS_MARK_RX.test(name) && !BOYS_MARK_RX.test(name)) return false;
+  return true;
+}
+/* TOYS (2026-09-30, Danny): Barbie dolls and collectible dolls are Juguetes. */
+const TOY_RX = /\bdoll\b|\bbarbie\b|\blego\b|\bhot\s*wheels\b|\bnerf\b|\bfunko\b|\baction figure\b|\bplayset\b|\bplush\b|\bstuffed animal\b|\bboard game\b|\bpuzzle\b|\bbuilding blocks?\b|\brc car\b|\bdrone\b/i;
+function isToyItem(it){
+  const name = String(it.title || it.name || '');
+  if (/\bbaby\s*doll\b/i.test(name)) return false; /* adult style */
+  if (TOY_RX.test(name)) return true;
+  const depts = ((it && it.departments) || []).map(String);
+  return depts.some(d => /toy|juguete/i.test(d));
+}
 function isWomenFashionItem(it){
   const name = String(it.title || it.name || '');
+  if (isKidsItem(it)) return false; /* Danny 2026-09-30: no kids in Moda Mujer */
   if (!WOMEN_FASHION_RX.test(name)) return false;
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
   return true;
 }
+/* STRICT FOOTWEAR (2026-09-30, Danny): the product must BE shoes, not merely
+   contain the word "shoe". "Baby bodysuit + shorts + shoe 3pc set" is baby
+   clothes; a Sterilite "shoe box" is a plastic container. If a store has no
+   real shoes after filtering, the Zapatos room hides via the
+   CAROUSEL_MIN_ITEMS gate -- "If Target doesn't have shoes, then don't put shoes." */
+const FOOTWEAR_RX = /\bshoes?\b|\bsneakers?\b|\btennis\s+shoes?\b|\bboots?\b|\bsandals?\b|\bheels?\b|\bflats?\b|\bloafers?\b|\bslippers?\b|\bmules?\b|\bwedges?\b|\bespadrilles?\b|\boxfords?\b|\bcleats?\b|\bzapatos?\b|\btenis\b|\bbotas?\b|\bsandalias?\b|\btacones?\b|\bzapatillas?\b/i;
+const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b/i;
 function isShoeItem(it){
   const name = String(it.title || it.name || '');
-  if (!SHOES_RX.test(name)) return false;
-  if (SHOE_NON_SHOE_RX.test(name)) return false;
+  if (!FOOTWEAR_RX.test(name)) return false;
+  if (NOT_FOOTWEAR_RX.test(name)) return false;
   return true;
 }
 function isSaleItem(it){
@@ -14225,10 +14319,11 @@ function storeCategoryItems(retailerData, def){
     const __depts = (retailerData && retailerData.departments) || {};
     const __groups = Object.keys(__depts).map(k => [k, ((__depts[k] && __depts[k].items) || [])]);
     return interleaveSaleByCategory(__groups, 200);
-  } else if (def.womenOnly){
-    items = allRetailerItems(retailerData).filter(isWomenFashionItem);
-  } else if (def.shoesOnly){
-    items = allRetailerItems(retailerData).filter(isShoeItem);
+  } else if (def.keyword){
+    /* Danny 2026-09-30: one predicate per keyword category -- strict
+       product-type matching (a product IS shoes, not CONTAINS "shoe"). */
+    const kd = (typeof KEYWORD_CATEGORY_DEFS !== 'undefined' && KEYWORD_CATEGORY_DEFS[def.keyword]) || null;
+    items = kd ? allRetailerItems(retailerData).filter(kd.pred) : [];
   } else if (def.dept){
     const dept = (retailerData.departments || {})[def.dept];
     items = ((dept && dept.items) || []).slice();
@@ -14268,6 +14363,29 @@ function storeCategoryCarouselHTML(def, items, retailer){
 
 
 
+/* GALLERY BANNERS NEVER GO BLANK (2026-09-30, Danny): the old
+   onerror="this.remove()" deleted the hero image on ANY load failure --
+   including transient ones (deploy race, CDN hiccup) -- leaving the blank
+   gray banner Danny saw on Moda Mujer. Now: the known-good fallback URL
+   gets one retry (two-stage pattern), then the source gets two retries
+   with backoff for transient failures. Only then does the photo go, and
+   the navy gradient + text remain -- never a broken-image glyph. */
+function galleryBannerPhotoError(img){
+  const fb = img.getAttribute('data-img-fallback');
+  if (fb){
+    img.removeAttribute('data-img-fallback');
+    img.src = fb;
+    return;
+  }
+  const tries = Number(img.getAttribute('data-gb-tries') || '0');
+  if (tries < 2){
+    img.setAttribute('data-gb-tries', String(tries + 1));
+    const src = String(img.getAttribute('src') || '').split('?')[0];
+    setTimeout(() => { img.src = src + '?gbretry=' + (tries + 1); }, 900 * (tries + 1));
+    return;
+  }
+  img.remove();
+}
 /* ============================================================
    STORE GALLERY ROOMS (2026-09-30, Danny): Every store gets the
    Diseñadores Latinos gallery feel -- a hero banner with a beautiful
@@ -14288,7 +14406,7 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
   })();
   const src = raw ? (heroImage ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const inner = `
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
@@ -14305,12 +14423,27 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
   }
   return `<div aria-label="${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</div>`;
 }
+/* "Ver mas" end-card (2026-09-30, Danny): every gallery carousel ends with
+   a way into the full listing -- no dead-end shelves. The shopper can always
+   expand from the 15 picks to the thousands of products behind them. */
+function galleryMoreCardHTML(label, onclick){
+  return `<button onclick="${onclick}" role="listitem" aria-label="Ver m\u00e1s en ${escapeHtml(label)}"
+    class="focus-ring grid place-items-center text-center px-4"
+    style="scroll-snap-align:start; flex:0 0 auto; width:min(62vw,230px); align-self:stretch; border-radius:1rem; background:var(--navy); min-height:230px">
+    <span class="block py-8">
+      <span class="block text-[12px] font-bold uppercase" style="letter-spacing:0.14em;color:#F4C463">Ver m\u00e1s en</span>
+      <span class="block text-[17px] font-extrabold mt-2 leading-snug text-white">${escapeHtml(label)} &#8594;</span>
+      <span class="block text-[12px] mt-2 font-semibold" style="color:rgba(255,255,255,0.75)">Ver colecci\u00f3n completa</span>
+    </span>
+  </button>`;
+}
 /* A gallery room: hero banner + product carousel underneath. */
 function storeGalleryRoomHTML({label, items, retailer, onclick, kicker, heroImage}){
   const picks = carouselPickItems(items, 15);
   if (picks.length < CAROUSEL_MIN_ITEMS) return '';
   const cards = picks.map((it) => carouselCardHTML(it, retailer)).join('');
-  return `<section aria-label="${escapeHtml(label)}">${storeGalleryBannerHTML({label, items, onclick, kicker, heroImage})}<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(label)}">${cards}</div></section>`;
+  const more = onclick ? galleryMoreCardHTML(label, onclick) : '';
+  return `<section aria-label="${escapeHtml(label)}">${storeGalleryBannerHTML({label, items, onclick, kicker, heroImage})}<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(label)}">${cards}${more}</div></section>`;
 }
 /* Gallery room for a STORE_CATEGORY_DEFS entry (walmart/target/costco).
    The banner opens the category page where one exists. */
@@ -14321,9 +14454,12 @@ function storeCategoryGalleryHTML(def, items, retailer, storeLabel){
     onclick = `openCatalog('department','${jsAttr(def.dept)}',{retailerFilter:'${jsAttr(retailer)}'})`;
   } else if (def.saleOnly){
     onclick = `openCatalog('department','sale',{retailerFilter:'${jsAttr(retailer)}'})`;
+  } else if (def.keyword){
+    onclick = `openCatalog('keyword','${jsAttr(def.keyword)}',{retailerFilter:'${jsAttr(retailer)}'})`;
   }
-  /* Keyword categories (Moda Mujer, Zapatos) have no dedicated catalog
-     page; their banner is a visual header, the carousel is the way in. */
+  /* Keyword categories open the predicate-filtered full listing
+     (2026-09-30, Danny) -- the banner is tappable ("Ver coleccion") and
+     the carousel ends with a "Ver mas" card. No dead-end shelves. */
   const heroImage = (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES[def.key]) || null;
   return storeGalleryRoomHTML({label: def.label, items, retailer, onclick: onclick || null, kicker: storeLabel, heroImage});
 }
