@@ -1765,22 +1765,52 @@
 <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
          the name-drop sits before the store rails -- the catalogue's top clothing brands
          as one swipeable row. Painted by initBrandStrip(). -->
-    <section aria-label="Marcas" class="relative overflow-hidden" style="background:#F7F9FD">
-      <div class="px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Las marcas que visten</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De las tiendas de moda del mall, directo a tu puerta.</p>
+    <!-- ARIA LUXURY (2026-09-30, Danny): the luxury department. Distinctly premium backdrop
+         (runway/boutique), gold accents. Inclusive luxury: the $27 purse belongs here
+         just as much as the $782 one. -->
+    <section aria-label="Aria Luxury" data-aria-luxury class="relative overflow-hidden" style="background:#FFFFFF">
+      <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/luxury/aria-luxury-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:3px;background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Aria Luxury</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Las marcas m&#x00E1;s exclusivas del mall, directo a tu puerta.</p>
       </div>
-      <div id="mBrandStrip" data-brand-strip class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+      <div id="mBrandStrip" data-brand-strip class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
     </section>
     <!-- BOLSOS (2026-09-28, Danny): handbags from every brand in the mall -- Walmart to designer --
          in one swipeable rail, right under "Las marcas que visten". Painted by initBolsosRail();
          an empty rail hides its section instead of showing a shelf with nothing on it. -->
-    <section aria-label="Bolsos" data-bolsos-section class="relative overflow-hidden" style="background:#F7F9FD">
-      <div class="px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
+    <section aria-label="Bolsos" data-bolsos-section class="relative overflow-hidden" style="background:#FFFFFF">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
         <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
       </div>
-      <div id="mBolsosRail" data-bolsos-rail class="flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+      <div id="mBolsosRail" data-bolsos-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): fine jewelry in the Aria Luxury department.
+         Five style rails, NEVER mixed: Elegante, Punk rocker, Otaku, Edgy, Boho/Hippie.
+         Painted by initJoyasRails(); an empty style rail hides itself. -->
+    <section aria-label="Joyas y accesorios" data-joyas-section class="relative overflow-hidden" style="background:#FFFFFF">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Joyas y accesorios</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Piezas para cada estilo, del delicado al audaz.</p>
+      </div>
+      <div class="relative" data-joyas-rails>
+        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Elegante</h3></div>
+        <div data-joyas-rail="elegante" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
+        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Boho / Hippie</h3></div>
+        <div data-joyas-rail="boho_hippie" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
+        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Personalizado</h3></div>
+        <div data-joyas-rail="personalizado" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
+        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Otaku</h3></div>
+        <div data-joyas-rail="otaku" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
+        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Edgy</h3></div>
+        <div data-joyas-rail="edgy" class="flex gap-3 overflow-x-auto px-5 pb-4 pt-1 ariaRail"></div>
+        <div class="px-5 pt-2 pb-1"><h3 class="text-[14px] font-bold" style="color:#0A1F44">Punk rocker</h3></div>
+        <div data-joyas-rail="punk_rocker" class="flex gap-3 overflow-x-auto px-5 pb-6 pt-1 ariaRail"></div>
+      </div>
     </section>
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
          catalogue plus the warehouse clubs' party aisles, as four sub-rails:
@@ -6303,7 +6333,7 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
@@ -11678,6 +11708,84 @@ function initBolsosRail(){
   }
 }
 window.addEventListener('DOMContentLoaded', initBolsosRail);
+/* JOYAS Y ACCESORIOS (2026-09-30, Danny): five style rails in the Aria Luxury
+   department, NEVER mixed. Each style gets its own rail from the BaubleBar
+   catalog departments. An empty style rail hides itself. */
+let joyasStarted = false;
+const JOYAS_STYLE_RAILS = ['elegante','boho_hippie','personalizado','otaku','edgy','punk_rocker'];
+function joyasPicksForStyle(cache, deptKey){
+  const retailers = cache?.retailers || {};
+  const bb = retailers['baublebar'];
+  if (!bb) return [];
+  const bucket = bb.departments?.[deptKey];
+  if (!bucket || !Array.isArray(bucket.items)) return [];
+  const seen = new Set();
+  const picks = [];
+  for (const raw of bucket.items){
+    if (!notQuarantined(raw)) continue;
+    let it = null;
+    try { it = normalizeLiveItem(raw, { retailer: 'baublebar' }); } catch { continue; }
+    if (!it || !it.title) continue;
+    const k = 'baublebar::' + it.title;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    if (!Number.isFinite(Number(it.price)) || Number(it.price) <= 0 || !it.image) continue;
+    picks.push({ ...it, retailer: 'baublebar' });
+  }
+  /* Sale items lead, then biggest discount, then priciest. */
+  const disc = p => {
+    const o = Number(p.originalPrice), n = Number(p.price);
+    return (o > n) ? (o - n) / o : 0;
+  };
+  picks.sort((a, b) => disc(b) - disc(a) || Number(b.price) - Number(a.price));
+  return picks.slice(0, 48);
+}
+let joyasRendered = {};
+function initJoyasRails(){
+  if (joyasStarted) return;
+  const rows = [...document.querySelectorAll('[data-joyas-rail]')];
+  if (!rows.length) return;
+  joyasStarted = true;
+  const loadAndPaint = async () => {
+    try {
+      const cache = await loadDepartmentCache();
+      let anyRendered = false;
+      for (const row of rows){
+        const styleKey = row.getAttribute('data-joyas-rail');
+        const picks = joyasPicksForStyle(cache, styleKey);
+        joyasRendered[styleKey] = picks;
+        if (!picks.length){
+          /* Empty style rail hides its header + row. */
+          const header = row.previousElementSibling;
+          if (header) header.style.display = 'none';
+          row.style.display = 'none';
+          continue;
+        }
+        anyRendered = true;
+        row.innerHTML = picks.map((p, i) => railCardHTML(p,
+          `openJoyasProduct('${styleKey}',${i})`,
+          `data-joyas-card="${styleKey}-${i}"`)).join('');
+      }
+      if (!anyRendered){
+        document.querySelectorAll('[data-joyas-section]').forEach(sec => { sec.hidden = true; });
+      }
+    } catch { /* failed cache leaves headers standing, cards absent */ }
+  };
+  if ('IntersectionObserver' in window){
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting){ io.disconnect(); loadAndPaint(); } });
+    }, { rootMargin: '1000px 0px' });
+    rows.forEach(r => io.observe(r));
+  } else {
+    loadAndPaint();
+  }
+}
+function openJoyasProduct(styleKey, idx){
+  const p = (joyasRendered[styleKey] || [])[idx];
+  if (p && typeof openProduct === 'function') openProduct(p);
+}
+window.addEventListener('DOMContentLoaded', initJoyasRails);
+
 
 /* Fiestas' door on the Categorías row: the same card chassis as the
    department tiles, but it scrolls to the vertical's section instead of
