@@ -12736,7 +12736,25 @@ function carouselSpreadSales(plain, sales){
   while (si < sales.length) out.push(sales[si++]);
   return out;
 }
-function carouselPickItems(items, max){
+/* GEAR LEAD RANK (2026-09-30, Danny): in equipment categories the
+   COMPLETE product leads -- tapping "Arpones" must open on spearguns,
+   not on wishbones and clips. Parts/accessories rank below. Generic:
+   a category without a complete/parts mix ties on this rank and keeps
+   its existing order, so it is safe to apply across gear shelves. */
+const GEAR_PART_RX = /\b(muzzles?|tips?|wishbones?|bungees?|clips?|snaps?|swivels?|bands?|shafts?|pistons?|valves?|reels?|triggers?|handles?|barrels?|mounts?|pumps?|bags?|grips?|butts?|cones?|power\s?heads?|manometers?|anchors?|rubbers?|beads?|pigtails?|guides?|load\s?assist)\b/i;
+function gearPartRank(it){
+  const t = String((it && (it.title || it.name)) || '');
+  return GEAR_PART_RX.test(t) ? 1 : 0;
+}
+/* Equipment categories: the spearfishing department and any native gear
+   type (Arpones, etc. via SPEAR_TYPE_TO_GEAR). */
+function isGearCategory(){
+  if (!catalogState) return false;
+  if (catalogState.kind === 'department' && catalogState.key === 'spearfishing') return true;
+  if (catalogState.kind === 'nativetype' && typeof SPEAR_TYPE_TO_GEAR === 'object' && SPEAR_TYPE_TO_GEAR && SPEAR_TYPE_TO_GEAR[catalogState.key]) return true;
+  return false;
+}
+function carouselPickItems(items, max, leadRank){
   const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : CAROUSEL_MAX;
   const seen = new Set();
   const deduped = [];
@@ -12747,27 +12765,43 @@ function carouselPickItems(items, max){
     seen.add(key);
     deduped.push(it);
   }
-  const leads = [];
-  const otherSales = [];
-  const plain = [];
-  for (const it of deduped){
-    if (carouselSaleLeadEligible(it)) leads.push(it);
-    else if (carouselIsSale(it)) otherSales.push(it);
-    else plain.push(it);
+  /* One merchandising run over a list: sale leads by discount, then the
+     rest, halo-priced first. Factored so a lead rank (gear: complete
+     before parts) can run each band on its own. */
+  const merchandised = (list) => {
+    const leads = [];
+    const otherSales = [];
+    const plain = [];
+    for (const it of list){
+      if (carouselSaleLeadEligible(it)) leads.push(it);
+      else if (carouselIsSale(it)) otherSales.push(it);
+      else plain.push(it);
+    }
+    leads.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
+    otherSales.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
+    /* HALO FIRST (2026-09-30, Danny): after the biggest discounts, the
+       most expensive pieces lead -- the broke shopper sees deals next to
+       aspirational luxury. */
+    plain.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
+    const head = carouselPhotoFirst(leads).slice(0, CAROUSEL_SALE_LEAD_MAX);
+    const spareLeads = carouselPhotoFirst(leads).slice(CAROUSEL_SALE_LEAD_MAX);
+    const tail = carouselSpreadSales(
+      carouselPhotoFirst(plain),
+      carouselPhotoFirst(spareLeads.concat(otherSales))
+    );
+    return head.concat(tail);
+  };
+  /* GEAR LEAD (2026-09-30, Danny): complete products get their own
+     merchandising run before parts -- a sale on a $7 wishbone must not
+     put it ahead of the spearguns. Without a lead rank the behavior is
+     exactly as before. */
+  if (typeof leadRank === 'function'){
+    const complete = [];
+    const parts = [];
+    for (const it of deduped) (leadRank(it) > 0 ? parts : complete).push(it);
+    return merchandised(complete).concat(merchandised(parts)).slice(0, limit);
   }
-  leads.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
-  otherSales.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
-  /* HALO FIRST (2026-09-30, Danny): after the biggest discounts, the
-     most expensive pieces lead -- the broke shopper sees deals next to
-     aspirational luxury. */
-  plain.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-  const head = carouselPhotoFirst(leads).slice(0, CAROUSEL_SALE_LEAD_MAX);
-  const spareLeads = carouselPhotoFirst(leads).slice(CAROUSEL_SALE_LEAD_MAX);
-  const tail = carouselSpreadSales(
-    carouselPhotoFirst(plain),
-    carouselPhotoFirst(spareLeads.concat(otherSales))
-  );
-  return head.concat(tail).slice(0, limit);
+  return merchandised(deduped).slice(0, limit);
 }
 function carouselMixItems(deptEntries, max){
   const lists = (deptEntries || [])
@@ -12849,9 +12883,9 @@ function carouselCardHTML(item, retailer){
    carouselMixItems); this only decides whether there is a rail at all
    and wraps it. Fewer than CAROUSEL_MIN_ITEMS cards is not a rail — the
    surface keeps its old layout rather than a broken-looking row. */
-function storeCarouselHTML({ id, title, items, retailer, max }){
+function storeCarouselHTML({ id, title, items, retailer, max, leadRank }){
   const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : CAROUSEL_MAX;
-  const picks = carouselPickItems(items, limit);
+  const picks = carouselPickItems(items, limit, leadRank);
   if (picks.length < CAROUSEL_MIN_ITEMS) return '';
   return `<section aria-label="${escapeHtml(title)}" class="mb-8">
     <h2 class="ariaCarouselTitle text-[20px] font-extrabold tracking-[-0.02em] mb-4" style="color:var(--navy)">${escapeHtml(title)}</h2>
@@ -12940,7 +12974,7 @@ function catalogAisleListHTML(grouped, storeLabel, items){
      below (2026-09-24). `items` is the department's full feed, passed
      from renderCatalogFeed where it is in scope. */
   return `
-    ${storeCarouselHTML({ id: 'aisleRail', title: 'Destacados', items, retailer: null })}
+    ${storeCarouselHTML({ id: 'aisleRail', title: 'Destacados', items, retailer: null, leadRank: isGearCategory() ? gearPartRank : null })}
     ${catalogSearchBarHTML()}
     ${catalogStoreChipsHTML()}
     <div class="grid grid-cols-2 gap-3 mb-4">
@@ -13277,6 +13311,9 @@ function renderCatalogFeed(){
   const isSports = catalogState.kind === 'department' && catalogState.key === 'sporting_goods';
   const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
   const isToys = catalogState.kind === 'department' && catalogState.key === 'toys';
+  /* GEAR LEAD (2026-09-30, Danny): equipment shelves lead with the
+     complete product -- Arpones opens on spearguns, not parts. */
+  const isGear = isGearCategory();
   /* GYM RAT LEAD (2026-09-26, Danny): hero gym apparel opens the section —
      accessories never lead. An explicit user sort bypasses the lead. */
   items.sort(isCurvy
@@ -13287,7 +13324,9 @@ function renderCatalogFeed(){
         ? (a, b) => (gymRatLeadRank(a) - gymRatLeadRank(b)) || salesFirst(a, b)
         : (isToys && !catalogSortTouched)
           ? (a, b) => (toyLeadRank(a) - toyLeadRank(b)) || salesFirst(a, b)
-          : baseSort);
+          : (isGear && !catalogSortTouched)
+            ? (a, b) => (gearPartRank(a) - gearPartRank(b)) || salesFirst(a, b)
+            : baseSort);
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
@@ -13321,7 +13360,7 @@ function renderCatalogFeed(){
      below it. Search, budget and sort all flow through `items`. */
   sections.innerHTML = `
      ${isLatinoDesigners && !catalogState.subKey ? latinoAtelierHeroHTML() : ''}
-    ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null })}
+    ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null, leadRank: isGear ? gearPartRank : null })}
     ${isSports ? sportHubCarouselHTML() : ''}
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
