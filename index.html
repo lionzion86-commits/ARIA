@@ -14106,7 +14106,12 @@ function isShoeItem(it){
   return true;
 }
 function isSaleItem(it){
-  return !!(it.onSale || (Number(it.originalPrice) > Number(it.price)));
+  if (it.onSale) return true;
+  const orig = Number(it.originalPrice), price = Number(it.price);
+  if (!(orig > price)) return false;
+  const pct = (orig - price) / orig;
+  /* Danny 2026-09-30: fake discounts are lying. Require 5%-70%: below 5% is noise (-0%), above 70% is bad data ($705 crates). */
+  return pct >= 0.05 && pct <= 0.70;
 }
 /* Flatten all of a retailer's items across departments. */
 function allRetailerItems(retailerData){
