@@ -27848,7 +27848,9 @@ window.addEventListener('DOMContentLoaded', function(){
     var title = String(p.title || '').replace(/</g,'&lt;');
     var price = Number(p.price) || 0;
     var orig = Number(p.originalPrice) || 0;
-    return '<div style="flex-shrink:0;width:140px;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">' +
+    var pct = orig > price ? Math.round((1 - price/orig)*100) : 0;
+    return '<div style="flex-shrink:0;width:140px;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;position:relative;">' +
+      (pct > 0 ? '<div style="position:absolute;top:6px;left:6px;background:#EAB308;color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;">-'+pct+'%</div>' : '') +
       '<img src="'+img+'" alt="" loading="lazy" style="width:100%;height:120px;object-fit:cover;">' +
       '<div style="padding:8px;">' +
       '<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+title+'</div>' +
@@ -27859,13 +27861,21 @@ window.addEventListener('DOMContentLoaded', function(){
   fetch('/ofertas-feed-lite.json').then(function(r){return r.json();}).then(function(d){
     var allItems = d.items || [];
     var saleItems = allItems.filter(function(p){ return Number(p.price)>0 && Number(p.originalPrice)>Number(p.price) && p.image; });
-    // OFERTAS rails
-    var ofertasHtml = saleItems.slice(0,20).map(cardHTML).join('');
+    // Sort by biggest discount first, then shuffle within tiers for variety
+    saleItems.sort(function(a,b){
+      var da = 1 - Number(a.price)/Number(a.originalPrice);
+      var db = 1 - Number(b.price)/Number(b.originalPrice);
+      return db - da;
+    });
+    // Take top 40 by discount, then pick 20 spread out for variety
+    var top = saleItems.slice(0,40);
+    var picked = [];
+    for(var i=0; i<20 && i<top.length; i++){ picked.push(top[(i*2) % top.length]); }
+    var ofertasHtml = picked.map(cardHTML).join('');
     ['mobileDealsRow','desktopDealsRow'].forEach(function(id){
       var row = document.getElementById(id);
       if(row && ofertasHtml) row.innerHTML = ofertasHtml;
     });
-    // Store rails: filter sale items by retailer
     document.querySelectorAll('[data-store-rail]').forEach(function(rail){
       var store = rail.getAttribute('data-store-rail');
       var storeItems = saleItems.filter(function(p){
@@ -27873,7 +27883,6 @@ window.addEventListener('DOMContentLoaded', function(){
       }).slice(0,10);
       if(storeItems.length){
         var container = rail.querySelector('.ariaRail') || rail;
-        // Find or create a product row inside the rail
         var prodRow = container.querySelector('[data-prod-row]');
         if(!prodRow){
           prodRow = document.createElement('div');
