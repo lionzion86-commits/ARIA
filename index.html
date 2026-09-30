@@ -15603,10 +15603,17 @@ function initResultsFilters(){
      and the page rendered 2, because Macy's had no checkbox and
      activeSearchStores() therefore excluded it. A store the shopper
      cannot see, cannot tick, and is filtered by is not a filter. */
+  /* SEARCH FILTER FIX (2026-09-30, Danny): CATALOG_RETAILERS is an
+     array of key STRINGS, not objects -- r.key/r.label rendered the
+     literal "undefined" on all 15 checkboxes, and the "undefined" values
+     then poisoned activeSearchStores() so NO product's retailer ever
+     matched and every search returned "Ningún resultado". Use the key
+     as the value and LIVE_RETAILER_LABEL for the display name, matching
+     the (working) sales and categories filters. */
   document.getElementById('filterStores').innerHTML = CATALOG_RETAILERS.map(r => `
     <label style="display:flex;align-items:center;gap:8px;padding:6px 0;cursor:pointer;">
-      <input type="checkbox" class="resultsStoreFilter" value="${r.key}" checked style="width:18px;height:18px;accent-color:#D4AF37;">
-      <span style="font-size:14px;">${r.label}</span>
+      <input type="checkbox" class="resultsStoreFilter" value="${r}" checked style="width:18px;height:18px;accent-color:#D4AF37;">
+      <span style="font-size:14px;">${escapeHtml(LIVE_RETAILER_LABEL[r] || r)}</span>
     </label>`).join('');
   updateResultsFilterBadge();
 }
