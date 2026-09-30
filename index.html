@@ -5708,16 +5708,6 @@
 </div>
 
 <script>
-/* DIAG 2026-09-30: catch all JS errors */
-window.addEventListener('error', function(e){
-  var d = document.getElementById('js-error-diag');
-  if(!d){ d=document.createElement('div'); d.id='js-error-diag';
-    d.style.cssText='position:fixed;top:0;left:0;right:0;background:#c00;color:#fff;font:12px monospace;padding:10px;z-index:999999;white-space:pre-wrap;max-height:40vh;overflow:auto;';
-    document.documentElement.appendChild(d); }
-  d.textContent += 'ERR: '+e.message+' @'+(e.filename||'').split('/').pop()+':'+e.lineno+'\n';
-});
-</script>
-<script>
 // RULE: no hardcoded/demo product catalog belongs here — every product
 // shown anywhere on the site comes from a real live retailer search
 // (see LIVE_RETAILERS/scrapeRetailer/normalizeLiveItem), the real Aria
@@ -6381,76 +6371,76 @@ function resetCatalogState(){
 }
 
 const DEPARTMENT_META = {
-  electronics: { label: 'Electrónica', icon: ' },
-  clothing: { label: 'Ropa', icon: ' },
-  candy_chocolate: { label: 'Dulces y Chocolates', icon: ' },
-  sporting_goods: { label: 'Deportes', icon: ' },
+  electronics: { label: 'Electrónica', icon: '' },
+  clothing: { label: 'Ropa', icon: '' },
+  candy_chocolate: { label: 'Dulces y Chocolates', icon: '' },
+  sporting_goods: { label: 'Deportes', icon: '' },
   /* FUTBOL + TENIS (2026-09-29, Danny): soccer is huge in Peru -- its own
      department, blasted with sale carousels. Tennis is big in Lima too.
      Danny's terms: Futbol, Tenis. Gear-type pills inside, the Pesca
      Submarina way. */
-  soccer: { label: 'Fútbol', icon: ' },
-  tennis: { label: 'Tenis', icon: ' },
-  home_goods: { label: 'Hogar', icon: ' },
-  home_decor: { label: 'Decoración', icon: ' },
+  soccer: { label: 'Fútbol', icon: '' },
+  tennis: { label: 'Tenis', icon: '' },
+  home_goods: { label: 'Hogar', icon: '' },
+  home_decor: { label: 'Decoración', icon: '' },
 
   /* "Curvy" is Danny's pick and it stays in English, alone. The
      supporting line carries the words people actually search --
      see CURVY_BLURB. Never "Big & Tall". */
-  curvy: { label: 'Curvy', icon: ' },
+  curvy: { label: 'Curvy', icon: '' },
   /* GYM RAT (2026-09-26, Danny): the gym-culture identity destination.
      Danny's pick and it stays in English, alone — the way Curvy and
      Aria Beauty are. Never "Activewear" or "Ropa Deportiva". */
-  gym_rat: { label: 'Gym Rat', icon: ' },
+  gym_rat: { label: 'Gym Rat', icon: '' },
   /* SURF & SKATE (2026-09-26, Danny): surf/skate GEAR across the nine
      surf-skate-spearfishing shops, answered per item by isSurfSkate
      below, the Zapatos way. Tile appears by itself via collectTiles. */
-  surf_skate: { label: 'Surf & Skate', icon: ' },
+  surf_skate: { label: 'Surf & Skate', icon: '' },
   /* PESCA SUBMARINA (2026-09-29, Danny): the spearfishing destination --
      a top-level portal, not nested in Deportes. Gear-type tiles (Arpones,
      Aletas, Boyas...) browsable across all dive shops. Danny's name,
      verbatim. */
-  spearfishing: { label: 'Pesca Submarina', icon: ' },
+  spearfishing: { label: 'Pesca Submarina', icon: '' },
   /* ARIA FIGHT CLUB (2026-09-27, Danny): the fighting-sports destination —
      jiu-jitsu, boxing, kickboxing, Muay Thai, MMA. Danny's name, verbatim. */
-  combat_sports: { label: 'Aria Fight Club', icon: ' },
+  combat_sports: { label: 'Aria Fight Club', icon: '' },
   /* SECCION HOMBRE (2026-09-29, Danny): his name for the men's grooming
      destination. Verbatim. */
-  mens_grooming: { label: 'Seccion Hombre', icon: ' },
-  men: { label: 'Moda Hombre', icon: ' },
-  women: { label: 'Moda Mujer', icon: ' },
-  kids: { label: 'Moda Niños', icon: ' },
-  sale: { label: 'Ofertas', icon: ' },
-  beauty: { label: 'Aria Beauty', icon: ' },
+  mens_grooming: { label: 'Seccion Hombre', icon: '' },
+  men: { label: 'Moda Hombre', icon: '' },
+  women: { label: 'Moda Mujer', icon: '' },
+  kids: { label: 'Moda Niños', icon: '' },
+  sale: { label: 'Ofertas', icon: '' },
+  beauty: { label: 'Aria Beauty', icon: '' },
   /* JOYERÍA + CARTERAS (2026-09-27, Danny): own sections, own carousels. */
-  jewelry: { label: 'Joyería y Accesorios', icon: ' },
-  purses: { label: 'Carteras', icon: ' },
-  books: { label: 'Libros', icon: ' },
+  jewelry: { label: 'Joyería y Accesorios', icon: '' },
+  purses: { label: 'Carteras', icon: '' },
+  books: { label: 'Libros', icon: '' },
   /* ARIA MOMS (2026-09-27, Danny): Danny's name, verbatim. The
      premium moms destination — everything mom and baby. */
-  moms: { label: "Mama's Fashion", icon: ' },
-  shoes: { label: 'Zapatos', icon: ' },
+  moms: { label: "Mama's Fashion", icon: '' },
+  shoes: { label: 'Zapatos', icon: '' },
   /* REPUESTOS (2026-09-26). Advance Auto Parts' brake-parts catalogue.
      Answered per item (isAutoPart), the Zapatos way — no retailer
      declares a parts bucket. Tile appears by itself via collectTiles. */
-  auto_parts: { label: 'Repuestos', icon: ' },
+  auto_parts: { label: 'Repuestos', icon: '' },
   /* FIESTAS Y EVENTOS (2026-09-25): the vertical's four sub-rails as
      catalogue addresses -- openCatalog('fiestas', key) lands on the
      listing with the right title and icon. They name no DEPARTMENT_SPEC
      entry, so they never tile as departments. */
-  decoracion: { label: 'Decoración', icon: ' },
-  sorpresas: { label: 'Sorpresas', icon: ' },
-  menaje: { label: 'Menaje descartable', icon: ' },
-  dulces: { label: 'Dulces y Chocolates', icon: ' },
+  decoracion: { label: 'Decoración', icon: '' },
+  sorpresas: { label: 'Sorpresas', icon: '' },
+  menaje: { label: 'Menaje descartable', icon: '' },
+  dulces: { label: 'Dulces y Chocolates', icon: '' },
   /* ARIA PARTY + JUGUETES (2026-09-26, Danny): the tabbed category
      browser's "Ver categoría" doors. Party consolidates the four
      Fiestas sub-rails into one genre; Juguetes is the Q4 toy-blitz
      destination. */
-  party: { label: 'Aria Party', icon: ' },
-  toys: { label: 'Juguetes', icon: ' },
+  party: { label: 'Aria Party', icon: '' },
+  toys: { label: 'Juguetes', icon: '' },
 };
 const BRAND_META = {
-  nike: { label: 'Nike', icon: ' },
+  nike: { label: 'Nike', icon: '' },
 };
 
 
