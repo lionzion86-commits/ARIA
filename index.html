@@ -6958,7 +6958,7 @@ function categoryCoverFallback(img){
      field it would have had with no photograph at all. Passing an icon
      here is what the emoji version needed, and there is no icon in a
      cover any more. */
-  holder.innerHTML = designedCoverHTML({ key: holder.getAttribute('data-cover-key') || ' });
+  holder.innerHTML = designedCoverHTML({ key: holder.getAttribute('data-cover-key') || '' });
 }
 
 /** The art for one category's window: curated photo if there is one, else the designed cover. */
@@ -8311,7 +8311,7 @@ function photoPlaceholderHTML(note = 'Foto en camino'){
   </div>`;
 }
 
-function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = ' } = {}){
+function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '' } = {}){
   const fallback = onerror || 'window.cardPhotoFallback && cardPhotoFallback(this)';
   return src
     ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async" draggable="false" class="w-full h-full"${
@@ -14076,7 +14076,7 @@ function productCardOpenExpr(p, retailer){
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
     + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
     + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'}, `
-    + `${escapeHtml(JSON.stringify({ brand: p.brand || '', description: p.description || ' }))})`;
+    + `${escapeHtml(JSON.stringify({ brand: p.brand || '', description: p.description || '' }))})`;
 }
 
 /* ============================================================
@@ -14333,13 +14333,13 @@ async function applyRoute(route){
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
           known.rating != null ? String(known.rating) : '', known.images || [], known.catalogWeightKg ?? null,
-          { brand: known.brand, description: known.description || ' });
+          { brand: known.brand, description: known.description || '' });
         else if (route.name) {
           const found = await findCatalogProductByTitle(route.name).catch(() => null);
           if (found) showProduct(found.retailer, found.title, found.price, found.weightKg, found.image || '',
             found.sizes || [], needsSizeSelection(found.retailer, found.title), sizeCategoryFor(found.retailer, found.title),
             found.rating != null ? String(found.rating) : '', found.images || [], found.catalogWeightKg ?? null,
-            { brand: found.brand, description: found.description || ' });
+            { brand: found.brand, description: found.description || '' });
           else showProductUnavailable(route.name);
         }
         else showPage('homeView');
@@ -20250,7 +20250,7 @@ async function autoDestacadosFor(sourceKey){
       if (!n.image || n.price == null) continue;
       seen.add(id);
       out.push({ retailer: sourceKey, title: n.title, price: n.price, image: n.image,
-                 weightKg: n.weightKg, brand: raw.brand || ' });
+                 weightKg: n.weightKg, brand: raw.brand || '' });
       if (out.length >= 48) break;
     }
     if (out.length >= 48) break;
@@ -20267,7 +20267,7 @@ async function autoDestacadosFor(sourceKey){
       if (seen.has(id)) continue;
       seen.add(id);
       out.push({ retailer: sourceKey, title: p.title, price: p.price, image: p.image,
-                 weightKg: p.weightKg, brand: p.brand || ' });
+                 weightKg: p.weightKg, brand: p.brand || '' });
       if (out.length >= 48) break;
     }
   }
@@ -22760,7 +22760,7 @@ async function resolveComboDeal(combo, anchor){
         && Number.isFinite(Number(anchor.price)) && Number(anchor.price) > 0){
       found = { retailer: anchor.retailer, title: anchor.title, price: Number(anchor.price),
         image: anchor.image || null, dutiableUsd: anchor.dutiableUsd ?? null,
-        weightKg: anchor.weightKg, brand: anchor.brand || ' };
+        weightKg: anchor.weightKg, brand: anchor.brand || '' };
     } else {
       const hit = pool.find(it => it && it.retailer === ref.retailer && it.title === ref.title);
       if (hit && Number.isFinite(Number(hit.price)) && Number(hit.price) > 0) found = hit;
@@ -27882,6 +27882,10 @@ sweepStoreLogos();
 sweepFounderPhoto();
 initRouter();
 </script>
+<div data-netlify-deploy-id="6abcb225dbad37000830451e" data-netlify-site-id="f38a1e33-872d-4536-81ec-7fe2c249117e" data-vcs="github" style="position:fixed">
+  
+  <script async src="/.netlify/scripts/cdp"></script>
+</div>
 </body>
 </html>
 
