@@ -7581,8 +7581,8 @@ function groupTennisGear(items){
 /* LUJO (2026-09-29): luxury-tier retailers plus marquee designer brands.
    The assistant routes 'lujo', 'Gucci', 'Prada', 'Dior' here -- this is
    the department that answers. */
-const LUXURY_RETAILERS = new Set(['ssense', 'miumiu', 'fendi', 'goldengoose']);
-const LUXURY_BRANDS = /\b(gucci|prada|dior|chanel|hermes|louis vuitton|fendi|versace|givenchy|valentino|balenciaga|saint laurent|burberry|cartier|tiffany|miu miu|golden goose|rick owens)\b/i;
+const LUXURY_RETAILERS = new Set(['ssense', 'miumiu', 'fendi', 'goldengoose', 'farmrio', 'aguabendita', 'patbo', 'johannaortiz', 'silviatcherassi', 'capittana', 'ancora', 'vix', 'montce', 'eberjey', 'tns']); /* Latino designers added 2026-09-30, Danny */
+const LUXURY_BRANDS = /\b(gucci|prada|dior|chanel|hermes|louis vuitton|fendi|versace|givenchy|valentino|balenciaga|saint laurent|burberry|cartier|tiffany|miu miu|golden goose|rick owens|bottega veneta|dries van noten|jil sander|tom ford|jacquemus|the row|balmain|off-white|marni|our legacy|stone island|boss|hugo boss|carolina herrera|oscar de la renta|alexandre birman|calvin klein|tory burch|marc jacobs|johanna ortiz|silvia tcherassi|agua bendita|patbo|farm rio|lenny niemeyer|adriana degreas|capittana|vix|montce|eberjey)\b/i; /* Expanded 2026-09-30, Danny: cannot be Miu Miu only */
 function isLuxuryItem(item, retailer){
   if (!item || typeof item !== 'object') return false;
   if (retailer && LUXURY_RETAILERS.has(retailer)) return true;
@@ -11876,6 +11876,13 @@ window.addEventListener('DOMContentLoaded', initJoyasRails);
    Affordable BaubleBar styles live in the standalone "Joyas y accesorios"
    department, never here. */
 const JEWELRY_TYPE_RX = /\bjewelry\b/i;
+/* LUXURY JEWELRY NAME MATCHING (2026-09-30, Danny): SSENSE luxury jewelry
+   carries type='' or 'LINGERIE', not 'JEWELRY' -- so type-only matching
+   excluded real Bottega Veneta bracelets and Rick Owens necklaces.
+   Name-match jewelry, but exclude apparel false positives like
+   "Cross Necklace Sweater". */
+const LUX_JEWELRY_NAME_RX = /\b(necklace|earrings?|bracelet|pendant|choker|bangle|anklet|brooch)\b/i;
+const LUX_APPAREL_RX = /\b(sweater|shirt|dress|jacket|coat|pants|hoodie|cardigan|blouse|skirt|gown|jumpsuit|tee\b|t-shirt)\b/i;
 const JEWELRY_NAME_RX = /\b(earring|necklace|bracelet|ring|brooch|pendant|arete|collar|pulsera|anillo|joya)s?\b/i;
 let joyasLujoStarted = false;
 let joyasLujoRendered = [];
@@ -11891,10 +11898,13 @@ function joyasLujoPicks(cache){
         if (!notQuarantined(raw)) continue;
         if (!isLuxuryItem(raw, retailer)) continue;
         const t = String(raw.type || '');
-        /* TYPE-ONLY (Danny 2026-09-30): a "Camp Collar Shirt" is a shirt, not
-           jewelry -- name-matching "collar"/"necklace"/"ring" produced nothing
-           but apparel false positives. Real jewelry wears type=JEWELRY. */
-        if (!JEWELRY_TYPE_RX.test(t)) continue;
+        const jName = String(raw.title || raw.name || '');
+        /* 2026-09-30, Danny: type=JEWELRY was too strict -- SSENSE luxury
+           jewelry has empty/mislabeled types. Accept name-matched jewelry
+           too, excluding apparel false positives. */
+        const isJewelryType = JEWELRY_TYPE_RX.test(t);
+        const isJewelryName = LUX_JEWELRY_NAME_RX.test(jName) && !LUX_APPAREL_RX.test(jName);
+        if (!isJewelryType && !isJewelryName) continue;
         if (typeof bolsosIsHandbag === 'function' && bolsosIsHandbag(raw, deptName)) continue;
         let it = null;
         try { it = normalizeLiveItem(raw, { retailer }); } catch { continue; }
@@ -11912,7 +11922,10 @@ function joyasLujoPicks(cache){
     return (o > n) ? (o - n) / o : 0;
   };
   picks.sort((a, b) => disc(b) - disc(a) || Number(b.price) - Number(a.price));
-  return picks.slice(0, 48);
+  /* BRAND DIVERSITY (2026-09-30, Danny): cannot be Miu Miu only.
+     Max 4 consecutive from the same brand. */
+  const brandMixedJ = (typeof interleaveBrandCap === 'function') ? interleaveBrandCap(picks, BRAND_MAX_RUN) : picks;
+  return (Array.isArray(brandMixedJ) ? brandMixedJ : picks).slice(0, 48);
 }
 function initJoyasLujoRail(){
   if (joyasLujoStarted) return;
@@ -11951,7 +11964,7 @@ const MODA_TYPE_RX = /\b(ready_to_wear|clothing|apparel|dress|gown|top|blouse|pa
 /* MODA DE DISENADOR is women's (Danny 2026-09-30): the ssense catalogue file
    is men-only, so it never feeds this rail. Non-clothing luxury types
    (jewelry, handbags, eyewear, shoes, accessories) have their own rails. */
-const MODA_SKIP_RETAILERS = new Set(['ssense']);
+const MODA_SKIP_RETAILERS = new Set([]); /* ssense removed 2026-09-30, Danny: SSENSE women's dept now included instead of skipping entirely */
 const MODA_EXCLUDE_TYPE_RX = /\b(jewelry|handbag|small_leather|eyewear|shoes|footwear|accessory|sunglasses)\b/i;
 let modaStarted = false;
 let modaRendered = [];
@@ -11964,6 +11977,8 @@ function modaPicks(cache){
     if (MODA_SKIP_RETAILERS.has(retailer)) continue;
     const departments = retailers[retailer]?.departments || {};
     for (const [deptName, bucket] of Object.entries(departments)){
+      /* SSENSE 2026-09-30, Danny: women's department only -- the men's catalog crowded out all women's fashion. */
+      if (retailer === 'ssense' && deptName !== 'women') continue;
       for (const raw of bucket?.items || []){
         if (!notQuarantined(raw)) continue;
         if (!isLuxuryItem(raw, retailer)) continue;
@@ -11991,7 +12006,10 @@ function modaPicks(cache){
     return (o > n) ? (o - n) / o : 0;
   };
   picks.sort((a, b) => disc(b) - disc(a) || Number(b.price) - Number(a.price));
-  return picks.slice(0, 48);
+  /* BRAND DIVERSITY (2026-09-30, Danny): cannot be Miu Miu only.
+     Max 4 consecutive from the same brand. */
+  const brandMixedM = (typeof interleaveBrandCap === 'function') ? interleaveBrandCap(picks, BRAND_MAX_RUN) : picks;
+  return (Array.isArray(brandMixedM) ? brandMixedM : picks).slice(0, 48);
 }
 function initModaRail(){
   if (modaStarted) return;
