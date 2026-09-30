@@ -27840,6 +27840,19 @@ sweepStoreLogos();
 sweepFounderPhoto();
 initRouter();
 </script>
+<script>
+/* DIAG 2026-09-30: safe standalone diagnostic */
+window.addEventListener('DOMContentLoaded', function(){
+  var el = document.getElementById('mobileDealsRow');
+  var msg = 'DIAG: mobileDealsRow=' + (el ? 'FOUND' : 'NULL');
+  msg += ' initMobileShopfront=' + (typeof initMobileShopfront);
+  var d = document.createElement('div');
+  d.id = 'diag-box';
+  d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#004;color:#fff;font:12px monospace;padding:8px;z-index:999999;';
+  d.textContent = msg;
+  document.body.appendChild(d);
+});
+</script>
 </body>
 </html>
 
