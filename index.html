@@ -11105,6 +11105,20 @@ const BRAND_LOGOS = {
   osklen: { src: 'logos/brands/osklen.png' },
   capittana: { src: 'logos/brands/capittana.svg' },
   hermes: { src: 'logos/brands/hermes.svg' },
+
+  /* 2026-09-30, sixth wave: brand audit — official marks for top brands by product count. */
+  skims: { src: 'logos/brands/skims.svg' },
+  disney: { src: 'logos/brands/disney.svg' },
+  quiksilver: { src: 'logos/brands/quiksilver.svg' },
+  billabong: { src: 'logos/brands/billabong.svg' },
+  lego: { src: 'logos/brands/lego.png' },
+  oakley: { src: 'logos/brands/oakley.svg' },
+  puma: { src: 'logos/brands/puma.svg' },
+  rayban: { src: 'logos/brands/rayban.svg' },
+  sony: { src: 'logos/brands/sony.svg' },
+  roxy: { src: 'logos/brands/roxy.svg' },
+  rvca: { src: 'logos/brands/rvca.svg' },
+  volcom: { src: 'logos/brands/volcom.png' }
 };
 function brandStripTileHTML(b){
   const logo = BRAND_LOGOS[b.key];
@@ -11128,9 +11142,9 @@ function brandStripTileHTML(b){
    with no logo asset renders the same text pill storeLogoFallback() paints. */
 const TIENDAS_STRIP = [
   {k:'footlocker',l:'Foot Locker',c:'#000000',logo:'logos/footlocker.png'},
-  {k:'gymshark',l:'Gymshark',c:'#000000',logo:''},
+  {k:'gymshark',l:'Gymshark',c:'#000000',logo:'logos/gymshark.png'},
   {k:'macys',l:'Macy\'s',c:'#E21A2C',logo:'logos/macys.png'},
-  {k:'kohls',l:'Kohl\'s',c:'#C41230',logo:''},
+  {k:'kohls',l:'Kohl\'s',c:'#C41230',logo:'logos/kohls.svg'},
   {k:'newbalance',l:'New Balance',c:'#E21836',logo:'logos/brands/newbalance.svg'},
   {k:'dicks',l:'Dick\'s',c:'#D22630',logo:''},
   {k:'costco',l:'Costco',c:'#E31837',logo:'logos/costco.svg'},
@@ -11145,26 +11159,26 @@ const TIENDAS_STRIP = [
   {k:'ccs',l:'CCS',c:'#2AADEB',logo:'logos/ccs.png'},
   {k:'valsurf',l:'Val Surf',c:'#0F506F',logo:'logos/valsurf.png'},
   {k:'miumiu',l:'Miu Miu',c:'#000000',logo:'logos/miumiu.png'},
-  {k:'bhphoto',l:'B&H Photo',c:'#A7392F',logo:''},
-  {k:'advanceauto',l:'Advance Auto Parts',c:'#EA1927',logo:''},
+  {k:'bhphoto',l:'B&H Photo',c:'#A7392F',logo:'logos/bhphoto.svg'},
+  {k:'advanceauto',l:'Advance Auto Parts',c:'#EA1927',logo:'logos/advanceauto.svg'},
   {k:'skims',l:'Skims',c:'#605848',logo:'logos/skims.png'},
   {k:'yesstyle',l:'YesStyle',c:'#50A838',logo:'logos/yesstyle.png'},
-  {k:'venum',l:'Venum',c:'#000000',logo:''},
+  {k:'venum',l:'Venum',c:'#000000',logo:'logos/brands/venum.png'},
   {k:'walmart',l:'Walmart',c:'#0071CE',logo:'logos/walmart.svg'},
   {k:'alphalete',l:'Alphalete',c:'#000000',logo:''},
   {k:'target',l:'Target',c:'#CC0000',logo:'logos/target.svg'},
-  {k:'youngla',l:'YoungLA',c:'#000000',logo:''},
+  {k:'youngla',l:'YoungLA',c:'#000000',logo:'logos/youngla.png'},
   {k:'ulta',l:'Ulta Beauty',c:'#F88038',logo:'logos/ulta.png'},
   {k:'partycity',l:'Party City',c:'#0A1F44',logo:''},
-  {k:'tatami',l:'Tatami Fightwear',c:'#1A1A1A',logo:''},
-  {k:'everlast',l:'Everlast',c:'#000000',logo:''},
-  {k:'lanebryant',l:'Lane Bryant',c:'#C41230',logo:''},
+  {k:'tatami',l:'Tatami Fightwear',c:'#1A1A1A',logo:'logos/brands/tatamifightwear.svg'},
+  {k:'everlast',l:'Everlast',c:'#000000',logo:'logos/brands/everlast.svg'},
+  {k:'lanebryant',l:'Lane Bryant',c:'#C41230',logo:'logos/lanebryant.png'},
   {k:'oldnavy',l:'Old Navy',c:'#001E62',logo:'logos/oldnavy.svg'},
   {k:'samsclub',l:'Sam\'s Club',c:'#0B6CFF',logo:'logos/samsclub.svg'},
   {k:'mmawarehouse',l:'MMAWarehouse',c:'#1A1A1A',logo:''},
   {k:'revolve',l:'Revolve',c:'#000000',logo:'logos/revolve.png'},
   {k:'combatcorner',l:'Combat Corner',c:'#000000',logo:''},
-  {k:'pacsun',l:'PacSun',c:'#111111',logo:''},
+  {k:'pacsun',l:'PacSun',c:'#111111',logo:'logos/pacsun.png'},
   {k:'fuji',l:'FUJI Sports',c:'#1A1A1A',logo:''},
 ];
 /* Logos light enough to sit directly on navy (2026-09-29, Danny): measured
