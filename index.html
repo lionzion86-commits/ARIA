@@ -14106,12 +14106,19 @@ function isShoeItem(it){
   return true;
 }
 function isSaleItem(it){
-  if (it.onSale) return true;
+  if (it.onSale) {
+    /* Danny 2026-09-30: Ofertas must be cheap shit people buy, not $600 headphones. */
+    const price = Number(it.price);
+    if (price > 150) return false;
+    return true;
+  }
   const orig = Number(it.originalPrice), price = Number(it.price);
   if (!(orig > price)) return false;
   const pct = (orig - price) / orig;
   /* Danny 2026-09-30: fake discounts are lying. Require 5%-70%: below 5% is noise (-0%), above 70% is bad data ($705 crates). */
-  return pct >= 0.05 && pct <= 0.70;
+  if (!(pct >= 0.05 && pct <= 0.70)) return false;
+  /* Danny 2026-09-30: Ofertas = cheap. Over $150 isn't a "deal" for entry shoppers. */
+  return price <= 150;
 }
 /* Flatten all of a retailer's items across departments. */
 function allRetailerItems(retailerData){
