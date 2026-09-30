@@ -146,12 +146,19 @@ REGLAS OBLIGATORIAS SOBRE ESTOS RESULTADOS:
 - No inventes precios: si mencionas uno, usa el que aparece arriba.`;
 }
 
+/* STORE NAVIGATION (2026-09-29, Danny). The client draws a real
+   "Entrar a <tienda>" button under the reply whenever a store is named
+   or recommended, so the model must never claim it cannot take the
+   shopper to a store. */
+const STORE_NAV_RULE_ES = `NAVEGACIÓN A TIENDAS: cuando el cliente pida ir a una tienda o cuando recomiendes una tienda, confirma en una oración y menciona el botón "Entrar a" que aparece debajo de tu respuesta. NUNCA digas que no puedes llevar al cliente a una tienda, ni que debe entrar a ariashop.pe por su cuenta: el botón abre la tienda directamente.`;
+
 export function buildSystemPrompt(products = [], recipient = null) {
   return [
     BASE_PROMPT_ES,
     GREETING_SCRIPT_ES,
     SHOW_ALL_RULE_ES,
     SHIPPING_RULES_ES,
+    STORE_NAV_RULE_ES,
     recipientRulesEs(recipient),
     productRulesEs(products, recipient),
   ].filter(Boolean).join("\n\n");

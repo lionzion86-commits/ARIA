@@ -26570,6 +26570,70 @@ function goBrandFromChat(brandKey){
   openCatalog('brand', brandKey);
 }
 
+/* STORE ROUTER (2026-09-29, Danny). "Llevame a Target / take me to
+   Walmart" resolves to the store's own storefront -- the same door the
+   store tiles open -- instead of a text search or the model improvising
+   "no puedo llevarte". The index is built off LIVE_RETAILERS, the same
+   list the prompt and the search fan-out use, so a store the site cannot
+   actually open can never get a button. Deterministic: no Groq round
+   trip, no Apify spend. */
+let chatStoreIndexCache = null;
+function chatStoreIndex(){
+  if (chatStoreIndexCache) return chatStoreIndexCache;
+  const labels = (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL) || {};
+  const keys = (typeof LIVE_RETAILERS !== 'undefined' && Array.isArray(LIVE_RETAILERS)) ? LIVE_RETAILERS : Object.keys(labels);
+  const seen = new Set();
+  const out = [];
+  for (const key of keys){
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    const label = String(labels[key] || key);
+    out.push({ key, label });
+    if (normBrandText(key) !== normBrandText(label)) out.push({ key, label, alias: key });
+  }
+  /* Longest name first, same as the brand index. */
+  out.sort((a, b) => (b.alias || b.label).length - (a.alias || a.label).length);
+  chatStoreIndexCache = out;
+  return out;
+}
+/* Whole-word/phrase match of a store name inside the text, accents
+   folded on both sides -- mirrors findBrandMention. */
+function findStoreMention(text){
+  const norm = ' ' + normBrandText(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  for (const s of chatStoreIndex()){
+    const name = normBrandText(s.alias || s.label).replace(/\s+/g, ' ').trim();
+    if (name.length < 2) continue;
+    if (norm.indexOf(' ' + name + ' ') !== -1) return s;
+  }
+  return null;
+}
+/* Navigation intent in ES/EN: the shopper wants to walk into the store,
+   not search inside it. */
+const STORE_NAV_INTENT_RE = /ll[eé]vame|take me to|\bgo to\b|\bir a\b|abr(ir?|e)\b|entra(r)?\b|\bopen\b|ver la tienda|quiero (ver|ir|entrar)/i;
+/* The router's call to action: a navy button that walks the shopper
+   into the store's storefront -- the same door the store tiles use. */
+function addAssistantStoreOffer(storeKey, storeLabel){
+  const wrap = document.getElementById('assistantMessages');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'assistantNote my-2';
+  el.innerHTML = `<button type="button" data-assistant-store onclick="goStoreFromChat(${JSON.stringify(storeKey).replace(/"/g, '&quot;')})"
+      class="w-full text-left rounded-xl p-3 focus-ring" style="background:var(--navy)">
+      <div class="text-[13.5px] font-bold text-white">Entrar a ${escapeHtml(storeLabel)}</div>
+      <div class="text-[12px] mt-0.5" style="color:rgba(255,255,255,0.82)">Abre la tienda aqu\u00ed en Aria</div>
+    </button>`;
+  wrap.appendChild(el);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+/* After the model answers: if she named or recommended a store, put the
+   door under her words. Runs on the final reply text, so even a stale
+   "no puedo llevarte" gets corrected by a working button. */
+function maybeAddStoreOfferFromReply(reply){
+  if (!reply || typeof reply !== 'string') return;
+  const hit = findStoreMention(reply);
+  if (hit) addAssistantStoreOffer(hit.key, hit.label);
+}
+
 /* DOMAIN FALLBACK (2026-09-29, Danny). She never dead-ends: when the
    shelf has nothing for the query, she names the domain she heard and
    walks the shopper to the closest section instead of printing
@@ -26836,7 +26900,32 @@ async function runAssistantBrain(text){
   if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
 
-  /* BRAND ROUTER (2026-09-29, Danny). The assistant is a ROUTER, not a
+  /* STORE ROUTER (2026-09-29, Danny) -- invocation. A store name plus
+     navigation intent ("llevame a Target", "take me to Walmart") walks
+     straight into the storefront, before the brand router runs. A store
+     named without navigation intent falls through to the normal flow;
+     the model's reply is scanned afterwards (see
+     maybeAddStoreOfferFromReply) so a recommended store still gets its
+     door. */
+  if (willSearch){
+    const storeHit = STORE_NAV_INTENT_RE.test(searchQuery) ? findStoreMention(searchQuery) : null;
+    if (storeHit){
+      hideAssistantTyping();
+      setOrbState('idle');
+      const sLabel = storeHit.label;
+      const line = `\u00a1Claro! Te llevo a ${sLabel} \u2014 entra con el bot\u00f3n de abajo.`;
+      addAssistantMessage('bot', line, null, { speak: false });
+      ariaChatHistory.push({ role: 'assistant', content: line });
+      addAssistantStoreOffer(storeHit.key, sLabel);
+      if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
+      assistantThinking = false;
+      speakWithLily(line);
+      reopenMicForRetry();
+      return;
+    }
+  }
+
+/* BRAND ROUTER (2026-09-29, Danny). The assistant is a ROUTER, not a
      search engine: a named brand resolves to the brand's page -- the same
      shelf a human reaches from the brand directory -- instead of a text
      search that can print "no encontré" for a brand plainly on the site.
@@ -27084,6 +27173,7 @@ async function runAssistantBrain(text){
       const reply = data.reply || 'Lo siento, no pude responder eso.';
       rememberAssistantTurn(text, reply);
       addAssistantMessage('bot', reply, data.audio);
+      maybeAddStoreOfferFromReply(reply);
       return;
     }
 
@@ -27107,6 +27197,7 @@ async function runAssistantBrain(text){
        whole reply. finishTtsPipeline flushes the tail, falls back when a
        sentence failed, and reopens the mic after the last sentence. */
     finishTtsPipeline(tts, reply, streamed.audio);
+    maybeAddStoreOfferFromReply(reply);
 
   } catch (err) {
     hideAssistantTyping();
