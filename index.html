@@ -5708,6 +5708,15 @@
 </div>
 
 <script>
+window.addEventListener('error', function(e){
+  var d = document.getElementById('js-error-diag');
+  if(!d){ d=document.createElement('div'); d.id='js-error-diag';
+    d.style.cssText='position:fixed;top:0;left:0;right:0;background:#c00;color:#fff;font:12px monospace;padding:10px;z-index:999999;white-space:pre-wrap;max-height:40vh;overflow:auto;';
+    document.documentElement.appendChild(d); }
+  d.textContent += 'ERR: '+e.message+' @'+(e.filename||'').split('/').pop()+':'+e.lineno+'\n';
+});
+</script>
+<script>
 // RULE: no hardcoded/demo product catalog belongs here — every product
 // shown anywhere on the site comes from a real live retailer search
 // (see LIVE_RETAILERS/scrapeRetailer/normalizeLiveItem), the real Aria
