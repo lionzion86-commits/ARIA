@@ -13911,6 +13911,20 @@ const STORE_CATEGORY_DEFS = [
   { key: 'dulces',     label: 'Dulces',      dept: 'candy_chocolate' },
 ];
 const STORE_CATEGORY_STORES = ['walmart', 'target'];
+/* Gallery hero images (2026-09-30, Danny): "with nice pictures" -- aspirational
+   flat-lays, not product thumbnails. Each category banner uses its hero. */
+const GALLERY_HERO_IMAGES = {
+  ofertas: 'assets/gallery-heroes/ofertas.jpg',
+  moda_mujer: 'assets/gallery-heroes/moda-mujer.jpg',
+  moda_hombre: 'assets/gallery-heroes/moda-hombre.jpg',
+  zapatos: 'assets/gallery-heroes/zapatos.jpg',
+  deportes: 'assets/gallery-heroes/deportes.jpg',
+  hogar: 'assets/gallery-heroes/hogar.jpg',
+  decoracion: 'assets/gallery-heroes/decoracion.jpg',
+  juguetes: 'assets/gallery-heroes/juguetes.jpg',
+  electronica: 'assets/gallery-heroes/electronica.jpg',
+  dulces: 'assets/gallery-heroes/dulces.jpg',
+};
 /* Keywords for women's fashion: answered per item, the Zapatos way. */
 const WOMEN_FASHION_RX = /\bwomen'?s\b|\bladies\b|\bdama\b|\bmujer\b|\bfemale\b|\bdress\b|\bskirt\b|\bblouse\b|\bvestido\b|\bfalda\b|\bblusa\b/i;
 /* Keywords for shoes. */
@@ -14002,11 +14016,15 @@ function storeCategoryCarouselHTML(def, items, retailer){
    latinoDesignerBannerHTML: 16/9 aspect, product photo background,
    navy scrim, category name, product count. Tapping opens the
    category where a destination exists. */
-function storeGalleryBannerHTML({label, items, onclick, kicker}){
-  const hero = latinoDesignerHero(items);
+function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
   const n = (items || []).length;
-  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
-  const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
+  /* Danny 2026-09-30: "with nice pictures" -- use the aspirational hero
+     image when provided, not a product thumbnail. */
+  const raw = heroImage || (() => {
+    const hero = latinoDesignerHero(items);
+    return hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
+  })();
+  const src = raw ? (heroImage ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
   const inner = `
@@ -14026,11 +14044,11 @@ function storeGalleryBannerHTML({label, items, onclick, kicker}){
   return `<div aria-label="${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</div>`;
 }
 /* A gallery room: hero banner + product carousel underneath. */
-function storeGalleryRoomHTML({label, items, retailer, onclick, kicker}){
+function storeGalleryRoomHTML({label, items, retailer, onclick, kicker, heroImage}){
   const picks = carouselPickItems(items, 15);
   if (picks.length < CAROUSEL_MIN_ITEMS) return '';
   const cards = picks.map((it) => carouselCardHTML(it, retailer)).join('');
-  return `<section aria-label="${escapeHtml(label)}">${storeGalleryBannerHTML({label, items, onclick, kicker})}<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(label)}">${cards}</div></section>`;
+  return `<section aria-label="${escapeHtml(label)}">${storeGalleryBannerHTML({label, items, onclick, kicker, heroImage})}<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(label)}">${cards}</div></section>`;
 }
 /* Gallery room for a STORE_CATEGORY_DEFS entry (walmart/target/costco).
    The banner opens the category page where one exists. */
@@ -14044,7 +14062,8 @@ function storeCategoryGalleryHTML(def, items, retailer, storeLabel){
   }
   /* Keyword categories (Moda Mujer, Zapatos) have no dedicated catalog
      page; their banner is a visual header, the carousel is the way in. */
-  return storeGalleryRoomHTML({label: def.label, items, retailer, onclick: onclick || null, kicker: storeLabel});
+  const heroImage = (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES[def.key]) || null;
+  return storeGalleryRoomHTML({label: def.label, items, retailer, onclick: onclick || null, kicker: storeLabel, heroImage});
 }
 
 async function openStore(retailer){
@@ -14233,9 +14252,30 @@ async function openStore(retailer){
       retailer,
       onclick: `openCatalog('department','sale',{retailerFilter:'${jsAttr(retailer)}'})`,
       kicker: __storeLabel,
+      heroImage: (typeof GALLERY_HERO_IMAGES !== 'undefined' && GALLERY_HERO_IMAGES.ofertas) || null,
     });
   }
   /* One room per department the store actually carries. */
+  /* Map department keys/labels to hero images where available. */
+  const __heroForDept = (key, label) => {
+    if (typeof GALLERY_HERO_IMAGES === 'undefined') return null;
+    const k = String(key || '').toLowerCase().replace(/[^a-z]/g, '');
+    const l = String(label || '').toLowerCase();
+    // Direct key match
+    if (GALLERY_HERO_IMAGES[k]) return GALLERY_HERO_IMAGES[k];
+    // Label-based matching (Spanish)
+    if (/mujer|women|dama/.test(l)) return GALLERY_HERO_IMAGES.moda_mujer;
+    if (/hombre|men/.test(l)) return GALLERY_HERO_IMAGES.moda_hombre;
+    if (/zapato|shoe|tenis|sneaker|calzado/.test(l)) return GALLERY_HERO_IMAGES.zapatos;
+    if (/deporte|sport/.test(l)) return GALLERY_HERO_IMAGES.deportes;
+    if (/hogar|home(?!.*decor)/.test(l)) return GALLERY_HERO_IMAGES.hogar;
+    if (/decor/.test(l)) return GALLERY_HERO_IMAGES.decoracion;
+    if (/juguete|toy/.test(l)) return GALLERY_HERO_IMAGES.juguetes;
+    if (/electron/.test(l)) return GALLERY_HERO_IMAGES.electronica;
+    if (/dulce|candy|chocolate/.test(l)) return GALLERY_HERO_IMAGES.dulces;
+    if (/oferta|sale/.test(l)) return GALLERY_HERO_IMAGES.ofertas;
+    return null;
+  };
   for (const [key, items] of deptEntries){
     const __label = isNativeTaxonomy ? key : metaFor(DEPARTMENT_META, key).label;
     const __onclick = isNativeTaxonomy
@@ -14247,6 +14287,7 @@ async function openStore(retailer){
       retailer,
       onclick: __onclick,
       kicker: __storeLabel,
+      heroImage: __heroForDept(key, __label),
     });
   }
   document.getElementById('storeViewSections').innerHTML += galleryHTML;
