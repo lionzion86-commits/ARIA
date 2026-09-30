@@ -11000,9 +11000,9 @@ function tiendaTileHTML(s){
   const onChip = s.logo && !TIENDA_LIGHT_LOGOS.has(s.k);
   const art = s.logo
     ? "<img src=\"" + s.logo + "\" alt=\"" + escapeHtml(s.l) + "\" loading=\"lazy\" decoding=\"async\" data-retailer=\"" + s.k + "\" class=\"w-auto max-w-full object-contain\" style=\"height:26px;min-width:0;" + (onChip ? "background:#fff;border-radius:10px;padding:4px 10px;" : "") + "\" onerror=\"this.setAttribute('data-logo-failed','1');window.storeLogoFallback&&storeLogoFallback(this)\">"
-    : "<span class=\"store-logo-fallback\" style=\"background:" + s.c + "\">" + escapeHtml(s.l) + "</span>";
-  const name = "<span class=\"block w-full text-center\" style=\"color:#fff;font-size:10px;font-weight:700;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\">" + escapeHtml(s.l) + "</span>";
-  return "<button onclick=\"tiendaJump('" + s.k + "')\" aria-label=\"" + escapeHtml(s.l) + "\" class=\"flex-shrink-0 w-[84px] rounded-2xl px-2 py-2 flex flex-col items-center justify-center focus-ring\" style=\"background:#1a2744;border:1px solid rgba(255,255,255,.14);min-height:72px;gap:6px;min-width:0;overflow:hidden\">" + art + name + "</button>";
+    : "<span class=\"store-logo-fallback\" style=\"background:" + s.c + ";font-size:11px\">" + escapeHtml(s.l) + "</span>";
+  const name = "<span class=\"block w-full text-center\" style=\"color:#fff;font-size:10px;font-weight:700;line-height:1.25\">" + escapeHtml(s.l) + "</span>";
+  return "<button onclick=\"tiendaJump('" + s.k + "')\" aria-label=\"" + escapeHtml(s.l) + "\" class=\"flex-shrink-0 w-[132px] rounded-2xl px-2 py-2 flex flex-col items-center justify-center focus-ring\" style=\"background:#1a2744;border:1px solid rgba(255,255,255,.14);min-height:72px;gap:6px;min-width:0;overflow:hidden\">" + art + name + "</button>";
 }
 function paintTiendasStrip(){
   const html = TIENDAS_STRIP.map(tiendaTileHTML).join("");
