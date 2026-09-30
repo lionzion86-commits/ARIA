@@ -11608,9 +11608,10 @@ function initMobileShopfront(){
   try { paintRailSkeletons(); } catch (e) {}
   /* OFERTAS FIRST, then the store rails: the rails deprioritise what
      Ofertas already leads on, so they need its keys. */
+  window.__diag = { start: Date.now(), scanDone: false, scanErr: null, cacheLen: -1 };
   runSalesScan()
-    .then(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); })
-    .catch(() => { renderMobileDealsRail(); initStoreRails(); initBrandStrip(); });
+    .then(() => { window.__diag.scanDone = true; try { window.__diag.cacheLen = saleItemsCache.length; } catch(e){} renderMobileDealsRail(); initStoreRails(); initBrandStrip(); })
+    .catch((e) => { window.__diag.scanErr = String((e&&e.message)||e); renderMobileDealsRail(); initStoreRails(); initBrandStrip(); });
   /* The idle enrich scheduled inside runSalesScan doubles as the
      background warm: it finishes loading the catalogue for search and
      the deeper shelves. Every source is fetched once and shared. */
