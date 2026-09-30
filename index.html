@@ -14106,18 +14106,14 @@ function isShoeItem(it){
   return true;
 }
 function isSaleItem(it){
-  if (it.onSale) {
-    /* Danny 2026-09-30: Ofertas must be cheap shit people buy, not $600 headphones. */
-    const price = Number(it.price);
-    if (price > 150) return false;
-    return true;
-  }
+  /* Danny 2026-09-30: Ofertas must show VISIBLE discounts. The onSale flag alone isn't enough —
+     we need originalPrice to display the crossed-out price and % badge. No badge = not a deal. */
   const orig = Number(it.originalPrice), price = Number(it.price);
   if (!(orig > price)) return false;
   const pct = (orig - price) / orig;
-  /* Danny 2026-09-30: fake discounts are lying. Require 5%-70%: below 5% is noise (-0%), above 70% is bad data ($705 crates). */
+  /* Fake discounts are lying. Require 5%-70%: below 5% is noise (-0%), above 70% is bad data ($705 crates). */
   if (!(pct >= 0.05 && pct <= 0.70)) return false;
-  /* Danny 2026-09-30: Ofertas = cheap. Over $150 isn't a "deal" for entry shoppers. */
+  /* Ofertas = cheap shit people buy. Over $150 isn't a "deal" for entry shoppers. */
   return price <= 150;
 }
 /* Flatten all of a retailer's items across departments. */
