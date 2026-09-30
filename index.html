@@ -27852,7 +27852,8 @@ window.addEventListener('DOMContentLoaded', function(){
     var store = String(p.retailer || '').toUpperCase();
     var brand = String(p.brand || '').replace(/</g,'&lt;');
     var weight = p.weightKg ? Number(p.weightKg).toFixed(1)+' kg' : '';
-    return '<div style="flex-shrink:0;width:160px;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;position:relative;">' +
+    var pidx = window._emgProducts ? window._emgProducts.indexOf(p) : -1;
+    return '<div onclick="window._showEmgProduct('+pidx+')" style="cursor:pointer;flex-shrink:0;width:160px;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;position:relative;">' +
       (pct > 0 ? '<div style="position:absolute;top:6px;left:6px;background:#EAB308;color:#000;font-size:10px;font-weight:800;padding:2px 6px;border-radius:6px;">-'+pct+'%</div>' : '') +
       '<img src="'+img+'" alt="" loading="lazy" style="width:100%;height:130px;object-fit:cover;">' +
       '<div style="padding:8px;">' +
@@ -27868,6 +27869,7 @@ window.addEventListener('DOMContentLoaded', function(){
   fetch('/ofertas-feed.json').then(function(r){return r.json();}).then(function(d){
     var allItems = d.items || d || [];
     var saleItems = allItems.filter(function(p){ return Number(p.price)>0 && Number(p.originalPrice)>Number(p.price) && p.image; });
+    window._emgProducts = saleItems;
     // Sort: biggest discount first, but penalize CCS to get variety
     saleItems.sort(function(a,b){
       var da = 1 - Number(a.price)/Number(a.originalPrice);
@@ -27919,6 +27921,29 @@ window.addEventListener('DOMContentLoaded', function(){
       }
     } catch(e){}
   });
+
+  window._showEmgProduct = function(idx){
+    var p = window._emgProducts && window._emgProducts[idx];
+    if(!p) return;
+    var existing = document.getElementById('_emgModal');
+    if(existing) existing.remove();
+    var m = document.createElement('div');
+    m.id = '_emgModal';
+    m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+    m.onclick = function(e){ if(e.target===m) m.remove(); };
+    var pct = Number(p.originalPrice) > Number(p.price) ? Math.round((1 - Number(p.price)/Number(p.originalPrice))*100) : 0;
+    m.innerHTML = '<div style="background:#fff;border-radius:16px;max-width:400px;width:100%;overflow:hidden;position:relative;">' +
+      '<button onclick="document.getElementById(\'_emgModal\').remove()" style="position:absolute;top:8px;right:8px;background:#000;color:#fff;border:none;border-radius:50%;width:32px;height:32px;font-size:18px;cursor:pointer;">x</button>' +
+      '<img src="'+(p.image||'')+'" style="width:100%;height:250px;object-fit:cover;">' +
+      '<div style="padding:16px;">' +
+      '<div style="font-size:11px;font-weight:700;color:#666;text-transform:uppercase;">'+String(p.retailer||'').toUpperCase()+'</div>' +
+      '<div style="font-size:16px;font-weight:700;margin:4px 0;">'+String(p.title||'').replace(/</g,'&lt;')+'</div>' +
+      (p.brand ? '<div style="font-size:13px;color:#888;">'+String(p.brand).replace(/</g,'&lt;')+'</div>' : '') +
+      '<div style="font-size:20px;font-weight:800;color:#0A1F44;margin-top:8px;">$'+Number(p.price).toFixed(2)+'</div>' +
+      (Number(p.originalPrice) > Number(p.price) ? '<div style="font-size:14px;color:#999;text-decoration:line-through;">$'+Number(p.originalPrice).toFixed(2)+'</div>' : '') +
+      '</div></div>';
+    document.body.appendChild(m);
+  };
 </script>
 </body>
 </html>
