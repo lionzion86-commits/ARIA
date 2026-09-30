@@ -27894,7 +27894,25 @@ window.addEventListener('DOMContentLoaded', function(){
       }
     });
   }).catch(function(){});
-});
+    // Walmart/Target big cards under Aria Auto
+    try {
+      var autoSection = document.querySelector('[data-category-tabs]');
+      if (autoSection && !document.getElementById('wt-band')) {
+        var band = document.createElement('section');
+        band.id = 'wt-band';
+        band.style.cssText = 'background:#0A1F44;padding:24px 16px;margin:0;';
+        band.innerHTML = '<div style="display:flex;gap:16px;max-width:1000px;margin:0 auto;">' +
+          '<a href="#" onclick="return false;" style="flex:1;background:#0071CE;border-radius:16px;padding:32px 24px;text-align:center;text-decoration:none;">' +
+          '<div style="font-size:28px;font-weight:800;color:#fff;">Walmart</div>' +
+          '<div style="color:#fff;opacity:.9;margin-top:8px;">De todo, a buen precio</div></a>' +
+          '<a href="#" onclick="return false;" style="flex:1;background:#CC0000;border-radius:16px;padding:32px 24px;text-align:center;text-decoration:none;">' +
+          '<div style="font-size:28px;font-weight:800;color:#fff;">Target</div>' +
+          '<div style="color:#fff;opacity:.9;margin-top:8px;">Lo que necesitas, a tu alcance</div></a>' +
+          '</div>';
+        autoSection.parentNode.insertBefore(band, autoSection);
+      }
+    } catch(e){}
+  });
 </script>
 </body>
 </html>
