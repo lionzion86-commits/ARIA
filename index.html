@@ -6191,8 +6191,6 @@ function withoutRestrictedDepartments(envelope){
    "for sofas", freezer trays, a perfume called Wardrobe).
    ============================================================ */
 const UNSHIPPABLE_TV_RX = /\btvs?\b|television|televisor|smart[-\s]?tv|\bqled\b|\boled\b/i;
-/* TV WITHOUT "TV" WORD (2026-09-30, Danny): "Samsung 55\" Class", "LG 65\" UR9000" */
-const TV_SIZE_BRAND_RX = /\b(43|50|55|58|60|65|70|75|77|83|85|98)["']\s*(class)?\b.*\b(samsung|lg|tcl|vizio|hisense|sony|philips|sharp)\b|\b(samsung|lg|tcl|vizio|hisense|sony|philips|sharp)\b.*\b(43|50|55|58|60|65|70|75|77|83|85|98)["']/i;
 /* AXE DEODORANTS (2026-09-29, Danny's call): Axe body sprays and
    deodorants/antiperspirants are commodities already sold in Peru —
    nobody pays cross-border freight for them. Brand + deodorant
@@ -6229,7 +6227,7 @@ function isShippableItem(p){
 
   if (!p) return false;
   const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
-  if (UNSHIPPABLE_TV_RX.test(hay) || TV_SIZE_BRAND_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
+  if (UNSHIPPABLE_TV_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
   if (AXE_DEODORANT_RX.test(hay) && AXE_DEODORANT_TYPE_RX.test(hay)) return false;
   if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
   if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
@@ -12326,6 +12324,96 @@ function latinoDesignerStorefrontsHTML(items){
   </div>`;
 }
 
+/* ============================================================
+   GYM RAT BRAND ROOMS (2026-09-30, Danny).
+   "When I open up that Gymshark carousel, it needs to look exactly
+   like the Latino designer carousel. Carousel at the top with the
+   ofertas, then my brand, Gymshark carousel, Young LA carousel,
+   Alphalete carousel, etc."
+   One hero banner + product carousel per brand, Ofertas rail on top.
+   Brand order: Gymshark, YoungLA, Alphalete, NVGTN, then the rest
+   by catalog size. Sales lead in every carousel (carouselPickItems).
+   ============================================================ */
+const GYMRAT_BRANDS_SPEC = [
+  { key: 'gymshark',  label: 'Gymshark',         logo: 'assets/logos/gymshark.png' },
+  { key: 'youngla',   label: 'YoungLA',          logo: 'assets/logos/youngla.png' },
+  { key: 'alphalete', label: 'Alphalete',        logo: 'assets/logos/brands/alphalete.png' },
+  { key: 'nvgtn',     label: 'NVGTN',            logo: '' },
+  { key: 'venum',     label: 'Venum',            logo: 'assets/logos/brands/venum.png' },
+  { key: 'tatami',    label: 'Tatami Fightwear', logo: 'assets/logos/brands/tatamifightwear.svg' },
+  { key: 'everlast',  label: 'Everlast',         logo: 'assets/logos/brands/everlast.svg' },
+];
+
+/* Hero image for a brand banner: first on-sale product with a photo,
+   else first product with a photo. Mirrors latinoDesignerHero. */
+function gymRatBrandHero(brandItems){
+  const withImg = (brandItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
+  if (!withImg.length) return null;
+  return withImg.find(isSaleItem) || withImg[0];
+}
+
+/* A brand's hero banner: 16/9, navy gradient scrim + sheen, gold
+   "GYM RAT" kicker, brand logo badge, white brand name, product
+   count + sale count, "Ver colección". Tapping filters to the brand.
+   Mirrors latinoDesignerBannerHTML. */
+function gymRatBrandBannerHTML(spec, brandItems){
+  const hero = gymRatBrandHero(brandItems);
+  const n = (brandItems || []).length;
+  const saleN = (brandItems || []).filter(isSaleItem).length;
+  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
+  const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
+  const retry = src ? imageRetryUrl(src) : '';
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="this.remove()">` : '';
+  const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
+  return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+    ${photo}
+    <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
+    <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
+    <span class="absolute inset-x-0 bottom-0 p-5 flex flex-col items-start gap-1">
+      <span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">Gym Rat</span>
+      ${logoImg}
+      <span class="text-[26px] font-extrabold leading-none text-white" style="letter-spacing:-0.02em">${escapeHtml(spec.label)}</span>
+      <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'}${saleN ? ` · ${saleN} en oferta` : ''} · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span></span>
+    </span>
+  </button>`;
+}
+
+/* A brand's own product rail: their shop floor under their banner.
+   Sales lead via carouselPickItems (biggest discount first, then halo). */
+function gymRatBrandRailHTML(spec, brandItems){
+  const picks = carouselPickItems(brandItems, 15);
+  if (!picks.length) return '';
+  const cards = picks.map(it => carouselCardHTML(it, it.retailer || spec.key)).join('');
+  return `<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(spec.label)}">${cards}</div>`;
+}
+
+/* The Gym Rat section: Ofertas rail on top (sale items across all gym
+   brands, biggest discount first), then one banner + rail per brand in
+   GYMRAT_BRANDS_SPEC order. Brands with no items are skipped. */
+function gymRatBrandStorefrontsHTML(items){
+  const byBrand = {};
+  for (const it of (items || [])){
+    const r = String(it.retailer || '').toLowerCase();
+    if (!r) continue;
+    (byBrand[r] = byBrand[r] || []).push(it);
+  }
+  const specs = GYMRAT_BRANDS_SPEC
+    .map(spec => ({ spec, items: byBrand[spec.key] || [] }))
+    .filter(x => x.items.length > 0);
+  if (!specs.length) return '';
+  const saleItems = (items || []).filter(isSaleItem);
+  const ofertasRail = saleItems.length >= 4
+    ? storeCarouselHTML({ id: 'gymratOfertas', title: 'Ofertas', items: saleItems, retailer: null })
+    : '';
+  const blocks = specs.map(({ spec, items: bItems }) =>
+    `<section aria-label="${escapeHtml(spec.label)}">${gymRatBrandBannerHTML(spec, bItems)}${gymRatBrandRailHTML(spec, bItems)}</section>`).join('');
+  return `<div class="mt-1 mb-6">
+    ${ofertasRail}
+    <h2 class="text-[20px] font-extrabold mb-4" style="letter-spacing:-0.02em;color:var(--navy)">Nuestras marcas</h2>
+    ${blocks}
+  </div>`;
+}
+
 /* The grid every listing surface uses: 2-across, large cards, the
    browsing density Ofertas was approved at. Named so a new surface
    cannot quietly invent a tighter one. */
@@ -12456,6 +12544,20 @@ async function openCatalog(kind, key, opts = {}){
       .map(raw => normalizeLiveItem(raw, { retailer: 'lanebryant', department: 'curvy' }))
       .filter(it => it.title);
     if (lbItems.length) byRetailer = new Map([['lanebryant', lbItems], ...byRetailer]);
+  }
+  /* GYM RAT FIGHT BRANDS (2026-09-30, Danny): Venum, Tatami and Everlast
+     file under combat_sports buckets, but Danny wants them as brand rooms
+     in the Gym Rat section. Merge their items here, following the
+     curvy/lanebryant precedent above. */
+  if (kind === 'department' && key === 'gym_rat'){
+    for (const fr of ['venum', 'tatami', 'everlast']){
+      if (data.retailers[fr] && !byRetailer.has(fr)){
+        const fItems = departmentItemsFor(data.retailers[fr], 'department', 'combat_sports', fr)
+          .map(raw => normalizeLiveItem(raw, { retailer: fr, department: 'gym_rat' }))
+          .filter(it => it.title);
+        if (fItems.length) byRetailer.set(fr, fItems);
+      }
+    }
   }
   /* Per-department retailer display order (DEPARTMENT_RETAILER_ORDER):
      the pill row and the product grid both read this map in insertion
@@ -13252,6 +13354,7 @@ function renderCatalogFeed(){
   const isSoccerDept = catalogState.kind === 'department' && catalogState.key === 'soccer';
   const isTennisDept = catalogState.kind === 'department' && catalogState.key === 'tennis';
   const isLatinoDesigners = catalogState.kind === 'department' && catalogState.key === 'latino_designers';
+  const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
   const grouped = isFightClub ? groupFightClub(gendered) : isLatinoDesigners ? groupLatinoDesigners(gendered) : isSpearfishingDept ? groupSpearGear(gendered) : isSoccerDept ? groupSoccerGear(gendered) : isTennisDept ? groupTennisGear(gendered) : groupBySubcategory(gendered);
   const splittable = isFightClub ? false : shouldSplit(grouped);
   const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
@@ -13385,6 +13488,7 @@ function renderCatalogFeed(){
     ${catalogSearchBarHTML()}
     ${isLatinoDesigners && !catalogState.subKey ? latinoTypeTilesHTML(groupLatinoByType(gendered)) : ''}
     ${isLatinoDesigners && !catalogState.subKey ? latinoDesignerStorefrontsHTML(gendered) : ''}
+    ${isGymRat && !catalogState.subKey ? gymRatBrandStorefrontsHTML(all) : ''}
     ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : isSpearfishingDept ? spearGearChipsHTML(grouped) : isSoccerDept ? spearGearChipsHTML(grouped) : isTennisDept ? spearGearChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
