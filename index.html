@@ -1785,25 +1785,7 @@
         <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Las marcas m&#x00E1;s exclusivas del mall, directo a tu puerta.</p>
       </div>
       <div id="mBrandStrip" data-brand-strip class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-    <!-- BOLSOS (2026-09-28, Danny): handbags from every brand in the mall -- Walmart to designer --
-         in one swipeable rail, right under "Aria Luxury". Painted by initBolsosRail();
-         an empty rail hides its section instead of showing a shelf with nothing on it. -->
-    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
-      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
-      <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
-      </div>
-      <div id="mBolsosRail" data-bolsos-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
-    </section>
-    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): fine jewelry in the Aria Luxury department.
-         Five style rails, NEVER mixed: Elegante, Punk rocker, Otaku, Edgy, Boho/Hippie.
-         Painted by initJoyasRails(); an empty style rail hides itself. -->
-    <!-- JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry ONLY in Aria Luxury.
-         Exceptional pieces from the luxury houses -- Miu Miu, Cartier, etc.
-         The affordable BaubleBar styles live in the standalone
-         "Joyas y accesorios" department below. Painted by initJoyasLujoRail(). -->
+        <!-- JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry INSIDE Aria Luxury. -->
     <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
@@ -1812,18 +1794,30 @@
       </div>
       <div id="mJoyasLujoRail" data-joyas-lujo-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
     </section>
-<!-- MODA DE DISEÑADOR (2026-09-30, Danny): high-end fashion in Aria Luxury.
-         Designer clothes from the houses in this section -- Miu Miu, Gucci,
-         Saint Laurent, Dior, Valentino, Balenciaga, Prada. Mostly women's.
-         Painted by initModaRail(). -->
-    <section aria-label="Moda de dise\u00f1ador" data-moda-section class="relative" style="background:transparent">
+    <!-- BOLSOS (2026-09-30, Danny): handbags INSIDE Aria Luxury. -->
+    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
       <div class="relative px-5 pt-6 pb-1">
-        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de dise\u00f1ador</h2>
-        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Alta moda de las casas m\u00e1s exclusivas.</p>
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Bolsos</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">De todas las marcas del mall, en un solo lugar.</p>
+      </div>
+      <div id="mBolsosRail" data-bolsos-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
+    </section>
+    <!-- MODA DE DISEÑADOR (2026-09-30, Danny): high-end fashion INSIDE Aria Luxury. -->
+    <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
+      <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
+      <div class="relative px-5 pt-6 pb-1">
+        <h2 class="text-[17px] font-extrabold tracking-[-0.01em]" style="color:#0A1F44">Moda de diseñador</h2>
+        <p class="text-[12.5px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
       </div>
       <div id="mModaRail" data-moda-rail class="relative flex gap-3 overflow-x-auto px-5 pb-6 pt-3 ariaRail"></div>
     </section>
+</section>
+    
+    <!-- JOYAS Y ACCESORIOS (2026-09-30, Danny): fine jewelry in the Aria Luxury department.
+         Five style rails, NEVER mixed: Elegante, Punk rocker, Otaku, Edgy, Boho/Hippie.
+         Painted by initJoyasRails(); an empty style rail hides itself. -->
+    
 </div>
     <section aria-label="Joyas y accesorios" data-joyas-section class="relative overflow-hidden" style="background:#FFFFFF">
       <div class="absolute inset-x-0 top-0 pointer-events-none" aria-hidden="true" style="height:2px;background:linear-gradient(90deg, transparent, #C9A227 30%, #C9A227 70%, transparent);opacity:.6"></div>
@@ -2241,10 +2235,18 @@
       </div>
       <div id="dBrandStrip" data-brand-strip class="relative flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
       </div>
-    </section>
-
-    <!-- BOLSOS (desktop, 2026-09-28, Danny): same handbag rail as the phone's. -->
-    <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
+          <!-- JOYAS DE LUJO (desktop, 2026-09-30, Danny): high-end jewelry INSIDE Aria Luxury. -->
+      <section aria-label="Joyas de lujo" data-joyas-lujo-section class="relative" style="background:transparent">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Joyas de lujo</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">Piezas excepcionales de las grandes casas.</p>
+      </div>
+      <div id="dJoyasLujoRail" data-joyas-lujo-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+      </section>
+      <!-- BOLSOS (desktop, 2026-09-30, Danny): handbags INSIDE Aria Luxury. -->
+      <section aria-label="Bolsos" data-bolsos-section class="relative" style="background:transparent">
       <div class="max-w-[1240px] mx-auto">
       <div class="px-8 pt-7 pb-1">
         <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Bolsos</h2>
@@ -2252,7 +2254,20 @@
       </div>
       <div id="dBolsosRail" data-bolsos-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
       </div>
-    </section>
+      </section>
+      <!-- MODA DE DISEÑADOR (desktop, 2026-09-30, Danny): high-end fashion INSIDE Aria Luxury. -->
+      <section aria-label="Moda de diseñador" data-moda-section class="relative" style="background:transparent">
+      <div class="max-w-[1240px] mx-auto">
+      <div class="px-8 pt-7 pb-1">
+        <h2 class="text-[19px] font-extrabold tracking-[-0.01em]" style="color:var(--navy)">Moda de diseñador</h2>
+        <p class="text-[13px] mt-0.5" style="color:#6B7487">Alta moda de las casas más exclusivas.</p>
+      </div>
+      <div id="dModaRail" data-moda-rail class="flex gap-4 overflow-x-auto px-8 pb-7 pt-3 ariaRail"></div>
+      </div>
+      </section>
+</section>
+
+    
 </div>
 
     <!-- FIESTAS Y EVENTOS (2026-09-25, Danny's vertical). Party City's party
