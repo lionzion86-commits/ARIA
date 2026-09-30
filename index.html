@@ -6200,9 +6200,9 @@ const UNSHIPPABLE_TV_RX = /\btvs?\b|television|televisor|smart[-\s]?tv|\bqled\b|
    never bring them back. */
 const AXE_DEODORANT_RX = /\baxe\b/i;
 const AXE_DEODORANT_TYPE_RX = /\b(deodorant|desodorante|antiperspirant|antitranspirante|body\s*sprays?)\b/i;
-const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter/i;
+const TV_PARCEL_OK_RX = /nintendo|playstation|xbox|apple\stv|hdmi|tv\ssound|chromecast|streaming\sstick|fire\s?tv\sstick|proyector|projector|tv\sbackground|for\stv\b|behind\stv|tv\s(stand|console)s?|entertainment\scenter|tv\sseries|serie\sde\stv/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): a stand or console that holds a TV is not a television. */
-const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero/i;
+const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|\bcouch(es)?\b|loveseat|recliners?|sleeper.{0,12}sofas?|sofas?.{0,12}sleeper|fut[\u00f3]n|\bchaise\b|\bmattress(es)?\b|colch[\u00f3]n(es)?|bed\s?frames?|\bbunk\b|\blitera\b|box\ssprings?|headboards?|\bcabecera\b|\bcrib\b|refrigerators?|refrigerador(es)?|\bnevera\b|freezers?|congelador(es)?|dishwashers?|lavavajillas|\blavadora\b|\bwasher\b|\bdryer\b|secadora|treadmills?|caminadora|trotadora|elliptical|el[\u00ed]ptica|weight\s?bench|power\s?rack|smith\smachine|home\sgyms?|\bhot\stubs?\b|jacuzzi|fireplace|chimenea|\bshed\b|cobertizo|playset|gazebo|patio\sset|kayak|paddleboard|canoe|\bgenerator\b|\bgenerador\b|caja\sfuerte|gun\ssafe|fire\ssafe|home\ssafe|digital\ssafe|dining\stable|mesa\sde\scomedor|\bdresser\b|c[\u00f3]moda|wardrobe|armario|ropero|kettlebell|pesa\srusa/i;
 /* TV STANDS ARE FURNITURE (2026-09-26, Danny): tv stand / tv console /
    entertainment center were removed from the pattern above, along with the
    bare \bconsole\b that only ever targeted the TV console. Stands stay
@@ -6211,7 +6211,7 @@ const UNSHIPPABLE_BULKY_RX = /\bsofas?\b|\bsof[a\u00e1]s?\b|sectional|seccional|
 const BULKY_SMALL_OK_RX = /\bhair\b|\bpelo\b|blow|styler|dyson|conair|babyliss|infinitipro|bed head|revlon|hot tools|pressure|hidrolavadora|\btray\b|perfume|fragancia|cologne|\bfor\b.{0,30}\b(sofas?|couch(es)?|mattress(es)?|beds?|dressers?)\b|\btoy\b|\bdoll\b|lego|nintendo|playstation|xbox/i;
 /* Anything over this is freight, not a parcel -- a backstop for the day
    the catalogues start carrying real weights (weightKg is null today). */
-const UNSHIPPABLE_WEIGHT_KG = 30;
+const UNSHIPPABLE_WEIGHT_KG = 15;
 /* BULKY PROJECTOR PACKAGES (2026-09-26, Danny's QA: no price ceiling).
    Costco's projector bundles carry no weight or dimension data -- only
    titles -- so the freight signal has to come from the package the title
@@ -12757,6 +12757,10 @@ function carouselPickItems(items, max){
   }
   leads.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
   otherSales.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
+  /* HALO FIRST (2026-09-30, Danny): after the biggest discounts, the
+     most expensive pieces lead -- the broke shopper sees deals next to
+     aspirational luxury. */
+  plain.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
   const head = carouselPhotoFirst(leads).slice(0, CAROUSEL_SALE_LEAD_MAX);
   const spareLeads = carouselPhotoFirst(leads).slice(CAROUSEL_SALE_LEAD_MAX);
   const tail = carouselSpreadSales(
