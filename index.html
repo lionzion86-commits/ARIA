@@ -27857,11 +27857,32 @@ window.addEventListener('DOMContentLoaded', function(){
       '</div></div>';
   }
   fetch('/ofertas-feed-lite.json').then(function(r){return r.json();}).then(function(d){
-    var items = (d.items || []).filter(function(p){ return Number(p.price)>0 && Number(p.originalPrice)>Number(p.price) && p.image; }).slice(0,20);
-    var html = items.map(cardHTML).join('');
+    var allItems = d.items || [];
+    var saleItems = allItems.filter(function(p){ return Number(p.price)>0 && Number(p.originalPrice)>Number(p.price) && p.image; });
+    // OFERTAS rails
+    var ofertasHtml = saleItems.slice(0,20).map(cardHTML).join('');
     ['mobileDealsRow','desktopDealsRow'].forEach(function(id){
       var row = document.getElementById(id);
-      if(row && html) row.innerHTML = html;
+      if(row && ofertasHtml) row.innerHTML = ofertasHtml;
+    });
+    // Store rails: filter sale items by retailer
+    document.querySelectorAll('[data-store-rail]').forEach(function(rail){
+      var store = rail.getAttribute('data-store-rail');
+      var storeItems = saleItems.filter(function(p){
+        return String(p.retailer||'').toLowerCase().replace(/[^a-z]/g,'') === store.replace(/[^a-z]/g,'');
+      }).slice(0,10);
+      if(storeItems.length){
+        var container = rail.querySelector('.ariaRail') || rail;
+        // Find or create a product row inside the rail
+        var prodRow = container.querySelector('[data-prod-row]');
+        if(!prodRow){
+          prodRow = document.createElement('div');
+          prodRow.setAttribute('data-prod-row','');
+          prodRow.style.cssText = 'display:flex;gap:12px;overflow-x:auto;padding:12px 0;';
+          container.appendChild(prodRow);
+        }
+        prodRow.innerHTML = storeItems.map(cardHTML).join('');
+      }
     });
   }).catch(function(){});
 });
