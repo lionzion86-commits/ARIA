@@ -13830,6 +13830,111 @@ function nativeTypeGroupsFor(retailerData){
   return entries;
 }
 
+
+/* ============================================================
+   STORE CATEGORY CAROUSELS (2026-09-30, Danny).
+   
+   Walmart and Target store pages get merchandised category shelves --
+   Ofertas, Moda Mujer, Zapatos, Deportes, Hogar, Decoracion, Dulces --
+   instead of just the database tiles with counts. Each carousel shows
+   10-15 products from that category, sale items first (highest discount
+   first), unshippable filtered (the load-boundary filter already ran).
+   
+   Categories are answered per-item: departments where the store has a
+   real department, keywords where it doesn't (Moda Mujer, Zapatos).
+   A category with fewer than CAROUSEL_MIN_ITEMS items gets no carousel --
+   the surface keeps its old layout rather than a broken-looking row.
+   ============================================================ */
+const STORE_CATEGORY_DEFS = [
+  { key: 'ofertas',    label: 'Ofertas',     saleOnly: true },
+  { key: 'moda_mujer', label: 'Moda Mujer',  womenOnly: true },
+  { key: 'zapatos',    label: 'Zapatos',     shoesOnly: true },
+  { key: 'deportes',   label: 'Deportes',    dept: 'sporting_goods' },
+  { key: 'hogar',      label: 'Hogar',       dept: 'home_goods' },
+  { key: 'decoracion', label: 'Decoración',  dept: 'home_decor' },
+  { key: 'dulces',     label: 'Dulces',      dept: 'candy_chocolate' },
+];
+const STORE_CATEGORY_STORES = ['walmart', 'target'];
+/* Keywords for women's fashion: answered per item, the Zapatos way. */
+const WOMEN_FASHION_RX = /\bwomen'?s\b|\bladies\b|\bdama\b|\bmujer\b|\bfemale\b|\bdress\b|\bskirt\b|\bblouse\b|\bvestido\b|\bfalda\b|\bblusa\b/i;
+/* Keywords for shoes. */
+const SHOES_RX = /\bshoe(s)?\b|\bsneaker(s)?\b|\bboot(s)?\b|\bsandal(s)?\b|\bheel(s)?\b|\bzapato(s)?\b|\btenis\b|\bfootwear\b/i;
+/* Exclude non-apparel "women" hits (wall art, etc.) and non-shoe "shoe" hits. */
+const WOMEN_NON_APPAREL_RX = /\bwall\s*art\b|\bframed\b|\bcanvas\b|\bposter\b|\bsketch\b|\bportrait\b/i;
+const SHOE_NON_SHOE_RX = /\bshoe\s*(rack|organizer|storage|cabinet)\b|\bpicture\s*frame\b/i;
+
+function isWomenFashionItem(it){
+  const name = String(it.title || it.name || '');
+  if (!WOMEN_FASHION_RX.test(name)) return false;
+  if (WOMEN_NON_APPAREL_RX.test(name)) return false;
+  return true;
+}
+function isShoeItem(it){
+  const name = String(it.title || it.name || '');
+  if (!SHOES_RX.test(name)) return false;
+  if (SHOE_NON_SHOE_RX.test(name)) return false;
+  return true;
+}
+function isSaleItem(it){
+  return !!(it.onSale || (Number(it.originalPrice) > Number(it.price)));
+}
+/* Flatten all of a retailer's items across departments. */
+function allRetailerItems(retailerData){
+  const items = [];
+  const depts = (retailerData && retailerData.departments) || {};
+  for (const key of Object.keys(depts)){
+    const list = (depts[key] && depts[key].items) || [];
+    for (const it of list) if (it) items.push(it);
+  }
+  return items;
+}
+/* Items for one category carousel. Sale items sort by discount % desc. */
+function storeCategoryItems(retailerData, def){
+  let items = [];
+  if (def.saleOnly){
+    items = allRetailerItems(retailerData).filter(isSaleItem);
+  } else if (def.womenOnly){
+    items = allRetailerItems(retailerData).filter(isWomenFashionItem);
+  } else if (def.shoesOnly){
+    items = allRetailerItems(retailerData).filter(isShoeItem);
+  } else if (def.dept){
+    const dept = (retailerData.departments || {})[def.dept];
+    items = ((dept && dept.items) || []).slice();
+  }
+  /* Sale first, highest discount first -- Danny's merchandising rule. */
+  items.sort((a, b) => {
+    const da = Number(a.originalPrice) > Number(a.price) ? (1 - Number(a.price) / Number(a.originalPrice)) : 0;
+    const db = Number(b.originalPrice) > Number(b.price) ? (1 - Number(b.price) / Number(b.originalPrice)) : 0;
+    return db - da;
+  });
+  return items;
+}
+/* A category carousel with a "Ver todo" link. Uses the same card and
+   rail components as every other carousel on the site. */
+function storeCategoryCarouselHTML(def, items, retailer){
+  const picks = carouselPickItems(items, 15);
+  if (picks.length < CAROUSEL_MIN_ITEMS) return '';
+  /* "Ver todo" opens the department page where one exists; for the
+     keyword categories (Ofertas, Moda Mujer, Zapatos) it opens a
+     retailer-scoped search for that category. */
+  let verTodo = '';
+  if (def.dept){
+    verTodo = `<button onclick="openCatalog('department','${jsAttr(def.dept)}',{retailerFilter:'${jsAttr(retailer)}'})" class="text-[14px] font-bold" style="color:#B78A1F">Ver todo &rarr;</button>`;
+  } else if (def.saleOnly){
+    verTodo = `<button onclick="openCatalog('department','sale',{retailerFilter:'${jsAttr(retailer)}'})" class="text-[14px] font-bold" style="color:#B78A1F">Ver todo &rarr;</button>`;
+  }
+  return `<section aria-label="${escapeHtml(def.label)}" class="mb-8">
+    <div class="flex items-baseline justify-between mb-4">
+      <h2 class="ariaCarouselTitle text-[20px] font-extrabold tracking-[-0.02em]" style="color:var(--navy)">${escapeHtml(def.label)}</h2>
+      ${verTodo}
+    </div>
+    <div id="storeCat-${escapeHtml(def.key)}" class="ariaCarousel no-scrollbar" role="list">
+      ${picks.map((it) => carouselCardHTML(it, retailer)).join('')}
+    </div>
+  </section>`;
+}
+
+
 async function openStore(retailer){
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
@@ -13982,6 +14087,23 @@ async function openStore(retailer){
     id: 'storeRail', title: 'Destacados',
     items: carouselMixItems(deptEntries, CAROUSEL_MAX), retailer,
   });
+  /* CATEGORY CAROUSELS (2026-09-30, Danny): Walmart and Target get
+     merchandised shelves -- Ofertas, Moda Mujer, Zapatos, Deportes,
+     Hogar, Decoracion, Dulces -- instead of just the count tiles.
+     Other stores keep the tile grid. */
+  if (STORE_CATEGORY_STORES.includes(retailer)){
+    let catHTML = '';
+    for (const def of STORE_CATEGORY_DEFS){
+      const catItems = storeCategoryItems(retailerData, def);
+      catHTML += storeCategoryCarouselHTML(def, catItems, retailer);
+    }
+    if (catHTML){
+      document.getElementById('storeViewSections').innerHTML += catHTML;
+      if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
+      return;
+    }
+    /* Fall through to tiles if no category had enough items. */
+  }
   document.getElementById('storeViewSections').innerHTML += `<div class="grid grid-cols-2 md:grid-cols-3 gap-4">${
     deptEntries.map(([key, items]) => browseTileHTML({
       label: isNativeTaxonomy ? key : metaFor(DEPARTMENT_META, key).label,
