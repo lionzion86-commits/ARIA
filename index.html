@@ -11634,6 +11634,17 @@ function initMobileShopfront(){
   if (mobileShopfrontStarted) return;
   if (!document.getElementById('mobileDealsRow')) return;
   mobileShopfrontStarted = true;
+  /* DIAG 2026-09-30: surface JS errors on page until rails fixed */
+  window.addEventListener('error', function(e){
+    var d = document.getElementById('js-error-diag');
+    if (!d){
+      d = document.createElement('div');
+      d.id = 'js-error-diag';
+      d.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#c00;color:#fff;font:12px monospace;padding:8px;z-index:99999;white-space:pre-wrap;';
+      document.body.appendChild(d);
+    }
+    d.textContent += 'ERR: ' + e.message + ' @' + (e.filename||'').split('/').pop() + ':' + e.lineno + '\n';
+  });
   /* Skeletons first: the page has a body before it has data. */
   try { paintRailSkeletons(); } catch (e) {}
   /* OFERTAS FIRST, then the store rails: the rails deprioritise what
