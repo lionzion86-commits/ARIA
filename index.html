@@ -9746,6 +9746,7 @@ function spreadDealsByStore(sorted, lead){
    IT DEGRADES ON PURPOSE. If only one retailer's cards remain, they all
    still show -- a full rail beats a short one. */
 const OFERTAS_MAX_RUN = 3;
+const CATEGORY_MAX_RUN = 3; /* Danny 2026-09-30: no category carousel shows only one store */
 function interleaveRetailerCap(items, maxRun, initial){
   const pool = Array.isArray(items) ? [...items] : [];
   const out = [];
@@ -13291,9 +13292,13 @@ function carouselPickItems(items, max, leadRank){
     const complete = [];
     const parts = [];
     for (const it of deduped) (leadRank(it) > 0 ? parts : complete).push(it);
-    return merchandised(complete).concat(merchandised(parts)).slice(0, limit);
+    /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
+  const _combined = merchandised(complete).concat(merchandised(parts));
+  return interleaveRetailerCap(_combined, CATEGORY_MAX_RUN).items.slice(0, limit);
   }
-  return merchandised(deduped).slice(0, limit);
+  /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
+  const _merch = merchandised(deduped);
+  return interleaveRetailerCap(_merch, CATEGORY_MAX_RUN).items.slice(0, limit);
 }
 /* OFERTAS INTERLEAVING (Danny 2026-09-30): Ofertas must show variety -- not 100 women's
    items in a row. Round-robin through categories: best women's sale, best electronics
