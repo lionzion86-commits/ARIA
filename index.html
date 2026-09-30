@@ -19552,6 +19552,8 @@ const GENERIC_FALLBACK_KG = 0.6;
 // One line on purpose: the module/page parity harness reads these with
 // a single-line matcher (see test-freight).
 const APPLIANCE_IMPOSTOR_RE = /\b(washer\s*fluid|windshield\s*washer|windscreen\s*washer|washer\s*(?:nozzle|pump|hose)|rubber\s*washers?|hair\s*dryer|blow\s*dryer|dryer\s*(?:sheets?|balls?|vent)|mini\s*fridge)\b/i; /* mini fridge: 18 kg, not 90 (2026-09-29) */
+/* 2026-09-30 TDZ fix: referenced inside BULKY_WEIGHT_ESTIMATES_KG below; was declared after the array, throwing ReferenceError at load and blanking all carousels. */
+const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
 const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 70 },
   { match: /\b(mattress|box spring|boxspring)\b/i, not: MATTRESS_IMPOSTOR_RE, kg: 40 },
@@ -20219,7 +20221,6 @@ const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bu
    First alternative needs a projector mention that is NOT the
    "projector screen" compound itself; the second catches the
    "Screen Included" phrasing directly. */
-const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
 
 /* ============================================================
    VITAMINS AND SUPPLEMENTS — a table, not a constant
