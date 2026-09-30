@@ -27841,16 +27841,29 @@ sweepFounderPhoto();
 initRouter();
 </script>
 <script>
-/* DIAG 2026-09-30: safe standalone diagnostic */
+/* EMERGENCY RAILS FIX 2026-09-30: bypass broken main script, render directly */
 window.addEventListener('DOMContentLoaded', function(){
-  var el = document.getElementById('mobileDealsRow');
-  var msg = 'DIAG: mobileDealsRow=' + (el ? 'FOUND' : 'NULL');
-  msg += ' initMobileShopfront=' + (typeof initMobileShopfront);
-  var d = document.createElement('div');
-  d.id = 'diag-box';
-  d.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#004;color:#fff;font:12px monospace;padding:8px;z-index:999999;';
-  d.textContent = msg;
-  document.body.appendChild(d);
+  function cardHTML(p){
+    var img = p.image || '';
+    var title = String(p.title || '').replace(/</g,'&lt;');
+    var price = Number(p.price) || 0;
+    var orig = Number(p.originalPrice) || 0;
+    return '<div style="flex-shrink:0;width:140px;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;">' +
+      '<img src="'+img+'" alt="" loading="lazy" style="width:100%;height:120px;object-fit:cover;">' +
+      '<div style="padding:8px;">' +
+      '<div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+title+'</div>' +
+      '<div style="font-size:13px;font-weight:800;color:#0A1F44;">$'+price.toFixed(2)+'</div>' +
+      (orig > price ? '<div style="font-size:11px;color:#999;text-decoration:line-through;">$'+orig.toFixed(2)+'</div>' : '') +
+      '</div></div>';
+  }
+  fetch('/ofertas-feed-lite.json').then(function(r){return r.json();}).then(function(d){
+    var items = (d.items || []).filter(function(p){ return Number(p.price)>0 && Number(p.originalPrice)>Number(p.price) && p.image; }).slice(0,20);
+    var html = items.map(cardHTML).join('');
+    ['mobileDealsRow','desktopDealsRow'].forEach(function(id){
+      var row = document.getElementById(id);
+      if(row && html) row.innerHTML = html;
+    });
+  }).catch(function(){});
 });
 </script>
 </body>
