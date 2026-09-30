@@ -9747,6 +9747,25 @@ function spreadDealsByStore(sorted, lead){
    still show -- a full rail beats a short one. */
 const OFERTAS_MAX_RUN = 3;
 const CATEGORY_MAX_RUN = 3; /* Danny 2026-09-30: no category carousel shows only one store */
+const BRAND_MAX_RUN = 4; /* Danny 2026-09-30: brand diversity -- no brand dominates (Joyas was all BaubleBar) */
+function interleaveBrandCap(items, maxRun){
+  /* Same as interleaveRetailerCap but keyed on brand. Ensures brand diversity
+     within a single retailer (e.g. Joyas has BaubleBar + Melie Bianco). */
+  const pool = Array.isArray(items) ? [...items] : [];
+  const out = [];
+  const keyOf = p => String((p && p.brand) || '').toLowerCase();
+  let runBrand = null;
+  let runCount = 0;
+  while (pool.length){
+    let idx = pool.findIndex(p => keyOf(p) !== runBrand || runCount < maxRun);
+    if (idx < 0) idx = 0;
+    const p = pool.splice(idx, 1)[0];
+    const k = keyOf(p);
+    if (k === runBrand) runCount += 1; else { runBrand = k; runCount = 1; }
+    out.push(p);
+  }
+  return out;
+}
 function interleaveRetailerCap(items, maxRun, initial){
   const pool = Array.isArray(items) ? [...items] : [];
   const out = [];
@@ -10417,18 +10436,8 @@ const CATEGORY_RAILS = [
       return isSpearfishing(p, p.retailer) || isSoccer(p, p.retailer) || isTennis(p, p.retailer) || isSurfSkate(p, p.retailer);
     },
     open: "openCatalog('department','sporting_goods')" },
-  /* FUTBOL (2026-09-29, Danny): soccer is huge in Peru -- chimpunes,
-     canilleras, pelotas, camisetas, all on sale. */
-  { key: 'soccer', label: 'Fútbol', icon: '', stores: null, poolOnly: true,
-    blurb: 'Chimpunes, canilleras, pelotas y camisetas en oferta.',
-    test: (p) => isSoccer(p, p.retailer),
-    open: "openCatalog('department','soccer')" },
-  /* TENIS (2026-09-29, Danny): big in Lima -- raquetas, zapatillas,
-     pelotas en oferta. */
-  { key: 'tennis', label: 'Tenis', icon: '', stores: null, poolOnly: true,
-    blurb: 'Raquetas, zapatillas y pelotas en oferta.',
-    test: (p) => isTennis(p, p.retailer),
-    open: "openCatalog('department','tennis')" },
+  /* FUTBOL merged into Deportes per Danny 2026-09-30 */
+  /* TENIS merged into Deportes per Danny 2026-09-30 */
   /* DISENADORES LATINOS (2026-09-28, Danny): South American designers
      via Farfetch US -- Farm Rio, Agua Bendita, PatBO, Johanna Ortiz,
      Silvia Tcherassi. Brand pills filter the feed; Todo is the default. */
@@ -13319,11 +13328,13 @@ function carouselPickItems(items, max, leadRank){
     for (const it of deduped) (leadRank(it) > 0 ? parts : complete).push(it);
     /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
   const _combined = merchandised(complete).concat(merchandised(parts));
-  return interleaveRetailerCap(_combined, CATEGORY_MAX_RUN).items.slice(0, limit);
+  const _brandMixed = interleaveBrandCap(interleaveRetailerCap(_combined, CATEGORY_MAX_RUN).items, BRAND_MAX_RUN);
+  return _brandMixed.slice(0, limit);
   }
   /* Danny 2026-09-30: store diversity — interleave by retailer so no single store dominates the carousel */
   const _merch = merchandised(deduped);
-  return interleaveRetailerCap(_merch, CATEGORY_MAX_RUN).items.slice(0, limit);
+  const _brandMixed2 = interleaveBrandCap(interleaveRetailerCap(_merch, CATEGORY_MAX_RUN).items, BRAND_MAX_RUN);
+  return _brandMixed2.slice(0, limit);
 }
 /* OFERTAS INTERLEAVING (Danny 2026-09-30): Ofertas must show variety -- not 100 women's
    items in a row. Round-robin through categories: best women's sale, best electronics
