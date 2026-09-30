@@ -10390,7 +10390,32 @@ const CATEGORY_RAILS = [
      same as its sports. */
   { key: 'sporting_goods', label: 'Deportes', icon: '', stores: null, poolOnly: true,
     blurb: 'Pesca submarina, fútbol, tenis y más.',
-    test: (p) => isSpearfishing(p, p.retailer) || isSoccer(p, p.retailer) || isTennis(p, p.retailer) || isSurfSkate(p, p.retailer),
+    test: (p) => {
+      /* Danny 2026-09-30: Deportes = REAL sports equipment only.
+         The product IS sports equipment, not just sports-THEMED.
+         Exclude: dolls, action figures, toys (even sports-themed),
+         clothing with sports graphics (not athletic wear),
+         toy versions of sports equipment. */
+      if (typeof isToyItem === 'function' && isToyItem(p)) return false;
+      const t = String(p.title || p.name || '');
+      if (/\b(dolls?|barbie|poseable|action figures?)\b/i.test(t)) return false;
+      if (/\btoy\b/i.test(t)) return false;
+      /* Surfer Dudes and similar toy brands are toys, not sports gear */
+      const brand = String(p.brand || '').toLowerCase();
+      if (/\b(surfer dudes|glitter girls)\b/i.test(brand)) return false;
+      /* Graphic tees: apparel that matched surf/skate via title only.
+         A "skateboard tee" is clothing, not a skateboard. Real skate gear
+         has a surf/skate type; title-only matches on apparel are graphics. */
+      if (typeof isSurfSkate === 'function' && typeof SURFSKATE_TYPES !== 'undefined') {
+        const hasSurfType = p.type && SURFSKATE_TYPES.has(p.type);
+        if (!hasSurfType && isSurfSkate(p, p.retailer)) {
+          const typeLower = String(p.type || '').toLowerCase();
+          if (/camiseta|t-shirt|\btee\b|shirt|ropa|clothing|apparel|polo/i.test(typeLower)) return false;
+          if (/\b(tee|t-shirt|shirt|camiseta)\b/i.test(t)) return false;
+        }
+      }
+      return isSpearfishing(p, p.retailer) || isSoccer(p, p.retailer) || isTennis(p, p.retailer) || isSurfSkate(p, p.retailer);
+    },
     open: "openCatalog('department','sporting_goods')" },
   /* FUTBOL (2026-09-29, Danny): soccer is huge in Peru -- chimpunes,
      canilleras, pelotas, camisetas, all on sale. */
