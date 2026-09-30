@@ -12978,6 +12978,46 @@ function carouselPickItems(items, max, leadRank){
   }
   return merchandised(deduped).slice(0, limit);
 }
+/* OFERTAS INTERLEAVING (Danny 2026-09-30): Ofertas must show variety -- not 100 women's
+   items in a row. Round-robin through categories: best women's sale, best electronics
+   sale, best home sale, best toys sale, then second-best of each. Each category's
+   items are sorted by discount desc (biggest first) before interleaving. */
+function interleaveSaleByCategory(deptGroups, max){
+  const groups = [];
+  for (const [key, items] of (deptGroups || [])){
+    if (!Array.isArray(items) || !items.length) continue;
+    const sales = [];
+    for (const it of items){
+      if (!it) continue;
+      if (typeof isSaleItem === 'function' && !isSaleItem(it)) continue;
+      sales.push(it);
+    }
+    if (!sales.length) continue;
+    sales.sort((a, b) => {
+      const pa = (typeof carouselDiscountPct === 'function') ? carouselDiscountPct(a) : 0;
+      const pb = (typeof carouselDiscountPct === 'function') ? carouselDiscountPct(b) : 0;
+      return pb - pa;
+    });
+    groups.push(sales);
+  }
+  if (!groups.length) return [];
+  const out = [];
+  const limit = Number.isFinite(max) && max > 0 ? Math.floor(max) : 48;
+  let idx = 0;
+  let progressed = true;
+  while (progressed && out.length < limit){
+    progressed = false;
+    for (const g of groups){
+      if (idx < g.length && out.length < limit){
+        out.push(g[idx]);
+        progressed = true;
+      }
+    }
+    idx += 1;
+  }
+  return out;
+}
+
 /* CURATED DESTACADOS (Danny 2026-09-30): Destacados must be intentional, not leftovers.
    One best sale per category: highest honest discount (5-70% via isSaleItem, under $150),
    must have a real photo. Sorted by discount desc — biggest savings first, category-diverse
@@ -14164,7 +14204,10 @@ function allRetailerItems(retailerData){
 function storeCategoryItems(retailerData, def){
   let items = [];
   if (def.saleOnly){
-    items = allRetailerItems(retailerData).filter(isSaleItem);
+    /* Danny 2026-09-30: Ofertas interleaves by category -- variety, not 100 women's items in a row. */
+    const __depts = (retailerData && retailerData.departments) || {};
+    const __groups = Object.keys(__depts).map(k => [k, ((__depts[k] && __depts[k].items) || [])]);
+    return interleaveSaleByCategory(__groups, 200);
   } else if (def.womenOnly){
     items = allRetailerItems(retailerData).filter(isWomenFashionItem);
   } else if (def.shoesOnly){
@@ -14446,7 +14489,7 @@ async function openStore(retailer){
      enough marked-down stock. */
   let galleryHTML = '';
   /* Ofertas room: sale items across all departments, biggest discount first. */
-  const __saleItems = allRetailerItems(retailerData).filter(isSaleItem);
+  const __saleItems = interleaveSaleByCategory(deptEntries, CAROUSEL_MAX);
   if (__saleItems.length >= CAROUSEL_MIN_ITEMS){
     galleryHTML += storeGalleryRoomHTML({
       label: 'Ofertas',
