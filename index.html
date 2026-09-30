@@ -6229,7 +6229,7 @@ function isShippableItem(p){
 
   if (!p) return false;
   const hay = `${p.name || ''} ${p.title || ''} ${p.brand || ''}`;
-  if (UNSHIPPABLE_TV_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
+  if (UNSHIPPABLE_TV_RX.test(hay) || TV_SIZE_BRAND_RX.test(hay) && !TV_PARCEL_OK_RX.test(hay)) return false;
   if (AXE_DEODORANT_RX.test(hay) && AXE_DEODORANT_TYPE_RX.test(hay)) return false;
   if (UNSHIPPABLE_BULKY_RX.test(hay) && !BULKY_SMALL_OK_RX.test(hay)) return false;
   if (PROJECTOR_RX.test(hay) && BULKY_PROJECTOR_PACKAGE_RX.test(hay)) return false;
