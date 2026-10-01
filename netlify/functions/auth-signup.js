@@ -29,9 +29,17 @@ export async function handler(event) {
 
   const email = normalizeEmail(body.email);
   const password = typeof body.password === "string" ? body.password : "";
+  // Los Elegidos (2026-10-01): Key Club signup carries the member's name
+  // (required) and phone (optional) — tied to their saved cart for the
+  // founders review. DNI is deliberately NOT collected (not approved).
+  const name = typeof body.name === "string" ? body.name.trim().slice(0, 80) : "";
+  const phone = typeof body.phone === "string" ? body.phone.trim().slice(0, 25) : "";
 
   if (!email) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "Correo electrónico inválido" }) };
+  }
+  if (!name) {
+    return { statusCode: 400, headers, body: JSON.stringify({ error: "Cuéntanos tu nombre" }) };
   }
   if (password.length < 8) {
     return { statusCode: 400, headers, body: JSON.stringify({ error: "La contraseña debe tener al menos 8 caracteres" }) };
@@ -45,7 +53,11 @@ export async function handler(event) {
     }
 
     const passwordHash = await hashPassword(password);
-    await users.setJSON(email, { email, passwordHash, createdAt: new Date().toISOString() });
+    await users.setJSON(email, {
+      email, passwordHash, name, phone,
+      founderStatus: "pending", // every new member starts under review
+      createdAt: new Date().toISOString(),
+    });
 
     const sessionId = randomBytes(32).toString("hex");
     const sessions = getStore("sessions");
@@ -54,7 +66,7 @@ export async function handler(event) {
     return {
       statusCode: 200,
       headers: { ...headers, "Set-Cookie": sessionCookieHeader(sessionId) },
-      body: JSON.stringify({ email, isAdmin: isAdmin(email) }),
+      body: JSON.stringify({ email, name, isAdmin: isAdmin(email), founderStatus: "pending" }),
     };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };

@@ -316,6 +316,9 @@ const state = {
   /* ops v1 */
   pipeline: null, pipelineQ: "", pipelineStage: "", pipelineExpress: "all",
   batches: null, claims: null, tax: null, taxFilter: "unreconciled", expressOrders: null,
+  /* Los Elegidos (2026-10-01) */
+  founders: null, foundersSort: "total", foundersFilter: "all", foundersPage: 1,
+  foundersCart: null, foundersCartEmail: null,
 };
 
 /* ---- formatting ---------------------------------------------------- */
@@ -1107,7 +1110,8 @@ function renderMoreMenu() {
     item("claims", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>', "Reclamos", "Ventanas de reclamo por lote") +
     item("tax", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h12v18l-2-1.6-2 1.6-2-1.6L10 21l-2-1.6L6 21z"/><path d="M9 8h6M9 12h6"/></svg>', "Impuestos", "Estimado contra real SUNAT") +
     item("express", '<svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6z"/></svg>', "Express", "Pedidos «ni bien llegue» y su control") +
-    item("ledger", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>', "Libro", "Libro mayor y descarga CSV");
+    item("ledger", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h8l4 4v16H6z"/><path d="M14 2v4h4"/></svg>', "Libro", "Libro mayor y descarga CSV") +
+    item("founders", '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21h18"/><path d="M5 21V10l7-7 7 7v11"/><path d="M9 21v-6h6v6"/></svg>', "Los Elegidos", "Revisar carritos y elegir a los 1000 fundadores");
 }
 
 function renderMore() {
@@ -1117,6 +1121,7 @@ function renderMore() {
     case "tax": return renderTax();
     case "express": return renderExpress();
     case "ledger": return renderLedger();
+    case "founders": return renderFounders();
     default: return renderMoreMenu();
   }
 }
@@ -1129,7 +1134,7 @@ async function goMore(sub) {
   state.more = sub;
   paint();
   window.scrollTo({ top: 0, behavior: "instant" });
-  const need = { batches: "batches", claims: "claims", tax: "tax", express: "expressOrders", ledger: "ledger" }[sub];
+  const need = { batches: "batches", claims: "claims", tax: "tax", express: "expressOrders", ledger: "ledger", founders: "founders" }[sub];
   if (need && !state[need]) {
     try {
       state[need] = await LOADER[need]();
@@ -1419,6 +1424,239 @@ function paint() {
   }
 }
 
+/* ---- más → Los Elegidos (2026-10-01) ------------------------------------
+   Danny's founders review dashboard. Lists every Key Club member with
+   their saved cart summary, lets him pick/reject founders one by one
+   (or bulk-pick the visible page), and shows the X/1000 meter. The
+   campaign mode switch (off / gate / open) lives here too — flipping to
+   'gate' locks checkout.html for everyone except picked founders;
+   'open' is the Nov 10 public opening. */
+const FOUNDERS_STATUS_ES = {
+  pending: ["En revisión", "warn"],
+  fundador: ["Fundador", "ok"],
+  rechazado: ["Rechazado", "flat"],
+};
+function foundersPill(s) {
+  const [label, tone] = FOUNDERS_STATUS_ES[s] || [s || "—", "flat"];
+  return `<span class="pill ${tone}">${esc(label)}</span>`;
+}
+
+async function foundersPick(email, status) {
+  const res = await fetch("/.netlify/functions/founders-pick", {
+    method: "POST", credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, status }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || "No se pudo actualizar");
+  return data;
+}
+
+async function foundersPickVisible() {
+  const d = state.founders;
+  if (!d || !d.members) return;
+  const emails = d.members
+    .filter((m) => (m.founderStatus || "pending") !== "fundador")
+    .map((m) => m.email);
+  if (!emails.length) { toast("Nada que elegir en esta página"); return; }
+  if (!confirm(`Elegir como fundadores a ${emails.length} miembro(s) de esta página?`)) return;
+  try {
+    await fetch("/.netlify/functions/founders-pick", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ emails, status: "fundador" }),
+    }).then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data.error || "Error");
+    });
+    state.founders = null;
+    await goMore("founders");
+    toast("Fundadores elegidos");
+  } catch (e) { toast(e.message); }
+}
+
+async function foundersSetOne(email, status) {
+  try {
+    await foundersPick(email, status);
+    state.founders = null;
+    await goMore("founders");
+  } catch (e) { toast(e.message); }
+}
+
+async function foundersViewCart(email) {
+  state.foundersCartEmail = email;
+  state.foundersCart = null;
+  paint();
+  try {
+    const res = await fetch("/.netlify/functions/founders-cart?email=" + encodeURIComponent(email), { credentials: "same-origin" });
+    const data = await res.json().catch(() => ({}));
+    if (res.status === 403) throw Object.assign(new Error("no-autorizado"), { code: 403 });
+    if (!res.ok) throw new Error(data.error || "Error");
+    state.foundersCart = data;
+  } catch (e) {
+    state.foundersCart = { error: e.message };
+  }
+  paint();
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+function foundersCloseCart() {
+  state.foundersCart = null;
+  state.foundersCartEmail = null;
+  paint();
+}
+
+async function foundersSetSort(sort) {
+  state.foundersSort = sort;
+  state.foundersPage = 1;
+  state.founders = null;
+  await goMore("founders");
+}
+
+async function foundersSetFilter(f) {
+  state.foundersFilter = f;
+  state.foundersPage = 1;
+  state.founders = null;
+  await goMore("founders");
+}
+
+async function foundersSetPage(p) {
+  state.foundersPage = p;
+  state.founders = null;
+  await goMore("founders");
+}
+
+/* Campaign mode switch: off (pre-lanzamiento) / gate (20 oct–10 nov) /
+   open (10 nov+: puertas abiertas). Writes through admin-settings, the
+   same settings blob checkout.html's gate reads. */
+async function foundersSetMode(mode) {
+  try {
+    const cur = await fetch("/.netlify/functions/admin-settings", { credentials: "same-origin" }).then((r) => r.json());
+    const res = await fetch("/.netlify/functions/admin-settings", {
+      method: "POST", credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...cur, foundersMode: mode }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Error");
+    state.foundersMode = mode;
+    paint();
+    toast(mode === "gate" ? "Puerta activada: solo fundadores compran" : mode === "open" ? "Puertas abiertas para todos" : "Modo campaña apagado");
+  } catch (e) { toast(e.message); }
+}
+async function foundersLoadMode() {
+  try {
+    const s = await fetch("/.netlify/functions/admin-settings", { credentials: "same-origin" }).then((r) => r.json());
+    state.foundersMode = s.foundersMode || "off";
+  } catch { state.foundersMode = "off"; }
+  paint();
+}
+
+function foundersCartDrawer() {
+  const email = state.foundersCartEmail;
+  const d = state.foundersCart;
+  if (!email) return "";
+  if (!d) return `<div class="card"><div class="title">Carrito de ${esc(email)}</div><div class="spin">Cargando carrito…</div><div class="btns" style="margin-top:10px"><button class="btn" onclick="foundersCloseCart()">Cerrar</button></div></div>`;
+  if (d.error) return `<div class="card"><div class="title">Carrito de ${esc(email)}</div><div class="banner bad">${esc(d.error)}</div><div class="btns" style="margin-top:10px"><button class="btn" onclick="foundersCloseCart()">Cerrar</button></div></div>`;
+  const lines = (d.cart || []).map((it) => `
+    <div class="row" style="align-items:flex-start">
+      <span class="k" style="max-width:70%">${esc(it.title)}${it.selectedSize ? ` <span class="muted">· Talla ${esc(it.selectedSize)}</span>` : ""}<br><span class="muted">${esc(it.retailer || "")} · x${it.qty}</span></span>
+      <span class="v">${usd(it.priceUsd * it.qty)}</span>
+    </div>`).join("");
+  const total = (d.cart || []).reduce((s, it) => s + (Number(it.priceUsd) || 0) * (it.qty || 1), 0);
+  return `<div class="card">
+    <div class="head"><div>
+      <div class="title">${esc(d.name || d.email)}</div>
+      <div class="sub">${esc(d.email)}${d.phone ? " · " + esc(d.phone) : ""} · se unió ${when(d.createdAt)}</div>
+    </div>${foundersPill(d.founderStatus)}</div>
+    <div class="hr"></div>
+    ${lines || '<p class="note">Carrito vacío o sin guardar.</p>'}
+    <div class="hr"></div>
+    <div class="row"><span class="k">Total del carrito</span><span class="v big">${usd(total)}</span></div>
+    <div class="btns" style="margin-top:12px">
+      <button class="btn primary" onclick="foundersSetOne('${esc(d.email)}','fundador')">Elegir fundador</button>
+      <button class="btn" onclick="foundersSetOne('${esc(d.email)}','rechazado')">Rechazar</button>
+      <button class="btn" onclick="foundersCloseCart()">Cerrar</button>
+    </div>
+  </div>`;
+}
+
+function renderFounders() {
+  const d = state.founders;
+  if (!d) return moreHead("Los Elegidos") + '<div class="spin">Cargando miembros…</div>';
+  if (!state.foundersMode) foundersLoadMode();
+
+  const picked = d.pickedCount || 0;
+  const target = d.target || 1000;
+  const left = Math.max(0, target - picked);
+  const pct = Math.min(100, Math.round((picked / target) * 100));
+
+  const mode = state.foundersMode || "off";
+  const modeSeg = (m, label) => `<button class="${mode === m ? "on" : ""}" onclick="foundersSetMode('${m}')">${label}</button>`;
+
+  const cards = (d.members || []).map((m) => {
+    const st = m.founderStatus || "pending";
+    return `<div class="card tight">
+      <div class="head">
+        <div><div class="title">${esc(m.name || m.email)}</div>
+        <div class="sub">${esc(m.email)}${m.phone ? " · " + esc(m.phone) : ""} · ${when(m.createdAt)}</div></div>
+        ${foundersPill(st)}
+      </div>
+      <div class="row"><span class="k">Carrito</span><span class="v">${m.itemCount} art. · ${usd(m.cartTotalUsd)}</span></div>
+      <div class="btns" style="margin-top:8px">
+        <button class="btn" onclick="foundersViewCart('${esc(m.email)}')">Ver carrito</button>
+        ${st !== "fundador" ? `<button class="btn primary" onclick="foundersSetOne('${esc(m.email)}','fundador')">Elegir</button>` : ""}
+        ${st === "fundador" ? `<button class="btn" onclick="foundersSetOne('${esc(m.email)}','pending')">Quitar</button>` : ""}
+        ${st !== "rechazado" && st !== "fundador" ? `<button class="btn" onclick="foundersSetOne('${esc(m.email)}','rechazado')">Rechazar</button>` : ""}
+        ${st === "rechazado" ? `<button class="btn" onclick="foundersSetOne('${esc(m.email)}','pending')">Reabrir</button>` : ""}
+      </div>
+    </div>`;
+  }).join("");
+
+  const pages = [];
+  for (let p = 1; p <= (d.pages || 1); p++) {
+    pages.push(`<button class="btn${p === d.page ? " primary" : ""}" style="min-width:40px" onclick="foundersSetPage(${p})">${p}</button>`);
+  }
+
+  return moreHead("Los Elegidos") + `
+    <p class="note" style="margin:0 2px 11px">Revisa cada carrito y elige a mano a los 1000 fundadores. La selección es curada — nunca por orden de llegada.</p>
+    ${foundersCartDrawer()}
+    <div class="card">
+      <div class="row"><span class="k">Fundadores elegidos</span><span class="v big">${picked} / ${target}</span></div>
+      <div style="height:10px;border-radius:6px;background:#E5E9F2;margin:8px 0;overflow:hidden"><div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#F4C463,#E8A93D);border-radius:6px"></div></div>
+      <div class="row"><span class="k">Lugares restantes</span><span class="v">${left}</span></div>
+      <div class="row"><span class="k">Miembros totales</span><span class="v">${d.total}</span></div>
+    </div>
+    <div class="card">
+      <div class="title" style="margin-bottom:8px">Puerta del checkout</div>
+      <div class="seg" style="margin-bottom:6px">
+        ${modeSeg("off", "Apagado")}
+        ${modeSeg("gate", "Puerta 20 oct–10 nov")}
+        ${modeSeg("open", "Abierto 10 nov+")}
+      </div>
+      <p class="note" style="margin:0">Puerta: solo los fundadores elegidos pueden pagar. Abierto: todo el mundo compra. Apagado: comportamiento normal.</p>
+    </div>
+    <div class="card">
+      <div class="seg" style="margin-bottom:8px">
+        <button class="${state.foundersSort === "total" ? "on" : ""}" onclick="foundersSetSort('total')">Por total</button>
+        <button class="${state.foundersSort === "date" ? "on" : ""}" onclick="foundersSetSort('date')">Por fecha</button>
+      </div>
+      <div class="seg" style="margin-bottom:8px">
+        <button class="${state.foundersFilter === "all" ? "on" : ""}" onclick="foundersSetFilter('all')">Todos</button>
+        <button class="${state.foundersFilter === "pending" ? "on" : ""}" onclick="foundersSetFilter('pending')">En revisión</button>
+        <button class="${state.foundersFilter === "fundador" ? "on" : ""}" onclick="foundersSetFilter('fundador')">Elegidos</button>
+        <button class="${state.foundersFilter === "rechazado" ? "on" : ""}" onclick="foundersSetFilter('rechazado')">Rechazados</button>
+      </div>
+      <div class="btns">
+        <button class="btn primary" onclick="foundersPickVisible()">Elegir visibles (${(d.members || []).filter((m) => (m.founderStatus || "pending") !== "fundador").length})</button>
+      </div>
+    </div>
+    ${d.unreadable ? `<div class="banner warn">${d.unreadable} registro(s) no se pudieron leer.</div>` : ""}
+    ${cards ? `<div class="cols">${cards}</div>` : '<div class="card"><p class="note">Sin miembros en este filtro.</p></div>'}
+    ${d.pages > 1 ? `<div class="btns" style="margin-top:12px;flex-wrap:wrap">${pages.join("")}</div>` : ""}
+  `;
+}
+
 const LOADER = {
   orders: () => api({ view: "orders", limit: 25 }),
   payments: () => api({ view: "payments", limit: 50 }),
@@ -1429,6 +1667,12 @@ const LOADER = {
   tax: () => api2(TAX_API, { view: "tax", filter: state.taxFilter }),
   expressOrders: () => api2(PIPELINE_API, { view: "pipeline", express: "express", limit: 50 }),
   ledger: () => api({ view: "ledger" }),
+  founders: () => fetch("/.netlify/functions/founders-list?sort=" + state.foundersSort + "&status=" + state.foundersFilter + "&page=" + state.foundersPage + "&per=25", { credentials: "same-origin" }).then(async (r) => {
+    const data = await r.json().catch(() => ({}));
+    if (r.status === 403) throw Object.assign(new Error("no-autorizado"), { code: 403 });
+    if (!r.ok) throw new Error(data.error || ("Error " + r.status));
+    return data;
+  }),
 };
 
 async function go(tab) {

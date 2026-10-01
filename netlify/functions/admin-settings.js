@@ -5,7 +5,12 @@ import { getStore, connectLambda } from "@netlify/blobs";
 import { getSessionEmail, isAdmin, corsHeaders } from "./_auth-helpers.js";
 import { normalizeBatchHour, DEFAULT_BATCH_HOUR } from "./_peru-time.js";
 
-const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR };
+const DEFAULT_SETTINGS = { paused: false, dailyCap: 40, batchHour: DEFAULT_BATCH_HOUR, foundersMode: "off" };
+// Los Elegidos (2026-10-01): the founders campaign gate.
+//   'off'  — pre-launch: signups open, checkout normal for everyone
+//   'gate' — Oct 20 → Nov 10: only picked founders can check out
+//   'open' — Nov 10+: gates open to everyone
+const VALID_FOUNDERS_MODES = new Set(["off", "gate", "open"]);
 
 export async function handler(event) {
   connectLambda(event);
@@ -28,6 +33,7 @@ export async function handler(event) {
       // Settings blobs written before batchHour existed have no such key;
       // normalize on read so the admin UI never shows a blank hour.
       settings.batchHour = normalizeBatchHour(settings.batchHour);
+      if (!VALID_FOUNDERS_MODES.has(settings.foundersMode)) settings.foundersMode = DEFAULT_SETTINGS.foundersMode;
       return { statusCode: 200, headers, body: JSON.stringify(settings) };
     } catch (error) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
@@ -47,9 +53,10 @@ export async function handler(event) {
     // default); normalizeBatchHour falls back rather than clamping, so a
     // bad value can never quietly reschedule the batch.
     const batchHour = normalizeBatchHour(body.batchHour);
+    const foundersMode = VALID_FOUNDERS_MODES.has(body.foundersMode) ? body.foundersMode : DEFAULT_SETTINGS.foundersMode;
     try {
-      await settingsStore.setJSON("global", { paused, dailyCap, batchHour });
-      return { statusCode: 200, headers, body: JSON.stringify({ paused, dailyCap, batchHour }) };
+      await settingsStore.setJSON("global", { paused, dailyCap, batchHour, foundersMode });
+      return { statusCode: 200, headers, body: JSON.stringify({ paused, dailyCap, batchHour, foundersMode }) };
     } catch (error) {
       return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
     }

@@ -60,6 +60,7 @@
   .gridDestination{ grid-area:destination; }
   /* CÓMO FUNCIONA TU ENVÍO strip (2026-09-26): same gold hairline as index.html. */
   .ariaGoldHair{ position:absolute; left:0; right:0; top:0; height:1px; background:linear-gradient(90deg, transparent, rgba(244,196,99,0.65), transparent) }
+  .ariaKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463; display:flex; align-items:center; gap:8px }
 </style>
 </head>
 <body class="antialiased">
@@ -81,6 +82,74 @@
 <main class="max-w-[1100px] mx-auto px-5 py-8 sm:py-12">
 
   <!-- ============ CHECKOUT FORM ============ -->
+  <!-- LOS ELEGIDOS — checkout gate panel (2026-10-01). Rendered by the
+       gate pre-script below when foundersMode is 'gate' and the shopper
+       is not a picked founder. checkoutWrap starts hidden and is only
+       revealed once the gate check passes, so there is no flash of the
+       payment form for a locked shopper. -->
+  <div id="foundersGateWrap" hidden></div>
+  <script>
+  /* LOS ELEGIDOS — checkout gate pre-check. This classic script runs
+     before the module script below (classic scripts execute during
+     parsing; modules are deferred). It fires the founders-status fetch
+     immediately and hides the checkout until the gate passes. The module
+     awaits window.__foundersGatePromise as its first statement and halts
+     if the shopper is locked out. Gate fails OPEN on network error. */
+  (function(){
+    var checkout = document.getElementById('checkoutWrap');
+    if (checkout) checkout.hidden = true;
+    window.__foundersGatePromise = fetch('/.netlify/functions/founders-status')
+      .then(function(r){ return r.ok ? r.json() : null; })
+      .catch(function(){ return null; });
+    window.renderFoundersGatePanel = function(gs){
+      var wrap = document.getElementById('foundersGateWrap');
+      var co = document.getElementById('checkoutWrap');
+      if (co) co.hidden = true;
+      var firstName = gs.name ? String(gs.name).split(' ')[0] : '';
+      var cart = [];
+      try { cart = JSON.parse(localStorage.getItem('aria_cart_v1') || '[]'); } catch (e) {}
+      if (!Array.isArray(cart)) cart = [];
+      var items = cart.reduce(function(s, it){ return s + Math.max(1, Math.floor(Number(it.qty) || 1)); }, 0);
+      var totalUsd = cart.reduce(function(s, it){ return s + (Number(it.priceUsd) || 0) * Math.max(1, Math.floor(Number(it.qty) || 1)); }, 0);
+      var usd = '$' + totalUsd.toFixed(2);
+      var msg;
+      if (!gs.email) {
+        msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
+          + 'Únete gratis al Key Club: tu carrito queda guardado y entra a la selección de los 1000 fundadores. '
+          + 'Arma tu carrito. Si eres elegido, compras.</p>'
+          + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Ir a la tienda y unirme</a>';
+      } else if (gs.founderStatus === 'rechazado') {
+        msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
+          + (firstName ? esc(firstName) + ', tu' : 'Tu') + ' carrito sigue guardado tal como lo dejaste. '
+          + 'Las puertas se abren el 10 de noviembre y podrás comprar entonces.</p>'
+          + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Seguir explorando</a>';
+      } else {
+        msg = '<p class="text-[13.5px] leading-relaxed mt-3" style="color:#B9C6E8">'
+          + (firstName ? esc(firstName) + ', tu' : 'Tu') + ' carrito está guardado y en revisión. '
+          + 'Danny está eligiendo a mano a los 1000 fundadores — si eres elegido, te avisamos y compras.</p>'
+          + '<a href="index.html" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-white text-[14.5px] font-bold focus-ring transition mt-5" style="background:var(--blue)">Seguir armando mi carrito</a>';
+      }
+      function esc(s){ return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+      wrap.innerHTML =
+        '<section class="relative overflow-hidden rounded-3xl" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 60%, #0A1F44 100%)">'
+        + '<div class="ariaGoldHair"></div>'
+        + '<div class="relative max-w-[640px] mx-auto px-6 py-12 sm:py-14 text-center">'
+        + '<div class="ariaKicker mb-4" style="justify-content:center">Los Elegidos</div>'
+        + '<h1 class="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.03em] leading-[1.08] mb-3" style="color:#fff">Aún no eres fundador</h1>'
+        + '<p class="text-[15px] font-bold" style="color:#F4C463">Las puertas se abren el 10 de noviembre.</p>'
+        + (items > 0
+            ? '<div class="inline-flex items-center gap-2 rounded-2xl px-5 py-3 mt-5" style="background:rgba(255,255,255,.06);border:1px solid rgba(244,196,99,.35)">'
+              + '<span class="text-[13px] font-bold" style="color:#B9C6E8">Tu carrito guardado: ' + items + (items === 1 ? ' artículo' : ' artículos') + ' · </span>'
+              + '<span class="text-[15px] font-extrabold" style="color:#F4C463">' + usd + '</span></div>'
+            : '')
+        + msg
+        + '<p class="mt-6 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. Fundador por siempre.</p>'
+        + '</div></section>';
+      wrap.hidden = false;
+      window.scrollTo(0, 0);
+    };
+  })();
+  </script>
   <div id="checkoutWrap">
     <div class="mb-7">
       <span class="inline-block text-[11px] font-extrabold tracking-[0.08em] uppercase px-2.5 py-1 rounded-full mb-2.5" style="background:var(--green-bg); color:var(--green)">Checkout</span>
@@ -602,6 +671,21 @@
   }
 
   const kgInput = document.getElementById('kgInput');
+  /* LOS ELEGIDOS — checkout gate (2026-10-01). The pre-script above fired
+     the founders-status fetch during parsing; this is the first await, so
+     nothing checkout-related renders before the gate decides.
+       foundersMode 'gate' (Oct 20 → Nov 10): only founderStatus ===
+       'fundador' proceeds. Everyone else gets the locked panel:
+       "Aún no eres fundador — las puertas se abren el 10 de noviembre."
+       foundersMode 'open' (Nov 10+): everyone proceeds. 'off': normal.
+     Gate fails OPEN on network error — a failed status fetch never
+     blocks a real checkout. */
+  const __gs = await window.__foundersGatePromise;
+  if (__gs && __gs.foundersMode === 'gate' && __gs.founderStatus !== 'fundador') {
+    window.renderFoundersGatePanel(__gs);
+    throw new Error('checkout bloqueado por Los Elegidos');
+  }
+  document.getElementById('checkoutWrap').hidden = false;
   const valorInput = document.getElementById('valorInput');
   const descInput = document.getElementById('descInput');
   const quoteStatus = document.getElementById('quoteStatus');

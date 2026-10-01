@@ -40,7 +40,19 @@ export async function handler(event) {
     // would only be refused for (see publishSalesCache in index.html).
     // Purely a UI hint — every admin endpoint re-checks server-side and
     // never trusts this value.
-    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email) }) };
+    // Los Elegidos (2026-10-01): name + founderStatus ride along so the
+    // storefront can paint the member badge without an extra round trip.
+    let name = null;
+    let founderStatus = null;
+    try {
+      const users = getStore("users");
+      const u = await users.get(session.email, { type: "json" });
+      if (u) {
+        name = u.name || null;
+        founderStatus = u.founderStatus || "pending";
+      }
+    } catch { /* non-fatal — logged in, just without profile fields */ }
+    return { statusCode: 200, headers, body: JSON.stringify({ email: session.email, isAdmin: isAdmin(session.email), name, founderStatus }) };
   } catch (error) {
     return { statusCode: 500, headers, body: JSON.stringify({ error: error.message }) };
   }
