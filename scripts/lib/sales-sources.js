@@ -66,6 +66,9 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
   { match: /hoodie|sweatshirt/i, kg: 0.8, tier: "cited" },
+  /* BLAZERS (2026-10-01, Danny): structured blazers — lighter than a winter
+     jacket (1.3) but heavier than a shirt. ~600-800g; higher-end 0.8 kg. */
+  { match: /\b(blazer|saco)\b/i, kg: 0.8, tier: "reasoned" },
   { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
   // Footwear is owned by footwearWeightKg() — one source, sized by what
   // is in the box rather than one number for every pair.
@@ -75,7 +78,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
      one-pieces, swim sets) had no row and fell to the generic fallback.
      Individual pieces ~70-160g, full sets 140-320g (ubuy.com listings).
      Higher-end 0.25 kg protects the $7/kg freight. */
-  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot)\b/i, kg: 0.25, tier: "cited" },
+  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot|bottoms?|trunks?)\b/i, kg: 0.25, tier: "cited" },
   /* SURFSUITS (2026-10-01, Danny): neoprene surfsuits — 0.9-0.95 kg packaged
      (3/2mm full suits). Higher-end 1.0 kg. */
   { match: /\b(wetsuit|surfsuit)\b/i, kg: 1, tier: "cited" },
@@ -86,7 +89,7 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
      review queue — a clothing-heavy catalogue with no row for trousers,
      shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
      generic fallback. Cited tier: these are ordinary garment weights. */
-  { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers|leggings?|overalls)\b/i, kg: 0.55, tier: "cited" },
+  { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers?|leggings?|overalls)\b/i, kg: 0.55, tier: "cited" },
   { match: /\b(shorts)\b/i, kg: 0.32, tier: "cited" },
   { match: /\b(shirt|polo|blouse|button[- ]?up|button[- ]?down)\b/i, kg: 0.35, tier: "cited" },
   /* TOPS (2026-10-01, Danny): 291 Latino-designer tops/bodysuits had no row —
@@ -105,13 +108,13 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
      heavier. Higher-end 0.8 kg. Beaded gowns were already caught above. */
   { match: /\b(gown|caftan)\b/i, kg: 0.8, tier: "cited" },
   { match: /\b(sweater|cardigan|fleece|vest|pullover)\b/i, kg: 0.6, tier: "cited" },
-  { match: /\b(pajamas?|pyjamas?|robe|sleepwear|loungewear)\b/i, kg: 0.6, tier: "reasoned" },
+  { match: /\b(pajamas?|pyjamas?|\bpj\b|robe|sleepwear|loungewear|eye mask)\b/i, kg: 0.6, tier: "reasoned" },
   /* BAGS & SMALL ACCESSORIES (2026-10-01, Danny): 74 Latino-designer handbags
      plus belts, hats, scarves, gloves, sunglasses, capes had no rows.
      Handbags 400-725g (ubuy.com) -> 0.7 kg higher-end; women's leather belts
      ~300g (berbanto.com) -> 0.3 kg; hats/scarves/gloves/sunglasses/capes are
      reasoned higher-end estimates. */
-  { match: /\b(handbag|tote|clutch|bag|mochila|bols[oa])\b/i, kg: 0.7, tier: "cited" },
+  { match: /\b(handbag|tote|clutch|bag|pouch|mochila|bols[oa])\b/i, kg: 0.7, tier: "cited" },
   { match: /\b(belt|cintur[oó]n)\b/i, kg: 0.3, tier: "cited" },
   { match: /\b(hat|sombrero|cap|visor)\b/i, kg: 0.15, tier: "reasoned" },
   { match: /\b(scarf|bufanda|shawl|pashmina)\b/i, kg: 0.2, tier: "reasoned" },
