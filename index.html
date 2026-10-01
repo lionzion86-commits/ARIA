@@ -561,6 +561,25 @@
      surfaces keep dark price text everywhere. */
   [data-dept-theme="men"] .themeDim{ color:#B9C6E4 !important }
   [data-dept-theme="men"] .themeDimStrong{ color:#FFFFFF !important }
+  /* ARIA MOTOS (2026-10-01, Danny): its own department, its own world.
+     Dark asphalt + chrome + racing red — a premium bike shop, NOT a car
+     parts counter. The second dark exception after men, but charcoal
+     instead of navy, chrome instead of gold, red speed accents instead
+     of amber. Never Auto's amber, never the navy rail language. */
+  [data-dept-theme="motos"]{ background:linear-gradient(180deg, #14161A 0%, #1C1F24 380px, #23262C 660px); }
+  [data-dept-theme="motos"] #catalogTitle{ color:#fff }
+  [data-dept-theme="motos"] #catalogSubtitle{ color:#A8B0BC }
+  [data-dept-theme="motos"] .themeBack{ color:#C8CDD6 !important }
+  [data-dept-theme="motos"] .ariaCarouselTitle{ color:#F2F4F7 !important }
+  [data-dept-theme="motos"] #catalogSort{ border-color:#E63946 !important }
+  /* MOTOS: white cards pop on asphalt, same as men on navy. */
+  [data-dept-theme="motos"] .ariaCardText{ background:#fff; border-radius:14px; padding:10px 12px 12px; margin-top:10px }
+  [data-dept-theme="motos"] .themeDim{ color:#A8B0BC !important }
+  [data-dept-theme="motos"] .themeDimStrong{ color:#FFFFFF !important }
+  /* MOTOS: helper text directly on asphalt flips light. */
+  [data-dept-theme="motos"] .themeChips [aria-pressed="true"]{
+    background:#E63946 !important; border-color:#E63946 !important; color:#fff !important;
+  }
   /* Store logo tiles (Tiendas page). BUG FIX (2026-09-19): these logos
      used to sit on their brand-colour swatch, which made Foot Locker
      (all-black artwork on #000) read as a solid black rectangle and
@@ -632,6 +651,23 @@
   .ariaAutoCta{ display:inline-flex; align-items:center; justify-content:center;
     height:48px; padding:0 26px; border-radius:16px; background:#F59E0B; color:#0B0D10;
     font-size:15px; font-weight:800; letter-spacing:-0.01em }
+  /* ARIA MOTOS HOUSE BANNER (2026-10-01, Danny): its own department,
+     its own banner — never the same area as Aria Auto. Dark asphalt
+     with a racing-red accent, deliberately NOT Auto's amber: chrome
+     ghost type, red hairline, red CTA. A premium bike shop, not a car
+     parts counter. Typographic treatment: the repo has no moto banner
+     art. Permanent, one banner only. */
+  .ariaMotosBanner{ background:linear-gradient(135deg, #0E1013 0%, #1A1D23 52%, #0E1013 100%) }
+  .ariaMotosBannerHair{ position:absolute; left:0; right:0; top:0; height:2px;
+    background:linear-gradient(90deg, transparent, rgba(230,57,70,0.9), transparent) }
+  .ariaMotosGhost{ position:absolute; right:-8px; top:50%; transform:translateY(-52%) skewX(-8deg);
+    font-weight:900; font-style:italic; font-size:clamp(96px, 24vw, 230px); line-height:1;
+    letter-spacing:-0.045em; color:transparent; -webkit-text-stroke:1.5px rgba(200,205,214,0.25);
+    pointer-events:none; user-select:none; white-space:nowrap }
+  .ariaMotosCta{ display:inline-flex; align-items:center; justify-content:center;
+    height:48px; padding:0 26px; border-radius:16px; background:#E63946; color:#fff;
+    font-size:15px; font-weight:800; letter-spacing:-0.01em }
+  .ariaMotosKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#C8CDD6 }
   /* DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
      entry point the section was missing -- a full-width fashion-week
      moment (runway photo, navy scrim, gold accents) that breaks the
@@ -1675,6 +1711,21 @@
       </div>
     </section>
 
+<!-- ARIA MOTOS HOUSE BANNER (2026-10-01, Danny): its own department,
+     its own banner — never the same area as Aria Auto. Dark asphalt,
+     chrome ghost type, racing-red accents: a premium bike shop, not a
+     car parts counter. Opens the Motos department. -->
+<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden">
+      <div class="ariaMotosBannerHair" aria-hidden="true"></div>
+      <div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>
+      <div class="relative px-5 py-8" style="z-index:1">
+        <h2 class="text-[27px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Motos</h2>
+        <p class="text-[14px] mt-2 leading-snug max-w-[30ch]" style="color:rgba(255,255,255,.74)">Cascos, llantas, repuestos y accesorios para tu moto &mdash; Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>
+        <p class="text-[11.5px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#E63946">Cascos certificados DOT y ECE</p>
+        <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring mt-5">Equipa tu moto &#8594;</button>
+      </div>
+    </section>
+
 <!-- TUS TIENDAS FAVORITAS BACKDROP (2026-09-30, Danny): department store interior, no branding -->
 <div data-stores-wrap class="relative overflow-hidden" style="background:#0A1F44">
   <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/stores/tus-tiendas-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
@@ -2117,6 +2168,21 @@
           <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#F59E0B">Abastecido por AutoZone y Advanced Auto Parts</p>
         </div>
         <button onclick="openAriaAuto();return false;" class="ariaAutoCta focus-ring flex-shrink-0">Encuentra tu repuesto &#8594;</button>
+      </div>
+    </section>
+
+<!-- ARIA MOTOS HOUSE BANNER (desktop, 2026-10-01, Danny): its own
+     department, its own banner — never the same area as Aria Auto. -->
+<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden">
+      <div class="ariaMotosBannerHair" aria-hidden="true"></div>
+      <div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>
+      <div class="relative max-w-[1240px] mx-auto px-8 py-10 flex items-center justify-between gap-10" style="z-index:1">
+        <div class="min-w-0">
+          <h2 class="text-[32px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">Aria Motos</h2>
+          <p class="text-[15.5px] mt-2 leading-snug max-w-[46ch]" style="color:rgba(255,255,255,.74)">Cascos, llantas, repuestos y accesorios para tu moto &mdash; Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>
+          <p class="text-[12px] mt-2 tracking-[0.08em] uppercase font-bold" style="color:#E63946">Cascos certificados DOT y ECE</p>
+        </div>
+        <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring flex-shrink-0">Equipa tu moto &#8594;</button>
       </div>
     </section>
 
@@ -13306,6 +13372,7 @@ async function openCatalog(kind, key, opts = {}){
   document.getElementById('catalogNotice').innerHTML =
     (kind === 'department' && key === 'beauty') ? beautyBannerHTML() + fragranceLimitNoticeHTML()
     : (kind === 'department' && key === 'curvy') ? curvyNoticeHTML(NaN)
+    : (kind === 'department' && key === 'motos') ? motosHeroHTML()
     : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
@@ -14061,6 +14128,25 @@ function revealActiveChips(root){
      nothing here fires a live scrape on load.
    Both keep a way back to the categories, because a dead end that is
    only honest is still a dead end. */
+/* ARIA MOTOS HERO (2026-10-01, Danny): the department's own cinematic
+   banner — dark asphalt, chrome ghost type, racing-red accents. It sits
+   above the product shelves the way a bike shop's window display sits
+   above the floor: Cascos lead, then Llantas, Repuestos, Accesorios.
+   Zero emojis, text-only. */
+function motosHeroHTML(){
+  return '<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden rounded-3xl mb-6">'
+    + '<div class="ariaMotosBannerHair" aria-hidden="true"></div>'
+    + '<div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>'
+    + '<div class="relative px-6 py-10 sm:py-12" style="z-index:1">'
+    + '<div class="ariaMotosKicker mb-3">Aria Motos</div>'
+    + '<h2 class="text-[28px] sm:text-[36px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Tu moto, <span style="color:#E63946">equipada</span> como se debe.</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.72)">'
+    + 'Cascos certificados, llantas, repuestos y accesorios — Honda, Yamaha, Suzuki y Kawasaki, directo de Estados Unidos.</p>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;" class="ariaMotosCta focus-ring">Ver cascos &#8594;</button>'
+    + '</div></div></section>';
+}
 function motosEmptyStateHTML(){
   const aisles = [
     ['Cascos', 'Cascos certificados DOT para moto'],
@@ -19231,6 +19317,9 @@ const DEPT_THEMES = {
      tennis gets tennis-ball yellow-green. */
   soccer: { attr: 'soccer', glow: '#7BC96F' },
   tennis: { attr: 'tennis', glow: '#D4E157' },
+  /* ARIA MOTOS (2026-10-01, Danny): dark asphalt — its own department,
+     its own world. Chrome + racing red accents; never Auto's amber. */
+  motos: { attr: 'motos', glow: '#23262C' },
 };
 /* Every department WITHOUT its own row above lands here: a soft
    brand-blue tint, so no category page is plain white. */
