@@ -32,61 +32,6 @@ export const SALES_SOURCES = [
 
 // Must match index.html exactly.
 export const SALES_TAX_RATE = 1.07;
-
-/* PER-RETAILER MIAMI SALES TAX (2026-09-27) -- mirror of TAX_EXEMPT_STATUS
-   in index.html. ONE config to flip: 'unknown' -> 'exempt' once a retailer's
-   DR-13 enrollment is confirmed AND a live test checkout clears tax-free.
-   'taxable' retailers prohibit reseller purchases outright -- the 7% stays
-   permanently. Anything unlisted falls through to 'unknown' (keeps 7%). */
-export const TAX_EXEMPT_STATUS = {
-  walmart: 'exempt',
-  target: 'taxable',
-  macys: 'taxable',
-  kohls: 'taxable',
-  oldnavy: 'taxable',
-  footlocker: 'taxable',
-  victoriassecret: 'taxable',
-  sephora: 'unknown',
-  costco: 'unknown',
-  samsclub: 'unknown',
-  autozone: 'unknown',
-  advanceauto: 'unknown',
-  bhphoto: 'unknown',
-  nordstrom: 'unknown',
-  dicks: 'unknown',
-  bestbuy: 'unknown',
-  dyson: 'unknown',
-  lanebryant: 'unknown',
-  revolve: 'unknown',
-  newbalance: 'unknown',
-  ulta: 'unknown',
-  bathandbodyworks: 'unknown',
-  pacsun: 'unknown',
-  gymshark: 'unknown',
-  youngla: 'unknown',
-  alphalete: 'unknown',
-  skims: 'unknown',
-  sunglasshut: 'unknown',
-  ssense: 'unknown',
-  yesstyle: 'unknown',
-  miumiu: 'unknown',
-  fendi: 'unknown',
-  goldengoose: 'unknown',
-  nautilus: 'unknown',
-  islandwatersports: 'unknown',
-  quietstorm: 'unknown',
-  surfworld: 'unknown',
-  surfstation: 'unknown',
-  mainland: 'unknown',
-  parrot: 'unknown',
-  ccs: 'unknown',
-  valsurf: 'unknown',
-  rockauto: 'unknown',
-};
-export function salesTaxRateFor(retailer){
-  const s = TAX_EXEMPT_STATUS[String(retailer || '').toLowerCase()];
-  return s === 'exempt' ? 1.0 : SALES_TAX_RATE;
-}
 export const LIVE_PRICE_MARKUP = 1.24;
 export const MIN_DISCOUNT_PCT = 5;
 
@@ -117,9 +62,6 @@ export const CHARGE_PER_KG_USD = 13;
 // bill rigid boxed goods at their dimensional weight; the courier
 // contract bills actual scale weight only, so the box no longer enters
 // the quote and these are plain masses.
-/* WEIGHT IMPOSTOR GUARD (2026-09-29, Danny's iPhone QA). Baby/security
-   monitors are not display monitors. */
-const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
 const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bjeans?\b|denim/i, kg: 1, tier: "cited" },
   { match: /t-?shirt|\btee\b|undershirt/i, kg: 0.2, tier: "cited" },
@@ -127,10 +69,19 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /jacket|\bcoat\b/i, kg: 1.3, tier: "reasoned" },
   // Footwear is owned by footwearWeightKg() — one source, sized by what
   // is in the box rather than one number for every pair.
-  { match: /underwear|boxer|\bbriefs?\b|panty|panties/i, kg: 0.08, tier: "cited" },
+  { match: /underwear|boxer|\bbrief|panty|panties/i, kg: 0.08, tier: "cited" },
   { match: /\bsocks?\b/i, kg: 0.1, tier: "cited" },
-  /* JEWELRY (2026-09-30, Danny): mirrors index.html. */
-  { match: /\b(necklace|collar|bracelet|pulsera|earrings?|aretes|pendant|dije|brooch|broche|charm|dije|anklet|tobillera|jewelry|joyer[ií]a|bisuter[ií]a|anillo|wedding band)\b/i, not: /\bring\s+light\b|\bjewelry\s+box\b/i, kg: 0.1, tier: "cited" },
+  /* SWIMWEAR (2026-10-01, Danny): 603 Latino-designer items (bikinis,
+     one-pieces, swim sets) had no row and fell to the generic fallback.
+     Individual pieces ~70-160g, full sets 140-320g (ubuy.com listings).
+     Higher-end 0.25 kg protects the $7/kg freight. */
+  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot)\b/i, kg: 0.25, tier: "cited" },
+  /* SURFSUITS (2026-10-01, Danny): neoprene surfsuits — 0.9-0.95 kg packaged
+     (3/2mm full suits). Higher-end 1.0 kg. */
+  { match: /\b(wetsuit|surfsuit)\b/i, kg: 1, tier: "cited" },
+  /* SWIM COVERUPS (2026-10-01, Danny): pareos/sarongs ~150-200g; beaded
+     kaftans are caught by the beaded row below. Higher-end 0.3 kg. */
+  { match: /\b(pareo|sarong|cover[- ]?up)\b/i, kg: 0.3, tier: "reasoned" },
   /* 2026-09-19: these were the biggest slice of the "unclassified guess"
      review queue — a clothing-heavy catalogue with no row for trousers,
      shorts or a button-up shirt. Every one of them was quoting the 1.08 kg
@@ -138,10 +89,39 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\b(pants|trousers|chinos?|cargo pants|sweatpants|joggers|leggings?|overalls)\b/i, kg: 0.55, tier: "cited" },
   { match: /\b(shorts)\b/i, kg: 0.32, tier: "cited" },
   { match: /\b(shirt|polo|blouse|button[- ]?up|button[- ]?down)\b/i, kg: 0.35, tier: "cited" },
+  /* TOPS (2026-10-01, Danny): 291 Latino-designer tops/bodysuits had no row —
+     not t-shirts (0.2), not button-ups (0.35). Women's woven tops ~150-250g.
+     Higher-end 0.25 kg. Placed before beaded so an embroidered bra top stays
+     a top; "Tunic Dress" and "Halter Gown" fall through to dress/gown. */
+  { match: /\b(tops?|bodysuit)\b/i, kg: 0.25, tier: "reasoned" },
+  /* BEADED/EMBELLISHED (2026-10-01, Danny): PatBO et al do heavy beadwork —
+     an embroidered maxi is 790-870g vs 420g plain (carlyna.com), heavy beading
+     runs to 2.5kg. Higher-end 1.0 kg. The not-guard keeps embroidered tops
+     on the top row; swimwear was already caught above. */
+  { match: /\b(beaded|beadwork|embroidered|embroidery|rhinestone|sequin(?:ned)?|crystal)\b/i, not: /\btop\b/i, kg: 1, tier: "cited" },
   { match: /\b(dress|skirt|romper|jumpsuit)\b/i, kg: 0.42, tier: "cited" },
+  /* GOWNS (2026-10-01, Danny): evening/formal gowns carry more fabric than a
+     day dress — Target ship weights 0.44-0.64 kg; designer runway pieces run
+     heavier. Higher-end 0.8 kg. Beaded gowns were already caught above. */
+  { match: /\b(gown|caftan)\b/i, kg: 0.8, tier: "cited" },
   { match: /\b(sweater|cardigan|fleece|vest|pullover)\b/i, kg: 0.6, tier: "cited" },
   { match: /\b(pajamas?|pyjamas?|robe|sleepwear|loungewear)\b/i, kg: 0.6, tier: "reasoned" },
+  /* BAGS & SMALL ACCESSORIES (2026-10-01, Danny): 74 Latino-designer handbags
+     plus belts, hats, scarves, gloves, sunglasses, capes had no rows.
+     Handbags 400-725g (ubuy.com) -> 0.7 kg higher-end; women's leather belts
+     ~300g (berbanto.com) -> 0.3 kg; hats/scarves/gloves/sunglasses/capes are
+     reasoned higher-end estimates. */
+  { match: /\b(handbag|tote|clutch|bag|mochila|bols[oa])\b/i, kg: 0.7, tier: "cited" },
+  { match: /\b(belt|cintur[oó]n)\b/i, kg: 0.3, tier: "cited" },
+  { match: /\b(hat|sombrero|cap|visor)\b/i, kg: 0.15, tier: "reasoned" },
+  { match: /\b(scarf|bufanda|shawl|pashmina)\b/i, kg: 0.2, tier: "reasoned" },
+  { match: /\b(gloves?|guantes)\b/i, kg: 0.15, tier: "reasoned" },
+  { match: /\b(sunglasses|gafas de sol|lentes de sol)\b/i, kg: 0.15, tier: "reasoned" },
+  { match: /\b(cape|capa|poncho)\b/i, kg: 0.5, tier: "reasoned" },
   { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: "reasoned" },
+  /* TABLECLOTHS (2026-10-01, Danny): a few designer table linens in the pull.
+     ~300-500g; higher-end 0.5 kg. */
+  { match: /\b(tablecloth|mantel)\b/i, kg: 0.5, tier: "reasoned" },
   { match: /\b(blu-?ray|\bdvd\b|4k ultra hd|box set|complete series)\b/i, kg: 0.3, tier: "reasoned" },
   { match: /\b(knee brace|ankle brace|elbow brace|wrist brace|compression sleeve|back brace|ankle wraps?)\b/i, kg: 0.2, tier: "reasoned" },
   // Balls are handled by ballWeightKg() (real mass x count vs the box),
@@ -159,10 +139,8 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\bremote\b/i, kg: 0.2, tier: "reasoned" },
   // Rigid boxed goods. All reasoned.
   { match: /airpods max|over-?ear|\bheadphones?\b|\bheadset\b|aud[ií]fonos|auriculares/i, kg: 0.9, tier: "reasoned" },
-  /* PORTABLE SPEAKERS (2026-09-30): mirrors index.html. */
-  { match: /\b(portable|bluetooth|mini|pocket|port[áa]til)\b[^,]{0,30}\b(speakers?|parlante|bocina)\b|\b(speakers?|parlante|bocina)\b[^,]{0,30}\b(portable|bluetooth|mini|pocket|port[áa]til)\b/i, not: /\bparty\s?box\b/i, kg: 1, tier: "reasoned" },
   { match: /\bsoundbar\b|\bspeaker\b|\bparlante\b|barra de sonido/i, kg: 4, tier: "reasoned" },
-  { match: /\bmonitor\b/i, not: MONITOR_IMPOSTOR_RE, kg: 5.5, tier: "reasoned" },
+  { match: /\bmonitor\b/i, kg: 5.5, tier: "reasoned" },
   { match: /\bprinter\b|impresora/i, kg: 7, tier: "reasoned" },
   { match: /\bstroller\b|car seat|silla de auto/i, kg: 8, tier: "reasoned" },
   { match: /airpods|earbuds/i, kg: 0.35, tier: "reasoned" },
@@ -237,7 +215,7 @@ export function categoryWeightKg(title, hints = {}) {
   if (ball != null) return ball;
   /* No TV branch: Danny banned TVs and TV mounts outright (2026-09-26).
      tvWeightKg stays defined below for reference only. */
-  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t) && !(p.not && p.not.test(t)));
+  const hit = RETAIL_WEIGHT_FALLBACK_KG.find((p) => p.match.test(t));
   if (!hit) return null;
   return withBuffer(hit.kg, hit.tier);
 }
@@ -361,8 +339,7 @@ export function normalizeDeal(item, retailer) {
   const title = item.title || item.name || item.productTitle || item.productName || "";
   const rawPrice = num(item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice
     ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice);
-  const taxRate = salesTaxRateFor(retailer);
-  const price = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate * LIVE_PRICE_MARKUP) : null;
+  const price = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
 
   const rawImages = Array.isArray(item.images) ? item.images : [];
   const images = [...new Set([item.image, item.imageUrl, item.thumbnail, ...rawImages].map(safeUrl).filter(Boolean))].slice(0, 8);
@@ -419,7 +396,7 @@ export function normalizeDeal(item, retailer) {
     retailer,
     title,
     price,
-    originalPrice: round2(rawOriginal * taxRate * LIVE_PRICE_MARKUP),
+    originalPrice: round2(rawOriginal * SALES_TAX_RATE * LIVE_PRICE_MARKUP),
     rating,
     weightKg,
     // The card must be able to say "estimado" rather than print a guess as
