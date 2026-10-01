@@ -14856,7 +14856,7 @@ const TOY_RX = /\bdoll\b|\bbarbie\b|\blego\b|\bhot\s*wheels\b|\bnerf\b|\bfunko\b
    TOY_RX ("plush" the fabric, not a plush toy). Pillows, bedding, home
    decor -> Hogar, never Juguetes. Checked first so it also beats the
    departments fallback below. */
-const TOY_NOT_HOME_GOODS_RX = /\b(pillow|pillowcase|cushion|throw|blanket|bedding|comforter|duvet|sheet|quilt|coverlet|mattress|towel|sham|bed\s*skirt)\b/i;
+const TOY_NOT_HOME_GOODS_RX = /\b(pillow|pillowcase|cushion|throw|blanket|bedding|comforter|duvet|sheet|quilt|coverlet|mattress|towel|sham|bed\s*skirt|robe|bathrobe|slippers?|pajama|pijama|hoodie|sweatshirt)\b/i;
 function isToyItem(it){
   const name = String(it.title || it.name || '');
   if (TOY_NOT_HOME_GOODS_RX.test(name)) return false; /* Danny 2026-10-01 */
