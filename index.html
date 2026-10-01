@@ -14770,10 +14770,23 @@ function isBoysFashionItem(it){
 }
 /* TOYS (2026-09-30, Danny): Barbie dolls and collectible dolls are Juguetes. */
 const TOY_RX = /\bdoll\b|\bbarbie\b|\blego\b|\bhot\s*wheels\b|\bnerf\b|\bfunko\b|\baction figure\b|\bplayset\b|\bplush\b|\bstuffed animal\b|\bboard game\b|\bpuzzle\b|\bbuilding blocks?\b|\brc car\b|\bdrone\b/i;
+/* HOME GOODS ARE NEVER TOYS (2026-10-01, Danny): "Cozy Plush" pillowcases
+   and decorative throw pillows leaked into Juguetes via \bplush\b in
+   TOY_RX ("plush" the fabric, not a plush toy). Pillows, bedding, home
+   decor -> Hogar, never Juguetes. Checked first so it also beats the
+   departments fallback below. */
+const TOY_NOT_HOME_GOODS_RX = /\b(pillow|pillowcase|cushion|throw|blanket|bedding|comforter|duvet|sheet|quilt|coverlet|mattress|towel|sham|bed\s*skirt)\b/i;
 function isToyItem(it){
   const name = String(it.title || it.name || '');
+  if (TOY_NOT_HOME_GOODS_RX.test(name)) return false; /* Danny 2026-10-01 */
   if (/\bbaby\s*doll\b/i.test(name)) return false; /* adult style */
   if (TOY_RX.test(name)) return true;
+  /* Game consoles ARE toys, demoted below real toys at sort time (Danny).
+     Accessories "for PS5/Xbox" (cables, chargers) are electronics, not toys. */
+  if (typeof isConsole === 'function' && isConsole(it)
+      && !/\b(cable|hdmi|chargers?|adapters?)\b/i.test(name)) return true;
+  /* Licensed party supplies / party merchandise are NOT toys (Danny). */
+  if (typeof PARTY_NOT_A_TOY_RX !== 'undefined' && PARTY_NOT_A_TOY_RX.test(name)) return false;
   const depts = ((it && it.departments) || []).map(String);
   return depts.some(d => /toy|juguete/i.test(d));
 }
