@@ -6498,6 +6498,9 @@ const DEPARTMENT_META = {
   /* GENDERED SHOES (2026-10-01, Danny). */
   shoes_women: { label: 'Zapatos de Mujer', icon: '' },
   shoes_men: { label: 'Zapatos de Hombre', icon: '' },
+  /* MOTOS (2026-10-01, Danny): "what happened to the motorcycle section?
+     We need to have a motorcycle section, bro." */
+  motos: { label: 'Motos', icon: '' },
   /* REPUESTOS (2026-09-26). Advance Auto Parts' brake-parts catalogue.
      Answered per item (isAutoPart), the Zapatos way — no retailer
      declares a parts bucket. Tile appears by itself via collectTiles. */
@@ -6580,6 +6583,7 @@ const CATEGORY_ICON_PATHS = {
   shoes_women: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
   shoes_men: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
   auto_parts: '<path d="M21 6.5a4.5 4.5 0 0 1-6 4.2L8 17.7a2 2 0 0 1-2.8-2.8l7-7A4.5 4.5 0 0 1 17.5 3l-2.5 2.5 2.5 2.5z"/>',
+  motos: '<circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5 9 10h4l3.5 7.5M9 10 7.5 6.5H10M13 10l1.5-3.5H17"/>',
   decoracion: '<path d="M12 14.5c-3.6 0-6-2.8-6-6.5 0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5c0 3.7-2.4 6.5-6 6.5z"/><path d="M12 14.5v6"/><path d="M10 20.5h4"/>',
   sorpresas: '<rect x="4" y="9.5" width="16" height="3.5" rx=".5"/><path d="M6 13v7.5h12V13"/><path d="M12 9.5V20.5"/><path d="M12 9.5C10 9.5 7 9 7 6.8c0-1.4 1-2.3 2-1.8 1.4.7 3 4.5 3 4.5zm0 0c2 0 5-.5 5-2.7 0-1.4-1-2.3-2-1.8-1.4.7-3 4.5-3 4.5z"/>',
   menaje: '<path d="M3.5 18.5h17"/><path d="M5 18.5a7 7 0 0 1 14 0"/><path d="M12 8.5v-2"/><circle cx="12" cy="5.5" r="1"/>',
@@ -7194,6 +7198,13 @@ const DEPARTMENT_SPEC = {
      A KIND OF ITEM: luxury-tier retailers (SSENSE, Miu Miu) plus the
      marquee designer brands shoppers ask for by name. */
   luxury:          { anyCategory: true, luxuryOnly: true },
+  /* MOTOS (2026-10-01, Danny): the motorcycle destination -- helmets,
+     riding gear, aftermarket parts, tires, accessories. A KIND OF ITEM
+     answered per item by isMotoItem below, the Zapatos way: no retailer
+     declares a motorcycle facet. Brand priority: Honda, Yamaha, then
+     Suzuki, then Kawasaki (Danny's order). Pinned visible via
+     PINNED_DEPTS until the RevZilla pull lands. */
+  motos:           { anyCategory: true, motoOnly: true },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -7756,6 +7767,52 @@ function isAutoPart(item, retailer){
   return false;
 }
 
+/* MOTOS (2026-10-01, Danny): a motorcycle product is a KIND OF ITEM,
+   answered per item. Real moto gear only -- the audit found 217
+   false positives (skate helmets, fashion "moto jackets", biker shorts,
+   toy motorcycles, "Harley Quinn" tees) and zero real moto products,
+   so the guards below are load-bearing. */
+const MOTO_BRAND_MODEL_RX = /\b(honda\s*(cbr\d*|cb\d*|crf\d*|rebel|africa\s*twin|nc\d*|forza|pcx)|yamaha\s*(yzf\d*|r1\b|r6\b|mt-?\d+|fz-?\d+|xmax|nmax|bolt)|suzuki\s*(gsx\d*|hayabusa|v-?strom|boulevard)|kawasaki\s*(ninja|zx-?\d*|z\d{3,4}|versys|vulcan))/i;
+const MOTO_GEAR_RX = /\b(motorcycle|motocicleta|motocross|dirt\s*bike|super ?moto|cafe\s*racer|chopper|\bcruiser\b(?!\s*collection))\b/i;
+const MOTO_PART_RX = /\b(exhaust|muffler|slip-?on|full\s*system|brake\s*(pad|lever|rotor)|clutch\s*(lever|kit)|chain\s*(kit|sprocket)|sprocket|air\s*filter|oil\s*filter|spark\s*plug|fork\s*seal|shock\s*absorber|rearset|frame\s*slider|radiator\s*guard|tail\s*tidy|fender\s*eliminator|bar\s*end|grip|throttle|foot\s*peg|kickstand|saddlebag|tank\s*bag|top\s*case)\b/i;
+const MOTO_TIRE_RX = /\b(moto|motorcycle)\s*(tire|tyre|neumatico|llanta)\b|\b(tire|tyre)\b.*\b(moto|motorcycle)\b/i;
+const MOTO_HELMET_RX = /\bhelmet\b/i;
+const MOTO_HELMET_GOOD_RX = /\b(dot|ece\s*22\.?06|snell)\b/i;
+const MOTO_HELMET_BAD_RX = /\b(skate|bicycle|bike\s*(and|&)\s*skate|ski|snowboard|football|baseball|hockey|construction|hard\s*hat|welding|equestrian|climbing)\b/i;
+const MOTO_JACKET_FASHION_RX = /\b(moto|biker)\s*(jacket|chamarra)\b/i;
+const MOTO_RIDING_SIGNAL_RX = /\b(armor|armour|\bce\b|abrasion|kevlar|d3o|sas-?tec|alpinestars|dainese|revit|klim|icon\s*motosports|bilt|sedici)\b/i;
+const MOTO_FALSE_RX = /\b(toy|lego|paw\s*patrol|hot\s*wheels|biker\s*shorts|maternity|postpartum|harley\s*quinn|harley\s*ingleby|quinn\b|fcs\b|traction\s*pad|surfboard|skateboard\s*(deck|complete)|red\s*light\s*therapy|laser\s*hair|snowboard|burton|dc\s*shoes|boa)\b/i;
+function isMotoItem(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  const title = rawTitleOf(item);
+  if (!title) return false;
+  if (MOTO_FALSE_RX.test(title)) return false;
+  if (MOTO_HELMET_RX.test(title)){
+    if (MOTO_HELMET_BAD_RX.test(title)) return false;
+    if (MOTO_HELMET_GOOD_RX.test(title) || MOTO_GEAR_RX.test(title)) return true;
+    return false;
+  }
+  if (MOTO_BRAND_MODEL_RX.test(title)) return true;
+  if (MOTO_GEAR_RX.test(title)){
+    if (/\b(gloves?|boots?|jackets?|pants?|vests?|suits?|rain\s*suits?)\b/i.test(title)) return true;
+    if (MOTO_PART_RX.test(title)) return true;
+    if (/\b(tire|tyre|neumatico|llanta)\b/i.test(title)) return true;
+    if (/\b(cover|lock|stand|ramp|lift|dolly|trailer|battery|charger)\b/i.test(title)) return true;
+  }
+  if (MOTO_TIRE_RX.test(title)) return true;
+  if (/\bmoto\b/i.test(title) && /\b(gloves?|boots?)\b/i.test(title)) return true;
+  if (MOTO_JACKET_FASHION_RX.test(title) && MOTO_RIDING_SIGNAL_RX.test(title)) return true;
+  return false;
+}
+function motoSubType(item){
+  const title = rawTitleOf(item);
+  if (MOTO_HELMET_RX.test(title)) return 'cascos';
+  if (/\b(tire|tyre|neumatico|llanta)\b/i.test(title)) return 'llantas';
+  if (MOTO_PART_RX.test(title)) return 'repuestos';
+  if (/\b(gloves?|boots?|jackets?|pants?|vests?|suits?|rain\s*suits?)\b/i.test(title)) return 'ropa_equipo';
+  return 'accesorios';
+}
+
 function rawTitleOf(item){
   return item?.title || item?.name || item?.productTitle || item?.productName || '';
 }
@@ -7972,6 +8029,7 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.soccerOnly) return isSoccer(item, retailer);
   if (dept.tennisOnly) return isTennis(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
+  if (dept.motoOnly) return isMotoItem(item, retailer);
   if (dept.latinoDesignersOnly) return latinoDesignerOfItem(item) !== null;
   if (dept.luxuryOnly) return isLuxuryItem(item, retailer);
   if (dept.joyasOnly) return isJoyasItem(item);
@@ -8191,8 +8249,12 @@ function collectTiles(){
      art, and comes from CATEGORY_COVERS. See the note above it for the
      three rounds of scoring this replaced and why none of them could
      work. */
+  /* PINNED DEPARTMENTS (2026-10-01, Danny): Motos stays tiled even
+     with zero inventory -- Danny ordered the section built before the
+     RevZilla pull lands ("even if we don't have that many parts"). */
+  const PINNED_DEPTS = new Set(['motos']);
   // A department no retailer carries gets no tile at all.
-  for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
+  for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length && !PINNED_DEPTS.has(key)) delete byKey[key];
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(DEPARTMENT_META, t.key) }));
 }
 
@@ -10670,7 +10732,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -13914,6 +13976,33 @@ function revealActiveChips(root){
      nothing here fires a live scrape on load.
    Both keep a way back to the categories, because a dead end that is
    only honest is still a dead end. */
+function motosEmptyStateHTML(){
+  const aisles = [
+    ['Cascos', 'Cascos certificados DOT para moto'],
+    ['Ropa y equipo', 'Chamarras, guantes, botas y equipo de protección'],
+    ['Repuestos', 'Frenos, escapes, filtros y partes'],
+    ['Llantas', 'Neumáticos para moto'],
+    ['Accesorios', 'Candados, covers, soportes y más'],
+  ];
+  const cards = aisles.map(([t, d]) =>
+    '<div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">'
+    + '<div class="text-[14px] font-extrabold mb-1" style="color:var(--navy)">' + escapeHtml(t) + '</div>'
+    + '<div class="text-[13px] leading-relaxed" style="color:#5B6478">' + escapeHtml(d) + '</div>'
+    + '<div class="text-[12px] font-bold mt-2" style="color:var(--gold-dark,#B98A2F)">Próximamente</div>'
+    + '</div>').join('');
+  return '<div class="rounded-2xl border p-6 mb-4" style="border-color:var(--line); background:#fff">'
+    + '<div class="text-[15px] font-extrabold mb-1.5" style="color:var(--navy)">Estamos armando la sección de Motos</div>'
+    + '<div class="text-[13.5px] leading-relaxed mb-5" style="color:#5B6478">'
+    + 'Cascos, equipo y repuestos de las mejores marcas — Honda, Yamaha, Suzuki y Kawasaki — directo de Estados Unidos a tu puerta. '
+    + 'Mientras tanto, puedes buscar en vivo lo que necesites:'
+    + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mb-6">'
+    + '<button onclick="showResults(\'casco moto\')" class="h-11 px-5 rounded-xl text-[13.5px] font-bold focus-ring transition" style="background:var(--blue); color:#fff">Buscar en vivo</button>'
+    + '<button onclick="showPage(\'categoriesView\')" class="h-11 px-5 rounded-xl text-[13.5px] font-bold focus-ring transition" style="background:#fff; color:var(--navy); border:1px solid var(--line)">Ver categorías</button>'
+    + '</div>'
+    + '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">' + cards + '</div>'
+    + '</div>';
+}
 function catalogEmptyStateHTML(){
   const { kind, key, retailerFilter } = catalogState;
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
@@ -14045,6 +14134,14 @@ function renderCatalogFeed(){
        and an emptied container -- no reason, no way forward, and no way
        to tell a broken catalogue from an empty one. See
        catalogEmptyStateHTML. */
+    /* MOTOS (2026-10-01, Danny): the section is pinned visible while the
+       catalog fills, so it gets its own honest empty state -- the five
+       sub-sections as upcoming, not a dead page. */
+    if (catalogState.kind === 'department' && catalogState.key === 'motos' && !departmentCacheFailed){
+      subtitle.textContent = 'Cascos, equipo, repuestos y más — en camino.';
+      sections.innerHTML = motosEmptyStateHTML();
+      return;
+    }
     subtitle.textContent = departmentCacheFailed
       ? 'No pudimos cargar el catálogo.'
       : 'Todavía no tenemos productos aquí.';
@@ -28353,6 +28450,10 @@ const CHAT_DOMAIN_FALLBACKS = [
     keys: ['barba', 'beard', 'afeitadora', 'shaver', 'rasuradora', 'desodorante', 'deodorant', 'antitranspirante', 'body wash', 'gel de bano', 'jabon liquido', 'jabon de cuerpo', 'axe', 'old spice', 'dove men', 'gillette', 'nivea men', 'aftershave', 'balsamo para barba', 'aceite para barba', 'cera para barba', 'recortadora', 'cortadora de cabello', 'maquina de afeitar', 'maquina de cortar cabello', 'perfiladora', 'hojas de afeitar', 'crema de afeitar', 'espuma de afeitar', 'talco', 'depiladora', 'cera depilatoria', 'rastrillo', 'prestobarba', 'colonia de hombre'] },
   { label: 'Juguetes', sub: 'Juguetes para todas las edades', action: 'department', key: 'toys',
     keys: ['juguete', 'juguetes', 'toy', 'toys', 'lego', 'legos', 'muneca', 'muneco', 'doll', 'barbie', 'peluche', 'peluches', 'stuffed animal', 'juego de mesa', 'board game', 'hot wheels', 'carrito', 'carrito de juguete', 'pista de carros', 'figura de accion', 'dinosaurio', 'dinosaurios', 'superheroe', 'fisher price', 'nerf', 'pistola de agua', 'pistola nerf', 'rompecabezas', 'didactico', 'juguete didactico', 'triciclo', 'scooter', 'patin del diablo', 'cometa', 'yoyo', 'trompo', 'canicas', 'plastilina', 'play doh', 'slime', 'xbox', 'playstation', 'nintendo', 'videojuego', 'bicicleta para nino'] },
+  /* MOTOS (2026-10-01, Danny): "moto" must beat "motor" (engine oil)
+     and the auto entry -- checked before Repuestos. */
+  { label: 'Motos', sub: 'Cascos, equipo y repuestos para moto', action: 'department', key: 'motos',
+    keys: ['moto', 'motos', 'motocicleta', 'motocicletas', 'motorcycle', 'motorbike', 'casco de moto', 'casco para moto', 'casco motocicleta', 'chamarra de moto', 'guantes de moto', 'botas de moto', 'llanta de moto', 'neumatico de moto', 'repuesto de moto', 'repuestos de moto', 'escape de moto', 'honda moto', 'yamaha moto', 'suzuki moto', 'kawasaki moto', 'harley davidson'] },
   { label: 'Repuestos', sub: 'Autopartes y repuestos', action: 'department', key: 'auto_parts',
     keys: ['repuesto', 'repuestos', 'autoparte', 'autopartes', 'auto parte', 'carro', 'auto', 'freno', 'frenos', 'brake', 'pastilla de freno', 'disco de freno', 'zapatas de freno', 'amortiguador', 'filtro de aceite', 'filtro de aire', 'bujia', 'cable de bujia', 'neumatico', 'llanta', 'llantas', 'aro', 'aros', 'tapa de aro', 'aceite de motor', 'refrigerante', 'bateria de carro', 'bateria', 'alternador', 'arrancador', 'faja de motor', 'correa de distribucion', 'radiador', 'faro', 'faros', 'foco', 'espejo retrovisor', 'parabrisas', 'plumilla', 'limpiaparabrisas', 'embrague', 'caja de cambios', 'tubo de escape', 'claxon', 'gato hidraulico'] },
   { label: 'Hogar', sub: 'Muebles, cocina y decoracion', action: 'department', key: 'home_goods',
