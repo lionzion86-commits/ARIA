@@ -6495,6 +6495,9 @@ const DEPARTMENT_META = {
      premium moms destination — everything mom and baby. */
   moms: { label: "Mama's Fashion", icon: '' },
   shoes: { label: 'Zapatos', icon: '' },
+  /* GENDERED SHOES (2026-10-01, Danny). */
+  shoes_women: { label: 'Zapatos de Mujer', icon: '' },
+  shoes_men: { label: 'Zapatos de Hombre', icon: '' },
   /* REPUESTOS (2026-09-26). Advance Auto Parts' brake-parts catalogue.
      Answered per item (isAutoPart), the Zapatos way — no retailer
      declares a parts bucket. Tile appears by itself via collectTiles. */
@@ -6574,6 +6577,8 @@ const CATEGORY_ICON_PATHS = {
   books: '<path d="M12 6.5C10 5 7 4.5 4 4.5v14c3 0 6 .5 8 2 2-1.5 5-2 8-2v-14c-3 0-6 .5-8 2z"/><path d="M12 6.5v14"/>',
   moms: '<path d="M9.5 3.5 5.5 6l1.5 2.8 2-1v4.7l-1.5 8h3L12 16l2.5 4.5h3l-1.5-8v-4.7l2 1L19 6l-4-2.5a2.5 2.5 0 0 1-5 0z"/>',
   shoes: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
+  shoes_women: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
+  shoes_men: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
   auto_parts: '<path d="M21 6.5a4.5 4.5 0 0 1-6 4.2L8 17.7a2 2 0 0 1-2.8-2.8l7-7A4.5 4.5 0 0 1 17.5 3l-2.5 2.5 2.5 2.5z"/>',
   decoracion: '<path d="M12 14.5c-3.6 0-6-2.8-6-6.5 0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5c0 3.7-2.4 6.5-6 6.5z"/><path d="M12 14.5v6"/><path d="M10 20.5h4"/>',
   sorpresas: '<rect x="4" y="9.5" width="16" height="3.5" rx=".5"/><path d="M6 13v7.5h12V13"/><path d="M12 9.5V20.5"/><path d="M12 9.5C10 9.5 7 9 7 6.8c0-1.4 1-2.3 2-1.8 1.4.7 3 4.5 3 4.5zm0 0c2 0 5-.5 5-2.7 0-1.4-1-2.3-2-1.8-1.4.7-3 4.5-3 4.5z"/>',
@@ -6826,6 +6831,8 @@ const CATEGORY_COVERS = {
   men:             'assets/category/men.jpg',
   sale:            'assets/category/sale.jpg',
   shoes:           'assets/category/shoes.jpg',
+  shoes_women:    'assets/category/shoes.jpg',
+  shoes_men:      'assets/category/shoes.jpg',
   sporting_goods:  'assets/category/sporting_goods.jpg',
   women:           'assets/category/women.jpg',
   surf_skate:      'assets/category/surf_skate.jpg',
@@ -7163,6 +7170,11 @@ const DEPARTMENT_SPEC = {
      in Moda Hombre too; departments overlap here exactly as Ofertas
      overlaps everything. */
   shoes:           { anyCategory: true, footwearOnly: true },
+  /* GENDERED SHOES (2026-10-01, Danny): men's and women's shoe sections.
+     A shoe stays in Zapatos too; departments overlap here exactly as
+     Ofertas overlaps everything. */
+  shoes_women:    { anyCategory: true, footwearOnly: true, gender: 'women' },
+  shoes_men:      { anyCategory: true, footwearOnly: true, gender: 'men' },
   // Not a category — a state any item can be in. This is why Walmart and
   // Target belong in Ofertas despite having no bucket named "sale".
   sale:            { anyCategory: true, onSaleOnly: true },
@@ -7948,7 +7960,13 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   const dept = DEPARTMENT_SPEC[deptKey];
   if (!dept) return false;
   if (dept.onSaleOnly) return rawItemOnSale(item);
-  if (dept.footwearOnly) return isFootwear(item, retailer);
+  /* GENDERED SHOES (2026-10-01, Danny): shoes_women/shoes_men filter
+     footwear by gender; the unmarked 'shoes' department keeps everything. */
+  if (dept.footwearOnly){
+    if (!isFootwear(item, retailer)) return false;
+    if (dept.gender) return genderOfItem(item, bucketName) === dept.gender;
+    return true;
+  }
   if (dept.surfSkateOnly) return isSurfSkate(item, retailer);
   if (dept.spearfishingOnly) return isSpearfishing(item, retailer);
   if (dept.soccerOnly) return isSoccer(item, retailer);
@@ -10577,6 +10595,18 @@ const CATEGORY_RAILS = [
        Zapatos rail -- shoppers' eyes gravitate to cheap pairs. */
     cheapFirst: true,
     open: "openCatalog('department','shoes')" },
+  /* GENDERED SHOES (2026-10-01, Danny): men's and women's shoe sections
+     on the homepage, cheap-first like Zapatos. */
+  { key: 'shoes_women', label: 'Zapatos de Mujer', icon: '', stores: null, poolOnly: true,
+    blurb: 'Calzado para mujer, de todas las tiendas.',
+    test: (p) => isFootwear(p, p.retailer) && genderOfItem(p) === 'women',
+    cheapFirst: true,
+    open: "openCatalog('department','shoes_women')" },
+  { key: 'shoes_men', label: 'Zapatos de Hombre', icon: '', stores: null, poolOnly: true,
+    blurb: 'Calzado para hombre, de todas las tiendas.',
+    test: (p) => isFootwear(p, p.retailer) && genderOfItem(p) === 'men',
+    cheapFirst: true,
+    open: "openCatalog('department','shoes_men')" },
   { key: 'home_goods', label: 'Hogar', icon: '', stores: null, poolOnly: true,
     blurb: 'Todo para tu casa, de todas las tiendas.',
     test: (p) => railBucketCategoryIs(p, 'home'),
@@ -10640,7 +10670,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -10908,6 +10938,55 @@ function joyasStyleKeyOf(bucketName){
 }
 function joyasStyleLabelOf(p){
   return JOYAS_STYLE_LABELS[(p && p.joyasStyle) || ''] || null;
+}
+/* GENDERED SHOE RAILS (2026-10-01, Danny). The shoe pages lead with the
+   sales carousel -- every shoe on sale, biggest discount first -- then one
+   rail per shoe type: deportivos, de vestir, sandalias, botas. A type with
+   fewer than SHOES_TYPE_RAIL_MIN pairs contributes no rail. Retailer keys
+   are passed explicitly: categoryRailPicks with null keys picks nothing. */
+const SHOES_TYPE_RAIL_MIN = 4;
+const SHOE_TYPE_GROUPS = [
+  { key: 'athletic', label: 'Deportivos', types: ['SNEAKER', 'SNEAKERS', 'ATHLETIC', 'RUNNING', 'TRAINERS', 'TENNIS_SHOES'] },
+  { key: 'dress', label: 'De vestir', types: ['OXFORD', 'LACE_UPS_OXFORDS', 'MONKSTRAP', 'LOAFER', 'BOAT_SHOES_MOCCASINS', 'ESPADRILLE', 'DRESS_SHOES', 'BALERINAS', 'BALLERINA'] },
+  { key: 'sandals', label: 'Sandalias', types: ['SANDAL', 'SANDALS', 'SLIPPERS_LOAFERS', 'SLIDES', 'FLIP_FLOPS'] },
+  { key: 'boots', label: 'Botas', types: ['BOOT', 'BOOTS', 'ANKLE_BOOTS', 'CHELSEA_BOOTS', 'BOTIN', 'BOTINES'] },
+];
+function shoeSubTypeOf(item){
+  const t = normalizeType(item && item.type);
+  if (t){
+    for (const g of SHOE_TYPE_GROUPS) if (g.types.indexOf(t) !== -1) return g.key;
+  }
+  /* Title fallback when the type field is empty or unrecognized. */
+  const title = String((item && item.title) || '').toLowerCase();
+  if (/\b(sneaker|tenis|deportiv|running|athletic|trainer)/.test(title)) return 'athletic';
+  if (/\b(bota|boot)/.test(title)) return 'boots';
+  if (/\b(sandalia|sandal|chancla|chancleta|flip[\s-]?flop|slide)/.test(title)) return 'sandals';
+  if (/\b(oxford|mocasin|loafer|monkstrap|vestir|dress|tac[oó]n|balerina)/.test(title)) return 'dress';
+  return 'other';
+}
+function shoesDeptRailsHTML(items){
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) return '';
+  const retailerKeys = [...new Set(list.map(it => it && it.retailer).filter(Boolean))];
+  const noKeys = new Set();
+  const blocks = [];
+  /* The sales carousel leads: every shoe on sale, biggest discount first. */
+  const onSale = list.filter(rawItemOnSale);
+  if (onSale.length >= SHOES_TYPE_RAIL_MIN){
+    const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL);
+    if (picks.length) blocks.push(deptRailSectionHTML('shoes-sale', 'Zapatos en oferta',
+      deptMixedRailHeadHTML('En oferta', onSale.length + ' pares con descuento'), picks));
+  }
+  /* Then one rail per shoe type, sale-led within the type. */
+  for (const g of SHOE_TYPE_GROUPS){
+    const aisle = list.filter(it => shoeSubTypeOf(it) === g.key);
+    if (aisle.length < SHOES_TYPE_RAIL_MIN) continue;
+    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
+    if (!picks.length) continue;
+    blocks.push(deptRailSectionHTML('shoes-type-' + g.key, 'Zapatos ' + g.label,
+      deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks));
+  }
+  return blocks.join('');
 }
 function jewelryDeptRailsHTML(items){
   const blocks = [];
@@ -14046,7 +14125,9 @@ function renderCatalogFeed(){
         ? momsDeptRailsHTML(gendered, new Set()) 
         : (catalogState.kind === 'department' && catalogState.key === 'jewelry' && !retailerFilter)
         ? jewelryDeptRailsHTML(gendered)
-        : '';
+        : ((catalogState.kind === 'department' && (catalogState.key === 'shoes' || catalogState.key === 'shoes_women' || catalogState.key === 'shoes_men') && !retailerFilter)
+        ? shoesDeptRailsHTML(gendered)
+        : '');
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, gendered);
     revealActiveChips(sections);
     return;
@@ -27990,6 +28071,24 @@ function productSuitsRecipient(title, recipient){
 
 const SALE_KEYWORDS = ['oferta','ofertas','descuento','descuentos','liquidacion','liquidación','rebaja','rebajas','promocion','promoción'];
 
+/* GENDERED SHOE INTENT (2026-10-01, Danny). His mom asked for "las mejores
+   ofertas para zapatos de mujer en talla 7" and Aria answered with the
+   generic Ofertas page -- the SALE_KEYWORDS shortcut fired on "ofertas"
+   before anything heard "mujer". A shoe word plus a gender word routes to
+   the gendered shoe section instead; the shoe pages lead with their own
+   sales carousel, so the sale intent is still honored. Size is picked on
+   the product page -- Aria just has to land them in the right section. */
+const SHOE_WORD_RE = /\b(zapato|zapatos|zapatilla|zapatillas|calzado|shoe|shoes|sneaker|sneakers|bota|botas|boot|boots|sandalia|sandalias|sandal|sandals|tac[oó]n|tacones|tenis)\b/i;
+const SHOE_WOMEN_RE = /\b(mujer|mujeres|women|woman|dama|damas|femenin[oa])\b/i;
+const SHOE_MEN_RE = /\b(hombre|hombres|men\b|man\b|masculin[oa]|caballero)\b/i;
+function detectShoeGenderIntent(text){
+  const t = String(text || '');
+  if (!SHOE_WORD_RE.test(t)) return null;
+  if (SHOE_WOMEN_RE.test(t)) return 'women';
+  if (SHOE_MEN_RE.test(t)) return 'men';
+  return null;
+}
+
 /* ============================================================
    "¿NO LO ENCUENTRAS AQUÍ? BÚSCALO EN VIVO." -- IN THE CHAT.
 
@@ -28180,6 +28279,12 @@ const CHAT_DOMAIN_FALLBACKS = [
     keys: ['hogar', 'mueble', 'muebles', 'furniture', 'cocina', 'kitchen', 'decoracion', 'sala', 'comedor', 'bano', 'dormitorio', 'organizador', 'almacenaje', 'ropa de cama', 'juego de sabanas', 'edredon', 'almohada', 'colchon', 'toalla', 'cortina', 'lampara', 'espejo', 'cuadro', 'florero', 'vela', 'velas', 'ambientador', 'juego de ollas', 'olla', 'ollas', 'sarten', 'licuadora', 'cafetera', 'hervidor', 'tetera', 'tostadora', 'refrigeradora', 'aspiradora', 'plancha', 'tabla de planchar', 'tendedero', 'escoba', 'recogedor', 'trapeador'] },
   { label: 'Electronica', sub: 'Audio, accesorios y gadgets', action: 'department', key: 'electronics',
     keys: ['audifono', 'audifonos', 'headphone', 'headphones', 'earbud', 'earbuds', 'cargador', 'charger', 'cable usb', 'power bank', 'bateria portatil', 'bocina', 'speaker', 'parlante', 'parlante inteligente', 'asistente virtual', 'electronica', 'smartwatch', 'reloj inteligente', 'tablet', 'laptop', 'mouse', 'teclado', 'monitor', 'impresora', 'camara', 'camera', 'camara web', 'webcam', 'microfono', 'drone', 'celular', 'funda para celular', 'case para celular', 'mica', 'foco inteligente', 'enchufe inteligente'] },
+  /* GENDERED SHOES (2026-10-01, Danny): checked before the generic
+     Zapatos entry so "zapatos de mujer" offers the women's section. */
+  { label: 'Zapatos de Mujer', sub: 'Calzado para mujer', action: 'department', key: 'shoes_women',
+    keys: ['zapatos de mujer', 'zapatos para mujer', 'calzado de mujer', 'calzado para mujer', 'zapatillas de mujer', 'tenis de mujer', 'botas de mujer', 'sandalias de mujer', 'tacones de mujer', 'shoes para mujer', 'womens shoes'] },
+  { label: 'Zapatos de Hombre', sub: 'Calzado para hombre', action: 'department', key: 'shoes_men',
+    keys: ['zapatos de hombre', 'zapatos para hombre', 'calzado de hombre', 'calzado para hombre', 'zapatillas de hombre', 'tenis de hombre', 'botas de hombre', 'sandalias de hombre', 'shoes para hombre', 'mens shoes'] },
   { label: 'Zapatos', sub: 'Calzado para todos', action: 'department', key: 'shoes',
     keys: ['zapato', 'zapatos', 'zapatilla', 'zapatillas', 'zapatilla de correr', 'calzado', 'shoe', 'shoes', 'sneaker', 'sneakers', 'tenis', 'chimpunes', 'zapatos de futbol', 'bota', 'botas', 'boot', 'boots', 'botin', 'botines', 'sandalia', 'sandalias', 'sandal', 'chancleta', 'chancletas', 'hawaianas', 'crocs', 'alpargata', 'alpargatas', 'tacon', 'tacones', 'taco aguja', 'plataforma', 'mocasin', 'mocasines', 'oxford', 'zapatos de vestir', 'ballerina', 'balerinas'] },
   { label: 'Ropa', sub: 'Moda para hombre, mujer y ninos', action: 'department', key: 'clothing',
@@ -28367,6 +28472,28 @@ async function runAssistantBrain(text){
   // Fast local path: sale/clearance questions go straight to the Sales page
   // instead of round-tripping to the chat API.
   const lowerText = text.toLowerCase();
+  /* GENDERED SHOES FIRST (2026-10-01, Danny): "ofertas para zapatos de
+     mujer" contains "ofertas", so the sale shortcut below would swallow
+     the gender. Check shoe+gender intent before it. */
+  const shoeGender = detectShoeGenderIntent(text);
+  if (shoeGender){
+    const deptKey = shoeGender === 'women' ? 'shoes_women' : 'shoes_men';
+    const deptLabel = shoeGender === 'women' ? 'Zapatos de Mujer' : 'Zapatos de Hombre';
+    const shoeLine = `\u00a1Claro! Te llevo a ${deptLabel} \u2014 las ofertas van primero.`;
+    addAssistantMessage('bot', shoeLine, null, { speak: false });
+    try {
+      fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: shoeLine }) })
+        .then(r => (r && r.ok) ? r.json() : null)
+        .then(d => { if (d && d.audio) speakWithAria(d.audio, shoeLine); else speakText(shoeLine); })
+        .catch(() => speakText(shoeLine));
+    } catch (e) { speakText(shoeLine); }
+    dismissAssistantForNavigation();
+    continuousMode = false;
+    openCatalog('department', deptKey);
+    assistantThinking = false;
+    if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
+    return;
+  }
   if (SALE_KEYWORDS.some(k => lowerText.includes(k))) {
     /* LILY SPEAKS THE SHORTCUT (2026-09-28, Danny's demo). This path used
        to talk through the browser's speechSynthesis -- the robot voice,
