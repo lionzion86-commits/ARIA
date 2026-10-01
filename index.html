@@ -7839,7 +7839,15 @@ function isAutoPart(item, retailer){
    toy motorcycles, "Harley Quinn" tees) and zero real moto products,
    so the guards below are load-bearing. */
 const MOTO_BRAND_MODEL_RX = /\b(honda\s*(cbr\d*|cb\d*|crf\d*|rebel|africa\s*twin|nc\d*|forza|pcx)|yamaha\s*(yzf\d*|r1\b|r6\b|mt-?\d+|fz-?\d+|xmax|nmax|bolt)|suzuki\s*(gsx\d*|hayabusa|v-?strom|boulevard)|kawasaki\s*(ninja|zx-?\d*|z\d{3,4}|versys|vulcan))/i;
-const MOTO_GEAR_RX = /\b(motorcycle|motocicleta|motocross|dirt\s*bike|super ?moto|cafe\s*racer|chopper|\bcruiser\b(?!\s*collection))\b/i;
+const MOTO_GEAR_RX = /\b(motorcycle|motocicleta|motocross|dirt\s*bike|super ?moto|cafe\s*racer|chopper)\b/i;
+/* "CRUISER" IS A FALSE-POSITIVE MAGNET (2026-10-01, Danny): bare "cruiser"
+   matched the Nanamica GORE-TEX Cruiser Jacket, Roxy Cruiser pants, a
+   Loaded Cruiser skate deck, and HUF x Toyota Land Cruiser merch. It only
+   counts in explicit motorcycle context — never Land Cruiser, never
+   apparel, never decks. */
+const MOTO_CRUISER_RX = /\bcruiser\b/i;
+const MOTO_CRUISER_CONTEXT_RX = /\b(motorcycle|motocicleta|motocross)\b/i;
+const MOTO_CRUISER_FALSE_RX = /\b(land\s*cruiser|toyota|jacket|chamarra|pant|pantalon|deck|skate|sweater|hoodie|tee)\b/i;
 const MOTO_PART_RX = /\b(exhaust|muffler|slip-?on|full\s*system|brake\s*(pad|lever|rotor)|clutch\s*(lever|kit)|chain\s*(kit|sprocket)|sprocket|air\s*filter|oil\s*filter|spark\s*plug|fork\s*seal|shock\s*absorber|rearset|frame\s*slider|radiator\s*guard|tail\s*tidy|fender\s*eliminator|bar\s*end|grip|throttle|foot\s*peg|kickstand|saddlebag|tank\s*bag|top\s*case)\b/i;
 const MOTO_TIRE_RX = /\b(moto|motorcycle)\s*(tire|tyre|neumatico|llanta)\b|\b(tire|tyre)\b.*\b(moto|motorcycle)\b/i;
 const MOTO_HELMET_RX = /\bhelmet\b/i;
@@ -7861,6 +7869,8 @@ function isMotoItem(item, retailer){
      zero-inventory era when moto items had to be found among general
      retailers; they must not filter out real moto products. */
   if (retailer === 'revzilla' || retailer === 'denniskirk') return true;
+  /* Cruiser only in explicit motorcycle context (see MOTO_CRUISER_* above). */
+  if (MOTO_CRUISER_RX.test(title) && !MOTO_CRUISER_FALSE_RX.test(title) && MOTO_CRUISER_CONTEXT_RX.test(title)) return true;
   if (MOTO_HELMET_RX.test(title)){
     if (MOTO_HELMET_BAD_RX.test(title)) return false;
     if (MOTO_HELMET_GOOD_RX.test(title) || MOTO_GEAR_RX.test(title)) return true;
@@ -13395,7 +13405,12 @@ async function openCatalog(kind, key, opts = {}){
   const fiestasRetailers = kind === 'fiestas'
     ? Object.keys(FIESTAS_RAILS.find(r => r.key === key)?.departments || {})
     : null;
-  for (const retailer of (fiestasRetailers || CATALOG_RETAILERS)){
+  /* MOTOS (2026-10-01, Danny): the department sources EXCLUSIVELY from
+     moto-catalog.json (RevZilla + Dennis Kirk). Keyword-matching the
+     general catalogue is what filled it with "cruiser" jackets, skate
+     decks and Land Cruiser merch — see the cruiser guard in isMotoItem. */
+  const motosOnly = (kind === 'department' && key === 'motos');
+  for (const retailer of (fiestasRetailers || (motosOnly ? [] : CATALOG_RETAILERS))){
     const raws = kind === 'fiestas'
       ? fiestasItemsFor(data.retailers[retailer], key, retailer)
       : kind === 'nativetype'
@@ -13405,6 +13420,22 @@ async function openCatalog(kind, key, opts = {}){
       .map(raw => normalizeLiveItem(raw, { retailer, department: kind === 'department' ? key : undefined }))
       .filter(it => it.title);
     if (items.length) byRetailer.set(retailer, items);
+  }
+  /* MOTOS CATALOGUE-ONLY SOURCE (2026-10-01, Danny): RevZilla and Dennis
+     Kirk have no store tiles -- Motos is a department -- so they are
+     absent from RETAILERS and the loop above never reads them. But their
+     2,049 products (helmets, tires, accessories, parts) ARE the section.
+     Merged here, following the curvy/lanebryant precedent below, so the
+     helmet carousel and rails read real moto inventory exclusively. */
+  if (motosOnly){
+    for (const mr of ['revzilla', 'denniskirk']){
+      if (data.retailers[mr]){
+        const mItems = departmentItemsFor(data.retailers[mr], kind, key, mr)
+          .map(raw => normalizeLiveItem(raw, { retailer: mr, department: 'motos' }))
+          .filter(it => it.title);
+        if (mItems.length) byRetailer.set(mr, mItems);
+      }
+    }
   }
   /* CURVY'S CATALOGUE-ONLY SOURCE (2026-09-25, Danny's iPhone QA).
      Lane Bryant has no store tile -- Curvy remains a department, per
@@ -19380,6 +19411,10 @@ function isBeautyRetailer(key){ return retailerFor(key)?.catalog === 'beauty'; }
    excluded — and so is any store whose scraper is still pending. */
 const LIVE_RETAILERS = activeRetailers().filter(r => r.search).map(r => r.key);
 const LIVE_RETAILER_LABEL = Object.fromEntries(Object.values(RETAILERS).map(r => [r.key, r.label]));
+/* MOTOS (2026-10-01): RevZilla/Dennis Kirk feed the Motos department
+   without store tiles — they still need display labels for the filter. */
+LIVE_RETAILER_LABEL.revzilla = 'RevZilla';
+LIVE_RETAILER_LABEL.denniskirk = 'Dennis Kirk';
 /* Lane Bryant is catalogue-only (no store tile, per Danny: Curvy stays
    a department), but its items surface inside Curvy, so the in-page
    store filter chip needs a real label. */
