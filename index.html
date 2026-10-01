@@ -9639,10 +9639,19 @@ const CATALOG_CATEGORY_INTENT = [
      trouser cuts, so neither a query nor a title saying them is about
      footwear. */
   { key: 'footwear', re: /\b(?:shoes?|sneakers?|boots?(?![-\s]*(?:cut|leg)\b)|sandals?|slippers?|loafers?|heels?|mules?|espadrilles?|clogs?|footwear)\b/i },
+  /* SOCCER (2026-10-01, Danny): typing "football"/"soccer" in the search
+     bar returned nothing -- 2,560 soccer products whose titles often never
+     name the sport ("Nike Phantom 6 High Elite", "PUMA FUTURE ULTIMATE").
+     In Peru "football" means futbol; there is no NFL catalogue for it to
+     collide with. "Chimpunes"/"guayos" are the words shoppers actually
+     type. (Queries are accent-stripped before intent runs, so "futbol"
+     covers "fútbol".) */
+  { key: 'soccer', re: /\b(?:soccer|football|futbol|chimpunes?|guayos?)\b/i },
 ];
 /* The words an item of this category counts as carrying, so a title
    that never says "shoes" can still answer "shoes". */
-const CATEGORY_IMPLIED_WORDS = { footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear'] };
+const CATEGORY_IMPLIED_WORDS = { footwear: ['shoe', 'shoes', 'sneaker', 'sneakers', 'footwear'],
+  soccer: ['soccer', 'football', 'futbol'] };
 
 function queryCategoryIntent(query){
   const q = String(query || '');
@@ -9653,6 +9662,13 @@ function queryCategoryIntent(query){
 function catalogItemCategory(item){
   const title = (item && item.title) || '';
   const depts = (item && item.departments) || [];
+  /* SOCCER FIRST (2026-10-01, Danny): a pure-play soccer retailer's whole
+     catalogue is soccer gear -- isSoccer() asserts exactly that -- so the
+     retailer's identity outranks a stray "shoes" in the title. A "Nike
+     Tiempo Turf Soccer Shoes" from Xtreme Soccer is soccer gear first,
+     a shoe second; it answers "football", not generic "zapatos". */
+  if (typeof isSoccer === 'function'
+      && isSoccer(item, item && item.retailer)) return 'soccer';
   // A catalogue that names a footwear department settles it outright.
   if (depts.some(d => /^(?:shoes|footwear|zapatos)$/i.test(String(d)))) return 'footwear';
   /* The title saying so settles it too, by the SAME words a query uses
