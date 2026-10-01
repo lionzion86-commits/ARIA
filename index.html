@@ -10615,6 +10615,21 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      womenFirst. */
   const demoteSocks = Boolean(opts && opts.demoteSockSales);
   const sockRank = (p) => (demoteSocks && SURFSKATE_FOOT_SOCK_RX.test(String((p && p.title) || ''))) ? 1 : 0;
+  /* FUTBOL CLEATS-FIRST (2026-10-01, Danny): the hook is discounted
+     cleats -- chimpunes lead the rail, biggest discount first. Messi
+     shoes count as cleats. Opt-in per rail, like womenFirst. */
+  const cleatsFirst = Boolean(opts && opts.cleatsFirst);
+  const cleatRank = (p) => {
+    if (!cleatsFirst) return 0;
+    if (String(p.type || '').trim().toLowerCase() === 'chimpunes') return 0;
+    const title = String(p.title || p.name || '');
+    if (/\b(cleat|chimpun|guayo)\b/i.test(title)) return 0;
+    /* Messi counts on footwear only -- not jerseys, tees, minikits. */
+    if (/\bmessi\b/i.test(title)
+        && /\b(shoe|cleat|turf|indoor|samba|\bfg\b|\bag\b|zapatilla)\b/i.test(title)
+        && !/\b(tee|jersey|camiseta|minikit|mini kit|calendar)\b/i.test(title)) return 0;
+    return 1;
+  };
   const seen = new Set();
   const sale = (Array.isArray(saleItems) ? saleItems : [])
     .filter(p => p && inSet(p) && hasRealImage(p)
@@ -10631,7 +10646,7 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
       }
-      return (toyRank(a) - toyRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
+      return (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
   const picks = sale.slice(0, CATEGORY_RAIL_SALE);
   const picked = new Set(picks.map(itemKey));
@@ -10647,6 +10662,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
     ? [...fillPoolBase].sort((a, b) => toyRank(a) - toyRank(b))
     : (cheapFirst && Array.isArray(fillPoolBase))
     ? [...fillPoolBase].sort((a, b) => priceNum(a) - priceNum(b))
+    : (cleatsFirst && Array.isArray(fillPoolBase))
+    ? [...fillPoolBase].sort((a, b) => cleatRank(a) - cleatRank(b))
     : fillPoolBase;
   if (picks.length < max && Array.isArray(fillPool)){
     for (const it of fillPool){
@@ -10838,6 +10855,9 @@ const CATEGORY_RAILS = [
   { key: 'soccer', label: 'F\u00fatbol', icon: '', stores: null, poolOnly: true,
     blurb: 'Chimpunes, camisetas, pelotas y m\u00e1s en oferta.',
     test: (p) => isSoccer(p, p.retailer),
+    /* CLEATS-FIRST (2026-10-01, Danny): the hook -- biggest discounts
+       on chimpunes lead, Messi shoes up front. */
+    cleatsFirst: true,
     open: "openCatalog('department','soccer')" },
   /* TENIS merged into Deportes per Danny 2026-09-30 */
   /* DISENADORES LATINOS (2026-09-28, Danny): South American designers
@@ -11461,7 +11481,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
