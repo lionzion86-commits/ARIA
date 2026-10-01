@@ -6498,9 +6498,6 @@ const DEPARTMENT_META = {
   /* GENDERED SHOES (2026-10-01, Danny). */
   shoes_women: { label: 'Zapatos de Mujer', icon: '' },
   shoes_men: { label: 'Zapatos de Hombre', icon: '' },
-  /* MOTOS (2026-10-01, Danny): "what happened to the motorcycle section?
-     We need to have a motorcycle section, bro." */
-  motos: { label: 'Motos', icon: '' },
   /* REPUESTOS (2026-09-26). Advance Auto Parts' brake-parts catalogue.
      Answered per item (isAutoPart), the Zapatos way — no retailer
      declares a parts bucket. Tile appears by itself via collectTiles. */
@@ -6583,7 +6580,6 @@ const CATEGORY_ICON_PATHS = {
   shoes_women: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
   shoes_men: '<path d="M3.5 16.5v-7l3.5 3.7 8.5 2.3c1.8.5 3.4 1.3 5 2.5v.5a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M7 13.2V8h4v3.5"/>',
   auto_parts: '<path d="M21 6.5a4.5 4.5 0 0 1-6 4.2L8 17.7a2 2 0 0 1-2.8-2.8l7-7A4.5 4.5 0 0 1 17.5 3l-2.5 2.5 2.5 2.5z"/>',
-  motos: '<circle cx="5.5" cy="17.5" r="3.2"/><circle cx="18.5" cy="17.5" r="3.2"/><path d="M5.5 17.5 9 10h4l3.5 7.5M9 10 7.5 6.5H10M13 10l1.5-3.5H17"/>',
   decoracion: '<path d="M12 14.5c-3.6 0-6-2.8-6-6.5 0-3.4 2.7-5.5 6-5.5s6 2.1 6 5.5c0 3.7-2.4 6.5-6 6.5z"/><path d="M12 14.5v6"/><path d="M10 20.5h4"/>',
   sorpresas: '<rect x="4" y="9.5" width="16" height="3.5" rx=".5"/><path d="M6 13v7.5h12V13"/><path d="M12 9.5V20.5"/><path d="M12 9.5C10 9.5 7 9 7 6.8c0-1.4 1-2.3 2-1.8 1.4.7 3 4.5 3 4.5zm0 0c2 0 5-.5 5-2.7 0-1.4-1-2.3-2-1.8-1.4.7-3 4.5-3 4.5z"/>',
   menaje: '<path d="M3.5 18.5h17"/><path d="M5 18.5a7 7 0 0 1 14 0"/><path d="M12 8.5v-2"/><circle cx="12" cy="5.5" r="1"/>',
@@ -7198,13 +7194,6 @@ const DEPARTMENT_SPEC = {
      A KIND OF ITEM: luxury-tier retailers (SSENSE, Miu Miu) plus the
      marquee designer brands shoppers ask for by name. */
   luxury:          { anyCategory: true, luxuryOnly: true },
-  /* MOTOS (2026-10-01, Danny): the motorcycle destination -- helmets,
-     riding gear, aftermarket parts, tires, accessories. A KIND OF ITEM
-     answered per item by isMotoItem below, the Zapatos way: no retailer
-     declares a motorcycle facet. Brand priority: Honda, Yamaha, then
-     Suzuki, then Kawasaki (Danny's order). Pinned visible via
-     PINNED_DEPTS until the RevZilla pull lands. */
-  motos:           { anyCategory: true, motoOnly: true },
 };
 
 // What category each scraped bucket holds, and whether the scrape itself
@@ -7767,52 +7756,6 @@ function isAutoPart(item, retailer){
   return false;
 }
 
-/* MOTOS (2026-10-01, Danny): a motorcycle product is a KIND OF ITEM,
-   answered per item. Real moto gear only -- the audit found 217
-   false positives (skate helmets, fashion "moto jackets", biker shorts,
-   toy motorcycles, "Harley Quinn" tees) and zero real moto products,
-   so the guards below are load-bearing. */
-const MOTO_BRAND_MODEL_RX = /\b(honda\s*(cbr\d*|cb\d*|crf\d*|rebel|africa\s*twin|nc\d*|forza|pcx)|yamaha\s*(yzf\d*|r1\b|r6\b|mt-?\d+|fz-?\d+|xmax|nmax|bolt)|suzuki\s*(gsx\d*|hayabusa|v-?strom|boulevard)|kawasaki\s*(ninja|zx-?\d*|z\d{3,4}|versys|vulcan))/i;
-const MOTO_GEAR_RX = /\b(motorcycle|motocicleta|motocross|dirt\s*bike|super ?moto|cafe\s*racer|chopper|\bcruiser\b(?!\s*collection))\b/i;
-const MOTO_PART_RX = /\b(exhaust|muffler|slip-?on|full\s*system|brake\s*(pad|lever|rotor)|clutch\s*(lever|kit)|chain\s*(kit|sprocket)|sprocket|air\s*filter|oil\s*filter|spark\s*plug|fork\s*seal|shock\s*absorber|rearset|frame\s*slider|radiator\s*guard|tail\s*tidy|fender\s*eliminator|bar\s*end|grip|throttle|foot\s*peg|kickstand|saddlebag|tank\s*bag|top\s*case)\b/i;
-const MOTO_TIRE_RX = /\b(moto|motorcycle)\s*(tire|tyre|neumatico|llanta)\b|\b(tire|tyre)\b.*\b(moto|motorcycle)\b/i;
-const MOTO_HELMET_RX = /\bhelmet\b/i;
-const MOTO_HELMET_GOOD_RX = /\b(dot|ece\s*22\.?06|snell)\b/i;
-const MOTO_HELMET_BAD_RX = /\b(skate|bicycle|bike\s*(and|&)\s*skate|ski|snowboard|football|baseball|hockey|construction|hard\s*hat|welding|equestrian|climbing)\b/i;
-const MOTO_JACKET_FASHION_RX = /\b(moto|biker)\s*(jacket|chamarra)\b/i;
-const MOTO_RIDING_SIGNAL_RX = /\b(armor|armour|\bce\b|abrasion|kevlar|d3o|sas-?tec|alpinestars|dainese|revit|klim|icon\s*motosports|bilt|sedici)\b/i;
-const MOTO_FALSE_RX = /\b(toy|lego|paw\s*patrol|hot\s*wheels|biker\s*shorts|maternity|postpartum|harley\s*quinn|harley\s*ingleby|quinn\b|fcs\b|traction\s*pad|surfboard|skateboard\s*(deck|complete)|red\s*light\s*therapy|laser\s*hair|snowboard|burton|dc\s*shoes|boa)\b/i;
-function isMotoItem(item, retailer){
-  if (!item || typeof item !== 'object') return false;
-  const title = rawTitleOf(item);
-  if (!title) return false;
-  if (MOTO_FALSE_RX.test(title)) return false;
-  if (MOTO_HELMET_RX.test(title)){
-    if (MOTO_HELMET_BAD_RX.test(title)) return false;
-    if (MOTO_HELMET_GOOD_RX.test(title) || MOTO_GEAR_RX.test(title)) return true;
-    return false;
-  }
-  if (MOTO_BRAND_MODEL_RX.test(title)) return true;
-  if (MOTO_GEAR_RX.test(title)){
-    if (/\b(gloves?|boots?|jackets?|pants?|vests?|suits?|rain\s*suits?)\b/i.test(title)) return true;
-    if (MOTO_PART_RX.test(title)) return true;
-    if (/\b(tire|tyre|neumatico|llanta)\b/i.test(title)) return true;
-    if (/\b(cover|lock|stand|ramp|lift|dolly|trailer|battery|charger)\b/i.test(title)) return true;
-  }
-  if (MOTO_TIRE_RX.test(title)) return true;
-  if (/\bmoto\b/i.test(title) && /\b(gloves?|boots?)\b/i.test(title)) return true;
-  if (MOTO_JACKET_FASHION_RX.test(title) && MOTO_RIDING_SIGNAL_RX.test(title)) return true;
-  return false;
-}
-function motoSubType(item){
-  const title = rawTitleOf(item);
-  if (MOTO_HELMET_RX.test(title)) return 'cascos';
-  if (/\b(tire|tyre|neumatico|llanta)\b/i.test(title)) return 'llantas';
-  if (MOTO_PART_RX.test(title)) return 'repuestos';
-  if (/\b(gloves?|boots?|jackets?|pants?|vests?|suits?|rain\s*suits?)\b/i.test(title)) return 'ropa_equipo';
-  return 'accesorios';
-}
-
 function rawTitleOf(item){
   return item?.title || item?.name || item?.productTitle || item?.productName || '';
 }
@@ -8029,7 +7972,6 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.soccerOnly) return isSoccer(item, retailer);
   if (dept.tennisOnly) return isTennis(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
-  if (dept.motoOnly) return isMotoItem(item, retailer);
   if (dept.latinoDesignersOnly) return latinoDesignerOfItem(item) !== null;
   if (dept.luxuryOnly) return isLuxuryItem(item, retailer);
   if (dept.joyasOnly) return isJoyasItem(item);
@@ -8249,12 +8191,8 @@ function collectTiles(){
      art, and comes from CATEGORY_COVERS. See the note above it for the
      three rounds of scoring this replaced and why none of them could
      work. */
-  /* PINNED DEPARTMENTS (2026-10-01, Danny): Motos stays tiled even
-     with zero inventory -- Danny ordered the section built before the
-     RevZilla pull lands ("even if we don't have that many parts"). */
-  const PINNED_DEPTS = new Set(['motos']);
   // A department no retailer carries gets no tile at all.
-  for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length && !PINNED_DEPTS.has(key)) delete byKey[key];
+  for (const key of Object.keys(byKey)) if (!byKey[key].retailers.length) delete byKey[key];
   return Object.values(byKey).map(t => ({ ...t, ...metaFor(DEPARTMENT_META, t.key) }));
 }
 
@@ -8504,6 +8442,30 @@ function cardPhotoHTML(src, { alt = '', onerror = '', fallbackSrc = '', eager = 
  * that also fails cannot loop.
  */
 function cardPhotoFallback(img){
+  /* Danny 2026-10-01: the primary photo is often the dead one while alternates
+     are live (Dick's Scene7 403s). Before falling back to the placeholder,
+     walk the card's swipe image list and try the first URL not yet attempted.
+     The tried-list on the img keeps a second failure from looping forever. */
+  try {
+    const frame = img.closest ? img.closest('[data-card-imgs]') : null;
+    if (frame){
+      let list = null;
+      try { list = JSON.parse(frame.getAttribute('data-card-imgs')); } catch(e){}
+      if (Array.isArray(list) && list.length > 1){
+        let tried = [];
+        try { tried = JSON.parse(img.getAttribute('data-img-tried') || '[]'); } catch(e){}
+        const cur = img.getAttribute('src') || '';
+        if (cur && tried.indexOf(cur) < 0) tried.push(cur);
+        let next = null;
+        for (const u of list){ if (u && tried.indexOf(u) < 0){ next = u; break; } }
+        if (next){
+          img.setAttribute('data-img-tried', JSON.stringify(tried.concat([next])));
+          img.src = next;
+          return;
+        }
+      }
+    }
+  } catch(e){}
   const alt = img.getAttribute('data-img-fallback');
   if (alt){
     img.removeAttribute('data-img-fallback');
@@ -10046,7 +10008,7 @@ function gymRatLeadRank(p){ return gymRatIsAccessory(p) ? 1 : 0; }
 function renderMobileDealsRail(){
   const priced = (Array.isArray(saleItemsCache) ? saleItemsCache : [])
     .filter(p => Number.isFinite(Number(p.price)) && Number(p.price) > 0
-      && Number(p.originalPrice) > Number(p.price) && p.image)
+      && Number(p.originalPrice) > Number(p.price) && hasRealImage(p))
     .sort((a, b) => (ofertasLeadRank(a) - ofertasLeadRank(b)) || (discountPct(b) - discountPct(a)));
   /* The spread opens on five different shops; the interleave keeps it
      that way down the whole rail -- at most OFERTAS_MAX_RUN in a row
@@ -10195,7 +10157,7 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
     const pctFF = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
     const seenFF = new Set();
     const deduped = pool
-      .filter(p => p && p.retailer === 'farfetch' && p.image
+      .filter(p => p && p.retailer === 'farfetch' && hasRealImage(p)
         && Number.isFinite(Number(p.price)) && Number(p.price) > 0)
       .filter(p => {
         const k = 'farfetch::' + (p.title || '');
@@ -10225,7 +10187,7 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
   const pct = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
   const seen = new Set();
   const sale = (Array.isArray(saleItems) ? saleItems : [])
-    .filter(p => p && p.retailer === key && p.image
+    .filter(p => p && p.retailer === key && hasRealImage(p)
       && Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
     .filter(p => { const k = itemKey(p); if (seen.has(k)) return false; seen.add(k); return true; })
@@ -10409,7 +10371,7 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
   const sockRank = (p) => (demoteSocks && SURFSKATE_FOOT_SOCK_RX.test(String((p && p.title) || ''))) ? 1 : 0;
   const seen = new Set();
   const sale = (Array.isArray(saleItems) ? saleItems : [])
-    .filter(p => p && inSet(p) && p.image
+    .filter(p => p && inSet(p) && hasRealImage(p)
       && Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
     .filter(p => { const k = itemKey(p); if (seen.has(k)) return false; seen.add(k); return true; })
@@ -10732,7 +10694,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -10887,7 +10849,7 @@ function surfSkateDeptRailsHTML(byRetailer){
   }
   if (!all.length) return '';
   const noKeys = new Set();
-  const isSale = (p) => p && p.image && Number.isFinite(Number(p.price)) && Number(p.price) > 0
+  const isSale = (p) => p && hasRealImage(p) && Number.isFinite(Number(p.price)) && Number(p.price) > 0
     && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price);
   const blocks = [];
   /* The mixed markdown rail: sale items only, discount deciding --
@@ -10935,7 +10897,7 @@ function beautyDeptRailsHTML(items, noKeys){
     if (aisle.length < BEAUTY_SUB_RAIL_MIN) continue;
     const picks = categoryRailPicks(null, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
     if (!picks.length) continue;
-    const isSale = (p) => p && p.image && Number.isFinite(Number(p.price)) && Number(p.price) > 0
+    const isSale = (p) => p && hasRealImage(p) && Number.isFinite(Number(p.price)) && Number(p.price) > 0
       && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price);
     /* PDRN FIRST (Danny, 2026-09-27): within the sale-led order, the pink
        PDRN salmon-DNA masks lead the Mascarillas rail. Stable: the
@@ -13523,8 +13485,10 @@ function carouselItemKey(it){
   return 'title:' + title;
 }
 function carouselHasPhoto(it){
-  const img = it && (it.image || it.imageUrl || it.thumbnail);
-  return typeof img === 'string' && img.length > 0;
+  /* Danny 2026-10-01: was a truthy-string check -- now uses hasRealImage so
+     placeholder/malformed URLs don't count as "has photo" in carousel picks. */
+  return typeof hasRealImage === 'function' ? hasRealImage(it)
+    : typeof (it && (it.image || it.imageUrl || it.thumbnail)) === 'string';
 }
 const CAROUSEL_MIN_DISCOUNT_PCT = 5;
 const CAROUSEL_SALE_LEAD_MAX = 3;
@@ -13976,33 +13940,6 @@ function revealActiveChips(root){
      nothing here fires a live scrape on load.
    Both keep a way back to the categories, because a dead end that is
    only honest is still a dead end. */
-function motosEmptyStateHTML(){
-  const aisles = [
-    ['Cascos', 'Cascos certificados DOT para moto'],
-    ['Ropa y equipo', 'Chamarras, guantes, botas y equipo de protección'],
-    ['Repuestos', 'Frenos, escapes, filtros y partes'],
-    ['Llantas', 'Neumáticos para moto'],
-    ['Accesorios', 'Candados, covers, soportes y más'],
-  ];
-  const cards = aisles.map(([t, d]) =>
-    '<div class="rounded-2xl border p-5" style="border-color:var(--line); background:#fff">'
-    + '<div class="text-[14px] font-extrabold mb-1" style="color:var(--navy)">' + escapeHtml(t) + '</div>'
-    + '<div class="text-[13px] leading-relaxed" style="color:#5B6478">' + escapeHtml(d) + '</div>'
-    + '<div class="text-[12px] font-bold mt-2" style="color:var(--gold-dark,#B98A2F)">Próximamente</div>'
-    + '</div>').join('');
-  return '<div class="rounded-2xl border p-6 mb-4" style="border-color:var(--line); background:#fff">'
-    + '<div class="text-[15px] font-extrabold mb-1.5" style="color:var(--navy)">Estamos armando la sección de Motos</div>'
-    + '<div class="text-[13.5px] leading-relaxed mb-5" style="color:#5B6478">'
-    + 'Cascos, equipo y repuestos de las mejores marcas — Honda, Yamaha, Suzuki y Kawasaki — directo de Estados Unidos a tu puerta. '
-    + 'Mientras tanto, puedes buscar en vivo lo que necesites:'
-    + '</div>'
-    + '<div class="flex flex-wrap gap-2.5 mb-6">'
-    + '<button onclick="showResults(\'casco moto\')" class="h-11 px-5 rounded-xl text-[13.5px] font-bold focus-ring transition" style="background:var(--blue); color:#fff">Buscar en vivo</button>'
-    + '<button onclick="showPage(\'categoriesView\')" class="h-11 px-5 rounded-xl text-[13.5px] font-bold focus-ring transition" style="background:#fff; color:var(--navy); border:1px solid var(--line)">Ver categorías</button>'
-    + '</div>'
-    + '<div class="grid grid-cols-2 sm:grid-cols-3 gap-3">' + cards + '</div>'
-    + '</div>';
-}
 function catalogEmptyStateHTML(){
   const { kind, key, retailerFilter } = catalogState;
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
@@ -14134,14 +14071,6 @@ function renderCatalogFeed(){
        and an emptied container -- no reason, no way forward, and no way
        to tell a broken catalogue from an empty one. See
        catalogEmptyStateHTML. */
-    /* MOTOS (2026-10-01, Danny): the section is pinned visible while the
-       catalog fills, so it gets its own honest empty state -- the five
-       sub-sections as upcoming, not a dead page. */
-    if (catalogState.kind === 'department' && catalogState.key === 'motos' && !departmentCacheFailed){
-      subtitle.textContent = 'Cascos, equipo, repuestos y más — en camino.';
-      sections.innerHTML = motosEmptyStateHTML();
-      return;
-    }
     subtitle.textContent = departmentCacheFailed
       ? 'No pudimos cargar el catálogo.'
       : 'Todavía no tenemos productos aquí.';
@@ -14294,6 +14223,10 @@ function renderCatalogFeed(){
           : (isGear && !catalogSortTouched)
             ? (a, b) => (gearPartRank(a) - gearPartRank(b)) || salesFirst(a, b)
             : baseSort);
+  /* PHOTO FIRST (Danny 2026-10-01): products with no real image sink below
+     every product with one -- a blank "Foto en camino" card never leads the
+     grid. Stable sort keeps the sales/price order inside each group. */
+  items.sort((a, b) => (hasRealImage(b) ? 1 : 0) - (hasRealImage(a) ? 1 : 0));
   const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
@@ -14856,26 +14789,17 @@ function nativeTypeGroupsFor(retailerData){
 /* STORE GALLERY ORDER (2026-09-30, Danny): Ofertas leads; kids get their
    own rooms (Ninas / Ninos -- never mixed into Moda Mujer); Juguetes takes
    the dolls and collectibles; Zapatos only shows real footwear. */
-/* STORE SHELVES (2026-10-01, Danny): Walmart and Target are long,
-   scrollable single pages -- everything on the face, no redirects. Every
-   category splits by audience so the shopper only sees what they came for:
-   shoes and clothes get Hombre / Mujer / Ninos carousels; hygiene splits
-   men / women (different deodorant, razors, creams). Ofertas still leads. */
 const STORE_CATEGORY_DEFS = [
-  { key: 'ofertas',        label: 'Ofertas',            saleOnly: true },
-  { key: 'zapatos_mujer',  label: 'Zapatos de Mujer',   keyword: 'zapatos_mujer' },
-  { key: 'zapatos_hombre', label: 'Zapatos de Hombre',  keyword: 'zapatos_hombre' },
-  { key: 'zapatos_ninos',  label: 'Zapatos de Ni\u00f1os', keyword: 'zapatos_ninos' },
-  { key: 'ropa_mujer',     label: 'Ropa de Mujer',      keyword: 'ropa_mujer' },
-  { key: 'ropa_hombre',    label: 'Ropa de Hombre',     keyword: 'ropa_hombre' },
-  { key: 'ropa_ninos',     label: 'Ropa de Ni\u00f1os', keyword: 'ropa_ninos' },
-  { key: 'higiene_mujer',  label: 'Higiene Mujer',      keyword: 'higiene_mujer' },
-  { key: 'higiene_hombre', label: 'Higiene Hombre',     keyword: 'higiene_hombre' },
-  { key: 'juguetes',       label: 'Juguetes',          keyword: 'juguetes' },
-  { key: 'deportes',       label: 'Deportes',          dept: 'sporting_goods' },
-  { key: 'hogar',          label: 'Hogar',             dept: 'home_goods' },
-  { key: 'decoracion',     label: 'Decoraci\u00f3n',  dept: 'home_decor' },
-  { key: 'dulces',         label: 'Dulces',            dept: 'candy_chocolate' },
+  { key: 'ofertas',    label: 'Ofertas',     saleOnly: true },
+  { key: 'moda_mujer', label: 'Moda Mujer',  keyword: 'moda_mujer' },
+  { key: 'ninas',      label: 'Ni\u00f1as', keyword: 'ninas' },
+  { key: 'ninos',      label: 'Ni\u00f1os', keyword: 'ninos' },
+  { key: 'juguetes',   label: 'Juguetes',    keyword: 'juguetes' },
+  { key: 'zapatos',    label: 'Zapatos',     keyword: 'zapatos' },
+  { key: 'deportes',   label: 'Deportes',    dept: 'sporting_goods' },
+  { key: 'hogar',      label: 'Hogar',       dept: 'home_goods' },
+  { key: 'decoracion', label: 'Decoraci\u00f3n',  dept: 'home_decor' },
+  { key: 'dulces',     label: 'Dulces',      dept: 'candy_chocolate' },
 ];
 const STORE_CATEGORY_STORES = ['walmart', 'target'];
 /* Gallery hero images (2026-09-30, Danny): "with nice pictures" -- aspirational
@@ -14895,15 +14819,6 @@ const GALLERY_HERO_IMAGES = {
      no dedicated kids hero was shot; a blank banner is worse. */
   ninas: 'assets/gallery-heroes/moda-mujer.jpg',
   ninos: 'assets/gallery-heroes/moda-hombre.jpg',
-  /* AUDIENCE-SPLIT SHELVES (2026-10-01, Danny): gendered shoe/clothing
-     rooms reuse the closest hero; hygiene rooms fall back to product
-     photos (no hygiene hero shot yet -- a wrong-gender banner is worse). */
-  zapatos_mujer: 'assets/gallery-heroes/zapatos.jpg',
-  zapatos_hombre: 'assets/gallery-heroes/zapatos.jpg',
-  zapatos_ninos: 'assets/gallery-heroes/zapatos.jpg',
-  ropa_mujer: 'assets/gallery-heroes/moda-mujer.jpg',
-  ropa_hombre: 'assets/gallery-heroes/moda-hombre.jpg',
-  ropa_ninos: 'assets/gallery-heroes/moda-mujer.jpg',
 };
 /* KEYWORD CATEGORIES (2026-09-30, Danny): gallery rooms built from strict
    product-type predicates instead of native departments. ONE predicate drives
@@ -14916,17 +14831,6 @@ const KEYWORD_CATEGORY_DEFS = {
   juguetes:   { label: 'Juguetes',   pred: isToyItem },
   ninos:      { label: 'Ni\u00f1os', pred: isBoysFashionItem },
   ninas:      { label: 'Ni\u00f1as', pred: isGirlsFashionItem },
-  /* GENDERED STORE CAROUSELS (2026-10-01, Danny): Walmart/Target split
-     shoes, clothes, and hygiene by audience -- the room's predicate IS the
-     listing, so carousel and "Ver mas" can never disagree. */
-  zapatos_mujer:  { label: 'Zapatos de Mujer',  pred: isWomensShoeItem },
-  zapatos_hombre: { label: 'Zapatos de Hombre', pred: isMensShoeItem },
-  zapatos_ninos:  { label: 'Zapatos de Ni\u00f1os', pred: isKidsShoeItem },
-  ropa_mujer:     { label: 'Ropa de Mujer',     pred: isWomenFashionItem },
-  ropa_hombre:    { label: 'Ropa de Hombre',    pred: isMenFashionItem },
-  ropa_ninos:     { label: 'Ropa de Ni\u00f1os', pred: isKidsFashionItem },
-  higiene_mujer:  { label: 'Higiene Mujer',     pred: isWomensHygieneItem },
-  higiene_hombre: { label: 'Higiene Hombre',    pred: isMensHygieneItem },
 };
 /* Keywords for women's fashion: answered per item, the Zapatos way. */
 const WOMEN_FASHION_RX = /\bwomen'?s\b|\bladies\b|\bdama\b|\bmujer\b|\bfemale\b|\bdress\b|\bskirt\b|\bblouse\b|\bvestido\b|\bfalda\b|\bblusa\b/i;
@@ -15004,61 +14908,13 @@ function isWomenFashionItem(it){
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
   return true;
 }
-/* GENDERED STORE CAROUSELS (2026-10-01, Danny): Walmart and Target split
-   shoes, clothes, and hygiene by audience -- three shoe carousels (Hombre /
-   Mujer / Ninos), three clothing carousels, two hygiene carousels. Strict
-   title markers; unmarked items appear in none (same rule as the
-   shoes_women/shoes_men departments). */
-function isMensShoeItem(it){
-  if (!isShoeItem(it)) return false;
-  return genderFromTitle(String(it.title || it.name || '')) === 'men';
-}
-function isWomensShoeItem(it){
-  if (!isShoeItem(it)) return false;
-  return genderFromTitle(String(it.title || it.name || '')) === 'women';
-}
-function isKidsShoeItem(it){
-  if (!isShoeItem(it)) return false;
-  return genderFromTitle(String(it.title || it.name || '')) === 'kids';
-}
-/* ROPA DE HOMBRE (2026-10-01, Danny): strict men's marker, same discipline
-   as Moda Mujer -- no guessing unmarked apparel into the men's room. */
-function isMenFashionItem(it){
-  const name = String(it.title || it.name || '');
-  if (isKidsItem(it)) return false;
-  if (!MEN_MARKER.test(name)) return false;
-  if (WOMEN_NON_APPAREL_RX.test(name)) return false;
-  return true;
-}
-/* HIGIENE POR GENERO (2026-10-01, Danny): bathroom and personal care split
-   because men and women shop it differently -- beard care, men's deodorant
-   and razors vs women's shaving, creams, and lotions. */
-const HYGIENE_RX = /\b(deodorant|antiperspirant|desodorante|antitranspirante|razor|shaver|shaving|afeitadora?|body\s*wash|shampoo|conditioner|acondicionador|toothpaste|pasta\s*dental|toothbrush|cepillo\s*dental|mouthwash|enjuague\s*bucal|aftershave|beard|barba|mustache|bigote)\b/i;
-const HYGIENE_CARE_RX = /\b(lotion|locion|moisturizer|hidratante|crema\s*corporal)\b/i;
-function isHygieneItem(it){
-  const name = String(it.title || it.name || '');
-  return HYGIENE_RX.test(name) || HYGIENE_CARE_RX.test(name);
-}
-function isMensHygieneItem(it){
-  if (!isHygieneItem(it)) return false;
-  const name = String(it.title || it.name || '');
-  return MEN_MARKER.test(name) || /\b(beard|barba|mustache|bigote)\b/i.test(name);
-}
-function isWomensHygieneItem(it){
-  if (!isHygieneItem(it)) return false;
-  const name = String(it.title || it.name || '');
-  return WOMEN_MARKER.test(name);
-}
 /* STRICT FOOTWEAR (2026-09-30, Danny): the product must BE shoes, not merely
    contain the word "shoe". "Baby bodysuit + shorts + shoe 3pc set" is baby
    clothes; a Sterilite "shoe box" is a plastic container. If a store has no
    real shoes after filtering, the Zapatos room hides via the
    CAROUSEL_MIN_ITEMS gate -- "If Target doesn't have shoes, then don't put shoes." */
 const FOOTWEAR_RX = /\bshoes?\b|\bsneakers?\b|\btennis\s+shoes?\b|\bboots?\b|\bsandals?\b|\bheels?\b|\bflats?\b|\bloafers?\b|\bslippers?\b|\bmules?\b|\bwedges?\b|\bespadrilles?\b|\boxfords?\b|\bcleats?\b|\bzapatos?\b|\btenis\b|\bbotas?\b|\bsandalias?\b|\btacones?\b|\bzapatillas?\b/i;
-/* DANNY 2026-10-01: rubber duck statue, "Men's Flat Front Shorts" (matched
-   via \bflats?\b), and socks were rendering in the Zapatos carousel. A shoe
-   carousel shows shoes -- statues, shorts, and socks never belong. */
-const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b|\bsocks?\b|\bflat\s+front\b|\b(statue|figurine|sculpture)\b/i;
+const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b/i;
 function isShoeItem(it){
   const name = String(it.title || it.name || '');
   if (!FOOTWEAR_RX.test(name)) return false;
@@ -15066,11 +14922,22 @@ function isShoeItem(it){
   return true;
 }
 function hasRealImage(it){
-  /* Danny 2026-09-30: no product without a real image. "Foto en camino" is not an image. */
-  const img = it.image || it.imageUrl || it.img;
-  if (!img || typeof img !== 'string') return false;
-  if (img.includes('foto-en-camino') || img.includes('placeholder') || img.includes('no-image')) return false;
-  return img.startsWith('http') && img.length > 20;
+  /* Danny 2026-09-30: no product without a real image. "Foto en camino" is not an image.
+     Danny 2026-10-01: also wired into carousel selection (carouselHasPhoto) and the
+     rail pick filters -- products with no loadable image URL don't lead carousels. */
+  if (!it) return false;
+  const cands = [];
+  if (it.image) cands.push(it.image);
+  if (it.imageUrl) cands.push(it.imageUrl);
+  if (it.img) cands.push(it.img);
+  if (it.thumbnail) cands.push(it.thumbnail);
+  if (Array.isArray(it.images)) for (const u of it.images) cands.push(u);
+  for (const img of cands){
+    if (typeof img !== 'string' || !img) continue;
+    if (img.includes('foto-en-camino') || img.includes('placeholder') || img.includes('no-image')) continue;
+    if (img.startsWith('http') && img.length > 20) return true;
+  }
+  return false;
 }
 
 function isSaleItem(it){
@@ -16724,6 +16591,9 @@ function renderSearchResults(){
   items.sort(sortBy === 'salesFirst' ? bySalesFirst(byMatchScore)
     : sortBy === 'relevance' ? byMatchScore
     : byDoorToDoor(sortBy));
+  /* PHOTO FIRST (Danny 2026-10-01): same rule as the catalog grid -- blank
+     cards never lead. Stable sort preserves the relevance/sales order. */
+  items.sort((a, b) => (hasRealImage(b) ? 1 : 0) - (hasRealImage(a) ? 1 : 0));
   searchRendered = items;
 
   wrap.innerHTML = items.length
@@ -21418,11 +21288,8 @@ const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|ni[ñn][oa]s?|newbo
 // A bare "baby" no longer marks kidswear; genuine infant goods still match
 // "newborn", "infant", "toddler", or an explicit "baby boy"/"baby girl".
 // Mirrors scripts/lib/department-map.js; change one, change the other.
-/* DANNY 2026-10-01: bare "Men"/"Man" -- "Tennis Shoes for Men" is men's. */
-const MEN_MARKER = /\b(men'?s|mens|men|man|hombre|hombres|caballero)\b/i;
-/* DANNY 2026-10-01: match singular "woman"/"women" -- "Ballet Flats for
-   Women" is women's footwear even without the possessive. */
-const WOMEN_MARKER = /\b(women'?s|womens|women|woman|mujer|mujeres|dama|femenina)\b/i;
+const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
+const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
 
 // Collapses colour/size variants of the same product. Deliberately
 // excludes price — including it was the bug that let one shirt show up
@@ -26118,7 +25985,8 @@ function passesOfertasFreightCeiling(p){
    weight: Ofertas FEATURES things, and we do not feature what we cannot
    show. */
 function passesOfertasPhotoGate(p){
-  return Boolean(p && typeof p.image === 'string' && p.image);
+  /* Danny 2026-10-01: was a truthy-string check -- now hasRealImage. */
+  return hasRealImage(p);
 }
 
 function passesOfertasGate(p){
@@ -28450,10 +28318,6 @@ const CHAT_DOMAIN_FALLBACKS = [
     keys: ['barba', 'beard', 'afeitadora', 'shaver', 'rasuradora', 'desodorante', 'deodorant', 'antitranspirante', 'body wash', 'gel de bano', 'jabon liquido', 'jabon de cuerpo', 'axe', 'old spice', 'dove men', 'gillette', 'nivea men', 'aftershave', 'balsamo para barba', 'aceite para barba', 'cera para barba', 'recortadora', 'cortadora de cabello', 'maquina de afeitar', 'maquina de cortar cabello', 'perfiladora', 'hojas de afeitar', 'crema de afeitar', 'espuma de afeitar', 'talco', 'depiladora', 'cera depilatoria', 'rastrillo', 'prestobarba', 'colonia de hombre'] },
   { label: 'Juguetes', sub: 'Juguetes para todas las edades', action: 'department', key: 'toys',
     keys: ['juguete', 'juguetes', 'toy', 'toys', 'lego', 'legos', 'muneca', 'muneco', 'doll', 'barbie', 'peluche', 'peluches', 'stuffed animal', 'juego de mesa', 'board game', 'hot wheels', 'carrito', 'carrito de juguete', 'pista de carros', 'figura de accion', 'dinosaurio', 'dinosaurios', 'superheroe', 'fisher price', 'nerf', 'pistola de agua', 'pistola nerf', 'rompecabezas', 'didactico', 'juguete didactico', 'triciclo', 'scooter', 'patin del diablo', 'cometa', 'yoyo', 'trompo', 'canicas', 'plastilina', 'play doh', 'slime', 'xbox', 'playstation', 'nintendo', 'videojuego', 'bicicleta para nino'] },
-  /* MOTOS (2026-10-01, Danny): "moto" must beat "motor" (engine oil)
-     and the auto entry -- checked before Repuestos. */
-  { label: 'Motos', sub: 'Cascos, equipo y repuestos para moto', action: 'department', key: 'motos',
-    keys: ['moto', 'motos', 'motocicleta', 'motocicletas', 'motorcycle', 'motorbike', 'casco de moto', 'casco para moto', 'casco motocicleta', 'chamarra de moto', 'guantes de moto', 'botas de moto', 'llanta de moto', 'neumatico de moto', 'repuesto de moto', 'repuestos de moto', 'escape de moto', 'honda moto', 'yamaha moto', 'suzuki moto', 'kawasaki moto', 'harley davidson'] },
   { label: 'Repuestos', sub: 'Autopartes y repuestos', action: 'department', key: 'auto_parts',
     keys: ['repuesto', 'repuestos', 'autoparte', 'autopartes', 'auto parte', 'carro', 'auto', 'freno', 'frenos', 'brake', 'pastilla de freno', 'disco de freno', 'zapatas de freno', 'amortiguador', 'filtro de aceite', 'filtro de aire', 'bujia', 'cable de bujia', 'neumatico', 'llanta', 'llantas', 'aro', 'aros', 'tapa de aro', 'aceite de motor', 'refrigerante', 'bateria de carro', 'bateria', 'alternador', 'arrancador', 'faja de motor', 'correa de distribucion', 'radiador', 'faro', 'faros', 'foco', 'espejo retrovisor', 'parabrisas', 'plumilla', 'limpiaparabrisas', 'embrague', 'caja de cambios', 'tubo de escape', 'claxon', 'gato hidraulico'] },
   { label: 'Hogar', sub: 'Muebles, cocina y decoracion', action: 'department', key: 'home_goods',
