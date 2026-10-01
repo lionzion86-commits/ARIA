@@ -77,8 +77,9 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   /* SWIMWEAR (2026-10-01, Danny): 603 Latino-designer items (bikinis,
      one-pieces, swim sets) had no row and fell to the generic fallback.
      Individual pieces ~70-160g, full sets 140-320g (ubuy.com listings).
-     Higher-end 0.25 kg protects the $7/kg freight. */
-  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot|bottoms?|trunks?)\b/i, kg: 0.25, tier: "cited" },
+     Danny 2026-10-01: use the average (0.17 kg), not the high end —
+     swimwear must stay inexpensive for everybody. */
+  { match: /\b(bikini|swimsuit|swimwear|tankini|maillot|bottoms?|trunks?)\b/i, kg: 0.17, tier: "cited" },
   /* SURFSUITS (2026-10-01, Danny): neoprene surfsuits — 0.9-0.95 kg packaged
      (3/2mm full suits). Higher-end 1.0 kg. */
   { match: /\b(wetsuit|surfsuit)\b/i, kg: 1, tier: "cited" },
