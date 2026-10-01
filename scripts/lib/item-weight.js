@@ -52,22 +52,9 @@ const APPLIANCE_IMPOSTOR_RE =
 
 // Checked BEFORE the general table and before the TV branch, because
 // "TV Stand" is furniture, not a television.
-/* WEIGHT IMPOSTOR GUARDS (2026-09-29, Danny's iPhone QA). The category
-   tables match single keywords; product names reuse those words for
-   different products ("vacuum" in a beard trimmer, "smoker" in a hoodie,
-   "tent" in a dress). Each guard keeps its row from firing on the wrong
-   product. Shared between the BULKY/RETAIL rows and the sanity bands so
-   the two cannot disagree. */
-const VACUUM_IMPOSTOR_RE = /\b(trimmer|shaver|clipper|beard|mustache|sideburns?|nose|ear)\b|vacuum\s*(storage\s*)?bags?|space[-\s]?saver|vacuum[-\s]?seal/i;
-const GRILL_IMPOSTOR_RE = /\b(toy|playset|kids|toddler|pretend|body\s*wash|hoodie|sweatshirt|t-?shirt)\b/i;
-const TENT_IMPOSTOR_RE = /\b(play|pop[-\s]?up|kids|toddler|toy|dress|string)\b|fairy/i;
-const PLAYSET_IMPOSTOR_RE = /\b(pretend|camping|toy)\b/i;
-const MATTRESS_IMPOSTOR_RE = /\bmattress\s*(pad|protector|topper)\b/i;
-const MONITOR_IMPOSTOR_RE = /\b(baby|audio|security)\b/i;
-const SKATEBOARD_PARTS_RE = /\b(wheels?|bearings?|trucks?|hardware|griptape|riser\s*pads?|book\b)/i;
 export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(sofa|loveseat|couch|sectional|futon)\b/i, kg: 70 },
-  { match: /\b(mattress|box spring|boxspring)\b/i, not: MATTRESS_IMPOSTOR_RE, kg: 40 },
+  { match: /\b(mattress|box spring|boxspring)\b/i, kg: 40 },
   { match: /\b(bed frame|headboard|bunk bed|platform bed)\b/i, kg: 45 },
   { match: /\b(wardrobe|armoire|china cabinet)\b/i, kg: 60 },
   { match: /\b(dresser|chest of drawers|drawer chest)\b/i, kg: 55 },
@@ -75,22 +62,14 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove)\b/i, not: APPLIANCE_IMPOSTOR_RE, kg: 90 },
   { match: /\b(dining table|coffee table|desk|console table|end table|nightstand)\b/i, kg: 40 },
   { match: /\b(tv stand|media console|entertainment center|credenza)\b/i, kg: 35 },
-  /* TELEVISIONS (2026-09-29). TVs are banned from catalogues but live search
-     is never filtered, so a TV can still reach a card. Fires only on a
-     screen-size + TV signal. */
-  { match: /\b\d{2,3}\s?(?:-?inch|["\u201c\u201d])[^,]{0,40}\btvs?\b|\btvs?\b[^,]{0,40}\b\d{2,3}\s?(?:-?inch|["\u201c\u201d])|\b(qled|oled)\b/i,
-    not: /\bapple\s*tv\b|tv\s*(series|stand|background|mount)/i, kg: 8 },
   { match: /\b(bookshelf|bookcase|shelving unit|storage cabinet|cabinet)\b/i, kg: 30 },
-  { match: /\b(grill|smoker|bbq)\b/i, not: GRILL_IMPOSTOR_RE, kg: 50 },
+  { match: /\b(grill|smoker|bbq)\b/i, kg: 50 },
   { match: /\b(patio set|outdoor set|sofa set|dining set)\b/i, kg: 55 },
   { match: /\b(air conditioner|dehumidifier|space heater)\b/i, kg: 30 },
-  { match: /\bmini fridge\b/i, kg: 18 },
-  { match: /\bmicrowave\b/i, not: /\bskateboard\b/i, kg: 12 },
-  { match: /\bair fryer\b/i, kg: 6 },
-  { match: /\bskateboards?\b|\bskate\s*decks?\b/i, not: SKATEBOARD_PARTS_RE, kg: 2.5 },
+  { match: /\b(mini fridge|microwave|air fryer)\b/i, kg: 18 },
   { match: /\b(recliner|armchair|accent chair|office chair|dining chair)\b/i, kg: 18 },
   { match: /\b(rug|carpet|area rug)\b/i, kg: 16 },
-  { match: /\b(vacuum|stroller|car seat)\b/i, not: VACUUM_IMPOSTOR_RE, kg: 12 },
+  { match: /\b(vacuum|stroller|car seat)\b/i, kg: 12 },
   { match: /\b(suitcase|luggage)\b/i, kg: 6 },
 
   /* SPORTING AND OUTDOOR GOODS (2026-09-19).
@@ -102,7 +81,7 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
      These are the bulky sports categories a general retailer actually
      sells, with the same conservative bias as everything above. */
   { match: /\b(trampoline)\b/i, kg: 45 },
-  { match: /\b(swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, not: PLAYSET_IMPOSTOR_RE, kg: 55 },
+  { match: /\b(swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, kg: 55 },
   { match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, kg: 45 },
   { match: /\b(basketball (hoop|system|goal)|backboard)\b/i, kg: 40 },
   { match: /\b(punching bag|heavy bag|boxing bag)\b/i, kg: 35 },
@@ -121,12 +100,9 @@ export const BULKY_WEIGHT_ESTIMATES_KG = [
   { match: /\b(cornhole|picnic table|park bench|garden bench|sandbox|see ?saw)\b/i, kg: 13 },
   // Both flagged by the bounds on the first audit run, so they got real
   // rows rather than sitting on the floor the bound gave them.
-  /* PROJECTOR-SCREEN IMPOSTOR (2026-09-30): a projector that INCLUDES a
-     screen ("Projector Screen Included") is not a standalone screen.
-     Mirrors index.html. */
-  { match: /\b(projector screen|movie screen)\b/i, not: PROJECTOR_SCREEN_BUNDLED_RE, kg: 12 },
+  { match: /\b(projector screen|movie screen)\b/i, kg: 12 },
   { match: /\b(car cover|vehicle cover)\b/i, kg: 5 },
-  { match: /\b(tent)\b/i, not: TENT_IMPOSTOR_RE, kg: 8 },
+  { match: /\b(tent)\b/i, kg: 8 },
   // Long but genuinely light — they state feet and weigh almost nothing,
   // which is why they also need a bound of their own below.
   { match: /\b(?:agility|speed|training)\b[^,]{0,30}?\bladder\b/i, kg: 2 },
@@ -211,6 +187,14 @@ export const FOOTWEAR_TIERS = [
   { key: "pantufla",    match: /\b(slippers?)\b/i,                                            kg: 0.4,  bandKg: [0.2, 1.2] },
   { key: "suecos",      match: /\b(clogs?)\b/i,                                               kg: 0.5,  bandKg: [0.3, 1.4] },
   { key: "chimpunes",   match: /\b(cleats?)\b/i,                                              kg: 0.55, bandKg: [0.3, 1.4] },
+  /* Light athletic/running sneakers are NOT Timberlands. A men's pair of
+     runners weighs 500-650g; the generic men's tier (0.9 kg) plus the
+     reasoned buffer was quoting 1.2+ kg — S/ 16+ of phantom freight on a
+     $17 shoe. These tiers quote the true pair weight; the buffer still
+     applies on top. (Danny 2026-10-01) */
+  { key: "deportiva hombre", match: /\bmen'?s?\b[^,]{0,40}\b(running|athletic|runner|jogging|marathon|tennis)\b|\b(running|athletic|runner|jogging|marathon|tennis)\b[^,]{0,40}\bmen'?s?\b/i, kg: 0.55, bandKg: [0.4, 1.2] },
+  { key: "deportiva mujer",  match: /\bwomen'?s?\b[^,]{0,40}\b(running|athletic|runner|jogging|marathon|tennis)\b|\b(running|athletic|runner|jogging|marathon|tennis)\b[^,]{0,40}\bwomen'?s?\b/i, kg: 0.45, bandKg: [0.3, 1.0] },
+  { key: "deportiva",        match: /\b(running|athletic|runner|jogging|marathon|tennis)\b/i,   kg: 0.5,  bandKg: [0.3, 1.1] },
   { key: "mujer",       match: /\b(women'?s?|womens|ladies|mujer)\b/i,                        kg: 0.65, bandKg: [0.4, 1.4] },
   /* 0.8-1.6 kg is the reported plausible shipped band for a men's
      leather sneaker. The estimator used to answer 1.94 kg here — half a
@@ -497,12 +481,6 @@ const LONG_BUT_LIGHT_RE =
 export const PROJECTOR_RE = /\b(projectors?|proyectores?|proyector)\b/i;
 const PROJECTOR_ACCESSORY_RE = /\b(screen|pantalla|mount|soporte|bracket|lamp|bulb|l[áa]mpara|case|funda|stand|tr[ií]pode|tripod|cable)\b/i;
 
-/* BUNDLED-SCREEN IMPOSTOR (2026-09-30, Danny's iPhone QA). A "5G WiFi
-   Bluetooth Projector (Projector Screen Included)" is a ~2 kg portable
-   projector that ships WITH a light fabric screen — not the 12 kg
-   standalone projection screen the bulky row prices. Mirrors index.html. */
-const PROJECTOR_SCREEN_BUNDLED_RE = /\bprojectors?\b(?!\s+screens?\b)[\s\S]{0,80}?\b(includ\w*|with|comes?\s+with)\b[\s\S]{0,40}?\bscreens?\b|\bscreens?\s+includ\w*\b/i;
-
 export const WEIGHT_SANITY_BOUNDS = [
   /* Beauty runs FIRST and low. A cosmetic is the one category on this
      site that legitimately weighs 20 grams, and several fragrance houses
@@ -525,7 +503,7 @@ export const WEIGHT_SANITY_BOUNDS = [
      BOOK_TIERS for the reported case this came from. */
   { key: "libro", test: (t) => bookTierFor(t) != null, band: bookBandKg },
   { key: "goal", match: GOAL_RE, minKg: 3, maxKg: 45 },
-  { key: "trampolín/columpio", test: (t) => /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i.test(t) && !PLAYSET_IMPOSTOR_RE.test(t), minKg: 20, maxKg: 130 },
+  { key: "trampolín/columpio", match: /\b(trampoline|swing set|play ?set|playhouse|jungle gym|climbing frame)\b/i, minKg: 20, maxKg: 130 },
   { key: "mesa de juego", match: /\b(ping ?pong|table tennis|foosball|air hockey|pool table)\b/i, minKg: 15, maxKg: 130 },
   { key: "aro de básquet", match: /\b(basketball (hoop|system|goal)|backboard)\b/i, minKg: 10, maxKg: 90 },
   { key: "equipo de gimnasio", match: /\b(treadmill|elliptical|exercise bike|weight bench|home gym|punching bag|heavy bag|weight set|barbell|kettlebell|weight plates?)\b/i, minKg: 10, maxKg: 220 },
@@ -533,9 +511,9 @@ export const WEIGHT_SANITY_BOUNDS = [
     test: (t) => /\b(refrigerator|fridge|freezer|washer|dryer|dishwasher|range oven|stove|air conditioner|dehumidifier|lawn ?mower|snow blower)\b/i.test(t)
       && !APPLIANCE_IMPOSTOR_RE.test(t),
     minKg: 8, maxKg: 220 },
-  { key: "muebles", test: (t) => /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i.test(t) && !MATTRESS_IMPOSTOR_RE.test(t), minKg: 8, maxKg: 160 },
-  { key: "exterior/camping", test: (t) => /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i.test(t) && !GRILL_IMPOSTOR_RE.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 90 },
-  { key: "bicicleta", test: (t) => /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i.test(t) && !/\bskateboards?\b/i.test(t), minKg: 6, maxKg: 45 },
+  { key: "muebles", match: /\b(sofa|loveseat|couch|sectional|futon|mattress|box spring|bed frame|headboard|bunk bed|platform bed|wardrobe|armoire|dresser|chest of drawers|dining table|coffee table|console table|end table|nightstand|tv stand|media console|entertainment center|credenza|bookshelf|bookcase|shelving unit|recliner|armchair)\b/i, minKg: 8, maxKg: 160 },
+  { key: "exterior/camping", match: /\b(kayak|canoe|paddle ?board|canopy|gazebo|pergola|wheelbarrow|above ?ground pool|swimming pool|grill|smoker|bbq)\b/i, minKg: 6, maxKg: 90 },
+  { key: "bicicleta", match: /\b(bicycle|mountain bike|road bike|kids'? bike|bmx|tricycle|kick ?scooter|electric scooter)\b/i, minKg: 6, maxKg: 45 },
   /* Lowered from 0.4 to 0.2 when dimensional billing was removed
      (2026-09-20): 0.4 came from a baby shoe box's ~0.47 kg dimensional
      figure, and on actual scale weight the same box is 0.28 kg. Leaving
@@ -546,15 +524,11 @@ export const WEIGHT_SANITY_BOUNDS = [
      shoe against 0.1-0.6. `test` rather than `match` because a shoe is
      often listed by brand or model alone ("New Balance 204L"), which
      FOOTWEAR_NOUN_RE cannot see but footwearTierFor() can. */
-  { key: "calzado", test: (t) => footwearTierFor(t) != null && !/\bskateboards?\b/i.test(t), band: footwearBandKg },
+  { key: "calzado", test: (t) => footwearTierFor(t) != null, band: footwearBandKg },
   /* A projector, and not a projector screen, lamp or mount — those are
      their own objects and two of them already have rows elsewhere. */
   { key: "proyector",
     test: (t) => PROJECTOR_RE.test(t) && !PROJECTOR_ACCESSORY_RE.test(t),
-    minKg: 0.5, maxKg: 12 },
-  /* Bundled-screen projector band (2026-09-30) — mirrors index.html. */
-  { key: "proyector con pantalla",
-    test: (t) => PROJECTOR_SCREEN_BUNDLED_RE.test(t),
     minKg: 0.5, maxKg: 12 },
   /* No "televisor" row: Danny banned TVs and TV mounts outright (2026-09-26),
      so no television can ever reach the estimator — and the row's \btv\b
