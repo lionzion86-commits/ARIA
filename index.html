@@ -14759,17 +14759,26 @@ function nativeTypeGroupsFor(retailerData){
 /* STORE GALLERY ORDER (2026-09-30, Danny): Ofertas leads; kids get their
    own rooms (Ninas / Ninos -- never mixed into Moda Mujer); Juguetes takes
    the dolls and collectibles; Zapatos only shows real footwear. */
+/* STORE SHELVES (2026-10-01, Danny): Walmart and Target are long,
+   scrollable single pages -- everything on the face, no redirects. Every
+   category splits by audience so the shopper only sees what they came for:
+   shoes and clothes get Hombre / Mujer / Ninos carousels; hygiene splits
+   men / women (different deodorant, razors, creams). Ofertas still leads. */
 const STORE_CATEGORY_DEFS = [
-  { key: 'ofertas',    label: 'Ofertas',     saleOnly: true },
-  { key: 'moda_mujer', label: 'Moda Mujer',  keyword: 'moda_mujer' },
-  { key: 'ninas',      label: 'Ni\u00f1as', keyword: 'ninas' },
-  { key: 'ninos',      label: 'Ni\u00f1os', keyword: 'ninos' },
-  { key: 'juguetes',   label: 'Juguetes',    keyword: 'juguetes' },
-  { key: 'zapatos',    label: 'Zapatos',     keyword: 'zapatos' },
-  { key: 'deportes',   label: 'Deportes',    dept: 'sporting_goods' },
-  { key: 'hogar',      label: 'Hogar',       dept: 'home_goods' },
-  { key: 'decoracion', label: 'Decoraci\u00f3n',  dept: 'home_decor' },
-  { key: 'dulces',     label: 'Dulces',      dept: 'candy_chocolate' },
+  { key: 'ofertas',        label: 'Ofertas',            saleOnly: true },
+  { key: 'zapatos_mujer',  label: 'Zapatos de Mujer',   keyword: 'zapatos_mujer' },
+  { key: 'zapatos_hombre', label: 'Zapatos de Hombre',  keyword: 'zapatos_hombre' },
+  { key: 'zapatos_ninos',  label: 'Zapatos de Ni\u00f1os', keyword: 'zapatos_ninos' },
+  { key: 'ropa_mujer',     label: 'Ropa de Mujer',      keyword: 'ropa_mujer' },
+  { key: 'ropa_hombre',    label: 'Ropa de Hombre',     keyword: 'ropa_hombre' },
+  { key: 'ropa_ninos',     label: 'Ropa de Ni\u00f1os', keyword: 'ropa_ninos' },
+  { key: 'higiene_mujer',  label: 'Higiene Mujer',      keyword: 'higiene_mujer' },
+  { key: 'higiene_hombre', label: 'Higiene Hombre',     keyword: 'higiene_hombre' },
+  { key: 'juguetes',       label: 'Juguetes',          keyword: 'juguetes' },
+  { key: 'deportes',       label: 'Deportes',          dept: 'sporting_goods' },
+  { key: 'hogar',          label: 'Hogar',             dept: 'home_goods' },
+  { key: 'decoracion',     label: 'Decoraci\u00f3n',  dept: 'home_decor' },
+  { key: 'dulces',         label: 'Dulces',            dept: 'candy_chocolate' },
 ];
 const STORE_CATEGORY_STORES = ['walmart', 'target'];
 /* Gallery hero images (2026-09-30, Danny): "with nice pictures" -- aspirational
@@ -14789,6 +14798,15 @@ const GALLERY_HERO_IMAGES = {
      no dedicated kids hero was shot; a blank banner is worse. */
   ninas: 'assets/gallery-heroes/moda-mujer.jpg',
   ninos: 'assets/gallery-heroes/moda-hombre.jpg',
+  /* AUDIENCE-SPLIT SHELVES (2026-10-01, Danny): gendered shoe/clothing
+     rooms reuse the closest hero; hygiene rooms fall back to product
+     photos (no hygiene hero shot yet -- a wrong-gender banner is worse). */
+  zapatos_mujer: 'assets/gallery-heroes/zapatos.jpg',
+  zapatos_hombre: 'assets/gallery-heroes/zapatos.jpg',
+  zapatos_ninos: 'assets/gallery-heroes/zapatos.jpg',
+  ropa_mujer: 'assets/gallery-heroes/moda-mujer.jpg',
+  ropa_hombre: 'assets/gallery-heroes/moda-hombre.jpg',
+  ropa_ninos: 'assets/gallery-heroes/moda-mujer.jpg',
 };
 /* KEYWORD CATEGORIES (2026-09-30, Danny): gallery rooms built from strict
    product-type predicates instead of native departments. ONE predicate drives
@@ -14801,6 +14819,17 @@ const KEYWORD_CATEGORY_DEFS = {
   juguetes:   { label: 'Juguetes',   pred: isToyItem },
   ninos:      { label: 'Ni\u00f1os', pred: isBoysFashionItem },
   ninas:      { label: 'Ni\u00f1as', pred: isGirlsFashionItem },
+  /* GENDERED STORE CAROUSELS (2026-10-01, Danny): Walmart/Target split
+     shoes, clothes, and hygiene by audience -- the room's predicate IS the
+     listing, so carousel and "Ver mas" can never disagree. */
+  zapatos_mujer:  { label: 'Zapatos de Mujer',  pred: isWomensShoeItem },
+  zapatos_hombre: { label: 'Zapatos de Hombre', pred: isMensShoeItem },
+  zapatos_ninos:  { label: 'Zapatos de Ni\u00f1os', pred: isKidsShoeItem },
+  ropa_mujer:     { label: 'Ropa de Mujer',     pred: isWomenFashionItem },
+  ropa_hombre:    { label: 'Ropa de Hombre',    pred: isMenFashionItem },
+  ropa_ninos:     { label: 'Ropa de Ni\u00f1os', pred: isKidsFashionItem },
+  higiene_mujer:  { label: 'Higiene Mujer',     pred: isWomensHygieneItem },
+  higiene_hombre: { label: 'Higiene Hombre',    pred: isMensHygieneItem },
 };
 /* Keywords for women's fashion: answered per item, the Zapatos way. */
 const WOMEN_FASHION_RX = /\bwomen'?s\b|\bladies\b|\bdama\b|\bmujer\b|\bfemale\b|\bdress\b|\bskirt\b|\bblouse\b|\bvestido\b|\bfalda\b|\bblusa\b/i;
@@ -14878,13 +14907,61 @@ function isWomenFashionItem(it){
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
   return true;
 }
+/* GENDERED STORE CAROUSELS (2026-10-01, Danny): Walmart and Target split
+   shoes, clothes, and hygiene by audience -- three shoe carousels (Hombre /
+   Mujer / Ninos), three clothing carousels, two hygiene carousels. Strict
+   title markers; unmarked items appear in none (same rule as the
+   shoes_women/shoes_men departments). */
+function isMensShoeItem(it){
+  if (!isShoeItem(it)) return false;
+  return genderFromTitle(String(it.title || it.name || '')) === 'men';
+}
+function isWomensShoeItem(it){
+  if (!isShoeItem(it)) return false;
+  return genderFromTitle(String(it.title || it.name || '')) === 'women';
+}
+function isKidsShoeItem(it){
+  if (!isShoeItem(it)) return false;
+  return genderFromTitle(String(it.title || it.name || '')) === 'kids';
+}
+/* ROPA DE HOMBRE (2026-10-01, Danny): strict men's marker, same discipline
+   as Moda Mujer -- no guessing unmarked apparel into the men's room. */
+function isMenFashionItem(it){
+  const name = String(it.title || it.name || '');
+  if (isKidsItem(it)) return false;
+  if (!MEN_MARKER.test(name)) return false;
+  if (WOMEN_NON_APPAREL_RX.test(name)) return false;
+  return true;
+}
+/* HIGIENE POR GENERO (2026-10-01, Danny): bathroom and personal care split
+   because men and women shop it differently -- beard care, men's deodorant
+   and razors vs women's shaving, creams, and lotions. */
+const HYGIENE_RX = /\b(deodorant|antiperspirant|desodorante|antitranspirante|razor|shaver|shaving|afeitadora?|body\s*wash|shampoo|conditioner|acondicionador|toothpaste|pasta\s*dental|toothbrush|cepillo\s*dental|mouthwash|enjuague\s*bucal|aftershave|beard|barba|mustache|bigote)\b/i;
+const HYGIENE_CARE_RX = /\b(lotion|locion|moisturizer|hidratante|crema\s*corporal)\b/i;
+function isHygieneItem(it){
+  const name = String(it.title || it.name || '');
+  return HYGIENE_RX.test(name) || HYGIENE_CARE_RX.test(name);
+}
+function isMensHygieneItem(it){
+  if (!isHygieneItem(it)) return false;
+  const name = String(it.title || it.name || '');
+  return MEN_MARKER.test(name) || /\b(beard|barba|mustache|bigote)\b/i.test(name);
+}
+function isWomensHygieneItem(it){
+  if (!isHygieneItem(it)) return false;
+  const name = String(it.title || it.name || '');
+  return WOMEN_MARKER.test(name);
+}
 /* STRICT FOOTWEAR (2026-09-30, Danny): the product must BE shoes, not merely
    contain the word "shoe". "Baby bodysuit + shorts + shoe 3pc set" is baby
    clothes; a Sterilite "shoe box" is a plastic container. If a store has no
    real shoes after filtering, the Zapatos room hides via the
    CAROUSEL_MIN_ITEMS gate -- "If Target doesn't have shoes, then don't put shoes." */
 const FOOTWEAR_RX = /\bshoes?\b|\bsneakers?\b|\btennis\s+shoes?\b|\bboots?\b|\bsandals?\b|\bheels?\b|\bflats?\b|\bloafers?\b|\bslippers?\b|\bmules?\b|\bwedges?\b|\bespadrilles?\b|\boxfords?\b|\bcleats?\b|\bzapatos?\b|\btenis\b|\bbotas?\b|\bsandalias?\b|\btacones?\b|\bzapatillas?\b/i;
-const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b/i;
+/* DANNY 2026-10-01: rubber duck statue, "Men's Flat Front Shorts" (matched
+   via \bflats?\b), and socks were rendering in the Zapatos carousel. A shoe
+   carousel shows shoes -- statues, shorts, and socks never belong. */
+const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b|\bsocks?\b|\bflat\s+front\b|\b(statue|figurine|sculpture)\b/i;
 function isShoeItem(it){
   const name = String(it.title || it.name || '');
   if (!FOOTWEAR_RX.test(name)) return false;
@@ -21244,8 +21321,11 @@ const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|ni[ñn][oa]s?|newbo
 // A bare "baby" no longer marks kidswear; genuine infant goods still match
 // "newborn", "infant", "toddler", or an explicit "baby boy"/"baby girl".
 // Mirrors scripts/lib/department-map.js; change one, change the other.
-const MEN_MARKER = /\b(men'?s|mens|hombre)\b/i;
-const WOMEN_MARKER = /\b(women'?s|womens|mujer)\b/i;
+/* DANNY 2026-10-01: bare "Men"/"Man" -- "Tennis Shoes for Men" is men's. */
+const MEN_MARKER = /\b(men'?s|mens|men|man|hombre|hombres|caballero)\b/i;
+/* DANNY 2026-10-01: match singular "woman"/"women" -- "Ballet Flats for
+   Women" is women's footwear even without the possessive. */
+const WOMEN_MARKER = /\b(women'?s|womens|women|woman|mujer|mujeres|dama|femenina)\b/i;
 
 // Collapses colour/size variants of the same product. Deliberately
 // excludes price — including it was the bug that let one shirt show up
