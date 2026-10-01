@@ -8291,7 +8291,7 @@ const CATEGORY_SHELL_CLASS = 'group bg-white rounded-2xl overflow-hidden h-full 
    it big, and a monster where it wanted a banner. `heightClass` pins the
    window instead, so it is generous on a phone and a letterbox on a
    desktop. */
-function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null, round = true }){
+function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', aspect = '4/5', heightClass = null, round = true, attrs = '' }){
   const sizing = heightClass ? '' : `aspect-ratio:${aspect}; `;
   /* THE ROUNDING MOVED HERE WITH THE WHITE. The shell used to be a
      rounded, clipping box and the photo simply filled it; with the card
@@ -8299,7 +8299,7 @@ function cardImageFrameHTML({ inner, open, overlay = '', background = '#fff', as
      clip its own overflow or a wide image squares the corners off
      again. A full-bleed shopfront banner passes round:false. */
   const shape = round ? ' rounded-2xl overflow-hidden' : '';
-  return `<div class="relative${shape}${heightClass ? ' ' + heightClass : ''}${open ? ' cursor-pointer' : ''}" style="${sizing}background:${background}"${open ? ` onclick="${open}"` : ''}>
+  return `<div class="relative${shape}${heightClass ? ' ' + heightClass : ''}${open ? ' cursor-pointer' : ''}" style="${sizing}background:${background}"${attrs}${open ? ` onclick="${open}"` : ''}>
       ${inner}
       ${overlay}
     </div>`;
@@ -8434,6 +8434,67 @@ function cardPhotoFallback(img){
   holder.className = 'w-full h-full';
   holder.innerHTML = photoPlaceholderHTML();
   img.replaceWith(holder.firstElementChild);
+}
+
+/* CARD PHOTO SWIPE (2026-10-01, Danny). Carousel cards used to show
+   only the first photo — a bikini whose lead shot is the back view
+   never got its front view seen without opening the product page.
+   When the product carries 2+ images, small prev/next arrows sit on
+   the photo; tapping swaps the photo in place with a short fade, all
+   without leaving the carousel. Arrows render only when there is
+   something to swipe to, and never cover the discount badge (they sit
+   at the vertical middle, the badge at the top). Zero emojis. */
+function cardSwipeList(p){
+  const list = [];
+  const push = u => { u = String(u == null ? '' : u).trim(); if (u && list.indexOf(u) < 0) list.push(u); };
+  push(p && p.image);
+  const extra = p && Array.isArray(p.images) ? p.images : [];
+  for (let i = 0; i < extra.length; i++) push(extra[i]);
+  return list.length > 1 ? list : null;
+}
+function cardSwipeNavHTML(){
+  const btn = 'position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:30px;height:30px;border-radius:999px;display:grid;place-items:center;color:var(--navy);background:rgba(255,255,255,.9);box-shadow:0 2px 8px rgba(10,31,68,.25);cursor:pointer;border:none;padding:0';
+  const chevL = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>';
+  const chevR = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>';
+  return '<span role="button" tabindex="0" aria-label="Foto anterior"'
+    + ' onclick="cardSwipeImg(event,this,-1)"'
+    + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();cardSwipeImg(event,this,-1);}"'
+    + ' style="' + btn + ';left:6px">' + chevL + '</span>'
+    + '<span role="button" tabindex="0" aria-label="Foto siguiente"'
+    + ' onclick="cardSwipeImg(event,this,1)"'
+    + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();cardSwipeImg(event,this,1);}"'
+    + ' style="' + btn + ';right:6px">' + chevR + '</span>';
+}
+function cardSwipeDataAttr(p){
+  const list = cardSwipeList(p);
+  return list ? ' data-card-imgs="' + escapeHtml(JSON.stringify(list)) + '"' : '';
+}
+/* The tap handler. stopPropagation keeps the tap from opening the
+   product page (the card/frame itself is the click target); the frame
+   carries the image list in data-card-imgs so no lookup is needed. A
+   file that fails to load is skipped — the card keeps the photo it had
+   rather than stranding on a broken one. */
+function cardSwipeImg(ev, el, dir){
+  if (ev){ ev.stopPropagation(); if (ev.preventDefault) ev.preventDefault(); }
+  const frame = el && el.closest ? el.closest('[data-card-imgs]') : null;
+  if (!frame) return;
+  let imgs = null;
+  try { imgs = JSON.parse(frame.getAttribute('data-card-imgs')); } catch (e){ return; }
+  if (!Array.isArray(imgs) || imgs.length < 2) return;
+  const img = frame.querySelector('img');
+  if (!img) return;
+  const prev = Number(frame.dataset.swipeIdx || 0);
+  const idx = (((prev + dir) % imgs.length) + imgs.length) % imgs.length;
+  frame.dataset.swipeIdx = idx;
+  /* The retry URL belongs to the first photo's speculative upgrade —
+     drop it so a failed swipe can never show the wrong photo. */
+  img.removeAttribute('data-img-fallback');
+  img.style.transition = 'opacity .16s ease';
+  img.style.opacity = '0';
+  const pre = new Image();
+  pre.onload = function(){ img.src = imgs[idx]; img.style.opacity = '1'; };
+  pre.onerror = function(){ frame.dataset.swipeIdx = prev; img.style.opacity = '1'; };
+  pre.src = imgs[idx];
 }
 
 /* OFERTAS IS DESIGNED, NOT SCRAPED — AND IT IS THE SALE CARD (2026-09-21).
@@ -8788,6 +8849,7 @@ function openMobileDeal(idx){
    white frames. opts.dark selects it; every other surface keeps white cards. */
 function railCardHTML(p, onclick, attr, opts){
   const dark = !!(opts && opts.dark);
+  const swipeImgs = cardSwipeList(p);
   const pct = discountPct(p);
   const original = Number(p.originalPrice);
   const hasOriginal = Number.isFinite(original) && original > Number(p.price);
@@ -8796,10 +8858,11 @@ function railCardHTML(p, onclick, attr, opts){
   return `<button onclick="${onclick}" ${attr}
     class="flex-shrink-0 w-[172px] text-left rounded-2xl overflow-hidden focus-ring"
     style="background:${dark ? '#1a2744' : '#fff'}">
-    <span class="relative block w-full h-[172px] overflow-hidden" style="background:#fff">
+    <span class="relative block w-full h-[172px] overflow-hidden" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(p) : ''}>
       ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image), eager: true })}
       ${hasOriginal ? `<span class="absolute top-2 left-2 text-[13px] font-extrabold px-2 py-1 rounded-full"
         style="background:#F4C463; color:var(--navy)">-${pct}%</span>` : ''}
+      ${swipeImgs ? cardSwipeNavHTML() : ''}
     </span>
     <span class="block px-3 pt-2.5 pb-3">
       <span class="block mb-1.5">${retailerBadgeHTML(p.retailer, 16, { dark })}</span>
@@ -13585,11 +13648,12 @@ function carouselCardHTML(item, retailer){
     ? `<span class="absolute top-3 left-3 text-[13px] font-extrabold px-2.5 py-1 rounded-full" style="background:#F4C463; color:var(--navy)">-${discountPct(it)}%</span>`
     : '';
   const src = upgradeImageUrl(safeUrl(it.image || it.imageUrl || it.thumbnail) || '');
+  const swipeImgs = cardSwipeList(it);
   return `<div class="ariaCarouselCard" role="listitem">
     <div class="rounded-2xl border overflow-hidden cursor-pointer focus-ring transition hover:shadow-[0_10px_24px_rgba(10,31,68,0.10)]" style="border-color:var(--line); background:#fff"
       onclick="${open}" role="link" tabindex="0" aria-label="${escapeHtml(title || 'Ver producto')}"
       onkeydown="if(event.key==='Enter'){${open}}">
-      <div class="aspect-[4/5] relative" style="background:#fff">${cardPhotoHTML(src, { alt: title, fallbackSrc: imageRetryUrl(src) })}${badgeHTML}</div>
+      <div class="aspect-[4/5] relative" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(it) : ''}>${cardPhotoHTML(src, { alt: title, fallbackSrc: imageRetryUrl(src) })}${badgeHTML}${swipeImgs ? cardSwipeNavHTML() : ''}</div>
       <div class="p-4">
         ${brandEyebrowHTML(it.brand, { cls: 'text-[10px] mb-0.5' })}
         <div class="text-[14px] leading-snug line-clamp-2" style="color:#4A5568; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.7em">${escapeHtml(title)}</div>
@@ -26080,6 +26144,7 @@ function saleCardHTML(p, idx){
 function productCardHTML(p, opts){
   const open = opts.open;
   const dark = opts.dark === true; /* on-navy card: Ofertas board */
+  const swipeImgs = cardSwipeList(p);
   const rating = Number(p.rating);
   const hasRating = Number.isFinite(rating) && rating > 0;
 
@@ -26147,7 +26212,7 @@ function productCardHTML(p, opts){
       : '';
   return `
   <div class="${CARD_SHELL_CLASS}">
-    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) }), open, overlay: badgeHTML })}
+    ${cardImageFrameHTML({ inner: cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image) }), open, overlay: badgeHTML + (swipeImgs ? cardSwipeNavHTML() : ''), attrs: swipeImgs ? cardSwipeDataAttr(p) : '' })}
     <!-- INFORMATION WHISPERS, PHOTOGRAPHY SHOUTS. The text under the
          photo was a 20px store mark over a 15px bold navy title over a
          22px extrabold price -- three loud lines competing with the
