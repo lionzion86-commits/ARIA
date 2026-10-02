@@ -10672,7 +10672,17 @@ async function renderRelatedRail(anchorIn){
   if (current !== anchor.title) return;
 
   const mine = pool.find(it => relatedKeyOf(it) === relatedKeyOf(anchor));
-  const picks = relatedProducts({ ...anchor, departments: mine?.departments || anchor.departments || [] }, pool);
+  const anchorDepts = mine?.departments || anchor.departments || [];
+  /* GYM RAT: NO SNEAKERS (2026-10-02, Danny): the related rail on a
+     gym-apparel product must not surface sneakers -- same rule as the
+     Gym Rat department page and its rail. A footwear anchor (e.g. an
+     NB sneaker's own page) keeps its footwear related. */
+  let relPool = pool;
+  if (typeof isFootwear === 'function' && anchorDepts.includes('gym_rat')
+      && !isFootwear({ ...mine, title: anchor.title }, anchor.retailer)){
+    relPool = pool.filter(it => !isFootwear(it, it.retailer));
+  }
+  const picks = relatedProducts({ ...anchor, departments: anchorDepts }, relPool);
   if (!picks.length) return;
 
   relatedRendered = picks;
@@ -11232,6 +11242,10 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
   /* LENTES DE SOL FANCY-FIRST (2026-10-01, Danny): luxury/designer
      leads the rail -- then sales. Opt-in per rail, like cleatsFirst. */
   const fancyFirst = Boolean(opts && opts.fancyFirst);
+  /* GYM RAT SALE-HEAVY (2026-10-02, Danny): the Gym Rat carousel is
+     packed with sales -- the sale slice grows to fill the whole rail
+     instead of capping at CATEGORY_RAIL_SALE. Opt-in per rail. */
+  const saleHeavy = Boolean(opts && opts.saleHeavy);
   const fancyRank = (p) => (fancyFirst && !isFancySunglasses(p)) ? 1 : 0;
   /* LENTES DE SOL FANCY-LEAD (2026-10-02, Danny): "a couple fancy,
      then sales" -- the rail opens on N highest-priced Miu Miu (the
@@ -11286,7 +11300,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
       leadPicks.push(p);
     }
   }
-  const picks = [...leadPicks, ...sale.slice(0, CATEGORY_RAIL_SALE)];
+  const saleCap = saleHeavy ? max : CATEGORY_RAIL_SALE;
+  const picks = [...leadPicks, ...sale.slice(0, saleCap)];
   const picked = new Set(picks.map(itemKey));
   /* Featured fill: real products with a price and a photo, mixed across
      the category's stores. Never priceless, never imageless, never a
@@ -11592,7 +11607,7 @@ const CATEGORY_RAILS = [
     blurb: 'Tallas extendidas, de todas las tiendas.',
     test: (p) => railBucketCategoryIs(p, 'apparel') && !railBucketGenderIs(p, 'kids') && railHasExtendedSizes(p),
     open: "openCatalog('department','curvy')" },
-  { key: 'gym_rat', label: 'Gym Rat', icon: '', stores: null, poolOnly: true,
+  { key: 'gym_rat', label: 'Gym Rat', icon: '', stores: null, poolOnly: true, saleHeavy: true,
     blurb: 'Ropa y accesorios de gym.',
     test: (p) => railBucketCategoryIs(p, 'gymrat') && !isFootwear(p, p.retailer),
     open: "openCatalog('department','gym_rat')" },
@@ -14750,7 +14765,15 @@ function gymRatDeptRailsHTML(items){
   }
   if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
     var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+    /* Sale keys come from the feed itself: null keys made inSet() reject
+       every item, so this rail silently rendered nothing. */
+    var _grSeen = {}, _grKeys = [];
+    for (var _gi = 0; _gi < items.length; _gi++){
+      var _gr = items[_gi] && items[_gi].retailer;
+      if (_gr){ _gr = String(_gr).toLowerCase(); if (!_grSeen[_gr]){ _grSeen[_gr] = 1; _grKeys.push(_gr); } }
+    }
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(_grKeys, saleItems, saleItems, new Set(), 20, { saleHeavy: true })
       : saleItems.slice(0, 20);
     var saleHead = (typeof deptMixedRailHeadHTML === 'function')
       ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
@@ -15345,7 +15368,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
@@ -18583,6 +18606,19 @@ function renderCatalogFeed(){
      band in catalogue order. */
   if (catalogState.kind === 'department' && catalogState.key === 'toys'){
     all.sort((a, b) => toyLeadRank(a) - toyLeadRank(b));
+  }
+  /* GYM RAT: NO SNEAKERS (2026-10-02, Danny): sneakers don't belong in
+     the gym-apparel section. New Balance files 300+ pairs under the
+     gym_rat bucket and they were rendering shoulder-to-shoulder with
+     Gymshark on the department page. Same predicate the homepage Gym
+     Rat rail already uses, so the rail never shows what the department
+     would refuse. NB apparel stays; the sneakers stay shoppable in
+     Zapatos and the New Balance store. */
+  if (catalogState.kind === 'department' && catalogState.key === 'gym_rat'
+      && typeof isFootwear === 'function'){
+    for (let i = all.length - 1; i >= 0; i--){
+      if (isFootwear(all[i], all[i] && all[i].retailer)) all.splice(i, 1);
+    }
   }
 
   /* CURVY'S MUJERES/HOMBRES TOGGLE (2026-09-25, Danny's iPhone QA).
