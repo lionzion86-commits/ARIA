@@ -1618,11 +1618,6 @@
       <p class="text-[13.5px] sm:text-[15px] leading-relaxed max-w-[56ch] mx-auto mb-6" style="color:#B9C6E8">
         Únete gratis al Aria Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran del 20 de octubre al 10 de noviembre — antes que todos.
       </p>
-      <div class="inline-flex flex-col items-center gap-1.5 rounded-2xl px-6 py-4 mb-6" style="background:rgba(255,255,255,.06);border:1px solid rgba(244,196,99,.35)">
-        <div class="text-[13px] font-bold tracking-[0.08em] uppercase" style="color:#8FA3D6">Miembros elegidos</div>
-        <div class="text-[26px] sm:text-[32px] font-extrabold tabular" style="color:#F4C463"><span id="foundersPickedCount">—</span><span style="color:#8FA3D6"> / 1000</span></div>
-        <div id="foundersSpotsLine" class="text-[13px] font-semibold" style="color:#B9C6E8">Cargando…</div>
-      </div>
       <div id="foundersMemberBadge" class="mb-6" hidden></div>
       <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
         <button onclick="scrollToCategories()" class="ariaHeroCta focus-ring transition" style="margin-top:0;height:52px">Armar mi carrito</button>
@@ -24774,22 +24769,8 @@ function scrollToCategories(){
 }
 
 function renderFoundersBadges(){
-  const pickedEl = document.getElementById('foundersPickedCount');
-  const spotsEl = document.getElementById('foundersSpotsLine');
+  /* Counter display removed 2026-10-02 (Danny) — only the member badge renders now. */
   const badgeEl = document.getElementById('foundersMemberBadge');
-  if (!pickedEl) return;
-  if (!foundersCampaign) {
-    if (spotsEl) spotsEl.textContent = 'El contador vuelve en un momento.';
-    return;
-  }
-  const c = foundersCampaign;
-  pickedEl.textContent = Number(c.pickedCount || 0).toLocaleString('es-PE');
-  if (spotsEl) {
-    const left = Math.max(0, (c.target || 1000) - (c.pickedCount || 0));
-    spotsEl.textContent = left > 0
-      ? `Quedan ${left.toLocaleString('es-PE')} lugares en el Aria Key Club`
-      : 'Los 1000 miembros del Aria Key Club ya fueron elegidos';
-  }
   if (badgeEl) {
     if (!currentUser) { badgeEl.hidden = true; }
     else if (currentUserFounderStatus === 'fundador') {
