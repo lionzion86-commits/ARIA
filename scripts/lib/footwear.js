@@ -65,6 +65,12 @@ const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MO
 const FOOTWEAR_TITLE =
   /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
 
+/* CLEAT MODELS + HIKERS (2026-10-02, Danny): mirror of index.html.
+   Soccer-cleat model names that never say "cleat" (New Balance
+   Tekela/Furon), FG/MG version markers, "tacos", hiker models. */
+const CLEAT_HIKER_RX =
+  /\b(tekela|furon|tacos|hikers?|hiking)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
+
 /* Every one of these was a real false positive, not a hypothetical.
    "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and
    "Sock Boots" are real SSENSE footwear, so the socks veto carries a
@@ -85,7 +91,7 @@ export function isFootwearTitle(title) {
   const t = String(title ?? "");
   if (!t) return false;
   if (NOT_FOOTWEAR.test(t)) return false;
-  return FOOTWEAR_TITLE.test(t);
+  return FOOTWEAR_TITLE.test(t) || CLEAT_HIKER_RX.test(t);
 }
 
 /**
@@ -122,4 +128,14 @@ export function isFootwear(item, retailer) {
   if (item.type) return isFootwearType(item.type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
+}
+
+/* GYM-TRAINING FOOTWEAR (2026-10-02, Danny): mirror of index.html. The
+   only shoes dual-listed in Gym Rat — weightlifting, CrossFit, training. */
+export function isGymTrainingFootwear(item) {
+  if (!item || typeof item !== "object") return false;
+  const t = String(item.title || item.name || item.productTitle || item.productName || "");
+  if (!t) return false;
+  return /\b(weightlift\w*|powerlift\w*|crossfit|cross[-\s]?fit|training\s+shoes?|metcon|romaleos|legacy\s+lifter|lifter\s+shoes?)\b/i.test(t)
+    || /\bnano\s*[xv]?\d/i.test(t);
 }
