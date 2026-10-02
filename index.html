@@ -157,7 +157,7 @@
   [data-store-theme="victoriassecret"] .ariaCarouselTitle{ color:#FDF3F7 !important; }
   /* WALMART (2026-10-02, Danny): no more dark navy. The page IS Walmart
      blue (#0071CE) — it opens on a real photo of the store interior
-     (see .storePhotoHero) that fades down into the blue, and the blue
+     (see .storePhotoBg) that fades down into the blue, and the blue
      carries the rest of the page. Blue and yellow (#FFC220), no confusion.
   */
   [data-store-theme="walmart"]{
@@ -177,7 +177,7 @@
   [data-store-theme="walmart"] .ariaCarouselTitle{ color:#FFFFFF !important; }
   /* TARGET (2026-10-02, Danny): no more dark maroon. The page IS Target red -- LOUD,
      striking (#CC0000 vivid, never muted) — it opens on a real photo of the store interior
-     (see .storePhotoHero) that fades down into the red, and the red
+     (see .storePhotoBg) that fades down into the red, and the red
      carries the rest of the page. Red and white, nothing else.
   */
   [data-store-theme="target"]{
@@ -195,23 +195,35 @@
   [data-store-theme="target"] .themeChips .chipLabel{ color:#FFE9E7 !important; }
   [data-store-theme="target"] #catalogSort{ border-color:#F0A0A0 !important; }
   [data-store-theme="target"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* STORE PHOTO HERO (2026-10-02, Danny): Walmart and Target open on a
-     real interior photo of the actual store — the shopper should feel
-     like they are walking in. The mask fades the photo's lower half to
-     transparent so the brand color takes over down the page. Full-bleed:
-     the negative margins cancel the view's px-5 py-10. Local assets only,
-     never hotlinked (assets/stores/). */
-  .storePhotoHero{
-    height:300px;
-    margin:-40px -20px 26px;
-    background-size:cover; background-position:center 35%; background-repeat:no-repeat;
-    -webkit-mask-image:linear-gradient(180deg, #000 52%, transparent 98%);
-    mask-image:linear-gradient(180deg, #000 52%, transparent 98%);
+  /* TALL STORE PHOTO BACKDROP (2026-10-02, Danny — "make it telling"):
+     the store-interior photo is a tall full-bleed backdrop spanning the
+     top of the store page THROUGH the end of the first (Destacados)
+     carousel; only then does it fade into the solid brand color. The
+     ::before layer is sized from JS (--storePhotoH) after the sections
+     render, so it always ends right at the first carousel's bottom on any
+     viewport. A dark scrim is baked in so white text stays legible over
+     the busy photo; product cards keep their own white backgrounds.
+     Full-bleed: the negative offsets cancel the view's px-5 py-10.
+     Local assets only, never hotlinked (assets/stores/). */
+  #storeView > div.storePhotoBg--walmart,
+  #storeView > div.storePhotoBg--target{ position:relative; }
+  #storeView > div.storePhotoBg--walmart::before,
+  #storeView > div.storePhotoBg--target::before{
+    content:""; position:absolute; top:-40px; left:-20px; right:-20px;
+    height:var(--storePhotoH, 620px);
+    background:
+      linear-gradient(180deg, rgba(2,6,16,0.52) 0%, rgba(2,6,16,0.28) 42%, rgba(2,6,16,0.40) 100%),
+      var(--storePhotoImg) center 28% / cover no-repeat;
+    -webkit-mask-image:linear-gradient(180deg, #000 calc(100% - 170px), transparent 100%);
+    mask-image:linear-gradient(180deg, #000 calc(100% - 170px), transparent 100%);
+    pointer-events:none;
   }
   /* Photo: 'Inside Austintown Walmart Supercenter, 2024-08-08' by Deans Charbal, CC BY-SA 4.0, via Wikimedia Commons */
-  .storePhotoHero--walmart{ background-image:url('assets/stores/walmart-interior.jpg'); }
-  .storePhotoHero--target{ background-image:url('assets/stores/target-interior.jpg'); }
-  @media (min-width:640px){ .storePhotoHero{ height:380px; } }
+  #storeView > div.storePhotoBg--walmart::before{ --storePhotoImg:url('assets/stores/walmart-interior.jpg'); }
+  #storeView > div.storePhotoBg--target::before{ --storePhotoImg:url('assets/stores/target-interior.jpg'); }
+  /* All page content rides above the photo layer. */
+  #storeView > div.storePhotoBg--walmart > *,
+  #storeView > div.storePhotoBg--target > *{ position:relative; z-index:1; }
   /* OLD NAVY — upbeat Americana, nautical navy-and-white
      Real Old Navy navy #003764 lifted bright; a whisper of flag red.
   */
@@ -19858,28 +19870,67 @@ function storeCategoryGalleryHTML(def, items, retailer, storeLabel){
   return storeGalleryRoomHTML({label: def.label, items, retailer, onclick: onclick || null, kicker: storeLabel, heroImage});
 }
 
+/* TALL STORE PHOTO BACKDROP (2026-10-02, Danny — "make it telling"): the
+   store-interior photo spans the top of the Walmart/Target page THROUGH
+   the end of the first (Destacados) carousel, then fades into the brand
+   color. layoutStorePhotoBackdrop measures the rendered carousel and sets
+   --storePhotoH on the ::before layer (see .storePhotoBg CSS). Idempotent:
+   safe to call after every render, and a no-op for other stores. */
+function layoutStorePhotoBackdrop(retailer){
+  const inner = document.querySelector('#storeView > div');
+  if (!inner) return;
+  const want = (retailer === 'walmart' || retailer === 'target') ? retailer : '';
+  inner.classList.remove('storePhotoBg--walmart', 'storePhotoBg--target');
+  if (!want) return;
+  inner.classList.add('storePhotoBg--' + want);
+  const sections = document.getElementById('storeViewSections');
+  const rail = sections ? sections.querySelector('#storeRail') : null;
+  const anchorEl = (rail && rail.closest('section')) || (sections && sections.querySelector('section'));
+  if (!anchorEl){ inner.classList.remove('storePhotoBg--' + want); return; }
+  const rI = inner.getBoundingClientRect(), rA = anchorEl.getBoundingClientRect();
+  /* +170px: the mask's fade zone completes just below the carousel. */
+  const h = Math.max(480, Math.round((rA.bottom - rI.top) + 170));
+  inner.style.setProperty('--storePhotoH', h + 'px');
+}
+/* Keep the backdrop honest across image loads and rotation: re-measure
+   shortly after render (async product images can shift carousel height)
+   and on resize while the store view is active. */
+let __storePhotoResizeH = null;
+function armStorePhotoBackdrop(retailer){
+  if (__storePhotoResizeH){ window.removeEventListener('resize', __storePhotoResizeH); __storePhotoResizeH = null; }
+  if (retailer !== 'walmart' && retailer !== 'target') return;
+  let t = null;
+  __storePhotoResizeH = () => {
+    clearTimeout(t);
+    t = setTimeout(() => {
+      const v = document.getElementById('storeView');
+      if (v && v.classList.contains('active')) layoutStorePhotoBackdrop(retailer);
+    }, 250);
+  };
+  window.addEventListener('resize', __storePhotoResizeH);
+  setTimeout(() => {
+    const v = document.getElementById('storeView');
+    if (v && v.classList.contains('active')) layoutStorePhotoBackdrop(retailer);
+  }, 1600);
+}
 async function openStore(retailer){
   pushRoute({ view: 'storeView', retailer });
   showPage('storeView');
   applyStoreTheme('storeView', retailer);
+  /* Clear any photo backdrop left by a previous store before this render,
+     and (dis)arm the resize/delayed re-measure for this retailer. */
+  layoutStorePhotoBackdrop(retailer);
+  armStorePhotoBackdrop(retailer);
   await loadFxRate();
-  /* STORE PHOTO HERO (2026-10-02, Danny): Walmart and Target open on a
-     real interior photo of the actual store (see .storePhotoHero in the
-     <style> block) fading down into the brand color. The logos ride on
+  /* TALL STORE PHOTO BACKDROP (2026-10-02, Danny): Walmart and Target open on a
+     real interior photo of the actual store spanning the top of the page
+     THROUGH the first (Destacados) carousel, then fading into the brand
+     color (see .storePhotoBg CSS + layoutStorePhotoBackdrop). The logos ride on
      the white chip here: Walmart's blue wordmark and Target's red
      bullseye would vanish straight onto the brand-color page. */
   const __photoStore = (retailer === 'walmart' || retailer === 'target') ? retailer : '';
   document.getElementById('storeViewHero').innerHTML =
     retailerBadgeHTML(retailer, 44, __photoStore ? { dark: true } : undefined);
-  const __storeViewInner = document.querySelector('#storeView > div');
-  if (__storeViewInner){
-    const __oldHero = __storeViewInner.querySelector('.storePhotoHero');
-    if (__oldHero) __oldHero.remove();
-    if (__photoStore){
-      __storeViewInner.insertAdjacentHTML('afterbegin',
-        '<div class="storePhotoHero storePhotoHero--' + __photoStore + '" role="img" aria-label="Interior de la tienda ' + (__photoStore === 'walmart' ? 'Walmart' : 'Target') + '"></div>');
-    }
-  }
   document.getElementById('storeViewSubtitle').textContent = 'Cargando artículos…';
   /* DELIVERY TRANSPARENCY (2026-09-26): the store's Miami transit range,
      stated on the storefront before a single product is looked at. */
@@ -20042,6 +20093,7 @@ async function openStore(retailer){
     if (catHTML){
       document.getElementById('storeViewSections').innerHTML += catHTML;
       if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
+      layoutStorePhotoBackdrop(retailer);
       return;
     }
     /* Fall through to gallery rooms if no category had enough items. */
@@ -20100,6 +20152,7 @@ async function openStore(retailer){
   }
   document.getElementById('storeViewSections').innerHTML += galleryHTML;
   if (brandPanel) document.getElementById('storeViewSections').innerHTML += brandPanel;
+  layoutStorePhotoBackdrop(retailer);
 }
 
 // Entry-point-scoping rule's "stayed scoped to the search" half — a live
