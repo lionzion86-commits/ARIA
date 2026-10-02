@@ -11040,6 +11040,20 @@ const PARTY_NOT_A_TOY_RX = /\b(balloons?|globos?|napkins?|servilletas?|plates?|p
    kids' party tattoos read as favors/toys, they stay in Juguetes.
    "cup" stays out (toy tea sets are still toys). */
 const PARTY_CONTEXT_NOT_A_TOY_RX = /\b(pouches?|drinkware|(rimless\s+)?plastic\s+(sun)?glasses|banners?|backdrops?|centerpieces?)\b/i;
+/* Diaper bags are baby gear for parents, not toys (2026-10-02, Danny):
+   the Freshly Picked Barbie Seoul City Diaper Bag matched "barbie" but
+   belongs in fashion/moms, never Juguetes. Scoped to the bag signal on
+   purpose: a toy purse for a doll has no diaper/pañalera word, so doll
+   accessories stay toys. */
+const DIAPER_BAG_RX = /\bdiaper\s*bags?|pa[ñn]aleras?|bolsos?\s+de\s+pa[ñn]al/i;
+/* Human apparel/footwear is not a toy (2026-10-02, Danny): the SSENSE
+   refresh introduced fashion titles that collide with toy keywords --
+   "Puzzle-Patched Wide Trousers", "Plush-Trimmed Jacket", LEGO x Crocs
+   "Clog". A doll DESCRIBED as wearing clothes ("Barbie doll in satin
+   dress") is still a toy -- the apparel veto only fires when the title
+   carries NO doll/toy-figure signal. */
+const DOLL_PRODUCT_RX = /\b(dolls?|mu[ñn]ec[ao]s?|action figures?|figuras?\s+de\s+acci[óo]n|playsets?)\b/i;
+const HUMAN_APPAREL_RX = /\b(trousers?|jackets?|dress(?:es)?|shirts?|t[-\s]?shirts?|tank\s*tops?|leggings?|jeans|blouses?|sweaters?|coats?|blazers?|bermudas?|clogs?|sneakers?|zapatos?|zapatillas?)\b/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
@@ -11051,6 +11065,11 @@ function isToy(item, retailer, bucketName){
   if (typeof isSurfSkate === "function" && isSurfSkate(item, retailer)) return false;
   if (!TOY_KEYWORD_RX.test(hay)) return false;
   if (NOT_A_TOY_RX.test(hay)) return false;
+  /* Diaper bags are baby gear, not toys (2026-10-02, Danny). */
+  if (DIAPER_BAG_RX.test(hay)) return false;
+  /* Human apparel/footwear without a doll signal is not a toy
+     (2026-10-02, Danny): fashion titles colliding with toy keywords. */
+  if (HUMAN_APPAREL_RX.test(hay) && !DOLL_PRODUCT_RX.test(hay)) return false;
   /* Party supplies are party merchandise, not toys (Danny 2026-09-26). */
   if (PARTY_NOT_A_TOY_RX.test(hay)) return false;
   /* Party-retailer tableware/decor (2026-09-28, Danny): retailer-aware
