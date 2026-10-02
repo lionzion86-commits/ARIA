@@ -9465,11 +9465,15 @@ const SEARCH_SYNONYM_GROUPS = [
       "zapato", "zapatos",
       "tenis",
       "calzado", "calzados",
+      /* SYNONYM-GAP AUDIT 2026-10-01: "zapatos"->shoes missed 398 boots. */
+      "boot", "boots", "bootie", "booties",
     ],
   },
   {
     concept: "bra",
-    words: ["bra", "bras", "brassiere", "brassieres", "sosten", "sostenes"],
+    /* SYNONYM-GAP AUDIT 2026-10-01: 293 bralettes had no mapping. */
+    words: ["bra", "bras", "brassiere", "brassieres", "sosten", "sostenes",
+      "bralette", "bralettes"],
   },
   {
     concept: "perfume",
@@ -9559,6 +9563,74 @@ const SEARCH_SYNONYM_GROUPS = [
   {
     concept: "gi",
     words: ["gi", "gis", "kimono", "kimonos"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01 (Danny: "tienes pantalones marca Levis"
+     miss). "abrigo"->coat missed 2,608 jackets; "casaca" missed coats and
+     blazers. One concept for the whole outerwear pile. */
+  {
+    concept: "jacket",
+    words: ["jacket", "jackets", "coat", "coats", "blazer", "blazers",
+      "casaca", "casacas", "chaqueta", "chaquetas", "abrigo", "abrigos",
+      "saco", "sacos"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "gorra"->cap missed 1,507 hats and 559
+     beanies. One concept for all headwear. */
+  {
+    concept: "hat",
+    words: ["hat", "hats", "cap", "caps", "beanie", "beanies",
+      "snapback", "snapbacks", "gorra", "gorras", "chullo", "chullos",
+      "sombrero", "sombreros"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. The handbag group is the formal side;
+     this is the casual-bag side: "mochila"->backpack missed 1,384 bags. */
+  {
+    concept: "bag",
+    words: ["bag", "bags", "backpack", "backpacks", "tote", "totes",
+      "mochila", "mochilas", "morral"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "cardigan" missed 1,333 sweaters;
+     "pullover" is a loanword in Peru with no mapping. */
+  {
+    concept: "sweater",
+    words: ["sweater", "sweaters", "pullover", "pullovers",
+      "cardigan", "cardigans", "chompa", "chompas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "shorts" missed 362 boardshorts (the
+     compound defeats the plural shortcut). */
+  {
+    concept: "shorts",
+    words: ["short", "shorts", "boardshort", "boardshorts",
+      "bermuda", "bermudas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "traje de baño"->swimsuit missed all 680
+     bikinis; "malla" (Peruvian for swimsuit) had no mapping at all. */
+  {
+    concept: "swimsuit",
+    words: ["swimsuit", "swimsuits", "bikini", "bikinis"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "blusa"->"blouse" was a DEAD END: no
+     title says "blouse", 1,762 say "top". The group keeps "blouse"
+     working if titles ever use it. */
+  {
+    concept: "top",
+    words: ["top", "tops", "blouse", "blouses", "blusa", "blusas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "ojotas"->"flip flops" missed 849
+     sandals; the three English words were never linked. "flip"/"flops"
+     are in the group so the two-word ES_EN_WORDS value "flip flops"
+     canonicalizes correctly. */
+  {
+    concept: "sandals",
+    words: ["sandal", "sandals", "flip", "flops",
+      "slipper", "slippers", "sandalia", "sandalias",
+      "ojota", "ojotas", "pantufla", "pantuflas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "corbata"->"necktie" missed 319 "tie"
+     titles. "tie" is 3 letters so it is whole-word-only (never matches
+     inside longer words). */
+  {
+    concept: "tie",
+    words: ["tie", "ties", "necktie", "neckties", "corbata", "corbatas"],
   },
 ];
 
@@ -16552,6 +16624,13 @@ const ES_EN_WORDS = {
   chaqueta: "jacket",
   abrigo: "coat",
   buzo: "hoodie",
+  /* SYNONYM-GAP AUDIT 2026-10-01: "poleron" (Peruvian/Chilean for hoodie)
+     had no mapping. */
+  poleron: "hoodie",
+  /* SYNONYM-GAP AUDIT 2026-10-01: "malla" is the Peruvian word for
+     swimsuit — completely missing. */
+  malla: "swimsuit",
+  mallas: "swimsuit",
   pantalon: "pants",
   jean: "jeans",
   short: "shorts",
@@ -16564,6 +16643,11 @@ const ES_EN_WORDS = {
   correa: "belt",
   gorra: "cap",
   sombrero: "hat",
+  /* SYNONYM-GAP AUDIT 2026-10-01: the three most common Peruvian words
+     for glasses were all missing — 1,814 sunglasses invisible. */
+  gafas: "sunglasses",
+  lentes: "sunglasses",
+  anteojos: "sunglasses",
   guante: "gloves",
   bufanda: "scarf",
   pijama: "pajamas",
@@ -16577,6 +16661,9 @@ const ES_EN_WORDS = {
   calzado: "shoes",
   bota: "boots",
   sandalia: "sandals",
+  /* SYNONYM-GAP AUDIT 2026-10-01: 769 loafers, zero Spanish mapping. */
+  mocasin: "loafers",
+  mocasines: "loafers",
   cartera: "handbag",
   bolso: "handbag",
   billetera: "wallet",
