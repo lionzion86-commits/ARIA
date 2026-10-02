@@ -1873,6 +1873,20 @@
       <div data-category-rail-row="beauty" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
     </div>
+    <!-- PERMANENT JUGUETES RAIL (2026-10-02, Danny): standalone toys
+         carousel between Aria Beauty and Zapatos. Same shared painter,
+         same stand-down rule in renderCategoryTabs -- the shelf matches
+         the Juguetes pill exactly (biggest sales first, consoles and
+         toy-grade boards demoted). Starts hidden; JS reveals it. -->
+    <section aria-label="Juguetes" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Juguetes</span>
+        <button onclick="openCatalog('department','toys')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Juguetes de todas las tiendas.</span></div>
+      <div data-category-rail-row="toys" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
     <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): Foot Locker is out
          as a store rail -- its shoes join skate (CCS), surf and outlet
          pairs in one always-visible Zapatos/Zapatillas carousel. Cheap
@@ -2364,6 +2378,19 @@
       </div>
     </section>
     </div>
+    <!-- PERMANENT JUGUETES RAIL (2026-10-02, Danny): desktop. Between
+         Aria Beauty and Zapatos, same shelf as the Juguetes pill. -->
+    <section aria-label="Juguetes" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Juguetes</span>
+          <button onclick="openCatalog('department','toys')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Juguetes de todas las tiendas.</span></div>
+        <div data-category-rail-row="toys" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
     <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): desktop. -->
     <section aria-label="Zapatos" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
       <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
@@ -4144,6 +4171,19 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Chimpunes, camisetas, pelotas y más en oferta.</span></div>
         <div data-category-rail-row="soccer" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- PERMANENT JUGUETES RAIL (2026-10-02, Danny): tablet. Ahead of
+         the Zapatos rail, in the featured-rail zone. -->
+    <section aria-label="Juguetes" data-featured-rail class="ariaNavyBand relative overflow-hidden" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Juguetes</span>
+          <button onclick="openCatalog('department','toys')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Juguetes de todas las tiendas.</span></div>
+        <div data-category-rail-row="toys" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): tablet. -->
@@ -7503,7 +7543,17 @@ const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slide
 /* "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and "Sock
    Boots" are real SSENSE footwear, so the socks veto carries a negative
    lookahead and does not fire when a footwear noun follows the word. */
-const NOT_FOOTWEAR = /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector))\b/i;
+/* DOLLS & TOYS (2026-10-02, Danny QA): Barbie dolls were STILL rendering
+   in the Zapatos carousel. PR #244 patched isShoeItem, but the live
+   homepage carousel, the shoes department page and the gendered shoe rails
+   all run through isFootwear -- whose NOT_FOOTWEAR veto had no doll/toy
+   exclusion. Dolls leak in through accessory words ("zapatos y sombrero",
+   "zapatillas, medias"), a LEGO set leaks in through "el Gato con Botas",
+   and playground slides leak in through "slide". The veto fires on the
+   doll/toy signal, never on the footwear word, so real shoes are untouched:
+   LEGO x Crocs clogs stay (no building-set/playset signal), plush mule
+   slippers stay (no doll signal). */
+const NOT_FOOTWEAR = /\b(socks?\b(?!\s+(sneakers?|boots?|booties|shoes?))|boot[- ]?cut|bootcut|oxford\s+(shirt|dress|cloth|button|fabric)|shoe\s*(rack|organizer|organiser|box|tray|horn|care|cleaner|polish|insert|bag)|boot\s*tray|insoles?|shoe\s*laces?|shoelaces?|heel\s*(cup|pad|grip|protector)|mu[ñn]ec[ao]s?|dolls?|action\s+figures?|juguetes?|barbie|playsets?|climber|building\s+sets?|set\s+de\s+construcci[óo]n)\b/i;
 const FOOTWEAR_RETAILERS = new Set(['footlocker']);
 
 /* DEPORTES IS NOT A SHOE STORE (2026-09-24). Walmart and Target file
