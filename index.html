@@ -1580,21 +1580,21 @@
        LOS ELEGIDOS — Founding 1000 campaign module (2026-10-01).
        Oct 20 (lanzamiento) → Nov 10 (apertura): Danny elige a mano
        1,000 miembros entre los carritos guardados. Curado, no por
-       orden de llegada. Copy rules: "Area Key Club", nunca "beta test" ni "fundadores".
+       orden de llegada. Copy rules: "Aria Key Club", nunca "beta test" ni "fundadores".
        El contador lee miembros ELEGIDOS (pickedCount), no registros.
        ============================================================ -->
-  <section aria-label="Area Key Club — Sé de los primeros 1000" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <section aria-label="Aria Key Club — Sé de los primeros 1000" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
     <div class="ariaGoldHair"></div>
     <div class="relative max-w-[820px] mx-auto px-5 py-12 sm:py-14 text-center">
-      <div class="ariaKicker mb-4" style="justify-content:center">Area Key Club · Lanzamiento</div>
+      <div class="ariaKicker mb-4" style="justify-content:center">Aria Key Club · Lanzamiento</div>
       <h2 class="text-[30px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
-        Sé de los primeros <span style="color:#F4C463">1000</span> en el Area Key Club.
+        Sé de los primeros <span style="color:#F4C463">1000</span> en el Aria Key Club.
       </h2>
       <p class="text-[16px] sm:text-[19px] font-bold leading-snug mb-2" style="color:#F4C463">
         Arma tu carrito. Si eres elegido, compras.
       </p>
       <p class="text-[13.5px] sm:text-[15px] leading-relaxed max-w-[56ch] mx-auto mb-6" style="color:#B9C6E8">
-        Únete gratis al Area Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran del 20 de octubre al 10 de noviembre — antes que todos.
+        Únete gratis al Aria Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran del 20 de octubre al 10 de noviembre — antes que todos.
       </p>
       <div class="inline-flex flex-col items-center gap-1.5 rounded-2xl px-6 py-4 mb-6" style="background:rgba(255,255,255,.06);border:1px solid rgba(244,196,99,.35)">
         <div class="text-[13px] font-bold tracking-[0.08em] uppercase" style="color:#8FA3D6">Miembros elegidos</div>
@@ -1604,7 +1604,7 @@
       <div id="foundersMemberBadge" class="mb-6" hidden></div>
       <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
         <button onclick="scrollToSearch()" class="ariaHeroCta focus-ring transition" style="margin-top:0;height:52px">Armar mi carrito</button>
-        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="border:2px solid #F4C463;color:#F4C463">Unirme al Area Key Club</button>
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="border:2px solid #F4C463;color:#F4C463">Unirme al Aria Key Club</button>
       </div>
       <div class="text-left max-w-[720px] mx-auto">
         <p class="text-[13px] font-bold tracking-[0.08em] uppercase mb-1" style="color:#8FA3D6">Los beneficios</p>
@@ -5348,7 +5348,7 @@
           </div>
           <div class="py-6 border-b" style="border-color:var(--line)">
             <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿El cashback es para siempre?</h3>
-            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">El $5 por cada $100 es la promo de lanzamiento para los miembros del Area Key Club, válida hasta después de la Navidad. La membresía, esa sí, sigue siendo gratis.</p>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">El $5 por cada $100 es la promo de lanzamiento para los miembros del Aria Key Club, válida hasta después de la Navidad. La membresía, esa sí, sigue siendo gratis.</p>
           </div>
           <div class="py-6 border-b" style="border-color:var(--line)">
             <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿Cuándo empieza?</h3>
@@ -24198,14 +24198,14 @@ function renderFoundersBadges(){
   if (spotsEl) {
     const left = Math.max(0, (c.target || 1000) - (c.pickedCount || 0));
     spotsEl.textContent = left > 0
-      ? `Quedan ${left.toLocaleString('es-PE')} lugares en el Area Key Club`
-      : 'Los 1000 miembros del Area Key Club ya fueron elegidos';
+      ? `Quedan ${left.toLocaleString('es-PE')} lugares en el Aria Key Club`
+      : 'Los 1000 miembros del Aria Key Club ya fueron elegidos';
   }
   if (badgeEl) {
     if (!currentUser) { badgeEl.hidden = true; }
     else if (currentUserFounderStatus === 'fundador') {
       badgeEl.hidden = false;
-      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Miembro del Area Key Club — tu checkout está desbloqueado</span>`;
+      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Miembro del Aria Key Club — tu checkout está desbloqueado</span>`;
     } else if (currentUserFounderStatus === 'rechazado') {
       badgeEl.hidden = false;
       badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#B9C6E8">Tu carrito sigue guardado — las puertas se abren el 10 de noviembre</span>`;
@@ -24235,7 +24235,7 @@ function renderFoundersCartBanner(){
     return;
   }
   if (currentUserFounderStatus === 'fundador') {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Miembro del Area Key Club — tu checkout está desbloqueado.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Miembro del Aria Key Club — tu checkout está desbloqueado.</div>`;
   } else if (currentUserFounderStatus === 'rechazado') {
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Aún no eres miembro — las puertas se abren el 10 de noviembre.</div>`;
   } else {
