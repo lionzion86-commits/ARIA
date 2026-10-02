@@ -1601,6 +1601,12 @@
     margin-left:calc(50% - 50vw) !important;
     margin-right:calc(50% - 50vw) !important;
   }
+  /* DISENADORES LATINOS inner layers (Danny QA 2026-10-02): the banner's
+     own image + scrim + hairline carry the base 24px radius, which rounds
+     the photo inside the squared full-bleed frame. Square them too. */
+  .ariaLatinoBannerImg,.ariaLatinoBannerScrim,.ariaLatinoBannerHair{
+    border-radius:0 !important;
+  }
 </style>
 </head>
 <body class="antialiased">
