@@ -11257,9 +11257,14 @@ const DIAPER_BAG_RX = /\bdiaper\s*bags?|pa[ñn]aleras?|bolsos?\s+de\s+pa[ñn]al/
    "Puzzle-Patched Wide Trousers", "Plush-Trimmed Jacket", LEGO x Crocs
    "Clog". A doll DESCRIBED as wearing clothes ("Barbie doll in satin
    dress") is still a toy -- the apparel veto only fires when the title
-   carries NO doll/toy-figure signal. */
+   carries NO doll/toy-figure signal.
+   2026-10-02 QA: 'Amanda Uprichard X Revolve Strapless Puzzle Gown'
+   leaked via 'puzzle' because 'gown' wasn't listed. Added gowns,
+   skirts, cardigans, bikinis, swimsuits, tunics, kaftans, panties,
+   underwear. Deliberately excluded: suits/jumpsuits/tuxedos (LEGO
+   sets), rompers (Spanish 'romper'), vestidos/trajes (dolls). */
 const DOLL_PRODUCT_RX = /\b(dolls?|mu[ñn]ec[ao]s?|action figures?|figuras?\s+de\s+acci[óo]n|playsets?)\b/i;
-const HUMAN_APPAREL_RX = /\b(trousers?|jackets?|dress(?:es)?|shirts?|t[-\s]?shirts?|tank\s*tops?|leggings?|jeans|blouses?|sweaters?|coats?|blazers?|bermudas?|clogs?|sneakers?|zapatos?|zapatillas?)\b/i;
+const HUMAN_APPAREL_RX = /\b(trousers?|jackets?|dress(?:es)?|gowns?|skirts?|shirts?|t[-\s]?shirts?|tank\s*tops?|leggings?|jeans|blouses?|sweaters?|cardigans?|coats?|blazers?|bermudas?|clogs?|sneakers?|zapatos?|zapatillas?|bikinis?|swimsuits?|tunics?|kaftans?|panties|underwear)\b/i;
 function isToy(item, retailer, bucketName){
   const buckets = Array.isArray(bucketName) ? bucketName : [bucketName];
   if (buckets.some(b => /toy|juguete/i.test(String(b || '')))) return true;
@@ -18146,8 +18151,16 @@ function renderCatalogFeed(){
      aisle is the default, so none of them buries the others. A search
      term overrides it — someone who typed "vestido" has already said
      what they want and a list of aisles is in their way. */
-  if (splittable && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
-    subtitle.textContent = `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`;
+  /* CUSTOM-RAILS DEPARTMENTS (2026-10-02, Danny QA): departments with
+     their own rails (toys, sunglasses, etc.) render the landing even when
+     not "splittable" -- their items carry no `type` field so shouldSplit()
+     returns false, which was silently hiding the store/brand carousels. */
+  const deptHasCustomRails = catalogState.kind === 'department' &&
+    ['surf_skate','beauty','moms','jewelry','shoes','shoes_women','shoes_men','motos','sunglasses','toys'].indexOf(catalogState.key) !== -1;
+  if ((splittable || deptHasCustomRails) && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
+    subtitle.textContent = grouped.rows.length
+      ? `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`
+      : `${grouped.total} producto${grouped.total === 1 ? '' : 's'} · explora por tienda y marca`;
     /* SURF & SKATE RAILS (2026-09-26, Danny): the department landing
        leads with the mixed rails and one rail per store; the aisle list
        follows. Only on the unfiltered landing -- a store filter already
