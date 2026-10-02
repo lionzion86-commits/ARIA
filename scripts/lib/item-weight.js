@@ -260,8 +260,11 @@ export const FOOTWEAR_MODEL_RE =
   /\b(air force|air max|air jordan|dunk low|dunk high|\bdunk\b|samba|gazelle|superstar|stan smith|forum low|blazer|pegasus|ultraboost|nmd|chuck taylor|all star|old skool|sk8-hi|classic clog|tasman|retro (?:high|low|mid)|\b(?:530|550|574|990|993|9060|2002r|204l|327)\b)/i;
 /* Same brand, different product: clothing, accessories, and the things
    sold NEXT to shoes (racks, cleaners, insoles) are not shoes. */
+/* EYEWEAR IS NOT FOOTWEAR (2026-10-02, Danny's iPhone QA): "Vans Rise And
+   Shine Sunglasses" was quoting 1.16 kg of freight because FOOTWEAR_BRAND_RE
+   matches "Vans" and nothing excluded eyewear. Mirrors index.html. */
 export const FOOTWEAR_NOT_RE =
-  /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|laces?|insoles?|cleaner|polish|shoe ?care|shoe ?rack|shoe ?box|organizer|deodorizer|water bottle)\b/i;
+  /\b(shirt|tee|t-shirt|hoodie|sweatshirt|crewneck|jacket|windbreaker|pants|joggers|sweatpants|shorts|legging|bra|jersey|socks?|hat|cap|beanie|backpack|bag|duffel|glove|ball|tracksuit|track suit|short sleeve|long sleeve|romper|onesie|swim|towel|laces?|insoles?|cleaner|polish|shoe ?care|shoe ?rack|shoe ?box|organizer|deodorizer|water bottle|sunglasses|eyeglasses?|spectacles|eyewear|gafas|reading glasses)\b/i;
 
 export function footwearTierFor(title) {
   const t = String(title || "");

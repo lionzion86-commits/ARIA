@@ -120,7 +120,21 @@ const RETAIL_WEIGHT_FALLBACK_KG = [
   { match: /\b(hat|sombrero|cap|visor)\b/i, kg: 0.15, tier: "reasoned" },
   { match: /\b(scarf|bufanda|shawl|pashmina)\b/i, kg: 0.2, tier: "reasoned" },
   { match: /\b(gloves?|guantes)\b/i, kg: 0.15, tier: "reasoned" },
-  { match: /\b(sunglasses|gafas de sol|lentes de sol)\b/i, kg: 0.15, tier: "reasoned" },
+  /* EYEWEAR (2026-10-02, Danny): a pair of glasses is 30-50 g, not 1.16 kg.
+     0.04 kg base quotes ~54 g with the reasoned buffer. Catches eyewear sold
+     without the literal word "sunglasses" ("Ray-Ban RB2132", "reading
+     glasses"). Mirrors index.html. */
+  { match: /\b(sunglasses|eyeglasses?|spectacles|eyewear|gafas|reading glasses|blue light glasses|computer glasses)\b|\bray-?ban\b|\bpersol\b|\bcosta del mar\b|\bmaui jim\b|\bwarby parker\b/i, kg: 0.04, tier: "reasoned" },
+  /* WATCHES (2026-10-02, Danny): a Timex Weekender is ~50 g, not the 0.6 kg
+     generic. The not-guard keeps smartwatches on their own row below.
+     Mirrors index.html. */
+  { match: /\b(watch|watches|reloj(?:es)?)\b/i, not: /smartwatch|apple watch/i, kg: 0.12, tier: "reasoned" },
+  /* WALLETS (2026-10-02, Danny): ~80-120 g, not the 0.6 kg generic.
+     Mirrors index.html. */
+  { match: /\b(wallet|wallets|billetera(?:s)?)\b/i, kg: 0.1, tier: "reasoned" },
+  /* KEYCHAINS (2026-10-02, Danny): ~20-40 g, not the 0.6 kg generic.
+     Mirrors index.html. */
+  { match: /\b(keychain|keychains|key ring|llavero(?:s)?)\b/i, kg: 0.03, tier: "reasoned" },
   { match: /\b(cape|capa|poncho)\b/i, kg: 0.5, tier: "reasoned" },
   { match: /\b(towels?|washcloths?|dishcloths?)\b/i, kg: 0.3, tier: "reasoned" },
   /* TABLECLOTHS (2026-10-01, Danny): a few designer table linens in the pull.
