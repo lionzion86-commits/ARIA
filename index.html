@@ -11637,38 +11637,50 @@ function deptMixedRailHeadHTML(title, sub){
   return `<span class="min-w-0"><span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:var(--navy)">${escapeHtml(title)}</span>${sub ? `<span class="block text-[12px] font-semibold mt-0.5" style="color:#6B7487">${escapeHtml(sub)}</span>` : ''}</span>`;
 }
 
+/* CAROUSEL CITY BATCH B (2026-10-02) — Surf & Skate category axis.
+   Danny's vocabulary, verbatim: surf fins are QUILLAS (never "aletas de
+   surf" — dive fins live in Pesca Submarina); "tracks" in surf = traction
+   pads, in skate = trucks — the sub on each rail disambiguates. Every
+   category below is backed by real catalog counts (Oct 2026 pull). */
+var SURFSKATE_CATS = [
+  { key: 'tablas-surf', label: 'Tablas de surf', sub: 'Surf', test: function(p){ return String((p && p.type) || '') === 'Tablas de surf'; } },
+  { key: 'bodyboards', label: 'Bodyboards', sub: 'Surf', test: function(p){ var t = String((p && p.type) || ''); return t === 'Bodyboards' || t === 'Skimboards'; } },
+  { key: 'sup', label: 'SUP y paddle surf', sub: 'Surf', test: function(p){ return String((p && p.type) || '') === 'SUP / Paddle surf'; } },
+  { key: 'quillas', label: 'Quillas', sub: 'Surf', test: function(p){ var t = String((p && p.type) || ''); var n = String((p && (p.title || p.name)) || '').toLowerCase(); return t === 'Quillas de surf' || /\bquilla/.test(n); } },
+  { key: 'pitas', label: 'Pitas y leashes', sub: 'Surf', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\bleash|\bpita/.test(n); } },
+  { key: 'cera', label: 'Cera', sub: 'Surf', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\bwax\b|\bcera\b/.test(n); } },
+  { key: 'traction', label: 'Traction pads', sub: 'Surf', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /traction/.test(n); } },
+  { key: 'trajes-surf', label: 'Trajes de neopreno', sub: 'Surf', test: function(p){ return String((p && p.type) || '') === 'Trajes de neopreno'; } },
+  { key: 'rashguards', label: 'Rash guards', sub: 'Surf', test: function(p){ return String((p && p.type) || '') === 'Rash guards'; } },
+  { key: 'skates-completos', label: 'Skates completos', sub: 'Skate', test: function(p){ return String((p && p.type) || '') === 'Skateboards completos'; } },
+  { key: 'decks', label: 'Tablas de skate', sub: 'Skate', test: function(p){ return String((p && p.type) || '') === 'Decks (tablas de skate)'; } },
+  { key: 'trucks', label: 'Trucks', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\btrucks?\b/.test(n); } },
+  { key: 'ruedas', label: 'Ruedas', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\bwheels?\b|\bruedas?\b/.test(n); } },
+  { key: 'rodajes', label: 'Rodajes', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\bbearings?\b|\brodajes?\b/.test(n); } },
+  { key: 'lija', label: 'Papel lija', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /griptape|\bgrip\b|\blija\b/.test(n); } },
+  { key: 'longboards', label: 'Longboards y cruisers', sub: 'Skate', test: function(p){ var t = String((p && p.type) || ''); return t === 'Longboards' || t === 'Cruisers'; } },
+  { key: 'cascos', label: 'Cascos', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\bhelmets?\b|\bcascos?\b/.test(n); } },
+  { key: 'rodilleras', label: 'Rodilleras', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\bknee\b|\brodilleras?\b/.test(n); } },
+  { key: 'coderas', label: 'Coderas', sub: 'Skate', test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /\belbow\b|\bcoderas?\b/.test(n); } }
+];
 function surfSkateDeptRailsHTML(byRetailer){
-  const all = [];
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH B (2026-10-02): brand carousels first
+     (cross-store aggregated), then Mas marcas, then store carousels,
+     the surf/skate category axis, then Ofertas. The rails follow the
+     department's real feed — every retailer that carries surf/skate
+     gear. Hero + backdrop untouched. */
+  var all = [];
   for (const [retailer, items] of byRetailer){
-    if (SURFSKATE_RAIL_STORES.indexOf(retailer) === -1) continue;
-    for (const it of items || []) all.push({ ...it, retailer });
+    for (const it of items || []) all.push(Object.assign({}, it, { retailer: retailer }));
   }
   if (!all.length) return '';
-  const noKeys = new Set();
-  const isSale = (p) => p && hasRealImage(p) && Number.isFinite(Number(p.price)) && Number(p.price) > 0
-    && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price);
-  const blocks = [];
-  /* The mixed markdown rail: sale items only, discount deciding --
-     except socks, which sort after real gear (2026-09-26, Danny). */
-  const ofertas = categoryRailPicks(SURFSKATE_RAIL_STORES, all, all, noKeys, CATEGORY_RAIL_TOTAL,
-      { demoteSockSales: true })
-    .filter(isSale);
-  blocks.push(deptRailSectionHTML('ss-ofertas', 'Ofertas en Surf & Skate',
-    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos de las 9 tiendas'), ofertas));
-  /* The mixed featured rail: everything the markdown rail did not take. */
-  const destacados = categoryRailPicks(SURFSKATE_RAIL_STORES, [],
-    all.filter(p => !isSale(p)), noKeys, CATEGORY_RAIL_TOTAL);
-  blocks.push(deptRailSectionHTML('ss-destacados', 'Destacados en Surf & Skate',
-    deptMixedRailHeadHTML('Destacados en Surf & Skate', 'Selección de las 9 tiendas'), destacados));
-  /* One rail per store, in registry order. A store with nothing to show
-     contributes no rail -- the section hides rather than standing empty. */
-  for (const key of SURFSKATE_RAIL_STORES){
-    if (!byRetailer.has(key)) continue;
-    const picks = storeRailPicks(key, all, all, noKeys);
-    blocks.push(deptRailSectionHTML(`ss-store-${key}`, `Surf & Skate en ${(typeof retailerFor === 'function' && retailerFor(key) && retailerFor(key).label) || key}`,
-      deptStoreRailHeadHTML(key), picks));
-  }
-  return blocks.join('');
+  return carouselCityRailsHTML('surf_skate', all, {
+    storeOrder: ['ccs', 'surfstation', 'islandwatersports', 'valsurf', 'parrot', 'mainland', 'quietstorm', 'nautilus'],
+    /* SURF & SKATE (2026-09-26, Danny): socks sort after real gear. */
+    picksOpts: { demoteSockSales: true },
+    categories: SURFSKATE_CATS
+  });
 }
 
 /* ARIA BEAUTY SUBCATEGORY CAROUSELS (2026-09-27, Danny): the beauty
@@ -12078,7 +12090,9 @@ function sunglassesFaceFilter(shape){
 var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1,
   /* CAROUSEL CITY BATCH A (2026-10-02): the canonical builder already renders store carousels. */
   clothing: 1, curvy: 1, kids: 1, men: 1, women: 1, purses: 1,
-  shoes: 1, shoes_women: 1, shoes_men: 1, jewelry: 1, mens_grooming: 1, beauty: 1, nike: 1 };
+  shoes: 1, shoes_women: 1, shoes_men: 1, jewelry: 1, mens_grooming: 1, beauty: 1, nike: 1,
+  /* CAROUSEL CITY BATCH B (2026-10-02): sports departments. */
+  spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1 };
 function deptStoreCarouselsHTML(items, sectionKey){
   if (_STORE_RAILS_DONE[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -12126,7 +12140,9 @@ function deptStoreCarouselsHTML(items, sectionKey){
 var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1,
   /* CAROUSEL CITY BATCH A (2026-10-02): the canonical builder already renders brand carousels. */
   clothing: 1, curvy: 1, kids: 1, men: 1, women: 1, purses: 1,
-  shoes: 1, shoes_women: 1, shoes_men: 1, mens_grooming: 1, beauty: 1, nike: 1 };
+  shoes: 1, shoes_women: 1, shoes_men: 1, mens_grooming: 1, beauty: 1, nike: 1,
+  /* CAROUSEL CITY BATCH B (2026-10-02): sports departments. */
+  surf_skate: 1, spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1 };
 function deptBrandCarouselsHTML(items, sectionKey){
   if (_NO_GENERIC_BRANDS[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -14310,43 +14326,27 @@ function combatSportsTierFilter(tier){
 
 /* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
 function combatSportsDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
-      : saleItems.slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('combat-sports-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH B (2026-10-02): brand carousels first
+     (cross-store aggregated), then Mas marcas, then store carousels,
+     the discipline category axis — Jiu-Jitsu, Boxeo, Muay Thai, MMA —
+     the same fightClubCategoriesOfItem taxonomy the department's
+     discipline pills use. A glove serves several disciplines, so a
+     product may appear in more than one discipline rail, exactly like
+     the pills. Then Ofertas. Hero + backdrop untouched. */
+  var cats = [
+    ['jiujitsu', 'Jiu-Jitsu'], ['boxeo', 'Boxeo'],
+    ['muaythai', 'Muay Thai'], ['mma', 'MMA']
+  ].map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      if (typeof fightClubCategoriesOfItem !== 'function') return false;
+      try { return fightClubCategoriesOfItem(p).indexOf(k) !== -1; } catch (e){ return false; }
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('combat_sports', items, {
+    storeOrder: ['venum', 'tatami', 'everlast', 'mmawarehouse', 'combatcorner', 'fuji'],
+    categories: cats
+  });
 }
 
 
@@ -14416,43 +14416,12 @@ function gymRatTierFilter(tier){
 
 /* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
 function gymRatDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
-      : saleItems.slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('gym-rat-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  /* CAROUSEL CITY BATCH B (2026-10-02): the brand rooms ARE the brand
+     axis — this path renders the same rooms + category axis + Mas
+     marcas as the main Gym Rat view (the old sale+store rails are
+     retired; a store axis would duplicate the rooms). */
+  if (typeof gymRatBrandStorefrontsHTML === 'function') return gymRatBrandStorefrontsHTML(items);
+  return '';
 }
 
 
@@ -14537,41 +14506,27 @@ function soccerCleatFirst(list){
 /* Store-first rails: sale rail (4+ sale items, cleats first), then one rail
    per retailer. */
 function soccerDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = soccerCleatFirst(saleItems).slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('soccer-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH B (2026-10-02): brand carousels first
+     (cross-store aggregated), then Mas marcas, then store carousels,
+     the gear category axis — the same soccerGearOfItem taxonomy the
+     department's gear tiles use — then Ofertas. FUTBOL CLEATS-FIRST
+     (Danny 2026-10-01) preserved via picksOpts: discounted chimpunes
+     lead every rail. Hero + backdrop untouched. */
+  var cats = [
+    ['chimpunes', 'Chimpunes'], ['camisetas', 'Camisetas'],
+    ['pelotas', 'Pelotas'], ['canilleras', 'Canilleras'],
+    ['arquero', 'Guantes de arquero'], ['accesorios', 'Accesorios']
+  ].map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof soccerGearOfItem === 'function') && soccerGearOfItem(p) === k;
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('soccer', items, {
+    storeOrder: ['prosoccer', 'xtremesoccer', 'academy', 'ccs', 'parrot', 'islandwatersports', 'mainland', 'surfstation', 'valsurf', 'nautilus'],
+    picksOpts: { cleatsFirst: true },
+    categories: cats
+  });
 }
 
 
@@ -14637,43 +14592,28 @@ function spearfishingTierFilter(tier){
 
 /* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
 function spearfishingDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
-      : saleItems.slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('spearfishing-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH B (2026-10-02): brand carousels first
+     (cross-store aggregated), then Mas marcas, then store carousels,
+     the gear-type category axis — the same spearGearOfItem taxonomy the
+     department's gear tiles use, so every rail is real catalog data —
+     then Ofertas. "Aletas" here are dive fins, never surf fins (those
+     are Quillas, in Surf & Skate). Hero + backdrop untouched. */
+  var cats = [
+    ['arpones', 'Arpones'], ['boyas', 'Boyas y flotadores'],
+    ['aletas', 'Aletas de buceo'], ['mascaras', 'Máscaras y snorkels'],
+    ['trajes', 'Trajes de neopreno'], ['cuchillos', 'Cuchillos de buceo'],
+    ['pesas', 'Pesas y cinturones'], ['guantes', 'Guantes, botines y escarpines'],
+    ['sogas', 'Sogas y líneas'], ['repuestos', 'Repuestos y accesorios']
+  ].map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof spearGearOfItem === 'function') && spearGearOfItem(p) === k;
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('spearfishing', items, {
+    storeOrder: ['nautilus', 'islandwatersports', 'surfstation', 'valsurf', 'parrot', 'dicks', 'mainland', 'ccs', 'quietstorm'],
+    categories: cats
+  });
 }
 
 
@@ -14740,43 +14680,29 @@ function sportingGoodsTierFilter(tier){
 
 /* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
 function sportingGoodsDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
-      : saleItems.slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('sporting-goods-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH B (2026-10-02): brand carousels first
+     (cross-store aggregated), then Mas marcas, then store carousels,
+     the general-sports category axis (real catalog types — the dive
+     gear dual-lists here from the Pesca Submarina pull, by design),
+     then Ofertas. The Deportes hub (hub-and-spoke, Danny 2026-09-29)
+     rides below the rails. Hero + backdrop untouched. */
+  var cats = [
+    { key: 'pesca', label: 'Pesca submarina', test: function(p){ return (typeof spearGearOfItem === 'function') && spearGearOfItem(p) !== null; } },
+    { key: 'natacion', label: 'Natación', test: function(p){ var t = String((p && p.type) || ''); return t === 'MensSwimsuits' || t === 'WomensSwimsuits' || t === 'BoysSwimsuits'; } },
+    { key: 'boxeo', label: 'Boxeo y MMA', test: function(p){ var t = String((p && p.type) || ''); return t === 'BoxingMMAKickboxingGloves' || t === 'Handwraps' || t === 'WorkoutGlovesWraps' || t === 'HeadProtectiveGear' || t === 'ProtectiveEquipment'; } },
+    { key: 'fitness', label: 'Fitness', test: function(p){ var t = String((p && p.type) || ''); return t === 'ExerciseMats' || t === 'Wristbands'; } },
+    { key: 'ciclismo', label: 'Ciclismo', test: function(p){ return String((p && p.type) || '') === 'BikeHelmets'; } }
+  ];
+  var rails = carouselCityRailsHTML('sporting_goods', items, {
+    storeOrder: ['dicks', 'nautilus', 'islandwatersports', 'valsurf', 'surfstation', 'parrot', 'mainland', 'ccs', 'pacsun', 'quietstorm'],
+    categories: cats
+  });
+  /* DEPORTES HUB (2026-09-29, Danny): hub and spoke survives Carousel
+     City — the sport teasers (Pesca Submarina, Futbol, Tenis) stay on
+     the page, below the three axes. */
+  if (typeof sportHubCarouselHTML === 'function'){ try { rails += sportHubCarouselHTML(); } catch (e){} }
+  return rails;
 }
 
 
@@ -14895,43 +14821,24 @@ function tennisTierFilter(tier){
 
 /* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
 function tennisDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
-      : saleItems.slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('tennis-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH B (2026-10-02): brand carousels first
+     (cross-store aggregated), then Mas marcas, then store carousels,
+     the gear category axis — the same tennisGearOfItem taxonomy the
+     department's gear tiles use — then Ofertas. Hero + backdrop
+     untouched. */
+  var cats = [
+    ['raquetas', 'Raquetas'], ['zapatillas', 'Zapatillas'],
+    ['pelotas', 'Pelotas'], ['ropa', 'Ropa'], ['accesorios', 'Accesorios']
+  ].map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof tennisGearOfItem === 'function') && tennisGearOfItem(p) === k;
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('tennis', items, {
+    storeOrder: ['tennisexpress', 'tenniswarehouse', 'holabird', 'newbalance', 'kohls', 'ccs', 'valsurf', 'islandwatersports', 'mainland', 'surfstation', 'parrot'],
+    categories: cats
+  });
 }
 
 function shoesDeptRailsHTML(items){
@@ -17138,8 +17045,40 @@ function brandRoomStorefrontsHTML(items, brandSpecs, opts){
 function gymRatBrandHero(brandItems){ return brandRoomHero(null, brandItems); }
 function gymRatBrandBannerHTML(spec, brandItems){ return brandRoomBannerHTML(spec, brandItems, { kicker: 'Gym Rat' }); }
 function gymRatBrandRailHTML(spec, brandItems){ return brandRoomRailHTML(spec, brandItems); }
+/* CAROUSEL CITY BATCH B (2026-10-02) — Gym Rat category axis.
+   The brand rooms above ARE the brand axis (Danny's curated rooms, PR
+   #262): brands first, Ofertas on top, sales lead every rail. A store
+   axis would duplicate the rooms — brands ARE the retailers here — so
+   it is correctly suppressed. The zero-footwear veto stands: every
+   shoe lives in Zapatos, never here. Categories from real catalog
+   counts (Oct 2026 pull), Spanish throughout. */
+var GYMRAT_CATS = [
+  { key: 'leggings', label: 'Leggings', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /legging/i.test(n); } },
+  { key: 'shorts', label: 'Shorts', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /\bshorts?\b/i.test(n); } },
+  { key: 'tops', label: 'Tops y polos', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /t[- ]?shirt|\btops?\b/i.test(n); } },
+  { key: 'tanks', label: 'Tanks', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /\btanks?\b/i.test(n); } },
+  { key: 'bras', label: 'Sports bras', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /sports?\s*bras?|\bbra\b/i.test(n); } },
+  { key: 'hoodies', label: 'Sudaderas y hoodies', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /hoodie|sweatshirt|sudadera/i.test(n); } },
+  { key: 'joggers', label: 'Joggers', test: function(p){ var n = String((p && (p.title || p.name)) || '') + ' ' + String((p && p.type) || ''); return /jogger/i.test(n); } }
+];
+/* Brands without a curated room (New Balance's gym pieces, UFC Venum,
+   the tail) get the full "Mas marcas" XL carousel — never a lesser
+   rail. Room brands are excluded via brandOf. */
+var GYMRAT_ROOM_KEYS = { gymshark: 1, youngla: 1, alphalete: 1, nvgtn: 1, venum: 1, tatami: 1, everlast: 1 };
+function gymRatTailBrandOf(p){
+  var r = String((p && p.retailer) || '').toLowerCase();
+  if (GYMRAT_ROOM_KEYS[r]) return '';
+  return (typeof realBrandOf === 'function') ? realBrandOf(p) : String((p && p.brand) || '');
+}
 function gymRatBrandStorefrontsHTML(items){
-  return brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas' });
+  var rooms = brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas' });
+  if (typeof categoryCarouselsHTML !== 'function') return rooms;
+  /* CAROUSEL CITY BATCH B (2026-10-02): the brand rooms above are the
+     brand axis — append the category axis and the "Mas marcas" tail
+     (one full XL carousel for every brand without a room). */
+  return rooms
+    + categoryCarouselsHTML('gym_rat', items, { categories: GYMRAT_CATS })
+    + masMarcasHTML('gym_rat', items, { brandOf: gymRatTailBrandOf, brandRailMin: 1000000, masMarcasLabel: 'Mas marcas' });
 }
 
 
@@ -18484,7 +18423,9 @@ function renderCatalogFeed(){
      not "splittable" -- their items carry no `type` field so shouldSplit()
      returns false, which was silently hiding the store/brand carousels. */
   const deptHasCustomRails = catalogState.kind === 'department' &&
-    ['surf_skate','beauty','moms','jewelry','shoes','shoes_women','shoes_men','motos','sunglasses','toys'].indexOf(catalogState.key) !== -1;
+    ['surf_skate','beauty','moms','jewelry','shoes','shoes_women','shoes_men','motos','sunglasses','toys',
+    /* CAROUSEL CITY BATCH B (2026-10-02): sports departments with their own rails render the landing. */
+    'spearfishing','soccer','tennis','sporting_goods','combat_sports'].indexOf(catalogState.key) !== -1;
   if ((splittable || deptHasCustomRails) && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
     subtitle.textContent = grouped.rows.length
       ? `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`
