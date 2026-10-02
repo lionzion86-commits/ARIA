@@ -167,9 +167,11 @@ export function chatRequestBody(body, provider = "openai") {
   const products = Array.isArray(body?.products) ? body.products.slice(0, 6) : [];
   // Recipient gender/age the client extracted; see recipientRulesEs.
   const recipient = body?.recipient && typeof body.recipient === "object" ? body.recipient : null;
+  // Personal-shopper slots the client accumulated (budget, size, style...).
+  const slots = body?.slots && typeof body.slots === "object" ? body.slots : null;
 
   const messages = [
-    { role: "system", content: buildSystemPrompt(products, recipient) },
+    { role: "system", content: buildSystemPrompt(products, recipient, slots) },
     ...history,
     { role: "user", content: message },
   ];

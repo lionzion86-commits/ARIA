@@ -152,7 +152,7 @@ REGLAS OBLIGATORIAS SOBRE ESTOS RESULTADOS:
    shopper to a store. */
 const STORE_NAV_RULE_ES = `NAVEGACIÓN A TIENDAS: cuando el cliente pida ir a una tienda o cuando recomiendes una tienda, confirma en una oración y menciona el botón "Entrar a" que aparece debajo de tu respuesta. NUNCA digas que no puedes llevar al cliente a una tienda, ni que debe entrar a ariashop.pe por su cuenta: el botón abre la tienda directamente.`;
 
-export function buildSystemPrompt(products = [], recipient = null) {
+export function buildSystemPrompt(products = [], recipient = null, slots = null) {
   return [
     BASE_PROMPT_ES,
     GREETING_SCRIPT_ES,
@@ -161,6 +161,7 @@ export function buildSystemPrompt(products = [], recipient = null) {
     STORE_NAV_RULE_ES,
     recipientRulesEs(recipient),
     productRulesEs(products, recipient),
+    shopSlotsEs(slots),
   ].filter(Boolean).join("\n\n");
 }
 
@@ -170,4 +171,33 @@ export function sanitizeHistory(history) {
   return (Array.isArray(history) ? history.slice(-10) : [])
     .filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
     .map((m) => ({ role: m.role, content: m.content }));
+}
+
+// PERSONAL SHOPPER (2026-10-01, Danny): Aria is a personal shopper, not
+// a search box. When the shopper's request is vague she asks ONE
+// clarifying question -- the single most useful missing detail -- instead
+// of dumping a category page. The client fills `slots` from the
+// conversation; budget filtering already happened client-side.
+export const SHOPPING_CONSULT_ES = `ERES UNA PERSONAL SHOPPER, NO UN BUSCADOR:
+- Si el pedido es vago (solo "zapatos", "ropa", "un regalo"), NO listes productos todavía: haz UNA sola pregunta, la más útil para afinar (ocasión/estilo, presupuesto, talla o marca). Una pregunta por turno, nunca un interrogatorio.
+- Cuando ya tengas categoría + al menos un dato (presupuesto, estilo, talla o marca), recomienda 2-3 productos concretos de la lista de resultados, con una línea cada uno de por qué le conviene. Sé específica: nombra el producto.
+- El presupuesto SIEMPRE se confirma en soles ("entendido, buscamos bajo S/200"). Los resultados ya vienen filtrados por ese tope.
+- La talla: puedes anotarla y recordarla, pero SÉ HONESTA — no ves el stock por talla en nuestro catálogo. Dile que confirme su talla en la página del producto antes de comprar.
+- Nunca inventes productos, precios, tallas ni tiendas. Si no hay nada bajo su presupuesto, dilo y ofrece la opción más cercana.`;
+
+export function shopSlotsEs(slots) {
+  if (!slots || typeof slots !== "object") return "";
+  const bits = [];
+  if (slots.query) bits.push("Lo que busca (categoría): " + slots.query + ".");
+  if (slots.brand) bits.push("Marca pedida: " + slots.brand + ".");
+  if (slots.style) bits.push("Estilo/ocasión: " + slots.style + ".");
+  if (slots.size) bits.push("Talla que usa: " + slots.size + " (anótala; NO afirmes que hay stock en esa talla).");
+  if (slots.maxPriceUSD && slots.maxPriceLabel) {
+    bits.push("Presupuesto máximo: " + slots.maxPriceLabel + " — los resultados ya están filtrados por ese tope.");
+  }
+  if (slots.consultMode) {
+    bits.push("MODO CONSULTA: el pedido es vago y aún no hay resultados. Haz UNA sola pregunta, la más útil para afinar (ocasión/estilo, presupuesto, talla o marca).");
+  }
+  if (!bits.length) return "";
+  return "DATOS DE LA COMPRA (acumulados de la conversación):\n- " + bits.join("\n- ") + "\n\n" + SHOPPING_CONSULT_ES;
 }
