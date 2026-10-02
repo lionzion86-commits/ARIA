@@ -12161,6 +12161,381 @@ function deptBrandCarouselsHTML(items, sectionKey){
   }
   return blocks.join('');
 }
+/* ============================================================================
+   CAROUSEL CITY — CANONICAL SHARED HELPER (2026-10-02, Batch 0).
+   Generalizes the Lentes de Sol Carousel City reference (PR #264) into one
+   reusable builder so later batches can roll the same three-axis layout out
+   to every department without copying bespoke code.
+
+   Layout contract (Danny): brand carousels FIRST (one per actual product
+   brand, aggregated across every retailer — a retailer is NEVER a brand),
+   STORE carousels BELOW (one per retailer), CATEGORY carousels as the third
+   axis, biggest sales first inside every rail, "Mas marcas" as a full XL
+   carousel (never a lesser rail), one continuous page, no duplicate rails.
+
+   Public API — every function returns an HTML string. Pure addition: the
+   existing sunglasses / toys / gym-rat bespoke builds are untouched.
+     realBrandOf(item, retailerSet)             -> actual product brand or ''.
+     merchSort(arr)                             -> sales-first sort (new array).
+     brandCarouselsHTML(sectionKey, list, opts) -> POR MARCA axis (big brands).
+     masMarcasHTML(sectionKey, list, opts)      -> long-tail XL carousel.
+     storeCarouselsHTML(sectionKey, list, opts) -> POR TIENDA axis.
+     categoryCarouselsHTML(sectionKey, list, opts) -> POR CATEGORIA axis.
+     carouselCityRailsHTML(sectionKey, items, opts) -> composes everything.
+
+   opts contract:
+     brandOf        fn(item) -> brand string. Default: realBrandOf.
+     categories     [{ key, label, sub, test(item) }] for the category axis.
+                    Default: [] (axis skipped).
+     storeOrder     [retailerKey, ...] pinned first, in order; the rest sort
+                    by product count desc. Default: [] (count desc).
+     brandRailMin   products needed for a brand rail (tail -> Mas marcas).
+                    Default 4.
+     storeRailMin   products needed for a store rail. Default 4.
+     categoryMin    products needed for a category rail. Default 4.
+     saleMin        products needed for the Ofertas rail. Default 4.
+     railTotal      cards per rail. Default CATEGORY_RAIL_TOTAL (12).
+     picksOpts      passed through to categoryRailPicks (fancyLead, ...).
+     idPrefix       rail id prefix. Default: sectionKey.
+     axisLabels     { brand:{kicker,title,sub}, store:{...}, category:{...} }
+                    Spanish defaults below; per-dept overrides welcome.
+     masMarcas      false hides the Mas marcas rail. Default true.
+     masMarcasLabel override for the tail-rail title. Default 'Mas marcas'.
+     ofertas        false hides the Ofertas rail. Default true.
+     ofertasLabel   override for the sales rail title. Default 'Ofertas'.
+     wrapClass      CSS class wrapping the whole department block.
+     hairClass      decorative hair div class rendered inside the wrapper.
+     railHead       fn(title, sub, brand) -> rail header HTML.
+     storeRailHead  fn(label, sub, retailerKey) -> store rail header HTML.
+     axisHead       fn(kicker, title, sub, anchorId) -> axis header HTML.
+   All head fns have neutral defaults; a department theme overrides them.
+   ============================================================================ */
+
+/* Actual product brand only — a retailer/store name is never a brand.
+   retailerSet: optional Set/array of lowercased retailer keys + labels;
+   when omitted it is built from the RETAILERS registry and
+   LIVE_RETAILER_LABEL. */
+function realBrandOf(item, retailerSet){
+  const b = String((item && item.brand) || '').trim();
+  if (!b) return '';
+  if (/^(otras marcas|unknown|generic|sin marca|unbranded|no brand)$/i.test(b)) return '';
+  const low = b.toLowerCase();
+  let set = null;
+  if (retailerSet instanceof Set) set = retailerSet;
+  else if (Array.isArray(retailerSet)) set = new Set(retailerSet.map(s => String(s).toLowerCase()));
+  else {
+    set = new Set();
+    try {
+      if (typeof RETAILERS === 'object' && RETAILERS){
+        for (const k of Object.keys(RETAILERS)){
+          set.add(String(k).toLowerCase());
+          const l = RETAILERS[k] && RETAILERS[k].label;
+          if (l) set.add(String(l).toLowerCase());
+        }
+      }
+      if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL){
+        for (const k of Object.keys(LIVE_RETAILER_LABEL)){
+          set.add(String(k).toLowerCase());
+          if (LIVE_RETAILER_LABEL[k]) set.add(String(LIVE_RETAILER_LABEL[k]).toLowerCase());
+        }
+      }
+    } catch (e){}
+  }
+  if (set.has(low)) return '';
+  return b;
+}
+
+/* Shared merchandising (Danny): biggest sales first (largest discount %),
+   then expensive halo pieces (price desc), then best sellers (rating desc).
+   Mirrors the Lentes de Sol sgMerchSort. */
+function carouselCityDiscountOf(p){
+  const pr = Number(p && p.price), op = Number(p && p.originalPrice);
+  return (pr > 0 && op > pr) ? (1 - pr / op) : 0;
+}
+function merchSort(arr){
+  return (Array.isArray(arr) ? arr : []).slice().sort((a, b) =>
+    (carouselCityDiscountOf(b) - carouselCityDiscountOf(a))
+    || (Number(b.price || 0) - Number(a.price || 0))
+    || ((Number(b.rating) || 0) - (Number(a.rating) || 0)));
+}
+function carouselCityIsSale(p){
+  if (typeof rawItemOnSale === 'function'){ try { return !!rawItemOnSale(p); } catch (e){} }
+  return carouselCityDiscountOf(p) > 0;
+}
+
+/* Department items: priced and pictured, like the sunglasses reference. */
+function carouselCityValidItems(items){
+  return (Array.isArray(items) ? items : []).filter(p => p && Number(p.price) > 0 && p.image);
+}
+function carouselCitySlug(s){
+  return String(s == null ? '' : s).toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'otras';
+}
+
+/* Group a dept list by real brand (case-insensitive), keeping the most
+   common casing for display — mirrors the sunglasses brand grouping. */
+function carouselCityGroupByBrand(list, brandOf){
+  const byBrand = {}, brandCase = {};
+  for (const p of list){
+    const b = brandOf(p);
+    if (!b) continue;
+    const key = b.toLowerCase();
+    (byBrand[key] = byBrand[key] || []).push(p);
+    brandCase[key] = brandCase[key] || {};
+    brandCase[key][b] = (brandCase[key][b] || 0) + 1;
+  }
+  const brandName = (key) => {
+    const entries = Object.entries(brandCase[key] || {}).sort((a, b) => b[1] - a[1]);
+    return entries.length ? entries[0][0] : key;
+  };
+  return { byBrand, brandName };
+}
+
+/* Retailer display label: LIVE_RETAILER_LABEL, then retailerFor, then a
+   capitalized key — mirrors the sunglasses store-label logic. */
+function carouselCityStoreLabel(key){
+  const rk = String(key || '');
+  try {
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[rk]) return LIVE_RETAILER_LABEL[rk];
+  } catch (e){}
+  try {
+    if (typeof retailerFor === 'function'){
+      const r = retailerFor(rk);
+      if (r && r.label) return r.label;
+    }
+  } catch (e2){}
+  return rk ? rk.charAt(0).toUpperCase() + rk.slice(1) : 'Tienda';
+}
+
+/* Neutral default axis header (kicker + title + sub), inline styles only
+   so it reads on any department background. */
+function carouselCityAxisHeadHTML(kicker, title, sub, anchorId){
+  return '<div class="mt-2 mb-5"' + (anchorId ? ' id="' + anchorId + '"' : '') + '>'
+    + '<div class="mb-1.5 text-[11px] font-extrabold uppercase tracking-[0.14em]" style="color:#0E7C9B">' + escapeHtml(kicker) + '</div>'
+    + '<div class="text-[21px] font-extrabold tracking-[-0.01em] leading-tight" style="color:var(--navy)">' + escapeHtml(title) + '</div>'
+    + (sub ? '<div class="text-[13px] font-semibold mt-1" style="color:#6B7487">' + escapeHtml(sub) + '</div>' : '')
+    + '</div>';
+}
+/* Neutral default brand/category rail header — navy, no theme. */
+function carouselCityRailHeadHTML(title, sub, brand){
+  if (typeof deptMixedRailHeadHTML === 'function') return deptMixedRailHeadHTML(title, sub);
+  return '<span class="min-w-0">'
+    + '<span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:var(--navy)">' + escapeHtml(title) + '</span>'
+    + (sub ? '<span class="block text-[12px] font-semibold mt-0.5" style="color:#6B7487">' + escapeHtml(sub) + '</span>' : '')
+    + '</span>';
+}
+/* Neutral default store rail header — navy, with a "Ver todo" that narrows
+   the feed to the store via the existing store filter (when available). */
+function carouselCityStoreRailHeadHTML(label, sub, retailerKey){
+  const rk = String(retailerKey || '').replace(/'/g, "\\'");
+  const verTodo = (rk && typeof setCatalogStore === 'function')
+    ? '<button onclick="setCatalogStore(\'' + rk + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>'
+    : '';
+  return '<span class="min-w-0">'
+    + '<span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:var(--navy)">' + escapeHtml(label) + '</span>'
+    + (sub ? '<span class="block text-[12px] font-semibold mt-0.5" style="color:#6B7487">' + escapeHtml(sub) + '</span>' : '')
+    + '</span>' + verTodo;
+}
+
+/* Shared rail picks: merch-sort the pool (sales, halo, best sellers), then
+   delegate to categoryRailPicks so cards dedupe, require image + price,
+   and respect picksOpts (fancyLead, cleatsFirst, ...). Mirrors sgPicks. */
+function carouselCityPicks(pool, list, opts){
+  opts = opts || {};
+  const sorted = merchSort(pool);
+  const sale = sorted.filter(carouselCityIsSale);
+  const rest = sorted.filter(p => !carouselCityIsSale(p));
+  const total = (Number.isFinite(opts.railTotal) && opts.railTotal > 0) ? Math.floor(opts.railTotal)
+    : ((typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12);
+  if (typeof categoryRailPicks !== 'function') return sorted.slice(0, total);
+  const retailerKeys = [...new Set((Array.isArray(list) ? list : []).map(it => it && it.retailer).filter(Boolean))];
+  return categoryRailPicks(retailerKeys, sale, rest, new Set(), total, opts.picksOpts || {});
+}
+
+/* Small opts resolvers shared by the axis blocks. */
+function carouselCityAxisLabels(opts, axis, dflt){
+  const o = (opts && opts.axisLabels && opts.axisLabels[axis]) || {};
+  return {
+    kicker: (typeof o.kicker === 'string' && o.kicker) || dflt.kicker,
+    title: (typeof o.title === 'string' && o.title) || dflt.title,
+    sub: (typeof o.sub === 'string') ? o.sub : dflt.sub,
+  };
+}
+function carouselCityMin(opts, key, dflt){
+  return (opts && Number.isFinite(opts[key]) && opts[key] > 0) ? Math.floor(opts[key]) : dflt;
+}
+function carouselCityHeads(opts){
+  return {
+    axisHead: (opts && typeof opts.axisHead === 'function') ? opts.axisHead : carouselCityAxisHeadHTML,
+    railHead: (opts && typeof opts.railHead === 'function') ? opts.railHead : carouselCityRailHeadHTML,
+    storeRailHead: (opts && typeof opts.storeRailHead === 'function') ? opts.storeRailHead : carouselCityStoreRailHeadHTML,
+  };
+}
+function carouselCityIdPrefix(opts, sectionKey){
+  return (opts && typeof opts.idPrefix === 'string' && opts.idPrefix) || String(sectionKey || 'dept');
+}
+function carouselCityModelos(n){
+  return n + ' modelo' + (n === 1 ? '' : 's');
+}
+
+/* AXIS 1 — POR MARCA: one carousel per actual product brand, biggest
+   brands first; every brand aggregated across all retailers. */
+function brandCarouselsHTML(sectionKey, list, opts){
+  opts = opts || {};
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  list = carouselCityValidItems(list);
+  if (!list.length) return '';
+  const heads = carouselCityHeads(opts);
+  const idp = carouselCityIdPrefix(opts, sectionKey);
+  const brandOf = (typeof opts.brandOf === 'function') ? opts.brandOf : realBrandOf;
+  const min = carouselCityMin(opts, 'brandRailMin', 4);
+  const g = carouselCityGroupByBrand(list, brandOf);
+  const bigBrands = Object.keys(g.byBrand)
+    .filter(k => g.byBrand[k].length >= min)
+    .sort((a, b) => g.byBrand[b].length - g.byBrand[a].length);
+  if (!bigBrands.length) return '';
+  const ax = carouselCityAxisLabels(opts, 'brand',
+    { kicker: 'Eje 1', title: 'Por marca', sub: 'Cada marca, de todas las tiendas que la venden' });
+  const blocks = [heads.axisHead(ax.kicker, ax.title, ax.sub, idp + '-brandAxis')];
+  for (const key of bigBrands){
+    const b = g.brandName(key);
+    const pool = g.byBrand[key];
+    const picks = carouselCityPicks(pool, list, opts);
+    if (!picks.length) continue;
+    const stores = new Set(pool.map(p => String(p.retailer || '').toLowerCase())).size;
+    const sub = carouselCityModelos(pool.length) + (stores > 1 ? ' · ' + stores + ' tiendas' : '');
+    blocks.push(deptRailSectionHTML(idp + '-brand-' + carouselCitySlug(b), b,
+      heads.railHead(b, sub, b), picks, { xl: true }));
+  }
+  return blocks.join('');
+}
+
+/* "Mas marcas": the long tail (brands below brandRailMin) gets a FULL XL
+   carousel — never a lesser rail. Mirrors the sunglasses tail treatment. */
+function masMarcasHTML(sectionKey, list, opts){
+  opts = opts || {};
+  if (opts.masMarcas === false) return '';
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  list = carouselCityValidItems(list);
+  if (!list.length) return '';
+  const heads = carouselCityHeads(opts);
+  const idp = carouselCityIdPrefix(opts, sectionKey);
+  const brandOf = (typeof opts.brandOf === 'function') ? opts.brandOf : realBrandOf;
+  const min = carouselCityMin(opts, 'brandRailMin', 4);
+  const g = carouselCityGroupByBrand(list, brandOf);
+  const tailBrands = Object.keys(g.byBrand).filter(k => g.byBrand[k].length < min);
+  if (!tailBrands.length) return '';
+  const tailSet = new Set(tailBrands);
+  const pool = merchSort(list.filter(p => tailSet.has(brandOf(p).toLowerCase())));
+  const picks = carouselCityPicks(pool, list, opts);
+  if (!picks.length) return '';
+  const label = (typeof opts.masMarcasLabel === 'string' && opts.masMarcasLabel) || 'Más marcas';
+  const sub = tailBrands.length + ' marcas · ' + carouselCityModelos(pool.length);
+  return deptRailSectionHTML(idp + '-brand-more', label,
+    heads.railHead(label, sub, ''), picks, { xl: true });
+}
+
+/* AXIS 2 — POR TIENDA: one carousel per retailer, below the brands.
+   storeOrder pins retailer keys first; the rest sort by count desc. */
+function storeCarouselsHTML(sectionKey, list, opts){
+  opts = opts || {};
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  list = carouselCityValidItems(list);
+  if (!list.length) return '';
+  const heads = carouselCityHeads(opts);
+  const idp = carouselCityIdPrefix(opts, sectionKey);
+  const min = carouselCityMin(opts, 'storeRailMin', 4);
+  const storeOf = (p) => String((p && p.retailer) || '').toLowerCase();
+  const counts = {};
+  for (const p of list){ const k = storeOf(p); if (k) counts[k] = (counts[k] || 0) + 1; }
+  const order = Array.isArray(opts.storeOrder) ? opts.storeOrder.map(k => String(k).toLowerCase()) : [];
+  const orderIdx = (k) => { const i = order.indexOf(k); return i === -1 ? 1000000000 : i; };
+  const storeKeys = Object.keys(counts)
+    .filter(k => counts[k] >= min)
+    .sort((a, b) => (orderIdx(a) - orderIdx(b)) || (counts[b] - counts[a]));
+  if (!storeKeys.length) return '';
+  const ax = carouselCityAxisLabels(opts, 'store',
+    { kicker: 'Eje 2', title: 'Por tienda', sub: 'Compara la selección de cada tienda' });
+  const blocks = [heads.axisHead(ax.kicker, ax.title, ax.sub, idp + '-storeAxis')];
+  for (const rk of storeKeys){
+    const pool = list.filter(p => storeOf(p) === rk);
+    const picks = carouselCityPicks(pool, list, opts);
+    if (!picks.length) continue;
+    const label = carouselCityStoreLabel(rk);
+    blocks.push(deptRailSectionHTML(idp + '-store-' + carouselCitySlug(rk), label,
+      heads.storeRailHead(label, carouselCityModelos(pool.length), rk), picks, { xl: true }));
+  }
+  return blocks.join('');
+}
+
+/* AXIS 3 — POR CATEGORIA: category rails from opts.categories, each
+   { key, label, sub, test(item) }. A rail renders only at categoryMin+. */
+function categoryCarouselsHTML(sectionKey, list, opts){
+  opts = opts || {};
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  const defs = Array.isArray(opts.categories) ? opts.categories : [];
+  list = carouselCityValidItems(list);
+  if (!list.length || !defs.length) return '';
+  const heads = carouselCityHeads(opts);
+  const idp = carouselCityIdPrefix(opts, sectionKey);
+  const min = carouselCityMin(opts, 'categoryMin', 4);
+  const groups = defs.map(d => ({
+    d, pool: list.filter(p => { try { return !!(d && typeof d.test === 'function' && d.test(p)); } catch (e){ return false; } })
+  })).filter(e => e.d && e.pool.length >= min);
+  if (!groups.length) return '';
+  const ax = carouselCityAxisLabels(opts, 'category',
+    { kicker: 'Eje 3', title: 'Por categoría', sub: '' });
+  const blocks = [heads.axisHead(ax.kicker, ax.title, ax.sub, idp + '-categoryAxis')];
+  for (const e of groups){
+    const picks = carouselCityPicks(e.pool, list, opts);
+    if (!picks.length) continue;
+    const sub = carouselCityModelos(e.pool.length) + (e.d.sub ? ' · ' + e.d.sub : '');
+    blocks.push(deptRailSectionHTML(idp + '-cat-' + carouselCitySlug(e.d.key), e.d.label,
+      heads.railHead(e.d.label, sub, ''), picks, { xl: true }));
+  }
+  return blocks.join('');
+}
+
+/* The canonical Carousel City department builder — pure composition of the
+   four axis blocks plus the Ofertas sales rail; themes arrive via opts. */
+function carouselCityRailsHTML(sectionKey, items, opts){
+  opts = opts || {};
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  const list = carouselCityValidItems(items);
+  if (!list.length) return '';
+  const heads = carouselCityHeads(opts);
+  const idp = carouselCityIdPrefix(opts, sectionKey);
+  const blocks = [
+    brandCarouselsHTML(sectionKey, list, opts),
+    masMarcasHTML(sectionKey, list, opts),
+    storeCarouselsHTML(sectionKey, list, opts),
+    categoryCarouselsHTML(sectionKey, list, opts),
+  ];
+  /* OFERTAS: real discounts only, biggest first — mirrors the sunglasses
+     sales rail (no xl treatment). */
+  if (opts.ofertas !== false){
+    const saleMin = carouselCityMin(opts, 'saleMin', 4);
+    const onSale = merchSort(list.filter(carouselCityIsSale));
+    if (onSale.length >= saleMin){
+      const picks = carouselCityPicks(onSale, list, opts);
+      if (picks.length){
+        const label = (typeof opts.ofertasLabel === 'string' && opts.ofertasLabel) || 'Ofertas';
+        blocks.push(deptRailSectionHTML(idp + '-ofertas', label,
+          heads.railHead(label, onSale.length + ' con descuento real', ''), picks));
+      }
+    }
+  }
+  const body = blocks.filter(Boolean).join('');
+  if (!body) return '';
+  if (opts.wrapClass){
+    return '<div class="' + escapeHtml(opts.wrapClass) + '">'
+      + (opts.hairClass ? '<div class="' + escapeHtml(opts.hairClass) + '" aria-hidden="true"></div>' : '')
+      + body + '</div>';
+  }
+  return body;
+}
+
 
 /* ============================================================================
    THEME REBUILD (2026-10-02, Danny): every department gets its own feel.
