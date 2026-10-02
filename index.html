@@ -11686,30 +11686,26 @@ const BEAUTY_SUB_RAIL_MIN = 4;
 const BEAUTY_SUB_ROWS = ['face', 'masks', 'makeup', 'lips', 'eyes', 'skincare', 'fragrance'];
 const PDRN_LEAD_RX = /pdrn/i;
 function beautyDeptRailsHTML(items, noKeys){
-  const blocks = [];
-  for (const row of SUBCATEGORY_SPEC){
-    if (BEAUTY_SUB_ROWS.indexOf(row.key) === -1) continue;
-    const aisle = itemsInSubcategory(items, row.key);
-    if (aisle.length < BEAUTY_SUB_RAIL_MIN) continue;
-    const picks = categoryRailPicks(null, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
-    if (!picks.length) continue;
-    const isSale = (p) => p && hasRealImage(p) && Number.isFinite(Number(p.price)) && Number(p.price) > 0
-      && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price);
-    /* PDRN FIRST (Danny, 2026-09-27): within the sale-led order, the pink
-       PDRN salmon-DNA masks lead the Mascarillas rail. Stable: the
-       discount order inside each band is untouched. Products carry `name`
-       (not `title`) in this catalogue, so both are checked. */
-    const pdrnName = (p) => String(p.title || p.name || '');
-    const ordered = row.key === 'masks'
-      ? [...picks.filter(p => isSale(p) && PDRN_LEAD_RX.test(pdrnName(p))),
-         ...picks.filter(p => !(isSale(p) && PDRN_LEAD_RX.test(pdrnName(p))))]
-      : picks;
-    blocks.push(deptRailSectionHTML(`beauty-sub-${row.key}`, row.label,
-      deptMixedRailHeadHTML(row.label, `${aisle.length} productos`)
-      + `<button onclick="setCatalogSub('${jsAttr(row.key)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver pasillo &#8594;</button>`,
-      ordered));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* Category axis: the beauty subcategory vocabulary (same keys as
+     BEAUTY_SUB_ROWS / the aisle list).
+     NOTE: the old PDRN-first reorder inside the Mascarillas rail is not
+     carried over — the canonical sales-first order still leads every
+     rail with the biggest real discounts. */
+  var BEAUTY_CATS = [
+    ['face', 'Rostro'], ['masks', 'Mascarillas'], ['makeup', 'Maquillaje'],
+    ['lips', 'Labios'], ['eyes', 'Ojos'], ['skincare', 'Cuidado de la piel'],
+    ['fragrance', 'Fragancia']
+  ];
+  var categories = BEAUTY_CATS.map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === k;
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('beauty', items, {
+    storeOrder: ['sephora', 'ulta', 'yesstyle', 'walmart', 'target'],
+    categories: categories
+  });
 }
 /* JOYERIA - 6 THEME RAILS (2026-09-28, Danny): "do them all". Themes cut
    ACROSS the 11 type aisles (a Disney personalized bracelet is three things
@@ -12079,7 +12075,10 @@ function sunglassesFaceFilter(shape){
 /* CAROUSEL CITY store rails (2026-10-02, Danny): one carousel per store,
    so shoppers compare stores side by side. Generic — applies to any
    department whose own rails aren't already store-organized. */
-var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1 }; /* sunglasses renders its own store carousels above */
+var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1,
+  /* CAROUSEL CITY BATCH A (2026-10-02): the canonical builder already renders store carousels. */
+  clothing: 1, curvy: 1, kids: 1, men: 1, women: 1, purses: 1,
+  shoes: 1, shoes_women: 1, shoes_men: 1, jewelry: 1, mens_grooming: 1, beauty: 1, nike: 1 };
 function deptStoreCarouselsHTML(items, sectionKey){
   if (_STORE_RAILS_DONE[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -12124,7 +12123,10 @@ function deptStoreCarouselsHTML(items, sectionKey){
    per brand, brand aggregated across all stores. Appended after every
    section's store rails. Sections with bespoke brand rails (sunglasses
    brand wall, jewelry storefronts) opt out via _NO_GENERIC_BRANDS. */
-var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1 };
+var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1,
+  /* CAROUSEL CITY BATCH A (2026-10-02): the canonical builder already renders brand carousels. */
+  clothing: 1, curvy: 1, kids: 1, men: 1, women: 1, purses: 1,
+  shoes: 1, shoes_women: 1, shoes_men: 1, mens_grooming: 1, beauty: 1, nike: 1 };
 function deptBrandCarouselsHTML(items, sectionKey){
   if (_NO_GENERIC_BRANDS[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -12642,60 +12644,53 @@ function clothingTierFilter(tier){
 /* Department rails: one carousel per STORE (biggest store first), thin
    stores grouped into a "Más tiendas" rail, then one sale rail with the
    biggest real discounts first. */
+/* CAROUSEL CITY BATCH A (2026-10-02) — shared fashion helpers.
+   FASHION_CATS: category-axis definitions for the apparel departments,
+   built on the site's own subcategory taxonomy (SUBCATEGORY_SPEC via
+   subcategoryOfItem), so a category rail only renders when real products
+   exist (the canonical categoryMin gate). Spanish labels, zero emojis. */
+function fashionCatOf(key, label){
+  return { key: key, label: label, test: function(p){
+    return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === key;
+  } };
+}
+var FASHION_CATS = {
+  dresses:   fashionCatOf('dresses',   'Vestidos y faldas'),
+  tops:      fashionCatOf('tops',      'Tops y blusas'),
+  knitwear:  fashionCatOf('knitwear',  'Chompas y sudaderas'),
+  jeans:     fashionCatOf('jeans',     'Jeans'),
+  pants:     fashionCatOf('pants',     'Pantalones y shorts'),
+  outerwear: fashionCatOf('outerwear', 'Casacas y abrigos'),
+  sets:      fashionCatOf('sets',      'Conjuntos y trajes'),
+  swim:      fashionCatOf('swim',      'Ropa de baño'),
+  lingerie:  fashionCatOf('lingerie',  'Ropa interior y pijamas')
+};
+
+/* "Ver tienda" store-rail header — the same look and filter the old rails
+   used (the department's own store filter, not the generic one). */
+function fashionStoreRailHeadHTML(filterFnName, label, sub, retailerKey){
+  var rk = String(retailerKey || '').replace(/'/g, "\\'");
+  var head = (typeof deptMixedRailHeadHTML === 'function')
+    ? deptMixedRailHeadHTML(label, sub)
+    : escapeHtml(String(label || ''));
+  return head + '<button onclick="' + String(filterFnName).replace(/[^a-zA-Z0-9_$]/g, '') + '(\'' + rk + '\');return false;"'
+    + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+}
 function clothingDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
-  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
-  var STORE_RAIL_MIN = 4;
-  var SALE_RAIL_MIN = 6;
-  var out = [];
-
-  function picks(pool, storeKey){
-    if (typeof categoryRailPicks === 'function'){
-      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
-      catch (e) {}
-    }
-    return pool.slice(0, RAIL_TOTAL);
-  }
-  function verTiendaBtn(k){
-    return '<button onclick="clothingStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
-  }
-
-  var valid = items.filter(function(p){
-    if (!p) return false;
-    if (!(Number(p.price) > 0)) return false;
-    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH A (2026-10-02): brand carousels first
+     (cross-store aggregated), then Más marcas, then store carousels,
+     the category axis, then Ofertas. Hero + backdrop untouched. */
+  return carouselCityRailsHTML('clothing', items, {
+    storeOrder: ['target', 'walmart', 'macys', 'kohls', 'oldnavy'],
+    saleMin: 6,
+    storeRailHead: function(label, sub, rk){ return fashionStoreRailHeadHTML('clothingStoreFilter', label, sub, rk); },
+    categories: [
+      FASHION_CATS.dresses, FASHION_CATS.tops, FASHION_CATS.knitwear,
+      FASHION_CATS.jeans, FASHION_CATS.pants, FASHION_CATS.outerwear,
+      FASHION_CATS.sets, FASHION_CATS.swim, FASHION_CATS.lingerie
+    ]
   });
-
-  var byStore = {};
-  valid.forEach(function(p){
-    var k = String(p.retailer || 'otros').toLowerCase();
-    (byStore[k] = byStore[k] || []).push(p);
-  });
-  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
-
-  var thin = [];
-  keys.forEach(function(k){
-    var pool = byStore[k];
-    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
-    var label = clothingStoreLabel(k);
-    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
-    out.push(deptRailSectionHTML('clothing-store-' + k, label, head, picks(pool, k)));
-  });
-
-  if (thin.length >= STORE_RAIL_MIN){
-    out.push(deptRailSectionHTML('clothing-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
-  }
-
-  var sales = valid.filter(function(p){ return clothingIsSale(p); });
-  if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('clothing-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
-  }
-
-  return out.join('');
 }
 
 
@@ -12801,60 +12796,22 @@ function curvyTierFilter(tier){
    CURVY WOMEN-FIRST (Danny, 2026-09-26): plus-size women's items lead —
    never men's stuff first. Passed via the womenFirst opt. */
 function curvyDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
-  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
-  var STORE_RAIL_MIN = 4;
-  var SALE_RAIL_MIN = 6;
-  var OPTS = { womenFirst: true };
-  var out = [];
-
-  function picks(pool, storeKey){
-    if (typeof categoryRailPicks === 'function'){
-      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL, OPTS); }
-      catch (e) {}
-    }
-    return pool.slice(0, RAIL_TOTAL);
-  }
-  function verTiendaBtn(k){
-    return '<button onclick="curvyStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
-  }
-
-  var valid = items.filter(function(p){
-    if (!p) return false;
-    if (!(Number(p.price) > 0)) return false;
-    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH A (2026-10-02): brand carousels first
+     (cross-store aggregated), then Más marcas, then store carousels,
+     the category axis, then Ofertas. Hero + backdrop untouched. */
+  return carouselCityRailsHTML('curvy', items, {
+    storeOrder: ['lanebryant', 'target', 'walmart', 'macys', 'kohls', 'oldnavy', 'nordstrom'],
+    saleMin: 6,
+    /* CURVY WOMEN-FIRST (Danny, 2026-09-26): preserved via picksOpts. */
+    picksOpts: { womenFirst: true },
+    storeRailHead: function(label, sub, rk){ return fashionStoreRailHeadHTML('curvyStoreFilter', label, sub, rk); },
+    categories: [
+      FASHION_CATS.dresses, FASHION_CATS.tops, FASHION_CATS.knitwear,
+      FASHION_CATS.jeans, FASHION_CATS.pants, FASHION_CATS.outerwear,
+      FASHION_CATS.sets, FASHION_CATS.swim, FASHION_CATS.lingerie
+    ]
   });
-
-  var byStore = {};
-  valid.forEach(function(p){
-    var k = String(p.retailer || 'otros').toLowerCase();
-    (byStore[k] = byStore[k] || []).push(p);
-  });
-  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
-
-  var thin = [];
-  keys.forEach(function(k){
-    var pool = byStore[k];
-    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
-    var label = curvyStoreLabel(k);
-    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
-    out.push(deptRailSectionHTML('curvy-store-' + k, label, head, picks(pool, k)));
-  });
-
-  if (thin.length >= STORE_RAIL_MIN){
-    out.push(deptRailSectionHTML('curvy-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
-  }
-
-  var sales = valid.filter(function(p){ return curvyIsSale(p); });
-  if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
-  }
-
-  return out.join('');
 }
 
 
@@ -12956,59 +12913,20 @@ function kidsTierFilter(tier){
    stores grouped into a "Más tiendas" rail, then one sale rail with the
    biggest real discounts first. */
 function kidsDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
-  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
-  var STORE_RAIL_MIN = 4;
-  var SALE_RAIL_MIN = 6;
-  var out = [];
-
-  function picks(pool, storeKey){
-    if (typeof categoryRailPicks === 'function'){
-      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
-      catch (e) {}
-    }
-    return pool.slice(0, RAIL_TOTAL);
-  }
-  function verTiendaBtn(k){
-    return '<button onclick="kidsStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
-  }
-
-  var valid = items.filter(function(p){
-    if (!p) return false;
-    if (!(Number(p.price) > 0)) return false;
-    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH A (2026-10-02): brand carousels first
+     (cross-store aggregated), then Más marcas, then store carousels,
+     the category axis, then Ofertas. Hero + backdrop untouched. */
+  return carouselCityRailsHTML('kids', items, {
+    storeOrder: ['target', 'walmart', 'macys', 'kohls', 'oldnavy'],
+    saleMin: 6,
+    storeRailHead: function(label, sub, rk){ return fashionStoreRailHeadHTML('kidsStoreFilter', label, sub, rk); },
+    categories: [
+      FASHION_CATS.dresses, FASHION_CATS.tops, FASHION_CATS.knitwear,
+      FASHION_CATS.jeans, FASHION_CATS.pants, FASHION_CATS.outerwear,
+      FASHION_CATS.sets, FASHION_CATS.swim
+    ]
   });
-
-  var byStore = {};
-  valid.forEach(function(p){
-    var k = String(p.retailer || 'otros').toLowerCase();
-    (byStore[k] = byStore[k] || []).push(p);
-  });
-  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
-
-  var thin = [];
-  keys.forEach(function(k){
-    var pool = byStore[k];
-    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
-    var label = kidsStoreLabel(k);
-    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
-    out.push(deptRailSectionHTML('kids-store-' + k, label, head, picks(pool, k)));
-  });
-
-  if (thin.length >= STORE_RAIL_MIN){
-    out.push(deptRailSectionHTML('kids-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
-  }
-
-  var sales = valid.filter(function(p){ return kidsIsSale(p); });
-  if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('kids-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
-  }
-
-  return out.join('');
 }
 
 
@@ -13110,59 +13028,20 @@ function menTierFilter(tier){
    stores grouped into a "Más tiendas" rail, then one sale rail with the
    biggest real discounts first. */
 function menDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
-  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
-  var STORE_RAIL_MIN = 4;
-  var SALE_RAIL_MIN = 6;
-  var out = [];
-
-  function picks(pool, storeKey){
-    if (typeof categoryRailPicks === 'function'){
-      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
-      catch (e) {}
-    }
-    return pool.slice(0, RAIL_TOTAL);
-  }
-  function verTiendaBtn(k){
-    return '<button onclick="menStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
-  }
-
-  var valid = items.filter(function(p){
-    if (!p) return false;
-    if (!(Number(p.price) > 0)) return false;
-    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH A (2026-10-02): brand carousels first
+     (cross-store aggregated), then Más marcas, then store carousels,
+     the category axis, then Ofertas. Hero + backdrop untouched. */
+  return carouselCityRailsHTML('men', items, {
+    storeOrder: ['target', 'walmart', 'macys', 'kohls', 'oldnavy'],
+    saleMin: 6,
+    storeRailHead: function(label, sub, rk){ return fashionStoreRailHeadHTML('menStoreFilter', label, sub, rk); },
+    categories: [
+      FASHION_CATS.tops, FASHION_CATS.knitwear, FASHION_CATS.jeans,
+      FASHION_CATS.pants, FASHION_CATS.outerwear, FASHION_CATS.sets,
+      FASHION_CATS.swim, FASHION_CATS.lingerie
+    ]
   });
-
-  var byStore = {};
-  valid.forEach(function(p){
-    var k = String(p.retailer || 'otros').toLowerCase();
-    (byStore[k] = byStore[k] || []).push(p);
-  });
-  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
-
-  var thin = [];
-  keys.forEach(function(k){
-    var pool = byStore[k];
-    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
-    var label = menStoreLabel(k);
-    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
-    out.push(deptRailSectionHTML('men-store-' + k, label, head, picks(pool, k)));
-  });
-
-  if (thin.length >= STORE_RAIL_MIN){
-    out.push(deptRailSectionHTML('men-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
-  }
-
-  var sales = valid.filter(function(p){ return menIsSale(p); });
-  if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('men-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
-  }
-
-  return out.join('');
 }
 
 
@@ -13272,59 +13151,20 @@ function womenTierFilter(tier){
    stores grouped into a "Más tiendas" rail, then one sale rail with the
    biggest real discounts first. */
 function womenDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
-  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
-  var STORE_RAIL_MIN = 4;
-  var SALE_RAIL_MIN = 6;
-  var out = [];
-
-  function picks(pool, storeKey){
-    if (typeof categoryRailPicks === 'function'){
-      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
-      catch (e) {}
-    }
-    return pool.slice(0, RAIL_TOTAL);
-  }
-  function verTiendaBtn(k){
-    return '<button onclick="womenStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
-  }
-
-  var valid = items.filter(function(p){
-    if (!p) return false;
-    if (!(Number(p.price) > 0)) return false;
-    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH A (2026-10-02): brand carousels first
+     (cross-store aggregated), then Más marcas, then store carousels,
+     the category axis, then Ofertas. Hero + backdrop untouched. */
+  return carouselCityRailsHTML('women', items, {
+    storeOrder: ['target', 'walmart', 'macys', 'kohls', 'nordstrom', 'oldnavy'],
+    saleMin: 6,
+    storeRailHead: function(label, sub, rk){ return fashionStoreRailHeadHTML('womenStoreFilter', label, sub, rk); },
+    categories: [
+      FASHION_CATS.dresses, FASHION_CATS.tops, FASHION_CATS.knitwear,
+      FASHION_CATS.jeans, FASHION_CATS.pants, FASHION_CATS.outerwear,
+      FASHION_CATS.sets, FASHION_CATS.swim, FASHION_CATS.lingerie
+    ]
   });
-
-  var byStore = {};
-  valid.forEach(function(p){
-    var k = String(p.retailer || 'otros').toLowerCase();
-    (byStore[k] = byStore[k] || []).push(p);
-  });
-  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
-
-  var thin = [];
-  keys.forEach(function(k){
-    var pool = byStore[k];
-    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
-    var label = womenStoreLabel(k);
-    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
-    out.push(deptRailSectionHTML('women-store-' + k, label, head, picks(pool, k)));
-  });
-
-  if (thin.length >= STORE_RAIL_MIN){
-    out.push(deptRailSectionHTML('women-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
-  }
-
-  var sales = valid.filter(function(p){ return womenIsSale(p); });
-  if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('women-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
-  }
-
-  return out.join('');
 }
 
 
@@ -13517,58 +13357,23 @@ function purseTypeOf(it){
 
 
 function pursesDeptRailsHTML(items){
-  var list = Array.isArray(items) ? items : [];
-  if (!list.length) return '';
-  var RAIL_MIN = 4;
-  var railTotal = (typeof CATEGORY_RAIL_TOTAL !== 'undefined') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var noKeys = new Set();
-
-  /* 1) Store carousels first — shoppers compare JW PEI vs Melie Bianco. */
-  var preferred = ['jwpei', 'meliebianco'];
-  for (var s = 0; s < preferred.length; s++){
-    var key = preferred[s];
-    var storeAisle = list.filter(function(it){
-      return it && String(it.retailer || '').toLowerCase() === key;
-    });
-    if (storeAisle.length < RAIL_MIN) continue;
-    var storePicks = categoryRailPicks([key], storeAisle, storeAisle, noKeys, railTotal);
-    if (!storePicks.length) continue;
-    if (typeof deptStoreRailHeadHTML !== 'function' || typeof deptRailSectionHTML !== 'function') continue;
-    blocks.push(deptRailSectionHTML('purses-store-' + key, 'Carteras ' + key,
-      deptStoreRailHeadHTML(key), storePicks));
-  }
-
-  /* 2) Sale rail: every purse on markdown, biggest discount first. */
-  var onSale = list.filter(function(it){
-    return typeof rawItemOnSale === 'function' ? rawItemOnSale(it) : false;
-  });
-  if (onSale.length >= RAIL_MIN){
-    var salePicks = categoryRailPicks([], onSale, onSale, noKeys, railTotal);
-    if (salePicks.length)
-      blocks.push(deptRailSectionHTML('purses-sale', 'Carteras en oferta',
-        deptMixedRailHeadHTML('En oferta', onSale.length + ' carteras con descuento'), salePicks));
-  }
-
-  /* 3) One rail per bag type, sale-led within the type. */
-  var typeGroups = [
-    { key: 'crossbody', label: 'Crossbody' },
-    { key: 'tote',      label: 'Totes' },
-    { key: 'mini',      label: 'Minis y baguettes' },
-    { key: 'shoulder',  label: 'Al hombro' },
-    { key: 'clutch',    label: 'Clutches y billeteras' },
-    { key: 'backpack',  label: 'Mochilas' }
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* Category axis: the six bag types from purseTypeOf — shoppers compare
+     Crossbody vs Totes the way they compared JW PEI vs Melie Bianco. */
+  var PURSE_CATS = [
+    ['crossbody', 'Crossbody'], ['tote', 'Totes'], ['mini', 'Minis y baguettes'],
+    ['shoulder', 'Al hombro'], ['clutch', 'Clutches y billeteras'], ['backpack', 'Mochilas']
   ];
-  for (var g = 0; g < typeGroups.length; g++){
-    var group = typeGroups[g];
-    var aisle = list.filter(function(it){ return purseTypeOf(it) === group.key; });
-    if (aisle.length < RAIL_MIN) continue;
-    var picks = categoryRailPicks([], aisle, aisle, noKeys, railTotal);
-    if (!picks.length) continue;
-    blocks.push(deptRailSectionHTML('purses-type-' + group.key, 'Carteras ' + group.label,
-      deptMixedRailHeadHTML(group.label, aisle.length + ' carteras'), picks));
-  }
-  return blocks.join('');
+  var categories = PURSE_CATS.map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof purseTypeOf === 'function') && purseTypeOf(p) === k;
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('purses', items, {
+    storeOrder: ['jwpei', 'meliebianco', 'baublebar'],
+    ofertasLabel: 'Carteras en oferta',
+    categories: categories
+  });
 }
 
 
@@ -14170,40 +13975,27 @@ function mensGroomingSaleScroll(){
    items), then one rail per store ordered by catalog size. A store with
    nothing to show contributes no rail. */
 function mensGroomingDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
-  }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('mg-ofertas', 'Ofertas en Cuidado Masculino',
-        deptMixedRailHeadHTML('Ofertas en Cuidado Masculino', sales.length + ' productos en descuento'), salePicks));
-    }
-  }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('mg-store-' + skey, 'Cuidado Masculino en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* Category axis: grooming keywords on title/name (Spanish labels).
+     Brand feeds like Every Man Jack carry English titles, so the tests
+     match both languages. */
+  var MG_CATS = [
+    { key: 'mg-afeitar',   label: 'Afeitado y barba', rx: /\b(shave|shaving|beard|mustache|barba|bigote|afeit|after ?shave|razor|rasuradora|balsam)\b/i },
+    { key: 'mg-rostro',    label: 'Rostro y piel',    rx: /\b(face|facial|skin|moistur|hidratante|serum|sueros?|cleanser|limpiador|exfoli|crema)\b/i },
+    { key: 'mg-cabello',   label: 'Cabello',          rx: /\b(hair|cabello|shampoo|champ[uú]|conditioner|acondicionador|pomade|styling|cera)\b/i },
+    { key: 'mg-fragancia', label: 'Fragancia',        rx: /\b(cologne|perfume|fraganc|parfum|eau de|colonia)\b/i },
+    { key: 'mg-cuerpo',    label: 'Cuerpo y ducha',   rx: /\b(body|cuerpo|shower|ducha|deodorant|desodorante|soap|jabon)\b/i }
+  ];
+  var categories = MG_CATS.map(function(c){
+    return { key: c.key, label: c.label, test: (function(rx){ return function(p){
+      return rx.test(String((p && (p.title || p.name)) || ''));
+    }; })(c.rx) };
+  });
+  return carouselCityRailsHTML('mens_grooming', items, {
+    storeOrder: ['everymanjack', 'brickell'],
+    ofertasLabel: 'Ofertas en Cuidado Masculino',
+    categories: categories
+  });
 }
 
 
@@ -15143,40 +14935,97 @@ function tennisDeptRailsHTML(items){
 }
 
 function shoesDeptRailsHTML(items){
-  const list = Array.isArray(items) ? items : [];
-  if (!list.length) return '';
-  const retailerKeys = [...new Set(list.map(it => it && it.retailer).filter(Boolean))];
-  const noKeys = new Set();
-  const blocks = [];
-  /* The sales carousel leads: every shoe on sale, biggest discount first. */
-  const onSale = list.filter(rawItemOnSale);
-  if (onSale.length >= SHOES_TYPE_RAIL_MIN){
-    const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL);
-    if (picks.length) blocks.push(deptRailSectionHTML('shoes-sale', 'Zapatos en oferta',
-      deptMixedRailHeadHTML('En oferta', onSale.length + ' pares con descuento'), picks));
-  }
-  /* Then one rail per shoe type, sale-led within the type. */
-  for (const g of SHOE_TYPE_GROUPS){
-    const aisle = list.filter(it => shoeSubTypeOf(it) === g.key);
-    if (aisle.length < SHOES_TYPE_RAIL_MIN) continue;
-    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
-    if (!picks.length) continue;
-    blocks.push(deptRailSectionHTML('shoes-type-' + g.key, 'Zapatos ' + g.label,
-      deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* Serves Zapatos, Zapatos de Mujer y Zapatos de Hombre — the dispatch
+     calls this one function for all three keys. Category axis: the four
+     shoe types from shoeSubTypeOf (same classifier the old rails used). */
+  var SHOE_CATS = [
+    ['athletic', 'Deportivos'], ['dress', 'De vestir'],
+    ['sandals', 'Sandalias'], ['boots', 'Botas']
+  ];
+  var categories = SHOE_CATS.map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof shoeSubTypeOf === 'function') && shoeSubTypeOf(p) === k;
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('shoes', items, {
+    storeOrder: ['footlocker', 'crocs', 'walmart', 'target'],
+    ofertasLabel: 'Zapatos en oferta',
+    categories: categories
+  });
+}
+/* CAROUSEL CITY BATCH A (2026-10-02): the Nike brand page renders the
+   same three-axis layout — store carousels (one per retailer carrying
+   Nike) plus a category axis. The brand axis is suppressed (the whole
+   page is one brand) and Más marcas is off. */
+function nikeDeptRailsHTML(items){
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  var categories = [
+    { key: 'athletic', label: 'Zapatillas', test: function(p){
+      return (typeof shoeSubTypeOf === 'function') && shoeSubTypeOf(p) === 'athletic';
+    } },
+    { key: 'tops', label: 'Tops y polos', test: function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === 'tops';
+    } },
+    { key: 'knitwear', label: 'Chompas y sudaderas', test: function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === 'knitwear';
+    } },
+    { key: 'pants', label: 'Pantalones y shorts', test: function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === 'pants';
+    } },
+    { key: 'outerwear', label: 'Casacas y abrigos', test: function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === 'outerwear';
+    } },
+    { key: 'accessories', label: 'Accesorios', test: function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === 'accessories';
+    } }
+  ];
+  return carouselCityRailsHTML('nike', items, {
+    brandOf: function(){ return ''; },
+    masMarcas: false,
+    storeOrder: ['footlocker', 'macys', 'walmart', 'target'],
+    ofertasLabel: 'Ofertas Nike',
+    categories: categories
+  });
+}
+
+/* Cross-cutting theme test factory (mirrors jewelryThemeItems): a rail
+   for one JEWELRY_THEMES entry. */
+function joyThemeCatTest(theme){
+  return function(p){
+    if (typeof jewelryThemeWords !== 'function') return false;
+    var nw = jewelryThemeWords((p && (p.title || p.name)) || '');
+    if (theme.words){
+      return (typeof jewelryThemeHas === 'function') ? jewelryThemeHas(nw, theme.words) : false;
+    }
+    return nw.indexOf(' kids ') !== -1 || nw.indexOf(' kid ') !== -1;
+  };
 }
 function jewelryDeptRailsHTML(items){
-  const blocks = [];
-  for (const theme of JEWELRY_THEMES){
-    const aisle = jewelryThemeItems(items, theme);
-    if (aisle.length < JEWELRY_THEME_RAIL_MIN) continue;
-    const picks = categoryRailPicks(null, aisle, aisle, new Set(), CATEGORY_RAIL_TOTAL);
-    if (!picks.length) continue;
-    blocks.push(deptRailSectionHTML('jewelry-theme-' + theme.key, theme.label,
-      deptMixedRailHeadHTML(theme.label, aisle.length + ' productos'), picks));
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* Category axis: the 11 type aisles (retailer-aware via
+     jewelryTypeAisle — they match the aisle list) first, then the 6
+     theme rails (Danny, 2026-09-28), which cut across the type aisles. */
+  var JOY_TYPES = [
+    ['joy-pulseras', 'Pulseras'], ['joy-collares', 'Collares'], ['joy-aretes', 'Aretes'],
+    ['joy-charms', 'Charms'], ['joy-charms-cartera', 'Charms de cartera'], ['joy-anillos', 'Anillos'],
+    ['joy-pelo', 'Pelo'], ['joy-pines', 'Broches y pines'], ['joy-tobilleras', 'Tobilleras'],
+    ['joy-llaveros', 'Llaveros'], ['joy-bufandas', 'Bufandas']
+  ];
+  var categories = JOY_TYPES.map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return (typeof jewelryTypeAisle === 'function') && jewelryTypeAisle(p) === k;
+    }; })(pair[0]) };
+  });
+  if (typeof JEWELRY_THEMES !== 'undefined' && JEWELRY_THEMES){
+    JEWELRY_THEMES.forEach(function(theme){
+      categories.push({ key: theme.key, label: theme.label, test: joyThemeCatTest(theme) });
+    });
   }
-  return blocks.join('');
+  return carouselCityRailsHTML('jewelry', items, {
+    storeOrder: ['baublebar', 'meliebianco'],
+    categories: categories
+  });
 }
 /* JOYAS Y ACCESORIOS EXPANDED (2026-09-30, Danny): the expanded
    department gives every jewelry brand its own banner + carousel --
@@ -18649,7 +18498,11 @@ function renderCatalogFeed(){
        unfiltered department landing. moms keeps its !subKey guard.
        Every call is typeof-guarded. */
     var deptRails = '';
-    if (catalogState.kind === 'department' && !retailerFilter){
+    /* CAROUSEL CITY BATCH A (2026-10-02): the Nike brand page renders the
+       same three-axis department layout (store + category carousels);
+       the brand axis is suppressed since the page is one brand. */
+    var _isNikeBrandPage = catalogState.kind === 'brand' && catalogState.key === 'nike';
+    if ((catalogState.kind === 'department' || _isNikeBrandPage) && !retailerFilter){
       var _railFn = {
         surf_skate: function(){ return (typeof surfSkateDeptRailsHTML === 'function') ? surfSkateDeptRailsHTML(byRetailer) : ''; },
         beauty: function(){ return (typeof beautyDeptRailsHTML === 'function') ? beautyDeptRailsHTML(sgFiltered, new Set()) : ''; },
@@ -18681,6 +18534,7 @@ function renderCatalogFeed(){
         gym_rat: function(){ return (typeof gymRatDeptRailsHTML === 'function') ? gymRatDeptRailsHTML(sgFiltered) : ''; },
         combat_sports: function(){ return (typeof combatSportsDeptRailsHTML === 'function') ? combatSportsDeptRailsHTML(sgFiltered) : ''; },
         auto_parts: function(){ return (typeof autoPartsDeptRailsHTML === 'function') ? autoPartsDeptRailsHTML(sgFiltered) : ''; },
+        nike: function(){ return (typeof nikeDeptRailsHTML === 'function') ? nikeDeptRailsHTML(sgFiltered) : ''; },
       }[catalogState.key];
       if (catalogState.key === 'moms' && catalogState.subKey) _railFn = null;
       if (_railFn){ try { deptRails = _railFn() || ''; } catch (_re){ deptRails = ''; } }
