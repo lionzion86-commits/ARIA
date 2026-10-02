@@ -1939,26 +1939,21 @@
       </div>
     </section>
 
-<!-- TUS TIENDAS FAVORITAS BACKDROP (2026-09-30, Danny): department store interior, no branding -->
-<div data-stores-wrap class="relative overflow-hidden" style="background:#0A1F44">
-  <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/stores/tus-tiendas-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
-<section id="wt-band" aria-label="Walmart y Target" class="relative" style="background:transparent;padding:24px 16px;margin:0;">
-<style>@media (max-width:640px){#wt-band .wt-row{flex-direction:column !important;}}</style>
-<div style="max-width:1000px;margin:0 auto 16px auto;text-align:center;">
-  <h2 style="color:#FFFFFF;font-size:20px;font-weight:800;margin:0 0 4px 0;">Tus tiendas favoritas</h2>
-  <p style="color:#A0AEC0;font-size:14px;margin:0;">Toca para entrar a cada tienda</p>
-</div>
-<div class="wt-row" style="display:flex;gap:16px;max-width:1000px;margin:0 auto;">
-<a href="#" onclick="openStore('walmart');return false;" style="flex:1;background:#0071CE;border-radius:16px;padding:28px 16px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:100px;">
-<img src="assets/logos/walmart-white.svg" alt="Walmart" style="width:100%;max-width:200px;height:auto;">
-</a>
-<a href="#" onclick="openStore('target');return false;" style="flex:1;background:#FFFFFF;border-radius:16px;padding:20px 16px;text-align:center;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-height:100px;">
-<img src="assets/logos/target.svg" alt="Target" style="width:56px;height:56px;">
-<div style="font-size:20px;font-weight:800;color:#CC0000;margin-top:6px;font-family:Arial,Helvetica,sans-serif;">Target</div>
-</a>
-</div>
+<!-- BIG STORE CARDS (2026-09-30, Danny): Walmart + Target side by side,
+     full band height, right under Aria Auto. Brand colors, real logos. -->
+<section aria-label="Walmart y Target" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 py-6 grid grid-cols-2 gap-3 sm:gap-4">
+    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Walmart</span>
+    </button>
+    <button onclick="tiendaJump('target')" aria-label="Ir a Target" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#CC0000;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/target.svg" alt="Target" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Target</span>
+    </button>
+  </div>
 </section>
-</div>
+
 <section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
@@ -2440,29 +2435,22 @@
         <button onclick="openCatalog('department','motos');return false;" class="ariaMotosCta focus-ring flex-shrink-0">Equipa tu moto &#8594;</button>
       </div>
     </section>
-
+<!-- BIG STORE CARDS (2026-09-30, Danny): Walmart + Target side by side,
+     full band height, right under Aria Auto. Brand colors, real logos. -->
+<section aria-label="Walmart y Target" class="relative overflow-hidden" style="background:linear-gradient(180deg, #0A1F44 0%, #0D2555 100%)">
+  <div class="max-w-[1240px] mx-auto px-5 sm:px-8 py-6 grid grid-cols-2 gap-3 sm:gap-4">
+    <button onclick="tiendaJump('walmart')" aria-label="Ir a Walmart" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#0071CE;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/walmart.svg" alt="Walmart" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Walmart</span>
+    </button>
+    <button onclick="tiendaJump('target')" aria-label="Ir a Target" class="focus-ring rounded-3xl overflow-hidden flex flex-col" style="background:#CC0000;min-height:160px">
+      <span class="block bg-white rounded-2xl mx-4 mt-4 px-4 py-3"><img src="logos/target.svg" alt="Target" loading="lazy" decoding="async" class="w-full h-[46px] object-contain"></span>
+      <span class="flex-1 grid place-items-center text-white font-extrabold text-[16px] tracking-[-0.01em] py-3">Target</span>
+    </button>
+  </div>
+</section>
     <!-- CATEGORIAS -->
 
-<!-- TUS TIENDAS FAVORITAS BACKDROP (2026-09-30, Danny): department store interior, no branding -->
-<div data-stores-wrap class="relative overflow-hidden" style="background:#0A1F44">
-  <div class="absolute inset-0 pointer-events-none" aria-hidden="true" style="background:url('assets/stores/tus-tiendas-backdrop.jpg') center top / cover no-repeat; opacity:0.35"></div>
-<section id="wt-band" aria-label="Walmart y Target" class="relative" style="background:transparent;padding:24px 16px;margin:0;">
-<style>@media (max-width:640px){#wt-band .wt-row{flex-direction:column !important;}}</style>
-<div style="max-width:1000px;margin:0 auto 16px auto;text-align:center;">
-  <h2 style="color:#FFFFFF;font-size:20px;font-weight:800;margin:0 0 4px 0;">Tus tiendas favoritas</h2>
-  <p style="color:#A0AEC0;font-size:14px;margin:0;">Toca para entrar a cada tienda</p>
-</div>
-<div class="wt-row" style="display:flex;gap:16px;max-width:1000px;margin:0 auto;">
-<a href="#" onclick="openStore('walmart');return false;" style="flex:1;background:#0071CE;border-radius:16px;padding:28px 16px;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;cursor:pointer;min-height:100px;">
-<img src="assets/logos/walmart-white.svg" alt="Walmart" style="width:100%;max-width:200px;height:auto;">
-</a>
-<a href="#" onclick="openStore('target');return false;" style="flex:1;background:#FFFFFF;border-radius:16px;padding:20px 16px;text-align:center;text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;min-height:100px;">
-<img src="assets/logos/target.svg" alt="Target" style="width:56px;height:56px;">
-<div style="font-size:20px;font-weight:800;color:#CC0000;margin-top:6px;font-family:Arial,Helvetica,sans-serif;">Target</div>
-</a>
-</div>
-</section>
-</div>
 <section aria-label="Compra por categoría" data-category-tabs class="ariaNavyBand relative overflow-hidden storeRailCompact">
   <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
       <div class="max-w-[1240px] mx-auto">
@@ -15841,25 +15829,25 @@ const TIENDAS_STRIP = [
   {k:'yesstyle',l:'YesStyle',c:'#50A838',logo:'logos/yesstyle.png'},
   {k:'venum',l:'Venum',c:'#000000',logo:'logos/brands/venum.png'},
   {k:'walmart',l:'Walmart',c:'#0071CE',logo:'logos/walmart.svg'},
-  {k:'alphalete',l:'Alphalete',c:'#000000',logo:''},
+  {k:'alphalete',l:'Alphalete',c:'#000000',logo:'logos/alphalete.png'},
   {k:'target',l:'Target',c:'#CC0000',logo:'logos/target.svg'},
   {k:'youngla',l:'YoungLA',c:'#000000',logo:'logos/youngla.png'},
   {k:'ulta',l:'Ulta Beauty',c:'#F88038',logo:'logos/ulta.png'},
-  {k:'partycity',l:'Party City',c:'#0A1F44',logo:''},
+  {k:'partycity',l:'Party City',c:'#0A1F44',logo:'logos/partycity.svg'},
   {k:'tatami',l:'Tatami Fightwear',c:'#1A1A1A',logo:'logos/brands/tatamifightwear.svg'},
   {k:'everlast',l:'Everlast',c:'#000000',logo:'logos/brands/everlast.svg'},
   {k:'lanebryant',l:'Lane Bryant',c:'#C41230',logo:'logos/lanebryant.png'},
   {k:'oldnavy',l:'Old Navy',c:'#001E62',logo:'logos/oldnavy.svg'},
   {k:'samsclub',l:'Sam\'s Club',c:'#0B6CFF',logo:'logos/samsclub.svg'},
-  {k:'mmawarehouse',l:'MMAWarehouse',c:'#1A1A1A',logo:''},
+  {k:'mmawarehouse',l:'MMAWarehouse',c:'#1A1A1A',logo:'logos/mmawarehouse.png'},
   {k:'revolve',l:'Revolve',c:'#000000',logo:'logos/revolve.png'},
-  {k:'combatcorner',l:'Combat Corner',c:'#000000',logo:''},
+  {k:'combatcorner',l:'Combat Corner',c:'#000000',logo:'logos/combatcorner.png'},
   {k:'pacsun',l:'PacSun',c:'#111111',logo:'logos/pacsun.png'},
-  {k:'fuji',l:'FUJI Sports',c:'#1A1A1A',logo:''},
+  {k:'fuji',l:'FUJI Sports',c:'#1A1A1A',logo:'logos/fuji.png'},
 ];
 /* Logos light enough to sit directly on navy (2026-09-29, Danny): measured
    mean opaque-pixel brightness of each logo file; the rest ride a white chip. */
-const TIENDA_LIGHT_LOGOS = new Set('macys nautilus quietstorm ssense surfworld yesstyle ccs ulta oldnavy'.split(' '));
+const TIENDA_LIGHT_LOGOS = new Set('macys nautilus quietstorm ssense surfworld yesstyle ccs ulta oldnavy venum alphalete everlast'.split(' '));
 function tiendaTileHTML(s){
   /* NAVY TILES (2026-09-29, Danny): tile goes navy #1a2744, store name in
      white always. Dark wordmarks ride a white chip; light ones sit directly
@@ -23298,7 +23286,7 @@ const RETAILERS = {
      carries no compatibility data and makes no fitment claim — the part
      number is the buyer's check. Colour sampled from the real mark
      (#EA1927). Mirrors scripts/lib/retailers.js. */
-  advanceauto:     { key: 'advanceauto',     label: 'Advance Auto Parts', color: '#EA1927', tagline: 'Frenos y repuestos — vía Aria Auto',                    kind: 'auto',    search: false, browse: true },
+  advanceauto:     { key: 'advanceauto',     label: 'Advance Auto Parts', color: '#EA1927', logo: 'logos/advanceauto.svg', tagline: 'Frenos y repuestos — vía Aria Auto',                    kind: 'auto',    search: false, browse: true },
   /* SEPHORA IS BROWSABLE (2026-09-22). beauty-catalog.json landed with
      80 Sephora products, so this row flips `browse: true` and drops the
      pending note -- the same two-flag distinction Macy's introduced.
@@ -23337,7 +23325,7 @@ const RETAILERS = {
      mirrorless, réflex y compactas; small electronics only, never TVs) is
      committed at repo root. Colour sampled from the real mark (#A7392F).
      Mirrors scripts/lib/retailers.js. */
-  bhphoto:         { key: 'bhphoto',         label: 'B&H Photo',         color: '#A7392F', tagline: 'Cámaras, fotografía y electrónica',                      kind: 'general', search: false, browse: true },
+  bhphoto:         { key: 'bhphoto',         label: 'B&H Photo',         color: '#A7392F', logo: 'logos/bhphoto.svg', tagline: 'Cámaras, fotografía y electrónica',                      kind: 'general', search: false, browse: true },
   /* COSTCO + SAM'S CLUB (2026-09-25) -- catalogue but no actor, the Macy's
      pattern: browse: true, search: false. costco-catalog.json (1,569 products)
      and samsclub-catalog.json (120 products) are committed at repo root and
@@ -23370,7 +23358,7 @@ const RETAILERS = {
      canvas, which is the SSENSE sliver all over again. See the logo
      coverage test. Mirrors scripts/lib/retailers.js. */
   ulta:            { key: 'ulta',            label: 'Ulta Beauty',       color: '#F88038', logo: 'logos/ulta.png',       tagline: 'Maquillaje, skincare y cuidado del cabello',   kind: 'general', search: false, browse: true, catalog: 'beauty' },
-  pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
+  pacsun:          { key: 'pacsun',          label: 'PacSun',            color: '#111111', logo: 'logos/pacsun.png', tagline: 'Moda surf y skate',                                kind: 'general', search: false, browse: true },
   /* SURF & SKATE BATCH (2026-09-26, Danny): nine real surf / skate /
      spearfishing shops, full Shopify catalogues committed as
      *-catalog.json at repo root. The Macy's pattern: browse: true,
@@ -23407,8 +23395,8 @@ const RETAILERS = {
      wordmark pill on brand colour is the documented fallback, not a
      broken state. Colour is Lane Bryant's brand red, from their public
      identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
-  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
-  alphalete:       { key: 'alphalete',       label: 'Alphalete',        color: '#000000', tagline: 'Ropa de gym premium',                                kind: 'general', search: false, browse: true },
+  lanebryant:      { key: 'lanebryant',      label: 'Lane Bryant',       color: '#C41230', logo: 'logos/lanebryant.png', tagline: 'Moda femenina en tallas grandes',                        kind: 'general', search: false, browse: true },
+  alphalete:       { key: 'alphalete',       label: 'Alphalete',        color: '#000000', logo: 'logos/alphalete.png', darkLogo: true, tagline: 'Ropa de gym premium',                                kind: 'general', search: false, browse: true },
   /* GYM BRANDS (2026-09-26, Danny) — catalogues but no actors, the Macy's pattern:
      browse: true, search: false. The Gym Rat catalogues (gymrat-catalog.json) are
      committed files; they power the Gym Rat department, its brand pills, the
@@ -23445,17 +23433,17 @@ const RETAILERS = {
      products (gis, gloves, rashguards, wraps, pads) file under the
      combat_sports bucket. No logo files yet — wordmark pill on brand
      colour, the documented fallback. Mirrors scripts/lib/retailers.js. */
-  venum:          { key: 'venum',          label: 'Venum',            color: '#000000', tagline: 'MMA y boxeo — guantes, shorts y equipo', kind: 'general', search: false, browse: true },
-  tatami:         { key: 'tatami',         label: 'Tatami Fightwear', color: '#1A1A1A', tagline: 'Jiu-jitsu — gis, rashguards y spats',     kind: 'general', search: false, browse: true },
-  everlast:       { key: 'everlast',       label: 'Everlast',         color: '#000000', tagline: 'Boxeo — guantes, sacos y protección',     kind: 'general', search: false, browse: true },
-  mmawarehouse:   { key: 'mmawarehouse',   label: 'MMAWarehouse',     color: '#1A1A1A', tagline: 'MMA — guantes, canilleras y equipo',      kind: 'general', search: false, browse: true },
-  combatcorner:   { key: 'combatcorner',   label: 'Combat Corner',    color: '#000000', tagline: 'Boxeo y MMA — equipo de pelea',           kind: 'general', search: false, browse: true },
-  fuji:           { key: 'fuji',           label: 'FUJI Sports',      color: '#1A1A1A', tagline: 'Jiu-jitsu y judo — gis y equipo',          kind: 'general', search: false, browse: true },
+  venum:          { key: 'venum',          label: 'Venum',            color: '#000000', logo: 'logos/brands/venum.png', darkLogo: true, tagline: 'MMA y boxeo — guantes, shorts y equipo', kind: 'general', search: false, browse: true },
+  tatami:         { key: 'tatami',         label: 'Tatami Fightwear', color: '#1A1A1A', logo: 'logos/brands/tatamifightwear.svg', tagline: 'Jiu-jitsu — gis, rashguards y spats',     kind: 'general', search: false, browse: true },
+  everlast:       { key: 'everlast',       label: 'Everlast',         color: '#000000', logo: 'logos/brands/everlast.svg', darkLogo: true, tagline: 'Boxeo — guantes, sacos y protección',     kind: 'general', search: false, browse: true },
+  mmawarehouse:   { key: 'mmawarehouse',   label: 'MMAWarehouse',     color: '#1A1A1A', logo: 'logos/mmawarehouse.png', tagline: 'MMA — guantes, canilleras y equipo',      kind: 'general', search: false, browse: true },
+  combatcorner:   { key: 'combatcorner',   label: 'Combat Corner',    color: '#000000', logo: 'logos/combatcorner.png', tagline: 'Boxeo y MMA — equipo de pelea',           kind: 'general', search: false, browse: true },
+  fuji:           { key: 'fuji',           label: 'FUJI Sports',      color: '#1A1A1A', logo: 'logos/fuji.png', tagline: 'Jiu-jitsu y judo — gis y equipo',          kind: 'general', search: false, browse: true },
   /* CROCS (2026-09-27, Danny) — catalogue via crocs.com Algolia index,
      564 footwear/accessories products (69 on sale). No logo file yet —
      wordmark pill on black, the documented fallback. Macy's pattern:
      browse: true, search: false. Mirrors scripts/lib/retailers.js. */
-  crocs:           { key: 'crocs',           label: 'Crocs',             color: '#000000',                             tagline: 'Clogs, sandalias y calzado cómodo',              kind: 'general', search: false, browse: true },
+  crocs:           { key: 'crocs',           label: 'Crocs',             color: '#000000', logo: 'logos/brands/crocs.svg',                             tagline: 'Clogs, sandalias y calzado cómodo',              kind: 'general', search: false, browse: true },
   /* JEWELRY + PURSES + KIDS' EVERYDAY (2026-09-27, Danny) — catalogues via
      Shopify products.json, $0. BaubleBar anchors Joyería y Accesorios; JW PEI
      + Melie Bianco anchor Carteras (own department, own carousel — Danny's
@@ -23464,11 +23452,11 @@ const RETAILERS = {
      with the kids' assortment. No logo files yet — wordmark pill on black,
      the documented fallback. Macy's pattern: browse: true, search: false.
      Mirrors scripts/lib/retailers.js. */
-  baublebar:      { key: 'baublebar',      label: 'BaubleBar',       color: '#000000', tagline: 'Joyería de moda — collares, aretes y pulseras',   kind: 'general', search: false, browse: true },
-  jwpei:          { key: 'jwpei',          label: 'JW PEI',          color: '#000000', tagline: 'Carteras veganas — crossbody, totes y minis',      kind: 'general', search: false, browse: true },
-  meliebianco:    { key: 'meliebianco',    label: 'Melie Bianco',    color: '#000000', tagline: 'Carteras y accesorios',                            kind: 'general', search: false, browse: true },
-  bentgo:         { key: 'bentgo',         label: 'Bentgo',          color: '#000000', tagline: 'Loncheras bento para niños',                       kind: 'general', search: false, browse: true },
-  mushie:         { key: 'mushie',         label: 'Mushie',          color: '#000000', tagline: 'Vasos y vajilla para niños',                       kind: 'general', search: false, browse: true },
+  baublebar:      { key: 'baublebar',      label: 'BaubleBar',       color: '#000000', logo: 'logos/brands/baublebar.png', tagline: 'Joyería de moda — collares, aretes y pulseras',   kind: 'general', search: false, browse: true },
+  jwpei:          { key: 'jwpei',          label: 'JW PEI',          color: '#000000', logo: 'logos/brands/jwpei.png', tagline: 'Carteras veganas — crossbody, totes y minis',      kind: 'general', search: false, browse: true },
+  meliebianco:    { key: 'meliebianco',    label: 'Melie Bianco',    color: '#000000', logo: 'logos/brands/meliebianco.png', tagline: 'Carteras y accesorios',                            kind: 'general', search: false, browse: true },
+  bentgo:         { key: 'bentgo',         label: 'Bentgo',          color: '#000000', logo: 'logos/brands/bentgo.png', tagline: 'Loncheras bento para niños',                       kind: 'general', search: false, browse: true },
+  mushie:         { key: 'mushie',         label: 'Mushie',          color: '#000000', logo: 'logos/brands/mushie.png', tagline: 'Vasos y vajilla para niños',                       kind: 'general', search: false, browse: true },
   ezpz:           { key: 'ezpz',           label: 'ezpz',            color: '#000000', tagline: 'Platos y vasos para niños',                        kind: 'general', search: false, browse: true },
   statebags:      { key: 'statebags',      label: 'State Bags',      color: '#000000', tagline: 'Mochilas y loncheras para niños',                  kind: 'general', search: false, browse: true },
   /* ARIA BEAUTY BRAND AISLES (2026-09-27, Danny): browsable brand keys inside beauty-catalog.json. Wordmark pills until logos land. */
