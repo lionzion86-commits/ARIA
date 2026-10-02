@@ -184,6 +184,7 @@ export const SHOPPING_CONSULT_ES = `ERES UNA PERSONAL SHOPPER, NO UN BUSCADOR:
 - El presupuesto SIEMPRE se confirma en soles ("entendido, buscamos bajo S/200"). Los resultados ya vienen filtrados por ese tope.
 - La talla: es una NOTA, nunca un filtro. Perú usa tallas EUROPEAS (35-45) y muchos clientes — sobre todo mayores — no conocen la talla americana. Si te dan una talla 35 o más, es europea: reconoce AMBAS ("anotado, talla 42 — eso es como un 9 americano") usando la equivalencia que se te indica, y recuérdale que en la página del producto elige su talla en el sistema americano. Una talla común no cambia la búsqueda: recomienda igual. Solo si la talla es rara (más de 13 americano / 46 europeo en calzado de hombre) advierte con honestidad que puede ser difícil de encontrar y ofrece buscar igual.
 - SÉ HONESTA: no ves el stock por talla en nuestro catálogo. Nunca afirmes que una talla específica está disponible.
+- Tallas de ropa (S, M, L, XL...): igual que el calzado — son una NOTA, nunca un filtro. Reconoce la talla y sigue recomendando.
 - Nunca inventes productos, precios, tallas ni tiendas. Si no hay nada bajo su presupuesto, dilo y ofrece la opción más cercana.`;
 
 export function shopSlotsEs(slots) {
@@ -196,6 +197,9 @@ export function shopSlotsEs(slots) {
     bits.push("Talla que usa: " + slots.size + " EUROPEA (≈ " + slots.sizeUS + " americano). Dile ambas y que en el producto elige la americana. (NOTA, no filtro; NO afirmes stock por talla).");
   } else {
     bits.push("Talla que usa: " + slots.size + " (es una NOTA, no un filtro; NO afirmes que hay stock en esa talla).");
+  }
+  if (slots.clothingSize) {
+    bits.push("Talla de ropa: " + slots.clothingSize + " (NOTA, no filtro: reconoce la talla y recuerda que la elige en la página del producto; NO afirmes stock por talla).");
   }
   if (slots.maxPriceUSD && slots.maxPriceLabel) {
     bits.push("Presupuesto máximo: " + slots.maxPriceLabel + " — los resultados ya están filtrados por ese tope.");

@@ -28722,7 +28722,7 @@ function stripAriaVocative(raw){
    - style: elegante / casual / deportivo
    - brand, query: carried so a follow-up like "200 soles" reuses the
      previous category instead of searching the literal words. */
-let ariaShopSlots = { maxPriceUSD: null, maxPriceLabel: null, size: null, style: null, brand: null, query: null };
+let ariaShopSlots = { maxPriceUSD: null, maxPriceLabel: null, size: null, sizeEU: false, sizeUS: null, clothingSize: null, style: null, brand: null, query: null };
 
 /* SIZE WORDS (2026-10-01, Danny): shoppers say "talla diez", not "talla 10".
    Map Spanish number words to digits so the size slot catches both. */
@@ -28752,8 +28752,28 @@ function tallaWordsToDigits(text){
 const EU_TO_US = {'35':'3','36':'4','37':'5','38':'6','39':'6.5','40':'7','41':'8','42':'9','43':'10','44':'11','45':'12'};
 function euToUs(eu){ return EU_TO_US[String(eu)] || null; }
 
+/* CLOTHING SIZES (2026-10-01, Danny): same note-not-filter treatment as
+   shoe sizes. "camisa talla M" searches camisas; M is remembered. */
+const CLOTHING_SIZES = {
+  'xs':'XS','extra chico':'XS','extra chica':'XS','extra-chico':'XS',
+  's':'S','chico':'S','chica':'S','pequeño':'S','pequeña':'S','pequeno':'S','pequena':'S','small':'S',
+  'm':'M','mediano':'M','mediana':'M','medium':'M',
+  'l':'L','grande':'L','large':'L',
+  'xl':'XL','extra grande':'XL','extra-grande':'XL','extragrande':'XL','x-large':'XL','extra large':'XL',
+  'xxl':'XXL','doble extra grande':'XXL','xx-large':'XXL','extra extra grande':'XXL',
+  'talla unica':'Única','talla única':'Única','unitalla':'Única','one size':'Única'
+};
+const CLOTHING_SIZE_RE = Object.keys(CLOTHING_SIZES).sort((a, b) => b.length - a.length).join('|');
+
+function clothingWordsToCode(text){
+  let out = String(text || '');
+  out = out.replace(new RegExp('\\btalla\\s+(' + CLOTHING_SIZE_RE + ')\\b', 'gi'),
+    (m, w) => 'talla ' + (CLOTHING_SIZES[w.toLowerCase().replace(/\\s+/g, ' ')] || w));
+  return out;
+}
+
 function extractShopSlots(text){
-  const t = tallaWordsToDigits(String(text || ''));
+  const t = clothingWordsToCode(tallaWordsToDigits(String(text || '')));
   const s = ariaShopSlots;
 
   // Budget: "200 soles", "S/200", "s/ 200" -> PEN; "$50" -> USD.
@@ -28779,7 +28799,15 @@ function extractShopSlots(text){
     }
   }
 
-  // Size: "talla 7", "talla cuarenta y dos", "size 9".
+  // Clothing size: "talla M", "camisa grande", "talla única" -> code, note not filter.
+  if ((m = t.match(/\btalla\s+(XS|S|M|L|XL|XXL|Única)\b/i))){
+    s.clothingSize = m[1].toUpperCase() === 'ÚNICA' ? 'Única' : m[1].toUpperCase();
+  } else if ((m = t.match(/\b(XS|S|M|L|XL|XXL)\b/i)) && /\b(camis[ao]|blusa|vestido|pantal[oó]n|ropa|chompa|casaca|polera)\b/i.test(t)){
+    // Bare "M" only counts near a clothing word -- avoids matching stray letters.
+    s.clothingSize = m[1].toUpperCase();
+  }
+
+  // Shoe size: "talla 7", "talla cuarenta y dos", "size 9".
   // 35+ means EU sizing (Peru) -> also store the US approximate.
   if ((m = t.match(/(?:talla|calzo|size)(?:\s+US)?\s*(\d+(?:\.\d+)?)/i))){
     s.size = m[1];
@@ -28838,6 +28866,10 @@ function buildChatSearchQuery(text, recipient){
        "no tengo ese modelo". Strip digit and word forms. */
     .replace(new RegExp('\\btalla\\s+(?:US\\s+)?(?:\\d+(?:\\.\\d+)?|' + TALLA_WORDS_RE + ')\\b', 'gi'), ' ')
     .replace(/\b(?:size|calzo)\s+(?:US\s+)?\d+(?:\.\d+)?\b/gi, ' ')
+    /* Clothing sizes are notes, not filters either: "camisa talla M"
+       searches camisas. */
+    .replace(/\btalla\s+(XS|S|M|L|XL|XXL|única|unica)\b/gi, ' ')
+    .replace(/\btalla\s+(extra\s+chico|extra\s+chica|chico|chica|peque[ñn]o|peque[ñn]a|mediano|mediana|grande|extra\s+grande)\b/gi, ' ')
     .replace(/\b(de|del|mi|mis|que|tiene|a[ñn]os?)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();
