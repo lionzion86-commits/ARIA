@@ -7764,18 +7764,6 @@ function isFootwear(item, retailer){
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
 }
-/* GYM-TRAINING FOOTWEAR (2026-10-02, Danny): the ONLY shoes dual-listed
-   in Gym Rat — weightlifting shoes, CrossFit shoes, training shoes.
-   Cleats, hikers, runners and lifestyle sneakers live only in Zapatos.
-   Narrow: named models + explicit training phrases. Checked only after
-   isFootwear, so "nano" never fires on a tech product. */
-function isGymTrainingFootwear(item){
-  if (!item || typeof item !== 'object') return false;
-  const t = String(item.title || item.name || item.productTitle || item.productName || '');
-  if (!t) return false;
-  return /\b(weightlift\w*|powerlift\w*|crossfit|cross[-\s]?fit|training\s+shoes?|metcon|romaleos|legacy\s+lifter|lifter\s+shoes?)\b/i.test(t)
-    || /\bnano\s*[xv]?\d/i.test(t);
-}
 /* ============================================================
    IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)
    Mirror of scripts/lib/toys.js — the page is a plain <script>
@@ -8545,11 +8533,10 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
-  /* GYM RAT FOOTWEAR (2026-10-02, Danny): no cleats, hikers, runners or
-     lifestyle sneakers — those live only in Zapatos. Only true
-     gym-training footwear (weightlifting, CrossFit, training shoes) is
-     dual-listed here; the rest of Gym Rat is gym clothing + accessories. */
-  if (deptKey === 'gym_rat' && isFootwear(item, retailer) && !isGymTrainingFootwear(item)) return false;
+  /* GYM RAT HAS ZERO FOOTWEAR (2026-10-02, Danny): every shoe lives in
+     Zapatos/Zapatillas only — no cleats, runners, training shoes, no
+     exceptions. Gym Rat is gym clothing + accessories. */
+  if (deptKey === 'gym_rat' && isFootwear(item, retailer)) return false;
   /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
      the retailers' sporting_goods buckets carry them, and the bucket is
      this department's only other signal. Gated on isFootwear so a
@@ -11446,7 +11433,7 @@ const CATEGORY_RAILS = [
     open: "openCatalog('department','curvy')" },
   { key: 'gym_rat', label: 'Gym Rat', icon: '', stores: null, poolOnly: true,
     blurb: 'Ropa y accesorios de gym.',
-    test: (p) => railBucketCategoryIs(p, 'gymrat') && (!isFootwear(p, p.retailer) || isGymTrainingFootwear(p)),
+    test: (p) => railBucketCategoryIs(p, 'gymrat') && !isFootwear(p, p.retailer),
     open: "openCatalog('department','gym_rat')" },
   { key: 'electronics', label: 'Electrónica', icon: '', stores: null, poolOnly: true,
     blurb: 'Tecnología de todas las tiendas.',
