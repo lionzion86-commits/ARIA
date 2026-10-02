@@ -9477,10 +9477,19 @@ function relatedProducts(anchor, pool, opts){
   };
   const take = (list) => { for (const it of list){ if (!eligible(it)) continue; seen.add(relatedKeyOf(it)); out.push(it); } };
 
-  // 1. same department
-  take(pool.filter(it => (it.departments || []).some(d => anchorDepts.has(d))));
-  // 2. backfill from the same store, same band
-  if (out.length < min) take(pool.filter(it => it.retailer === anchor?.retailer));
+  /* CATEGORY-AWARE RANKING (2026-10-02, Danny): a sunglasses page shows
+     sunglasses — same brand first, then the category. The old step 2
+     backfilled from the same STORE across categories, which is how Kohl's
+     suits ended up on a Ray-Ban page. Never again. */
+  const anchorBrand = String(anchor?.brand || '').trim().toLowerCase();
+  const sameDept = (it) => (it.departments || []).some(d => anchorDepts.has(d));
+  const sameBrand = (it) => !!anchorBrand && String(it.brand || '').trim().toLowerCase() === anchorBrand;
+  // 1. same brand + same department (Ray-Ban sunglasses on a Ray-Ban page)
+  if (anchorBrand) take(pool.filter(it => sameBrand(it) && sameDept(it)));
+  // 2. same department (all sunglasses, any brand)
+  take(pool.filter(it => sameDept(it)));
+  // 3. same brand, other departments (e.g. Ray-Ban optical on a sunglasses page)
+  if (anchorBrand && out.length < min) take(pool.filter(it => sameBrand(it) && !sameDept(it)));
   return out;
 }
 
@@ -10446,6 +10455,31 @@ async function renderRelatedRail(anchorIn){
   relatedRendered = picks;
   row.innerHTML = picks.map((p, i) => railCardHTML(p, `openRelatedProduct(${i})`, `data-related="${i}"`)).join('');
   section.hidden = false;
+  /* DRAG-SCROLL (2026-10-02, Danny): grab and drag the rail, not just arrows. */
+  if (typeof enableDragScroll === 'function') enableDragScroll(row);
+}
+/* Generic pointer-drag horizontal scroll for carousels. Idempotent. */
+function enableDragScroll(el){
+  if (!el || el._dragScrollOn) return;
+  el._dragScrollOn = true;
+  let down = false, startX = 0, startL = 0, moved = false;
+  el.addEventListener('pointerdown', (e) => {
+    down = true; moved = false; startX = e.clientX; startL = el.scrollLeft;
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 6) moved = true;
+    if (moved) el.scrollLeft = startL - dx;
+  });
+  const up = () => { down = false; };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', up);
+  /* A drag is not a tap: suppress the click that follows a real drag. */
+  el.addEventListener('click', (e) => {
+    if (moved){ e.stopPropagation(); e.preventDefault(); moved = false; }
+  }, true);
 }
 
 /* ONE STORE PER CARD IN THE OPENING RUN.
@@ -11831,6 +11865,48 @@ function sunglassesFaceFilter(shape){
   renderCatalogFeed();
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
+/* CAROUSEL CITY (2026-10-02, Danny): generic brand carousels — one rail
+   per brand, brand aggregated across all stores. Appended after every
+   section's store rails. Sections with bespoke brand rails (sunglasses
+   brand wall, jewelry storefronts) opt out via _NO_GENERIC_BRANDS. */
+var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1 };
+function deptBrandCarouselsHTML(items, sectionKey){
+  if (_NO_GENERIC_BRANDS[sectionKey]) return '';
+  var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
+  if (list.length < 8) return '';
+  var byBrand = {}, i, p, b;
+  for (i = 0; i < list.length; i++){
+    p = list[i]; b = String(p.brand || '').trim();
+    if (!b || /^(otras marcas|unknown|generic|sin marca|unbranded)/i.test(b)) continue;
+    (byBrand[b] = byBrand[b] || []).push(p);
+  }
+  var brands = Object.keys(byBrand).filter(function(k){ return byBrand[k].length >= 4; });
+  brands.sort(function(a, b2){ return byBrand[b2].length - byBrand[a].length; });
+  brands = brands.slice(0, 8);
+  if (brands.length < 2) return '';
+  var retailerKeys = [], seen = {}, j;
+  for (j = 0; j < list.length; j++){ var r = list[j] && list[j].retailer; if (r && !seen[r]){ seen[r] = 1; retailerKeys.push(r); } }
+  var blocks = [], k, picks;
+  var usePicks = (typeof categoryRailPicks === 'function');
+  var useSection = (typeof deptRailSectionHTML === 'function');
+  var useHead = (typeof deptMixedRailHeadHTML === 'function');
+  if (!usePicks || !useSection || !useHead) return '';
+  for (k = 0; k < brands.length; k++){
+    b = brands[k];
+    var pool = byBrand[b].slice().sort(function(x, y){
+      var sx = (typeof rawItemOnSale === 'function' && rawItemOnSale(x)) ? 1 : 0;
+      var sy = (typeof rawItemOnSale === 'function' && rawItemOnSale(y)) ? 1 : 0;
+      return sy - sx || Number(y.price) - Number(x.price);
+    });
+    picks = categoryRailPicks(retailerKeys, [], pool, {}, 12, {});
+    if (picks && picks.length >= 4){
+      blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
+        deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+    }
+  }
+  return blocks.join('');
+}
+
 /* ============================================================================
    THEME REBUILD (2026-10-02, Danny): every department gets its own feel.
    Hero + store-first rails per section. Integrated from worker snippets;
@@ -17805,6 +17881,12 @@ function renderCatalogFeed(){
       }[catalogState.key];
       if (catalogState.key === 'moms' && catalogState.subKey) _railFn = null;
       if (_railFn){ try { deptRails = _railFn() || ''; } catch (_re){ deptRails = ''; } }
+      /* CAROUSEL CITY: brand carousels after store carousels */
+      try {
+        var _brandRails = (typeof deptBrandCarouselsHTML === 'function')
+          ? deptBrandCarouselsHTML(sgFiltered, catalogState.key) : '';
+        if (_brandRails) deptRails += _brandRails;
+      } catch (_be){}
     }
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, sgFiltered);
     revealActiveChips(sections);
