@@ -7562,6 +7562,13 @@ gym_rat:         { category: 'gymrat' },
    ============================================================ */
 const FOOTWEAR_TYPE = /\b(SHOES?|SNEAKERS?|BOOTS?|SANDALS?|SLIPPERS?|LOAFERS?|MOCCASINS?|ESPADRILLES?|MONKSTRAPS?|CLOGS?|MULES?|HEELS?|PUMPS?|DERBY|DERBIES|BROGUES?|LACE UPS|OXFORDS?|ZAPATILLAS?|ZAPATOS?|BOTAS?|BOTINES?|SANDALIAS?|TACONES?|PANTUFLAS?|MOCASINES?|ZUECOS?)\b/;
 const FOOTWEAR_TITLE = /\b(shoes?|sneakers?|boots?|booties|bootie|sandals?|slides?|flip[- ]?flops?|cleats?|loafers?|moccasins?|espadrilles?|heels?|clogs?|slippers?|mules?|oxfords?|zapatillas?|zapatos?|botas?|botines?|sandalias?|tacones?|pantuflas?|mocasines?|zuecos?)\b/i;
+/* CLEAT MODELS + HIKERS (2026-10-02, Danny): soccer-cleat model names
+   that never say "cleat" (New Balance Tekela/Furon), FG/MG
+   firm-ground/multi-ground version markers, "tacos" (Spanish for cleats),
+   and hiker models — none of these tripped FOOTWEAR_TITLE, so cleats and
+   hikers leaked into Gym Rat instead of living in Zapatos. Narrow on
+   purpose: model names and ground markers, never bare "FG"/"MG". */
+const CLEAT_HIKER_RX = /\b(tekela|furon|tacos|hikers?|hiking)\b|\b[FM]G\s*V\d|firm[-\s]?ground|multi[-\s]?ground/i;
 /* "Sock" is a shoe STYLE as well as a garment: "Sock Sneakers" and "Sock
    Boots" are real SSENSE footwear, so the socks veto carries a negative
    lookahead and does not fire when a footwear noun follows the word. */
@@ -7598,7 +7605,7 @@ function isFootwearTitle(title){
   const t = String(title ?? '');
   if (!t) return false;
   if (NOT_FOOTWEAR.test(t)) return false;
-  return FOOTWEAR_TITLE.test(t);
+  return FOOTWEAR_TITLE.test(t) || CLEAT_HIKER_RX.test(t);
 }
 function isFootwear(item, retailer){
   if (!item || typeof item !== 'object') return false;
@@ -7618,6 +7625,18 @@ function isFootwear(item, retailer){
   if (item.type) return isFootwearType(item.type);
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
+}
+/* GYM-TRAINING FOOTWEAR (2026-10-02, Danny): the ONLY shoes dual-listed
+   in Gym Rat — weightlifting shoes, CrossFit shoes, training shoes.
+   Cleats, hikers, runners and lifestyle sneakers live only in Zapatos.
+   Narrow: named models + explicit training phrases. Checked only after
+   isFootwear, so "nano" never fires on a tech product. */
+function isGymTrainingFootwear(item){
+  if (!item || typeof item !== 'object') return false;
+  const t = String(item.title || item.name || item.productTitle || item.productName || '');
+  if (!t) return false;
+  return /\b(weightlift\w*|powerlift\w*|crossfit|cross[-\s]?fit|training\s+shoes?|metcon|romaleos|legacy\s+lifter|lifter\s+shoes?)\b/i.test(t)
+    || /\bnano\s*[xv]?\d/i.test(t);
 }
 /* ============================================================
    IS THIS A TOY-AISLE SKATEBOARD? (2026-09-26, Danny)
@@ -8388,10 +8407,11 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
 
   const bucket = BUCKET_SPEC[bucketName];
   if (!bucket || bucket.category !== dept.category) return false;
-  /* GYM RAT (2026-09-26, Danny): zero shoes — shoes live in Zapatos /
-     Foot Locker only. Gym Rat is gym clothing + gym accessories (bags,
-     belts, etc.) from the gym brands' gymrat buckets. */
-  if (deptKey === 'gym_rat' && isFootwear(item, retailer)) return false;
+  /* GYM RAT FOOTWEAR (2026-10-02, Danny): no cleats, hikers, runners or
+     lifestyle sneakers — those live only in Zapatos. Only true
+     gym-training footwear (weightlifting, CrossFit, training shoes) is
+     dual-listed here; the rest of Gym Rat is gym clothing + accessories. */
+  if (deptKey === 'gym_rat' && isFootwear(item, retailer) && !isGymTrainingFootwear(item)) return false;
   /* Deportes refuses dress shoes per item (see NON_ATHLETIC_FOOTWEAR):
      the retailers' sporting_goods buckets carry them, and the bucket is
      this department's only other signal. Gated on isFootwear so a
@@ -11248,7 +11268,7 @@ const CATEGORY_RAILS = [
     open: "openCatalog('department','curvy')" },
   { key: 'gym_rat', label: 'Gym Rat', icon: '', stores: null, poolOnly: true,
     blurb: 'Ropa y accesorios de gym.',
-    test: (p) => railBucketCategoryIs(p, 'gymrat') && !isFootwear(p, p.retailer),
+    test: (p) => railBucketCategoryIs(p, 'gymrat') && (!isFootwear(p, p.retailer) || isGymTrainingFootwear(p)),
     open: "openCatalog('department','gym_rat')" },
   { key: 'electronics', label: 'Electrónica', icon: '', stores: null, poolOnly: true,
     blurb: 'Tecnología de todas las tiendas.',
