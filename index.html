@@ -690,6 +690,21 @@
     border:1px solid rgba(255,255,255,0.09) }
   .ariaSgTierCard .t{ font-size:16px; font-weight:800; color:#fff; letter-spacing:-0.01em }
   .ariaSgTierCard .s{ font-size:12px; font-weight:600; color:rgba(255,255,255,0.65); margin-top:2px }
+  /* LENTES DE SOL DEPT THEME (2026-10-02, Danny): the department is not
+     a white page -- it is the inside of the shop. Deep espresso base with
+     the boutique backdrop heavily blurred and darkened behind it,
+     illuminated-shelf amber hairlines, warm gold headers. Product cards
+     stay light so the frames pop. */
+  .ariaSgDept{ position:relative; border-radius:24px; overflow:hidden;
+    background:linear-gradient(165deg, #191007 0%, #251a10 48%, #120d07 100%);
+    border:1px solid rgba(244,196,99,0.16);
+    padding:26px 18px 8px; margin:0 0 36px }
+  .ariaSgDept::before{ content:''; position:absolute; inset:-48px; z-index:0;
+    background:url('assets/category/sunglasses-dept-backdrop.jpg') center/cover no-repeat;
+    filter:blur(30px) brightness(.55) saturate(1.15); opacity:.38; pointer-events:none }
+  .ariaSgDept > *{ position:relative; z-index:1 }
+  .ariaSgDeptHair{ height:2px; border-radius:2px; margin:2px 4px 20px;
+    background:linear-gradient(90deg, transparent, rgba(244,196,99,.55), transparent) }
   /* DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
      entry point the section was missing -- a full-width fashion-week
      moment (runway photo, navy scrim, gold accents) that breaks the
@@ -9293,6 +9308,7 @@ function openMobileDeal(idx){
    white frames. opts.dark selects it; every other surface keeps white cards. */
 function railCardHTML(p, onclick, attr, opts){
   const dark = !!(opts && opts.dark);
+  const xl = !!(opts && opts.xl);
   const swipeImgs = cardSwipeList(p);
   const pct = discountPct(p);
   const original = Number(p.originalPrice);
@@ -9300,9 +9316,9 @@ function railCardHTML(p, onclick, attr, opts){
   const ink = dark ? '#fff' : 'var(--navy)';
   const dim = dark ? '#AFBBD6' : '#6B7487';
   return `<button onclick="${onclick}" ${attr}
-    class="flex-shrink-0 w-[172px] text-left rounded-2xl overflow-hidden focus-ring"
+    class="flex-shrink-0 w-${xl ? '[224px]' : '[172px]'} text-left rounded-2xl overflow-hidden focus-ring"
     style="background:${dark ? '#1a2744' : '#fff'}">
-    <span class="relative block w-full h-[172px] overflow-hidden" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(p) : ''}>
+    <span class="relative block w-full h-${xl ? '[224px]' : '[172px]'} overflow-hidden" style="background:#fff"${swipeImgs ? cardSwipeDataAttr(p) : ''}>
       ${cardPhotoHTML(p.image, { fallbackSrc: imageRetryUrl(p.image), eager: true })}
       ${hasOriginal ? `<span class="absolute top-2 left-2 text-[13px] font-extrabold px-2 py-1 rounded-full"
         style="background:#F4C463; color:var(--navy)">-${pct}%</span>` : ''}
@@ -11426,12 +11442,12 @@ function openDeptRailProduct(railId, idx){
     { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
 }
 
-function deptRailSectionHTML(railId, ariaLabel, headHTML, picks){
+function deptRailSectionHTML(railId, ariaLabel, headHTML, picks, opts){
   if (!Array.isArray(picks) || !picks.length) return '';
   deptRailsRendered[railId] = picks;
   const cards = picks.map((p, i) => railCardHTML(p,
     `openDeptRailProduct('${jsAttr(railId)}',${i})`,
-    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`)).join('');
+    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
   return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">
     <div class="flex items-center justify-between gap-3 mb-3">${headHTML}</div>
     <div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div>
@@ -11660,6 +11676,20 @@ function sunglassesTierOf(p){
   const price = Number(p && p.price) || 0;
   return price >= SUNGLASSES_LUJO_MIN ? 'lujo' : 'accesibles';
 }
+/* Gold-on-dark rail header for the Sunglass Hut department: the shared
+   navy header would vanish on the espresso theme. An optional brand adds
+   a "Ver todo" that filters the feed to that brand. */
+function sunglassesRailHeadHTML(title, sub, brand){
+  const slug = brand ? String(brand).replace(/'/g, "\\'") : '';
+  const verTodo = slug
+    ? '<button onclick="sunglassesBrandFilter(\'' + slug + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo &#8594;</button>'
+    : '';
+  return '<span class="min-w-0">'
+    + '<span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:#F4C463">' + escapeHtml(title) + '</span>'
+    + (sub ? '<span class="block text-[12px] font-semibold mt-0.5" style="color:rgba(255,243,220,0.62)">' + escapeHtml(sub) + '</span>' : '')
+    + '</span>' + verTodo;
+}
 function sunglassesDeptRailsHTML(items){
   const list = (Array.isArray(items) ? items : []).filter(p => p && Number(p.price) > 0 && p.image);
   if (!list.length) return '';
@@ -11667,23 +11697,25 @@ function sunglassesDeptRailsHTML(items){
   const noKeys = new Set();
   const blocks = [];
   const saleFirst = arr => [...arr].sort((a, b) => (rawItemOnSale(b) ? 1 : 0) - (rawItemOnSale(a) ? 1 : 0));
-  /* ---- BRAND WALL: one tile per brand, like the wall in the store. ---- */
+  /* ---- BRAND CAROUSELS (2026-10-02, Danny): one rail per brand, like
+     walking the brand wall in Sunglass Hut -- Ray-Ban has its wall, Oakley
+     has its wall. Large cards so the frames read; sale-first inside each
+     brand. The tiers follow below. ---- */
+  const brandOf = (p) => String((p && p.brand) || 'Otras marcas').trim() || 'Otras marcas';
   const brandCounts = {};
-  for (const p of list){
-    const b = String(p.brand || 'Otras marcas').trim() || 'Otras marcas';
-    brandCounts[b] = (brandCounts[b] || 0) + 1;
-  }
-  const brands = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-  if (brands.length >= 2){
-    const tiles = brands.map(([b, c]) =>
-      '<button onclick="sunglassesBrandFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="ariaSgTierCard focus-ring" style="min-width:148px;background:linear-gradient(135deg,#1B1610,#2A2118)">'
-      + '<span class="t">' + escapeHtml(b) + '</span>'
-      + '<span class="s">' + c + ' modelo' + (c === 1 ? '' : 's') + '</span></button>').join('');
-    blocks.push('<section aria-label="Marcas" class="mb-9">'
-      + '<div class="flex items-center justify-between gap-3 mb-3">'
-      + deptMixedRailHeadHTML('Por marca', 'La pared de marcas — elige tu favorita') + '</div>'
-      + '<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">' + tiles + '</div></section>');
+  for (const p of list) brandCounts[brandOf(p)] = (brandCounts[brandOf(p)] || 0) + 1;
+  const brandNames = Object.entries(brandCounts)
+    .filter((entry) => entry[1] >= 4)
+    .sort((a, b) => b[1] - a[1])
+    .map((entry) => entry[0]);
+  for (const b of brandNames){
+    const pool = saleFirst(list.filter((p) => brandOf(p) === b));
+    const picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, {});
+    if (!picks.length) continue;
+    const slug = b.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'otras';
+    blocks.push(deptRailSectionHTML('sunglasses-brand-' + slug, 'Lentes de sol ' + b,
+      sunglassesRailHeadHTML(b, brandCounts[b] + ' modelo' + (brandCounts[b] === 1 ? '' : 's'), b),
+      picks, { xl: true }));
   }
   /* ---- LUJO: $200+, fancy first (Miu Miu lead per Danny's standing rule). ---- */
   const lujo = list.filter(p => sunglassesTierOf(p) === 'lujo');
@@ -11694,7 +11726,7 @@ function sunglassesDeptRailsHTML(items){
       || Number(b.price) - Number(a.price));
     const picks = categoryRailPicks(retailerKeys, [], fancyFirst, noKeys, CATEGORY_RAIL_TOTAL, {});
     if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-lujo', 'Lentes de lujo',
-      deptMixedRailHeadHTML('Lujo', lujo.length + ' modelos premium'), picks));
+      sunglassesRailHeadHTML('Lujo', lujo.length + ' modelos premium'), picks));
   }
   /* ---- OFERTAS: real discounts, biggest first. ---- */
   const onSale = saleFirst(list.filter(rawItemOnSale));
@@ -11706,14 +11738,14 @@ function sunglassesDeptRailsHTML(items){
     });
     const picks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, {});
     if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-ofertas', 'Lentes en oferta',
-      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), picks));
+      sunglassesRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), picks));
   }
   /* ---- ACCESIBLES: under $200, sale first then catalogue order. ---- */
   const accesibles = saleFirst(list.filter(p => sunglassesTierOf(p) === 'accesibles'));
   if (accesibles.length >= 4){
     const picks = categoryRailPicks(retailerKeys, accesibles.filter(rawItemOnSale), accesibles, noKeys, CATEGORY_RAIL_TOTAL, {});
     if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-accesibles', 'Lentes accesibles',
-      deptMixedRailHeadHTML('Accesibles', accesibles.length + ' para el día a día'), picks));
+      sunglassesRailHeadHTML('Accesibles', accesibles.length + ' para el día a día'), picks));
   }
   /* ---- GUÍA DE ESTILO: face-shape fit guide (lightweight, data-driven). ---- */
   const faceShapes = {};
@@ -11734,10 +11766,15 @@ function sunglassesDeptRailsHTML(items){
       + ' <span style="opacity:.6;font-weight:600">&nbsp;· ' + c + '</span></button>').join('');
     blocks.push('<section aria-label="Guía de estilo" class="mb-9">'
       + '<div class="flex items-center justify-between gap-3 mb-3">'
-      + deptMixedRailHeadHTML('Guía de estilo', 'Encuentra el armazón para tu rostro') + '</div>'
+      + sunglassesRailHeadHTML('Guía de estilo', 'Encuentra el armazón para tu rostro') + '</div>'
       + '<div class="flex flex-wrap gap-2">' + chips + '</div></section>');
   }
-  return blocks.join('');
+  if (!blocks.length) return '';
+  /* The whole department sits inside the store: the espresso theme wraps
+     the rails so the page never drops back to plain white. */
+  return '<div class="ariaSgDept">'
+    + '<div class="ariaSgDeptHair" aria-hidden="true"></div>'
+    + blocks.join('') + '</div>';
 }
 /* Face-shape filter: narrows the feed to frames suited to a face shape. */
 function sunglassesFaceFilter(shape){
