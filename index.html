@@ -89,12 +89,20 @@
     background-size: cover, cover; background-position: center top, center top;
     background-repeat: no-repeat, no-repeat;
   }
+  /* FASHION-SHOW BACKDROP (2026-10-02, Danny): the gigantic runway-stage
+     photo sits full-bleed under everything; a pink-to-deeper-pink wash
+     runs the whole section so the store still reads VS pink all the way
+     down (2026-09-24: Danny — keep it pink all the way down). */
   [data-store-theme="victoriassecret"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(255,110,170,.25), rgba(255,110,170,0) 70%),
-      radial-gradient(620px 330px at 88% 4%, rgba(227,28,121,.22), rgba(227,28,121,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(140,20,80,.35), rgba(140,20,80,0) 72%),
-      linear-gradient(180deg, #D6337F 0%, #A81E63 52%, #7E1749 100%);
+    background-image:
+      radial-gradient(560px 300px at 12% -4%, rgba(255,110,170,.30), rgba(255,110,170,0) 70%),
+      radial-gradient(620px 330px at 88% 4%, rgba(227,28,121,.28), rgba(227,28,121,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(140,20,80,.40), rgba(140,20,80,0) 72%),
+      linear-gradient(180deg, rgba(214,51,127,.80) 0%, rgba(168,30,99,.86) 52%, rgba(126,23,73,.94) 100%),
+      url('assets/stores/victorias-secret-backdrop.jpg');
+    background-size: cover, cover, cover, cover, cover;
+    background-position: center top, center top, center top, center top, center top;
+    background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, no-repeat;
   }
   /* Headings turn bridal-white, helper text turns soft rose — both hold
      well past 7:1 against the base. */
@@ -12133,6 +12141,10 @@ function deptBrandCarouselsHTML(items, sectionKey){
   for (i = 0; i < list.length; i++){
     p = list[i]; b = String(p.brand || '').trim();
     if (!b || /^(otras marcas|unknown|generic|sin marca|unbranded)/i.test(b)) continue;
+    /* CAROUSEL CITY BATCH VS: brand-store families (VS, Skims, Miu Miu)
+       get the canonical dual rail via vsBrandStoreRailsHTML — never the
+       generic one too (no duplicate rails). */
+    if (typeof vsBrandStoreBrandOf === 'function' && vsBrandStoreBrandOf(p)) continue;
     (byBrand[b] = byBrand[b] || []).push(p);
   }
   var brands = Object.keys(byBrand).filter(function(k){ return byBrand[k].length >= 4; });
@@ -12160,6 +12172,57 @@ function deptBrandCarouselsHTML(items, sectionKey){
     }
   }
   return blocks.join('');
+}
+/* CAROUSEL CITY BATCH VS (2026-10-02, Danny): Victoria's Secret exceptional
+   treatment — dual store+brand. VS is BOTH a store (fashion-show backdrop,
+   STORE_BACKDROPS row above) and a brand. This renders the brand axis for
+   VS plus the same dual treatment for the other brands-that-are-also-stores
+   found in the VS-adjacent departments (beauty, women): Skims, Miu Miu.
+   Built on the canonical PR #266 helper — detection delegates to
+   realBrandOf so a retailer name is never mistaken for a brand, then folds
+   each brand-store's name variants (PINK -> Victoria's Secret) into one
+   rail, aggregated across every retailer that carries it. */
+var VS_BRAND_STORE_SECTIONS = { beauty: 1, women: 1 };
+var VS_BRAND_STORE_FAMILIES = [
+  { key: 'victoriassecret', label: "Victoria's Secret",
+    match: function(b){ return /victoria'?s?\s*secret/i.test(b) || /^pink$/i.test(b); } },
+  { key: 'skims', label: 'Skims',
+    match: function(b){ return /^skims$/i.test(b); } },
+  { key: 'miumiu', label: 'Miu Miu',
+    match: function(b){ return /^miu\s*miu$/i.test(b); } },
+];
+/* Brand-store family label for one item, or '' — realBrandOf first so the
+   detection matches the axis contract, then the family fold. */
+function vsBrandStoreBrandOf(item){
+  var raw = String((item && item.brand) || '').trim();
+  if (!raw) return '';
+  /* realBrandOf first, per the axis contract — then the deliberate
+     exception: it excludes retailer names (a retailer is never a
+     brand), so these brand-store families match against the raw
+     string, letting "Victoria's Secret" resolve to its family. */
+  var detected = (typeof realBrandOf === 'function') ? realBrandOf(item) : raw;
+  var b = detected || raw;
+  for (var i = 0; i < VS_BRAND_STORE_FAMILIES.length; i++){
+    var f = VS_BRAND_STORE_FAMILIES[i];
+    try { if (f.match(b)) return f.label; } catch (e){}
+  }
+  return '';
+}
+/* The dual rails: one XL carousel per brand-store family present in the
+   department (4+ productos), via the canonical brandCarouselsHTML — the
+   department's POR MARCA axis. VS-adjacent departments only. */
+function vsBrandStoreRailsHTML(items, sectionKey){
+  if (!VS_BRAND_STORE_SECTIONS[sectionKey]) return '';
+  if (typeof brandCarouselsHTML !== 'function') return '';
+  var list = (typeof carouselCityValidItems === 'function')
+    ? carouselCityValidItems(items) : [];
+  list = list.filter(function(p){ return !!vsBrandStoreBrandOf(p); });
+  if (list.length < 4) return '';
+  return brandCarouselsHTML('vs-dual', list, {
+    brandOf: vsBrandStoreBrandOf,
+    brandRailMin: 4,
+    idPrefix: 'vs-dual-' + sectionKey
+  });
 }
 /* ============================================================================
    CAROUSEL CITY — CANONICAL SHARED HELPER (2026-10-02, Batch 0).
@@ -18690,6 +18753,14 @@ function renderCatalogFeed(){
           ? deptStoreCarouselsHTML(sgFiltered, catalogState.key) : '';
         if (_storeRails) deptRails += _storeRails;
       } catch (_se){}
+      /* CAROUSEL CITY BATCH VS (2026-10-02): Victoria's Secret
+         exceptional treatment — the brand-store dual rails (VS, Skims,
+         Miu Miu) lead the Por marca axis via the canonical helper. */
+      try {
+        var _vsDualRails = (typeof vsBrandStoreRailsHTML === 'function')
+          ? vsBrandStoreRailsHTML(sgFiltered, catalogState.key) : '';
+        if (_vsDualRails) deptRails += _vsDualRails;
+      } catch (_vse){}
       try {
         var _brandRails = (typeof deptBrandCarouselsHTML === 'function')
           ? deptBrandCarouselsHTML(sgFiltered, catalogState.key) : '';
@@ -23655,6 +23726,7 @@ const STORE_BACKDROPS = {
   sunglasshut: 'assets/stores/sunglasshut.jpg',
   dyson: 'assets/stores/dyson.jpg',
   farfetch: 'assets/stores/farfetch.jpg',
+  victoriassecret: 'assets/stores/victorias-secret-backdrop.jpg',
 };
 const STORE_THEMES = {
   /* VICTORIA'S SECRET — moody plum-charcoal, soft pink glow. In Peru VS
