@@ -155,48 +155,62 @@
   /* Rail titles ink light on the VS plum, the way the subtitles do. A
      future dark theme adds its own .ariaCarouselTitle line here. */
   [data-store-theme="victoriassecret"] .ariaCarouselTitle{ color:#FDF3F7 !important; }
-  /* WALMART — everyday value, bright aisles, yellow spark energy
-     True Blue #0071CE + Spark Yellow #FFC220 over deep store-blue.
+  /* WALMART (2026-10-02, Danny): no more dark navy. The page IS Walmart
+     blue (#0071CE) — it opens on a real photo of the store interior
+     (see .storePhotoHero) that fades down into the blue, and the blue
+     carries the rest of the page. Blue and yellow (#FFC220), no confusion.
   */
   [data-store-theme="walmart"]{
-    background:
-      radial-gradient(560px 300px at 12% -4%, rgba(46,155,235,0.32), rgba(46,155,235,0) 70%),
-      radial-gradient(620px 330px at 88% 4%, rgba(255,194,32,0.22), rgba(255,194,32,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(14,77,164,0.36), rgba(14,77,164,0) 72%),
-      linear-gradient(180deg, #0B1E38 0%, #081627 52%, #050F1D 100%);
+    background:linear-gradient(180deg, #0071CE 0%, #005FAE 100%);
   }
   [data-store-theme="walmart"] h1{ color:#FFFFFF; }
   [data-store-theme="walmart"] #catalogSubtitle,
   [data-store-theme="walmart"] #storeViewSubtitle,
-  [data-store-theme="walmart"] #storeResultsSubtitle{ color:#ACCFF7; }
-  [data-store-theme="walmart"] .themeBack{ color:#CFE2FF !important; }
+  [data-store-theme="walmart"] #storeResultsSubtitle{ color:#EAF3FD; }
+  [data-store-theme="walmart"] #storeViewDelivery{ color:#FFFFFF !important; }
+  [data-store-theme="walmart"] .themeBack{ color:#FFFFFF !important; }
   [data-store-theme="walmart"] .themeChips [aria-pressed="true"]{
-    background:#0071CE !important; border-color:#4DA3E8 !important; color:#fff !important;
+    background:#0071CE !important; border-color:#FFC220 !important; color:#fff !important;
   }
-  [data-store-theme="walmart"] .themeChips .chipLabel{ color:#ACCFF7 !important; }
+  [data-store-theme="walmart"] .themeChips .chipLabel{ color:#EAF3FD !important; }
   [data-store-theme="walmart"] #catalogSort{ border-color:#7FB8EE !important; }
   [data-store-theme="walmart"] .ariaCarouselTitle{ color:#FFFFFF !important; }
-  /* TARGET — playful cheap-chic, bullseye optimism
-     Target Red #CC0000 breathing over warm charcoal-red.
+  /* TARGET (2026-10-02, Danny): no more dark maroon. The page IS Target
+     red (#CC0000) — it opens on a real photo of the store interior
+     (see .storePhotoHero) that fades down into the red, and the red
+     carries the rest of the page. Red and white, nothing else.
   */
   [data-store-theme="target"]{
-    background:
-      radial-gradient(560px 300px at 14% -4%, rgba(240,68,56,0.3), rgba(240,68,56,0) 70%),
-      radial-gradient(600px 320px at 86% 6%, rgba(255,138,122,0.2), rgba(255,138,122,0) 70%),
-      radial-gradient(900px 560px at 50% 118%, rgba(122,31,26,0.36), rgba(122,31,26,0) 72%),
-      linear-gradient(180deg, #210D0D 0%, #180A0A 52%, #100606 100%);
+    background:linear-gradient(180deg, #CC0000 0%, #A20000 100%);
   }
   [data-store-theme="target"] h1{ color:#FFFFFF; }
   [data-store-theme="target"] #catalogSubtitle,
   [data-store-theme="target"] #storeViewSubtitle,
-  [data-store-theme="target"] #storeResultsSubtitle{ color:#F3B8B0; }
-  [data-store-theme="target"] .themeBack{ color:#D6E4FF !important; }
+  [data-store-theme="target"] #storeResultsSubtitle{ color:#FFE9E7; }
+  [data-store-theme="target"] #storeViewDelivery{ color:#FFFFFF !important; }
+  [data-store-theme="target"] .themeBack{ color:#FFFFFF !important; }
   [data-store-theme="target"] .themeChips [aria-pressed="true"]{
-    background:#CC0000 !important; border-color:#F06666 !important; color:#fff !important;
+    background:#CC0000 !important; border-color:#FFFFFF !important; color:#fff !important;
   }
-  [data-store-theme="target"] .themeChips .chipLabel{ color:#F3B8B0 !important; }
-  [data-store-theme="target"] #catalogSort{ border-color:#E8A9A9 !important; }
+  [data-store-theme="target"] .themeChips .chipLabel{ color:#FFE9E7 !important; }
+  [data-store-theme="target"] #catalogSort{ border-color:#F0A0A0 !important; }
   [data-store-theme="target"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* STORE PHOTO HERO (2026-10-02, Danny): Walmart and Target open on a
+     real interior photo of the actual store — the shopper should feel
+     like they are walking in. The mask fades the photo's lower half to
+     transparent so the brand color takes over down the page. Full-bleed:
+     the negative margins cancel the view's px-5 py-10. Local assets only,
+     never hotlinked (assets/stores/). */
+  .storePhotoHero{
+    height:300px;
+    margin:-40px -20px 26px;
+    background-size:cover; background-position:center 35%; background-repeat:no-repeat;
+    -webkit-mask-image:linear-gradient(180deg, #000 52%, transparent 98%);
+    mask-image:linear-gradient(180deg, #000 52%, transparent 98%);
+  }
+  .storePhotoHero--walmart{ background-image:url('assets/stores/walmart-interior.jpg'); }
+  .storePhotoHero--target{ background-image:url('assets/stores/target-interior.jpg'); }
+  @media (min-width:640px){ .storePhotoHero{ height:380px; } }
   /* OLD NAVY — upbeat Americana, nautical navy-and-white
      Real Old Navy navy #003764 lifted bright; a whisper of flag red.
   */
@@ -19848,7 +19862,23 @@ async function openStore(retailer){
   showPage('storeView');
   applyStoreTheme('storeView', retailer);
   await loadFxRate();
-  document.getElementById('storeViewHero').innerHTML = retailerBadgeHTML(retailer, 44);
+  /* STORE PHOTO HERO (2026-10-02, Danny): Walmart and Target open on a
+     real interior photo of the actual store (see .storePhotoHero in the
+     <style> block) fading down into the brand color. The logos ride on
+     the white chip here: Walmart's blue wordmark and Target's red
+     bullseye would vanish straight onto the brand-color page. */
+  const __photoStore = (retailer === 'walmart' || retailer === 'target') ? retailer : '';
+  document.getElementById('storeViewHero').innerHTML =
+    retailerBadgeHTML(retailer, 44, __photoStore ? { dark: true } : undefined);
+  const __storeViewInner = document.querySelector('#storeView > div');
+  if (__storeViewInner){
+    const __oldHero = __storeViewInner.querySelector('.storePhotoHero');
+    if (__oldHero) __oldHero.remove();
+    if (__photoStore){
+      __storeViewInner.insertAdjacentHTML('afterbegin',
+        '<div class="storePhotoHero storePhotoHero--' + __photoStore + '" role="img" aria-label="Interior de la tienda ' + (__photoStore === 'walmart' ? 'Walmart' : 'Target') + '"></div>');
+    }
+  }
   document.getElementById('storeViewSubtitle').textContent = 'Cargando artículos…';
   /* DELIVERY TRANSPARENCY (2026-09-26): the store's Miami transit range,
      stated on the storefront before a single product is looked at. */
@@ -20095,7 +20125,10 @@ async function openStoreResults(retailer, query){
   applyStoreTheme('storeResultsView', retailer);
   await loadFxRate();
   storeResultsReturnQuery = query;
-  document.getElementById('storeResultsHero').innerHTML = retailerBadgeHTML(retailer, 32);
+  /* Same white-chip rule as the storeView hero (2026-10-02): the brand-color
+     page would swallow Walmart's blue wordmark and Target's red bullseye. */
+  document.getElementById('storeResultsHero').innerHTML =
+    retailerBadgeHTML(retailer, 32, (retailer === 'walmart' || retailer === 'target') ? { dark: true } : undefined);
   document.getElementById('storeResultsSubtitle').textContent = `Buscando "${query}" en vivo…`;
   document.getElementById('storeResultsGrid').innerHTML = '';
   try {
