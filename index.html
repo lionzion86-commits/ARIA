@@ -28726,13 +28726,31 @@ let ariaShopSlots = { maxPriceUSD: null, maxPriceLabel: null, size: null, style:
 
 /* SIZE WORDS (2026-10-01, Danny): shoppers say "talla diez", not "talla 10".
    Map Spanish number words to digits so the size slot catches both. */
-const TALLA_WORDS = {uno:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9',diez:'10',once:'11',doce:'12',trece:'13',catorce:'14',quince:'15',dieciseis:'16',dieciséis:'16',diecisiete:'17',dieciocho:'18',diecinueve:'19',veinte:'20'};
-const TALLA_WORDS_RE = Object.keys(TALLA_WORDS).join('|');
+/* FULL 1-45 MAP. Peru shops in EU sizes (35-45); older shoppers especially
+   say "talla cuarenta y dos", never "size 9". Multi-word forms first. */
+const TALLA_WORDS = {
+  'uno':'1','dos':'2','tres':'3','cuatro':'4','cinco':'5','seis':'6','siete':'7','ocho':'8','nueve':'9','diez':'10',
+  'once':'11','doce':'12','trece':'13','catorce':'14','quince':'15',
+  'dieciseis':'16','dieciséis':'16','diecisiete':'17','dieciocho':'18','diecinueve':'19','veinte':'20',
+  'veintiuno':'21','veintidos':'22','veintidós':'22','veintitres':'23','veintitrés':'23','veinticuatro':'24',
+  'veinticinco':'25','veintiseis':'26','veintiséis':'26','veintisiete':'27','veintiocho':'28','veintinueve':'29',
+  'treinta':'30','treinta y uno':'31','treinta y dos':'32','treinta y tres':'33','treinta y cuatro':'34',
+  'treinta y cinco':'35','treinta y seis':'36','treinta y siete':'37','treinta y ocho':'38','treinta y nueve':'39',
+  'cuarenta':'40','cuarenta y uno':'41','cuarenta y dos':'42','cuarenta y tres':'43','cuarenta y cuatro':'44',
+  'cuarenta y cinco':'45'
+};
+/* Longest-first so "treinta y cinco" wins over "treinta". */
+const TALLA_WORDS_RE = Object.keys(TALLA_WORDS).sort((a, b) => b.length - a.length).join('|');
 
 function tallaWordsToDigits(text){
   return String(text || '').replace(new RegExp('\\btalla\\s+(' + TALLA_WORDS_RE + ')\\b', 'gi'),
-    (m, w) => 'talla ' + (TALLA_WORDS[w.toLowerCase()] || w));
+    (m, w) => 'talla ' + (TALLA_WORDS[w.toLowerCase().replace(/\\s+/g, ' ')] || w));
 }
+
+/* EU -> US men's approximate. Peru's 35-45 are EU; US stores list US sizes.
+   Aria notes both so the shopper picks right on the product page. */
+const EU_TO_US = {'35':'3','36':'4','37':'5','38':'6','39':'6.5','40':'7','41':'8','42':'9','43':'10','44':'11','45':'12'};
+function euToUs(eu){ return EU_TO_US[String(eu)] || null; }
 
 function extractShopSlots(text){
   const t = tallaWordsToDigits(String(text || ''));
@@ -28761,9 +28779,18 @@ function extractShopSlots(text){
     }
   }
 
-  // Size: "talla 7", "calzo 7", "size 7".
+  // Size: "talla 7", "talla cuarenta y dos", "size 9".
+  // 35+ means EU sizing (Peru) -> also store the US approximate.
   if ((m = t.match(/(?:talla|calzo|size)(?:\s+US)?\s*(\d+(?:\.\d+)?)/i))){
     s.size = m[1];
+    const n = parseFloat(m[1]);
+    if (n >= 35 && n <= 48){
+      s.sizeEU = true;
+      const us = euToUs(String(Math.round(n)));
+      if (us) s.sizeUS = us;
+    } else {
+      delete s.sizeEU; delete s.sizeUS;
+    }
   }
 
   // Style / occasion.
