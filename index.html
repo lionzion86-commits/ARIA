@@ -29321,6 +29321,18 @@ async function executeAgentTool(tc){
     if (under.length) items = under;
     else { overBudget = true; items = items.slice().sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); }
   }
+  /* BRAND FALLBACK (2026-10-01, Danny): the category word missed but
+     the brand is real -- "tenemos estos productos de la marca Levi's,
+     ¿alguno se te acomoda?" A known brand is never zeroed out just
+     because "pantalones" didn't match "jeans". */
+  let brandFallback = false;
+  if (!items.length && args.brand){
+    try {
+      const bres = await catalogSearch(String(args.brand), { limit: limit * 4 });
+      const bitems = (bres && bres.items) || [];
+      if (bitems.length){ items = bitems; brandFallback = true; }
+    } catch(e){ /* keep the empty result */ }
+  }
   const picks = items.slice(0, limit);
   return {
     results: picks.map(p => {
@@ -29332,6 +29344,7 @@ async function executeAgentTool(tc){
     count: picks.length,
     ...(typeof args.max_price_pen === 'number' && args.max_price_pen > 0 ? { budget_pen: args.max_price_pen } : {}),
     ...(overBudget ? { note: 'nothing under budget; showing cheapest' } : {}),
+    ...(brandFallback ? { note: 'category not matched; showing brand products instead' } : {}),
   };
 }
 
