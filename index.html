@@ -668,6 +668,28 @@
     height:48px; padding:0 26px; border-radius:16px; background:#E63946; color:#fff;
     font-size:15px; font-weight:800; letter-spacing:-0.01em }
   .ariaMotosKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#C8CDD6 }
+  /* SUNGLASS HUT DEPT (2026-10-02, Danny): "feel like you're walking into
+     Sunglass Hut". Warm boutique backdrop photo, amber hairline, gold CTA.
+     Premium eyewear shop, not a generic category banner. */
+  .ariaSgBanner{ position:relative; overflow:hidden; border-radius:24px;
+    background:#14100B url('assets/category/sunglasses-dept-backdrop.jpg') center/cover no-repeat }
+  .ariaSgBanner::after{ content:''; position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(10,8,5,0.88) 0%, rgba(10,8,5,0.55) 45%, rgba(10,8,5,0.15) 100%) }
+  .ariaSgBannerHair{ position:absolute; left:0; right:0; top:0; height:2px; z-index:2;
+    background:linear-gradient(90deg, transparent, rgba(244,196,99,0.9), transparent) }
+  .ariaSgKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaSgCta{ display:inline-flex; align-items:center; justify-content:center;
+    height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408;
+    font-size:15px; font-weight:800; letter-spacing:-0.01em }
+  .ariaSgBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px;
+    border-radius:999px; border:1px solid rgba(244,196,99,0.35); color:#fff;
+    font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap;
+    background:rgba(255,255,255,0.06); backdrop-filter:blur(4px) }
+  .ariaSgTierCard{ position:relative; overflow:hidden; border-radius:18px; min-height:132px;
+    display:flex; flex-direction:column; justify-content:flex-end; padding:16px;
+    border:1px solid rgba(255,255,255,0.09) }
+  .ariaSgTierCard .t{ font-size:16px; font-weight:800; color:#fff; letter-spacing:-0.01em }
+  .ariaSgTierCard .s{ font-size:12px; font-weight:600; color:rgba(255,255,255,0.65); margin-top:2px }
   /* DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
      entry point the section was missing -- a full-width fashion-week
      moment (runway photo, navy scrim, gold accents) that breaks the
@@ -6605,12 +6627,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json'];
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target"],"/sunglasses-catalog.json":["smartbuyglasses"]};
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -7806,7 +7828,12 @@ const APPAREL_IN_SUNGLASSES_RX = /\b(2[\s-]*piece|piece[\s-]*set|t[\s-]*shirt|\b
 const NOT_SUNGLASS_TITLE_RX = /\b(eyeglasses?|reading\s+glasses?|blue[\s-]?light|optical\s+frames?)\b/i;
 function isSunglasses(item, retailer){
   if (!item || typeof item !== 'object') return false;
-  if (String(retailer || item.retailer || '').toLowerCase() === 'ssense') return false; /* SSENSE images dead 2026-10-02 */
+  const sgr = String(retailer || item.retailer || '').toLowerCase();
+  if (sgr === 'ssense') return false; /* SSENSE images dead 2026-10-02 */
+  /* SUNGLASS HUT DEPT (2026-10-02, Danny): SmartBuyGlasses catalogue-only
+     source -- every item is sunglasses by construction, titles don't carry
+     the word "sunglasses". */
+  if (sgr === 'smartbuyglasses') return true;
   const t = String(item.title || item.name || '');
   if (!SUNGLASS_TITLE_RX.test(t)) return false;
   if (NOT_SUNGLASS_TITLE_RX.test(t)) return false;
@@ -11606,6 +11633,101 @@ function motosDeptRailsHTML(items){
   }
   return blocks.join('');
 }
+/* SUNGLASS HUT DEPT (2026-10-02, Danny): the department landing --
+   brand wall, price tiers (Lujo / Accesibles / Ofertas), face-shape guide.
+   "Feel like you're walking into Sunglass Hut." */
+const SUNGLASSES_LUJO_MIN = 200;
+function sunglassesTierOf(p){
+  const price = Number(p && p.price) || 0;
+  return price >= SUNGLASSES_LUJO_MIN ? 'lujo' : 'accesibles';
+}
+function sunglassesDeptRailsHTML(items){
+  const list = (Array.isArray(items) ? items : []).filter(p => p && Number(p.price) > 0 && p.image);
+  if (!list.length) return '';
+  const retailerKeys = [...new Set(list.map(it => it && it.retailer).filter(Boolean))];
+  const noKeys = new Set();
+  const blocks = [];
+  const saleFirst = arr => [...arr].sort((a, b) => (rawItemOnSale(b) ? 1 : 0) - (rawItemOnSale(a) ? 1 : 0));
+  /* ---- BRAND WALL: one tile per brand, like the wall in the store. ---- */
+  const brandCounts = {};
+  for (const p of list){
+    const b = String(p.brand || 'Otras marcas').trim() || 'Otras marcas';
+    brandCounts[b] = (brandCounts[b] || 0) + 1;
+  }
+  const brands = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  if (brands.length >= 2){
+    const tiles = brands.map(([b, c]) =>
+      '<button onclick="sunglassesBrandFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaSgTierCard focus-ring" style="min-width:148px;background:linear-gradient(135deg,#1B1610,#2A2118)">'
+      + '<span class="t">' + escapeHtml(b) + '</span>'
+      + '<span class="s">' + c + ' modelo' + (c === 1 ? '' : 's') + '</span></button>').join('');
+    blocks.push('<section aria-label="Marcas" class="mb-9">'
+      + '<div class="flex items-center justify-between gap-3 mb-3">'
+      + deptMixedRailHeadHTML('Por marca', 'La pared de marcas — elige tu favorita') + '</div>'
+      + '<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">' + tiles + '</div></section>');
+  }
+  /* ---- LUJO: $200+, fancy first (Miu Miu lead per Danny's standing rule). ---- */
+  const lujo = list.filter(p => sunglassesTierOf(p) === 'lujo');
+  if (lujo.length >= 4){
+    const fancyFirst = [...lujo].sort((a, b) =>
+      ((typeof isFancySunglasses === 'function' && isFancySunglasses(b)) ? 1 : 0)
+      - ((typeof isFancySunglasses === 'function' && isFancySunglasses(a)) ? 1 : 0)
+      || Number(b.price) - Number(a.price));
+    const picks = categoryRailPicks(retailerKeys, [], fancyFirst, noKeys, CATEGORY_RAIL_TOTAL, {});
+    if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-lujo', 'Lentes de lujo',
+      deptMixedRailHeadHTML('Lujo', lujo.length + ' modelos premium'), picks));
+  }
+  /* ---- OFERTAS: real discounts, biggest first. ---- */
+  const onSale = saleFirst(list.filter(rawItemOnSale));
+  if (onSale.length >= 4){
+    const byDisc = [...onSale].sort((a, b) => {
+      const pa = Number(a.price) > 0 && Number(a.originalPrice) > Number(a.price) ? (1 - Number(a.price) / Number(a.originalPrice)) : 0;
+      const pb = Number(b.price) > 0 && Number(b.originalPrice) > Number(b.price) ? (1 - Number(b.price) / Number(b.originalPrice)) : 0;
+      return pb - pa;
+    });
+    const picks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, {});
+    if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-ofertas', 'Lentes en oferta',
+      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), picks));
+  }
+  /* ---- ACCESIBLES: under $200, sale first then catalogue order. ---- */
+  const accesibles = saleFirst(list.filter(p => sunglassesTierOf(p) === 'accesibles'));
+  if (accesibles.length >= 4){
+    const picks = categoryRailPicks(retailerKeys, accesibles.filter(rawItemOnSale), accesibles, noKeys, CATEGORY_RAIL_TOTAL, {});
+    if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-accesibles', 'Lentes accesibles',
+      deptMixedRailHeadHTML('Accesibles', accesibles.length + ' para el día a día'), picks));
+  }
+  /* ---- GUÍA DE ESTILO: face-shape fit guide (lightweight, data-driven). ---- */
+  const faceShapes = {};
+  for (const p of list){
+    const fs = p.faceShape;
+    const arr = Array.isArray(fs) ? fs : (fs ? [fs] : []);
+    for (const s of arr){
+      const k = String(s).trim();
+      if (k) faceShapes[k] = (faceShapes[k] || 0) + 1;
+    }
+  }
+  const shapeEntries = Object.entries(faceShapes).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (shapeEntries.length >= 2){
+    const shapeEs = { 'Oval': 'Ovalado', 'Round': 'Redondo', 'Square': 'Cuadrado', 'Heart': 'Corazón', 'Triangle': 'Triangular', 'Diamond': 'Diamante', 'Oblong': 'Alargado' };
+    const chips = shapeEntries.map(([s, c]) =>
+      '<button onclick="sunglassesFaceFilter(\'' + s.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaSgBrandPill focus-ring">' + escapeHtml(shapeEs[s] || s)
+      + ' <span style="opacity:.6;font-weight:600">&nbsp;· ' + c + '</span></button>').join('');
+    blocks.push('<section aria-label="Guía de estilo" class="mb-9">'
+      + '<div class="flex items-center justify-between gap-3 mb-3">'
+      + deptMixedRailHeadHTML('Guía de estilo', 'Encuentra el armazón para tu rostro') + '</div>'
+      + '<div class="flex flex-wrap gap-2">' + chips + '</div></section>');
+  }
+  return blocks.join('');
+}
+/* Face-shape filter: narrows the feed to frames suited to a face shape. */
+function sunglassesFaceFilter(shape){
+  catalogState.sunglassesFace = shape;
+  catalogState.searchTerm = '';
+  catalogState.subKey = null;
+  renderCatalogFeed();
+  document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
+}
 function shoesDeptRailsHTML(items){
   const list = Array.isArray(items) ? items : [];
   if (!list.length) return '';
@@ -13807,6 +13929,7 @@ async function openCatalog(kind, key, opts = {}){
     (kind === 'department' && key === 'beauty') ? beautyBannerHTML() + fragranceLimitNoticeHTML()
     : (kind === 'department' && key === 'curvy') ? curvyNoticeHTML(NaN)
     : (kind === 'department' && key === 'motos') ? motosHeroHTML()
+    : (kind === 'department' && key === 'sunglasses') ? sunglassesHeroHTML()
     : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
@@ -13906,7 +14029,7 @@ async function openCatalog(kind, key, opts = {}){
   // it, for the same reason the search term does not.
   /* CURVY DEFAULTS TO MUJERES (2026-09-25, Danny's iPhone QA): the
      section is a women's destination; Hombres is one tap away. */
-  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE,
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE, sunglassesTier: null, sunglassesFace: null,
     curvyGender: (kind === 'department' && key === 'curvy') ? 'women' : null };
   /* NEVER A BLANK PAGE (2026-09-29, Danny): if render throws, show the
      empty state with retry instead of a dead page. */
@@ -14602,6 +14725,48 @@ function motosHeroHTML(){
     + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;" class="ariaMotosCta focus-ring">Ver cascos &#8594;</button>'
     + '</div></div></section>';
 }
+/* SUNGLASS HUT DEPT (2026-10-02, Danny): "feel like you're walking
+   into Sunglass Hut". Boutique backdrop, brand wall pills, tier CTAs.
+   Spanish throughout, zero emojis. */
+function sunglassesHeroHTML(){
+  const brands = ['Ray-Ban', 'Oakley', 'Smith', 'Revo', 'Persol', 'Costa Del Mar', 'Miu Miu'];
+  const pills = brands.map(b =>
+    '<button onclick="sunglassesBrandFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+    + ' class="ariaSgBrandPill focus-ring">' + b + '</button>').join('');
+  return '<section aria-label="Lentes de Sol" class="ariaSgBanner mb-6">'
+    + '<div class="ariaSgBannerHair" aria-hidden="true"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaSgKicker mb-3">La casa de los lentes</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Lentes de Sol</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
+    + 'Ray-Ban, Oakley, Smith, Persol y m\u00e1s — del lujo al día a día, todos con protección UV.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="sunglassesTierFilter(\'lujo\');return false;" class="ariaSgCta focus-ring">Ver lujo &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaSgBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+/* Brand pill filter: narrows the department feed to one brand. */
+function sunglassesBrandFilter(brand){
+  catalogState.searchTerm = brand;
+  catalogState.subKey = null;
+  const input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  renderCatalogFeed();
+  document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
+}
+/* Tier filter: lujo ($200+), accesibles (<$200), ofertas (on sale). */
+function sunglassesTierFilter(tier){
+  catalogState.sunglassesTier = tier;
+  catalogState.searchTerm = '';
+  catalogState.subKey = null;
+  const input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  renderCatalogFeed();
+  document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
+}
 function motosEmptyStateHTML(){
   const aisles = [
     ['Cascos', 'Cascos certificados DOT para moto'],
@@ -14810,6 +14975,29 @@ function renderCatalogFeed(){
   const gendered = !curvyDept ? all : curvyGender === 'men'
     ? all.filter(it => (it.curvyBand ?? 1) === 2)
     : all.filter(it => (it.curvyBand ?? 1) !== 2);
+  /* SUNGLASS HUT DEPT (2026-10-02, Danny): tier + face-shape filters from
+     the department landing. Tier: lujo ($200+), accesibles (<$200),
+     ofertas (real discount). Face: matches the item's faceShape data. */
+  const isSunglassesDept = catalogState.kind === 'department' && catalogState.key === 'sunglasses';
+  let sgFiltered = gendered;
+  if (isSunglassesDept && catalogState.sunglassesTier){
+    const tier = catalogState.sunglassesTier;
+    sgFiltered = sgFiltered.filter(it => {
+      const price = Number(it.price) || 0;
+      if (tier === 'lujo') return price >= 200;
+      if (tier === 'accesibles') return price > 0 && price < 200;
+      if (tier === 'ofertas') return typeof rawItemOnSale === 'function' && rawItemOnSale(it);
+      return true;
+    });
+  }
+  if (isSunglassesDept && catalogState.sunglassesFace){
+    const want = String(catalogState.sunglassesFace).toLowerCase();
+    sgFiltered = sgFiltered.filter(it => {
+      const fs = it.faceShape;
+      const arr = Array.isArray(fs) ? fs : (fs ? [fs] : []);
+      return arr.some(s => String(s).toLowerCase() === want);
+    });
+  }
 
   /* ---- AISLES ------------------------------------------------------
      Computed from the ACTIVE feed, so the counts match what a tap will
@@ -14824,7 +15012,7 @@ function renderCatalogFeed(){
   const isLatinoDesigners = catalogState.kind === 'department' && catalogState.key === 'latino_designers';
   const isGymRat = catalogState.kind === 'department' && catalogState.key === 'gym_rat';
   const isJoyasAccesorios = catalogState.kind === 'department' && catalogState.key === 'joyas_accesorios';
-  const grouped = isFightClub ? groupFightClub(gendered) : isLatinoDesigners ? groupLatinoDesigners(gendered) : isSpearfishingDept ? groupSpearGear(gendered) : isSoccerDept ? groupSoccerGear(gendered) : isTennisDept ? groupTennisGear(gendered) : groupBySubcategory(gendered);
+  const grouped = isFightClub ? groupFightClub(sgFiltered) : isLatinoDesigners ? groupLatinoDesigners(sgFiltered) : isSpearfishingDept ? groupSpearGear(sgFiltered) : isSoccerDept ? groupSoccerGear(sgFiltered) : isTennisDept ? groupTennisGear(sgFiltered) : groupBySubcategory(sgFiltered);
   const splittable = isFightClub ? false : shouldSplit(grouped);
   const storeLabel = filterHasStock ? (LIVE_RETAILER_LABEL[retailerFilter] || retailerFilter) : 'lo disponible';
 
@@ -14842,18 +15030,20 @@ function renderCatalogFeed(){
     const deptRails = (catalogState.kind === 'department' && catalogState.key === 'surf_skate' && !retailerFilter)
       ? surfSkateDeptRailsHTML(byRetailer)
       : (catalogState.kind === 'department' && catalogState.key === 'beauty' && !retailerFilter)
-        ? beautyDeptRailsHTML(gendered, new Set())
+        ? beautyDeptRailsHTML(sgFiltered, new Set())
         
         : (catalogState.kind === 'department' && catalogState.key === 'moms' && !retailerFilter && !catalogState.subKey)
-        ? momsDeptRailsHTML(gendered, new Set()) 
+        ? momsDeptRailsHTML(sgFiltered, new Set()) 
         : (catalogState.kind === 'department' && catalogState.key === 'jewelry' && !retailerFilter)
-        ? jewelryDeptRailsHTML(gendered)
+        ? jewelryDeptRailsHTML(sgFiltered)
         : ((catalogState.kind === 'department' && (catalogState.key === 'shoes' || catalogState.key === 'shoes_women' || catalogState.key === 'shoes_men') && !retailerFilter)
-        ? shoesDeptRailsHTML(gendered)
+        ? shoesDeptRailsHTML(sgFiltered)
         : ((catalogState.kind === 'department' && catalogState.key === 'motos' && !retailerFilter)
-        ? motosDeptRailsHTML(gendered)
-        : ''));
-    sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, gendered);
+        ? motosDeptRailsHTML(sgFiltered)
+        : ((catalogState.kind === 'department' && catalogState.key === 'sunglasses' && !retailerFilter)
+        ? sunglassesDeptRailsHTML(sgFiltered)
+        : '')));
+    sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, sgFiltered);
     revealActiveChips(sections);
     return;
   }
@@ -14862,7 +15052,7 @@ function renderCatalogFeed(){
      yields nothing rather than everything — a stale URL must not
      silently show the flat list it was meant to replace. */
   const aisleKey = catalogState.subKey && catalogState.subKey !== SUB_ALL ? catalogState.subKey : null;
-  const feed = aisleKey ? itemsInSubcategory(gendered, aisleKey) : gendered;
+  const feed = aisleKey ? itemsInSubcategory(sgFiltered, aisleKey) : sgFiltered;
 
   /* An in-category search narrows the cached feed first — instant and
      free. When that comes back thin, the on-demand card at the bottom
@@ -14963,10 +15153,10 @@ function renderCatalogFeed(){
     ${isSports ? sportHubCarouselHTML() : ''}
     ${curvyDept ? curvyGenderChipsHTML(curvyGender) : ''}
     ${catalogSearchBarHTML()}
-    ${isLatinoDesigners && !catalogState.subKey ? latinoTypeTilesHTML(groupLatinoByType(gendered)) : ''}
-    ${isLatinoDesigners && !catalogState.subKey ? latinoDesignerStorefrontsHTML(gendered) : ''}
+    ${isLatinoDesigners && !catalogState.subKey ? latinoTypeTilesHTML(groupLatinoByType(sgFiltered)) : ''}
+    ${isLatinoDesigners && !catalogState.subKey ? latinoDesignerStorefrontsHTML(sgFiltered) : ''}
     ${isGymRat && !catalogState.subKey ? gymRatBrandStorefrontsHTML(all) : ''}
-    ${isJoyasAccesorios && !catalogState.subKey ? joyasBrandStorefrontsHTML(gendered) : ''}
+    ${isJoyasAccesorios && !catalogState.subKey ? joyasBrandStorefrontsHTML(sgFiltered) : ''}
     ${isFightClub ? fightClubChipsHTML(grouped) : isLatinoDesigners ? latinoDesignerChipsHTML(grouped) : isSpearfishingDept ? spearGearChipsHTML(grouped) : isSoccerDept ? spearGearChipsHTML(grouped) : isTennisDept ? spearGearChipsHTML(grouped) : (splittable ? catalogAisleChipsHTML(grouped) : '')}
     ${catalogStoreChipsHTML()}
     ${isCurvy ? curvyStoreCardsHTML() : ''}
@@ -19859,6 +20049,9 @@ const LIVE_RETAILER_LABEL = Object.fromEntries(Object.values(RETAILERS).map(r =>
    without store tiles — they still need display labels for the filter. */
 LIVE_RETAILER_LABEL.revzilla = 'RevZilla';
 LIVE_RETAILER_LABEL.denniskirk = 'Dennis Kirk';
+/* SUNGLASS HUT DEPT (2026-10-02): SmartBuyGlasses feeds Lentes de Sol
+   without a store tile -- catalogue-only source like RevZilla. */
+LIVE_RETAILER_LABEL.smartbuyglasses = 'SmartBuyGlasses';
 /* Lane Bryant is catalogue-only (no store tile, per Danny: Curvy stays
    a department), but its items surface inside Curvy, so the in-page
    store filter chip needs a real label. */
