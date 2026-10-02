@@ -6180,17 +6180,15 @@ function taxIncludedNoteHTML(usd, dutiableUsd, cls = 'text-[11px] mt-0.5'){
     : '';
 }
 
-/* HIGH-TICKET TAX REASSURANCE (Danny 2026-09-30). Every card whose
-   displayed price is $1,000 USD or more gets a small elegant
-   "Impuestos incluidos" badge: at those prices the tax component is
-   large enough that the shopper needs to see the price is real and
-   already includes customs taxes -- not arbitrary. This reinforces
-   the Precio Honesto brand on luxury items (e.g. the $32k Miu Miu coat).
-   Small, subtle, gold-tinted to match the premium aesthetic. */
-const IMPUESTOS_BADGE_THRESHOLD_USD = 1000;
+/* TAX REASSURANCE (Danny 2026-10-02). Every card whose displayed price
+   already includes the ~23% Peru import tax (any product over the $200
+   de minimis, per priceIncludesImportTax) gets a small elegant
+   "Impuestos incluidos" badge: the shopper sees the price is real and
+   already includes customs taxes -- not arbitrary. This reinforces the
+   Precio Honesto brand. Small, subtle, gold-tinted to match the premium
+   aesthetic. */
 function impuestosBadgeHTML(usd, dutiableUsd){
-  const shown = displayPriceUsd(Number(usd), dutiableUsd);
-  if (!Number.isFinite(shown) || shown < IMPUESTOS_BADGE_THRESHOLD_USD) return '';
+  if (!priceIncludesImportTax(Number(usd), dutiableUsd)) return '';
   return `<div class="mt-1"><span class="inline-flex items-center rounded-full px-2 py-[3px] text-[9px] font-bold uppercase" style="letter-spacing:.09em;background:rgba(184,145,42,.10);color:#8A6D1F;border:1px solid rgba(184,145,42,.38)">Impuestos incluidos</span></div>`;
 }
 
