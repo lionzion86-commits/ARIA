@@ -1841,6 +1841,20 @@
       <div data-category-rail-row="gym_rat" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
 
+    <!-- PERMANENT FUTBOL RAIL (2026-10-01, Danny): standalone soccer
+         carousel between Gym Rat and Aria Beauty. Rodrigo Cuba pushes
+         futbol at launch. Same shared painter, same stand-down rule in
+         renderCategoryTabs. Starts hidden; JS reveals it. -->
+    <section aria-label="Fútbol" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Fútbol</span>
+        <button onclick="openCatalog('department','soccer')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Chimpunes, camisetas, pelotas y más en oferta.</span></div>
+      <div data-category-rail-row="soccer" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
+
     <!-- PERMANENT ARIA BEAUTY RAIL (2026-09-27, Danny): takes the Hogar
          rail's slot -- beauty is the highest-traffic destination and gets
          the always-visible carousel under the Gym Rat rail. Hogar keeps
@@ -2301,6 +2315,20 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Ropa y accesorios de gym.</span></div>
         <div data-category-rail-row="gym_rat" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+
+    <!-- PERMANENT FUTBOL RAIL (2026-10-01, Danny): desktop. Same shelf as
+         the phone's: between Gym Rat and Aria Beauty. -->
+    <section aria-label="Fútbol" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Fútbol</span>
+          <button onclick="openCatalog('department','soccer')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Chimpunes, camisetas, pelotas y más en oferta.</span></div>
+        <div data-category-rail-row="soccer" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 
@@ -4077,6 +4105,19 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–6 días.</span></div>
       <div id="tStoreRail-dicks" data-store-rail-row="dicks" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- PERMANENT FUTBOL RAIL (2026-10-01, Danny): tablet. Ahead of the
+         Zapatos rail, in the featured-rail zone. -->
+    <section aria-label="Fútbol" data-featured-rail class="ariaNavyBand relative overflow-hidden" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #0A7A42 20%, #0A7A42 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Fútbol</span>
+          <button onclick="openCatalog('department','soccer')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Chimpunes, camisetas, pelotas y más en oferta.</span></div>
+        <div data-category-rail-row="soccer" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
     <!-- PERMANENT ZAPATOS RAIL (2026-09-29, Danny): tablet. -->
@@ -10597,6 +10638,21 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      womenFirst. */
   const demoteSocks = Boolean(opts && opts.demoteSockSales);
   const sockRank = (p) => (demoteSocks && SURFSKATE_FOOT_SOCK_RX.test(String((p && p.title) || ''))) ? 1 : 0;
+  /* FUTBOL CLEATS-FIRST (2026-10-01, Danny): the hook is discounted
+     cleats -- chimpunes lead the rail, biggest discount first. Messi
+     shoes count as cleats. Opt-in per rail, like womenFirst. */
+  const cleatsFirst = Boolean(opts && opts.cleatsFirst);
+  const cleatRank = (p) => {
+    if (!cleatsFirst) return 0;
+    if (String(p.type || '').trim().toLowerCase() === 'chimpunes') return 0;
+    const title = String(p.title || p.name || '');
+    if (/\b(cleat|chimpun|guayo)\b/i.test(title)) return 0;
+    /* Messi counts on footwear only -- not jerseys, tees, minikits. */
+    if (/\bmessi\b/i.test(title)
+        && /\b(shoe|cleat|turf|indoor|samba|\bfg\b|\bag\b|zapatilla)\b/i.test(title)
+        && !/\b(tee|jersey|camiseta|minikit|mini kit|calendar)\b/i.test(title)) return 0;
+    return 1;
+  };
   const seen = new Set();
   const sale = (Array.isArray(saleItems) ? saleItems : [])
     .filter(p => p && inSet(p) && hasRealImage(p)
@@ -10613,7 +10669,7 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
       }
-      return (toyRank(a) - toyRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
+      return (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
   const picks = sale.slice(0, CATEGORY_RAIL_SALE);
   const picked = new Set(picks.map(itemKey));
@@ -10629,6 +10685,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
     ? [...fillPoolBase].sort((a, b) => toyRank(a) - toyRank(b))
     : (cheapFirst && Array.isArray(fillPoolBase))
     ? [...fillPoolBase].sort((a, b) => priceNum(a) - priceNum(b))
+    : (cleatsFirst && Array.isArray(fillPoolBase))
+    ? [...fillPoolBase].sort((a, b) => cleatRank(a) - cleatRank(b))
     : fillPoolBase;
   if (picks.length < max && Array.isArray(fillPool)){
     for (const it of fillPool){
@@ -10813,7 +10871,17 @@ const CATEGORY_RAILS = [
       return isSpearfishing(p, p.retailer) || isSoccer(p, p.retailer) || isTennis(p, p.retailer) || isSurfSkate(p, p.retailer);
     },
     open: "openCatalog('department','sporting_goods')" },
-  /* FUTBOL merged into Deportes per Danny 2026-09-30 */
+  /* FUTBOL (2026-10-01, Danny): standalone soccer rail, broken back out
+     of Deportes. Rodrigo Cuba pushes futbol at launch -- permanent
+     front-page carousel between Gym Rat and Aria Beauty. Biggest sales
+     first via the shared categoryRailPicks sorter. */
+  { key: 'soccer', label: 'F\u00fatbol', icon: '', stores: null, poolOnly: true,
+    blurb: 'Chimpunes, camisetas, pelotas y m\u00e1s en oferta.',
+    test: (p) => isSoccer(p, p.retailer),
+    /* CLEATS-FIRST (2026-10-01, Danny): the hook -- biggest discounts
+       on chimpunes lead, Messi shoes up front. */
+    cleatsFirst: true,
+    open: "openCatalog('department','soccer')" },
   /* TENIS merged into Deportes per Danny 2026-09-30 */
   /* DISENADORES LATINOS (2026-09-28, Danny): South American designers
      via Farfetch US -- Farm Rio, Agua Bendita, PatBO, Johanna Ortiz,
@@ -10922,7 +10990,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -11436,7 +11504,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
