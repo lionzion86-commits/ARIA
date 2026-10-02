@@ -11859,15 +11859,16 @@ function sunglassesRailHeadHTML(title, sub, brand){
     + (sub ? '<span class="block text-[12px] font-semibold mt-0.5" style="color:rgba(255,243,220,0.62)">' + escapeHtml(sub) + '</span>' : '')
     + '</span>' + verTodo;
 }
-/* Store/brand view toggle for the Sunglass Hut department (2026-10-02, Danny):
-   the landing leads with STORE carousels; "Ver por marca" opens the brand
-   view where every brand is aggregated across all stores. */
-function sunglassesViewToggle(view){
-  catalogState.sunglassesView = (view === 'brands') ? 'brands' : 'stores';
-  renderCatalogFeed();
-  const secs = document.getElementById('catalogSections');
-  if (secs) secs.scrollIntoView({behavior:'smooth'});
-}
+/* CAROUSEL CITY (2026-10-02, Danny): Lentes de Sol is ONE continuous
+   page -- no store/brand toggle. Three axes, each with its own theme:
+   1. POR MARCA: one carousel per actual product brand, first on the
+      page, each brand aggregated across every store that carries it.
+      A retailer is never a brand.
+   2. POR TIENDA: one carousel per retailer, below the brands.
+   3. POR ESTILO: frame-shape category carousels with their own setup.
+   Inside EVERY carousel: biggest sales first, then expensive halo
+   pieces, then best sellers. "Mas marcas" is a full XL carousel, never
+   a lesser rail. */
 /* Gold-on-dark rail header for a STORE rail: "Ver todo" narrows the feed
    to that store via the existing store filter. */
 function sunglassesStoreRailHeadHTML(title, sub, retailerKey){
@@ -11881,118 +11882,182 @@ function sunglassesStoreRailHeadHTML(title, sub, retailerKey){
     + (sub ? '<span class="block text-[12px] font-semibold mt-0.5" style="color:rgba(255,243,220,0.62)">' + escapeHtml(sub) + '</span>' : '')
     + '</span>' + verTodo;
 }
+function sunglassesAxisHeadHTML(kicker, title, sub, anchorId){
+  return '<div class="mt-2 mb-5"' + (anchorId ? ' id="' + anchorId + '"' : '') + '>'
+    + '<div class="ariaSgKicker mb-1.5">' + escapeHtml(kicker) + '</div>'
+    + '<div class="text-[21px] font-extrabold tracking-[-0.01em] leading-tight" style="color:#fff">' + escapeHtml(title) + '</div>'
+    + (sub ? '<div class="text-[13px] font-semibold mt-1" style="color:rgba(255,243,220,0.62)">' + escapeHtml(sub) + '</div>' : '')
+    + '</div>';
+}
+/* Actual product brand only -- a retailer is never treated as a brand. */
+function sunglassesRealBrandOf(p){
+  const b = String((p && p.brand) || '').trim();
+  if (!b) return '';
+  const low = b.toLowerCase();
+  if (/^(otras marcas|unknown|generic|sin marca|unbranded|no brand)$/i.test(b)) return '';
+  try {
+    if (typeof RETAILERS === 'object' && RETAILERS){
+      for (const k of Object.keys(RETAILERS)){
+        if (low === String(k).toLowerCase()) return '';
+        const l = RETAILERS[k] && RETAILERS[k].label;
+        if (l && low === String(l).toLowerCase()) return '';
+      }
+    }
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL){
+      for (const k of Object.keys(LIVE_RETAILER_LABEL)){
+        if (low === String(k).toLowerCase()) return '';
+        if (low === String(LIVE_RETAILER_LABEL[k]).toLowerCase()) return '';
+      }
+    }
+  } catch (e){}
+  return b;
+}
+const SG_STYLE_GROUPS = [
+  { key: 'aviadores', label: 'Aviadores', sub: 'El clásico de piloto — nunca pasa de moda',
+    shapes: ['aviator', 'pilot'], kw: /\baviator|pilot\b/i },
+  { key: 'wayfarer', label: 'Wayfarer', sub: 'El ícono urbano de todos los días',
+    shapes: ['wayfarer'], kw: /\bwayfarer\b/i },
+  { key: 'deportivos', label: 'Deportivos', sub: 'Para correr, pedalear y el agua',
+    shapes: ['wraparound', 'single lens', 'goggle', 'shield'], kw: /\bsport\b/i },
+  { key: 'clasicos', label: 'Clásicos', sub: 'Redondos, ovalados y cat-eye',
+    shapes: ['round', 'oval', 'cat eye', 'browline', 'butterfly', 'oversized'], kw: /\bcat[\s-]?eye\b|\bround\b|\boval\b/i },
+  { key: 'cuadrados', label: 'Cuadrados', sub: 'Líneas fuertes, mirada marcada',
+    shapes: ['square', 'rectangle', 'geometric'], kw: /\bsquare\b|\brectang/i },
+];
 function sunglassesDeptRailsHTML(items){
   const list = (Array.isArray(items) ? items : []).filter(p => p && Number(p.price) > 0 && p.image);
   if (!list.length) return '';
-  const view = (typeof catalogState !== 'undefined' && catalogState.sunglassesView) || 'stores';
   const retailerKeys = [...new Set(list.map(it => it && it.retailer).filter(Boolean))];
   const noKeys = new Set();
   const blocks = [];
-  const saleFirst = arr => [...arr].sort((a, b) => (rawItemOnSale(b) ? 1 : 0) - (rawItemOnSale(a) ? 1 : 0));
-  const brandOf = (p) => String((p && p.brand) || 'Otras marcas').trim() || 'Otras marcas';
-  const brandSlug = (b) => b.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'otras';
-  /* One brand carousel, cross-store: every Ray-Ban from every store that
-     carries Ray-Bans. Full XL carousel treatment, like the big brands. */
-  const brandRail = (b, count) => {
-    const pool = saleFirst(list.filter((p) => brandOf(p) === b));
-    const picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, {});
-    if (!picks.length) return '';
-    return deptRailSectionHTML('sunglasses-brand-' + brandSlug(b), 'Lentes de sol ' + b,
-      sunglassesRailHeadHTML(b, count + ' modelo' + (count === 1 ? '' : 's'), b),
-      picks, { xl: true });
+  /* Shared merchandising (Danny): biggest sales first, then expensive
+     halo pieces, then best sellers. */
+  const sgDiscountOf = (p) => {
+    const pr = Number(p.price), op = Number(p.originalPrice);
+    return (pr > 0 && op > pr) ? (1 - pr / op) : 0;
   };
-  if (view === 'brands'){
-    /* ---- BRAND VIEW (2026-10-02, Danny): "I only want Ray-Bans" --
-       every brand aggregated ACROSS all stores. One tap back to stores. ---- */
-    blocks.push('<div class="flex items-center gap-3 mb-5">'
-      + '<button onclick="sunglassesViewToggle(\'stores\');return false;" class="ariaSgBrandPill focus-ring" style="height:44px">&#8592; Tiendas</button>'
-      + '<div class="min-w-0"><div class="text-[19px] font-extrabold leading-tight" style="color:#F4C463">Por marca</div>'
-      + '<div class="text-[12.5px] font-semibold" style="color:rgba(255,243,220,0.62)">Cada marca, de todas las tiendas</div></div></div>');
-    const brandCounts = {};
-    for (const p of list) brandCounts[brandOf(p)] = (brandCounts[brandOf(p)] || 0) + 1;
-    const entries = Object.entries(brandCounts).sort((a, b) => b[1] - a[1]);
-    for (const [b, c] of entries){
-      if (c < 4) continue;
-      const html = brandRail(b, c);
-      if (html) blocks.push(html);
+  const sgMerchSort = (arr) => [...arr].sort((a, b) =>
+    (sgDiscountOf(b) - sgDiscountOf(a))
+    || (Number(b.price || 0) - Number(a.price || 0))
+    || ((Number(b.rating) || 0) - (Number(a.rating) || 0)));
+  const sgPicks = (pool) => {
+    const sorted = sgMerchSort(pool);
+    const sale = sorted.filter(rawItemOnSale);
+    const rest = sorted.filter(p => !rawItemOnSale(p));
+    return categoryRailPicks(retailerKeys, sale, rest, noKeys, CATEGORY_RAIL_TOTAL, {});
+  };
+  const brandSlug = (b) => b.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'otras';
+
+  /* ============ AXIS 1: POR MARCA — brand carousels first. ============ */
+  const byBrand = {};
+  const brandCase = {};
+  for (const p of list){
+    const b = sunglassesRealBrandOf(p);
+    if (!b) continue;
+    const key = b.toLowerCase();
+    (byBrand[key] = byBrand[key] || []).push(p);
+    brandCase[key] = brandCase[key] || {};
+    brandCase[key][b] = (brandCase[key][b] || 0) + 1;
+  }
+  const brandName = (key) => Object.entries(brandCase[key] || {}).sort((a, b) => b[1] - a[1])[0][0];
+  const bigBrands = Object.keys(byBrand).filter(k => byBrand[k].length >= 4)
+    .sort((a, b) => byBrand[b].length - byBrand[a].length);
+  const tailBrands = Object.keys(byBrand).filter(k => byBrand[k].length < 4);
+  if (bigBrands.length || tailBrands.length){
+    blocks.push(sunglassesAxisHeadHTML('Eje 1', 'Por marca',
+      'Cada marca, de todas las tiendas que la venden', 'sgBrandAxis'));
+    for (const key of bigBrands){
+      const b = brandName(key);
+      const pool = byBrand[key];
+      const stores = new Set(pool.map(p => String(p.retailer || '').toLowerCase())).size;
+      const picks = sgPicks(pool);
+      if (!picks.length) continue;
+      const sub = pool.length + ' modelo' + (pool.length === 1 ? '' : 's')
+        + (stores > 1 ? ' · ' + stores + ' tiendas' : '');
+      blocks.push(deptRailSectionHTML('sunglasses-brand-' + brandSlug(b), 'Lentes de sol ' + b,
+        sunglassesRailHeadHTML(b, sub, b), picks, { xl: true }));
     }
-    /* Long tail (2026-10-02, Danny): the smaller brands get their own
-       proper carousel too -- grouped under one "Más marcas" wall, same
-       full XL treatment as the big brands, never a lesser rail. */
-    const tail = entries.filter((entry) => entry[1] < 4).map((entry) => entry[0]);
-    if (tail.length){
-      const tailSet = new Set(tail);
-      const pool = saleFirst(list.filter((p) => tailSet.has(brandOf(p))));
-      const picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, {});
+    /* "Mas marcas": the long tail gets a FULL carousel, never a lesser
+       rail -- same XL treatment as the big brands. */
+    if (tailBrands.length){
+      const tailSet = new Set(tailBrands);
+      const pool = sgMerchSort(list.filter(p => tailSet.has(sunglassesRealBrandOf(p).toLowerCase())));
+      const picks = sgPicks(pool);
       if (picks.length){
         blocks.push(deptRailSectionHTML('sunglasses-brand-more', 'Lentes de sol — más marcas',
-          sunglassesRailHeadHTML('Más marcas', tail.length + ' marcas · ' + pool.length + ' modelos'),
-          picks, { xl: true }));
+          sunglassesRailHeadHTML('Más marcas', tailBrands.length + ' marcas · ' + pool.length + ' modelos'), picks, { xl: true }));
       }
     }
-  } else {
-    /* ---- STORE VIEW (2026-10-02, Danny): the department leads with one
-       rail per store -- SmartBuyGlasses first, then every other store
-       carrying sunglasses. Compare stores, not a mixed scroll. ---- */
-    const storeOf = (p) => String((p && p.retailer) || 'tienda').toLowerCase();
-    const storeCounts = {};
-    for (const p of list) storeCounts[storeOf(p)] = (storeCounts[storeOf(p)] || 0) + 1;
-    const storeKeys = Object.keys(storeCounts).sort((a, b) =>
-      (a === 'smartbuyglasses' ? -1 : b === 'smartbuyglasses' ? 1 : 0)
-      || storeCounts[b] - storeCounts[a]);
+  }
+
+  /* ============ AXIS 2: POR TIENDA — store carousels below. ============ */
+  const storeOf = (p) => String((p && p.retailer) || 'tienda').toLowerCase();
+  const storeCounts = {};
+  for (const p of list) storeCounts[storeOf(p)] = (storeCounts[storeOf(p)] || 0) + 1;
+  const storeKeys = Object.keys(storeCounts)
+    .filter(k => storeCounts[k] >= 4)
+    .sort((a, b) => (a === 'smartbuyglasses' ? -1 : b === 'smartbuyglasses' ? 1 : 0) || storeCounts[b] - storeCounts[a]);
+  if (storeKeys.length){
+    blocks.push(sunglassesAxisHeadHTML('Eje 2', 'Por tienda',
+      'Compara la seleccion de cada tienda', 'sgStoreAxis'));
     for (const rk of storeKeys){
-      if (storeCounts[rk] < 4) continue;
-      const pool = saleFirst(list.filter((p) => storeOf(p) === rk));
-      const picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, {});
+      const pool = list.filter(p => storeOf(p) === rk);
+      const picks = sgPicks(pool);
       if (!picks.length) continue;
       const label = (typeof LIVE_RETAILER_LABEL !== 'undefined' && LIVE_RETAILER_LABEL[rk]) || rk;
-      const n = storeCounts[rk];
       blocks.push(deptRailSectionHTML('sunglasses-store-' + rk, 'Lentes de sol en ' + label,
-        sunglassesStoreRailHeadHTML(label, n + ' modelo' + (n === 1 ? '' : 's'), rk),
-        picks, { xl: true }));
+        sunglassesStoreRailHeadHTML(label, pool.length + ' modelo' + (pool.length === 1 ? '' : 's'), rk), picks, { xl: true }));
     }
-    /* ---- VER POR MARCA: the whole brand wall lives one tap away. ---- */
-    blocks.push('<section aria-label="Ver por marca" class="mb-9">'
-      + '<button onclick="sunglassesViewToggle(\'brands\');return false;"'
-      + ' class="w-full rounded-2xl px-6 py-5 flex items-center justify-between gap-4 focus-ring"'
-      + ' style="background:rgba(244,196,99,.10);border:1px solid rgba(244,196,99,.45)">'
-      + '<span class="text-left min-w-0"><span class="block text-[16px] font-extrabold" style="color:#F4C463">Ver por marca</span>'
-      + '<span class="block text-[12.5px] font-semibold mt-0.5" style="color:rgba(255,243,220,0.62)">Ray-Ban, Oakley, Smith y más — cada marca de todas las tiendas</span></span>'
-      + '<span class="text-[24px] flex-shrink-0" style="color:#F4C463">&#8594;</span></button></section>');
-    /* ---- OFERTAS: real discounts, biggest first. ---- */
-    const onSale = saleFirst(list.filter(rawItemOnSale));
-    if (onSale.length >= 4){
-      const byDisc = [...onSale].sort((a, b) => {
-        const pa = Number(a.price) > 0 && Number(a.originalPrice) > Number(a.price) ? (1 - Number(a.price) / Number(a.originalPrice)) : 0;
-        const pb = Number(b.price) > 0 && Number(b.originalPrice) > Number(b.price) ? (1 - Number(b.price) / Number(b.originalPrice)) : 0;
-        return pb - pa;
-      });
-      const picks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, {});
-      if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-ofertas', 'Lentes en oferta',
-        sunglassesRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), picks));
+  }
+
+  /* ============ AXIS 3: POR ESTILO — category carousels. ============ */
+  const styleHit = (p, g) => {
+    const fs = String(p.frameShape || '').toLowerCase().trim();
+    if (fs && g.shapes.indexOf(fs) !== -1) return true;
+    const t = String(p.title || p.name || '');
+    return g.kw.test(t);
+  };
+  const styleGroups = SG_STYLE_GROUPS.map(g => ({ g, pool: list.filter(p => styleHit(p, g)) }))
+    .filter(e => e.pool.length >= 4);
+  if (styleGroups.length){
+    blocks.push(sunglassesAxisHeadHTML('Eje 3', 'Por estilo',
+      'El armazón que va con tu cara y tu vida', 'sgStyleAxis'));
+    for (const e of styleGroups){
+      const picks = sgPicks(e.pool);
+      if (!picks.length) continue;
+      blocks.push(deptRailSectionHTML('sunglasses-style-' + e.g.key, 'Lentes ' + e.g.label,
+        sunglassesRailHeadHTML(e.g.label, e.pool.length + ' modelo' + (e.pool.length === 1 ? '' : 's') + ' · ' + e.g.sub), picks, { xl: true }));
     }
-    /* ---- GUÍA DE ESTILO: face-shape fit guide (lightweight, data-driven). ---- */
-    const faceShapes = {};
-    for (const p of list){
-      const fs = p.faceShape;
-      const arr = Array.isArray(fs) ? fs : (fs ? [fs] : []);
-      for (const s of arr){
-        const k = String(s).trim();
-        if (k) faceShapes[k] = (faceShapes[k] || 0) + 1;
-      }
+  }
+
+  /* ---- OFERTAS: real discounts, biggest first. ---- */
+  const onSale = sgMerchSort(list.filter(rawItemOnSale));
+  if (onSale.length >= 4){
+    const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL, {});
+    if (picks.length) blocks.push(deptRailSectionHTML('sunglasses-ofertas', 'Lentes en oferta',
+      sunglassesRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), picks));
+  }
+  /* ---- GUIA DE ESTILO: face-shape fit guide (interactive filter). ---- */
+  const faceShapes = {};
+  for (const p of list){
+    const fs = p.faceShape;
+    const arr = Array.isArray(fs) ? fs : (fs ? [fs] : []);
+    for (const s of arr){
+      const k = String(s).trim();
+      if (k) faceShapes[k] = (faceShapes[k] || 0) + 1;
     }
-    const shapeEntries = Object.entries(faceShapes).sort((a, b) => b[1] - a[1]).slice(0, 6);
-    if (shapeEntries.length >= 2){
-      const shapeEs = { 'Oval': 'Ovalado', 'Round': 'Redondo', 'Square': 'Cuadrado', 'Heart': 'Corazón', 'Triangle': 'Triangular', 'Diamond': 'Diamante', 'Oblong': 'Alargado' };
-      const chips = shapeEntries.map(([s, c]) =>
-        '<button onclick="sunglassesFaceFilter(\'' + s.replace(/'/g, "\\'") + '\');return false;"'
-        + ' class="ariaSgBrandPill focus-ring">' + escapeHtml(shapeEs[s] || s)
-        + ' <span style="opacity:.6;font-weight:600">&nbsp;· ' + c + '</span></button>').join('');
-      blocks.push('<section aria-label="Guía de estilo" class="mb-9">'
-        + '<div class="flex items-center justify-between gap-3 mb-3">'
-        + sunglassesRailHeadHTML('Guía de estilo', 'Encuentra el armazón para tu rostro') + '</div>'
-        + '<div class="flex flex-wrap gap-2">' + chips + '</div></section>');
-    }
+  }
+  const shapeEntries = Object.entries(faceShapes).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  if (shapeEntries.length >= 2){
+    const shapeEs = { 'Oval': 'Ovalado', 'Round': 'Redondo', 'Square': 'Cuadrado', 'Heart': 'Corazón', 'Triangle': 'Triangular', 'Diamond': 'Diamante', 'Oblong': 'Alargado' };
+    const chips = shapeEntries.map(([s, c]) =>
+      '<button onclick="sunglassesFaceFilter(\'' + s.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaSgBrandPill focus-ring">' + escapeHtml(shapeEs[s] || s)
+      + ' <span style="opacity:.6;font-weight:600">&nbsp;· ' + c + '</span></button>').join('');
+    blocks.push('<section aria-label="Guía de estilo" class="mb-9">'
+      + '<div class="flex items-center justify-between gap-3 mb-3">'
+      + sunglassesRailHeadHTML('Guía de estilo', 'Encuentra el armazón para tu rostro') + '</div>'
+      + '<div class="flex flex-wrap gap-2">' + chips + '</div></section>');
   }
   if (!blocks.length) return '';
   /* The whole department sits inside the store: the espresso theme wraps
@@ -12001,6 +12066,7 @@ function sunglassesDeptRailsHTML(items){
     + '<div class="ariaSgDeptHair" aria-hidden="true"></div>'
     + blocks.join('') + '</div>';
 }
+
 
 /* Face-shape filter: narrows the feed to frames suited to a face shape. */
 function sunglassesFaceFilter(shape){
@@ -12013,7 +12079,7 @@ function sunglassesFaceFilter(shape){
 /* CAROUSEL CITY store rails (2026-10-02, Danny): one carousel per store,
    so shoppers compare stores side by side. Generic — applies to any
    department whose own rails aren't already store-organized. */
-var _STORE_RAILS_DONE = { surf_skate: 1 };
+var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1 }; /* sunglasses renders its own store carousels above */
 function deptStoreCarouselsHTML(items, sectionKey){
   if (_STORE_RAILS_DONE[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -17774,7 +17840,7 @@ function sunglassesHeroHTML(){
     + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
     + 'Ray-Ban, Oakley, Smith, Persol y más — del lujo al día a día, todos con protección UV.</p>'
     + '<div class="flex flex-wrap gap-2.5 mt-5">'
-    + '<button onclick="sunglassesViewToggle(\'brands\');return false;" class="ariaSgCta focus-ring">Ver por marca &#8594;</button>'
+    + '<button onclick="var el=document.getElementById(\'sgBrandAxis\');if(el){el.scrollIntoView({behavior:\'smooth\'});}else{document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});}return false;" class="ariaSgCta focus-ring">Ver por marca &#8594;</button>'
     + '<button onclick="sunglassesTierFilter(\'lujo\');return false;" class="ariaSgBrandPill focus-ring" style="height:48px">Ver lujo</button>'
     + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
     + ' class="ariaSgBrandPill focus-ring" style="height:48px">Explorar todo</button>'
