@@ -8518,6 +8518,25 @@ function curvyNoticeHTML(count){
   </div>`;
 }
 
+/* FIGHT GEAR, PER ITEM (2026-10-02, Danny): boxing/MMA/muay-thai gear
+   is a kind of item, not a bucket. Unambiguous fight types file directly;
+   everything else goes through the discipline classifier with guards so
+   wetsuits (Body Glove's brand name trips the glove regex), swimsuits
+   (boardshorts trip the shorts rule) and gym wrist wraps never land in
+   Fight Club. */
+function isFightGearItem(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  var type = String(item.type || '').trim();
+  if (/^(BoxingMMAKickboxingGloves|Handwraps)$/.test(type)) return true;
+  if (typeof fightClubCategoriesOfItem !== 'function') return false;
+  if (!fightClubCategoriesOfItem(item).length) return false;
+  if (typeof WETSUIT_TYPES !== 'undefined' && WETSUIT_TYPES.has(type)) return false;
+  if (/swimsuit/i.test(type)) return false;
+  if (type === 'WorkoutGlovesWraps') return false;
+  if (typeof isSpearfishing === 'function' && isSpearfishing(item, retailer)) return false;
+  return true;
+}
+
 /* `retailer` is optional and only Zapatos reads it — Foot Locker's
    titles are model names, so the STORE is the signal there. */
 function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
@@ -8535,6 +8554,15 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.spearfishingOnly) return isSpearfishing(item, retailer);
   if (dept.soccerOnly) return isSoccer(item, retailer);
   if (dept.tennisOnly) return isTennis(item, retailer);
+  /* ARIA FIGHT CLUB (2026-10-02, Danny): fight gear is a KIND OF ITEM
+     answered per item, the Zapatos way -- Dick's boxing gloves, hand
+     wraps and MMA gear belong here even though Dick's files them in a
+     general sporting bucket. Combat-bucket retailers keep filing
+     everything; everyone else is judged per item. */
+  if (deptKey === 'combat_sports'){
+    if (typeof BUCKET_SPEC !== 'undefined' && BUCKET_SPEC[bucketName] && BUCKET_SPEC[bucketName].category === 'combat') return true;
+    return isFightGearItem(item, retailer);
+  }
   if (dept.sunglassesOnly) return isSunglasses(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.motoOnly) return isMotoItem(item, retailer);
@@ -11288,7 +11316,7 @@ function storeRailMoreHTML(key, dark){
    instead of one rail per store; each entry names its stores, its sale
    source and its door. Later departments reuse the shape: add an entry,
    add the two static sections (phone + laptop), nothing else changes. */
-const SURFSKATE_RAIL_STORES = ['nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const SURFSKATE_RAIL_STORES = ['nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf', 'dicks'];
 /* CATEGORY-RAIL PREDICATES (2026-09-26, Danny). The homepage category
    carousels reuse the exact bucket taxonomy the department pages use
    (BUCKET_SPEC), so a rail never shows what its own department page would
@@ -11760,20 +11788,15 @@ function surfSkateDeptRailsHTML(byRetailer){
       { demoteSockSales: true })
     .filter(isSale);
   blocks.push(deptRailSectionHTML('ss-ofertas', 'Ofertas en Surf & Skate',
-    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos de las 9 tiendas'), ofertas));
+    deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos por tienda'), ofertas));
   /* The mixed featured rail: everything the markdown rail did not take. */
   const destacados = categoryRailPicks(SURFSKATE_RAIL_STORES, [],
     all.filter(p => !isSale(p)), noKeys, CATEGORY_RAIL_TOTAL);
   blocks.push(deptRailSectionHTML('ss-destacados', 'Destacados en Surf & Skate',
-    deptMixedRailHeadHTML('Destacados en Surf & Skate', 'Selección de las 9 tiendas'), destacados));
-  /* One rail per store, in registry order. A store with nothing to show
-     contributes no rail -- the section hides rather than standing empty. */
-  for (const key of SURFSKATE_RAIL_STORES){
-    if (!byRetailer.has(key)) continue;
-    const picks = storeRailPicks(key, all, all, noKeys);
-    blocks.push(deptRailSectionHTML(`ss-store-${key}`, `Surf & Skate en ${(typeof retailerFor === 'function' && retailerFor(key) && retailerFor(key).label) || key}`,
-      deptStoreRailHeadHTML(key), picks));
-  }
+    deptMixedRailHeadHTML('Destacados en Surf & Skate', 'Selección por tienda'), destacados));
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): per-store rails moved
+     to the generic deptRetailerGearCarouselsHTML -- every retailer with
+     gear gets its own carousel shoulder-to-shoulder with the brands. */
   return blocks.join('');
 }
 
@@ -12182,33 +12205,31 @@ function sunglassesFaceFilter(shape){
   renderCatalogFeed();
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
-/* CAROUSEL CITY store rails (2026-10-02, Danny): one carousel per store,
-   so shoppers compare stores side by side. Generic — applies to any
-   department whose own rails aren't already store-organized. */
-var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1 }; /* sunglasses renders its own store carousels above */
-function deptStoreCarouselsHTML(items, sectionKey){
-  if (_STORE_RAILS_DONE[sectionKey]) return '';
+/* RETAILER GEAR CAROUSELS (2026-10-02, Danny): every retailer with gear
+   for a department gets its own carousel, standing shoulder-to-shoulder
+   with the brand carousels -- same visual weight, same treatment. A
+   retailer's gear carousel (e.g. Dick's Sporting Goods in Fight Club)
+   gets the same prominence as a brand carousel (e.g. Venum). Replaces the
+   old below-the-fold store rails; renders right after the brand rails. */
+var _NO_RETAILER_GEAR_RAILS = { sunglasses: 1 }; /* sunglasses renders its own bespoke carousels */
+function deptRetailerGearCarouselsHTML(items, sectionKey){
+  if (_NO_RETAILER_GEAR_RAILS[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
   if (list.length < 8) return '';
   var byStore = {}, i, p, r;
   for (i = 0; i < list.length; i++){
-    p = list[i]; r = String(p.retailer || '').trim();
+    p = list[i]; r = String(p.retailer || '').trim().toLowerCase();
     if (!r) continue;
     (byStore[r] = byStore[r] || []).push(p);
   }
   var stores = Object.keys(byStore).filter(function(k){ return byStore[k].length >= 4; });
   stores.sort(function(a, b){ return byStore[b].length - byStore[a].length; });
-  if (stores.length < 2) return '';
+  if (!stores.length) return '';
   var usePicks = (typeof categoryRailPicks === 'function');
   var useSection = (typeof deptRailSectionHTML === 'function');
   var useHead = (typeof deptMixedRailHeadHTML === 'function');
+  var useLabel = (typeof carouselCityStoreLabel === 'function');
   if (!usePicks || !useSection || !useHead) return '';
-  var labelOf = function(k){
-    try {
-      if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
-    } catch (e){}
-    return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
-  };
   var blocks = [], s, pool, picks;
   for (s = 0; s < stores.length; s++){
     var key = stores[s];
@@ -12219,13 +12240,13 @@ function deptStoreCarouselsHTML(items, sectionKey){
     });
     picks = categoryRailPicks([key], [], pool, {}, 12, {});
     if (picks && picks.length >= 4){
-      blocks.push(deptRailSectionHTML('store-' + sectionKey + '-' + key, labelOf(key),
-        deptMixedRailHeadHTML('En ' + labelOf(key), byStore[key].length + ' productos'), picks));
+      var label = useLabel ? carouselCityStoreLabel(key) : (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'Tienda');
+      blocks.push(deptRailSectionHTML('gear-' + sectionKey + '-' + key, label,
+        deptMixedRailHeadHTML(label, byStore[key].length + ' modelos'), picks));
     }
   }
   return blocks.join('');
 }
-
 /* CAROUSEL CITY (2026-10-02, Danny): generic brand carousels — one rail
    per brand, brand aggregated across all stores. Appended after every
    section's store rails. Sections with bespoke brand rails (sunglasses
@@ -14534,27 +14555,9 @@ function autoPartsDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('auto-parts-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -14639,27 +14642,9 @@ function combatSportsDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('combat-sports-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -14745,27 +14730,9 @@ function gymRatDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('gym-rat-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -14864,27 +14831,9 @@ function soccerDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('soccer-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -14966,27 +14915,9 @@ function spearfishingDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('spearfishing-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -15069,27 +15000,9 @@ function sportingGoodsDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('sporting-goods-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -15224,27 +15137,9 @@ function tennisDeptRailsHTML(items){
       : '';
     html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks);
   }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('tennis-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
+  /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): store rails moved to the
+     generic deptRetailerGearCarouselsHTML -- every retailer with gear gets
+     its own carousel shoulder-to-shoulder with the brand carousels. */
   return html;
 }
 
@@ -18790,17 +18685,19 @@ function renderCatalogFeed(){
       }[catalogState.key];
       if (catalogState.key === 'moms' && catalogState.subKey) _railFn = null;
       if (_railFn){ try { deptRails = _railFn() || ''; } catch (_re){ deptRails = ''; } }
-      /* CAROUSEL CITY: store carousels, then brand carousels */
-      try {
-        var _storeRails = (typeof deptStoreCarouselsHTML === 'function')
-          ? deptStoreCarouselsHTML(sgFiltered, catalogState.key) : '';
-        if (_storeRails) deptRails += _storeRails;
-      } catch (_se){}
+      /* CAROUSEL CITY (2026-10-02, Danny): brand carousels first, then
+         retailer gear carousels shoulder-to-shoulder with the brands --
+         same visual weight, same treatment. */
       try {
         var _brandRails = (typeof deptBrandCarouselsHTML === 'function')
           ? deptBrandCarouselsHTML(sgFiltered, catalogState.key) : '';
         if (_brandRails) deptRails += _brandRails;
       } catch (_be){}
+      try {
+        var _gearRails = (typeof deptRetailerGearCarouselsHTML === 'function')
+          ? deptRetailerGearCarouselsHTML(sgFiltered, catalogState.key) : '';
+        if (_gearRails) deptRails += _gearRails;
+      } catch (_ge){}
     }
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, sgFiltered);
     revealActiveChips(sections);
