@@ -7859,9 +7859,13 @@ function isSurfSkate(item, retailer){
      in Juguetes. Checked before the type vocabulary so a Sakar board
      typed "Skateboards completos" is still refused. */
   if (isToyGradeSkate(item)) return false;
+  /* WETSUIT ROUTING (2026-10-02, Danny QA): dive/spearfishing wetsuits
+     are not surf gear -- they live in Pesca Submarina. */
+  if (item.type && WETSUIT_TYPES.has(String(item.type).trim()) && wetsuitKind(item, retailer) !== 'surf') return false;
   if (item.type && SURFSKATE_TYPES.has(item.type)) return true;
   const title = (item.title || item.name || '') + ' ' + (item.type || '');
   if (NOT_SURFSKATE.test(title)) return false;
+  if ((/\bwetsuits?\b/i.test(title)) && (typeof wetsuitKind === 'function') && wetsuitKind(item, retailer) !== 'surf') return false;
   return SURFSKATE_TITLE.test(title) || SURFSKATE_HELMET.test(title) || SURFSKATE_ROPE.test(title);
 }
 
@@ -7873,8 +7877,8 @@ function isSurfSkate(item, retailer){
    (Spanish shopper-facing labels like "Arpones", "Aletas de buceo");
    Dick's files English machine tokens ("SnorkelingGearEquipment").
 
-   Wetsuits ("Trajes de neopreno") dual-list here AND in Surf & Skate --
-   departments overlap here exactly as Ofertas overlaps everything.
+   Wetsuits split by kind (2026-10-02, Danny QA): dive/spearfishing
+   wetsuits ("trajes" gear) live here; surf wetsuits live in Surf & Skate.
 
    GEAR-TYPE TILES: the department landing breaks into Danny's ten
    gear types (his terms, verbatim). Sogas y lineas is carved out of
@@ -7917,10 +7921,35 @@ const SPEAR_SOGA_TITLE =
 /* Guard: a surf leash ("pita") is surf gear, not a spearfishing line. */
 const SPEAR_SOGA_VETO =
   /\b(leash|pita|tabla de surf|surfboard)\b/i;
-function spearGearOfItem(item){
+/* WETSUIT ROUTING (2026-10-02, Danny QA): a surf wetsuit and a dive/
+   spearfishing wetsuit are different products. Pesca Submarina gets the
+   dive ones; Surf & Skate gets the surf ones. Retailer is the primary
+   signal (Danny: "if you found them in the scuba diving store, then
+   fine") -- Nautilus is a dive shop, the surf shops sell surf neoprene.
+   Dive brands and dive keywords break ties for mixed retailers like
+   Dick's. */
+const WETSUIT_TYPES = new Set(['Trajes de neopreno', 'Wetsuits']);
+const SURF_WETSUIT_RETAILERS = new Set(['islandwatersports', 'surfstation', 'valsurf', 'parrot', 'quietstorm', 'surfworld', 'mainland', 'ccs']);
+const DIVE_WETSUIT_RX =
+  /\b(spearfishing|scuba|buceo|\bdive\b|diving|freediv|apnea|camo|camouflage|neosport|cressi|\bmares\b|\bomer\b|salvimar|\bseac\b|beuchat|aqualung|scubapro|\btusa\b|hammerhead|spetton|picasso|pathos)\b/i;
+function wetsuitKind(item, retailer){
+  const r = String(retailer || (item && item.retailer) || '').toLowerCase();
+  if (r === 'nautilus') return 'dive';
+  if (SURF_WETSUIT_RETAILERS.has(r)) return 'surf';
+  const text = String((item && (item.title || item.name)) || '') + ' ' + String((item && item.brand) || '');
+  if (DIVE_WETSUIT_RX.test(text)) return 'dive';
+  if (/\bsurf\b/i.test(text)) return 'surf';
+  return 'surf';
+}
+function spearGearOfItem(item, retailer){
   if (!item || typeof item !== 'object') return null;
   const type = String(item.type || '').trim();
   let gear = SPEAR_TYPE_TO_GEAR[type] || null;
+  if (gear === 'trajes'){
+    /* WETSUIT ROUTING (2026-10-02, Danny QA): only dive/spearfishing
+       wetsuits belong in Pesca Submarina. Surf wetsuits stay in Surf. */
+    if (wetsuitKind(item, retailer) !== 'dive') return null;
+  }
   if (gear === 'repuestos'){
     const title = String(item.title || item.name || '');
     if (SPEAR_SOGA_TITLE.test(title) && !SPEAR_SOGA_VETO.test(title)) return 'sogas';
@@ -7928,7 +7957,7 @@ function spearGearOfItem(item){
   return gear;
 }
 function isSpearfishing(item, retailer){
-  return spearGearOfItem(item) !== null;
+  return spearGearOfItem(item, retailer) !== null;
 }
 
 /* ============================================================
@@ -8076,7 +8105,7 @@ function groupSpearGear(items){
   const face = new Map();
   let typed = 0;
   for (const item of items || []){
-    const key = spearGearOfItem(item);
+    const key = spearGearOfItem(item, item.retailer);
     if (!key) continue;
     typed += 1;
     bucket.set(key, (bucket.get(key) || 0) + 1);
@@ -16853,7 +16882,7 @@ function itemsInSubcategory(items, key){
      a glove serves Boxeo and Muay Thai at once -- so they filter through
      fightClubCategoriesOfItem instead of the single-aisle lookup. */
   if (FIGHT_CLUB_KEYS.has(key)) return (items || []).filter(it => fightClubCategoriesOfItem(it).includes(key));
-  if (SPEAR_GEAR_KEYS.has(key)) return (items || []).filter(it => spearGearOfItem(it) === key);
+  if (SPEAR_GEAR_KEYS.has(key)) return (items || []).filter(it => spearGearOfItem(it, it.retailer) === key);
   if (LATINO_DESIGNER_KEYS.has(key)) return (items || []).filter(it => latinoDesignerOfItem(it) === key);
   if (LATINO_TYPE_KEYS.has(key)) return (items || []).filter(it => latinoProductTypeOfItem(it) === key);
   return (items || []).filter(it => subcategoryOfItem(it) === key);
