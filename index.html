@@ -28724,8 +28724,18 @@ function stripAriaVocative(raw){
      previous category instead of searching the literal words. */
 let ariaShopSlots = { maxPriceUSD: null, maxPriceLabel: null, size: null, style: null, brand: null, query: null };
 
+/* SIZE WORDS (2026-10-01, Danny): shoppers say "talla diez", not "talla 10".
+   Map Spanish number words to digits so the size slot catches both. */
+const TALLA_WORDS = {uno:'1',dos:'2',tres:'3',cuatro:'4',cinco:'5',seis:'6',siete:'7',ocho:'8',nueve:'9',diez:'10',once:'11',doce:'12',trece:'13',catorce:'14',quince:'15',dieciseis:'16',dieciséis:'16',diecisiete:'17',dieciocho:'18',diecinueve:'19',veinte:'20'};
+const TALLA_WORDS_RE = Object.keys(TALLA_WORDS).join('|');
+
+function tallaWordsToDigits(text){
+  return String(text || '').replace(new RegExp('\\btalla\\s+(' + TALLA_WORDS_RE + ')\\b', 'gi'),
+    (m, w) => 'talla ' + (TALLA_WORDS[w.toLowerCase()] || w));
+}
+
 function extractShopSlots(text){
-  const t = String(text || '');
+  const t = tallaWordsToDigits(String(text || ''));
   const s = ariaShopSlots;
 
   // Budget: "200 soles", "S/200", "s/ 200" -> PEN; "$50" -> USD.
@@ -28795,6 +28805,12 @@ function buildChatSearchQuery(text, recipient){
        filtered out and the shopper was told we had none. "Toda(s)" and
        "todo(s)" are quantifiers, never product words. */
     .replace(/\b(todas?|todos?)\b/gi, ' ')
+    /* SIZE IS NOT A SEARCH FILTER (2026-10-01, Danny): "adidas talla 10"
+       must search Adidas -- the size is picked on the product page.
+       Leaving "talla 10" in the query matched nothing and printed
+       "no tengo ese modelo". Strip digit and word forms. */
+    .replace(new RegExp('\\btalla\\s+(?:US\\s+)?(?:\\d+(?:\\.\\d+)?|' + TALLA_WORDS_RE + ')\\b', 'gi'), ' ')
+    .replace(/\b(?:size|calzo)\s+(?:US\s+)?\d+(?:\.\d+)?\b/gi, ' ')
     .replace(/\b(de|del|mi|mis|que|tiene|a[ñn]os?)\b/gi, ' ')
     .replace(/\s+/g, ' ')
     .trim();

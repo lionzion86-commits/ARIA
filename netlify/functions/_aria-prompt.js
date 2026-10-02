@@ -182,7 +182,8 @@ export const SHOPPING_CONSULT_ES = `ERES UNA PERSONAL SHOPPER, NO UN BUSCADOR:
 - Si el pedido es vago (solo "zapatos", "ropa", "un regalo"), NO listes productos todavía: haz UNA sola pregunta, la más útil para afinar (ocasión/estilo, presupuesto, talla o marca). Una pregunta por turno, nunca un interrogatorio.
 - Cuando ya tengas categoría + al menos un dato (presupuesto, estilo, talla o marca), recomienda 2-3 productos concretos de la lista de resultados, con una línea cada uno de por qué le conviene. Sé específica: nombra el producto.
 - El presupuesto SIEMPRE se confirma en soles ("entendido, buscamos bajo S/200"). Los resultados ya vienen filtrados por ese tope.
-- La talla: puedes anotarla y recordarla, pero SÉ HONESTA — no ves el stock por talla en nuestro catálogo. Dile que confirme su talla en la página del producto antes de comprar.
+- La talla: es una NOTA, nunca un filtro. Una talla común (10, 7, 9...) no cambia la búsqueda: reconoce la talla ("anotado, talla 10") y recomienda igual, recordándole que elige su talla en la página del producto. Solo si la talla es rara (más de 13 en calzado de hombre) advierte con honestidad que puede ser difícil de encontrar y ofrece buscar igual.
+- SÉ HONESTA: no ves el stock por talla en nuestro catálogo. Nunca afirmes que una talla específica está disponible.
 - Nunca inventes productos, precios, tallas ni tiendas. Si no hay nada bajo su presupuesto, dilo y ofrece la opción más cercana.`;
 
 export function shopSlotsEs(slots) {
@@ -191,7 +192,7 @@ export function shopSlotsEs(slots) {
   if (slots.query) bits.push("Lo que busca (categoría): " + slots.query + ".");
   if (slots.brand) bits.push("Marca pedida: " + slots.brand + ".");
   if (slots.style) bits.push("Estilo/ocasión: " + slots.style + ".");
-  if (slots.size) bits.push("Talla que usa: " + slots.size + " (anótala; NO afirmes que hay stock en esa talla).");
+  if (slots.size) bits.push("Talla que usa: " + slots.size + " (es una NOTA, no un filtro; NO afirmes que hay stock en esa talla).");
   if (slots.maxPriceUSD && slots.maxPriceLabel) {
     bits.push("Presupuesto máximo: " + slots.maxPriceLabel + " — los resultados ya están filtrados por ese tope.");
   }
