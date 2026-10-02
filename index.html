@@ -1579,34 +1579,57 @@
   <!-- ============================================================
        LOS ELEGIDOS — Founding 1000 campaign module (2026-10-01).
        Oct 20 (lanzamiento) → Nov 10 (apertura): Danny elige a mano
-       1,000 fundadores entre los carritos guardados. Curado, no por
-       orden de llegada. Copy rules: "Fundadores", nunca "beta test".
-       El contador lee fundadores ELEGIDOS (pickedCount), no registros.
+       1,000 miembros entre los carritos guardados. Curado, no por
+       orden de llegada. Copy rules: "Area Key Club", nunca "beta test" ni "fundadores".
+       El contador lee miembros ELEGIDOS (pickedCount), no registros.
        ============================================================ -->
-  <section aria-label="Los Elegidos — Sé uno de los 1000 Fundadores" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
+  <section aria-label="Area Key Club — Sé de los primeros 1000" class="relative overflow-hidden" style="background:linear-gradient(160deg, #0A1F44 0%, #12336E 55%, #0A1F44 100%)">
     <div class="ariaGoldHair"></div>
     <div class="relative max-w-[820px] mx-auto px-5 py-12 sm:py-14 text-center">
-      <div class="ariaKicker mb-4" style="justify-content:center">Los Elegidos · Campaña de lanzamiento</div>
+      <div class="ariaKicker mb-4" style="justify-content:center">Area Key Club · Lanzamiento</div>
       <h2 class="text-[30px] sm:text-[42px] font-extrabold tracking-[-0.03em] leading-[1.06] mb-4" style="color:#fff">
-        Sé uno de los <span style="color:#F4C463">1000 Fundadores</span>.
+        Sé de los primeros <span style="color:#F4C463">1000</span> en el Area Key Club.
       </h2>
       <p class="text-[16px] sm:text-[19px] font-bold leading-snug mb-2" style="color:#F4C463">
         Arma tu carrito. Si eres elegido, compras.
       </p>
       <p class="text-[13.5px] sm:text-[15px] leading-relaxed max-w-[56ch] mx-auto mb-6" style="color:#B9C6E8">
-        Cualquiera puede armar su carrito y unirse al Key Club. Aria revisa cada carrito y elige a mano a los 1000 fundadores. Solo ellos compran del 20 de octubre al 10 de noviembre. Fundador por siempre.
+        Únete gratis al Area Key Club, arma tu carrito y participa en la selección. Los primeros 1000 miembros compran del 20 de octubre al 10 de noviembre — antes que todos.
       </p>
       <div class="inline-flex flex-col items-center gap-1.5 rounded-2xl px-6 py-4 mb-6" style="background:rgba(255,255,255,.06);border:1px solid rgba(244,196,99,.35)">
-        <div class="text-[13px] font-bold tracking-[0.08em] uppercase" style="color:#8FA3D6">Fundadores elegidos</div>
+        <div class="text-[13px] font-bold tracking-[0.08em] uppercase" style="color:#8FA3D6">Miembros elegidos</div>
         <div class="text-[26px] sm:text-[32px] font-extrabold tabular" style="color:#F4C463"><span id="foundersPickedCount">—</span><span style="color:#8FA3D6"> / 1000</span></div>
         <div id="foundersSpotsLine" class="text-[13px] font-semibold" style="color:#B9C6E8">Cargando…</div>
       </div>
       <div id="foundersMemberBadge" class="mb-6" hidden></div>
-      <div class="flex flex-wrap items-center justify-center gap-3">
+      <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
         <button onclick="scrollToSearch()" class="ariaHeroCta focus-ring transition" style="margin-top:0;height:52px">Armar mi carrito</button>
-        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="border:2px solid #F4C463;color:#F4C463">Unirme al Key Club</button>
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="border:2px solid #F4C463;color:#F4C463">Unirme al Area Key Club</button>
       </div>
-      <p class="mt-5 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. El 10 de noviembre se abren las puertas.</p>
+      <div class="text-left max-w-[720px] mx-auto">
+        <p class="text-[13px] font-bold tracking-[0.08em] uppercase mb-1" style="color:#8FA3D6">Los beneficios</p>
+        <h3 class="text-[22px] sm:text-[28px] font-extrabold tracking-[-0.02em] leading-tight mb-6" style="color:#fff">Cuatro razones para tener la llave.</h3>
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">Gratis al lanzamiento</h4>
+            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">Unirse no cuesta nada. Sin tarjeta, sin compromiso: tu cuenta Aria es tu membresía.</p>
+          </div>
+          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+            <span class="inline-block mb-2 px-3 py-1 rounded-full text-[10.5px] font-extrabold tracking-[0.06em]" style="background:#F4C463;color:#0A1F44">PROMO DE LANZAMIENTO</span>
+            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">$5 de vuelta por cada $100</h4>
+            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">5% de cashback en cada compra, directo a tu saldo Aria. Dinero de verdad, no puntos raros.</p>
+          </div>
+          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">Entra primero a las ofertas</h4>
+            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">Black Friday, Cyber Monday y las ventas grandes del año: los miembros compran antes que todos.</p>
+          </div>
+          <div class="rounded-2xl p-5" style="background:rgba(255,255,255,.055);border:1px solid rgba(244,196,99,.30)">
+            <h4 class="text-[15px] font-extrabold mb-2" style="color:#F4C463">Exprés a precio de miembro</h4>
+            <p class="text-[13px] leading-relaxed" style="color:#C6D2E8">¿Lo quieres ni bien llegue? El envío exprés te sale a $6 en vez de $8.</p>
+          </div>
+        </div>
+      </div>
+      <p class="mt-8 text-[12.5px] font-semibold" style="color:#8FA3D6">Solo 1000. El 10 de noviembre se abren las puertas.</p>
     </div>
   </section>
   <!-- ============================================================
@@ -5325,7 +5348,7 @@
           </div>
           <div class="py-6 border-b" style="border-color:var(--line)">
             <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿El cashback es para siempre?</h3>
-            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">El $5 por cada $100 es la promo de lanzamiento para los miembros fundadores, válida hasta después de la Navidad. La membresía, esa sí, sigue siendo gratis.</p>
+            <p class="text-[13.5px] leading-relaxed" style="color:#4A5568">El $5 por cada $100 es la promo de lanzamiento para los miembros del Area Key Club, válida hasta después de la Navidad. La membresía, esa sí, sigue siendo gratis.</p>
           </div>
           <div class="py-6 border-b" style="border-color:var(--line)">
             <h3 class="text-[15.5px] font-extrabold mb-2" style="color:var(--navy)">¿Cuándo empieza?</h3>
@@ -5824,7 +5847,7 @@
     <h2 id="authModalTitle" class="text-[19px] font-extrabold tracking-[-0.02em] mb-1" style="color:var(--navy)">Entrar</h2>
     <p id="authModalSubtitle" class="text-[12.5px] text-zinc-500 mb-5">Ingresa tu correo y contraseña.</p>
     <form id="authForm" onsubmit="submitAuth(event)" novalidate>
-      <!-- Los Elegidos (2026-10-01): el Key Club guarda tu carrito para la selección de fundadores. Nombre obligatorio, teléfono opcional. Sin DNI. -->
+      <!-- Los Elegidos (2026-10-01): el Key Club guarda tu carrito para la selección de miembros. Nombre obligatorio, teléfono opcional. Sin DNI. -->
       <div class="mb-3" id="authNameWrap">
         <label for="authName" class="block text-[12px] font-bold mb-1.5">Nombre</label>
         <input id="authName" type="text" autocomplete="name" placeholder="Ana Torres"
@@ -24175,14 +24198,14 @@ function renderFoundersBadges(){
   if (spotsEl) {
     const left = Math.max(0, (c.target || 1000) - (c.pickedCount || 0));
     spotsEl.textContent = left > 0
-      ? `Quedan ${left.toLocaleString('es-PE')} lugares de fundador`
-      : 'Los 1000 fundadores ya fueron elegidos';
+      ? `Quedan ${left.toLocaleString('es-PE')} lugares en el Area Key Club`
+      : 'Los 1000 miembros del Area Key Club ya fueron elegidos';
   }
   if (badgeEl) {
     if (!currentUser) { badgeEl.hidden = true; }
     else if (currentUserFounderStatus === 'fundador') {
       badgeEl.hidden = false;
-      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Fundador por siempre — tu checkout está desbloqueado</span>`;
+      badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-extrabold" style="background:#F4C463;color:#0A1F44">Miembro del Area Key Club — tu checkout está desbloqueado</span>`;
     } else if (currentUserFounderStatus === 'rechazado') {
       badgeEl.hidden = false;
       badgeEl.innerHTML = `<span class="inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-bold" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#B9C6E8">Tu carrito sigue guardado — las puertas se abren el 10 de noviembre</span>`;
@@ -24205,16 +24228,16 @@ function renderFoundersCartBanner(){
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3.5 flex items-start gap-3 mb-4" style="background:#0A1F44;border:1px solid rgba(244,196,99,.4)">
       <div>
         <div class="text-[13.5px] font-extrabold" style="color:#F4C463">Guarda tu carrito y entra a Los Elegidos</div>
-        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#B9C6E8">Únete gratis al Key Club: tu carrito queda guardado y Aria lo revisa para elegir a los 1000 fundadores. Arma tu carrito. Si eres elegido, compras.</div>
+        <div class="text-[12.5px] leading-snug mt-0.5" style="color:#B9C6E8">Únete gratis al Key Club: tu carrito queda guardado y Aria lo revisa para elegir a los 1000 miembros. Arma tu carrito. Si eres elegido, compras.</div>
         <button onclick="openAuthModal('signup')" class="mt-2.5 inline-flex items-center justify-center h-10 px-5 rounded-full text-[13px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme gratis</button>
       </div>
     </div>`;
     return;
   }
   if (currentUserFounderStatus === 'fundador') {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Fundador por siempre — tu checkout está desbloqueado.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-bold" style="background:#FFF6E0;border:1px solid #F0D28A;color:#5C4813">Miembro del Area Key Club — tu checkout está desbloqueado.</div>`;
   } else if (currentUserFounderStatus === 'rechazado') {
-    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Aún no eres fundador — las puertas se abren el 10 de noviembre.</div>`;
+    wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado. Aún no eres miembro — las puertas se abren el 10 de noviembre.</div>`;
   } else {
     wrap.innerHTML = `<div class="rounded-2xl px-4 py-3 mb-4 text-[13px] font-semibold leading-snug" style="background:#F7F9FD;border:1px solid var(--line);color:#5B6478">Tu carrito está guardado y <b>en revisión</b>. Arma tu carrito. Si eres elegido, compras.</div>`;
   }
