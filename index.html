@@ -3820,6 +3820,11 @@
            into the background. The grid sits on white again; the navy
            stays on the page chrome (banner, search, filters). -->
       <div class="rounded-2xl bg-white p-4 sm:p-5">
+        <!-- CAROUSEL CITY BATCH D (2026-10-02): deal carousels --
+             brand carousels of deals first, then store carousels
+             of deals. Painted by renderSalesRails() from the same
+             filtered deal set as the grid below. -->
+        <div id="salesRails" class="mb-1"></div>
         <div class="flex items-center justify-between mb-4 gap-3">
           <!-- MOBILE TIENDA PILL (2026-09-28, Danny): slim filter-bar entry
                point on phones -- opens the store bottom sheet. The badge
@@ -11792,66 +11797,64 @@ function shoeSubTypeOf(item){
   if (/\b(oxford|mocasin|loafer|monkstrap|vestir|dress|tac[oó]n|balerina)/.test(title)) return 'dress';
   return 'other';
 }
-/* MOTOS DEPARTMENT RAILS (2026-10-01, Danny): "a whole helmet carousel
-   of beautiful helmets" leads the section. Helmets first, then sale items,
-   then tires, accessories, parts, gear. Sale-led within each rail. */
-const MOTO_TYPE_RAIL_MIN = 4;
-function motoTypeOf(it){
-  const t = String((it && it.type) || '').toLowerCase();
+/* MOTOS CATEGORY AXIS (2026-10-02, Carousel City Batch D): every
+   category below is backed by real moto-catalog.json counts (RevZilla +
+   Dennis Kirk, snow gear removed per Danny 2026-10-01): Cascos 791,
+   Accesorios 947, Llantas 440, Escape 65, Maletas 59, Transmisión 44,
+   Mantenimiento 25, Iluminación 25, Frenos 24, Equipo 61,
+   Eléctricos 14. Danny's helmet-carousel directive leads the axis. */
+function motoNormType(p){
+  const t = String((p && p.type) || '').toLowerCase();
   if (/helmet/.test(t)) return 'helmets';
   if (/tire/.test(t)) return 'tires';
+  if (/exhaust/.test(t)) return 'exhaust';
+  if (/luggage/.test(t)) return 'luggage';
+  if (/drivetrain/.test(t)) return 'drivetrain';
+  if (/maintenance/.test(t)) return 'maintenance';
+  if (/lighting/.test(t)) return 'lighting';
+  if (/brake/.test(t)) return 'brakes';
+  if (/glove/.test(t)) return 'gloves';
+  if (/boot/.test(t)) return 'boots';
+  if (/jacket/.test(t)) return 'jackets';
   if (/accessor/.test(t)) return 'accessories';
-  if (/exhaust|drivetrain|brake|electric|lighting|maintenance/.test(t)) return 'parts';
-  if (/glove|boot|jacket|luggage/.test(t)) return 'gear';
+  if (/electric/.test(t)) return 'electrical';
   return 'other';
 }
-function motosDeptRailsHTML(items){
-  const list = Array.isArray(items) ? items : [];
-  if (!list.length) return '';
-  const retailerKeys = [...new Set(list.map(it => it && it.retailer).filter(Boolean))];
-  const noKeys = new Set();
-  const blocks = [];
-  const saleFirst = arr => [...arr].sort((a, b) => (rawItemOnSale(b) ? 1 : 0) - (rawItemOnSale(a) ? 1 : 0));
-  /* The helmet carousel leads: every helmet, sale-first. */
-  const helmets = saleFirst(list.filter(it => motoTypeOf(it) === 'helmets'));
-  if (helmets.length >= MOTO_TYPE_RAIL_MIN){
-    const picks = categoryRailPicks(retailerKeys, helmets, helmets, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
-    if (picks.length) blocks.push(deptRailSectionHTML('motos-helmets', 'Cascos para moto',
-      deptMixedRailHeadHTML('Cascos', helmets.length + ' cascos'), picks));
-  }
-  /* Then everything on sale, biggest discount first. */
-  const onSale = list.filter(rawItemOnSale).filter(it => motoTypeOf(it) !== 'helmets');
-  if (onSale.length >= MOTO_TYPE_RAIL_MIN){
-    const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
-    if (picks.length) blocks.push(deptRailSectionHTML('motos-sale', 'Motos en oferta',
-      deptMixedRailHeadHTML('En oferta', onSale.length + ' productos con descuento'), picks));
-  }
-  /* Then one rail per moto type. CHEAP-FIRST (2026-10-01, Danny):
-     Peruvians buy the affordable gear first — cheapest helmets lead,
-     the $4,200 Akrapovic can wait further down the rail. */
-  const groups = [
-    ['tires', 'Llantas', 'llantas'],
-    ['accessories', 'Accesorios', 'accesorios'],
-    ['parts', 'Repuestos', 'repuestos'],
-    ['gear', 'Equipo', 'equipo'],
-  ];
-  for (const [gkey, glabel, gsub] of groups){
-    const aisle = saleFirst(list.filter(it => motoTypeOf(it) === gkey));
-    if (aisle.length < MOTO_TYPE_RAIL_MIN) continue;
-    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
-    if (!picks.length) continue;
-    blocks.push(deptRailSectionHTML('motos-type-' + gkey, 'Motos ' + glabel,
-      deptMixedRailHeadHTML(glabel, aisle.length + ' ' + gsub), picks));
-  }
-  return blocks.join('');
+const MOTO_CATS = [
+  { key: 'cascos', label: 'Cascos', sub: 'Certificados DOT', test: function(p){ return motoNormType(p) === 'helmets'; } },
+  { key: 'llantas', label: 'Llantas', sub: 'Neumáticos para moto', test: function(p){ return motoNormType(p) === 'tires'; } },
+  { key: 'accesorios', label: 'Accesorios', sub: 'Candados, covers, soportes', test: function(p){ return motoNormType(p) === 'accessories'; } },
+  { key: 'equipo', label: 'Equipo y protección', sub: 'Chamarras, guantes, botas', test: function(p){ const t = motoNormType(p); return t === 'jackets' || t === 'gloves' || t === 'boots'; } },
+  { key: 'frenos', label: 'Frenos', sub: 'Pastillas y discos', test: function(p){ return motoNormType(p) === 'brakes'; } },
+  { key: 'escape', label: 'Escape', sub: 'Sistemas y silenciadores', test: function(p){ return motoNormType(p) === 'exhaust'; } },
+  { key: 'transmision', label: 'Transmisión', sub: 'Cadenas y piñones', test: function(p){ return motoNormType(p) === 'drivetrain'; } },
+  { key: 'maletas', label: 'Maletas y equipaje', sub: 'Alforjas y baúles', test: function(p){ return motoNormType(p) === 'luggage'; } },
+  { key: 'mantenimiento', label: 'Mantenimiento', sub: 'Aceites y cuidado', test: function(p){ return motoNormType(p) === 'maintenance'; } },
+  { key: 'iluminacion', label: 'Iluminación', sub: 'Faros y LED', test: function(p){ return motoNormType(p) === 'lighting'; } },
+  { key: 'electricos', label: 'Eléctricos', sub: 'Baterías y cableado', test: function(p){ return motoNormType(p) === 'electrical'; } },
+];
+/* MOTO BRAND FOLDING (2026-10-02, Carousel City Batch D): the catalog
+   files the same brand twice when the scraper appends the product class
+   ("HJC" + "HJC Helmets", "LS2" + "LS2 Helmets", "Michelin" +
+   "Michelin Tires") -- one carousel per actual product brand, so the
+   class word is folded before grouping. */
+function motoBrandOf(p){
+  const b = (typeof realBrandOf === 'function') ? realBrandOf(p) : String((p && p.brand) || '').trim();
+  return b ? b.replace(/\s+(helmets?|tires?)$/i, '') : '';
 }
-/* SUNGLASS HUT DEPT (2026-10-02, Danny): the department landing --
-   brand wall, price tiers (Lujo / Accesibles / Ofertas), face-shape guide.
-   "Feel like you're walking into Sunglass Hut." */
-const SUNGLASSES_LUJO_MIN = 200;
-function sunglassesTierOf(p){
-  const price = Number(p && p.price) || 0;
-  return price >= SUNGLASSES_LUJO_MIN ? 'lujo' : 'accesibles';
+function motosDeptRailsHTML(items){
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH D (2026-10-02): brand carousels first
+     (cross-store aggregated, actual product brands -- never a retailer),
+     then "Más marcas", then the RevZilla / Dennis Kirk store
+     carousels, the moto category axis (cascos first, Danny's
+     directive), then Ofertas. Hero + theme untouched. */
+  return carouselCityRailsHTML('motos', items, {
+    brandOf: motoBrandOf,
+    storeOrder: ['revzilla', 'denniskirk'],
+    categories: MOTO_CATS,
+    ofertasLabel: 'Ofertas en motos'
+  });
 }
 /* Gold-on-dark rail header for the Sunglass Hut department: the shared
    navy header would vanish on the espresso theme. An optional brand adds
@@ -12094,7 +12097,9 @@ var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1,
   /* CAROUSEL CITY BATCH B (2026-10-02): sports departments. */
   spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1,
   /* CAROUSEL CITY BATCH C (2026-10-02): home & life departments. */
-  electronics: 1, home_goods: 1, home_decor: 1, candy_chocolate: 1, party: 1, books: 1, moms: 1 };
+  electronics: 1, home_goods: 1, home_decor: 1, candy_chocolate: 1, party: 1, books: 1, moms: 1,
+  /* CAROUSEL CITY BATCH D (2026-10-02): auto/moto + toys alignment. */
+  motos: 1, auto_parts: 1, toys: 1 };
 function deptStoreCarouselsHTML(items, sectionKey){
   if (_STORE_RAILS_DONE[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -12146,7 +12151,9 @@ var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1,
   /* CAROUSEL CITY BATCH B (2026-10-02): sports departments. */
   surf_skate: 1, spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1,
   /* CAROUSEL CITY BATCH C (2026-10-02): home & life departments. */
-  electronics: 1, home_goods: 1, home_decor: 1, candy_chocolate: 1, party: 1, books: 1, moms: 1 };
+  electronics: 1, home_goods: 1, home_decor: 1, candy_chocolate: 1, party: 1, books: 1, moms: 1,
+  /* CAROUSEL CITY BATCH D (2026-10-02): auto/moto + toys alignment. */
+  motos: 1, auto_parts: 1, toys: 1 };
 function deptBrandCarouselsHTML(items, sectionKey){
   if (_NO_GENERIC_BRANDS[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -14221,45 +14228,36 @@ function autoPartsTierFilter(tier){
   if (target) target.scrollIntoView({behavior:'smooth'});
 }
 
-/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+/* REPUESTOS CATEGORY AXIS (2026-10-02, Carousel City Batch D): keyword
+   rules over the Advance Auto Parts product names -- the catalog's
+   `type` field is just "Repuestos" for everything, so there is no
+   finer taxonomy to read. Every group is backed by real
+   advanceauto-catalog.json counts: Frenos 490, Suspensión ~500,
+   Ejes y transmisión 363, Rodamientos 32+, Fluidos 69. */
+const AUTO_PARTS_CATS = [
+  { key: 'frenos', label: 'Frenos', sub: 'Pastillas, discos y más',
+    test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /rotor|brake pad|pastilla|caliper/.test(n); } },
+  { key: 'suspension', label: 'Suspensión', sub: 'Barras, links y más',
+    test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /sway\s?bar|stabilizer|suspension|strut|shock|control arm|bushing/.test(n); } },
+  { key: 'ejes-transmision', label: 'Ejes y transmisión', sub: 'Ejes, clutch y cajas',
+    test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /axle|\bcv\b|clutch|transmission|flywheel|driveshaft|repset/.test(n); } },
+  { key: 'rodamientos', label: 'Rodamientos', sub: 'Baleros y mazas',
+    test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /bearing|\bhub\b/.test(n); } },
+  { key: 'fluidos', label: 'Fluidos y mantenimiento', sub: 'Aceites y líquidos',
+    test: function(p){ var n = String((p && (p.title || p.name)) || '').toLowerCase(); return /fluid|motor oil|grease|washer|additive/.test(n); } },
+];
+/* CAROUSEL CITY BATCH D (2026-10-02): brand carousels first
+   (Carquest Premium, MOOG, LuK... -- actual parts brands, never the
+   retailer), then "Más marcas", then the Advance Auto Parts store
+   carousel, the part-category axis above, then Ofertas (renders only
+   when real markdowns exist). Hero + fitment theme untouched. */
 function autoPartsDeptRailsHTML(items){
-  items = Array.isArray(items) ? items : [];
-  var html = '';
-  var saleItems = [];
-  if (typeof rawItemOnSale === 'function'){
-    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
-  }
-  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
-    var salePicks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
-      : saleItems.slice(0, 20);
-    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
-      : '';
-    html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks);
-  }
-  var byRetailer = {};
-  var order = [];
-  for (var j = 0; j < items.length; j++){
-    var it = items[j] || {};
-    var key = String(it.retailer || '').toLowerCase() || 'otros';
-    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
-    byRetailer[key].push(it);
-  }
-  for (var r = 0; r < order.length; r++){
-    var pool = byRetailer[order[r]];
-    if (pool.length < 4) continue;
-    var picks = (typeof categoryRailPicks === 'function')
-      ? categoryRailPicks([order[r]], pool, pool, null, 20)
-      : pool.slice(0, 20);
-    if (!picks || !picks.length) continue;
-    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
-    var head = (typeof deptMixedRailHeadHTML === 'function')
-      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
-      : '';
-    html += deptRailSectionHTML('auto-parts-store-' + order[r], 'Tienda ' + label, head, picks);
-  }
-  return html;
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  return carouselCityRailsHTML('auto_parts', items, {
+    storeOrder: ['advanceauto'],
+    categories: AUTO_PARTS_CATS,
+    ofertasLabel: 'Ofertas en repuestos'
+  });
 }
 
 
@@ -18087,77 +18085,25 @@ function toysBrandFilter(brand){
   renderCatalogFeed();
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
-/* Big-card store rail section: mirrors deptRailSectionHTML but the cards
-   render large (see .ariaToysBigRail) so shoppers see toy detail. */
-function toysStoreRailSectionHTML(railId, storeKey, picks){
-  if (!Array.isArray(picks) || !picks.length) return '';
-  deptRailsRendered[railId] = picks;
-  var cards = picks.map(function(p, i){ return railCardHTML(p,
-    "openDeptRailProduct('" + railId.replace(/'/g, "\\'") + "'," + i + ")",
-    'data-dept-rail-card="' + railId.replace(/"/g, '&quot;') + '" data-idx="' + i + '"'); }).join('');
-  return '<section aria-label="' + storeKey + '" class="mb-9 ariaToysBigRail">'
-    + '<div class="flex items-center justify-between gap-3 mb-3">' + deptStoreRailHeadHTML(storeKey) + '</div>'
-    + '<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">' + cards + '</div></section>';
-}
-/* TOYS R US DEPT RAILS (2026-10-02, Danny): store carousels FIRST --
-   Walmart's toys get their own big-card carousel, Target's gets its
-   own, so shoppers compare one store against the other without
-   scrolling through a million mixed cards. Brand carousels follow
-   (LEGO, Barbie, Hot Wheels...), then real-discount Ofertas. The aisle
-   list + filters render after the rails for deeper browsing. */
+/* TOYS R US DEPT RAILS (2026-10-02, Danny): the Toys R Us wall --
+   brand carousels FIRST (LEGO, Barbie, Hot Wheels...), each brand
+   aggregated across Walmart and Target, then "Más marcas", then the
+   Walmart vs Target store carousels (the competitive battle), then
+   real-discount Ofertas.
+   CAROUSEL CITY BATCH D alignment: the old body led with the store
+   rails (store-first, against the universal law) and the generic
+   fallbacks re-appended store + brand rails after them (duplicates).
+   Brand grouping is now case-insensitive, the long tail gets its full
+   "Más marcas" carousel, and every rail uses the sales-first merch
+   sort; the console + toy-grade-skate demotion stays via toyRankFn. */
 function toysDeptRailsHTML(items){
-  var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
-  if (!list.length) return '';
-  var retailerKeys = [];
-  list.forEach(function(it){ var r = it && it.retailer; if (r && retailerKeys.indexOf(r) === -1) retailerKeys.push(r); });
-  var noKeys = new Set();
-  var blocks = [];
-  var saleFirst = function(arr){
-    return arr.slice().sort(function(a, b){ return (rawItemOnSale(b) ? 1 : 0) - (rawItemOnSale(a) ? 1 : 0); });
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  var opts = {
+    storeOrder: ['walmart', 'target'],
+    ofertasLabel: 'Ofertas'
   };
-  var toysFirst = (typeof toyLeadRank === 'function') ? toyLeadRank : null;
-  /* ---- STORE CAROUSELS: the competitive battle, big cards. ---- */
-  ['walmart', 'target'].forEach(function(sk){
-    var pool = saleFirst(list.filter(function(p){ return String(p.retailer || '').toLowerCase() === sk; }));
-    if (pool.length >= 4){
-      var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
-      if (picks.length) blocks.push(toysStoreRailSectionHTML('toys-store-' + sk, sk, picks));
-    }
-  });
-  /* ---- BRAND CAROUSELS: the aisles. ---- */
-  var brandCounts = {};
-  list.forEach(function(p){
-    var b = String(p.brand || '').trim();
-    if (b) brandCounts[b] = (brandCounts[b] || 0) + 1;
-  });
-  var topBrands = Object.keys(brandCounts)
-    .map(function(b){ return [b, brandCounts[b]]; })
-    .sort(function(a, b){ return b[1] - a[1]; })
-    .slice(0, 8)
-    .filter(function(e){ return e[1] >= 6; });
-  topBrands.forEach(function(e){
-    var b = e[0];
-    var pool = saleFirst(list.filter(function(p){ return String(p.brand || '').trim() === b; }));
-    var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
-    if (picks.length){
-      var slug = b.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'marca';
-      blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
-        deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
-    }
-  });
-  /* ---- OFERTAS: real discounts, biggest first. ---- */
-  var onSale = list.filter(rawItemOnSale);
-  if (onSale.length >= 4){
-    var byDisc = onSale.slice().sort(function(a, b){
-      var pa = Number(a.price) > 0 && Number(a.originalPrice) > Number(a.price) ? (1 - Number(a.price) / Number(a.originalPrice)) : 0;
-      var pb = Number(b.price) > 0 && Number(b.originalPrice) > Number(b.price) ? (1 - Number(b.price) / Number(b.originalPrice)) : 0;
-      return pb - pa;
-    });
-    var salePicks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
-    if (salePicks.length) blocks.push(deptRailSectionHTML('toys-ofertas', 'Juguetes en oferta',
-      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), salePicks));
-  }
-  return blocks.join('');
+  if (typeof toyLeadRank === 'function') opts.picksOpts = { toyRankFn: toyLeadRank };
+  return carouselCityRailsHTML('toys', items, opts);
 }
 function motosEmptyStateHTML(){
   const aisles = [
@@ -18436,7 +18382,8 @@ function renderCatalogFeed(){
     /* CAROUSEL CITY BATCH B (2026-10-02): sports departments with their own rails render the landing. */
     'spearfishing','soccer','tennis','sporting_goods','combat_sports',
     /* CAROUSEL CITY BATCH C (2026-10-02): home & life departments -- their items carry no SUBCATEGORY_SPEC types, so shouldSplit() stays false. */
-    'electronics','home_goods','home_decor','candy_chocolate','party','books'].indexOf(catalogState.key) !== -1;
+    'electronics','home_goods','home_decor','candy_chocolate','party','books',
+    'auto_parts'].indexOf(catalogState.key) !== -1;
   if ((splittable || deptHasCustomRails) && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
     subtitle.textContent = grouped.rows.length
       ? `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`
@@ -31278,6 +31225,55 @@ function productCardHTML(p, opts){
   </div>`;
 }
 
+/* CAROUSEL CITY BATCH D (2026-10-02): Ofertas is the deals axis itself,
+   so it gets the department treatment over its own feed -- brand
+   carousels of deals first (top deal brands, cross-store aggregated),
+   then store carousels of deals. Sales-first inside every rail via the
+   canonical merch sort. The Bring-a-Trailer large-card grid, the
+   search, the sort select and the pagination below are untouched. */
+/* "Ver ofertas" on a deal-store rail narrows the sales grid to that
+   store through the same checkboxes the filters use -- one code path,
+   so rails and grid can never disagree. */
+function ofertasNarrowToStore(rk){
+  var boxes = Array.from(document.querySelectorAll('.salesStoreFilter'));
+  var known = false;
+  boxes.forEach(function(cb){ if (cb.value === rk) known = true; });
+  if (!known) return;
+  boxes.forEach(function(cb){ cb.checked = (cb.value === rk); });
+  if (typeof updateSalesStoreBadge === 'function') updateSalesStoreBadge();
+  if (typeof renderSalesGrid === 'function') renderSalesGrid();
+}
+function ofertasStoreRailHeadHTML(label, sub, retailerKey){
+  var rk = String(retailerKey || '').replace(/'/g, "\\'");
+  var verTodo = rk
+    ? '<button onclick="ofertasNarrowToStore(\'' + rk + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver ofertas &#8594;</button>'
+    : '';
+  return '<span class="min-w-0">'
+    + '<span class="block text-[17px] font-extrabold uppercase tracking-[-0.01em] leading-tight truncate" style="color:var(--navy)">' + escapeHtml(label) + '</span>'
+    + (sub ? '<span class="block text-[12px] font-semibold mt-0.5" style="color:#6B7487">' + escapeHtml(sub) + '</span>' : '')
+    + '</span>' + verTodo;
+}
+/* Paints the deal carousels from the same store-filtered deal set the
+   grid renders, and re-runs on every renderSalesGrid() so the two stay
+   in sync (filters, sort changes, cache enrichments). */
+function renderSalesRails(){
+  var wrap = document.getElementById('salesRails');
+  if (!wrap) return;
+  if (typeof brandCarouselsHTML !== 'function' || typeof storeCarouselsHTML !== 'function'){ wrap.innerHTML = ''; return; }
+  var activeStores = Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(function(cb){ return cb.value; });
+  var cache = (typeof saleItemsCache !== 'undefined' && Array.isArray(saleItemsCache)) ? saleItemsCache : [];
+  var deals = cache.filter(function(p){ return activeStores.indexOf(p.retailer) !== -1; });
+  var opts = {
+    storeRailHead: ofertasStoreRailHeadHTML,
+    masMarcasLabel: 'Más marcas en oferta',
+    axisLabels: {
+      brand: { kicker: 'Ofertas', title: 'Por marca', sub: 'Las marcas con más descuentos, de todas las tiendas' },
+      store: { kicker: 'Ofertas', title: 'Por tienda', sub: 'Compara las ofertas de cada tienda' }
+    }
+  };
+  wrap.innerHTML = brandCarouselsHTML('ofertas', deals, opts) + storeCarouselsHTML('ofertas', deals, opts);
+}
 function renderSalesGrid(){
   const activeStores = Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value);
   const sortBy = document.getElementById('salesSort').value;
@@ -31316,6 +31312,7 @@ function renderSalesGrid(){
     ? `${items.length} oferta${items.length === 1 ? '' : 's'} real${items.length === 1 ? '' : 'es'}`
     : '';
   renderSalesFreshness();
+  renderSalesRails();
   updateSalesFilterBadge();
 }
 
