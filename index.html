@@ -28639,6 +28639,67 @@ function stripAriaVocative(raw){
   return out || text.trim();
 }
 
+/* PERSONAL SHOPPER SLOTS (2026-10-01, Danny). Aria is a personal
+   shopper, not a search box: "buscame zapatos talla 7" should start a
+   conversation (elegantes o casuales? presupuesto?), not a category
+   dump. These slots accumulate across turns in one conversation:
+   - maxPriceUSD / maxPriceLabel: "no mas de 200 soles" -> PEN->USD via fxRate
+   - size: "talla 7" (remembered; we do NOT have per-size stock data, so
+     Aria must never claim a size is in stock)
+   - style: elegante / casual / deportivo
+   - brand, query: carried so a follow-up like "200 soles" reuses the
+     previous category instead of searching the literal words. */
+let ariaShopSlots = { maxPriceUSD: null, maxPriceLabel: null, size: null, style: null, brand: null, query: null };
+
+function extractShopSlots(text){
+  const t = String(text || '');
+  const s = ariaShopSlots;
+
+  // Budget: "200 soles", "S/200", "s/ 200" -> PEN; "$50" -> USD.
+  // Bare "no mas de 200" defaults to soles (Peruvian shopper).
+  let m = t.match(/(\d+(?:[.,]\d+)?)\s*(soles|s\/\.?)/i) || t.match(/(s\/\.?)\s*(\d+(?:[.,]\d+)?)/i);
+  if (m){
+    const pen = parseFloat((m[1] && /^\d/.test(m[1]) ? m[1] : m[2]).replace(',', '.'));
+    if (pen > 0 && typeof fxRate !== 'undefined' && fxRate){
+      s.maxPriceUSD = pen / fxRate;
+      s.maxPriceLabel = 'S/' + Math.round(pen);
+    }
+  } else if ((m = t.match(/\$\s*(\d+(?:[.,]\d+)?)/))){
+    const usd = parseFloat(m[1].replace(',', '.'));
+    if (usd > 0){
+      s.maxPriceUSD = usd;
+      s.maxPriceLabel = '$' + usd;
+    }
+  } else if ((m = t.match(/(?:no\s+m[aá]s\s+de|menos\s+de|hasta|m[aá]ximo(?:\s+de)?)\s*(\d+(?:[.,]\d+)?)/i))){
+    const pen = parseFloat(m[1].replace(',', '.'));
+    if (pen > 0 && typeof fxRate !== 'undefined' && fxRate){
+      s.maxPriceUSD = pen / fxRate;
+      s.maxPriceLabel = 'S/' + Math.round(pen);
+    }
+  }
+
+  // Size: "talla 7", "calzo 7", "size 7".
+  if ((m = t.match(/(?:talla|calzo|size)(?:\s+US)?\s*(\d+(?:\.\d+)?)/i))){
+    s.size = m[1];
+  }
+
+  // Style / occasion.
+  if (/\b(elegantes?|vestir|formales?|oficina)\b/i.test(t)) s.style = 'elegante';
+  else if (/\b(casuales?|diario|urbanos?|paseo)\b/i.test(t)) s.style = 'casual';
+  else if (/\b(deportiv\w*|running|gym|deporte|entrenar)\b/i.test(t)) s.style = 'deportivo';
+
+  return s;
+}
+
+/* Vague = a bare category ("zapatos", "zapatos women's") with no brand,
+   style, budget or size to work with. In that case Aria asks ONE
+   clarifying question instead of dumping the category. */
+function isVagueShoppingQuery(searchQuery, slots){
+  const toks = String(searchQuery || '').trim().split(/\s+/).filter(Boolean);
+  if (toks.length > 3 || /\d/.test(searchQuery)) return false;
+  return !(slots.brand || slots.style || slots.maxPriceUSD || slots.size);
+}
+
 function buildChatSearchQuery(text, recipient){
   const base = translateSearchQuery(stripAriaVocative(String(text || '')))
     // Drop the Spanish framing so only the product words remain; left in,
@@ -29165,6 +29226,16 @@ async function runAssistantBrain(text){
   }
 
   const recipient = extractRecipient(text, ariaChatHistory);
+  /* PERSONAL SHOPPER SLOTS (2026-10-01, Danny). Budget ("200 soles"),
+     size ("talla 7") and style accumulate across turns so a follow-up
+     like "no mas de 200 soles" refines the previous search instead of
+     starting a broken new one. */
+  /* The soles->USD conversion needs the venta rate; loadFxRate was kicked
+     off at the top of this function, so this just settles the in-flight
+     promise (instant on warm runs). Without it a first-turn "200 soles"
+     would silently drop the budget. */
+  await loadFxRate();
+  const slots = extractShopSlots(text);
   /* FOLLOW-UP "SHOW ME ALL" (2026-09-28, Danny). He asked "Muéstrame
      todas las Adidas", the brain asked which model, he answered "just
      show me all" -- and the new turn searched the literal words "just
@@ -29172,10 +29243,27 @@ async function runAssistantBrain(text){
      that repairs an empty search reuses the previous turn's query. */
   const chatFollowupRe = /^(s[ií]|dale|ya|ok(?:ay)?|bueno|vale|claro|por\s*favor|just\s+show\s+me\s+all|show\s+me\s+all|show\s+all|mu[eé]strame\s+tod[oa]s?|ens[eé][ñn]ame\s+tod[oa]s?|tod[oa]s?)$/i;
   const reuseChatQuery = lastChatSearchQuery && lastChatSearchEmpty && chatFollowupRe.test(text.trim());
-  const searchQuery = reuseChatQuery ? lastChatSearchQuery : buildChatSearchQuery(text, recipient);
+  let searchQuery = reuseChatQuery ? lastChatSearchQuery : buildChatSearchQuery(text, recipient);
+  /* SLOT FOLLOW-UP: "200 soles" or "elegantes" alone carries no product
+     words -- reuse the previous turn's category instead of searching
+     the literal reply. */
+  if (!reuseChatQuery && searchQuery.replace(/\s+/g, '').length < 3 && slots.query){
+    const styleBits = [];
+    if (slots.style === 'elegante') styleBits.push('elegant');
+    else if (slots.style === 'deportivo') styleBits.push('athletic');
+    searchQuery = [slots.query, ...styleBits].filter(Boolean).join(' ').trim();
+  }
+  /* Remember the category for the next turn's slot follow-ups. */
+  if (searchQuery.replace(/\s+/g, '').length >= 3) slots.query = searchQuery;
+  /* CONSULT MODE (2026-10-01, Danny): computed after willSearch below. */
+  let consultMode = false;
   lastChatSearchQuery = searchQuery;
   assistantLiveOffered = '';   // a new question gets its own offer
   const willSearch = searchQuery.length >= 3 && !CHAT_NON_SHOPPING_RE.test(text);
+  /* CONSULT MODE (2026-10-01, Danny): a vague first turn ("buscame
+     zapatos") gets ONE clarifying question, not a category dump. */
+  consultMode = willSearch && !reuseChatQuery && isVagueShoppingQuery(searchQuery, slots);
+  if (consultMode) slots.consultMode = true; else delete slots.consultMode;
 
   /* NO DEAD TIME (2026-09-19). The acknowledgment goes up BEFORE anything
      is awaited, so it is on screen in a few hundred milliseconds, and the
@@ -29243,6 +29331,72 @@ async function runAssistantBrain(text){
     }
   }
 
+  /* CONSULT MODE (2026-10-01, Danny). The request is a bare category
+     with nothing to filter on -- Aria asks ONE clarifying question
+     (occasion, budget, size...) instead of dumping the category. No
+     product search, no cards; the slots she gathers come back next
+     turn and the search runs then. */
+  if (consultMode){
+    hideAssistantTyping();
+    setOrbState('idle');
+    const payload = {
+      message: text,
+      history: ariaChatHistory,
+      products: [],
+      recipient: (recipient.gender || recipient.ageBand)
+        ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient: 0 }
+        : null,
+      slots: { ...slots, consultMode: true },
+      ttsPipeline: true,
+    };
+    if (statusEl) statusEl.textContent = 'Aria está pensando…';
+    setOrbState('thinking');
+    showAssistantTyping();
+    let sink = beginAssistantReply();
+    const tts = ttsNewPipeline();
+    const onTtsDelta = (d) => feedTts(tts, d, false);
+    streamAssistantReply.lastError = null;
+    if (ariaRateLimited()){
+      hideAssistantTyping();
+      addAssistantMessage('bot', 'Dame un minutito, por favor — ¿lo intentamos de nuevo?', null, { speak: false });
+      addAssistantNote('Código: Groq 429 — pausa breve, sin nuevas llamadas');
+      reopenMicForRetry();
+      assistantThinking = false;
+      return;
+    }
+    let streamed = sink ? await streamAssistantReply(payload, sink, onTtsDelta) : null;
+    if (!streamed){
+      let res = null;
+      try {
+        res = await fetch('/.netlify/functions/aria-chat-groq', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      } catch(e2){ res = null; }
+      if (res && res.ok){
+        try {
+          const dj = await res.json();
+          const line2 = dj && dj.reply;
+          if (line2){
+            hideAssistantTyping();
+            addAssistantMessage('bot', line2, null, { speak: false });
+            ariaChatHistory.push({ role: 'assistant', content: line2 });
+            speakWithLily(line2);
+          }
+        } catch(e3){ /* fall through to retry affordance */ }
+      }
+      if (!res || !res.ok){
+        hideAssistantTyping();
+        addAssistantMessage('bot', 'Tuve un problema pensando eso — ¿me lo repites?', null, { speak: false });
+      }
+    }
+    if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    setOrbState('idle');
+    assistantThinking = false;
+    reopenMicForRetry();
+    return;
+  }
+
   const foundItems = [];
   const shownKeys = new Set();
   const failedStores = [];
@@ -29282,6 +29436,9 @@ async function runAssistantBrain(text){
         // Same hard gate the live path used: never a product whose title
         // signals the wrong gender for the person being shopped for.
         if (!productSuitsRecipient(it.title, recipient)){ rejectedForRecipient++; continue; }
+        /* BUDGET SLOT (2026-10-01, Danny): "no mas de 200 soles" filters
+           the shelf before Aria recommends. it.price is USD. */
+        if (slots.maxPriceUSD && typeof it.price === 'number' && it.price > slots.maxPriceUSD){ continue; }
         const key = crossStoreKey(it.title);
         if (shownKeys.has(key)) continue;
         shownKeys.add(key);
@@ -29336,6 +29493,9 @@ async function runAssistantBrain(text){
       recipient: (recipient.gender || recipient.ageBand)
         ? { ...recipient, label: recipientLabelEs(recipient), rejectedForRecipient }
         : null,
+      /* PERSONAL SHOPPER SLOTS (2026-10-01, Danny): budget, size, style
+         accumulated across turns, so the reply can confirm them. */
+      slots: { ...slots },
       /* SENTENCE-PIPELINED VOICE (2026-09-28). The client renders each
          sentence's audio via aria-tts as its text completes, so the
          stream endpoint skips the full-reply TTS round trip and the done
