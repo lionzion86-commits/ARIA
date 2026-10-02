@@ -11411,9 +11411,15 @@ function joyasBrandStorefrontsHTML(items){
     ${blocks.join('')}
   </div>`;
 }
+function openRailProduct(p){
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
+}
 function openJoyasBrandProduct(railId, idx){
-  const p = (joyasBrandRendered[railId] || [])[idx];
-  if (p && typeof openProduct === 'function') openProduct(p);
+  openRailProduct((joyasBrandRendered[railId] || [])[idx]);
 }
 /* ARIA MOMS SUBCATEGORY CAROUSELS (2026-09-27, Danny): the moms
    department landing leads with one FULL carousel per subcategory --
@@ -12445,8 +12451,7 @@ function initJoyasRails(){
   loadAndPaint();
 }
 function openJoyasProduct(styleKey, idx){
-  const p = (joyasRendered[styleKey] || [])[idx];
-  if (p && typeof openProduct === 'function') openProduct(p);
+  openRailProduct((joyasRendered[styleKey] || [])[idx]);
 }
 window.addEventListener('DOMContentLoaded', initJoyasRails);
 /* JOYAS DE LUJO (2026-09-30, Danny): high-end jewelry ONLY for Aria Luxury.
@@ -12530,8 +12535,7 @@ function initJoyasLujoRail(){
   loadAndPaint();
 }
 function openJoyasLujoProduct(idx){
-  const p = joyasLujoRendered[idx];
-  if (p && typeof openProduct === 'function') openProduct(p);
+  openRailProduct(joyasLujoRendered[idx]);
 }
 window.addEventListener('DOMContentLoaded', initJoyasLujoRail);
 
@@ -12614,8 +12618,7 @@ function initModaRail(){
   loadAndPaint();
 }
 function openModaProduct(idx){
-  const p = modaRendered[idx];
-  if (p && typeof openProduct === 'function') openProduct(p);
+  openRailProduct(modaRendered[idx]);
 }
 window.addEventListener('DOMContentLoaded', initModaRail);
 
