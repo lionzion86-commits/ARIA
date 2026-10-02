@@ -541,6 +541,9 @@
   /* KIDS: baby blue. One-line swap in DEPT_THEMES (glow -> #FFF4B8) flips to Danny's baby-yellow alternative. */
   [data-dept-theme="kids"]{ background:linear-gradient(180deg, var(--dept-glow,#C4E6FB) 0%, color-mix(in srgb, var(--dept-glow,#C4E6FB) 32%, var(--paper)) 340px, var(--paper) 620px); }
   [data-dept-theme="surf_skate"]{ background:linear-gradient(180deg, var(--dept-glow,#8FC6EE) 0%, color-mix(in srgb, var(--dept-glow,#8FC6EE) 32%, var(--paper)) 340px, var(--paper) 620px); }
+  /* JUGUETES: playful toy-store yellow wash -- bright, never plain white. */
+  [data-dept-theme="toys"]{ background:linear-gradient(180deg, var(--dept-glow,#FFDE59) 0%, color-mix(in srgb, var(--dept-glow,#FFDE59) 34%, var(--paper)) 360px, var(--paper) 640px); }
+  [data-dept-theme="toys"] .ariaCarouselTitle{ color:#1B2A6B !important; }
   /* Every department without its own DEPT_THEMES row lands here: a soft
      brand-blue tint, never plain white. */
   [data-dept-theme="default"]{ background:linear-gradient(180deg, var(--dept-glow,#D9E8FB) 0%, color-mix(in srgb, var(--dept-glow,#D9E8FB) 32%, var(--paper)) 340px, var(--paper) 620px); }
@@ -690,6 +693,25 @@
     border:1px solid rgba(255,255,255,0.09) }
   .ariaSgTierCard .t{ font-size:16px; font-weight:800; color:#fff; letter-spacing:-0.01em }
   .ariaSgTierCard .s{ font-size:12px; font-weight:600; color:rgba(255,255,255,0.65); margin-top:2px }
+  /* TOYS R US DEPT (2026-10-02, Danny): "feel like you're walking into
+     Toys R Us". Vibrant toy-store hero photo, playful primary-color
+     accents (red/blue/yellow), big store carousels first. */
+  .ariaToysBanner{ position:relative; overflow:hidden; border-radius:24px;
+    background:#1B2A6B url('assets/category/toys-dept-backdrop.jpg') center/cover no-repeat }
+  .ariaToysBanner::after{ content:''; position:absolute; inset:0;
+    background:linear-gradient(100deg, rgba(18,28,88,0.88) 0%, rgba(18,28,88,0.50) 48%, rgba(18,28,88,0.12) 100%) }
+  .ariaToysKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#FFD23F }
+  .ariaToysCta{ display:inline-flex; align-items:center; justify-content:center;
+    height:48px; padding:0 26px; border-radius:16px; background:#FFD23F; color:#1B2A6B;
+    font-size:15px; font-weight:800; letter-spacing:-0.01em }
+  .ariaToysPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px;
+    border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff;
+    font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap;
+    background:rgba(255,255,255,0.12); backdrop-filter:blur(4px) }
+  /* Store carousels use bigger cards so shoppers see toy detail --
+     the universal department pattern (2026-10-02, Danny). */
+  .ariaToysBigRail [data-dept-rail-card]{ width:228px !important }
+  .ariaToysBigRail [data-dept-rail-card] > span:first-child{ height:228px !important }
   /* DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
      entry point the section was missing -- a full-width fashion-week
      moment (runway photo, navy scrim, gold accents) that breaks the
@@ -13944,6 +13966,7 @@ async function openCatalog(kind, key, opts = {}){
     : (kind === 'department' && key === 'curvy') ? curvyNoticeHTML(NaN)
     : (kind === 'department' && key === 'motos') ? motosHeroHTML()
     : (kind === 'department' && key === 'sunglasses') ? sunglassesHeroHTML()
+    : (kind === 'department' && key === 'toys') ? toysHeroHTML()
     : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
@@ -14043,7 +14066,7 @@ async function openCatalog(kind, key, opts = {}){
   // it, for the same reason the search term does not.
   /* CURVY DEFAULTS TO MUJERES (2026-09-25, Danny's iPhone QA): the
      section is a women's destination; Hombres is one tap away. */
-  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE, sunglassesTier: null, sunglassesFace: null,
+  catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE, sunglassesTier: null, sunglassesFace: null, toysStore: null,
     curvyGender: (kind === 'department' && key === 'curvy') ? 'women' : null };
   /* NEVER A BLANK PAGE (2026-09-29, Danny): if render throws, show the
      empty state with retry instead of a dead page. */
@@ -14781,6 +14804,127 @@ function sunglassesTierFilter(tier){
   renderCatalogFeed();
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
+/* TOYS R US DEPT (2026-10-02, Danny): "feel like you're walking into
+   Toys R Us". Department hero with vibrant toy-store backdrop, store
+   pills (Walmart vs Target -- the competitive battle) and brand pills. */
+function toysHeroHTML(){
+  var stores = [['walmart', 'Walmart'], ['target', 'Target']];
+  var storePills = stores.map(function(st){
+    return '<button onclick="toysStoreFilter(\'' + st[0] + '\');return false;"'
+      + ' class="ariaToysPill focus-ring">' + st[1] + '</button>';
+  }).join('');
+  var brands = ['LEGO', 'Barbie', 'Hot Wheels', 'Fisher-Price', 'NERF', 'Disney'];
+  var brandPills = brands.map(function(b){
+    return '<button onclick="toysBrandFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaToysPill focus-ring">' + b + '</button>';
+  }).join('');
+  return '<section aria-label="Juguetes" class="ariaToysBanner mb-6">'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaToysKicker mb-3">La jugueter\u00eda</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Juguetes</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Walmart vs Target, LEGO, Barbie, Hot Wheels y m\u00e1s \u2014 compara precios tienda por tienda.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + storePills + '</div>'
+    + '<div class="flex flex-wrap gap-2 mt-3">' + brandPills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="toysStoreFilter(\'walmart\');return false;" class="ariaToysCta focus-ring">Ver Walmart &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaToysPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+/* Store filter: narrows the department feed to one store's toys. */
+function toysStoreFilter(store){
+  catalogState.toysStore = store;
+  catalogState.searchTerm = '';
+  catalogState.subKey = null;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  renderCatalogFeed();
+  document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
+}
+/* Brand pill filter: narrows the department feed to one brand (via search). */
+function toysBrandFilter(brand){
+  catalogState.toysStore = null;
+  catalogState.searchTerm = brand;
+  catalogState.subKey = null;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  renderCatalogFeed();
+  document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
+}
+/* Big-card store rail section: mirrors deptRailSectionHTML but the cards
+   render large (see .ariaToysBigRail) so shoppers see toy detail. */
+function toysStoreRailSectionHTML(railId, storeKey, picks){
+  if (!Array.isArray(picks) || !picks.length) return '';
+  deptRailsRendered[railId] = picks;
+  var cards = picks.map(function(p, i){ return railCardHTML(p,
+    "openDeptRailProduct('" + railId.replace(/'/g, "\\'") + "'," + i + ")",
+    'data-dept-rail-card="' + railId.replace(/"/g, '&quot;') + '" data-idx="' + i + '"'); }).join('');
+  return '<section aria-label="' + storeKey + '" class="mb-9 ariaToysBigRail">'
+    + '<div class="flex items-center justify-between gap-3 mb-3">' + deptStoreRailHeadHTML(storeKey) + '</div>'
+    + '<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">' + cards + '</div></section>';
+}
+/* TOYS R US DEPT RAILS (2026-10-02, Danny): store carousels FIRST --
+   Walmart's toys get their own big-card carousel, Target's gets its
+   own, so shoppers compare one store against the other without
+   scrolling through a million mixed cards. Brand carousels follow
+   (LEGO, Barbie, Hot Wheels...), then real-discount Ofertas. The aisle
+   list + filters render after the rails for deeper browsing. */
+function toysDeptRailsHTML(items){
+  var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
+  if (!list.length) return '';
+  var retailerKeys = [];
+  list.forEach(function(it){ var r = it && it.retailer; if (r && retailerKeys.indexOf(r) === -1) retailerKeys.push(r); });
+  var noKeys = new Set();
+  var blocks = [];
+  var saleFirst = function(arr){
+    return arr.slice().sort(function(a, b){ return (rawItemOnSale(b) ? 1 : 0) - (rawItemOnSale(a) ? 1 : 0); });
+  };
+  var toysFirst = (typeof toyLeadRank === 'function') ? toyLeadRank : null;
+  /* ---- STORE CAROUSELS: the competitive battle, big cards. ---- */
+  ['walmart', 'target'].forEach(function(sk){
+    var pool = saleFirst(list.filter(function(p){ return String(p.retailer || '').toLowerCase() === sk; }));
+    if (pool.length >= 4){
+      var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
+      if (picks.length) blocks.push(toysStoreRailSectionHTML('toys-store-' + sk, sk, picks));
+    }
+  });
+  /* ---- BRAND CAROUSELS: the aisles. ---- */
+  var brandCounts = {};
+  list.forEach(function(p){
+    var b = String(p.brand || '').trim();
+    if (b) brandCounts[b] = (brandCounts[b] || 0) + 1;
+  });
+  var topBrands = Object.keys(brandCounts)
+    .map(function(b){ return [b, brandCounts[b]]; })
+    .sort(function(a, b){ return b[1] - a[1]; })
+    .slice(0, 8)
+    .filter(function(e){ return e[1] >= 6; });
+  topBrands.forEach(function(e){
+    var b = e[0];
+    var pool = saleFirst(list.filter(function(p){ return String(p.brand || '').trim() === b; }));
+    var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
+    if (picks.length){
+      var slug = b.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'marca';
+      blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
+        deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+    }
+  });
+  /* ---- OFERTAS: real discounts, biggest first. ---- */
+  var onSale = list.filter(rawItemOnSale);
+  if (onSale.length >= 4){
+    var byDisc = onSale.slice().sort(function(a, b){
+      var pa = Number(a.price) > 0 && Number(a.originalPrice) > Number(a.price) ? (1 - Number(a.price) / Number(a.originalPrice)) : 0;
+      var pb = Number(b.price) > 0 && Number(b.originalPrice) > Number(b.price) ? (1 - Number(b.price) / Number(b.originalPrice)) : 0;
+      return pb - pa;
+    });
+    var salePicks = categoryRailPicks(retailerKeys, byDisc, byDisc, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
+    if (salePicks.length) blocks.push(deptRailSectionHTML('toys-ofertas', 'Juguetes en oferta',
+      deptMixedRailHeadHTML('Ofertas', onSale.length + ' con descuento real'), salePicks));
+  }
+  return blocks.join('');
+}
 function motosEmptyStateHTML(){
   const aisles = [
     ['Cascos', 'Cascos certificados DOT para moto'],
@@ -15013,6 +15157,14 @@ function renderCatalogFeed(){
     });
   }
 
+  /* TOYS R US DEPT (2026-10-02, Danny): store filter from the department
+     landing -- narrows the feed to one store's toys (the battle view). */
+  const isToysDept = catalogState.kind === 'department' && catalogState.key === 'toys';
+  if (isToysDept && catalogState.toysStore){
+    const wantStore = String(catalogState.toysStore).toLowerCase();
+    sgFiltered = sgFiltered.filter(it => String(it.retailer || '').toLowerCase() === wantStore);
+  }
+
   /* ---- AISLES ------------------------------------------------------
      Computed from the ACTIVE feed, so the counts match what a tap will
      actually show — an aisle promising 228 and delivering 12 because a
@@ -15056,7 +15208,9 @@ function renderCatalogFeed(){
         ? motosDeptRailsHTML(sgFiltered)
         : ((catalogState.kind === 'department' && catalogState.key === 'sunglasses' && !retailerFilter)
         ? sunglassesDeptRailsHTML(sgFiltered)
-        : '')));
+        : ((catalogState.kind === 'department' && catalogState.key === 'toys' && !retailerFilter && !catalogState.toysStore)
+        ? toysDeptRailsHTML(sgFiltered)
+        : ''))));
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, sgFiltered);
     revealActiveChips(sections);
     return;
@@ -19996,6 +20150,9 @@ const DEPT_THEMES = {
   tennis: { attr: 'tennis', glow: '#D4E157' },
   /* LENTES DE SOL (2026-10-01, Danny): gold glow -- luxury department. */
   sunglasses: { attr: 'sunglasses', glow: '#C9A227' },
+  /* JUGUETES / TOYS R US (2026-10-02, Danny): playful toy-store
+     yellow wash -- bright and cheerful, melting into paper. */
+  toys: { attr: 'toys', glow: '#FFDE59' },
   /* ARIA MOTOS (2026-10-01, Danny): dark asphalt — its own department,
      its own world. Chrome + racing red accents; never Auto's amber. */
   motos: { attr: 'motos', glow: '#23262C' },
