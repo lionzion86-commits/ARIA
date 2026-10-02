@@ -1603,8 +1603,8 @@
       </div>
       <div id="foundersMemberBadge" class="mb-6" hidden></div>
       <div class="flex flex-wrap items-center justify-center gap-3 mb-10">
-        <button onclick="scrollToSearch()" class="ariaHeroCta focus-ring transition" style="margin-top:0;height:52px">Armar mi carrito</button>
-        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="border:2px solid #F4C463;color:#F4C463">Unirme al Area Key Club</button>
+        <button onclick="scrollToCategories()" class="ariaHeroCta focus-ring transition" style="margin-top:0;height:52px">Armar mi carrito</button>
+        <button onclick="openAuthModal('signup')" class="inline-flex items-center justify-center h-[52px] px-7 rounded-2xl text-[14.5px] font-bold focus-ring transition hover:brightness-105" style="background:#F4C463;color:#0A1F44">Unirme al Area Key Club</button>
       </div>
       <div class="text-left max-w-[720px] mx-auto">
         <p class="text-[13px] font-bold tracking-[0.08em] uppercase mb-1" style="color:#8FA3D6">Los beneficios</p>
@@ -24182,6 +24182,15 @@ function scrollToSearch(){
   const input = document.getElementById('searchInput') || document.getElementById('searchInputD');
   if (input) { input.scrollIntoView({ behavior: 'smooth', block: 'center' }); input.focus({ preventScroll: true }); }
   else { goSales(); }
+}
+
+/* KEY CLUB HERO (2026-10-01, Danny): "Armar mi carrito" scrolls to the
+   Compra por categoría section, not the search bar — Danny doesn't
+   trust search; categories are the reliable entry point. */
+function scrollToCategories(){
+  const sec = document.querySelector('[data-category-tabs]');
+  if (sec) { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  else { scrollToSearch(); }
 }
 
 function renderFoundersBadges(){
