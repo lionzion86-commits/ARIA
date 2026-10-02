@@ -32504,6 +32504,7 @@ async function greetAssistantStreaming(){
      same tick the chat opens and Lily's TTS fetch fires at once, so first
      audio is a single TTS round trip. */
   ariaReplyVoiceStarted = false;
+  assistantReplyHasTappables = false;
   addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
   /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
      ariaChatHistory, or the shopper's first real question goes out with
@@ -32581,7 +32582,8 @@ function addAssistantMessage(role, text, audioBase64, opts){
    Spanish voice, reopening the mic when the utterance ends under the same
    half-duplex contract as Ara's audio. */
 function speakText(text){
-  const reopen = () => { if (continuousMode && !assistantThinking) { echoGuardUntil = Date.now() + 800; startListening(); } };
+  ariaVoiceTurnId++;
+  const reopen = () => afterAriaVoiceEnds();
   try {
     if (!('speechSynthesis' in window) || !text) { setTimeout(reopen, 400); return; }
     window.speechSynthesis.cancel();
@@ -32618,8 +32620,11 @@ function speakAssistantReply(text, audioBase64){
      on every path: Aria never listens to herself, and never to the
      shopper's reaction while she is talking. Each speak path reopens it
      when the audio actually ends. */
+  ariaVoiceTurnId++;
+  micOffCueId++;
   intentionalStop = true;
   intentionalStopAt = Date.now();
+  micLive = false;
   clearSpeechCapTimer();
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   setAssistantMicState(false);
@@ -32628,8 +32633,8 @@ function speakAssistantReply(text, audioBase64){
   } else if (typeof speakText === 'function') {
     speakText(text); // browser voice; reopens the mic on utterance end
   } else if (continuousMode) {
-    // no audio available at all this turn — still resume listening so the flow isn't stuck
-    setTimeout(() => { if (continuousMode && !assistantThinking) startListening(); }, 400);
+    // no audio available at all this turn -- still settle the turn so the flow isn't stuck
+    setTimeout(() => afterAriaVoiceEnds(), 400);
   }
 }
 
@@ -33065,9 +33070,13 @@ function settleTtsAudio(st){
   st.settled = true;
   setOrbState("idle");
   if (!st.everPlayed){
-    if (st.doneAudio) speakWithAria(st.doneAudio, st.fullReply);
-    else if (st.fullReply && typeof speakWithLily === "function") speakWithLily(st.fullReply);
-    else if (typeof speakText === "function") speakText(st.fullReply);
+    /* DEGRADED FALLBACK (2026-10-02): no sentence audio ever played, so the
+       whole-reply fallback below carries the turn's voice -- and its own end
+       runs the afterAriaVoiceEnds turn decision. Firing onSettled now would
+       talk over it and double-handle the turn. */
+    if (st.doneAudio) { speakWithAria(st.doneAudio, st.fullReply); return; }
+    if (st.fullReply && typeof speakWithLily === "function") { speakWithLily(st.fullReply); return; }
+    if (typeof speakText === "function") { speakText(st.fullReply); return; }
   }
   if (typeof st.onSettled === "function") st.onSettled();
 }
@@ -33079,13 +33088,13 @@ function settleTtsAudio(st){
 function finishTtsPipeline(st, reply, doneAudio){
   st.fullReply = reply || "";
   st.doneAudio = doneAudio || null;
-  st.onSettled = () => {
-    if (continuousMode) setTimeout(() => { if (continuousMode && !assistantThinking) startListening(); }, 400);
-  };
+  ariaVoiceTurnId++;
+  st.onSettled = () => afterAriaVoiceEnds();
   feedTts(st, "", true);
 }
 
 function addAssistantProductCard(item, retailer){
+  assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
   const wrap = document.getElementById('assistantMessages');
   const card = document.createElement('button');
   card.onclick = () => { toggleAssistant(); showProduct(retailer, item.title, item.price, item.weightKg, item.image, item.sizes, needsSizeSelection(retailer, item.title), sizeCategoryFor(retailer, item.title), item.rating, null, null, { brand: item.brand }); };
@@ -33649,6 +33658,7 @@ let lastChatSearchQuery = '';
 let lastChatSearchEmpty = false;
 
 function addAssistantLiveOffer(query){
+  assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
   const wrap = document.getElementById('assistantMessages');
   if (!wrap || !query || assistantLiveOffered === query) return;
   assistantLiveOffered = query;
@@ -33717,6 +33727,7 @@ function findBrandMention(text, brands){
 /* The router's call to action: a navy button that opens the brand's page
    -- every carrying store, the same shelf the directory shows. */
 function addAssistantBrandOffer(brandKey, brandLabel, count){
+  assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
   const wrap = document.getElementById('assistantMessages');
   if (!wrap) return;
   const el = document.createElement('div');
@@ -33794,6 +33805,7 @@ const STORE_NAV_INTENT_RE = /ll[eé]vame|take me to|\bgo to\b|\bir a\b|abr(ir?|e
 /* The router's call to action: a navy button that walks the shopper
    into the store's storefront -- the same door the store tiles use. */
 function addAssistantStoreOffer(storeKey, storeLabel){
+  assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
   const wrap = document.getElementById('assistantMessages');
   if (!wrap) return;
   const el = document.createElement('div');
@@ -33927,6 +33939,7 @@ function findDomainFallback(text){
 /* The section's call to action: the same navy button the brand router
    uses, opening the closest section for the domain she heard. */
 function addAssistantSectionOffer(label, sub, action, key){
+  assistantReplyHasTappables = true; // this reply shows something to tap -> mic stays off after her voice
   const wrap = document.getElementById('assistantMessages');
   if (!wrap) return;
   const el = document.createElement('div');
@@ -34273,11 +34286,14 @@ async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
   ariaReplyVoiceStarted = false;
+  assistantReplyHasTappables = false; // fresh turn: tappables are earned again by this reply
+  micOffCueId++; // a new turn cancels any cue still fetching from the last one
   /* TURN-TAKING (2026-09-27). The mic closes for the whole think phase:
      intentionalStop keeps onend from treating this as an accidental drop
      and reopening the mic behind our back. */
   intentionalStop = true;
   intentionalStopAt = Date.now();
+  micLive = false;
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   setAssistantMicState(false);
   loadFxRate(); // kick off/reuse the memoized fetch; addAssistantProductCard awaits it below before rendering a price
@@ -34830,14 +34846,17 @@ let maxSessionTimer = null;
 let voiceErrorStreak = 0;
 const VOICE_ERROR_STREAK_MAX = 3;
 const MAX_SESSION_MS = 120000; // 2 minute hard cap per listening session
-// TURN-TAKING: 2.5 seconds of silence ends the turn. (2026-09-27: Danny
-// reported the 1.2s timeout felt like being "cut off after one second" —
-// a natural pause mid-sentence is not the end of the turn.) This timer
-// ends TURNS, not listening: after her reply the mic stays open so he can
-// react — the follow-up is the whole point of a fluid conversation. The
-// listening pill plus tap-to-mute keep it explicit; the 2-minute session
-// cap and iOS itself are the backstops, not this timer.
-const SILENCE_TIMEOUT_MS = 2500;
+// TURN-TAKING: 1.0 second of silence ends the turn (2026-10-02, Danny:
+// he wants Aria's response to feel immediate — no waiting after he stops
+// speaking). NOTE (2026-09-27): 1.2s previously felt like being "cut off
+// after one second" — if mid-sentence pauses start shipping early turns
+// again, this constant is the knob. This timer ends TURNS, not listening:
+// after her reply the mic stays open so he can react — the follow-up is
+// the whole point of a fluid conversation. The listening pill plus
+// tap-to-mute keep it explicit; the 2-minute session cap and iOS itself
+// are the backstops, not this timer.
+const SILENCE_TIMEOUT_MS = 1000;
+
 /* PER-CAPTURE SPEECH CAP (2026-09-27): one turn never runs past ~10s of
    continuous speech. When it fires, the turn ships early via
    endTurnAndSend — a long sentence gets finalized instead of holding
@@ -34927,6 +34946,7 @@ function endTurnAndSend(){
   clearSpeechCapTimer();
   intentionalStop = true;
   intentionalStopAt = Date.now();
+  micLive = false;
   if (recognition) { try { recognition.stop(); } catch(e) {} }
   const statusEl = document.getElementById('assistantStatus');
   if (statusEl) statusEl.textContent = 'Aquí para ayudarte a encontrar algo';
@@ -34955,9 +34975,9 @@ function flushSpeechBuffer(){
    the retry (the speak path usually reopens it, but autoplay blocks and
    dead utterance callbacks must not be able to veto it). */
 function reopenMicForRetry(){
-  if (continuousMode) {
-    setTimeout(() => { if (continuousMode && !assistantThinking) startListening(); }, 400);
-  }
+  /* No onended will fire (play was blocked): run the same turn-end
+     decision a finished reply would have. */
+  afterAriaVoiceEnds();
 }
 
 
@@ -34979,6 +34999,7 @@ function reopenMicForRetry(){
 function setAssistantMicState(listening){
   const micBtn = document.getElementById('assistantMicBtn');
   if (micBtn){
+    micBtn.innerHTML = MIC_ICON_SVG;
     micBtn.style.background = listening ? 'var(--blue)' : 'var(--navy)';
     micBtn.style.color = '#fff';
     micBtn.setAttribute('aria-pressed', listening ? 'true' : 'false');
@@ -35002,6 +35023,108 @@ function setAssistantMicState(listening){
   }
 }
 
+/* ==================================================================
+   MIC STAYS OFF WHEN THERE'S SOMETHING TO TAP (2026-10-02, Danny).
+
+   The complaint: after Aria finishes speaking, the mic snapped back on
+   even when her message was showing offer/product/option cards the
+   shopper wants to TAP -- the hot mic picks up noise and feels like an
+   interruption, especially mid-tap.
+
+   THE CONTRACT. Every speak path ends in afterAriaVoiceEnds -- one
+   decision per spoken turn (ariaVoiceTurnId keeps the degraded fallbacks
+   from double-handling it):
+   - reply showed tappable content -> mic stays OFF, the pill goes to the
+     tap-to-talk idle state, and Lily speaks Danny's cue line verbatim,
+     then silence. The shopper taps in peace.
+   - plain conversational reply    -> mic re-arms as before, so hands-free
+     conversation keeps flowing.
+   The pill is always a manual toggle (toggleContinuousMode) -- never a
+   dead end. Typed (non-voice) turns never arm the mic, unchanged.
+   ================================================================== */
+const MIC_OFF_CUE = 'Aquí estoy, cualquier cosa aprieta el micrófono y te sigo ayudando.';
+let assistantReplyHasTappables = false; // set by the offer/card renderers, read when her voice ends
+let ariaVoiceTurnId = 0;
+let ariaVoiceEndFiredFor = -1;
+let micOffCueId = 0; // generation: a new turn or a barge-in cancels a cue still fetching
+
+const MIC_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>';
+const MIC_OFF_ICON_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="2" x2="22" y1="2" y2="22"/><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>';
+
+/* The pill's third look: idle, mic off, tap to talk. */
+function setAssistantMicTapToTalk(){
+  const micBtn = document.getElementById('assistantMicBtn');
+  if (micBtn){
+    micBtn.innerHTML = MIC_OFF_ICON_SVG;
+    micBtn.style.background = 'var(--navy)';
+    micBtn.style.color = '#fff';
+    micBtn.setAttribute('aria-pressed', 'false');
+    micBtn.setAttribute('aria-label', 'Toca para hablar');
+    micBtn.setAttribute('title', 'Toca para hablar');
+  }
+  const statusEl = document.getElementById('assistantStatus');
+  if (statusEl) statusEl.textContent = 'Toca el micrófono para hablar';
+}
+
+function afterAriaVoiceEnds(){
+  /* One decision per spoken turn. */
+  if (ariaVoiceEndFiredFor === ariaVoiceTurnId) return;
+  ariaVoiceEndFiredFor = ariaVoiceTurnId;
+  setOrbState('idle');
+  if (typeof continuousMode === 'undefined' || !continuousMode) return;
+  if (typeof assistantThinking !== 'undefined' && assistantThinking) return;
+  if (assistantReplyHasTappables){
+    assistantReplyHasTappables = false;
+    speakMicOffCue();
+    return;
+  }
+  echoGuardUntil = Date.now() + 800; /* her speaker tail, not the shopper */
+  startListening();
+}
+
+/* Lily speaks Danny's cue line verbatim, then silence -- the mic is NOT
+   restarted. The pill goes to tap-to-talk BEFORE the TTS fetch, so even
+   a blocked cue leaves the state correct and never strands the shopper. */
+function speakMicOffCue(){
+  const myCue = ++micOffCueId;
+  setAssistantMicTapToTalk();
+  const done = () => { if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
+  try {
+    fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: MIC_OFF_CUE }) })
+      .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
+      .then(d => {
+        if (myCue !== micOffCueId) return; /* shopper moved on: never talk over the new turn */
+        if (d && d.audio) { playMicOffCueAudio(d.audio, done); return; }
+        if ('speechSynthesis' in window){
+          try {
+            window.speechSynthesis.cancel();
+            const u = new SpeechSynthesisUtterance(MIC_OFF_CUE);
+            u.lang = 'es-PE'; u.onend = done; u.onerror = done;
+            window.speechSynthesis.speak(u);
+          } catch(e){ done(); }
+        } else { done(); }
+      })
+      .catch(done);
+  } catch(e){ done(); }
+}
+
+/* One-shot cue playback on the shared player. Not a turn: its end never
+   re-arms the mic, it just settles the pill. */
+function playMicOffCueAudio(base64, onEnded){
+  try {
+    ariaReplyVoiceStarted = true;
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setOrbState('speaking');
+    ariaAudioPlayer.src = 'data:audio/mp3;base64,' + base64;
+    ariaAudioPlayer.onplaying = () => setOrbState('speaking');
+    ariaAudioPlayer.onended = () => { setOrbState('idle'); onEnded(); };
+    ariaAudioPlayer.onpause = () => {};
+    ariaAudioPlayer.onerror = () => { setOrbState('idle'); onEnded(); };
+    const pr = ariaAudioPlayer.play();
+    if (pr && typeof pr.catch === 'function') pr.catch(() => { setOrbState('idle'); onEnded(); });
+  } catch(e){ setOrbState('idle'); onEnded(); }
+}
+
 function stopContinuousMode(){
   // Manual mic tap: the conversation is over — ship what was captured
   // so far instead of discarding it.
@@ -35018,6 +35141,7 @@ if (SpeechRecognitionAPI) {
   recognition.maxAlternatives = 1;
 
   recognition.onstart = () => {
+    micLive = true;
     const statusEl = document.getElementById('assistantStatus');
     if (statusEl) statusEl.textContent = 'Escuchando…';
     setAssistantMicState(true);
@@ -35132,6 +35256,7 @@ recognition.onerror = (e) => {
 };
 
 recognition.onend = () => {
+  micLive = false;
   clearSilenceTimer();
   clearSpeechCapTimer();
 
@@ -35167,18 +35292,35 @@ recognition.onend = () => {
   });
 }
 
+let micLive = false;      // we believe the recognizer is running (onstart/onend + intentional stops)
+let lastMicStartAt = 0;   // debounce: a second start inside 400ms is a double-fire, not a request
 function startListening(){
   if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
-  try { recognition.start(); lastStartAt = Date.now(); } catch(e) { /* already listening */ }
+  /* IDEMPOTENT RE-ARM (2026-10-02, Danny): the mic-error-on-cycle bug.
+     start() on a live or still-settling recognizer throws and can poison
+     the session -- and the stop() inside speakAssistantReply usually never
+     produces onend, so liveness can't be answered from events alone.
+     micLive is cleared on every intentional stop below. */
+  if (micLive) return;
+  const now = Date.now();
+  if (now - lastMicStartAt < 400) return;
+  lastMicStartAt = now;
+  try { recognition.start(); lastStartAt = now; } catch(e) { /* already listening */ }
 }
 
 function toggleContinuousMode(){
-  if (continuousMode) {
+  if (continuousMode && micLive) {
     stopContinuousMode();
-  } else {
-    continuousMode = true;
-    startListening();
+    return;
   }
+  /* BARGE-IN (2026-10-02): the mic was off (tap-to-talk idle, or her voice
+     still playing) -- the tap means TALK. Cut her audio first so the fresh
+     listen never transcribes Lily herself. */
+  continuousMode = true;
+  micOffCueId++;
+  try { ariaAudioPlayer.pause(); } catch(e){}
+  if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch(e){} }
+  startListening();
 }
 
 /* --- Voice output: Aria's real voice (Ara, via Grok) with browser TTS as fallback --- */
@@ -35193,6 +35335,7 @@ function unlockAudioForMobile(){
 }
 
 function speakWithAria(audioBase64, ariaText){
+  ariaVoiceTurnId++;
         currentAriaSpeech = ariaText || '';
   ariaReplyVoiceStarted = true;
   try {
@@ -35202,17 +35345,9 @@ function speakWithAria(audioBase64, ariaText){
     // a timer, so the orb beats for exactly as long as Aria is actually
     // audible — including when playback is blocked and never starts.
     ariaAudioPlayer.onplaying = () => setOrbState('speaking');
-    ariaAudioPlayer.onended = () => {
-      setOrbState('idle');
-      /* FLUID CONVERSATION (2026-09-27): the mic reopens when she finishes
-         and STAYS open — an empty silence window no longer kills the
-         listen, so the shopper gets a real window to react. Tap the mic
-         to mute; the 2-minute cap is the backstop. */
-      if (continuousMode && !assistantThinking) {
-        echoGuardUntil = Date.now() + 800; /* her speaker tail, not the shopper */
-        startListening();
-      }
-    };
+    /* (2026-10-02) every speak path ends in the single turn-end decision:
+       mic re-arms for plain replies, stays off + cue when tappables were shown. */
+    ariaAudioPlayer.onended = () => afterAriaVoiceEnds();
     ariaAudioPlayer.onpause = () => { if (orbState === 'speaking') setOrbState('idle'); };
     ariaAudioPlayer.onerror = () => setOrbState('idle');
     ariaAudioPlayer.play().catch(() => {
