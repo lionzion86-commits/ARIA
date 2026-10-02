@@ -12092,7 +12092,9 @@ var _STORE_RAILS_DONE = { surf_skate: 1, sunglasses: 1,
   clothing: 1, curvy: 1, kids: 1, men: 1, women: 1, purses: 1,
   shoes: 1, shoes_women: 1, shoes_men: 1, jewelry: 1, mens_grooming: 1, beauty: 1, nike: 1,
   /* CAROUSEL CITY BATCH B (2026-10-02): sports departments. */
-  spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1 };
+  spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1,
+  /* CAROUSEL CITY BATCH C (2026-10-02): home & life departments. */
+  electronics: 1, home_goods: 1, home_decor: 1, candy_chocolate: 1, party: 1, books: 1, moms: 1 };
 function deptStoreCarouselsHTML(items, sectionKey){
   if (_STORE_RAILS_DONE[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -12142,7 +12144,9 @@ var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1,
   clothing: 1, curvy: 1, kids: 1, men: 1, women: 1, purses: 1,
   shoes: 1, shoes_women: 1, shoes_men: 1, mens_grooming: 1, beauty: 1, nike: 1,
   /* CAROUSEL CITY BATCH B (2026-10-02): sports departments. */
-  surf_skate: 1, spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1 };
+  surf_skate: 1, spearfishing: 1, soccer: 1, tennis: 1, sporting_goods: 1, combat_sports: 1, gym_rat: 1,
+  /* CAROUSEL CITY BATCH C (2026-10-02): home & life departments. */
+  electronics: 1, home_goods: 1, home_decor: 1, candy_chocolate: 1, party: 1, books: 1, moms: 1 };
 function deptBrandCarouselsHTML(items, sectionKey){
   if (_NO_GENERIC_BRANDS[sectionKey]) return '';
   var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
@@ -13512,40 +13516,31 @@ function booksSaleScroll(){
 }
 
 function booksDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
-  }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('bk-ofertas', 'Ofertas en Libros',
-        deptMixedRailHeadHTML('Ofertas en Libros', sales.length + ' productos en descuento'), salePicks));
-    }
-  }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('bk-store-' + skey, 'Libros en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (Assouline
+     + Chronicle, cross-store aggregated), then Mas marcas, then store
+     carousels, the genre category axis, then Ofertas. Every book in the
+     real catalog is a coffee-table book (type COFFEE_TABLE_BOOK), so the
+     axis is genre from the real titles -- arte, moda, viajes, cocina,
+     ninos, diseno -- never invented aisles. Hero + backdrop untouched. */
+  var cats = [
+    ['arte', 'Arte y fotografía', /\b(art|arte|artist|artista|photograph|fotograf|museum|museo|illustrat|sketchbook|polaroid)\b|street art|the art of|impossible collection|catalogue raisonn/i],
+    ['moda', 'Moda y estilo', /\b(fashion|moda|dior|vogue|jewel|joyas|style|estilo)\b|bobbi brown/i],
+    ['viajes', 'Viajes y destinos', /\b(travel|viaje|voyage|safari|destination|destino)\b|miami|tokyo|zanzibar|marrakech|londolozi|alentejo/i],
+    ['cocina', 'Cocina y vino', /\b(wine|vino|cookbook|cocina|recipe|chef|food|comida)\b/i],
+    ['ninos', 'Niños', /\b(disney|pixar|children|kids|child|ninos)\b/i],
+    ['diseno', 'Hogar y diseño', /\b(interior|architecture|arquitectura|design|diseno|home|hogar|ceramics|ceramica)\b/i]
+  ].map(function(triple){
+    return { key: triple[0], label: triple[1], test: (function(rx){ return function(p){
+      var n = String((p && (p.title || p.name)) || '').toLowerCase();
+      return rx.test(n);
+    }; })(triple[2]) };
+  });
+  return carouselCityRailsHTML('books', items, {
+    storeOrder: ['assouline', 'chronicle'],
+    ofertasLabel: 'Ofertas en Libros',
+    categories: cats
+  });
 }
 
 
@@ -13607,40 +13602,30 @@ function candyChocolateSaleScroll(){
 }
 
 function candyChocolateDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
-  }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('cc-ofertas', 'Ofertas en Dulces y Chocolates',
-        deptMixedRailHeadHTML('Ofertas en Dulces y Chocolates', sales.length + ' productos en descuento'), salePicks));
-    }
-  }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('cc-store-' + skey, 'Dulces y Chocolates en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (real
+     candy brands, cross-store aggregated -- the feed's brands arrive via
+     the titles), then Mas marcas, then store carousels, the candy-type
+     category axis, then Ofertas. Categories are the real candy kinds in
+     the Walmart/Target grocery feed: chocolates, gomitas, paletas,
+     caramelos, regaliz. Hero + backdrop untouched. */
+  var cats = [
+    ['chocolates', 'Chocolates', /\b(hershey|m&m|snickers|twix|milky way|3 musketeers|kit ?kat|100 grand|mounds|unreal|cookies .?n.? ?creme|tony'?s|chocolate|raisinets)\b/i],
+    ['gomitas', 'Gomitas', /\b(gummy|gomita|skittles|starburst|nerds|swedish|bubs)\b/i],
+    ['paletas', 'Paletas y dulces duros', /\b(lollipop|paleta|jawbreaker|gobstopper)\b|ring pop|blow pop|tootsie pops?|fun dip|lik-m-aid/i],
+    ['caramelos', 'Caramelos', /werther|caramel|tootsie roll|bit-o-honey|taffy|raisinets/i],
+    ['regaliz', 'Regaliz', /twizzlers|red vines|licorice|regaliz/i]
+  ].map(function(triple){
+    return { key: triple[0], label: triple[1], test: (function(rx){ return function(p){
+      var n = String((p && (p.title || p.name)) || '').toLowerCase();
+      return rx.test(n);
+    }; })(triple[2]) };
+  });
+  return carouselCityRailsHTML('candy_chocolate', items, {
+    storeOrder: ['walmart', 'target'],
+    ofertasLabel: 'Ofertas en Dulces y Chocolates',
+    categories: cats
+  });
 }
 
 
@@ -13702,40 +13687,60 @@ function electronicsSaleScroll(){
 }
 
 function electronicsDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (Apple,
+     Sony, Canon, DJI, Godox... cross-store aggregated), then Mas marcas,
+     then store carousels, the category axis, then Ofertas. Categories
+     from the real catalogs: B&H Photo ships Spanish normalized types
+     (CAMARAS, DRON, TRIPODE, FLASH_DE_ESTUDIO, TARJETA_DE_MEMORIA,
+     LAPTOP, AUDIFONOS...) and Walmart/Target/Costco file by English
+     title, so each axis entry tests both. Hero + backdrop untouched. */
+  var TYPE_SETS = {
+    camaras: ['CAMARAS', 'CAMARA_SIN_ESPEJO'],
+    drones: ['DRON'],
+    audio: ['AUDIFONOS'],
+    computacion: ['LAPTOP'],
+    fotografia: ['TRIPODE', 'FLASH_DE_ESTUDIO', 'OBJETIVO'],
+    almacenamiento: ['TARJETA_DE_MEMORIA']
+  };
+  var TITLE_RX = {
+    camaras: /c[aá]mara|camera|powershot|instax|gopro/i,
+    drones: /\bdron\b|\bdrone\b|dji/i,
+    audio: /airpods|earpods|earbuds|headphones|aud[ií]fonos|bocina|speaker|soundbar|beats|earphones/i,
+    computacion: /laptop|macbook|ipad|tablet|computadora|notebook/i,
+    gaming: /nintendo|playstation|xbox|consola|gaming|\bswitch\b/i,
+    fotografia: /tr[ií]pode|tripod|\bflash\b|lente|godox|estudio/i,
+    almacenamiento: /tarjeta de memoria|sd card|memory card|almacenamiento/i,
+    tv_video: /\btv\b|televisor|projector|proyector|movie screen/i,
+    peliculas: /dvd|blu-?ray|4k uhd|region free/i,
+    accesorios: /cable|hdmi|cargador|charger|power strip|pencil|extender/i
+  };
+  function typeIn(key, p){
+    var t = (typeof normalizeType === 'function')
+      ? normalizeType((p && p.type) || '')
+      : String((p && p.type) || '').toUpperCase();
+    return TYPE_SETS[key] && TYPE_SETS[key].indexOf(t) !== -1;
   }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('elec-ofertas', 'Ofertas en Electr\u00f3nica',
-        deptMixedRailHeadHTML('Ofertas en Electr\u00f3nica', sales.length + ' productos en descuento'), salePicks));
-    }
+  function titleHit(key, p){
+    var n = String((p && (p.title || p.name)) || '');
+    return TITLE_RX[key] ? TITLE_RX[key].test(n) : false;
   }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('elec-store-' + skey, 'Electr\u00f3nica en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  var defs = [
+    ['camaras', 'Cámaras'], ['drones', 'Drones'], ['audio', 'Audio'],
+    ['computacion', 'Computadoras y tablets'], ['gaming', 'Videojuegos'],
+    ['fotografia', 'Fotografía y estudio'], ['almacenamiento', 'Memoria y almacenamiento'],
+    ['tv_video', 'TV y cine en casa'], ['peliculas', 'Películas'], ['accesorios', 'Accesorios']
+  ];
+  var cats = defs.map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return typeIn(k, p) || titleHit(k, p);
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('electronics', items, {
+    storeOrder: ['bhphoto', 'target', 'walmart', 'costco'],
+    ofertasLabel: 'Ofertas en Electrónica',
+    categories: cats
+  });
 }
 
 
@@ -13797,40 +13802,36 @@ function homeDecorSaleScroll(){
 }
 
 function homeDecorDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
-  }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('hd-ofertas', 'Ofertas en Decoraci\u00f3n',
-        deptMixedRailHeadHTML('Ofertas en Decoraci\u00f3n', sales.length + ' productos en descuento'), salePicks));
-    }
-  }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('hd-store-' + skey, 'Decoraci\u00f3n en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (Threshold,
+     Mainstays, Better Homes & Gardens... cross-store aggregated), then
+     Mas marcas, then store carousels, the decor category axis, then
+     Ofertas. The feed carries no type field, so categories are
+     title-keyword tests over the real 1,600+ item catalog -- every one
+     verified against actual titles (velas 293, marcos 281, cojines 238,
+     arte 221, luces 190...). Hero + backdrop untouched. */
+  var cats = [
+    ['velas', 'Velas', /candle|vela/i],
+    ['arte', 'Cuadros y arte de pared', /wall art|framed|canvas|cuadro|poster|print\b|wall decor/i],
+    ['cojines', 'Cojines', /pillow|coj[ií]n/i],
+    ['marcos', 'Marcos de fotos', /frame|marco/i],
+    ['luces', 'Luces', /\blights?\b|luces|fairy|l[aá]mpara|\blamp\b/i],
+    ['jarrones', 'Jarrones', /vase|jarr[oó]n|florero/i],
+    ['decals', 'Calcomanías de pared', /decal|sticker|calcoman/i],
+    ['figuras', 'Figuras decorativas', /figurine|sculpture|statue|figura|escultura/i],
+    ['manteleria', 'Mesa', /table runner|placemat|coaster|mantel|camino de mesa|servilleta/i],
+    ['espejos', 'Espejos', /mirror|espejo/i]
+  ].map(function(triple){
+    return { key: triple[0], label: triple[1], test: (function(rx){ return function(p){
+      var n = String((p && (p.title || p.name)) || '');
+      return rx.test(n);
+    }; })(triple[2]) };
+  });
+  return carouselCityRailsHTML('home_decor', items, {
+    storeOrder: ['target', 'walmart', 'costco'],
+    ofertasLabel: 'Ofertas en Decoración',
+    categories: cats
+  });
 }
 
 
@@ -13892,40 +13893,27 @@ function homeGoodsSaleScroll(){
 }
 
 function homeGoodsDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
-  }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('hg-ofertas', 'Ofertas en Hogar',
-        deptMixedRailHeadHTML('Ofertas en Hogar', sales.length + ' productos en descuento'), salePicks));
-    }
-  }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('hg-store-' + skey, 'Hogar en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (Mainstays,
+     Threshold, Better Homes & Gardens... cross-store aggregated), then
+     Mas marcas, then store carousels, the category axis, then Ofertas.
+     The real home-goods catalog is textiles: kitchen towels and bedding
+     sets -- so the axis is Cocina and Dormitorio, the only two with real
+     products. Hero + backdrop untouched. */
+  var cats = [
+    ['cocina', 'Cocina', /kitchen|cocina|towel|pa[ñn]o|dish cloth|tea towel/i],
+    ['dormitorio', 'Dormitorio', /comforter|bedding|sheet|edred[oó]n|quilt|duvet|pillow cover|juego de cama/i]
+  ].map(function(triple){
+    return { key: triple[0], label: triple[1], test: (function(rx){ return function(p){
+      var n = String((p && (p.title || p.name)) || '');
+      return rx.test(n);
+    }; })(triple[2]) };
+  });
+  return carouselCityRailsHTML('home_goods', items, {
+    storeOrder: ['target', 'walmart', 'costco'],
+    ofertasLabel: 'Ofertas en Hogar',
+    categories: cats
+  });
 }
 
 
@@ -14122,40 +14110,54 @@ function partySaleScroll(){
 }
 
 function partyDeptRailsHTML(items, noKeys){
-  if (typeof deptRailSectionHTML !== 'function') return '';
-  var all = items || [];
-  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
-  var blocks = [];
-  var sales = [];
-  for (var i = 0; i < all.length; i++){
-    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (Amscan and
+     the licensed brands, cross-store aggregated -- Party City's own
+     store brand is filtered out of the brand axis by realBrandOf), then
+     Mas marcas, then store carousels, the fiesta category axis, then
+     Ofertas. Categories follow the real Party City departments (the
+     same taxonomy FIESTAS_RAILS uses): globos, decoracion, sorpresas,
+     menaje; menaje and dulces also catch Sam's/Costco via the fiesta
+     tableware/candy title patterns. Hero + backdrop untouched. */
+  var TYPE_SETS = {
+    globos: ['BALLOONS'],
+    decoracion: ['BANNERS_SIGNS', 'BACKDROPS_SCENE_SETTERS', 'TABLETOP_DECORATIONS',
+      'DECORATING_KITS', 'HANGING_DECORATIONS', 'CONFETTI_STREAMERS', 'CAKE_TOPPERS_PICKS',
+      'DECORATIONS', 'YARD_DECORATIONS_SIGNS', 'INFLATABLE_DECORATIONS', 'PHOTO_BOOTH_PROPS',
+      'BIRTHDAY_CANDLES'],
+    sorpresas: ['FAVORS', 'FAVOR_BAGS_CONTAINERS', 'FAVOR_KITS', 'GIFT_BAGS',
+      'KEEPSAKES_GIFTS', 'GAMES', 'ARTS_CRAFTS', 'COSTUME_ACCESSORIES', 'TOYS'],
+    menaje: ['PLATES', 'TABLECOVERS', 'NAPKINS', 'DRINKWARE', 'CUTLERY',
+      'STRAWS', 'BOWLS', 'CLEANING_DISPOSAL_SUPPLIES', 'COOLERS_BEVERAGE_TUBS']
+  };
+  var TITLE_RX = {
+    menaje: /plate|cutlery|cup|napkin|bowl|utensil|tray|tablecover|straw|fork|spoon|knife/i,
+    dulces: /candy|chocolate|dulce|gummy/i
+  };
+  function typeIn(key, p){
+    var t = (typeof normalizeType === 'function')
+      ? normalizeType((p && p.type) || '')
+      : String((p && p.type) || '').toUpperCase();
+    return TYPE_SETS[key] && TYPE_SETS[key].indexOf(t) !== -1;
   }
-  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
-    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
-    if (salePicks && salePicks.length){
-      blocks.push(deptRailSectionHTML('ap-ofertas', 'Ofertas en Aria Party',
-        deptMixedRailHeadHTML('Ofertas en Aria Party', sales.length + ' productos en descuento'), salePicks));
-    }
+  function titleHit(key, p){
+    var n = String((p && (p.title || p.name)) || '');
+    return TITLE_RX[key] ? TITLE_RX[key].test(n) : false;
   }
-  var counts = {};
-  var order = [];
-  for (var j = 0; j < all.length; j++){
-    var key = String(all[j].retailer || '').toLowerCase();
-    if (!key) continue;
-    if (!counts[key]){ counts[key] = 0; order.push(key); }
-    counts[key]++;
-  }
-  order.sort(function(a, b){ return counts[b] - counts[a]; });
-  for (var s = 0; s < order.length; s++){
-    var skey = order[s];
-    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
-    if (!picks || !picks.length) continue;
-    var head = (typeof deptStoreRailHeadHTML === 'function')
-      ? deptStoreRailHeadHTML(skey)
-      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
-    blocks.push(deptRailSectionHTML('ap-store-' + skey, 'Aria Party en ' + skey, head, picks));
-  }
-  return blocks.join('');
+  var defs = [
+    ['globos', 'Globos'], ['decoracion', 'Decoración de fiesta'],
+    ['sorpresas', 'Sorpresas'], ['menaje', 'Menaje descartable'], ['dulces', 'Dulces']
+  ];
+  var cats = defs.map(function(pair){
+    return { key: pair[0], label: pair[1], test: (function(k){ return function(p){
+      return typeIn(k, p) || titleHit(k, p);
+    }; })(pair[0]) };
+  });
+  return carouselCityRailsHTML('party', items, {
+    storeOrder: ['partycity', 'samsclub', 'costco'],
+    ofertasLabel: 'Ofertas en Aria Party',
+    categories: cats
+  });
 }
 
 
@@ -14994,19 +14996,26 @@ function openJoyasBrandProduct(railId, idx){
 const MOMS_SUB_RAIL_MIN = 4;
 const MOMS_SUB_ROWS = ['strollers', 'nursing', 'feeding', 'carseats', 'nursery', 'diapering', 'carriers', 'highchairs', 'maternity'];
 function momsDeptRailsHTML(items, noKeys){
-  const blocks = [];
-  for (const row of SUBCATEGORY_SPEC){
-    if (MOMS_SUB_ROWS.indexOf(row.key) === -1) continue;
-    const aisle = itemsInSubcategory(items, row.key);
-    if (aisle.length < MOMS_SUB_RAIL_MIN) continue;
-    const picks = categoryRailPicks(null, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
-    if (!picks.length) continue;
-    blocks.push(deptRailSectionHTML(`moms-sub-${row.key}`, row.label,
-      deptMixedRailHeadHTML(row.label, `${aisle.length} productos`)
-      + `<button onclick="setCatalogSub('${jsAttr(row.key)}')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver pasillo &#8594;</button>`,
-      picks));
-  }
-  return blocks.join('');
+  if (typeof carouselCityRailsHTML !== 'function') return '';
+  /* CAROUSEL CITY BATCH C (2026-10-02): brand carousels first (Kindred
+     Bravely, Momcozy, Dr. Brown's, Hatch... cross-store aggregated),
+     then Mas marcas, then store carousels, the subcategory axis, then
+     Ofertas. The category axis reuses MOMS_SUB_ROWS through the site's
+     own subcategoryOfItem taxonomy -- the same aisles the old rails
+     showed -- so every rail is real catalog data (lactancia 671,
+     maternidad 959, alimentacion 508...). The per-rail 'Ver pasillo'
+     door is dropped; the aisle list below still carries it. Hero +
+     backdrop untouched. */
+  var cats = MOMS_SUB_ROWS.map(function(k){
+    var label = (typeof subcategoryLabel === 'function' && subcategoryLabel(k)) || k;
+    return { key: k, label: label, test: (function(kk){ return function(p){
+      return (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === kk;
+    }; })(k) };
+  });
+  return carouselCityRailsHTML('moms', items, {
+    storeOrder: ['kindredbravely', 'hatch', 'drbrowns', 'momcozy', 'munchkin', 'walmartbaby', 'target'],
+    categories: cats
+  });
 }
 
 let storeRailsStarted = false;
@@ -18425,7 +18434,9 @@ function renderCatalogFeed(){
   const deptHasCustomRails = catalogState.kind === 'department' &&
     ['surf_skate','beauty','moms','jewelry','shoes','shoes_women','shoes_men','motos','sunglasses','toys',
     /* CAROUSEL CITY BATCH B (2026-10-02): sports departments with their own rails render the landing. */
-    'spearfishing','soccer','tennis','sporting_goods','combat_sports'].indexOf(catalogState.key) !== -1;
+    'spearfishing','soccer','tennis','sporting_goods','combat_sports',
+    /* CAROUSEL CITY BATCH C (2026-10-02): home & life departments -- their items carry no SUBCATEGORY_SPEC types, so shouldSplit() stays false. */
+    'electronics','home_goods','home_decor','candy_chocolate','party','books'].indexOf(catalogState.key) !== -1;
   if ((splittable || deptHasCustomRails) && !catalogState.subKey && !String(catalogState.searchTerm || '').trim()){
     subtitle.textContent = grouped.rows.length
       ? `${grouped.total} producto${grouped.total === 1 ? '' : 's'} en ${grouped.rows.length} categorías · elige una o mira todo`
