@@ -7750,17 +7750,18 @@ const SUNGLASS_TITLE_RX = /\bsunglass(?:es)?\b/i;
 const NOT_SUNGLASS_TITLE_RX = /\b(eyeglasses?|reading\s+glasses?|blue[\s-]?light|optical\s+frames?)\b/i;
 function isSunglasses(item, retailer){
   if (!item || typeof item !== 'object') return false;
+  if (String(retailer || item.retailer || '').toLowerCase() === 'ssense') return false; /* SSENSE images dead 2026-10-02 */
   const t = String(item.title || item.name || '');
   if (!SUNGLASS_TITLE_RX.test(t)) return false;
   if (NOT_SUNGLASS_TITLE_RX.test(t)) return false;
   return true;
 }
-/* Fancy = luxury/designer: Miu Miu, SSENSE, or a luxury brand. These
+/* Fancy = luxury/designer: Miu Miu or a luxury brand. These
    lead the Lentes de Sol rail (Danny: "fancy first, sales next"). */
 function isFancySunglasses(p){
   if (!p || typeof p !== 'object') return false;
   const r = String(p.retailer || '').toLowerCase();
-  if (r === 'miumiu' || r === 'ssense') return true;
+  if (r === 'miumiu') return true; /* SSENSE excluded: images dead 2026-10-02 */
   return typeof isLuxuryItem === 'function' && isLuxuryItem(p, p.retailer);
 }
 /* Gear-type pills inside each department, the Pesca Submarina way. */
