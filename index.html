@@ -81,6 +81,14 @@
      the real store's lighting. A pink bloom on each upper side (so the
      hero never sits in a dead spot) and a deep magenta pool low, over a
      pink base, never near black (2026-09-24: Danny — keep it pink all the way down). */
+  /* STORE INTERIOR BACKDROPS (2026-10-02, Danny): the store's interior
+     photo behind its section, darkened for legibility. Bespoke per-store
+     blocks below take precedence where they exist. */
+  [data-has-backdrop]{
+    background-image: linear-gradient(180deg, rgba(8,8,12,0.55) 0%, rgba(8,8,12,0.72) 60%, rgba(8,8,12,0.88) 100%), var(--store-backdrop);
+    background-size: cover, cover; background-position: center top, center top;
+    background-repeat: no-repeat, no-repeat;
+  }
   [data-store-theme="victoriassecret"]{
     background:
       radial-gradient(560px 300px at 12% -4%, rgba(255,110,170,.25), rgba(255,110,170,0) 70%),
@@ -727,6 +735,90 @@
   .ariaSgDept > *{ position:relative; z-index:1 }
   .ariaSgDeptHair{ height:2px; border-radius:2px; margin:2px 4px 20px;
     background:linear-gradient(90deg, transparent, rgba(244,196,99,.55), transparent) }
+  /* THEME REBUILD (2026-10-02, Danny): department hero banners.
+     One shared visual language — background image is set inline per
+     section; these classes handle layout, legibility and controls. */
+  .ariaAutoBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaAutoBannerHair{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaBeautyBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaBtBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaClothingBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaCurvyBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaJyBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaKidsBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaLatinoBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaLatinoBannerHair{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaLatinoBannerImg{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaLatinoBannerScrim{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaMenBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaMotosBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaMotosBannerHair{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaPrBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaSgBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaSgBannerHair{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaShBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaWomenBanner{ position:relative; overflow:hidden; border-radius:24px; background-size:cover; background-position:center; background-repeat:no-repeat; background-color:#1a1a1a }
+  .ariaClothingBannerShade{ position:absolute; inset:0; background:linear-gradient(100deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.45) 45%, rgba(8,8,10,0.12) 100%) }
+  .ariaCurvyBannerShade{ position:absolute; inset:0; background:linear-gradient(100deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.45) 45%, rgba(8,8,10,0.12) 100%) }
+  .ariaDevolHeroShade{ position:absolute; inset:0; background:linear-gradient(100deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.45) 45%, rgba(8,8,10,0.12) 100%) }
+  .ariaKidsBannerShade{ position:absolute; inset:0; background:linear-gradient(100deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.45) 45%, rgba(8,8,10,0.12) 100%) }
+  .ariaMenBannerShade{ position:absolute; inset:0; background:linear-gradient(100deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.45) 45%, rgba(8,8,10,0.12) 100%) }
+  .ariaWomenBannerShade{ position:absolute; inset:0; background:linear-gradient(100deg, rgba(8,8,10,0.82) 0%, rgba(8,8,10,0.45) 45%, rgba(8,8,10,0.12) 100%) }
+  .ariaAutoPartsKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaClothingKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaCombatKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaCurvyKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaGymRatKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaKidsKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaMenKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaMotosKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaSgKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaSoccerKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaSpearKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaSportingGoodsKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaSurfSkateKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaTennisKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaWomenKicker{ font-size:11.5px; font-weight:800; letter-spacing:0.18em; text-transform:uppercase; color:#F4C463 }
+  .ariaAutoPartsBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaBtBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaClothingPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaCombatBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaCurvyPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaGymRatBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaJyBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaKidsPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaMenPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaPrBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaSgBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaShBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaSoccerBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaSpearBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaSportingGoodsBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaSurfSkateBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaTennisBrandPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaWomenPill{ display:inline-flex; align-items:center; height:40px; padding:0 18px; border-radius:999px; border:1px solid rgba(255,255,255,0.35); color:#fff; font-size:13.5px; font-weight:700; letter-spacing:-0.01em; white-space:nowrap; background:rgba(255,255,255,0.08); backdrop-filter:blur(4px); cursor:pointer }
+  .ariaAutoCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaAutoPartsCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaBtCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaClothingCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaCombatCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaCurvyCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaGymRatCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaHeroCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaHouseCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaJyCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaKidsCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaMenCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaMotosCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaPrCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaSgCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaShCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaSoccerCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaSpearCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaSportingGoodsCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaSurfSkateCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaTennisCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
+  .ariaWomenCta{ display:inline-flex; align-items:center; justify-content:center; height:48px; padding:0 26px; border-radius:16px; background:#F4C463; color:#1A1408; font-size:15px; font-weight:800; letter-spacing:-0.01em; cursor:pointer }
   /* DISEÑADORES LATINOS HOUSE BANNER (2026-09-29, Danny): the visual
      entry point the section was missing -- a full-width fashion-week
      moment (runway photo, navy scrim, gold accents) that breaks the
@@ -9446,10 +9538,19 @@ function relatedProducts(anchor, pool, opts){
   };
   const take = (list) => { for (const it of list){ if (!eligible(it)) continue; seen.add(relatedKeyOf(it)); out.push(it); } };
 
-  // 1. same department
-  take(pool.filter(it => (it.departments || []).some(d => anchorDepts.has(d))));
-  // 2. backfill from the same store, same band
-  if (out.length < min) take(pool.filter(it => it.retailer === anchor?.retailer));
+  /* CATEGORY-AWARE RANKING (2026-10-02, Danny): a sunglasses page shows
+     sunglasses — same brand first, then the category. The old step 2
+     backfilled from the same STORE across categories, which is how Kohl's
+     suits ended up on a Ray-Ban page. Never again. */
+  const anchorBrand = String(anchor?.brand || '').trim().toLowerCase();
+  const sameDept = (it) => (it.departments || []).some(d => anchorDepts.has(d));
+  const sameBrand = (it) => !!anchorBrand && String(it.brand || '').trim().toLowerCase() === anchorBrand;
+  // 1. same brand + same department (Ray-Ban sunglasses on a Ray-Ban page)
+  if (anchorBrand) take(pool.filter(it => sameBrand(it) && sameDept(it)));
+  // 2. same department (all sunglasses, any brand)
+  take(pool.filter(it => sameDept(it)));
+  // 3. same brand, other departments (e.g. Ray-Ban optical on a sunglasses page)
+  if (anchorBrand && out.length < min) take(pool.filter(it => sameBrand(it) && !sameDept(it)));
   return out;
 }
 
@@ -10415,6 +10516,31 @@ async function renderRelatedRail(anchorIn){
   relatedRendered = picks;
   row.innerHTML = picks.map((p, i) => railCardHTML(p, `openRelatedProduct(${i})`, `data-related="${i}"`)).join('');
   section.hidden = false;
+  /* DRAG-SCROLL (2026-10-02, Danny): grab and drag the rail, not just arrows. */
+  if (typeof enableDragScroll === 'function') enableDragScroll(row);
+}
+/* Generic pointer-drag horizontal scroll for carousels. Idempotent. */
+function enableDragScroll(el){
+  if (!el || el._dragScrollOn) return;
+  el._dragScrollOn = true;
+  let down = false, startX = 0, startL = 0, moved = false;
+  el.addEventListener('pointerdown', (e) => {
+    down = true; moved = false; startX = e.clientX; startL = el.scrollLeft;
+  });
+  el.addEventListener('pointermove', (e) => {
+    if (!down) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 6) moved = true;
+    if (moved) el.scrollLeft = startL - dx;
+  });
+  const up = () => { down = false; };
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
+  el.addEventListener('pointerleave', up);
+  /* A drag is not a tap: suppress the click that follows a real drag. */
+  el.addEventListener('click', (e) => {
+    if (moved){ e.stopPropagation(); e.preventDefault(); moved = false; }
+  }, true);
 }
 
 /* ONE STORE PER CARD IN THE OPENING RUN.
@@ -11878,6 +12004,2697 @@ function sunglassesFaceFilter(shape){
   renderCatalogFeed();
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
+/* CAROUSEL CITY store rails (2026-10-02, Danny): one carousel per store,
+   so shoppers compare stores side by side. Generic — applies to any
+   department whose own rails aren't already store-organized. */
+var _STORE_RAILS_DONE = { surf_skate: 1 };
+function deptStoreCarouselsHTML(items, sectionKey){
+  if (_STORE_RAILS_DONE[sectionKey]) return '';
+  var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
+  if (list.length < 8) return '';
+  var byStore = {}, i, p, r;
+  for (i = 0; i < list.length; i++){
+    p = list[i]; r = String(p.retailer || '').trim();
+    if (!r) continue;
+    (byStore[r] = byStore[r] || []).push(p);
+  }
+  var stores = Object.keys(byStore).filter(function(k){ return byStore[k].length >= 4; });
+  stores.sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+  if (stores.length < 2) return '';
+  var usePicks = (typeof categoryRailPicks === 'function');
+  var useSection = (typeof deptRailSectionHTML === 'function');
+  var useHead = (typeof deptMixedRailHeadHTML === 'function');
+  if (!usePicks || !useSection || !useHead) return '';
+  var labelOf = function(k){
+    try {
+      if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+    } catch (e){}
+    return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+  };
+  var blocks = [], s, pool, picks;
+  for (s = 0; s < stores.length; s++){
+    var key = stores[s];
+    pool = byStore[key].slice().sort(function(x, y){
+      var sx = (typeof rawItemOnSale === 'function' && rawItemOnSale(x)) ? 1 : 0;
+      var sy = (typeof rawItemOnSale === 'function' && rawItemOnSale(y)) ? 1 : 0;
+      return sy - sx || Number(y.price) - Number(x.price);
+    });
+    picks = categoryRailPicks([key], [], pool, {}, 12, {});
+    if (picks && picks.length >= 4){
+      blocks.push(deptRailSectionHTML('store-' + sectionKey + '-' + key, labelOf(key),
+        deptMixedRailHeadHTML('En ' + labelOf(key), byStore[key].length + ' productos'), picks));
+    }
+  }
+  return blocks.join('');
+}
+
+/* CAROUSEL CITY (2026-10-02, Danny): generic brand carousels — one rail
+   per brand, brand aggregated across all stores. Appended after every
+   section's store rails. Sections with bespoke brand rails (sunglasses
+   brand wall, jewelry storefronts) opt out via _NO_GENERIC_BRANDS. */
+var _NO_GENERIC_BRANDS = { sunglasses: 1, jewelry: 1 };
+function deptBrandCarouselsHTML(items, sectionKey){
+  if (_NO_GENERIC_BRANDS[sectionKey]) return '';
+  var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
+  if (list.length < 8) return '';
+  var byBrand = {}, i, p, b;
+  for (i = 0; i < list.length; i++){
+    p = list[i]; b = String(p.brand || '').trim();
+    if (!b || /^(otras marcas|unknown|generic|sin marca|unbranded)/i.test(b)) continue;
+    (byBrand[b] = byBrand[b] || []).push(p);
+  }
+  var brands = Object.keys(byBrand).filter(function(k){ return byBrand[k].length >= 4; });
+  brands.sort(function(a, b2){ return byBrand[b2].length - byBrand[a].length; });
+  brands = brands.slice(0, 8);
+  if (brands.length < 2) return '';
+  var retailerKeys = [], seen = {}, j;
+  for (j = 0; j < list.length; j++){ var r = list[j] && list[j].retailer; if (r && !seen[r]){ seen[r] = 1; retailerKeys.push(r); } }
+  var blocks = [], k, picks;
+  var usePicks = (typeof categoryRailPicks === 'function');
+  var useSection = (typeof deptRailSectionHTML === 'function');
+  var useHead = (typeof deptMixedRailHeadHTML === 'function');
+  if (!usePicks || !useSection || !useHead) return '';
+  for (k = 0; k < brands.length; k++){
+    b = brands[k];
+    var pool = byBrand[b].slice().sort(function(x, y){
+      var sx = (typeof rawItemOnSale === 'function' && rawItemOnSale(x)) ? 1 : 0;
+      var sy = (typeof rawItemOnSale === 'function' && rawItemOnSale(y)) ? 1 : 0;
+      return sy - sx || Number(y.price) - Number(x.price);
+    });
+    picks = categoryRailPicks(retailerKeys, [], pool, {}, 12, {});
+    if (picks && picks.length >= 4){
+      blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
+        deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+    }
+  }
+  return blocks.join('');
+}
+
+/* ============================================================================
+   THEME REBUILD (2026-10-02, Danny): every department gets its own feel.
+   Hero + store-first rails per section. Integrated from worker snippets;
+   index.html untouched by workers to avoid merge conflicts.
+   ============================================================================ */
+
+/* ---- clothing.js ---- */
+/* ============================================================================
+   ROPA — hero + department rails (theme-rebuild / fashion group)
+   THEME: clothing: { attr: 'clothing', glow: '#D8C3A5' }
+   (NEW — warm neutral sand; not yet in DEPT_THEMES)
+   Hero image: assets/theme/clothing-hero.jpg (coordinator copies it from
+   theme-rebuild/fashion/assets/clothing-hero.jpg)
+   Uses only: escapeHtml, deptRailSectionHTML, deptMixedRailHeadHTML,
+   categoryRailPicks, rawItemOnSale, renderCatalogFeed (all typeof-guarded).
+   ES5-compatible: var, single quotes, + concatenation. Spanish, zero emojis.
+   ============================================================================ */
+
+// THEME: clothing: { attr: 'clothing', glow: '#D8C3A5' }
+
+var CLOTHING_STORE_LABELS = {
+  target: 'Target',
+  walmart: 'Walmart',
+  macys: "Macy's",
+  kohls: "Kohl's",
+  nordstrom: 'Nordstrom',
+  costco: 'Costco',
+  oldnavy: 'Old Navy'
+};
+
+function clothingEsc(s){
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s == null ? '' : s);
+}
+
+/* Store key -> display label. Prefers the site's retailerFor / label map. */
+function clothingStoreLabel(key){
+  var k = String(key || '').toLowerCase();
+  try {
+    if (typeof retailerFor === 'function'){
+      var r = retailerFor(k);
+      if (r && r.label) return r.label;
+    }
+  } catch (e) {}
+  try {
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+  } catch (e2) {}
+  if (CLOTHING_STORE_LABELS[k]) return CLOTHING_STORE_LABELS[k];
+  return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+}
+
+/* Real discount check: rawItemOnSale when available, price math fallback. */
+function clothingIsSale(p){
+  if (typeof rawItemOnSale === 'function'){
+    try { return !!rawItemOnSale(p); } catch (e) {}
+  }
+  var price = Number(p.price), orig = Number(p.originalPrice);
+  return price > 0 && isFinite(orig) && orig > price;
+}
+
+function clothingHeroHTML(){
+  var stores = ['target', 'walmart', 'macys', 'kohls', 'nordstrom', 'costco'];
+  var pills = stores.map(function(k){
+    return '<button onclick="clothingStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaClothingPill focus-ring">' + clothingEsc(clothingStoreLabel(k)) + '</button>';
+  }).join('');
+  return '<section aria-label="Ropa" class="ariaClothingBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/clothing-hero.jpg\')">'
+    + '<div class="ariaClothingBannerShade" aria-hidden="true"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaClothingKicker mb-3">Todo tu cl&#243;set en un solo lugar</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Ropa</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
+    + 'Explora toda la ropa de todas las tiendas — compara, elige y rec&#237;bela en tu puerta.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="clothingTierFilter(\'ofertas\');return false;" class="ariaClothingCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="clothingTierFilter(\'todo\');return false;" class="ariaClothingPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Hero pill: drill into one store inside this department. */
+function clothingStoreFilter(storeKey){
+  if (typeof openCatalog === 'function') openCatalog('department', 'clothing', { retailerFilter: storeKey });
+}
+
+/* Hero CTA: sale-only view ('ofertas') or back to everything ('todo'). */
+function clothingTierFilter(tier){
+  if (typeof catalogState !== 'undefined' && catalogState){
+    catalogState.clothingTier = (tier === 'ofertas') ? 'ofertas' : null;
+    catalogState.searchTerm = '';
+    catalogState.subKey = null;
+  }
+  if (typeof document === 'undefined') return;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Department rails: one carousel per STORE (biggest store first), thin
+   stores grouped into a "Más tiendas" rail, then one sale rail with the
+   biggest real discounts first. */
+function clothingDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
+  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
+  var STORE_RAIL_MIN = 4;
+  var SALE_RAIL_MIN = 6;
+  var out = [];
+
+  function picks(pool, storeKey){
+    if (typeof categoryRailPicks === 'function'){
+      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
+      catch (e) {}
+    }
+    return pool.slice(0, RAIL_TOTAL);
+  }
+  function verTiendaBtn(k){
+    return '<button onclick="clothingStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+  }
+
+  var valid = items.filter(function(p){
+    if (!p) return false;
+    if (!(Number(p.price) > 0)) return false;
+    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  });
+
+  var byStore = {};
+  valid.forEach(function(p){
+    var k = String(p.retailer || 'otros').toLowerCase();
+    (byStore[k] = byStore[k] || []).push(p);
+  });
+  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+
+  var thin = [];
+  keys.forEach(function(k){
+    var pool = byStore[k];
+    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
+    var label = clothingStoreLabel(k);
+    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
+    out.push(deptRailSectionHTML('clothing-store-' + k, label, head, picks(pool, k)));
+  });
+
+  if (thin.length >= STORE_RAIL_MIN){
+    out.push(deptRailSectionHTML('clothing-store-mas', 'Más tiendas',
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+  }
+
+  var sales = valid.filter(function(p){ return clothingIsSale(p); });
+  if (sales.length >= SALE_RAIL_MIN){
+    out.push(deptRailSectionHTML('clothing-ofertas', 'Ofertas',
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+  }
+
+  return out.join('');
+}
+
+
+/* ---- curvy.js ---- */
+/* ============================================================================
+   CURVY — hero + department rails (theme-rebuild / fashion group)
+   THEME: curvy: { attr: 'curvy', glow: '#E8A87C' }
+   (NEW — warm rose/gold, inclusive and elegant; not yet in DEPT_THEMES)
+   Hero image: assets/theme/curvy-hero.jpg (coordinator copies it from
+   theme-rebuild/fashion/assets/curvy-hero.jpg)
+   Uses only: escapeHtml, deptRailSectionHTML, deptMixedRailHeadHTML,
+   categoryRailPicks, rawItemOnSale, renderCatalogFeed (all typeof-guarded).
+   ES5-compatible: var, single quotes, + concatenation. Spanish, zero emojis.
+   ============================================================================ */
+
+// THEME: curvy: { attr: 'curvy', glow: '#E8A87C' }
+
+var CURVY_STORE_LABELS = {
+  target: 'Target',
+  walmart: 'Walmart',
+  macys: "Macy's",
+  kohls: "Kohl's",
+  nordstrom: 'Nordstrom',
+  lanebryant: 'Lane Bryant',
+  oldnavy: 'Old Navy'
+};
+
+function curvyEsc(s){
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s == null ? '' : s);
+}
+
+/* Store key -> display label. Prefers the site's retailerFor / label map. */
+function curvyStoreLabel(key){
+  var k = String(key || '').toLowerCase();
+  try {
+    if (typeof retailerFor === 'function'){
+      var r = retailerFor(k);
+      if (r && r.label) return r.label;
+    }
+  } catch (e) {}
+  try {
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+  } catch (e2) {}
+  if (CURVY_STORE_LABELS[k]) return CURVY_STORE_LABELS[k];
+  return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+}
+
+/* Real discount check: rawItemOnSale when available, price math fallback. */
+function curvyIsSale(p){
+  if (typeof rawItemOnSale === 'function'){
+    try { return !!rawItemOnSale(p); } catch (e) {}
+  }
+  var price = Number(p.price), orig = Number(p.originalPrice);
+  return price > 0 && isFinite(orig) && orig > price;
+}
+
+function curvyHeroHTML(){
+  var stores = ['target', 'walmart', 'macys', 'kohls', 'nordstrom', 'lanebryant'];
+  var pills = stores.map(function(k){
+    return '<button onclick="curvyStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaCurvyPill focus-ring">' + curvyEsc(curvyStoreLabel(k)) + '</button>';
+  }).join('');
+  return '<section aria-label="Curvy" class="ariaCurvyBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/curvy-hero.jpg\')">'
+    + '<div class="ariaCurvyBannerShade" aria-hidden="true"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaCurvyKicker mb-3">La moda es para todas</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Curvy</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
+    + 'Tallas grandes con estilo — cada prenda XL o m&#225;s grande vive aqu&#237;, de tus tiendas favoritas.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="curvyTierFilter(\'ofertas\');return false;" class="ariaCurvyCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="curvyTierFilter(\'todo\');return false;" class="ariaCurvyPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Hero pill: drill into one store inside this department. */
+function curvyStoreFilter(storeKey){
+  if (typeof openCatalog === 'function') openCatalog('department', 'curvy', { retailerFilter: storeKey });
+}
+
+/* Hero CTA: sale-only view ('ofertas') or back to everything ('todo'). */
+function curvyTierFilter(tier){
+  if (typeof catalogState !== 'undefined' && catalogState){
+    catalogState.curvyTier = (tier === 'ofertas') ? 'ofertas' : null;
+    catalogState.searchTerm = '';
+    catalogState.subKey = null;
+  }
+  if (typeof document === 'undefined') return;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Department rails: one carousel per STORE (biggest store first), thin
+   stores grouped into a "Más tiendas" rail, then one sale rail with the
+   biggest real discounts first.
+   CURVY WOMEN-FIRST (Danny, 2026-09-26): plus-size women's items lead —
+   never men's stuff first. Passed via the womenFirst opt. */
+function curvyDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
+  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
+  var STORE_RAIL_MIN = 4;
+  var SALE_RAIL_MIN = 6;
+  var OPTS = { womenFirst: true };
+  var out = [];
+
+  function picks(pool, storeKey){
+    if (typeof categoryRailPicks === 'function'){
+      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL, OPTS); }
+      catch (e) {}
+    }
+    return pool.slice(0, RAIL_TOTAL);
+  }
+  function verTiendaBtn(k){
+    return '<button onclick="curvyStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+  }
+
+  var valid = items.filter(function(p){
+    if (!p) return false;
+    if (!(Number(p.price) > 0)) return false;
+    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  });
+
+  var byStore = {};
+  valid.forEach(function(p){
+    var k = String(p.retailer || 'otros').toLowerCase();
+    (byStore[k] = byStore[k] || []).push(p);
+  });
+  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+
+  var thin = [];
+  keys.forEach(function(k){
+    var pool = byStore[k];
+    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
+    var label = curvyStoreLabel(k);
+    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
+    out.push(deptRailSectionHTML('curvy-store-' + k, label, head, picks(pool, k)));
+  });
+
+  if (thin.length >= STORE_RAIL_MIN){
+    out.push(deptRailSectionHTML('curvy-store-mas', 'Más tiendas',
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+  }
+
+  var sales = valid.filter(function(p){ return curvyIsSale(p); });
+  if (sales.length >= SALE_RAIL_MIN){
+    out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas',
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+  }
+
+  return out.join('');
+}
+
+
+/* ---- kids.js ---- */
+/* ============================================================================
+   MODA NINOS — hero + department rails (theme-rebuild / fashion group)
+   Theme already in DEPT_THEMES: kids: { attr: 'kids', glow: '#C4E6FB' }
+   (baby blue; one-line glow swap to #FFF4B8 flips to Danny's baby-yellow)
+   Hero image: assets/theme/kids-hero.jpg (coordinator copies it from
+   theme-rebuild/fashion/assets/kids-hero.jpg)
+   Uses only: escapeHtml, deptRailSectionHTML, deptMixedRailHeadHTML,
+   categoryRailPicks, rawItemOnSale, renderCatalogFeed (all typeof-guarded).
+   ES5-compatible: var, single quotes, + concatenation. Spanish, zero emojis.
+   ============================================================================ */
+
+var KIDS_STORE_LABELS = {
+  target: 'Target',
+  walmart: 'Walmart',
+  costco: 'Costco',
+  kohls: "Kohl's",
+  macys: "Macy's",
+  oldnavy: 'Old Navy',
+  nordstrom: 'Nordstrom'
+};
+
+function kidsEsc(s){
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s == null ? '' : s);
+}
+
+/* Store key -> display label. Prefers the site's retailerFor / label map. */
+function kidsStoreLabel(key){
+  var k = String(key || '').toLowerCase();
+  try {
+    if (typeof retailerFor === 'function'){
+      var r = retailerFor(k);
+      if (r && r.label) return r.label;
+    }
+  } catch (e) {}
+  try {
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+  } catch (e2) {}
+  if (KIDS_STORE_LABELS[k]) return KIDS_STORE_LABELS[k];
+  return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+}
+
+/* Real discount check: rawItemOnSale when available, price math fallback. */
+function kidsIsSale(p){
+  if (typeof rawItemOnSale === 'function'){
+    try { return !!rawItemOnSale(p); } catch (e) {}
+  }
+  var price = Number(p.price), orig = Number(p.originalPrice);
+  return price > 0 && isFinite(orig) && orig > price;
+}
+
+function kidsHeroHTML(){
+  var stores = ['target', 'walmart', 'costco', 'kohls', 'macys', 'oldnavy'];
+  var pills = stores.map(function(k){
+    return '<button onclick="kidsStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaKidsPill focus-ring">' + kidsEsc(kidsStoreLabel(k)) + '</button>';
+  }).join('');
+  return '<section aria-label="Moda Ni&#241;os" class="ariaKidsBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/kids-hero.jpg\')">'
+    + '<div class="ariaKidsBannerShade" aria-hidden="true"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaKidsKicker mb-3">Para los m&#225;s peque&#241;os</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Moda Ni&#241;os</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
+    + 'Ropa c&#243;moda y divertida para ni&#241;os y ni&#241;as — de las tiendas favoritas de mam&#225;, sin salir de casa.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="kidsTierFilter(\'ofertas\');return false;" class="ariaKidsCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="kidsTierFilter(\'todo\');return false;" class="ariaKidsPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Hero pill: drill into one store inside this department. */
+function kidsStoreFilter(storeKey){
+  if (typeof openCatalog === 'function') openCatalog('department', 'kids', { retailerFilter: storeKey });
+}
+
+/* Hero CTA: sale-only view ('ofertas') or back to everything ('todo'). */
+function kidsTierFilter(tier){
+  if (typeof catalogState !== 'undefined' && catalogState){
+    catalogState.kidsTier = (tier === 'ofertas') ? 'ofertas' : null;
+    catalogState.searchTerm = '';
+    catalogState.subKey = null;
+  }
+  if (typeof document === 'undefined') return;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Department rails: one carousel per STORE (biggest store first), thin
+   stores grouped into a "Más tiendas" rail, then one sale rail with the
+   biggest real discounts first. */
+function kidsDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
+  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
+  var STORE_RAIL_MIN = 4;
+  var SALE_RAIL_MIN = 6;
+  var out = [];
+
+  function picks(pool, storeKey){
+    if (typeof categoryRailPicks === 'function'){
+      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
+      catch (e) {}
+    }
+    return pool.slice(0, RAIL_TOTAL);
+  }
+  function verTiendaBtn(k){
+    return '<button onclick="kidsStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+  }
+
+  var valid = items.filter(function(p){
+    if (!p) return false;
+    if (!(Number(p.price) > 0)) return false;
+    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  });
+
+  var byStore = {};
+  valid.forEach(function(p){
+    var k = String(p.retailer || 'otros').toLowerCase();
+    (byStore[k] = byStore[k] || []).push(p);
+  });
+  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+
+  var thin = [];
+  keys.forEach(function(k){
+    var pool = byStore[k];
+    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
+    var label = kidsStoreLabel(k);
+    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
+    out.push(deptRailSectionHTML('kids-store-' + k, label, head, picks(pool, k)));
+  });
+
+  if (thin.length >= STORE_RAIL_MIN){
+    out.push(deptRailSectionHTML('kids-store-mas', 'Más tiendas',
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+  }
+
+  var sales = valid.filter(function(p){ return kidsIsSale(p); });
+  if (sales.length >= SALE_RAIL_MIN){
+    out.push(deptRailSectionHTML('kids-ofertas', 'Ofertas',
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+  }
+
+  return out.join('');
+}
+
+
+/* ---- men.js ---- */
+/* ============================================================================
+   MODA HOMBRE — hero + department rails (theme-rebuild / fashion group)
+   Theme already in DEPT_THEMES: men: { attr: 'men', glow: '#2456A0' }
+   Hero image: assets/theme/men-hero.jpg (coordinator copies it from
+   theme-rebuild/fashion/assets/men-hero.jpg)
+   Uses only: escapeHtml, deptRailSectionHTML, deptMixedRailHeadHTML,
+   categoryRailPicks, rawItemOnSale, renderCatalogFeed (all typeof-guarded).
+   ES5-compatible: var, single quotes, + concatenation. Spanish, zero emojis.
+   ============================================================================ */
+
+var MEN_STORE_LABELS = {
+  target: 'Target',
+  walmart: 'Walmart',
+  macys: "Macy's",
+  nordstrom: 'Nordstrom',
+  kohls: "Kohl's",
+  footlocker: 'Foot Locker',
+  oldnavy: 'Old Navy',
+  costco: 'Costco'
+};
+
+function menEsc(s){
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s == null ? '' : s);
+}
+
+/* Store key -> display label. Prefers the site's retailerFor / label map. */
+function menStoreLabel(key){
+  var k = String(key || '').toLowerCase();
+  try {
+    if (typeof retailerFor === 'function'){
+      var r = retailerFor(k);
+      if (r && r.label) return r.label;
+    }
+  } catch (e) {}
+  try {
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+  } catch (e2) {}
+  if (MEN_STORE_LABELS[k]) return MEN_STORE_LABELS[k];
+  return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+}
+
+/* Real discount check: rawItemOnSale when available, price math fallback. */
+function menIsSale(p){
+  if (typeof rawItemOnSale === 'function'){
+    try { return !!rawItemOnSale(p); } catch (e) {}
+  }
+  var price = Number(p.price), orig = Number(p.originalPrice);
+  return price > 0 && isFinite(orig) && orig > price;
+}
+
+function menHeroHTML(){
+  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'footlocker', 'oldnavy'];
+  var pills = stores.map(function(k){
+    return '<button onclick="menStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaMenPill focus-ring">' + menEsc(menStoreLabel(k)) + '</button>';
+  }).join('');
+  return '<section aria-label="Moda Hombre" class="ariaMenBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/men-hero.jpg\')">'
+    + '<div class="ariaMenBannerShade" aria-hidden="true"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaMenKicker mb-3">Vestirse bien, sin vueltas</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Moda Hombre</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
+    + 'Sastrer&#237;a, denim, b&#225;sicos y streetwear — las marcas que visten bien, directo a tu puerta.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="menTierFilter(\'ofertas\');return false;" class="ariaMenCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="menTierFilter(\'todo\');return false;" class="ariaMenPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Hero pill: drill into one store inside this department. */
+function menStoreFilter(storeKey){
+  if (typeof openCatalog === 'function') openCatalog('department', 'men', { retailerFilter: storeKey });
+}
+
+/* Hero CTA: sale-only view ('ofertas') or back to everything ('todo'). */
+function menTierFilter(tier){
+  if (typeof catalogState !== 'undefined' && catalogState){
+    catalogState.menTier = (tier === 'ofertas') ? 'ofertas' : null;
+    catalogState.searchTerm = '';
+    catalogState.subKey = null;
+  }
+  if (typeof document === 'undefined') return;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Department rails: one carousel per STORE (biggest store first), thin
+   stores grouped into a "Más tiendas" rail, then one sale rail with the
+   biggest real discounts first. */
+function menDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
+  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
+  var STORE_RAIL_MIN = 4;
+  var SALE_RAIL_MIN = 6;
+  var out = [];
+
+  function picks(pool, storeKey){
+    if (typeof categoryRailPicks === 'function'){
+      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
+      catch (e) {}
+    }
+    return pool.slice(0, RAIL_TOTAL);
+  }
+  function verTiendaBtn(k){
+    return '<button onclick="menStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+  }
+
+  var valid = items.filter(function(p){
+    if (!p) return false;
+    if (!(Number(p.price) > 0)) return false;
+    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  });
+
+  var byStore = {};
+  valid.forEach(function(p){
+    var k = String(p.retailer || 'otros').toLowerCase();
+    (byStore[k] = byStore[k] || []).push(p);
+  });
+  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+
+  var thin = [];
+  keys.forEach(function(k){
+    var pool = byStore[k];
+    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
+    var label = menStoreLabel(k);
+    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
+    out.push(deptRailSectionHTML('men-store-' + k, label, head, picks(pool, k)));
+  });
+
+  if (thin.length >= STORE_RAIL_MIN){
+    out.push(deptRailSectionHTML('men-store-mas', 'Más tiendas',
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+  }
+
+  var sales = valid.filter(function(p){ return menIsSale(p); });
+  if (sales.length >= SALE_RAIL_MIN){
+    out.push(deptRailSectionHTML('men-ofertas', 'Ofertas',
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+  }
+
+  return out.join('');
+}
+
+
+/* ---- women.js ---- */
+/* ============================================================================
+   MODA MUJER — hero + department rails (theme-rebuild / fashion group)
+   Theme already in DEPT_THEMES: women: { attr: 'women', glow: '#F5C4DC' }
+   Hero image: assets/theme/women-hero.jpg (coordinator copies it from
+   theme-rebuild/fashion/assets/women-hero.jpg)
+   Uses only: escapeHtml, deptRailSectionHTML, deptMixedRailHeadHTML,
+   categoryRailPicks, rawItemOnSale, renderCatalogFeed (all typeof-guarded).
+   ES5-compatible: var, single quotes, + concatenation. Spanish, zero emojis.
+   ============================================================================ */
+
+var WOMEN_STORE_LABELS = {
+  target: 'Target',
+  walmart: 'Walmart',
+  macys: "Macy's",
+  nordstrom: 'Nordstrom',
+  kohls: "Kohl's",
+  victoriassecret: "Victoria's Secret",
+  revolve: 'Revolve',
+  skims: 'Skims',
+  ssense: 'SSENSE',
+  fendi: 'Fendi',
+  miumiu: 'Miu Miu',
+  goldengoose: 'Golden Goose',
+  oldnavy: 'Old Navy',
+  costco: 'Costco',
+  ulta: 'Ulta',
+  farmrio: 'Farm Rio'
+};
+
+function womenEsc(s){
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s == null ? '' : s);
+}
+
+/* Store key -> display label. Prefers the site's retailerFor / label map. */
+function womenStoreLabel(key){
+  var k = String(key || '').toLowerCase();
+  try {
+    if (typeof retailerFor === 'function'){
+      var r = retailerFor(k);
+      if (r && r.label) return r.label;
+    }
+  } catch (e) {}
+  try {
+    if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+  } catch (e2) {}
+  if (WOMEN_STORE_LABELS[k]) return WOMEN_STORE_LABELS[k];
+  return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+}
+
+/* Real discount check: rawItemOnSale when available, price math fallback. */
+function womenIsSale(p){
+  if (typeof rawItemOnSale === 'function'){
+    try { return !!rawItemOnSale(p); } catch (e) {}
+  }
+  var price = Number(p.price), orig = Number(p.originalPrice);
+  return price > 0 && isFinite(orig) && orig > price;
+}
+
+function womenHeroHTML(){
+  var stores = ['target', 'walmart', 'macys', 'nordstrom', 'kohls', 'victoriassecret', 'revolve'];
+  var pills = stores.map(function(k){
+    return '<button onclick="womenStoreFilter(\'' + k.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaWomenPill focus-ring">' + womenEsc(womenStoreLabel(k)) + '</button>';
+  }).join('');
+  return '<section aria-label="Moda Mujer" class="ariaWomenBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/women-hero.jpg\')">'
+    + '<div class="ariaWomenBannerShade" aria-hidden="true"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="ariaWomenKicker mb-3">El guardarropa que siempre quisiste</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Moda Mujer</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.75)">'
+    + 'Vestidos, blusas, jeans y m&#225;s — de las tiendas que amas, con precios honestos hasta tu puerta.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="womenTierFilter(\'ofertas\');return false;" class="ariaWomenCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="womenTierFilter(\'todo\');return false;" class="ariaWomenPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Hero pill: drill into one store inside this department. */
+function womenStoreFilter(storeKey){
+  if (typeof openCatalog === 'function') openCatalog('department', 'women', { retailerFilter: storeKey });
+}
+
+/* Hero CTA: sale-only view ('ofertas') or back to everything ('todo'). */
+function womenTierFilter(tier){
+  if (typeof catalogState !== 'undefined' && catalogState){
+    catalogState.womenTier = (tier === 'ofertas') ? 'ofertas' : null;
+    catalogState.searchTerm = '';
+    catalogState.subKey = null;
+  }
+  if (typeof document === 'undefined') return;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Department rails: one carousel per STORE (biggest store first), thin
+   stores grouped into a "Más tiendas" rail, then one sale rail with the
+   biggest real discounts first. */
+function womenDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
+  var RAIL_TOTAL = (typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12;
+  var STORE_RAIL_MIN = 4;
+  var SALE_RAIL_MIN = 6;
+  var out = [];
+
+  function picks(pool, storeKey){
+    if (typeof categoryRailPicks === 'function'){
+      try { return categoryRailPicks(storeKey ? [storeKey] : null, pool, pool, null, RAIL_TOTAL); }
+      catch (e) {}
+    }
+    return pool.slice(0, RAIL_TOTAL);
+  }
+  function verTiendaBtn(k){
+    return '<button onclick="womenStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+  }
+
+  var valid = items.filter(function(p){
+    if (!p) return false;
+    if (!(Number(p.price) > 0)) return false;
+    return !!(p.image || p.imageUrl || p.thumbnail || p.img);
+  });
+
+  var byStore = {};
+  valid.forEach(function(p){
+    var k = String(p.retailer || 'otros').toLowerCase();
+    (byStore[k] = byStore[k] || []).push(p);
+  });
+  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+
+  var thin = [];
+  keys.forEach(function(k){
+    var pool = byStore[k];
+    if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
+    var label = womenStoreLabel(k);
+    var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
+    out.push(deptRailSectionHTML('women-store-' + k, label, head, picks(pool, k)));
+  });
+
+  if (thin.length >= STORE_RAIL_MIN){
+    out.push(deptRailSectionHTML('women-store-mas', 'Más tiendas',
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
+  }
+
+  var sales = valid.filter(function(p){ return womenIsSale(p); });
+  if (sales.length >= SALE_RAIL_MIN){
+    out.push(deptRailSectionHTML('women-ofertas', 'Ofertas',
+      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+  }
+
+  return out.join('');
+}
+
+
+/* ---- beauty.js ---- */
+/* BEAUTY department (Aria Beauty) — hero + theme (2026-10-02).
+   Sephora-like elegance: soft rose and champagne. */
+
+// THEME: beauty: { attr: 'beauty', glow: '#E5A7B3' }
+
+/* RAILS: existing beautyDeptRailsHTML is sufficient, no change — it already
+   builds one sale-led rail per beauty subcategory (Mascarillas, Maquillaje,
+   Labios, Ojos, Fragancia...) with the PDRN lead on the Mascarillas rail. */
+
+function beautyHeroHTML(){
+  var rows = [
+    ['Mascarillas', 'masks'],
+    ['Maquillaje', 'makeup'],
+    ['Labios', 'lips'],
+    ['Fragancia', 'fragrance'],
+    ['Skincare', 'skincare']
+  ];
+  var pills = rows.map(function(r){
+    return '<button onclick="beautySubFilter(\'' + r[1] + '\');return false;"'
+      + ' class="ariaBtBrandPill focus-ring">' + r[0] + '</button>';
+  }).join('');
+  return '<section aria-label="Aria Beauty" class="ariaBtBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/beauty-hero.jpg\')">'
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background:linear-gradient(100deg,rgba(64,32,38,.78) 0%,rgba(64,32,38,.48) 45%,rgba(64,32,38,.10) 100%)"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="mb-3 text-[12px] font-bold uppercase tracking-[0.18em]" style="color:#F6CDD8">'
+    + 'El rinc\u00f3n de la belleza</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Aria Beauty</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Skincare coreano, maquillaje y fragancias — la rutina completa, del K-beauty al lujo.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="beautySubFilter(\'skincare\');return false;" class="ariaBtCta focus-ring">Skincare coreano &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaBtBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+/* Subcategory pill filter: narrows the beauty feed to one aisle. */
+function beautySubFilter(subKey){
+  if (typeof catalogState === 'undefined') return;
+  catalogState.searchTerm = '';
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof setCatalogSub === 'function') {
+    setCatalogSub(subKey);
+  } else if (typeof renderCatalogFeed === 'function') {
+    catalogState.subKey = subKey;
+    renderCatalogFeed();
+  }
+  var el = document.getElementById('catalogSections');
+  if (el) el.scrollIntoView({behavior:'smooth'});
+}
+
+
+/* ---- jewelry.js ---- */
+/* JEWELRY department (Joyería y Accesorios) — hero + theme (2026-10-02).
+   Luxury: near-black with gold. */
+
+// THEME: jewelry: { attr: 'jewelry', glow: '#C9A227' }
+
+/* RAILS: existing jewelryDeptRailsHTML is sufficient, no change — it already
+   builds the six themed rails (Personalizado, Deportes y universidad, Disney,
+   Sets de regalo, Zodíaco y significado, Niños) plus per-brand storefronts
+   (BaubleBar, Melie Bianco) with style labels on every card. */
+
+function jewelryHeroHTML(){
+  var brands = ['BaubleBar', 'Melie Bianco'];
+  var pills = brands.map(function(b){
+    return '<button onclick="jewelryBrandFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="ariaJyBrandPill focus-ring">' + b + '</button>';
+  }).join('');
+  return '<section aria-label="Joyería y Accesorios" class="ariaJyBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/jewelry-hero.jpg\')">'
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background:linear-gradient(100deg,rgba(8,6,4,.85) 0%,rgba(8,6,4,.52) 45%,rgba(8,6,4,.12) 100%)"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="mb-3 text-[12px] font-bold uppercase tracking-[0.18em]" style="color:#E3C05C">'
+    + 'Brilla todos los d\u00edas</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Joyer\u00eda y Accesorios</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Collares, aretes, pulseras y m\u00e1s — BaubleBar y Melie Bianco, del diario al statement.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="jewelryBrandFilter(\'personalized\');return false;" class="ariaJyCta focus-ring">Personalizado &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaJyBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+/* Brand/theme pill filter: narrows the department feed to one brand or theme keyword. */
+function jewelryBrandFilter(brand){
+  if (typeof catalogState === 'undefined') return;
+  catalogState.searchTerm = brand;
+  catalogState.subKey = null;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el) el.scrollIntoView({behavior:'smooth'});
+}
+
+
+/* ---- purses.js ---- */
+/* PURSES department (Carteras) — hero + theme + rails (2026-10-02).
+   Elegant boutique: warm taupe and blush. This department had NO rails
+   function, so both the hero and the rails are new here. */
+
+// THEME: purses: { attr: 'purses', glow: '#C99B7B' }
+
+/* RAILS: new pursesDeptRailsHTML below — store carousels first (JW PEI vs
+   Melie Bianco so shoppers compare stores), then a sale rail, then one
+   rail per bag type. A rail with fewer than 4 items stands down. */
+
+function pursesHeroHTML(){
+  var types = [
+    ['Crossbody', 'crossbody'],
+    ['Totes', 'tote'],
+    ['Minis', 'mini'],
+    ['Al hombro', 'shoulder']
+  ];
+  var pills = types.map(function(t){
+    return '<button onclick="pursesTypeFilter(\'' + t[1] + '\');return false;"'
+      + ' class="ariaPrBrandPill focus-ring">' + t[0] + '</button>';
+  }).join('');
+  return '<section aria-label="Carteras" class="ariaPrBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/purses-hero.jpg\')">'
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background:linear-gradient(100deg,rgba(58,42,32,.78) 0%,rgba(58,42,32,.48) 45%,rgba(58,42,32,.10) 100%)"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="mb-3 text-[12px] font-bold uppercase tracking-[0.18em]" style="color:#EDC09A">'
+    + 'Tu pr\u00f3xima favorita</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Carteras</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Crossbody, totes y minis veganos — JW PEI y Melie Bianco, estilo sin culpa.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="pursesScrollToSale();return false;" class="ariaPrCta focus-ring">En oferta &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaPrBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+/* Type pill filter: narrows the department feed by bag type keyword. */
+function pursesTypeFilter(keyword){
+  if (typeof catalogState === 'undefined') return;
+  catalogState.searchTerm = keyword;
+  catalogState.subKey = null;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = keyword;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el) el.scrollIntoView({behavior:'smooth'});
+}
+/* CTA: jumps to the purses sale rail. */
+function pursesScrollToSale(){
+  var el = document.querySelector('section[aria-label="Carteras en oferta"]');
+  if (el) el.scrollIntoView({behavior:'smooth'});
+  else {
+    var fallback = document.getElementById('catalogSections');
+    if (fallback) fallback.scrollIntoView({behavior:'smooth'});
+  }
+}
+
+/* Bag-type classifier: keyword groups mirror the retailers' own
+   categories (crossbody, tote, mini/baguette, shoulder, clutch/wallet,
+   backpack). First match wins; unmatched items sit out the type rails. */
+function purseTypeOf(it){
+  var words = ' ' + String((it && (it.title || it.name)) || '')
+    .toLowerCase().replace(/[^a-z]/g, ' ').replace(/\s+/g, ' ').trim() + ' ';
+  var has = function(list){
+    for (var i = 0; i < list.length; i++){
+      if (words.indexOf(' ' + list[i] + ' ') !== -1) return true;
+    }
+    return false;
+  };
+  if (has(['crossbody', 'cross body'])) return 'crossbody';
+  if (has(['tote', 'shopper'])) return 'tote';
+  if (has(['mini', 'micro', 'baguette'])) return 'mini';
+  if (has(['shoulder'])) return 'shoulder';
+  if (has(['clutch', 'wristlet', 'wallet', 'card'])) return 'clutch';
+  if (has(['backpack'])) return 'backpack';
+  return null;
+}
+
+
+function pursesDeptRailsHTML(items){
+  var list = Array.isArray(items) ? items : [];
+  if (!list.length) return '';
+  var RAIL_MIN = 4;
+  var railTotal = (typeof CATEGORY_RAIL_TOTAL !== 'undefined') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var noKeys = new Set();
+
+  /* 1) Store carousels first — shoppers compare JW PEI vs Melie Bianco. */
+  var preferred = ['jwpei', 'meliebianco'];
+  for (var s = 0; s < preferred.length; s++){
+    var key = preferred[s];
+    var storeAisle = list.filter(function(it){
+      return it && String(it.retailer || '').toLowerCase() === key;
+    });
+    if (storeAisle.length < RAIL_MIN) continue;
+    var storePicks = categoryRailPicks([key], storeAisle, storeAisle, noKeys, railTotal);
+    if (!storePicks.length) continue;
+    if (typeof deptStoreRailHeadHTML !== 'function' || typeof deptRailSectionHTML !== 'function') continue;
+    blocks.push(deptRailSectionHTML('purses-store-' + key, 'Carteras ' + key,
+      deptStoreRailHeadHTML(key), storePicks));
+  }
+
+  /* 2) Sale rail: every purse on markdown, biggest discount first. */
+  var onSale = list.filter(function(it){
+    return typeof rawItemOnSale === 'function' ? rawItemOnSale(it) : false;
+  });
+  if (onSale.length >= RAIL_MIN){
+    var salePicks = categoryRailPicks([], onSale, onSale, noKeys, railTotal);
+    if (salePicks.length)
+      blocks.push(deptRailSectionHTML('purses-sale', 'Carteras en oferta',
+        deptMixedRailHeadHTML('En oferta', onSale.length + ' carteras con descuento'), salePicks));
+  }
+
+  /* 3) One rail per bag type, sale-led within the type. */
+  var typeGroups = [
+    { key: 'crossbody', label: 'Crossbody' },
+    { key: 'tote',      label: 'Totes' },
+    { key: 'mini',      label: 'Minis y baguettes' },
+    { key: 'shoulder',  label: 'Al hombro' },
+    { key: 'clutch',    label: 'Clutches y billeteras' },
+    { key: 'backpack',  label: 'Mochilas' }
+  ];
+  for (var g = 0; g < typeGroups.length; g++){
+    var group = typeGroups[g];
+    var aisle = list.filter(function(it){ return purseTypeOf(it) === group.key; });
+    if (aisle.length < RAIL_MIN) continue;
+    var picks = categoryRailPicks([], aisle, aisle, noKeys, railTotal);
+    if (!picks.length) continue;
+    blocks.push(deptRailSectionHTML('purses-type-' + group.key, 'Carteras ' + group.label,
+      deptMixedRailHeadHTML(group.label, aisle.length + ' carteras'), picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- shoes.js ---- */
+/* SHOES department — hero + theme (2026-10-02).
+   Foot Locker energy: deep charcoal with an electric red accent. */
+
+// THEME: shoes: { attr: 'shoes', glow: '#FF3B2F' }
+
+/* RAILS: existing shoesDeptRailsHTML is sufficient, no change — it already
+   leads with a sale rail ('Zapatos en oferta', biggest discount first) and
+   follows with one rail per shoe type (cheap-first within the type). */
+
+function shoesHeroHTML(){
+  var types = [
+    ['Deportivos', 'sneaker'],
+    ['De vestir', 'loafer'],
+    ['Sandalias', 'sandal'],
+    ['Botas', 'boot']
+  ];
+  var pills = types.map(function(t){
+    return '<button onclick="shoesTypeFilter(\'' + t[1] + '\');return false;"'
+      + ' class="ariaShBrandPill focus-ring">' + t[0] + '</button>';
+  }).join('');
+  return '<section aria-label="Zapatos" class="ariaShBanner mb-6"'
+    + ' style="background-image:url(\'assets/theme/shoes-hero.jpg\')">'
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background:linear-gradient(100deg,rgba(12,10,9,.86) 0%,rgba(12,10,9,.55) 45%,rgba(12,10,9,.12) 100%)"></div>'
+    + '<div class="relative px-6 py-10 sm:py-14" style="z-index:1">'
+    + '<div class="mb-3 text-[12px] font-bold uppercase tracking-[0.18em]" style="color:#FF6A5E">'
+    + 'La casa de las zapatillas</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Zapatos</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Zapatillas, botas, sandalias y de vestir — Foot Locker, Crocs y m\u00e1s, con env\u00edo a Per\u00fa.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="shoesScrollToSale();return false;" class="ariaShCta focus-ring">En oferta &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaShBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+/* Type pill filter: narrows the department feed by shoe type keyword. */
+function shoesTypeFilter(keyword){
+  if (typeof catalogState === 'undefined') return;
+  catalogState.searchTerm = keyword;
+  catalogState.subKey = null;
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = keyword;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var el = document.getElementById('catalogSections');
+  if (el) el.scrollIntoView({behavior:'smooth'});
+}
+/* CTA: jumps to the existing shoes sale rail ('Zapatos en oferta'). */
+function shoesScrollToSale(){
+  var el = document.querySelector('section[aria-label="Zapatos en oferta"]');
+  if (el) el.scrollIntoView({behavior:'smooth'});
+  else {
+    var fallback = document.getElementById('catalogSections');
+    if (fallback) fallback.scrollIntoView({behavior:'smooth'});
+  }
+}
+
+
+/* ---- books.js ---- */
+/* BOOKS (Libros) - LIFE & HOME theme rebuild (2026-10-02).
+   Cozy library theme: warm browns + amber. Hero banner + store-first rails. */
+// THEME: books: { attr: 'books', glow: '#8B5A2B' }
+
+function booksHeroHTML(){
+  var terms = ['Ficci\u00f3n', 'Infantiles', 'Cocina', 'Negocios', 'Misterio'];
+  var pills = terms.map(function(t){
+    return '<button onclick="booksPillFilter(\'' + t.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(t) + '</button>';
+  }).join('');
+  return '<section aria-label="Libros" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/books-hero.jpg" alt="Biblioteca acogedora" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(20,12,6,.30) 0%, rgba(20,12,6,.05) 35%, rgba(20,12,6,.88) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(20,12,6,.72) 0%, rgba(20,12,6,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#E8B94A">Historias que atrapan</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Libros</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Ficci\u00f3n, infantiles, cocina y m\u00e1s: tu pr\u00f3xima lectura favorita te espera.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="booksSaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#E8B94A;color:#241a08;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="booksExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function booksPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function booksExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function booksSaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Libros"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else booksExploreAll();
+}
+
+function booksDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('bk-ofertas', 'Ofertas en Libros',
+        deptMixedRailHeadHTML('Ofertas en Libros', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('bk-store-' + skey, 'Libros en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- candy_chocolate.js ---- */
+/* CANDY_CHOCOLATE (Dulces y Chocolates) - LIFE & HOME theme rebuild (2026-10-02).
+   Sweet shop theme: pink + chocolate brown. Hero banner + store-first rails. */
+// THEME: candy_chocolate: { attr: 'candy_chocolate', glow: '#F0A6C0' }
+
+function candyChocolateHeroHTML(){
+  var brands = ['Lindt', 'Godiva', "Hershey's", "M&M's", 'Ferrero'];
+  var pills = brands.map(function(b){
+    return '<button onclick="candyChocolatePillFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(b) + '</button>';
+  }).join('');
+  return '<section aria-label="Dulces y Chocolates" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/candy_chocolate-hero.jpg" alt="Dulceria con chocolates" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(26,10,16,.32) 0%, rgba(26,10,16,.06) 35%, rgba(26,10,16,.90) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(26,10,16,.74) 0%, rgba(26,10,16,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#FFB3D1">Puro antojo</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Dulces y Chocolates</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Chocolates, gomitas y dulces americanos: el antojo que no encuentras en Per\u00fa.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="candyChocolateSaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#FFB3D1;color:#331420;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="candyChocolateExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function candyChocolatePillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function candyChocolateExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function candyChocolateSaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Dulces y Chocolates"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else candyChocolateExploreAll();
+}
+
+function candyChocolateDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('cc-ofertas', 'Ofertas en Dulces y Chocolates',
+        deptMixedRailHeadHTML('Ofertas en Dulces y Chocolates', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('cc-store-' + skey, 'Dulces y Chocolates en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- electronics.js ---- */
+/* ELECTRONICS (Electronica) - LIFE & HOME theme rebuild (2026-10-02).
+   Sleek tech theme: deep navy/graphite + electric blue. Hero + store-first rails. */
+// THEME: electronics: { attr: 'electronics', glow: '#2E7CF6' }
+
+function electronicsHeroHTML(){
+  var brands = ['Apple', 'Samsung', 'Sony', 'JBL', 'Anker'];
+  var pills = brands.map(function(b){
+    return '<button onclick="electronicsPillFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.10);border:1px solid rgba(127,176,255,.45);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(b) + '</button>';
+  }).join('');
+  return '<section aria-label="Electr\u00f3nica" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/electronics-hero.jpg" alt="Vitrina de tecnolog\u00eda" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(6,10,24,.35) 0%, rgba(6,10,24,.06) 35%, rgba(6,10,24,.90) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(6,10,24,.78) 0%, rgba(6,10,24,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#7FB0FF">Tecnolog\u00eda de punta</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Electr\u00f3nica</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Audio, gadgets y accesorios tech: lo \u00faltimo en tecnolog\u00eda, directo de EE. UU.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="electronicsSaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#2E7CF6;color:#fff;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="electronicsExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.10);border:1px solid rgba(127,176,255,.45);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function electronicsPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function electronicsExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function electronicsSaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Electr\u00f3nica"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else electronicsExploreAll();
+}
+
+function electronicsDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('elec-ofertas', 'Ofertas en Electr\u00f3nica',
+        deptMixedRailHeadHTML('Ofertas en Electr\u00f3nica', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('elec-store-' + skey, 'Electr\u00f3nica en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- home_decor.js ---- */
+/* HOME_DECOR (Decoracion) - LIFE & HOME theme rebuild (2026-10-02).
+   Warm elegant theme: sage + brass. Hero banner + store-first rails. */
+// THEME: home_decor: { attr: 'home_decor', glow: '#A8B89F' }
+
+function homeDecorHeroHTML(){
+  var terms = ['Velas', 'Cuadros', 'Cojines', 'Espejos', 'L\u00e1mparas'];
+  var pills = terms.map(function(t){
+    return '<button onclick="homeDecorPillFilter(\'' + t.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(t) + '</button>';
+  }).join('');
+  return '<section aria-label="Decoraci\u00f3n" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/home_decor-hero.jpg" alt="Rinc\u00f3n elegante con velas" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(16,20,14,.30) 0%, rgba(16,20,14,.05) 35%, rgba(16,20,14,.88) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(16,20,14,.72) 0%, rgba(16,20,14,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#D9C27A">Detalles que enamoran</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Decoraci\u00f3n</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Velas, cuadros, cojines y m\u00e1s: piezas que le dan alma a cada rinc\u00f3n.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="homeDecorSaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#D9C27A;color:#241a08;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="homeDecorExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function homeDecorPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function homeDecorExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function homeDecorSaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Decoraci\u00f3n"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else homeDecorExploreAll();
+}
+
+function homeDecorDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('hd-ofertas', 'Ofertas en Decoraci\u00f3n',
+        deptMixedRailHeadHTML('Ofertas en Decoraci\u00f3n', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('hd-store-' + skey, 'Decoraci\u00f3n en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- home_goods.js ---- */
+/* HOME_GOODS (Hogar) - LIFE & HOME theme rebuild (2026-10-02).
+   Warm homey theme: terracotta/cream. Hero banner + store-first rails. */
+// THEME: home_goods: { attr: 'home_goods', glow: '#D98E73' }
+
+function homeGoodsHeroHTML(){
+  var terms = ['Cocina', 'Dormitorio', 'Ba\u00f1o', 'Sala', 'Organizaci\u00f3n'];
+  var pills = terms.map(function(t){
+    return '<button onclick="homeGoodsPillFilter(\'' + t.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(t) + '</button>';
+  }).join('');
+  return '<section aria-label="Hogar" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/home_goods-hero.jpg" alt="Sala acogedora" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(24,12,8,.30) 0%, rgba(24,12,8,.05) 35%, rgba(24,12,8,.88) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(24,12,8,.72) 0%, rgba(24,12,8,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#F2B26B">Tu casa, tu refugio</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Hogar</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Cocina, dormitorio y ba\u00f1o: todo para que tu casa se sienta como hogar.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="homeGoodsSaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#F2B26B;color:#2a1408;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="homeGoodsExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function homeGoodsPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function homeGoodsExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function homeGoodsSaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Hogar"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else homeGoodsExploreAll();
+}
+
+function homeGoodsDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('hg-ofertas', 'Ofertas en Hogar',
+        deptMixedRailHeadHTML('Ofertas en Hogar', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('hg-store-' + skey, 'Hogar en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- mens_grooming.js ---- */
+/* MENS_GROOMING (Seccion Hombre) - LIFE & HOME theme rebuild (2026-10-02).
+   Barbershop theme: dark wood + amber. Hero banner + store-first rails. */
+// THEME: mens_grooming: { attr: 'mens_grooming', glow: '#C98A1B' }
+
+/* Quick-filter pills: brand keywords into the department feed. */
+function mensGroomingHeroHTML(){
+  var brands = ['Gillette', 'Nivea Men', 'Old Spice', 'Axe', 'Dove Men+Care'];
+  var pills = brands.map(function(b){
+    return '<button onclick="mensGroomingPillFilter(\'' + b.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(b) + '</button>';
+  }).join('');
+  return '<section aria-label="Cuidado Masculino" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/mens_grooming-hero.jpg" alt="Barberia clasica" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(8,10,16,.30) 0%, rgba(8,10,16,.05) 35%, rgba(8,10,16,.88) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(8,10,16,.72) 0%, rgba(8,10,16,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#E8B94A">El rincon del caballero</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Cuidado Masculino</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Afeitado, barba, piel y fragancia: el ritual de cuidado del hombre moderno, de las mejores tiendas de EE. UU.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="mensGroomingSaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#E8B94A;color:#1a1206;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="mensGroomingExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function mensGroomingPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function mensGroomingExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function mensGroomingSaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Cuidado Masculino"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else mensGroomingExploreAll();
+}
+
+/* Department rails: sale rail first (real discounts, biggest first, 4+
+   items), then one rail per store ordered by catalog size. A store with
+   nothing to show contributes no rail. */
+function mensGroomingDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('mg-ofertas', 'Ofertas en Cuidado Masculino',
+        deptMixedRailHeadHTML('Ofertas en Cuidado Masculino', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('mg-store-' + skey, 'Cuidado Masculino en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- moms.js ---- */
+/* MOMS (Mama's Fashion) - LIFE & HOME theme rebuild (2026-10-02).
+   HERO ONLY: rails (momsDeptRailsHTML) and the #FFF4B8 yellow theme already
+   exist and are good. This file adds just the hero banner + pill filters. */
+
+function momsHeroHTML(){
+  var terms = ['Vestidos', 'Blusas', 'Faldas', 'Zapatos', 'Accesorios'];
+  var pills = terms.map(function(t){
+    return '<button onclick="momsPillFilter(\'' + t.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.45);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(t) + '</button>';
+  }).join('');
+  return '<section aria-label="Mama&#39;s Fashion" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/moms-hero.jpg" alt="Boutique femenina al sol" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(50,35,5,.28) 0%, rgba(50,35,5,.04) 35%, rgba(50,35,5,.90) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(50,35,5,.78) 0%, rgba(50,35,5,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#FFE08A">Moda para mama</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Mama&#39;s Fashion</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.85)">'
+    + 'Vestidos, blusas y basicos con estilo: moda comoda y femenina para el dia a dia.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="momsExploreAll();return false;" class="focus-ring"'
+    + ' style="background:#FFE08A;color:#3a2a05;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Explorar todo &#8594;</button>'
+    + '</div></div></div></section>';
+}
+
+function momsPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function momsExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+
+/* ---- party.js ---- */
+/* PARTY (Aria Party) - LIFE & HOME theme rebuild (2026-10-02).
+   Festive theme: vibrant confetti, tasteful. Hero banner + store-first rails. */
+// THEME: party: { attr: 'party', glow: '#D63384' }
+
+function partyHeroHTML(){
+  var terms = ['Cumplea\u00f1os', 'Baby shower', 'Bodas', 'Graduaci\u00f3n', 'Halloween'];
+  var pills = terms.map(function(t){
+    return '<button onclick="partyPillFilter(\'' + t.replace(/'/g, "\\'") + '\');return false;"'
+      + ' class="focus-ring" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;'
+      + 'border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer">' + escapeHtml(t) + '</button>';
+  }).join('');
+  return '<section aria-label="Aria Party" class="mb-6 -mx-4 sm:-mx-6" style="margin-top:-1.25rem">'
+    + '<div class="relative overflow-hidden" style="min-height:320px">'
+    + '<img src="assets/theme/party-hero.jpg" alt="Mesa de fiesta con confeti" class="absolute inset-0 w-full h-full"'
+    + ' style="object-fit:cover" loading="eager" decoding="async" onerror="this.remove()">'
+    + '<div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(20,8,18,.32) 0%, rgba(20,8,18,.06) 35%, rgba(20,8,18,.90) 100%)"></div>'
+    + '<div class="absolute inset-0" style="background:linear-gradient(100deg, rgba(20,8,18,.74) 0%, rgba(20,8,18,0) 62%)"></div>'
+    + '<div class="relative h-full flex flex-col justify-end p-5 sm:p-8" style="min-height:320px">'
+    + '<span class="text-[11px] font-extrabold tracking-[0.22em] uppercase mb-2" style="color:#FF9ECF">Que empiece la fiesta</span>'
+    + '<h2 class="text-[30px] sm:text-[40px] font-extrabold leading-[1.05] tracking-[-0.02em] mb-2" style="color:#fff">Aria Party</h2>'
+    + '<p class="text-[14px] sm:text-[15px] leading-snug max-w-[42ch]" style="color:rgba(255,255,255,.82)">'
+    + 'Decoraci\u00f3n, globos y todo para celebrar: cumplea\u00f1os, bodas y mucho m\u00e1s.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-4">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-4">'
+    + '<button onclick="partySaleScroll();return false;" class="focus-ring"'
+    + ' style="background:#FF9ECF;color:#33101f;border-radius:999px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;border:none">Ver ofertas &#8594;</button>'
+    + '<button onclick="partyExploreAll();return false;" class="focus-ring"'
+    + ' style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:999px;'
+    + 'padding:12px 22px;font-size:14px;font-weight:700;cursor:pointer;height:48px">Explorar todo</button>'
+    + '</div></div></div></section>';
+}
+
+function partyPillFilter(term){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = term; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = term;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function partyExploreAll(){
+  if (typeof catalogState !== 'undefined'){ catalogState.searchTerm = ''; catalogState.subKey = null; }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = '';
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var feed = document.getElementById('catalogSections');
+  if (feed && feed.scrollIntoView) feed.scrollIntoView({behavior:'smooth'});
+}
+
+function partySaleScroll(){
+  var el = document.querySelector('section[aria-label="Ofertas en Aria Party"]');
+  if (el && el.scrollIntoView) el.scrollIntoView({behavior:'smooth'});
+  else partyExploreAll();
+}
+
+function partyDeptRailsHTML(items, noKeys){
+  if (typeof deptRailSectionHTML !== 'function') return '';
+  var all = items || [];
+  var total = (typeof CATEGORY_RAIL_TOTAL === 'number') ? CATEGORY_RAIL_TOTAL : 12;
+  var blocks = [];
+  var sales = [];
+  for (var i = 0; i < all.length; i++){
+    if (typeof rawItemOnSale === 'function' && rawItemOnSale(all[i])) sales.push(all[i]);
+  }
+  if (sales.length >= 4 && typeof categoryRailPicks === 'function' && typeof deptMixedRailHeadHTML === 'function'){
+    var salePicks = categoryRailPicks(null, sales, sales, noKeys, total);
+    if (salePicks && salePicks.length){
+      blocks.push(deptRailSectionHTML('ap-ofertas', 'Ofertas en Aria Party',
+        deptMixedRailHeadHTML('Ofertas en Aria Party', sales.length + ' productos en descuento'), salePicks));
+    }
+  }
+  var counts = {};
+  var order = [];
+  for (var j = 0; j < all.length; j++){
+    var key = String(all[j].retailer || '').toLowerCase();
+    if (!key) continue;
+    if (!counts[key]){ counts[key] = 0; order.push(key); }
+    counts[key]++;
+  }
+  order.sort(function(a, b){ return counts[b] - counts[a]; });
+  for (var s = 0; s < order.length; s++){
+    var skey = order[s];
+    var picks = (typeof storeRailPicks === 'function') ? storeRailPicks(skey, all, all, noKeys) : [];
+    if (!picks || !picks.length) continue;
+    var head = (typeof deptStoreRailHeadHTML === 'function')
+      ? deptStoreRailHeadHTML(skey)
+      : ((typeof deptMixedRailHeadHTML === 'function') ? deptMixedRailHeadHTML(skey, counts[skey] + ' productos') : skey);
+    blocks.push(deptRailSectionHTML('ap-store-' + skey, 'Aria Party en ' + skey, head, picks));
+  }
+  return blocks.join('');
+}
+
+
+/* ---- auto_parts.js ---- */
+/* auto_parts.js — SPORTS group (2026-10-02 theme rebuild)
+   Repuestos. Professional mechanic workshop atmosphere. */
+
+/* THEME: auto_parts: { attr: 'auto_parts', glow: '#F59E0B' } — steel
+   blue/gray backdrop (#232A33) with amber work-light warmth. */
+var AUTO_PARTS_BACKDROP = '#232A33';
+
+function autoPartsHeroHTML(){
+  var brands = ['Bosch', 'Denso', 'NGK', 'Monroe'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="autoPartsBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaAutoPartsBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Repuestos" class="relative overflow-hidden mb-6" style="background:' + AUTO_PARTS_BACKDROP + '">'
+    /* Hero image: professional mechanic workshop (assets/theme/auto_parts-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/auto_parts-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(35,42,51,0) 0%, ' + AUTO_PARTS_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaAutoPartsKicker mb-3">El taller de confianza</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Repuestos</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Frenos, filtros, llantas y partes con n\u00famero de parte del fabricante.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="autoPartsTierFilter(\'ofertas\');return false;" class="ariaAutoPartsCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaAutoPartsBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one parts brand. */
+function autoPartsBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function autoPartsTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas Repuestos"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+function autoPartsDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+      : saleItems.slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('auto-parts-ofertas', 'Ofertas Repuestos', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('auto-parts-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
+
+/* ---- combat_sports.js ---- */
+/* combat_sports.js — SPORTS group (2026-10-02 theme rebuild)
+   Aria Fight Club. Danny's direction: walking into a PREMIUM MMA gym —
+   boxing gym, jiu-jitsu mats on the floor, fight-camp energy.
+   Premium, NOT gritty-warehouse. */
+
+/* THEME: combat_sports: { attr: 'combat_sports', glow: '#B91C1C' } — dark
+   premium backdrop (#160E0E) with a deep red accent. Upscale fight camp. */
+var COMBAT_SPORTS_BACKDROP = '#160E0E';
+
+function combatSportsHeroHTML(){
+  var brands = ['Venum', 'Hayabusa', 'Everlast', 'RDX'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="combatSportsBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaCombatBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Aria Fight Club" class="relative overflow-hidden mb-6" style="background:' + COMBAT_SPORTS_BACKDROP + '">'
+    /* Hero image: premium MMA gym interior — ring, mats, bags
+       (assets/theme/combat_sports-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/combat_sports-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(22,14,14,0) 0%, ' + COMBAT_SPORTS_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaCombatKicker mb-3">Tu campamento de pelea</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Aria Fight Club</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Guantes, kimonos y equipo de boxeo, jiu-jitsu, Muay Thai y MMA \u2014 de pelea en pelea.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="combatSportsTierFilter(\'ofertas\');return false;" class="ariaCombatCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaCombatBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one fight brand. */
+function combatSportsBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function combatSportsTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas Fight Club"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+function combatSportsDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+      : saleItems.slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('combat-sports-ofertas', 'Ofertas Fight Club', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('combat-sports-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
+
+/* ---- gym_rat.js ---- */
+/* gym_rat.js — SPORTS group (2026-10-02 theme rebuild)
+   PRIORITY deliverable — Danny's direction: luxury athletic club, Lifetime
+   Fitness style or fancier. Polished dark interiors, dramatic lighting,
+   high-end equipment, spa-like luxury. NOT a gritty warehouse gym. */
+
+/* THEME: gym_rat: { attr: 'gym_rat', glow: '#D4A24C' } — warm gold/amber glow
+   on a deep charcoal/espresso backdrop (#171210). Premium, not neon. */
+var GYM_RAT_BACKDROP = '#171210';
+
+function gymRatHeroHTML(){
+  /* Keep the existing YoungLA / Gymshark / Alphalete brand cards — Danny
+     likes those. Hero carries brand quick-filter pills for all four. */
+  var brands = ['YoungLA', 'Gymshark', 'Alphalete', 'NVGTN'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="gymRatBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaGymRatBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Gym Rat" class="relative overflow-hidden mb-6" style="background:' + GYM_RAT_BACKDROP + '">'
+    /* Hero image: luxury athletic club interior (assets/theme/gym_rat-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/gym_rat-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(23,18,16,0) 0%, ' + GYM_RAT_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaGymRatKicker mb-3">El templo del hierro</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Gym Rat</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Ropa y equipo de entrenamiento premium \u2014 Gymshark, YoungLA, Alphalete y NVGTN, directo de USA.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="gymRatTierFilter(\'ofertas\');return false;" class="ariaGymRatCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaGymRatBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one gym brand. */
+function gymRatBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function gymRatTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas Gym Rat"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+function gymRatDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+      : saleItems.slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('gym-rat-ofertas', 'Ofertas Gym Rat', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('gym-rat-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
+
+/* ---- soccer.js ---- */
+/* soccer.js — SPORTS group (2026-10-02 theme rebuild)
+   Fútbol. Existing theme reused: #7BC96F (grass green). */
+
+/* THEME: soccer — existing, NOT redefined: { attr: 'soccer', glow: '#7BC96F' } */
+var SOCCER_BACKDROP = '#0F1A0D';
+
+function soccerHeroHTML(){
+  var brands = ['Nike', 'Adidas', 'Puma', 'New Balance'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="soccerBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaSoccerBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="F\u00fatbol" class="relative overflow-hidden mb-6" style="background:' + SOCCER_BACKDROP + '">'
+    /* Hero image: stadium at night (assets/theme/soccer-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/soccer-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(15,26,13,0) 0%, ' + SOCCER_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaSoccerKicker mb-3">La pasi\u00f3n de la cancha</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'F\u00fatbol</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Chimpunes, camisetas y todo para el f\u00fatbol \u2014 del barrio al estadio.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="soccerTierFilter(\'ofertas\');return false;" class="ariaSoccerCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaSoccerBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one soccer brand. */
+function soccerBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function soccerTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas F\u00fatbol"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* FUTBOL CLEATS-FIRST (Danny 2026-10-01): the hook is discounted cleats —
+   chimpunes lead the sale rail, biggest discount first. Self-contained
+   so it does not depend on index.html's rail opts. */
+var SOCCER_CLEAT_RX = /cleat|chimpun|chuteira|botin de f/i;
+function soccerCleatFirst(list){
+  var nameOf = function(p){ return String((p && (p.title || p.name)) || '').toLowerCase(); };
+  var discOf = function(p){
+    var o = Number(p && p.originalPrice), n = Number(p && p.price);
+    return (o > n && o > 0 && isFinite(o) && isFinite(n)) ? (1 - n / o) : 0;
+  };
+  var cleats = [], rest = [];
+  for (var i = 0; i < list.length; i++){
+    if (SOCCER_CLEAT_RX.test(nameOf(list[i]))) cleats.push(list[i]); else rest.push(list[i]);
+  }
+  var byDisc = function(a, b){ return discOf(b) - discOf(a); };
+  cleats.sort(byDisc); rest.sort(byDisc);
+  return cleats.concat(rest);
+}
+
+/* Store-first rails: sale rail (4+ sale items, cleats first), then one rail
+   per retailer. */
+function soccerDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = soccerCleatFirst(saleItems).slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('soccer-ofertas', 'Ofertas F\u00fatbol', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('soccer-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
+
+/* ---- spearfishing.js ---- */
+/* spearfishing.js — SPORTS group (2026-10-02 theme rebuild)
+   Pesca Submarina. Existing theme reused: #5B9BD5 (deep ocean blue). */
+
+/* THEME: spearfishing — existing, NOT redefined:
+   { attr: 'spearfishing', glow: '#5B9BD5' } */
+var SPEARFISHING_BACKDROP = '#0A1B2E';
+
+function spearfishingHeroHTML(){
+  var brands = ['Cressi', 'Mares', 'Omer', 'Salvimar'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="spearfishingBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaSpearBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Pesca Submarina" class="relative overflow-hidden mb-6" style="background:' + SPEARFISHING_BACKDROP + '">'
+    /* Hero image: deep ocean freediving scene (assets/theme/spearfishing-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/spearfishing-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(10,27,46,0) 0%, ' + SPEARFISHING_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaSpearKicker mb-3">El silencio del fondo</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Pesca Submarina</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Arpones, trajes de neopreno, aletas y equipo de apnea de verdad.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="spearfishingTierFilter(\'ofertas\');return false;" class="ariaSpearCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaSpearBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one dive brand. */
+function spearfishingBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function spearfishingTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas Pesca Submarina"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+function spearfishingDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+      : saleItems.slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('spearfishing-ofertas', 'Ofertas Pesca Submarina', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('spearfishing-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
+
+/* ---- sporting_goods.js ---- */
+/* sporting_goods.js — SPORTS group (2026-10-02 theme rebuild)
+   Deportes: general sporting goods — basketball, baseball, running, fitness
+   and everything that is not its own department. */
+
+/* THEME: sporting_goods: { attr: 'sporting_goods', glow: '#22C55E' } —
+   vivid green sporty energy on a deep forest backdrop (#101B14). */
+var SPORTING_GOODS_BACKDROP = '#101B14';
+
+function sportingGoodsHeroHTML(){
+  var brands = ['Nike', 'Adidas', 'Under Armour', 'Puma'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="sportingGoodsBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaSportingGoodsBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Deportes" class="relative overflow-hidden mb-6" style="background:' + SPORTING_GOODS_BACKDROP + '">'
+    /* Hero image: dynamic sports energy (assets/theme/sporting_goods-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/sporting_goods-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(16,27,20,0) 0%, ' + SPORTING_GOODS_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaSportingGoodsKicker mb-3">Tu juego empieza aqu\u00ed</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Deportes</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'B\u00e1squet, b\u00e9isbol, running y m\u00e1s \u2014 el mejor equipo deportivo de USA.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="sportingGoodsTierFilter(\'ofertas\');return false;" class="ariaSportingGoodsCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaSportingGoodsBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one sports brand. */
+function sportingGoodsBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function sportingGoodsTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas Deportes"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+function sportingGoodsDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+      : saleItems.slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('sporting-goods-ofertas', 'Ofertas Deportes', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('sporting-goods-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
+
+/* ---- surf_skate.js ---- */
+/* surf_skate.js — SPORTS group (2026-10-02 theme rebuild)
+   HERO ONLY — surfSkateDeptRailsHTML already exists and is good.
+   Danny's direction: Ron Jon Surf Shop style — bright, tropical,
+   island water-sports vibe. Sunny surf-shop, NOT dark/skater-gritty. */
+
+/* THEME: surf_skate: { attr: 'surf_skate', glow: '#2DD4BF' } — sunny bright
+   aqua/turquoise (Danny 2026-10-02; replaces the old deep-ocean #8FC6EE). */
+var SURF_SKATE_BACKDROP = '#E6FBF6';
+
+function surfSkateHeroHTML(){
+  var brands = ['Quiksilver', 'Billabong', 'Rip Curl', 'Vans'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="surfSkateBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaSurfSkateBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Surf & Skate" class="relative overflow-hidden mb-6" style="background:' + SURF_SKATE_BACKDROP + '">'
+    /* Hero image: bright tropical surf-shop interior, board-lined walls
+       (assets/theme/surf_skate-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/surf_skate-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(230,251,246,0) 0%, ' + SURF_SKATE_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    /* Frosted panel keeps text legible over the bright tropical image */
+    + '<div class="inline-block max-w-[520px] rounded-2xl px-6 py-6" style="background:rgba(5,46,50,.55)">'
+    + '<div class="ariaSurfSkateKicker mb-3">Esp\u00edritu de playa</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Surf &amp; Skate</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.85)">'
+    + 'Tablas, trajes, skates y todo el estilo playero \u2014 sol, olas y asfalto.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaSurfSkateCta focus-ring">Explorar todo &#8594;</button>'
+    + '</div></div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one surf/skate brand. */
+function surfSkateBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+
+/* ---- tennis.js ---- */
+/* tennis.js — SPORTS group (2026-10-02 theme rebuild)
+   Tenis. Existing theme reused: #D4E157 (tennis-ball yellow-green). */
+
+/* THEME: tennis — existing, NOT redefined: { attr: 'tennis', glow: '#D4E157' } */
+var TENNIS_BACKDROP = '#14160A';
+
+function tennisHeroHTML(){
+  var brands = ['Wilson', 'Head', 'Babolat', 'Nike'];
+  var pills = '';
+  for (var i = 0; i < brands.length; i++){
+    pills += '<button onclick="tennisBrandFilter(\'' + brands[i] + '\');return false;"'
+      + ' class="ariaTennisBrandPill focus-ring">' + brands[i] + '</button>';
+  }
+  return '<section aria-label="Tenis" class="relative overflow-hidden mb-6" style="background:' + TENNIS_BACKDROP + '">'
+    /* Hero image: pristine tennis club (assets/theme/tennis-hero.jpg) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/tennis-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Bottom fade: image melts into the page backdrop — no hard edge */
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:40%;background:linear-gradient(to bottom, rgba(20,22,10,0) 0%, ' + TENNIS_BACKDROP + ' 100%)"></div>'
+    + '<div class="relative px-6 pt-14 pb-16 sm:pt-20 sm:pb-24" style="z-index:1">'
+    + '<div class="ariaTennisKicker mb-3">El club del tenis</div>'
+    + '<h2 class="text-[28px] sm:text-[40px] font-extrabold tracking-[-0.02em] leading-[1.05]" style="color:#fff">'
+    + 'Tenis</h2>'
+    + '<p class="text-[14px] sm:text-[15px] mt-3 leading-snug max-w-[44ch]" style="color:rgba(255,255,255,.78)">'
+    + 'Raquetas, pelotas y ropa de tenis de las mejores marcas del circuito.</p>'
+    + '<div class="flex flex-wrap gap-2 mt-5">' + pills + '</div>'
+    + '<div class="flex flex-wrap gap-2.5 mt-5">'
+    + '<button onclick="tennisTierFilter(\'ofertas\');return false;" class="ariaTennisCta focus-ring">Ver ofertas &#8594;</button>'
+    + '<button onclick="document.getElementById(\'catalogSections\').scrollIntoView({behavior:\'smooth\'});return false;"'
+    + ' class="ariaTennisBrandPill focus-ring" style="height:48px">Explorar todo</button>'
+    + '</div></div></section>';
+}
+
+/* Brand pill filter: narrows the department feed to one tennis brand. */
+function tennisBrandFilter(brand){
+  if (typeof catalogState !== 'undefined'){
+    catalogState.searchTerm = brand;
+    catalogState.subKey = null;
+  }
+  var input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Tier filter: ofertas scrolls to the sale rail; todo shows everything. */
+function tennisTierFilter(tier){
+  if (tier === 'ofertas'){
+    var el = document.querySelector('section[aria-label="Ofertas Tenis"]');
+    if (el){ el.scrollIntoView({behavior:'smooth'}); return; }
+  }
+  if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
+  var target = document.getElementById('catalogSections');
+  if (target) target.scrollIntoView({behavior:'smooth'});
+}
+
+/* Store-first rails: sale rail (4+ sale items), then one rail per retailer. */
+function tennisDeptRailsHTML(items){
+  items = Array.isArray(items) ? items : [];
+  var html = '';
+  var saleItems = [];
+  if (typeof rawItemOnSale === 'function'){
+    for (var i = 0; i < items.length; i++) if (rawItemOnSale(items[i])) saleItems.push(items[i]);
+  }
+  if (saleItems.length >= 4 && typeof deptRailSectionHTML === 'function'){
+    var salePicks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks(null, saleItems, saleItems, null, 20)
+      : saleItems.slice(0, 20);
+    var saleHead = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML('Ofertas', saleItems.length + ' productos en oferta')
+      : '';
+    html += deptRailSectionHTML('tennis-ofertas', 'Ofertas Tenis', saleHead, salePicks);
+  }
+  var byRetailer = {};
+  var order = [];
+  for (var j = 0; j < items.length; j++){
+    var it = items[j] || {};
+    var key = String(it.retailer || '').toLowerCase() || 'otros';
+    if (!byRetailer[key]){ byRetailer[key] = []; order.push(key); }
+    byRetailer[key].push(it);
+  }
+  for (var r = 0; r < order.length; r++){
+    var pool = byRetailer[order[r]];
+    if (pool.length < 4) continue;
+    var picks = (typeof categoryRailPicks === 'function')
+      ? categoryRailPicks([order[r]], pool, pool, null, 20)
+      : pool.slice(0, 20);
+    if (!picks || !picks.length) continue;
+    var label = order[r].charAt(0).toUpperCase() + order[r].slice(1);
+    var head = (typeof deptMixedRailHeadHTML === 'function')
+      ? deptMixedRailHeadHTML(label, pool.length + ' productos')
+      : '';
+    html += deptRailSectionHTML('tennis-store-' + order[r], 'Tienda ' + label, head, picks);
+  }
+  return html;
+}
+
 function shoesDeptRailsHTML(items){
   const list = Array.isArray(items) ? items : [];
   if (!list.length) return '';
@@ -14076,11 +16893,36 @@ async function openCatalog(kind, key, opts = {}){
      for the same reason a beauty store does: it can invalidate a whole
      basket, so it belongs before the basket is built. */
   document.getElementById('catalogNotice').innerHTML =
-    (kind === 'department' && key === 'beauty') ? beautyBannerHTML() + fragranceLimitNoticeHTML()
-    : (kind === 'department' && key === 'curvy') ? curvyNoticeHTML(NaN)
-    : (kind === 'department' && key === 'motos') ? motosHeroHTML()
-    : (kind === 'department' && key === 'sunglasses') ? sunglassesHeroHTML()
-    : (kind === 'department' && key === 'toys') ? toysHeroHTML()
+    (kind === 'department' && key === 'women') ? (typeof womenHeroHTML === 'function' ? womenHeroHTML() : '')
+    : (kind === 'department' && key === 'men') ? (typeof menHeroHTML === 'function' ? menHeroHTML() : '')
+    : (kind === 'department' && key === 'kids') ? (typeof kidsHeroHTML === 'function' ? kidsHeroHTML() : '')
+    : (kind === 'department' && key === 'clothing') ? (typeof clothingHeroHTML === 'function' ? clothingHeroHTML() : '')
+    : (kind === 'department' && key === 'shoes') ? (typeof shoesHeroHTML === 'function' ? shoesHeroHTML() : '')
+    : (kind === 'department' && key === 'shoes_women') ? (typeof shoesHeroHTML === 'function' ? shoesHeroHTML() : '')
+    : (kind === 'department' && key === 'shoes_men') ? (typeof shoesHeroHTML === 'function' ? shoesHeroHTML() : '')
+    : (kind === 'department' && key === 'beauty') ? (typeof beautyHeroHTML === 'function' ? beautyHeroHTML() : '') + beautyBannerHTML() + fragranceLimitNoticeHTML()
+    : (kind === 'department' && key === 'jewelry') ? (typeof jewelryHeroHTML === 'function' ? jewelryHeroHTML() : '')
+    : (kind === 'department' && key === 'purses') ? (typeof pursesHeroHTML === 'function' ? pursesHeroHTML() : '')
+    : (kind === 'department' && key === 'mens_grooming') ? (typeof mensGroomingHeroHTML === 'function' ? mensGroomingHeroHTML() : '')
+    : (kind === 'department' && key === 'moms') ? (typeof momsHeroHTML === 'function' ? momsHeroHTML() : '')
+    : (kind === 'department' && key === 'home_goods') ? (typeof homeGoodsHeroHTML === 'function' ? homeGoodsHeroHTML() : '')
+    : (kind === 'department' && key === 'home_decor') ? (typeof homeDecorHeroHTML === 'function' ? homeDecorHeroHTML() : '')
+    : (kind === 'department' && key === 'electronics') ? (typeof electronicsHeroHTML === 'function' ? electronicsHeroHTML() : '')
+    : (kind === 'department' && key === 'books') ? (typeof booksHeroHTML === 'function' ? booksHeroHTML() : '')
+    : (kind === 'department' && key === 'party') ? (typeof partyHeroHTML === 'function' ? partyHeroHTML() : '')
+    : (kind === 'department' && key === 'candy_chocolate') ? (typeof candyChocolateHeroHTML === 'function' ? candyChocolateHeroHTML() : '')
+    : (kind === 'department' && key === 'sporting_goods') ? (typeof sportingGoodsHeroHTML === 'function' ? sportingGoodsHeroHTML() : '')
+    : (kind === 'department' && key === 'soccer') ? (typeof soccerHeroHTML === 'function' ? soccerHeroHTML() : '')
+    : (kind === 'department' && key === 'tennis') ? (typeof tennisHeroHTML === 'function' ? tennisHeroHTML() : '')
+    : (kind === 'department' && key === 'surf_skate') ? (typeof surfSkateHeroHTML === 'function' ? surfSkateHeroHTML() : '')
+    : (kind === 'department' && key === 'spearfishing') ? (typeof spearfishingHeroHTML === 'function' ? spearfishingHeroHTML() : '')
+    : (kind === 'department' && key === 'gym_rat') ? (typeof gymRatHeroHTML === 'function' ? gymRatHeroHTML() : '')
+    : (kind === 'department' && key === 'combat_sports') ? (typeof combatSportsHeroHTML === 'function' ? combatSportsHeroHTML() : '')
+    : (kind === 'department' && key === 'auto_parts') ? (typeof autoPartsHeroHTML === 'function' ? autoPartsHeroHTML() : '')
+    : (kind === 'department' && key === 'curvy') ? (typeof curvyHeroHTML === 'function' ? curvyHeroHTML() : '') + curvyNoticeHTML(NaN)
+    : (kind === 'department' && key === 'motos') ? (typeof motosHeroHTML === 'function' ? motosHeroHTML() : '')
+    : (kind === 'department' && key === 'sunglasses') ? (typeof sunglassesHeroHTML === 'function' ? sunglassesHeroHTML() : '')
+    : (kind === 'department' && key === 'toys') ? (typeof toysHeroHTML === 'function' ? toysHeroHTML() : '')
     : '';
   document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
@@ -15259,6 +18101,12 @@ function renderCatalogFeed(){
       return true;
     });
   }
+  /* THEME REBUILD (2026-10-02): generic "ofertas" tier from department heroes.
+     Fashion-group heroes set catalogState.<section>Tier = 'ofertas' | 'todo'. */
+  var _deptTierKey = (catalogState.kind === 'department' && catalogState.key) ? (catalogState.key + 'Tier') : null;
+  if (_deptTierKey && catalogState[_deptTierKey] === 'ofertas' && typeof rawItemOnSale === 'function'){
+    sgFiltered = sgFiltered.filter(function(it){ return !!rawItemOnSale(it); });
+  }
   if (isSunglassesDept && catalogState.sunglassesFace){
     const want = String(catalogState.sunglassesFace).toLowerCase();
     sgFiltered = sgFiltered.filter(it => {
@@ -15304,24 +18152,58 @@ function renderCatalogFeed(){
        leads with the mixed rails and one rail per store; the aisle list
        follows. Only on the unfiltered landing -- a store filter already
        narrows the feed to that store, so rails would be redundant. */
-    const deptRails = (catalogState.kind === 'department' && catalogState.key === 'surf_skate' && !retailerFilter)
-      ? surfSkateDeptRailsHTML(byRetailer)
-      : (catalogState.kind === 'department' && catalogState.key === 'beauty' && !retailerFilter)
-        ? beautyDeptRailsHTML(sgFiltered, new Set())
-        
-        : (catalogState.kind === 'department' && catalogState.key === 'moms' && !retailerFilter && !catalogState.subKey)
-        ? momsDeptRailsHTML(sgFiltered, new Set()) 
-        : (catalogState.kind === 'department' && catalogState.key === 'jewelry' && !retailerFilter)
-        ? jewelryDeptRailsHTML(sgFiltered)
-        : ((catalogState.kind === 'department' && (catalogState.key === 'shoes' || catalogState.key === 'shoes_women' || catalogState.key === 'shoes_men') && !retailerFilter)
-        ? shoesDeptRailsHTML(sgFiltered)
-        : ((catalogState.kind === 'department' && catalogState.key === 'motos' && !retailerFilter)
-        ? motosDeptRailsHTML(sgFiltered)
-        : ((catalogState.kind === 'department' && catalogState.key === 'sunglasses' && !retailerFilter)
-        ? sunglassesDeptRailsHTML(sgFiltered)
-        : ((catalogState.kind === 'department' && catalogState.key === 'toys' && !retailerFilter && !catalogState.toysStore)
-        ? toysDeptRailsHTML(sgFiltered)
-        : ''))));
+    /* DEPARTMENT RAILS DISPATCH (refactored 2026-10-02, theme rebuild):
+       was a 7-level nested ternary; now a keyed map. Only runs on the
+       unfiltered department landing. moms keeps its !subKey guard.
+       Every call is typeof-guarded. */
+    var deptRails = '';
+    if (catalogState.kind === 'department' && !retailerFilter){
+      var _railFn = {
+        surf_skate: function(){ return (typeof surfSkateDeptRailsHTML === 'function') ? surfSkateDeptRailsHTML(byRetailer) : ''; },
+        beauty: function(){ return (typeof beautyDeptRailsHTML === 'function') ? beautyDeptRailsHTML(sgFiltered, new Set()) : ''; },
+        moms: function(){ return (typeof momsDeptRailsHTML === 'function') ? momsDeptRailsHTML(sgFiltered, new Set()) : ''; },
+        jewelry: function(){ return (typeof jewelryDeptRailsHTML === 'function') ? jewelryDeptRailsHTML(sgFiltered) : ''; },
+        shoes: function(){ return (typeof shoesDeptRailsHTML === 'function') ? shoesDeptRailsHTML(sgFiltered) : ''; },
+        shoes_women: function(){ return (typeof shoesDeptRailsHTML === 'function') ? shoesDeptRailsHTML(sgFiltered) : ''; },
+        shoes_men: function(){ return (typeof shoesDeptRailsHTML === 'function') ? shoesDeptRailsHTML(sgFiltered) : ''; },
+        motos: function(){ return (typeof motosDeptRailsHTML === 'function') ? motosDeptRailsHTML(sgFiltered) : ''; },
+        sunglasses: function(){ return (typeof sunglassesDeptRailsHTML === 'function') ? sunglassesDeptRailsHTML(sgFiltered) : ''; },
+        toys: function(){ return (!catalogState.toysStore && typeof toysDeptRailsHTML === 'function') ? toysDeptRailsHTML(sgFiltered) : ''; },
+        women: function(){ return (typeof womenDeptRailsHTML === 'function') ? womenDeptRailsHTML(sgFiltered) : ''; },
+        men: function(){ return (typeof menDeptRailsHTML === 'function') ? menDeptRailsHTML(sgFiltered) : ''; },
+        kids: function(){ return (typeof kidsDeptRailsHTML === 'function') ? kidsDeptRailsHTML(sgFiltered) : ''; },
+        curvy: function(){ return (typeof curvyDeptRailsHTML === 'function') ? curvyDeptRailsHTML(sgFiltered) : ''; },
+        clothing: function(){ return (typeof clothingDeptRailsHTML === 'function') ? clothingDeptRailsHTML(sgFiltered) : ''; },
+        purses: function(){ return (typeof pursesDeptRailsHTML === 'function') ? pursesDeptRailsHTML(sgFiltered) : ''; },
+        mens_grooming: function(){ return (typeof mensGroomingDeptRailsHTML === 'function') ? mensGroomingDeptRailsHTML(sgFiltered) : ''; },
+        home_goods: function(){ return (typeof homeGoodsDeptRailsHTML === 'function') ? homeGoodsDeptRailsHTML(sgFiltered) : ''; },
+        home_decor: function(){ return (typeof homeDecorDeptRailsHTML === 'function') ? homeDecorDeptRailsHTML(sgFiltered) : ''; },
+        electronics: function(){ return (typeof electronicsDeptRailsHTML === 'function') ? electronicsDeptRailsHTML(sgFiltered) : ''; },
+        books: function(){ return (typeof booksDeptRailsHTML === 'function') ? booksDeptRailsHTML(sgFiltered) : ''; },
+        party: function(){ return (typeof partyDeptRailsHTML === 'function') ? partyDeptRailsHTML(sgFiltered) : ''; },
+        candy_chocolate: function(){ return (typeof candyChocolateDeptRailsHTML === 'function') ? candyChocolateDeptRailsHTML(sgFiltered) : ''; },
+        sporting_goods: function(){ return (typeof sportingGoodsDeptRailsHTML === 'function') ? sportingGoodsDeptRailsHTML(sgFiltered) : ''; },
+        soccer: function(){ return (typeof soccerDeptRailsHTML === 'function') ? soccerDeptRailsHTML(sgFiltered) : ''; },
+        tennis: function(){ return (typeof tennisDeptRailsHTML === 'function') ? tennisDeptRailsHTML(sgFiltered) : ''; },
+        spearfishing: function(){ return (typeof spearfishingDeptRailsHTML === 'function') ? spearfishingDeptRailsHTML(sgFiltered) : ''; },
+        gym_rat: function(){ return (typeof gymRatDeptRailsHTML === 'function') ? gymRatDeptRailsHTML(sgFiltered) : ''; },
+        combat_sports: function(){ return (typeof combatSportsDeptRailsHTML === 'function') ? combatSportsDeptRailsHTML(sgFiltered) : ''; },
+        auto_parts: function(){ return (typeof autoPartsDeptRailsHTML === 'function') ? autoPartsDeptRailsHTML(sgFiltered) : ''; },
+      }[catalogState.key];
+      if (catalogState.key === 'moms' && catalogState.subKey) _railFn = null;
+      if (_railFn){ try { deptRails = _railFn() || ''; } catch (_re){ deptRails = ''; } }
+      /* CAROUSEL CITY: store carousels, then brand carousels */
+      try {
+        var _storeRails = (typeof deptStoreCarouselsHTML === 'function')
+          ? deptStoreCarouselsHTML(sgFiltered, catalogState.key) : '';
+        if (_storeRails) deptRails += _storeRails;
+      } catch (_se){}
+      try {
+        var _brandRails = (typeof deptBrandCarouselsHTML === 'function')
+          ? deptBrandCarouselsHTML(sgFiltered, catalogState.key) : '';
+        if (_brandRails) deptRails += _brandRails;
+      } catch (_be){}
+    }
     sections.innerHTML = (curvyDept ? curvyGenderChipsHTML(curvyGender) : '') + deptRails + catalogAisleListHTML(grouped, storeLabel, sgFiltered);
     revealActiveChips(sections);
     return;
@@ -20186,6 +23068,102 @@ function storeDoorFor(key){
    is one row plus one CSS block. Themes are dark-only for now: the CSS
    assumes light text over a dark ambient — except the auto stores,
    which keep Aria Auto's light surfaces with a brand-colour wash. */
+/* STORE INTERIOR BACKDROPS (2026-10-02, Danny): every store's
+   interior as its section backdrop — walk into the store. Generated
+   photorealistic, no logos/trademarks baked in. */
+const STORE_BACKDROPS = {
+  target: 'assets/stores/target.jpg',
+  walmart: 'assets/stores/walmart.jpg',
+  footlocker: 'assets/stores/footlocker.jpg',
+  sephora: 'assets/stores/sephora.jpg',
+  macys: 'assets/stores/macys.jpg',
+  kohls: 'assets/stores/kohls.jpg',
+  dicks: 'assets/stores/dicks.jpg',
+  ulta: 'assets/stores/ulta.jpg',
+  pacsun: 'assets/stores/pacsun.jpg',
+  oldnavy: 'assets/stores/oldnavy.jpg',
+  newbalance: 'assets/stores/newbalance.jpg',
+  nordstrom: 'assets/stores/nordstrom.jpg',
+  costco: 'assets/stores/costco.jpg',
+  samsclub: 'assets/stores/samsclub.jpg',
+  bestbuy: 'assets/stores/bestbuy.jpg',
+  revolve: 'assets/stores/revolve.jpg',
+  autozone: 'assets/stores/autozone.jpg',
+  advanceauto: 'assets/stores/advanceauto.jpg',
+  bhphoto: 'assets/stores/bhphoto.jpg',
+  nautilus: 'assets/stores/nautilus.jpg',
+  prosoccer: 'assets/stores/prosoccer.jpg',
+  xtremesoccer: 'assets/stores/xtremesoccer.jpg',
+  tennisexpress: 'assets/stores/tennisexpress.jpg',
+  tenniswarehouse: 'assets/stores/tenniswarehouse.jpg',
+  academy: 'assets/stores/academy.jpg',
+  islandwatersports: 'assets/stores/islandwatersports.jpg',
+  quietstorm: 'assets/stores/quietstorm.jpg',
+  surfworld: 'assets/stores/surfworld.jpg',
+  surfstation: 'assets/stores/surfstation.jpg',
+  mainland: 'assets/stores/mainland.jpg',
+  parrot: 'assets/stores/parrot.jpg',
+  ccs: 'assets/stores/ccs.jpg',
+  valsurf: 'assets/stores/valsurf.jpg',
+  lanebryant: 'assets/stores/lanebryant.jpg',
+  alphalete: 'assets/stores/alphalete.jpg',
+  youngla: 'assets/stores/youngla.jpg',
+  gymshark: 'assets/stores/gymshark.jpg',
+  venum: 'assets/stores/venum.jpg',
+  tatami: 'assets/stores/tatami.jpg',
+  everlast: 'assets/stores/everlast.jpg',
+  mmawarehouse: 'assets/stores/mmawarehouse.jpg',
+  combatcorner: 'assets/stores/combatcorner.jpg',
+  fuji: 'assets/stores/fuji.jpg',
+  crocs: 'assets/stores/crocs.jpg',
+  baublebar: 'assets/stores/baublebar.jpg',
+  jwpei: 'assets/stores/jwpei.jpg',
+  meliebianco: 'assets/stores/meliebianco.jpg',
+  bentgo: 'assets/stores/bentgo.jpg',
+  mushie: 'assets/stores/mushie.jpg',
+  ezpz: 'assets/stores/ezpz.jpg',
+  statebags: 'assets/stores/statebags.jpg',
+  townley: 'assets/stores/townley.jpg',
+  morphe: 'assets/stores/morphe.jpg',
+  skin1004: 'assets/stores/skin1004.jpg',
+  everymanjack: 'assets/stores/everymanjack.jpg',
+  brickell: 'assets/stores/brickell.jpg',
+  medicube: 'assets/stores/medicube.jpg',
+  laneige: 'assets/stores/laneige.jpg',
+  cosrx: 'assets/stores/cosrx.jpg',
+  beautyofjoseon: 'assets/stores/beautyofjoseon.jpg',
+  anua: 'assets/stores/anua.jpg',
+  mediheal: 'assets/stores/mediheal.jpg',
+  assouline: 'assets/stores/assouline.jpg',
+  chronicle: 'assets/stores/chronicle.jpg',
+  walmartbaby: 'assets/stores/walmartbaby.jpg',
+  momcozy: 'assets/stores/momcozy.jpg',
+  elvie: 'assets/stores/elvie.jpg',
+  spectra: 'assets/stores/spectra.jpg',
+  munchkin: 'assets/stores/munchkin.jpg',
+  babybrezza: 'assets/stores/babybrezza.jpg',
+  drbrowns: 'assets/stores/drbrowns.jpg',
+  mockingbird: 'assets/stores/mockingbird.jpg',
+  nanit: 'assets/stores/nanit.jpg',
+  owlet: 'assets/stores/owlet.jpg',
+  kindredbravely: 'assets/stores/kindredbravely.jpg',
+  hatch: 'assets/stores/hatch.jpg',
+  bellybandit: 'assets/stores/bellybandit.jpg',
+  freshlypicked: 'assets/stores/freshlypicked.jpg',
+  jujube: 'assets/stores/jujube.jpg',
+  dagnedover: 'assets/stores/dagnedover.jpg',
+  lillebaby: 'assets/stores/lillebaby.jpg',
+  skims: 'assets/stores/skims.jpg',
+  ssense: 'assets/stores/ssense.jpg',
+  miumiu: 'assets/stores/miumiu.jpg',
+  yesstyle: 'assets/stores/yesstyle.jpg',
+  fendi: 'assets/stores/fendi.jpg',
+  goldengoose: 'assets/stores/goldengoose.jpg',
+  bathandbodyworks: 'assets/stores/bathandbodyworks.jpg',
+  sunglasshut: 'assets/stores/sunglasshut.jpg',
+  dyson: 'assets/stores/dyson.jpg',
+  farfetch: 'assets/stores/farfetch.jpg',
+};
 const STORE_THEMES = {
   /* VICTORIA'S SECRET — moody plum-charcoal, soft pink glow. In Peru VS
      reads as luxury, so its section is lit like the real store instead
@@ -20213,6 +23191,79 @@ const STORE_THEMES = {
   /* AUTO STORES — the ambient follows the tile that opened Aria Auto.
      AutoZone's garage green. (RockAuto's theme row was removed with the store, 2026-09-26.) */
   autozone: { glow: '#1C8A4B' },
+  kohls: { glow: '#007A3D' },
+  dicks: { glow: '#004D26' },
+  pacsun: { glow: '#FDB913' },
+  newbalance: { glow: '#9E1B32' },
+  nordstrom: { glow: '#B08D57' },
+  costco: { glow: '#005DAA' },
+  samsclub: { glow: '#0067A0' },
+  bestbuy: { glow: '#0046BE' },
+  advanceauto: { glow: '#1A3A6B' },
+  bhphoto: { glow: '#2B6CB0' },
+  nautilus: { glow: '#2C5282' },
+  prosoccer: { glow: '#38A169' },
+  xtremesoccer: { glow: '#2F855A' },
+  tennisexpress: { glow: '#48BB78' },
+  tenniswarehouse: { glow: '#68D391' },
+  academy: { glow: '#2D6A4F' },
+  islandwatersports: { glow: '#63B3ED' },
+  quietstorm: { glow: '#4FD1C5' },
+  surfworld: { glow: '#38B2AC' },
+  surfstation: { glow: '#ED8936' },
+  mainland: { glow: '#CBD5E0' },
+  parrot: { glow: '#F6AD55' },
+  ccs: { glow: '#DD6B20' },
+  valsurf: { glow: '#FBD38D' },
+  lanebryant: { glow: '#805AD5' },
+  alphalete: { glow: '#2D3748' },
+  youngla: { glow: '#E53E3E' },
+  gymshark: { glow: '#285E61' },
+  venum: { glow: '#C53030' },
+  tatami: { glow: '#2B6CB0' },
+  everlast: { glow: '#B7791F' },
+  mmawarehouse: { glow: '#742A2A' },
+  combatcorner: { glow: '#553C9A' },
+  fuji: { glow: '#2C5282' },
+  crocs: { glow: '#7AC143' },
+  baublebar: { glow: '#F6E05E' },
+  jwpei: { glow: '#E2E8F0' },
+  meliebianco: { glow: '#C4B5A0' },
+  bentgo: { glow: '#F6AD55' },
+  mushie: { glow: '#D6BC9A' },
+  ezpz: { glow: '#FBD38D' },
+  statebags: { glow: '#4A5568' },
+  townley: { glow: '#F687B3' },
+  morphe: { glow: '#ED64A6' },
+  skin1004: { glow: '#9AE6B4' },
+  everymanjack: { glow: '#744210' },
+  brickell: { glow: '#2D3748' },
+  medicube: { glow: '#BEE3F8' },
+  laneige: { glow: '#90CDF4' },
+  cosrx: { glow: '#CBD5E0' },
+  beautyofjoseon: { glow: '#D69E2E' },
+  anua: { glow: '#9AE6B4' },
+  mediheal: { glow: '#A0AEC0' },
+  assouline: { glow: '#8B5A2B' },
+  chronicle: { glow: '#A0522D' },
+  walmartbaby: { glow: '#FBB6CE' },
+  momcozy: { glow: '#FBD5E0' },
+  elvie: { glow: '#F9A8D4' },
+  spectra: { glow: '#BEE3F8' },
+  munchkin: { glow: '#F6E05E' },
+  babybrezza: { glow: '#E2E8F0' },
+  drbrowns: { glow: '#90CDF4' },
+  mockingbird: { glow: '#D6BC9A' },
+  nanit: { glow: '#4C51BF' },
+  owlet: { glow: '#4FD1C5' },
+  kindredbravely: { glow: '#F5C6AA' },
+  hatch: { glow: '#F6AD55' },
+  bellybandit: { glow: '#F4A9C0' },
+  freshlypicked: { glow: '#C68E5F' },
+  jujube: { glow: '#B794F4' },
+  dagnedover: { glow: '#A0AEC0' },
+  lillebaby: { glow: '#D69E2E' },
+  farfetch: { glow: '#D4AF37' },
 };
 function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
 /* DARK-THEME DETECTION (2026-09-28, price-contrast audit). Store ambients
@@ -20232,7 +23283,17 @@ function storeThemeIsDark(retailer){
 function applyStoreTheme(viewId, retailer){
   const el = document.getElementById(viewId);
   if (!el) return;
-  if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', String(retailer).toLowerCase());
+  const rkey = String(retailer || '').toLowerCase();
+  /* Clear any previous backdrop */
+  el.style.removeProperty('--store-backdrop');
+  el.removeAttribute('data-has-backdrop');
+  if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', rkey);
+  else el.removeAttribute('data-store-theme');
+  /* STORE BACKDROP (2026-10-02): interior photo behind the section */
+  if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey]){
+    el.setAttribute('data-has-backdrop', '1');
+    el.style.setProperty('--store-backdrop', "url('" + STORE_BACKDROPS[rkey] + "')");
+  }
   else el.removeAttribute('data-store-theme');
 }
 /* DEPARTMENT THEMES (2026-09-27, Danny): each category gets its own
@@ -20251,7 +23312,7 @@ const DEPT_THEMES = {
   /* KIDS: baby blue. Flip this one line to glow:'#FFF4B8' for Danny's
      baby-yellow alternative. */
   kids: { attr: 'kids', glow: '#C4E6FB' },
-  surf_skate: { attr: 'surf_skate', glow: '#8FC6EE' },
+  surf_skate: { attr: 'surf_skate', glow: '#2DD4BF' }, /* RON JON (2026-10-02, Danny): sunny aqua, not deep ocean */
   /* PESCA SUBMARINA (2026-09-29, Danny): deep ocean blue -- the dive
      destination gets its own water. */
   spearfishing: { attr: 'spearfishing', glow: '#5B9BD5' },
@@ -20267,6 +23328,24 @@ const DEPT_THEMES = {
   /* ARIA MOTOS (2026-10-01, Danny): dark asphalt — its own department,
      its own world. Chrome + racing red accents; never Auto's amber. */
   motos: { attr: 'motos', glow: '#23262C' },
+  /* THEME REBUILD (2026-10-02, Danny): every department gets its own feel. */
+  curvy: { attr: 'curvy', glow: '#E8A87C' },
+  clothing: { attr: 'clothing', glow: '#D8C3A5' },
+  shoes: { attr: 'shoes', glow: '#FF3B2F' },
+  beauty: { attr: 'beauty', glow: '#E5A7B3' },
+  jewelry: { attr: 'jewelry', glow: '#C9A227' },
+  purses: { attr: 'purses', glow: '#C99B7B' },
+  mens_grooming: { attr: 'mens_grooming', glow: '#C98A1B' },
+  home_goods: { attr: 'home_goods', glow: '#D98E73' },
+  home_decor: { attr: 'home_decor', glow: '#A8B89F' },
+  electronics: { attr: 'electronics', glow: '#2E7CF6' },
+  books: { attr: 'books', glow: '#8B5A2B' },
+  party: { attr: 'party', glow: '#D63384' },
+  candy_chocolate: { attr: 'candy_chocolate', glow: '#F0A6C0' },
+  sporting_goods: { attr: 'sporting_goods', glow: '#22C55E' },
+  gym_rat: { attr: 'gym_rat', glow: '#D4A24C' },
+  combat_sports: { attr: 'combat_sports', glow: '#B91C1C' },
+  auto_parts: { attr: 'auto_parts', glow: '#F59E0B' },
 };
 /* Every department WITHOUT its own row above lands here: a soft
    brand-blue tint, so no category page is plain white. */
@@ -23011,7 +26090,27 @@ async function autoDestacadosFor(sourceKey){
 async function renderAutoDestacados(sourceKey){
   const wrap = document.getElementById('autoDestacadosWrap');
   if (!wrap) return;
-  if (!sourceKey){ wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+  /* CAROUSEL CITY (2026-10-02, Danny): neutral view shows one carousel
+     per auto source for store comparison; a store tile still shows just
+     that store's shelf. */
+  if (!sourceKey){
+    var sources = [];
+    try { sources = (typeof visibleAutoSources === 'function' ? visibleAutoSources() : []).filter(function(s){ return s && !s.pending; }); } catch (e){}
+    if (!sources.length){ wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+    var blocks = [];
+    var done = 0;
+    for (var i = 0; i < sources.length && done < 6; i++){
+      var skey = sources[i].key, sitems = [];
+      try { sitems = await autoDestacadosFor(skey); } catch (e2){}
+      if (!sitems || !sitems.length) continue;
+      var shtml = '';
+      try { shtml = storeCarouselHTML({ id: 'autoDestacadosRail-' + skey, title: 'Destacados en ' + autoSourceLabel(skey), items: sitems, retailer: skey }); } catch (e3){}
+      if (shtml){ blocks.push(shtml); done++; }
+    }
+    wrap.innerHTML = blocks.join('');
+    wrap.classList.toggle('hidden', !blocks.length);
+    return;
+  }
   const label = autoSourceLabel(sourceKey);
   const items = await autoDestacadosFor(sourceKey);
   const html = storeCarouselHTML({ id: 'autoDestacadosRail', title: `Destacados en ${label}`, items, retailer: sourceKey });
