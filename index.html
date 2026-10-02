@@ -11307,18 +11307,20 @@ function motosDeptRailsHTML(items){
   /* The helmet carousel leads: every helmet, sale-first. */
   const helmets = saleFirst(list.filter(it => motoTypeOf(it) === 'helmets'));
   if (helmets.length >= MOTO_TYPE_RAIL_MIN){
-    const picks = categoryRailPicks(retailerKeys, helmets, helmets, noKeys, CATEGORY_RAIL_TOTAL);
+    const picks = categoryRailPicks(retailerKeys, helmets, helmets, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (picks.length) blocks.push(deptRailSectionHTML('motos-helmets', 'Cascos para moto',
       deptMixedRailHeadHTML('Cascos', helmets.length + ' cascos'), picks));
   }
   /* Then everything on sale, biggest discount first. */
   const onSale = list.filter(rawItemOnSale).filter(it => motoTypeOf(it) !== 'helmets');
   if (onSale.length >= MOTO_TYPE_RAIL_MIN){
-    const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL);
+    const picks = categoryRailPicks(retailerKeys, onSale, onSale, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (picks.length) blocks.push(deptRailSectionHTML('motos-sale', 'Motos en oferta',
       deptMixedRailHeadHTML('En oferta', onSale.length + ' productos con descuento'), picks));
   }
-  /* Then one rail per moto type, sale-led within the type. */
+  /* Then one rail per moto type. CHEAP-FIRST (2026-10-01, Danny):
+     Peruvians buy the affordable gear first — cheapest helmets lead,
+     the $4,200 Akrapovic can wait further down the rail. */
   const groups = [
     ['tires', 'Llantas', 'llantas'],
     ['accessories', 'Accesorios', 'accesorios'],
@@ -11328,7 +11330,7 @@ function motosDeptRailsHTML(items){
   for (const [gkey, glabel, gsub] of groups){
     const aisle = saleFirst(list.filter(it => motoTypeOf(it) === gkey));
     if (aisle.length < MOTO_TYPE_RAIL_MIN) continue;
-    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
+    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('motos-type-' + gkey, 'Motos ' + glabel,
       deptMixedRailHeadHTML(glabel, aisle.length + ' ' + gsub), picks));
@@ -11352,7 +11354,7 @@ function shoesDeptRailsHTML(items){
   for (const g of SHOE_TYPE_GROUPS){
     const aisle = list.filter(it => shoeSubTypeOf(it) === g.key);
     if (aisle.length < SHOES_TYPE_RAIL_MIN) continue;
-    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL);
+    const picks = categoryRailPicks(retailerKeys, aisle, aisle, noKeys, CATEGORY_RAIL_TOTAL, { cheapFirst: true });
     if (!picks.length) continue;
     blocks.push(deptRailSectionHTML('shoes-type-' + g.key, 'Zapatos ' + g.label,
       deptMixedRailHeadHTML(g.label, aisle.length + ' pares'), picks));
