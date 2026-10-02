@@ -24188,8 +24188,14 @@ function scrollToSearch(){
    Compra por categoría section, not the search bar — Danny doesn't
    trust search; categories are the reliable entry point. */
 function scrollToCategories(){
-  const sec = document.querySelector('[data-category-tabs]');
-  if (sec) { sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+  /* The page has two [data-category-tabs] sections (mobile lg:hidden +
+     desktop). querySelector grabs the first in DOM order even when it's
+     hidden — scrollIntoView on display:none does nothing. Take the
+     first VISIBLE one. */
+  const secs = document.querySelectorAll('[data-category-tabs]');
+  let target = null;
+  for (const s of secs){ if (s.getClientRects().length){ target = s; break; } }
+  if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
   else { scrollToSearch(); }
 }
 
