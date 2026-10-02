@@ -81,6 +81,14 @@
      the real store's lighting. A pink bloom on each upper side (so the
      hero never sits in a dead spot) and a deep magenta pool low, over a
      pink base, never near black (2026-09-24: Danny — keep it pink all the way down). */
+  /* STORE INTERIOR BACKDROPS (2026-10-02, Danny): the store's interior
+     photo behind its section, darkened for legibility. Bespoke per-store
+     blocks below take precedence where they exist. */
+  [data-has-backdrop]{
+    background-image: linear-gradient(180deg, rgba(8,8,12,0.55) 0%, rgba(8,8,12,0.72) 60%, rgba(8,8,12,0.88) 100%), var(--store-backdrop);
+    background-size: cover, cover; background-position: center top, center top;
+    background-repeat: no-repeat, no-repeat;
+  }
   [data-store-theme="victoriassecret"]{
     background:
       radial-gradient(560px 300px at 12% -4%, rgba(255,110,170,.25), rgba(255,110,170,0) 70%),
@@ -22801,6 +22809,102 @@ function storeDoorFor(key){
    is one row plus one CSS block. Themes are dark-only for now: the CSS
    assumes light text over a dark ambient — except the auto stores,
    which keep Aria Auto's light surfaces with a brand-colour wash. */
+/* STORE INTERIOR BACKDROPS (2026-10-02, Danny): every store's
+   interior as its section backdrop — walk into the store. Generated
+   photorealistic, no logos/trademarks baked in. */
+const STORE_BACKDROPS = {
+  target: 'assets/stores/target.jpg',
+  walmart: 'assets/stores/walmart.jpg',
+  footlocker: 'assets/stores/footlocker.jpg',
+  sephora: 'assets/stores/sephora.jpg',
+  macys: 'assets/stores/macys.jpg',
+  kohls: 'assets/stores/kohls.jpg',
+  dicks: 'assets/stores/dicks.jpg',
+  ulta: 'assets/stores/ulta.jpg',
+  pacsun: 'assets/stores/pacsun.jpg',
+  oldnavy: 'assets/stores/oldnavy.jpg',
+  newbalance: 'assets/stores/newbalance.jpg',
+  nordstrom: 'assets/stores/nordstrom.jpg',
+  costco: 'assets/stores/costco.jpg',
+  samsclub: 'assets/stores/samsclub.jpg',
+  bestbuy: 'assets/stores/bestbuy.jpg',
+  revolve: 'assets/stores/revolve.jpg',
+  autozone: 'assets/stores/autozone.jpg',
+  advanceauto: 'assets/stores/advanceauto.jpg',
+  bhphoto: 'assets/stores/bhphoto.jpg',
+  nautilus: 'assets/stores/nautilus.jpg',
+  prosoccer: 'assets/stores/prosoccer.jpg',
+  xtremesoccer: 'assets/stores/xtremesoccer.jpg',
+  tennisexpress: 'assets/stores/tennisexpress.jpg',
+  tenniswarehouse: 'assets/stores/tenniswarehouse.jpg',
+  academy: 'assets/stores/academy.jpg',
+  islandwatersports: 'assets/stores/islandwatersports.jpg',
+  quietstorm: 'assets/stores/quietstorm.jpg',
+  surfworld: 'assets/stores/surfworld.jpg',
+  surfstation: 'assets/stores/surfstation.jpg',
+  mainland: 'assets/stores/mainland.jpg',
+  parrot: 'assets/stores/parrot.jpg',
+  ccs: 'assets/stores/ccs.jpg',
+  valsurf: 'assets/stores/valsurf.jpg',
+  lanebryant: 'assets/stores/lanebryant.jpg',
+  alphalete: 'assets/stores/alphalete.jpg',
+  youngla: 'assets/stores/youngla.jpg',
+  gymshark: 'assets/stores/gymshark.jpg',
+  venum: 'assets/stores/venum.jpg',
+  tatami: 'assets/stores/tatami.jpg',
+  everlast: 'assets/stores/everlast.jpg',
+  mmawarehouse: 'assets/stores/mmawarehouse.jpg',
+  combatcorner: 'assets/stores/combatcorner.jpg',
+  fuji: 'assets/stores/fuji.jpg',
+  crocs: 'assets/stores/crocs.jpg',
+  baublebar: 'assets/stores/baublebar.jpg',
+  jwpei: 'assets/stores/jwpei.jpg',
+  meliebianco: 'assets/stores/meliebianco.jpg',
+  bentgo: 'assets/stores/bentgo.jpg',
+  mushie: 'assets/stores/mushie.jpg',
+  ezpz: 'assets/stores/ezpz.jpg',
+  statebags: 'assets/stores/statebags.jpg',
+  townley: 'assets/stores/townley.jpg',
+  morphe: 'assets/stores/morphe.jpg',
+  skin1004: 'assets/stores/skin1004.jpg',
+  everymanjack: 'assets/stores/everymanjack.jpg',
+  brickell: 'assets/stores/brickell.jpg',
+  medicube: 'assets/stores/medicube.jpg',
+  laneige: 'assets/stores/laneige.jpg',
+  cosrx: 'assets/stores/cosrx.jpg',
+  beautyofjoseon: 'assets/stores/beautyofjoseon.jpg',
+  anua: 'assets/stores/anua.jpg',
+  mediheal: 'assets/stores/mediheal.jpg',
+  assouline: 'assets/stores/assouline.jpg',
+  chronicle: 'assets/stores/chronicle.jpg',
+  walmartbaby: 'assets/stores/walmartbaby.jpg',
+  momcozy: 'assets/stores/momcozy.jpg',
+  elvie: 'assets/stores/elvie.jpg',
+  spectra: 'assets/stores/spectra.jpg',
+  munchkin: 'assets/stores/munchkin.jpg',
+  babybrezza: 'assets/stores/babybrezza.jpg',
+  drbrowns: 'assets/stores/drbrowns.jpg',
+  mockingbird: 'assets/stores/mockingbird.jpg',
+  nanit: 'assets/stores/nanit.jpg',
+  owlet: 'assets/stores/owlet.jpg',
+  kindredbravely: 'assets/stores/kindredbravely.jpg',
+  hatch: 'assets/stores/hatch.jpg',
+  bellybandit: 'assets/stores/bellybandit.jpg',
+  freshlypicked: 'assets/stores/freshlypicked.jpg',
+  jujube: 'assets/stores/jujube.jpg',
+  dagnedover: 'assets/stores/dagnedover.jpg',
+  lillebaby: 'assets/stores/lillebaby.jpg',
+  skims: 'assets/stores/skims.jpg',
+  ssense: 'assets/stores/ssense.jpg',
+  miumiu: 'assets/stores/miumiu.jpg',
+  yesstyle: 'assets/stores/yesstyle.jpg',
+  fendi: 'assets/stores/fendi.jpg',
+  goldengoose: 'assets/stores/goldengoose.jpg',
+  bathandbodyworks: 'assets/stores/bathandbodyworks.jpg',
+  sunglasshut: 'assets/stores/sunglasshut.jpg',
+  dyson: 'assets/stores/dyson.jpg',
+  farfetch: 'assets/stores/farfetch.jpg',
+};
 const STORE_THEMES = {
   /* VICTORIA'S SECRET — moody plum-charcoal, soft pink glow. In Peru VS
      reads as luxury, so its section is lit like the real store instead
@@ -22828,6 +22932,79 @@ const STORE_THEMES = {
   /* AUTO STORES — the ambient follows the tile that opened Aria Auto.
      AutoZone's garage green. (RockAuto's theme row was removed with the store, 2026-09-26.) */
   autozone: { glow: '#1C8A4B' },
+  kohls: { glow: '#007A3D' },
+  dicks: { glow: '#004D26' },
+  pacsun: { glow: '#FDB913' },
+  newbalance: { glow: '#9E1B32' },
+  nordstrom: { glow: '#B08D57' },
+  costco: { glow: '#005DAA' },
+  samsclub: { glow: '#0067A0' },
+  bestbuy: { glow: '#0046BE' },
+  advanceauto: { glow: '#1A3A6B' },
+  bhphoto: { glow: '#2B6CB0' },
+  nautilus: { glow: '#2C5282' },
+  prosoccer: { glow: '#38A169' },
+  xtremesoccer: { glow: '#2F855A' },
+  tennisexpress: { glow: '#48BB78' },
+  tenniswarehouse: { glow: '#68D391' },
+  academy: { glow: '#2D6A4F' },
+  islandwatersports: { glow: '#63B3ED' },
+  quietstorm: { glow: '#4FD1C5' },
+  surfworld: { glow: '#38B2AC' },
+  surfstation: { glow: '#ED8936' },
+  mainland: { glow: '#CBD5E0' },
+  parrot: { glow: '#F6AD55' },
+  ccs: { glow: '#DD6B20' },
+  valsurf: { glow: '#FBD38D' },
+  lanebryant: { glow: '#805AD5' },
+  alphalete: { glow: '#2D3748' },
+  youngla: { glow: '#E53E3E' },
+  gymshark: { glow: '#285E61' },
+  venum: { glow: '#C53030' },
+  tatami: { glow: '#2B6CB0' },
+  everlast: { glow: '#B7791F' },
+  mmawarehouse: { glow: '#742A2A' },
+  combatcorner: { glow: '#553C9A' },
+  fuji: { glow: '#2C5282' },
+  crocs: { glow: '#7AC143' },
+  baublebar: { glow: '#F6E05E' },
+  jwpei: { glow: '#E2E8F0' },
+  meliebianco: { glow: '#C4B5A0' },
+  bentgo: { glow: '#F6AD55' },
+  mushie: { glow: '#D6BC9A' },
+  ezpz: { glow: '#FBD38D' },
+  statebags: { glow: '#4A5568' },
+  townley: { glow: '#F687B3' },
+  morphe: { glow: '#ED64A6' },
+  skin1004: { glow: '#9AE6B4' },
+  everymanjack: { glow: '#744210' },
+  brickell: { glow: '#2D3748' },
+  medicube: { glow: '#BEE3F8' },
+  laneige: { glow: '#90CDF4' },
+  cosrx: { glow: '#CBD5E0' },
+  beautyofjoseon: { glow: '#D69E2E' },
+  anua: { glow: '#9AE6B4' },
+  mediheal: { glow: '#A0AEC0' },
+  assouline: { glow: '#8B5A2B' },
+  chronicle: { glow: '#A0522D' },
+  walmartbaby: { glow: '#FBB6CE' },
+  momcozy: { glow: '#FBD5E0' },
+  elvie: { glow: '#F9A8D4' },
+  spectra: { glow: '#BEE3F8' },
+  munchkin: { glow: '#F6E05E' },
+  babybrezza: { glow: '#E2E8F0' },
+  drbrowns: { glow: '#90CDF4' },
+  mockingbird: { glow: '#D6BC9A' },
+  nanit: { glow: '#4C51BF' },
+  owlet: { glow: '#4FD1C5' },
+  kindredbravely: { glow: '#F5C6AA' },
+  hatch: { glow: '#F6AD55' },
+  bellybandit: { glow: '#F4A9C0' },
+  freshlypicked: { glow: '#C68E5F' },
+  jujube: { glow: '#B794F4' },
+  dagnedover: { glow: '#A0AEC0' },
+  lillebaby: { glow: '#D69E2E' },
+  farfetch: { glow: '#D4AF37' },
 };
 function storeThemeFor(retailer){ return STORE_THEMES[String(retailer || '').toLowerCase()] || null; }
 /* DARK-THEME DETECTION (2026-09-28, price-contrast audit). Store ambients
@@ -22847,7 +23024,17 @@ function storeThemeIsDark(retailer){
 function applyStoreTheme(viewId, retailer){
   const el = document.getElementById(viewId);
   if (!el) return;
-  if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', String(retailer).toLowerCase());
+  const rkey = String(retailer || '').toLowerCase();
+  /* Clear any previous backdrop */
+  el.style.removeProperty('--store-backdrop');
+  el.removeAttribute('data-has-backdrop');
+  if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', rkey);
+  else el.removeAttribute('data-store-theme');
+  /* STORE BACKDROP (2026-10-02): interior photo behind the section */
+  if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey]){
+    el.setAttribute('data-has-backdrop', '1');
+    el.style.setProperty('--store-backdrop', "url('" + STORE_BACKDROPS[rkey] + "')");
+  }
   else el.removeAttribute('data-store-theme');
 }
 /* DEPARTMENT THEMES (2026-09-27, Danny): each category gets its own
