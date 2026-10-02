@@ -9505,6 +9505,17 @@ const SEARCH_SYNONYM_GROUPS = [
     concept: "dress",
     words: ["dress", "dresses", "vestido", "vestidos", "gown", "gowns"],
   },
+  /* PANTS = JEANS (2026-10-01, Danny: "tienes pantalones marca Levis").
+     The catalog's titles say "jeans"/"denim", shoppers say "pantalones"
+     -> "pants". Without this link, 46 Levi's jeans were invisible to
+     the word "pantalones" and Aria wrongly said "no encontré". */
+  {
+    concept: "pants",
+    words: ["pants", "pantalon", "pantalones",
+      "jeans", "jean", "denim", "denims",
+      "trousers", "trouser", "chinos", "chino", "khakis", "khaki",
+      "jogger", "joggers"],
+  },
   {
     concept: "watch",
     words: ["watch", "watches", "reloj", "relojes"],
