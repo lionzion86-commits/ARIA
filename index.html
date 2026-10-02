@@ -6180,17 +6180,15 @@ function taxIncludedNoteHTML(usd, dutiableUsd, cls = 'text-[11px] mt-0.5'){
     : '';
 }
 
-/* HIGH-TICKET TAX REASSURANCE (Danny 2026-09-30). Every card whose
-   displayed price is $1,000 USD or more gets a small elegant
-   "Impuestos incluidos" badge: at those prices the tax component is
-   large enough that the shopper needs to see the price is real and
-   already includes customs taxes -- not arbitrary. This reinforces
-   the Precio Honesto brand on luxury items (e.g. the $32k Miu Miu coat).
-   Small, subtle, gold-tinted to match the premium aesthetic. */
-const IMPUESTOS_BADGE_THRESHOLD_USD = 1000;
+/* TAX REASSURANCE (Danny 2026-10-02). Every card whose displayed price
+   already includes the ~23% Peru import tax (any product over the $200
+   de minimis, per priceIncludesImportTax) gets a small elegant
+   "Impuestos incluidos" badge: the shopper sees the price is real and
+   already includes customs taxes -- not arbitrary. This reinforces the
+   Precio Honesto brand. Small, subtle, gold-tinted to match the premium
+   aesthetic. */
 function impuestosBadgeHTML(usd, dutiableUsd){
-  const shown = displayPriceUsd(Number(usd), dutiableUsd);
-  if (!Number.isFinite(shown) || shown < IMPUESTOS_BADGE_THRESHOLD_USD) return '';
+  if (!priceIncludesImportTax(Number(usd), dutiableUsd)) return '';
   return `<div class="mt-1"><span class="inline-flex items-center rounded-full px-2 py-[3px] text-[9px] font-bold uppercase" style="letter-spacing:.09em;background:rgba(184,145,42,.10);color:#8A6D1F;border:1px solid rgba(184,145,42,.38)">Impuestos incluidos</span></div>`;
 }
 
@@ -7747,6 +7745,11 @@ function isTennis(item, retailer){
    name them "sunglasses". Eyeglasses / reading glasses / blue-light are
    NOT sunglasses and stay out. */
 const SUNGLASS_TITLE_RX = /\bsunglass(?:es)?\b/i;
+/* DANNY 2026-10-02 QA: a Disney Mickey Mouse 2-piece CLOTHING set (graphic
+   tee + shorts) was rendering in the sunglasses rail because the graphic
+   shows Mickey wearing shades. A product must BE sunglasses, not depict
+   them -- apparel keywords disqualify. */
+const APPAREL_IN_SUNGLASSES_RX = /\b(2[\s-]*piece|piece[\s-]*set|t[\s-]*shirt|\bshirt\b|\btee\b|onesie|pajamas?|pijama|outfit|clothing[\s-]*set|shorts?[\s-]*set|graphic[\s-]*tee)\b/i;
 const NOT_SUNGLASS_TITLE_RX = /\b(eyeglasses?|reading\s+glasses?|blue[\s-]?light|optical\s+frames?)\b/i;
 function isSunglasses(item, retailer){
   if (!item || typeof item !== 'object') return false;
@@ -7754,6 +7757,7 @@ function isSunglasses(item, retailer){
   const t = String(item.title || item.name || '');
   if (!SUNGLASS_TITLE_RX.test(t)) return false;
   if (NOT_SUNGLASS_TITLE_RX.test(t)) return false;
+  if (APPAREL_IN_SUNGLASSES_RX.test(t)) return false;
   return true;
 }
 /* Fancy = luxury/designer: Miu Miu or a luxury brand. These
@@ -11156,14 +11160,22 @@ const CATEGORY_RAILS = [
 const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
+/* DANNY 2026-10-02 QA: the "L" letter pill looked terrible. Sleek gold
+   wayfarer SVG for Lentes de Sol -- fashionable, not emoji, not clip-art. */
+const CATEGORY_SVG_ICONS = {
+  sunglasses: `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="#F4C463" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.2 9.2l1.1 5.9c.14.75.78 1.25 1.53 1.25h3.3c.75 0 1.39-.5 1.53-1.25L11.4 9.2H3.2z"/><path d="M20.8 9.2l-1.1 5.9c-.14.75-.78 1.25-1.53 1.25h-3.3c-.75 0-1.39-.5-1.53-1.25l-.7-5.9h8.2z"/><path d="M11.4 9.7c.2-.8 1-.8 1.2 0"/><path d="M3.2 9.2L2 7.4M20.8 9.2L22 7.4"/></svg>`,
+};
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
    emoji where it does not (Aria Party, Juguetes). */
 function categoryTabPillHTML(cat, activeKey){
   const on = cat.key === activeKey;
   const cover = (typeof CATEGORY_COVERS !== 'undefined' && CATEGORY_COVERS[cat.key]) || '';
+  const svgIcon = (typeof CATEGORY_SVG_ICONS !== 'undefined' && CATEGORY_SVG_ICONS[cat.key]) || '';
   const art = cover
     ? `<img src="${cover}" alt="" loading="lazy" decoding="async" class="w-full h-full object-cover">`
-    : `<span class="font-extrabold text-[13px]" style="color:#F4C463">${escapeHtml(String(cat.label||"?").trim().charAt(0).toUpperCase())}</span>`;
+    : (svgIcon
+      ? `<span class="grid place-items-center w-full h-full">${svgIcon}</span>`
+      : `<span class="font-extrabold text-[13px]" style="color:#F4C463">${escapeHtml(String(cat.label||"?").trim().charAt(0).toUpperCase())}</span>`);
   return `<button role="tab" aria-selected="${on ? 'true' : 'false'}" data-cat-tab="${escapeHtml(cat.key)}"`
     + ` onclick="setCategoryTab('${jsAttr(cat.key)}')"`
     + ` class="flex-shrink-0 flex items-center gap-2 pl-1.5 pr-3.5 py-1.5 rounded-full focus-ring"`
@@ -15585,7 +15597,10 @@ const FOOTWEAR_RX = /\bshoes?\b|\bsneakers?\b|\btennis\s+shoes?\b|\bboots?\b|\bs
 /* DANNY 2026-10-01: rubber duck statue, "Men's Flat Front Shorts" (matched
    via \bflats?\b), and socks were rendering in the Zapatos carousel. A shoe
    carousel shows shoes -- statues, shorts, and socks never belong. */
-const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b|\bsocks?\b|\bflat\s+front\b|\b(statue|figurine|sculpture)\b/i;
+/* DANNY 2026-10-02 QA: Barbie dolls ("muñeca piloto... zapatos y sombrero")
+   were rendering in ZAPATOS because doll accessories mention shoes. Dolls
+   belong in Juguetes -- muñeca/muñeco/doll/action figure/juguete disqualify. */
+const NOT_FOOTWEAR_RX = /\bshoe\s*(box|boxes|rack|organizer|storage|cabinet|horn|trees?|polish|cleaner|laces?|cover|bag)\b|\b(bodysuit|onesie|romper|diaper|pajama|blanket|3\s*pc|3[-\s]?piece|piece\s*set)\b|\bpicture\s*frame\b|\bsocks?\b|\bflat\s+front\b|\b(statue|figurine|sculpture)\b|\b(muñec[ao]s?|dolls?|action\s+figures?|juguetes?)\b/i;
 function isShoeItem(it){
   const name = String(it.title || it.name || '');
   if (!FOOTWEAR_RX.test(name)) return false;
