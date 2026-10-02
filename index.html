@@ -7070,6 +7070,9 @@ const CATEGORY_COVERS = {
      Ortiz bag) replaces the "D" letter fallback. */
   latino_designers: 'assets/category/latino_designers.jpg',
   mens_grooming:    'assets/category/mens_grooming.jpg',
+  /* LENTES DE SOL (2026-10-02, Danny's QA): real Miu Miu product photo
+     like the other pills -- not an icon, not a letter fallback. */
+  sunglasses:       'assets/category/sunglasses.jpg',
 
 };
 
@@ -10797,6 +10800,12 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      leads the rail -- then sales. Opt-in per rail, like cleatsFirst. */
   const fancyFirst = Boolean(opts && opts.fancyFirst);
   const fancyRank = (p) => (fancyFirst && !isFancySunglasses(p)) ? 1 : 0;
+  /* LENTES DE SOL FANCY-LEAD (2026-10-02, Danny): "a couple fancy,
+     then sales" -- the rail opens on N highest-priced Miu Miu (the
+     $600/$700/$800 aspirational hook), then biggest-discount sales,
+     then the rest. The shopper sees the full range without
+     scrolling. Opt-in per rail via fancyLead: N. */
+  const fancyLeadN = (opts && Number.isFinite(opts.fancyLead)) ? Math.max(0, Math.floor(opts.fancyLead)) : 0;
   const cleatsFirst = Boolean(opts && opts.cleatsFirst);
   const cleatRank = (p) => {
     if (!cleatsFirst) return 0;
@@ -10827,7 +10836,24 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
       }
       return (fancyRank(a) - fancyRank(b)) || (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
-  const picks = sale.slice(0, CATEGORY_RAIL_SALE);
+  /* Fancy lead: highest-priced fancy items open the rail, ahead of
+     the sale picks. Skips anything already in sales (it will lead
+     there via fancyRank instead). */
+  const leadPicks = [];
+  if (fancyLeadN > 0 && Array.isArray(pool)){
+    const fancyByPrice = pool
+      .filter(p => p && inSet(p) && hasRealImage(p) && isFancySunglasses(p)
+        && Number.isFinite(Number(p.price)) && Number(p.price) > 0)
+      .sort((a, b) => Number(b.price) - Number(a.price));
+    for (const p of fancyByPrice){
+      if (leadPicks.length >= fancyLeadN) break;
+      const k = itemKey(p);
+      if (seen.has(k)) continue;
+      seen.add(k);
+      leadPicks.push(p);
+    }
+  }
+  const picks = [...leadPicks, ...sale.slice(0, CATEGORY_RAIL_SALE)];
   const picked = new Set(picks.map(itemKey));
   /* Featured fill: real products with a price and a photo, mixed across
      the category's stores. Never priceless, never imageless, never a
@@ -11048,6 +11074,9 @@ const CATEGORY_RAILS = [
     blurb: 'Dise\u00f1ador, deportivo y m\u00e1s \u2014 los lentes que van contigo.',
     test: (p) => isSunglasses(p, p.retailer),
     fancyFirst: true,
+    /* FANCY-LEAD (2026-10-02, Danny): "a couple fancy, then sales" --
+       3 highest-priced Miu Miu open the rail, then biggest discounts. */
+    fancyLead: 3,
     open: "openCatalog('department','sunglasses')" },
   /* TENIS merged into Deportes per Danny 2026-09-30 */
   /* DISENADORES LATINOS (2026-09-28, Danny): South American designers
@@ -11687,7 +11716,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
