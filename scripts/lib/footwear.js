@@ -129,13 +129,3 @@ export function isFootwear(item, retailer) {
   if (retailer && FOOTWEAR_RETAILERS.has(retailer)) return true;
   return isFootwearTitle(title);
 }
-
-/* GYM-TRAINING FOOTWEAR (2026-10-02, Danny): mirror of index.html. The
-   only shoes dual-listed in Gym Rat — weightlifting, CrossFit, training. */
-export function isGymTrainingFootwear(item) {
-  if (!item || typeof item !== "object") return false;
-  const t = String(item.title || item.name || item.productTitle || item.productName || "");
-  if (!t) return false;
-  return /\b(weightlift\w*|powerlift\w*|crossfit|cross[-\s]?fit|training\s+shoes?|metcon|romaleos|legacy\s+lifter|lifter\s+shoes?)\b/i.test(t)
-    || /\bnano\s*[xv]?\d/i.test(t);
-}
