@@ -1887,6 +1887,20 @@
       <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
       <div data-category-rail-row="shoes" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+    <!-- PERMANENT LENTES DE SOL RAIL (2026-10-01, Danny): standalone
+         sunglasses carousel -- "a humongous thing in itself". Fancy
+         (Miu Miu, SSENSE designer) leads via fancyFirst, biggest sales
+         next. Same shared painter, same stand-down rule in
+         renderCategoryTabs. Starts hidden; JS reveals it. -->
+    <section aria-label="Lentes de Sol" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Lentes de Sol</span>
+        <button onclick="openCatalog('department','sunglasses')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
+      <div data-category-rail-row="sunglasses" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 
 <!-- BRAND STRIP (2026-09-26, Danny): the eye-catcher right under the category rails (2026-09-27, Danny):
          the name-drop sits before the store rails -- the catalogue's top clothing brands
@@ -2360,6 +2374,18 @@
         </div>
         <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
         <div data-category-rail-row="shoes" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- PERMANENT LENTES DE SOL RAIL (2026-10-01, Danny): desktop. Same shelf as mobile. -->
+    <section aria-label="Lentes de Sol" data-featured-rail class="ariaNavyBand relative overflow-hidden storeRailCompact" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1240px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-8 pt-6 pb-4">
+          <span class="text-[22px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Lentes de Sol</span>
+          <button onclick="openCatalog('department','sunglasses')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-8 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
+        <div data-category-rail-row="sunglasses" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <!-- BRAND STRIP (desktop, 2026-09-26, Danny): same eye-catcher as the phone's -- moved up under the category rails 2026-09-27, Danny.
@@ -4130,6 +4156,18 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Calzado de todas las tiendas.</span></div>
         <div data-category-rail-row="shoes" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+    <!-- PERMANENT LENTES DE SOL RAIL (2026-10-01, Danny): tablet. -->
+    <section aria-label="Lentes de Sol" data-featured-rail class="ariaNavyBand relative overflow-hidden" hidden>
+      <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #C9A227 20%, #C9A227 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">Lentes de Sol</span>
+          <button onclick="openCatalog('department','sunglasses')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver categor&#x00ED;a &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Dise&#x00F1;ador, deportivo y m&#x00E1;s.</span></div>
+        <div data-category-rail-row="sunglasses" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
 <section aria-label="Victoria's Secret" data-store-rail="victoriassecret" class="ariaNavyBand relative overflow-hidden">
@@ -6629,6 +6667,7 @@ const DEPARTMENT_META = {
      Submarina way. */
   soccer: { label: 'Fútbol', icon: '' },
   tennis: { label: 'Tenis', icon: '' },
+  sunglasses: { label: 'Lentes de Sol', icon: '' },
   home_goods: { label: 'Hogar', icon: '' },
   home_decor: { label: 'Decoración', icon: '' },
 
@@ -7291,6 +7330,9 @@ const DEPARTMENT_SPEC = {
      by isSoccer / isTennis below, the Zapatos way. */
   soccer:          { anyCategory: true, soccerOnly: true },
   tennis:          { anyCategory: true, tennisOnly: true },
+  /* LENTES DE SOL (2026-10-01, Danny): standalone sunglasses department,
+     answered per item the Zapatos way. */
+  sunglasses:      { anyCategory: true, sunglassesOnly: true },
   /* SECCION HOMBRE (2026-09-29, Danny): the men's grooming destination --
      body wash, deodorant, shaving, beard care, trimmers. Target's
      grooming_men bucket files here by category. */
@@ -7699,6 +7741,27 @@ function isTennis(item, retailer){
   if (!item || typeof item !== 'object') return false;
   if (TENNIS_RETAILERS.has(retailer)) return true;
   return TENNIS_TYPES.has(String(item.type || '').trim());
+}
+/* LENTES DE SOL (2026-10-01, Danny): sunglasses are "a humongous thing
+   in itself" -- standalone rail + department. Title-based: the catalogs
+   name them "sunglasses". Eyeglasses / reading glasses / blue-light are
+   NOT sunglasses and stay out. */
+const SUNGLASS_TITLE_RX = /\bsunglass(?:es)?\b/i;
+const NOT_SUNGLASS_TITLE_RX = /\b(eyeglasses?|reading\s+glasses?|blue[\s-]?light|optical\s+frames?)\b/i;
+function isSunglasses(item, retailer){
+  if (!item || typeof item !== 'object') return false;
+  const t = String(item.title || item.name || '');
+  if (!SUNGLASS_TITLE_RX.test(t)) return false;
+  if (NOT_SUNGLASS_TITLE_RX.test(t)) return false;
+  return true;
+}
+/* Fancy = luxury/designer: Miu Miu, SSENSE, or a luxury brand. These
+   lead the Lentes de Sol rail (Danny: "fancy first, sales next"). */
+function isFancySunglasses(p){
+  if (!p || typeof p !== 'object') return false;
+  const r = String(p.retailer || '').toLowerCase();
+  if (r === 'miumiu' || r === 'ssense') return true;
+  return typeof isLuxuryItem === 'function' && isLuxuryItem(p, p.retailer);
 }
 /* Gear-type pills inside each department, the Pesca Submarina way. */
 const SOCCER_GEAR_SPEC = [
@@ -8219,6 +8282,7 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   if (dept.spearfishingOnly) return isSpearfishing(item, retailer);
   if (dept.soccerOnly) return isSoccer(item, retailer);
   if (dept.tennisOnly) return isTennis(item, retailer);
+  if (dept.sunglassesOnly) return isSunglasses(item, retailer);
   if (dept.autoPartsOnly) return isAutoPart(item, retailer);
   if (dept.motoOnly) return isMotoItem(item, retailer);
   if (dept.latinoDesignersOnly) return latinoDesignerOfItem(item) !== null;
@@ -10724,6 +10788,10 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
   /* FUTBOL CLEATS-FIRST (2026-10-01, Danny): the hook is discounted
      cleats -- chimpunes lead the rail, biggest discount first. Messi
      shoes count as cleats. Opt-in per rail, like womenFirst. */
+  /* LENTES DE SOL FANCY-FIRST (2026-10-01, Danny): luxury/designer
+     leads the rail -- then sales. Opt-in per rail, like cleatsFirst. */
+  const fancyFirst = Boolean(opts && opts.fancyFirst);
+  const fancyRank = (p) => (fancyFirst && !isFancySunglasses(p)) ? 1 : 0;
   const cleatsFirst = Boolean(opts && opts.cleatsFirst);
   const cleatRank = (p) => {
     if (!cleatsFirst) return 0;
@@ -10752,7 +10820,7 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
       }
-      return (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
+      return (fancyRank(a) - fancyRank(b)) || (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
     });
   const picks = sale.slice(0, CATEGORY_RAIL_SALE);
   const picked = new Set(picks.map(itemKey));
@@ -10770,6 +10838,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
     ? [...fillPoolBase].sort((a, b) => priceNum(a) - priceNum(b))
     : (cleatsFirst && Array.isArray(fillPoolBase))
     ? [...fillPoolBase].sort((a, b) => cleatRank(a) - cleatRank(b))
+    : (fancyFirst && Array.isArray(fillPoolBase))
+    ? [...fillPoolBase].sort((a, b) => fancyRank(a) - fancyRank(b))
     : fillPoolBase;
   if (picks.length < max && Array.isArray(fillPool)){
     for (const it of fillPool){
@@ -10965,6 +11035,15 @@ const CATEGORY_RAILS = [
        on chimpunes lead, Messi shoes up front. */
     cleatsFirst: true,
     open: "openCatalog('department','soccer')" },
+  /* LENTES DE SOL (2026-10-01, Danny): standalone sunglasses rail --
+     "a humongous thing in itself". Fancy (Miu Miu, SSENSE designer)
+     leads via fancyFirst, biggest sales next. Sits between Zapatos
+     and Aria Luxury on the front page. */
+  { key: 'sunglasses', label: 'Lentes de Sol', icon: '', stores: null, poolOnly: true,
+    blurb: 'Dise\u00f1ador, deportivo y m\u00e1s \u2014 los lentes que van contigo.',
+    test: (p) => isSunglasses(p, p.retailer),
+    fancyFirst: true,
+    open: "openCatalog('department','sunglasses')" },
   /* TENIS merged into Deportes per Danny 2026-09-30 */
   /* DISENADORES LATINOS (2026-09-28, Danny): South American designers
      via Farfetch US -- Farm Rio, Agua Bendita, PatBO, Johanna Ortiz,
@@ -11073,7 +11152,7 @@ const CATEGORY_RAILS = [
    permanent rails right under the pills, so their pills sit down the road.
    Hogar keeps its pill (Danny, 2026-09-27); it only lost the permanent rail
    to Beauty. */
-const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
+const CATEGORY_TAB_ORDER = ['moms', 'combat_sports', 'soccer', 'sunglasses', 'kids', 'surf_skate', 'sporting_goods', 'motos', 'latino_designers', 'women', 'men', 'mens_grooming', 'home_decor', 'shoes', 'shoes_women', 'shoes_men', 'home_goods', 'books', 'curvy', 'electronics', 'toys', 'party', 'gym_rat', 'beauty'];
 let activeCategoryTab = CATEGORY_TAB_ORDER[0];
 
 /* One pill per non-empty shelf. Cover thumbnail where the asset exists,
@@ -11595,7 +11674,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
@@ -19601,6 +19680,8 @@ const DEPT_THEMES = {
      tennis gets tennis-ball yellow-green. */
   soccer: { attr: 'soccer', glow: '#7BC96F' },
   tennis: { attr: 'tennis', glow: '#D4E157' },
+  /* LENTES DE SOL (2026-10-01, Danny): gold glow -- luxury department. */
+  sunglasses: { attr: 'sunglasses', glow: '#C9A227' },
   /* ARIA MOTOS (2026-10-01, Danny): dark asphalt — its own department,
      its own world. Chrome + racing red accents; never Auto's amber. */
   motos: { attr: 'motos', glow: '#23262C' },
@@ -29273,6 +29354,10 @@ const CHAT_DOMAIN_FALLBACKS = [
     keys: ['futbol', 'fútbol', 'soccer', 'football', 'chimpunes', 'chimpun', 'canilleras', 'canillera', 'guayos', 'botines de futbol', 'zapatillas de futbol', 'pelota de futbol', 'balon', 'balón', 'camiseta de futbol', 'jersey de futbol', 'uniforme de futbol', 'arco de futbol', 'porteria', 'portería', 'guantes de arquero', 'medias de futbol', 'shorts de futbol'] },
   { label: 'Tenis', sub: 'Raquetas, zapatillas y pelotas en oferta', action: 'department', key: 'tennis',
     keys: ['tenis', 'tennis', 'raqueta', 'raquetas', 'racket', 'zapatillas de tenis', 'pelota de tenis', 'pelotas de tenis', 'cuerdas de tenis', 'encordado', 'bolso de tenis', 'ropa de tenis'] },
+  /* LENTES DE SOL (2026-10-01, Danny): sunglasses search terms route to
+     the department. */
+  { label: 'Lentes de Sol', sub: 'Dise\u00f1ador, deportivo y m\u00e1s', action: 'department', key: 'sunglasses',
+    keys: ['lentes de sol', 'gafas de sol', 'gafas', 'lentes', 'anteojos', 'sunglasses', 'sunglass'] },
   { label: 'Aria Fight Club', sub: 'Boxeo, MMA, jiu-jitsu y mas', action: 'department', key: 'combat_sports',
     keys: ['mma', 'boxeo', 'boxing', 'jiu jitsu', 'jiu-jitsu', 'jiujitsu', 'bjj', 'muay thai', 'muaythai', 'muay', 'thai', 'tay', 'kickboxing', 'kick boxing', 'karate', 'taekwondo', 'judo', 'lucha libre', 'lucha', 'pelea', 'artes marciales', 'sparring', 'guantes', 'guante de boxeo', 'guantes de boxeo', 'guantes de thai', 'guantes de muay thai', 'guantes de mma', 'vendas', 'vendas para boxeo', 'vendas de boxeo', 'canilleras', 'canilleras de muay thai', 'canilleras de thai', 'short de thai', 'short de boxeo', 'shorts de muay thai', 'short muay thai', 'zapatos de boxeo', 'botines de boxeo', 'protector bucal', 'bucal', 'saco de boxeo', 'pera de boxeo', 'pera loca', 'careta', 'cabezal', 'manopla', 'manoplas'] },
   { label: 'Aria Beauty', sub: 'Maquillaje, skincare y fragancias', action: 'department', key: 'beauty',
