@@ -9465,11 +9465,15 @@ const SEARCH_SYNONYM_GROUPS = [
       "zapato", "zapatos",
       "tenis",
       "calzado", "calzados",
+      /* SYNONYM-GAP AUDIT 2026-10-01: "zapatos"->shoes missed 398 boots. */
+      "boot", "boots", "bootie", "booties",
     ],
   },
   {
     concept: "bra",
-    words: ["bra", "bras", "brassiere", "brassieres", "sosten", "sostenes"],
+    /* SYNONYM-GAP AUDIT 2026-10-01: 293 bralettes had no mapping. */
+    words: ["bra", "bras", "brassiere", "brassieres", "sosten", "sostenes",
+      "bralette", "bralettes"],
   },
   {
     concept: "perfume",
@@ -9504,6 +9508,17 @@ const SEARCH_SYNONYM_GROUPS = [
   {
     concept: "dress",
     words: ["dress", "dresses", "vestido", "vestidos", "gown", "gowns"],
+  },
+  /* PANTS = JEANS (2026-10-01, Danny: "tienes pantalones marca Levis").
+     The catalog's titles say "jeans"/"denim", shoppers say "pantalones"
+     -> "pants". Without this link, 46 Levi's jeans were invisible to
+     the word "pantalones" and Aria wrongly said "no encontré". */
+  {
+    concept: "pants",
+    words: ["pants", "pantalon", "pantalones",
+      "jeans", "jean", "denim", "denims",
+      "trousers", "trouser", "chinos", "chino", "khakis", "khaki",
+      "jogger", "joggers"],
   },
   {
     concept: "watch",
@@ -9548,6 +9563,74 @@ const SEARCH_SYNONYM_GROUPS = [
   {
     concept: "gi",
     words: ["gi", "gis", "kimono", "kimonos"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01 (Danny: "tienes pantalones marca Levis"
+     miss). "abrigo"->coat missed 2,608 jackets; "casaca" missed coats and
+     blazers. One concept for the whole outerwear pile. */
+  {
+    concept: "jacket",
+    words: ["jacket", "jackets", "coat", "coats", "blazer", "blazers",
+      "casaca", "casacas", "chaqueta", "chaquetas", "abrigo", "abrigos",
+      "saco", "sacos"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "gorra"->cap missed 1,507 hats and 559
+     beanies. One concept for all headwear. */
+  {
+    concept: "hat",
+    words: ["hat", "hats", "cap", "caps", "beanie", "beanies",
+      "snapback", "snapbacks", "gorra", "gorras", "chullo", "chullos",
+      "sombrero", "sombreros"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. The handbag group is the formal side;
+     this is the casual-bag side: "mochila"->backpack missed 1,384 bags. */
+  {
+    concept: "bag",
+    words: ["bag", "bags", "backpack", "backpacks", "tote", "totes",
+      "mochila", "mochilas", "morral"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "cardigan" missed 1,333 sweaters;
+     "pullover" is a loanword in Peru with no mapping. */
+  {
+    concept: "sweater",
+    words: ["sweater", "sweaters", "pullover", "pullovers",
+      "cardigan", "cardigans", "chompa", "chompas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "shorts" missed 362 boardshorts (the
+     compound defeats the plural shortcut). */
+  {
+    concept: "shorts",
+    words: ["short", "shorts", "boardshort", "boardshorts",
+      "bermuda", "bermudas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "traje de baño"->swimsuit missed all 680
+     bikinis; "malla" (Peruvian for swimsuit) had no mapping at all. */
+  {
+    concept: "swimsuit",
+    words: ["swimsuit", "swimsuits", "bikini", "bikinis"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "blusa"->"blouse" was a DEAD END: no
+     title says "blouse", 1,762 say "top". The group keeps "blouse"
+     working if titles ever use it. */
+  {
+    concept: "top",
+    words: ["top", "tops", "blouse", "blouses", "blusa", "blusas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "ojotas"->"flip flops" missed 849
+     sandals; the three English words were never linked. "flip"/"flops"
+     are in the group so the two-word ES_EN_WORDS value "flip flops"
+     canonicalizes correctly. */
+  {
+    concept: "sandals",
+    words: ["sandal", "sandals", "flip", "flops",
+      "slipper", "slippers", "sandalia", "sandalias",
+      "ojota", "ojotas", "pantufla", "pantuflas"],
+  },
+  /* SYNONYM-GAP AUDIT 2026-10-01. "corbata"->"necktie" missed 319 "tie"
+     titles. "tie" is 3 letters so it is whole-word-only (never matches
+     inside longer words). */
+  {
+    concept: "tie",
+    words: ["tie", "ties", "necktie", "neckties", "corbata", "corbatas"],
   },
 ];
 
@@ -16541,6 +16624,13 @@ const ES_EN_WORDS = {
   chaqueta: "jacket",
   abrigo: "coat",
   buzo: "hoodie",
+  /* SYNONYM-GAP AUDIT 2026-10-01: "poleron" (Peruvian/Chilean for hoodie)
+     had no mapping. */
+  poleron: "hoodie",
+  /* SYNONYM-GAP AUDIT 2026-10-01: "malla" is the Peruvian word for
+     swimsuit — completely missing. */
+  malla: "swimsuit",
+  mallas: "swimsuit",
   pantalon: "pants",
   jean: "jeans",
   short: "shorts",
@@ -16553,6 +16643,11 @@ const ES_EN_WORDS = {
   correa: "belt",
   gorra: "cap",
   sombrero: "hat",
+  /* SYNONYM-GAP AUDIT 2026-10-01: the three most common Peruvian words
+     for glasses were all missing — 1,814 sunglasses invisible. */
+  gafas: "sunglasses",
+  lentes: "sunglasses",
+  anteojos: "sunglasses",
   guante: "gloves",
   bufanda: "scarf",
   pijama: "pajamas",
@@ -16566,6 +16661,9 @@ const ES_EN_WORDS = {
   calzado: "shoes",
   bota: "boots",
   sandalia: "sandals",
+  /* SYNONYM-GAP AUDIT 2026-10-01: 769 loafers, zero Spanish mapping. */
+  mocasin: "loafers",
+  mocasines: "loafers",
   cartera: "handbag",
   bolso: "handbag",
   billetera: "wallet",
@@ -29367,6 +29465,181 @@ function groqRetryAfterMs(err){
   if (isNaN(s)) s = 6;
   return Math.min(Math.max(s + 1, 2), 15) * 1000;
 }
+/* ============================================================
+   AGENTIC ARIA (2026-10-01, Danny: "true agentic behaviors --
+   shock the world").
+
+   THE FLIP. The classic pipeline is retrieve-then-generate: client
+   regexes guess the slots, the client searches, the model narrates
+   the results. Here the MODEL drives: she decides whether the turn
+   needs a search at all, what to search for, and whether to refine.
+   The client is her hands -- it runs search_products against the
+   in-memory catalog and hands the results back. Same Groq/OpenAI
+   models, same Lily voice, same product cards; the difference is
+   who is thinking.
+
+   THE DANCE (see netlify/functions/aria-chat-agent.js):
+     1. client POSTs { history, message } -> server
+     2. server returns { tool_calls } -- she wants searches
+     3. client executes each search_products locally, appends
+        { role: 'tool' } results, POSTs again
+     4. server returns { reply, show: [ids], audio } -- final answer
+   Capped at 4 rounds: a model that never stops searching is a bug,
+   not thoroughness. Any failure returns false and the classic
+   pipeline below takes the turn -- the agent never degrades into a
+   worse Aria, it just declines.
+   ============================================================ */
+let agentProductCache = new Map();
+let agentProductSeq = 0;
+
+function agentCacheProduct(item, retailer){
+  const id = 'p' + (++agentProductSeq);
+  agentProductCache.set(id, { item, retailer });
+  return id;
+}
+
+/* Her hands. Runs search_products against the same shelf the search
+   page reads -- in memory, instantly, free. Returns compact results
+   with short IDs she references in [[SHOW: ...]]. */
+async function executeAgentTool(tc){
+  if (!tc || tc.name !== 'search_products') return { error: 'unknown tool: ' + (tc && tc.name) };
+  let args = {};
+  try { args = JSON.parse(tc.arguments || '{}'); } catch(e){ /* model sent junk; search anyway */ }
+  const limit = Math.min(Math.max(parseInt(args.limit, 10) || 6, 1), 8);
+  await loadFxRate().catch(() => {});
+  let maxUsd = null;
+  if (typeof args.max_price_usd === 'number' && args.max_price_usd > 0) maxUsd = args.max_price_usd;
+  else if (typeof args.max_price_pen === 'number' && args.max_price_pen > 0 && typeof fxRate !== 'undefined' && fxRate){
+    maxUsd = args.max_price_pen / fxRate;
+  }
+  let query = String(args.query || '').trim();
+  if (args.brand) query = (query + ' ' + String(args.brand)).trim();
+  /* The catalog ranks on English keywords; give her Spanish a bridge. */
+  if (args.style === 'elegante') query += ' elegant';
+  else if (args.style === 'deportivo') query += ' athletic';
+  else if (args.style === 'casual') query += ' casual';
+  if (!query){ return { results: [], count: 0, note: 'empty query' }; }
+
+  let items = [];
+  try {
+    const res = await catalogSearch(query, { limit: limit * 4 });
+    items = (res && res.items) || [];
+  } catch(e){ return { results: [], count: 0, note: 'search failed' }; }
+
+  /* Brand filter: keep it only if it keeps something -- a brand the
+     catalog doesn't carry shouldn't zero out a good category search. */
+  if (args.brand){
+    const bf = String(args.brand).toLowerCase();
+    const branded = items.filter(p =>
+      String(p.brand || '').toLowerCase().includes(bf) ||
+      String(p.title || '').toLowerCase().includes(bf));
+    if (branded.length) items = branded;
+  }
+  let overBudget = false;
+  if (maxUsd){
+    const under = items.filter(p => Number(p.price) <= maxUsd);
+    if (under.length) items = under;
+    else { overBudget = true; items = items.slice().sort((a, b) => Number(a.price) - Number(b.price)).slice(0, 3); }
+  }
+  /* BRAND FALLBACK (2026-10-01, Danny): the category word missed but
+     the brand is real -- "tenemos estos productos de la marca Levi's,
+     ¿alguno se te acomoda?" A known brand is never zeroed out just
+     because "pantalones" didn't match "jeans". */
+  let brandFallback = false;
+  if (!items.length && args.brand){
+    try {
+      const bres = await catalogSearch(String(args.brand), { limit: limit * 4 });
+      const bitems = (bres && bres.items) || [];
+      if (bitems.length){ items = bitems; brandFallback = true; }
+    } catch(e){ /* keep the empty result */ }
+  }
+  const picks = items.slice(0, limit);
+  return {
+    results: picks.map(p => {
+      const id = agentCacheProduct(p, p.retailer);
+      const r = { id, title: p.title, price_usd: Number(p.price), retailer: p.retailer };
+      if (p.brand) r.brand = p.brand;
+      return r;
+    }),
+    count: picks.length,
+    ...(typeof args.max_price_pen === 'number' && args.max_price_pen > 0 ? { budget_pen: args.max_price_pen } : {}),
+    ...(overBudget ? { note: 'nothing under budget; showing cheapest' } : {}),
+    ...(brandFallback ? { note: 'category not matched; showing brand products instead' } : {}),
+  };
+}
+
+/* Returns true when the agent handled the turn, false when the
+   classic pipeline should take it. */
+async function runAgentLoop(text, recipient, ui){
+  const history = (ariaChatHistory || [])
+    .filter(m => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string')
+    .slice(-10)
+    .map(m => ({ role: m.role, content: m.content }));
+
+  agentProductCache = new Map();
+  agentProductSeq = 0;
+
+  const messages = history.slice();
+  const statusEl = ui && ui.statusEl;
+  const prevStatus = ui && ui.prevStatus;
+
+  showAssistantTyping();
+  setOrbState('thinking');
+  if (statusEl) statusEl.textContent = 'Aria está pensando…';
+
+  for (let round = 0; round < 4; round++){
+    let res;
+    try {
+      res = await fetch('/.netlify/functions/aria-chat-agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          history: messages,
+          message: round === 0 ? text : '',
+          recipient: recipient && typeof recipient === 'object' ? recipient : null,
+        }),
+      });
+    } catch(e){ return false; }
+    if (!res || !res.ok) return false;
+    let data;
+    try { data = await res.json(); } catch(e){ return false; }
+    if (!data || data.error) return false;
+
+    if (data.tool_calls && data.tool_calls.length){
+      messages.push({ role: 'assistant', content: null,
+        tool_calls: data.tool_calls.map(tc => ({
+          id: tc.id, type: 'function',
+          function: { name: tc.name, arguments: tc.arguments },
+        })) });
+      for (const tc of data.tool_calls){
+        const result = await executeAgentTool(tc);
+        messages.push({ role: 'tool', tool_call_id: tc.id, content: JSON.stringify(result) });
+      }
+      continue;
+    }
+    if (data.reply){
+      hideAssistantTyping();
+      setOrbState('idle');
+      const reply = String(data.reply);
+      /* The bubble speaks through Lily: addAssistantMessage plays the
+         server-rendered audio when present, browser voice otherwise. */
+      addAssistantMessage('bot', reply, data.audio || null);
+      for (const id of (data.show || [])){
+        const cached = agentProductCache.get(id);
+        if (cached) addAssistantProductCard(cached.item, cached.retailer);
+      }
+      rememberAssistantTurn(text, reply);
+      maybeAddStoreOfferFromReply(reply);
+      if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+      assistantThinking = false;
+      reopenMicForRetry();
+      return true;
+    }
+    return false;
+  }
+  return false;
+}
+
 async function runAssistantBrain(text){
   if (assistantThinking) return;
   assistantThinking = true;
@@ -29536,6 +29809,15 @@ async function runAssistantBrain(text){
       return;
     }
   }
+
+  /* AGENTIC ARIA (2026-10-01, Danny: "shock the world"). She drives:
+     the model decides whether to search, what to search, and whether
+     to refine -- the client just runs her searches. The classic
+     regex->search->narrate pipeline below is the fallback, not the plan. */
+  try {
+    if (await runAgentLoop(text, recipient, { statusEl, prevStatus })) return;
+  } catch(e){ /* fall through to the classic pipeline */ }
+  hideAssistantTyping();
 
   /* CONSULT MODE (2026-10-01, Danny). The request is a bare category
      with nothing to filter on -- Aria asks ONE clarifying question
