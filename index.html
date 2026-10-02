@@ -11865,6 +11865,50 @@ function sunglassesFaceFilter(shape){
   renderCatalogFeed();
   document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'});
 }
+/* CAROUSEL CITY store rails (2026-10-02, Danny): one carousel per store,
+   so shoppers compare stores side by side. Generic — applies to any
+   department whose own rails aren't already store-organized. */
+var _STORE_RAILS_DONE = { surf_skate: 1 };
+function deptStoreCarouselsHTML(items, sectionKey){
+  if (_STORE_RAILS_DONE[sectionKey]) return '';
+  var list = (Array.isArray(items) ? items : []).filter(function(p){ return p && Number(p.price) > 0 && p.image; });
+  if (list.length < 8) return '';
+  var byStore = {}, i, p, r;
+  for (i = 0; i < list.length; i++){
+    p = list[i]; r = String(p.retailer || '').trim();
+    if (!r) continue;
+    (byStore[r] = byStore[r] || []).push(p);
+  }
+  var stores = Object.keys(byStore).filter(function(k){ return byStore[k].length >= 4; });
+  stores.sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+  if (stores.length < 2) return '';
+  var usePicks = (typeof categoryRailPicks === 'function');
+  var useSection = (typeof deptRailSectionHTML === 'function');
+  var useHead = (typeof deptMixedRailHeadHTML === 'function');
+  if (!usePicks || !useSection || !useHead) return '';
+  var labelOf = function(k){
+    try {
+      if (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL && LIVE_RETAILER_LABEL[k]) return LIVE_RETAILER_LABEL[k];
+    } catch (e){}
+    return k ? k.charAt(0).toUpperCase() + k.slice(1) : 'Tienda';
+  };
+  var blocks = [], s, pool, picks;
+  for (s = 0; s < stores.length; s++){
+    var key = stores[s];
+    pool = byStore[key].slice().sort(function(x, y){
+      var sx = (typeof rawItemOnSale === 'function' && rawItemOnSale(x)) ? 1 : 0;
+      var sy = (typeof rawItemOnSale === 'function' && rawItemOnSale(y)) ? 1 : 0;
+      return sy - sx || Number(y.price) - Number(x.price);
+    });
+    picks = categoryRailPicks([key], [], pool, {}, 12, {});
+    if (picks && picks.length >= 4){
+      blocks.push(deptRailSectionHTML('store-' + sectionKey + '-' + key, labelOf(key),
+        deptMixedRailHeadHTML('En ' + labelOf(key), byStore[key].length + ' productos'), picks));
+    }
+  }
+  return blocks.join('');
+}
+
 /* CAROUSEL CITY (2026-10-02, Danny): generic brand carousels — one rail
    per brand, brand aggregated across all stores. Appended after every
    section's store rails. Sections with bespoke brand rails (sunglasses
@@ -17881,7 +17925,12 @@ function renderCatalogFeed(){
       }[catalogState.key];
       if (catalogState.key === 'moms' && catalogState.subKey) _railFn = null;
       if (_railFn){ try { deptRails = _railFn() || ''; } catch (_re){ deptRails = ''; } }
-      /* CAROUSEL CITY: brand carousels after store carousels */
+      /* CAROUSEL CITY: store carousels, then brand carousels */
+      try {
+        var _storeRails = (typeof deptStoreCarouselsHTML === 'function')
+          ? deptStoreCarouselsHTML(sgFiltered, catalogState.key) : '';
+        if (_storeRails) deptRails += _storeRails;
+      } catch (_se){}
       try {
         var _brandRails = (typeof deptBrandCarouselsHTML === 'function')
           ? deptBrandCarouselsHTML(sgFiltered, catalogState.key) : '';
@@ -25592,7 +25641,27 @@ async function autoDestacadosFor(sourceKey){
 async function renderAutoDestacados(sourceKey){
   const wrap = document.getElementById('autoDestacadosWrap');
   if (!wrap) return;
-  if (!sourceKey){ wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+  /* CAROUSEL CITY (2026-10-02, Danny): neutral view shows one carousel
+     per auto source for store comparison; a store tile still shows just
+     that store's shelf. */
+  if (!sourceKey){
+    var sources = [];
+    try { sources = (typeof visibleAutoSources === 'function' ? visibleAutoSources() : []).filter(function(s){ return s && !s.pending; }); } catch (e){}
+    if (!sources.length){ wrap.innerHTML = ''; wrap.classList.add('hidden'); return; }
+    var blocks = [];
+    var done = 0;
+    for (var i = 0; i < sources.length && done < 6; i++){
+      var skey = sources[i].key, sitems = [];
+      try { sitems = await autoDestacadosFor(skey); } catch (e2){}
+      if (!sitems || !sitems.length) continue;
+      var shtml = '';
+      try { shtml = storeCarouselHTML({ id: 'autoDestacadosRail-' + skey, title: 'Destacados en ' + autoSourceLabel(skey), items: sitems, retailer: skey }); } catch (e3){}
+      if (shtml){ blocks.push(shtml); done++; }
+    }
+    wrap.innerHTML = blocks.join('');
+    wrap.classList.toggle('hidden', !blocks.length);
+    return;
+  }
   const label = autoSourceLabel(sourceKey);
   const items = await autoDestacadosFor(sourceKey);
   const html = storeCarouselHTML({ id: 'autoDestacadosRail', title: `Destacados en ${label}`, items, retailer: sourceKey });
