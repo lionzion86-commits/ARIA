@@ -9832,11 +9832,42 @@ const SEARCH_SYNONYM_GROUPS = [
     concept: "watch",
     words: ["watch", "watches", "reloj", "relojes"],
   },
-  /* REPORTED LIVE 2026-09-26: "aletas" is flippers — one concept so
-     "aletas", "fins" and "flippers" all return the same fin sets. */
+  /* QUILLAS VS ALETAS (2026-10-02, Danny): surfboard fins are QUILLAS,
+     never "aletas de surf"; dive fins (flippers) are ALETAS. Two separate
+     concepts now -- "fins" is dive fins only, "surf_fins" is surfboard
+     fins. A query for one never returns the other; see finQueryKind. */
   {
     concept: "fins",
-    words: ["fin", "fins", "flipper", "flippers", "aleta", "aletas"],
+    words: ["fin", "fins", "flipper", "flippers", "aleta", "aletas", "chapaletas"],
+  },
+  {
+    concept: "surf_fins",
+    words: ["quilla", "quillas"],
+  },
+  /* SKATE SHOP TALK (2026-10-02, Danny): the words Peruvian skaters
+     actually say -- "tracks" (trucks), "rodajes" (bearings), "papel
+     lija" (griptape). NOTE: "tracks" also means the traction/tail pad
+     in surf ("un track para tu tabla") -- that qualified phrase is
+     translated to "traction pad" by ES_EN_PHRASES before tokenising,
+     so the bare word keeps its skate meaning here. */
+  {
+    concept: "trucks",
+    words: ["trucks", "tracks", "truck"],
+  },
+  {
+    concept: "bearings",
+    words: ["bearings", "rodajes", "rodaje", "baleros", "bearing"],
+  },
+  {
+    concept: "griptape",
+    words: ["griptape", "lija"],
+  },
+  /* DIVE SHOP TALK (2026-10-02, Danny): "buceo" is the dive-equipment
+     category; "museo" is what voice transcription hears instead, and in
+     a shopping context it is always buceo. */
+  {
+    concept: "wetsuit",
+    words: ["wetsuit", "wetsuits", "neopreno", "neoprene"],
   },
   /* PERU 2026-09-26: "polo" is a plain T-shirt in Peru, not a collared
      polo shirt. One concept so "polo" finds tees (and collared polos
@@ -10244,14 +10275,60 @@ function isRealFinProduct(item){
   return depts.some((d) => FIN_CONTEXT_DEPTS.test(String(d)));
 }
 
-/* THE QUERIES THAT MEAN ONLY FLIPPERS (2026-09-26, Danny): "aletas"
-   means flippers and nothing else. When every token in the (translated,
-   canonicalised) query is the fins concept -- optionally "diving",
-   since "aletas de buceo" translates to "diving fins" -- the result
-   set may contain ONLY real fin products. No loose concept expansion. */
-const FINS_STRICT_TOKENS = new Set(['fins', 'diving']);
+/* QUILLAS VS ALETAS, THE FILTER (2026-10-02, Danny). The catalogue
+   carries both kinds of fin: Nautilus = dive fins (Cetma/DiveR/C4
+   "Freedive Fins"), the Florida surf shops = surfboard fins
+   (FCS/Futures). A query for one must never return the other.
+   Detection is by retailer first, title markers second; a traction pad
+   ("Future Fins ... Traction Pad") is not a fin at all. */
+const DIVE_FIN_MARKERS = /\bfreediv|\bscuba\b|\bdive\b|\bdiving\b|\bsnorkel|\bapnea\b|\bspearfishing|\bcetma\b|\bdiver\b|\bc4\b|\bmares\b|\bcressi\b|\bomer\b/i;
+const SURF_FIN_MARKERS = /\bsurfboard\b|\blongboard\b|\bthruster\b|\bquad\b|\bfcs\b|\bfutures\b|\btraction\b|\bsurf\b/i;
+const TRACTION_PAD_RE = /\btraction pad\b/i;
+const DIVE_FIN_RETAILERS = new Set(['nautilus']);
+const SURF_FIN_RETAILERS = new Set(['islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland']);
+function hasFinWord(title){
+  return FIN_PRODUCT_PLURAL.test(title) || FIN_PRODUCT_PHRASES.test(title);
+}
+function isDiveFinProduct(item){
+  const title = String((item && (item.title || item.name)) || '');
+  if (!hasFinWord(title) || TRACTION_PAD_RE.test(title)) return false;
+  if (SURF_FIN_MARKERS.test(title)) return false;
+  const r = String((item && item.retailer) || '').toLowerCase();
+  if (DIVE_FIN_RETAILERS.has(r)) return true;
+  if (SURF_FIN_RETAILERS.has(r)) return false;
+  return DIVE_FIN_MARKERS.test(title);
+}
+function isSurfFinProduct(item){
+  const title = String((item && (item.title || item.name)) || '');
+  if (!hasFinWord(title) || TRACTION_PAD_RE.test(title)) return false;
+  if (DIVE_FIN_MARKERS.test(title)) return false;
+  const r = String((item && item.retailer) || '').toLowerCase();
+  if (SURF_FIN_RETAILERS.has(r)) return true;
+  if (DIVE_FIN_RETAILERS.has(r)) return false;
+  return SURF_FIN_MARKERS.test(title);
+}
+/* WHICH FIN THE QUERY WANTS (2026-10-02, Danny): "aletas" / "aletas de
+   buceo" / "diving fins" -> 'dive' (dive fins only, never surfboard
+   fins); "quillas" / "surfboard fins" -> 'surf' (surfboard fins only).
+   Bare English "fins"/"flippers" keeps the old strict behaviour via
+   'dive' -- Danny's ruling equates flippers with dive fins, and the
+   Nautilus domain entry has always claimed bare "fins". null means no
+   fin intent: no strict filter, and the AND-rule exemption below does
+   not apply. */
+const FINS_DIVE_TOKENS = new Set(['fins', 'diving']);
+const FINS_SURF_TOKENS = new Set(['surf_fins', 'surfboard', 'surf']);
+function finQueryKind(toks){
+  if ((toks || []).includes('surf_fins')) return 'surf';
+  if ((toks || []).includes('fins')){
+    if ((toks || []).some((t) => FINS_SURF_TOKENS.has(t))) return 'surf';
+    if ((toks || []).every((t) => FINS_DIVE_TOKENS.has(t))) return 'dive';
+  }
+  return null;
+}
+/* Back-compat wrapper: the two call sites below predate the dive/surf
+   split and just need "is this a fins-only query". */
 function isStrictFinsQuery(toks){
-  return toks.includes('fins') && toks.every((t) => FINS_STRICT_TOKENS.has(t));
+  return finQueryKind(toks) !== null;
 }
 
 function rankCatalogMatches(pool, query, opts){
@@ -10321,8 +10398,14 @@ function rankCatalogMatches(pool, query, opts){
     candidates = pool.filter(it => inSubset.has(it));
   }
 
-  /* STRICT "ALETAS" INTENT: flippers only -- see isStrictFinsQuery. */
-  if (isStrictFinsQuery(toks)) candidates = candidates.filter(isRealFinProduct);
+  /* STRICT FIN INTENT (2026-10-02, Danny -- quillas vs aletas): a
+     dive-fin query keeps ONLY dive fins, a surf-fin query ONLY
+     surfboard fins. This is the deterministic net under the agent: even
+     if the model searches a bare "fins", a shopper who said "aletas de
+     buceo" can never be shown surfboard fins. */
+  const finKind = finQueryKind(toks);
+  if (finKind === 'dive') candidates = candidates.filter(isDiveFinProduct);
+  else if (finKind === 'surf') candidates = candidates.filter(isSurfFinProduct);
   if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
 
   const rawCategoryOf = (opts && opts.categoryOf)
@@ -10378,9 +10461,9 @@ function rankCatalogMatches(pool, query, opts){
        matched. When the query has more than one token, every token has
        to hit the item -- a partial overlap is not a match, so a common
        word can no longer drag in cross-category results. Single-token
-       queries keep the old behaviour. The strict-fins concept query
-       ("diving fins") keeps its own rule: there "diving" is a sanctioned
-       modifier, not a word the title must contain. */
+       queries keep the old behaviour. A fin-kind query ("diving fins",
+       "quillas") keeps its own rule: there the kind token is a
+       sanctioned modifier, not a word the title must contain. */
     if (toks.length > 1 && !isStrictFinsQuery(toks) && hits < toks.length) continue;
     if (hits === toks.length) exact++; else partial++;
     scored.push({ item, score: scoreCatalogItem(item, toks, weights, words) });
@@ -20145,6 +20228,65 @@ function normalizeQueryText(text) {
    the phrase means something its parts do not: "plancha de cabello" is a
    hair straightener, "plancha" alone is a clothes iron. */
 const ES_EN_PHRASES = [
+  /* TERMINOLOGY AUDIT (2026-10-02, Danny): the words real Peruvian
+     shoppers say, category by category. Phrases match longest-first,
+     so the qualified phrase always beats the bare word ("track para
+     tabla" -> traction pad, while bare "tracks" keeps its skate
+     meaning via the trucks synonym group). */
+  // BUCEO / DIVE -- "buceo" is the dive-equipment category; surfboard
+  // fins are QUILLAS, never "aletas de surf"; dive fins are ALETAS.
+  ["aletas de buceo", "diving fins"],
+  ["aleta de buceo", "diving fin"],
+  ["quillas", "surfboard fins"],
+  ["quilla", "surfboard fin"],
+  ["arpon de liga", "speargun"],
+  ["fusil hawaiano", "speargun"],
+  ["arpon neumatico", "speargun"],
+  ["boya para buzo", "diver buoy"],
+  ["boya para buceo", "diver buoy"],
+  ["boya de buceo", "diver buoy"],
+  ["traje de neopreno", "wetsuit"],
+  ["traje de buceo", "wetsuit"],
+  ["mascara de buceo", "dive mask"],
+  ["careta de buceo", "dive mask"],
+  ["visor de buceo", "dive mask"],
+  ["tubo de snorkel", "snorkel"],
+  ["cinturon de plomos", "weight belt"],
+  ["cinturon de pesas", "weight belt"],
+  ["plomos de buceo", "dive weights"],
+  ["cuchillo de buceo", "dive knife"],
+  ["linterna de buceo", "dive light"],
+  ["botines de buceo", "dive boots"],
+  ["guantes de buceo", "dive gloves"],
+  ["guantes de neopreno", "neoprene gloves"],
+  ["ligas de arpon", "speargun bands"],
+  // SURF -- "tracks" ALSO means the traction/tail pad in surf
+  // ("un track para tu tabla"); the skate meaning lives on the bare word.
+  ["tabla de surf", "surfboard"],
+  ["pita de tabla", "surfboard leash"],
+  ["cera para tabla", "surf wax"],
+  ["parafina para tabla", "surf wax"],
+  ["track para tabla", "traction pad"],
+  ["track de surf", "traction pad"],
+  ["pad de traccion", "traction pad"],
+  // SKATE -- "tracks" (trucks), "rodajes" (bearings), "papel lija" (griptape)
+  ["tabla de skate", "skateboard"],
+  ["ruedas para skateboard", "skateboard wheels"],
+  ["ruedas de skate", "skateboard wheels"],
+  ["papel lija", "griptape"],
+  ["casco de skate", "skate helmet"],
+  ["rodilleras de skate", "knee pads"],
+  ["coderas de skate", "elbow pads"],
+  // FIGHT CLUB -- box, muay thai, MMA
+  ["guantes de box", "boxing gloves"],
+  ["guantes de boxeo", "boxing gloves"],
+  ["guantes de muay", "muay thai gloves"],
+  ["guantes de muay thai", "muay thai gloves"],
+  ["guantes de mma", "mma gloves"],
+  ["canilleras de muay thai", "muay thai shin guards"],
+  ["short de thai", "muay thai shorts"],
+  ["shorts de muay thai", "muay thai shorts"],
+  ["short de boxeo", "boxing shorts"],
   ["plancha de cabello", "hair straightener"],
   ["plancha de pelo", "hair straightener"],
   ["secadora de cabello", "hair dryer"],
@@ -20374,6 +20516,22 @@ const ES_EN_WORDS = {
   /* REPORTED LIVE 2026-09-26: "aletas" is the everyday Peruvian word for
      flippers; the plural falls back to this singular automatically. */
   aleta: "fins",
+  /* TERMINOLOGY AUDIT (2026-10-02, Danny): single-word category terms.
+     "museo" is what voice transcription hears for "buceo" -- in a
+     shopping context it is always diving. */
+  buceo: "diving",
+  museo: "diving",
+  equipo: "equipment",
+  accesorios: "accessories",
+  accesorio: "accessories",
+  arpon: "speargun",
+  esnorquel: "snorkel",
+  escarpines: "dive boots",
+  chapaletas: "dive fins",
+  pita: "surfboard leash",
+  rodilleras: "knee pads",
+  coderas: "elbow pads",
+  canilleras: "shin guards",
   vitamina: "vitamins",
   suplemento: "supplement",
   libro: "book",
@@ -33047,13 +33205,27 @@ function normBrandText(t){
   return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
 /* Whole-word/phrase match of a stocked brand label inside the shopper's
-   message. Accents folded on both sides ("L'Oréal" ~ "loreal"). */
+   message. Accents folded on both sides ("L'Oréal" ~ "loreal").
+   PUNCTUATION + PLURAL TOLERANT (2026-10-02, Danny): "estoy buscando
+   Ray-Bans" has to find Ray-Ban -- the label is cleaned exactly like
+   the text (hyphens become spaces), and a second pass squashes a
+   trailing "s" on words longer than 3 chars so plurals match ("Nikes"
+   ~ "Nike"). Exact matches win; the plural pass only runs when the
+   exact one missed. */
 function findBrandMention(text, brands){
-  const norm = ' ' + normBrandText(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
+  const clean = (t) => normBrandText(t).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  const squashPlural = (t) => String(t || '').split(' ').map((w) => w.length > 3 ? w.replace(/s$/, '') : w).join(' ');
+  const norm = ' ' + clean(text) + ' ';
+  const normSquashed = ' ' + squashPlural(clean(text)) + ' ';
   for (const b of brands || []){
-    const bl = normBrandText(b.label).replace(/\s+/g, ' ').trim();
+    const bl = clean(b.label);
     if (bl.length < 2) continue;
     if (norm.indexOf(' ' + bl + ' ') !== -1) return b;
+  }
+  for (const b of brands || []){
+    const bl = squashPlural(clean(b.label));
+    if (bl.length < 2) continue;
+    if (normSquashed.indexOf(' ' + bl + ' ') !== -1) return b;
   }
   return null;
 }
@@ -33086,19 +33258,34 @@ function goBrandFromChat(brandKey){
    list the prompt and the search fan-out use, so a store the site cannot
    actually open can never get a button. Deterministic: no Groq round
    trip, no Apify spend. */
+/* SPOKEN STORE ALIASES (2026-10-02, Danny): voice shoppers say
+   "Dicks" for Dick's Sporting Goods -- the apostrophe-s is punctuation
+   noise, so the spoken form has to be an explicit alias. */
+const CHAT_STORE_ALIASES = {
+  dicks: ['dick s', "dick's"],
+  nautilus: ['tienda de buceo'],
+};
 let chatStoreIndexCache = null;
 function chatStoreIndex(){
   if (chatStoreIndexCache) return chatStoreIndexCache;
   const labels = (typeof LIVE_RETAILER_LABEL === 'object' && LIVE_RETAILER_LABEL) || {};
-  const keys = (typeof LIVE_RETAILERS !== 'undefined' && Array.isArray(LIVE_RETAILERS)) ? LIVE_RETAILERS : Object.keys(labels);
+  const all = (typeof RETAILERS === 'object' && RETAILERS) || {};
+  /* EVERY STORE WITH A DOOR, not just the live-searchable ones
+     (2026-10-02, Danny): browse-only shops (Nautilus, Island Water
+     Sports, ProSoccer, Quiet Storm...) open real storefronts, so
+     "llevame a la tienda de Island Water Sports" must find them. A
+     store the site cannot open still never gets a button. */
+  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && (r.search || r.browse); });
+  if (!keys.length) keys = (typeof LIVE_RETAILERS !== 'undefined' && Array.isArray(LIVE_RETAILERS)) ? LIVE_RETAILERS : Object.keys(labels);
   const seen = new Set();
   const out = [];
   for (const key of keys){
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    const label = String(labels[key] || key);
+    const label = String(labels[key] || (all[key] && all[key].label) || key);
     out.push({ key, label });
     if (normBrandText(key) !== normBrandText(label)) out.push({ key, label, alias: key });
+    for (const a of (CHAT_STORE_ALIASES[key] || [])) out.push({ key, label, alias: a });
   }
   /* Longest name first, same as the brand index. */
   out.sort((a, b) => (b.alias || b.label).length - (a.alias || a.label).length);
@@ -33151,9 +33338,9 @@ function maybeAddStoreOfferFromReply(reply){
    always answers in Spanish. */
 const CHAT_DOMAIN_FALLBACKS = [
   { label: 'Nautilus Spearfishing', sub: 'Arpones, aletas, trajes y equipo de buceo', action: 'store', key: 'nautilus',
-    keys: ['arpon', 'arpones', 'speargun', 'spearfishing', 'spearfish', 'scuba', 'buceo', 'diving', 'apnea', 'freedive', 'freediving', 'aleta', 'aletas', 'fins', 'neopreno', 'neoprene', 'wetsuit', 'traje de neopreno', 'traje de buceo', 'traje humedo', 'snorkel', 'esnorquel', 'tubo de snorkel', 'visor de buceo', 'careta de buceo', 'mascara de buceo', 'chapaletas', 'rashguard', 'rash guard', 'cuchillo de buceo', 'boya de buceo', 'boya', 'flotador de pesca', 'cinturon de pesas', 'cinturon de plomos', 'plomos', 'pesca submarina', 'submarinismo', 'cazasubmarina', 'arpon de liga', 'ligas de arpon', 'arpon neumatico', 'fusil hawaiano', 'botines de buceo', 'escarpines', 'guantes de buceo', 'guantes de neopreno', 'carrete de arpon', 'reel', 'monofilamento', 'cabo de arpon', 'linterna de buceo'] },
+    keys: ['arpon', 'arpones', 'speargun', 'spearfishing', 'spearfish', 'scuba', 'buceo', 'diving', 'apnea', 'freedive', 'freediving', 'aleta', 'aletas', 'fins', 'neopreno', 'neoprene', 'wetsuit', 'traje de neopreno', 'traje de buceo', 'traje humedo', 'snorkel', 'esnorquel', 'tubo de snorkel', 'visor de buceo', 'careta de buceo', 'mascara de buceo', 'chapaletas', 'rashguard', 'rash guard', 'cuchillo de buceo', 'boya de buceo', 'boya', 'flotador de pesca', 'cinturon de pesas', 'cinturon de plomos', 'plomos', 'pesca submarina', 'submarinismo', 'cazasubmarina', 'museo', 'boya para buzo', 'boya para buceo', 'arpon de liga', 'ligas de arpon', 'arpon neumatico', 'fusil hawaiano', 'botines de buceo', 'escarpines', 'guantes de buceo', 'guantes de neopreno', 'carrete de arpon', 'reel', 'monofilamento', 'cabo de arpon', 'linterna de buceo'] },
   { label: 'Surf & Skate', sub: 'Tablas, skates, ropa y accesorios', action: 'department', key: 'surf_skate',
-    keys: ['surf', 'surfing', 'surfeo', 'surfboard', 'tabla', 'tabla de surf', 'tabla de skate', 'correr tabla', 'correr olas', 'tablista', 'bodyboard', 'body board', 'skimboard', 'paddle surf', 'paddleboard', 'sup', 'stand up paddle', 'skate', 'skateboard', 'longboard', 'patineta', 'patin', 'skater', 'quilla', 'quillas', 'pita', 'leash', 'cera para tabla', 'parafina para tabla'] },
+    keys: ['surf', 'surfing', 'surfeo', 'surfboard', 'tabla', 'tabla de surf', 'tabla de skate', 'correr tabla', 'correr olas', 'tablista', 'bodyboard', 'body board', 'skimboard', 'paddle surf', 'paddleboard', 'sup', 'stand up paddle', 'skate', 'skateboard', 'longboard', 'patineta', 'patin', 'skater', 'quilla', 'quillas', 'pita', 'pita de tabla', 'leash', 'cera para tabla', 'parafina', 'parafina para tabla', 'tracks', 'track de skate', 'trucks de skate', 'ruedas de skate', 'ruedas para skateboard', 'ruedas para mi skateboard', 'rodajes', 'rodaje', 'bearings de skate', 'papel lija', 'grip tape', 'casco de skate', 'casco para skate', 'rodilleras de skate', 'coderas de skate', 'coderas', 'track para tabla', 'track de surf', 'pad de traccion', 'traction pad'] },
   { label: 'Gym Rat', sub: 'Ropa y equipo para entrenar', action: 'department', key: 'gym_rat',
     keys: ['gym', 'gimnasio', 'pesa', 'pesas', 'fierros', 'hacer fierros', 'mancuerna', 'mancuernas', 'dumbbell', 'kettlebell', 'pesa rusa', 'barra de pesas', 'banco de pesas', 'banca', 'press de banca', 'sentadilla', 'peso muerto', 'disco', 'discos', 'rack de pesas', 'gymrat', 'entrenamiento con pesas', 'entrenamiento funcional', 'funcional', 'crossfit', 'caminadora', 'trotadora', 'eliptica', 'bicicleta estatica', 'soga para saltar', 'cuerda para saltar', 'guantes de gym', 'guantes de entrenamiento', 'cinturon de levantamiento', 'rodilleras', 'shaker', 'tomatodo', 'leggings', 'licras', 'top deportivo', 'ropa de gym', 'ropa deportiva'] },
   /* FUTBOL + TENIS (2026-09-29, Danny): soccer is huge in Peru; tennis
@@ -33169,7 +33356,7 @@ const CHAT_DOMAIN_FALLBACKS = [
   { label: 'Lentes de Sol', sub: 'Dise\u00f1ador, deportivo y m\u00e1s', action: 'department', key: 'sunglasses',
     keys: ['lentes de sol', 'gafas de sol', 'gafas', 'lentes', 'anteojos', 'sunglasses', 'sunglass'] },
   { label: 'Aria Fight Club', sub: 'Boxeo, MMA, jiu-jitsu y mas', action: 'department', key: 'combat_sports',
-    keys: ['mma', 'boxeo', 'boxing', 'jiu jitsu', 'jiu-jitsu', 'jiujitsu', 'bjj', 'muay thai', 'muaythai', 'muay', 'thai', 'tay', 'kickboxing', 'kick boxing', 'karate', 'taekwondo', 'judo', 'lucha libre', 'lucha', 'pelea', 'artes marciales', 'sparring', 'guantes', 'guante de boxeo', 'guantes de boxeo', 'guantes de thai', 'guantes de muay thai', 'guantes de mma', 'vendas', 'vendas para boxeo', 'vendas de boxeo', 'canilleras', 'canilleras de muay thai', 'canilleras de thai', 'short de thai', 'short de boxeo', 'shorts de muay thai', 'short muay thai', 'zapatos de boxeo', 'botines de boxeo', 'protector bucal', 'bucal', 'saco de boxeo', 'pera de boxeo', 'pera loca', 'careta', 'cabezal', 'manopla', 'manoplas'] },
+    keys: ['mma', 'boxeo', 'boxing', 'jiu jitsu', 'jiu-jitsu', 'jiujitsu', 'bjj', 'muay thai', 'muaythai', 'muay', 'thai', 'tay', 'kickboxing', 'kick boxing', 'karate', 'taekwondo', 'judo', 'lucha libre', 'lucha', 'pelea', 'artes marciales', 'sparring', 'guantes', 'guante de boxeo', 'guantes de boxeo', 'guantes de box', 'guantes de thai', 'guantes de muay', 'guantes de muay thai', 'guantes de mma', 'vendas', 'vendas para boxeo', 'vendas de boxeo', 'canilleras', 'canilleras de muay thai', 'canilleras de thai', 'short de thai', 'short de boxeo', 'shorts de muay thai', 'short muay thai', 'zapatos de boxeo', 'botines de boxeo', 'protector bucal', 'bucal', 'saco de boxeo', 'pera de boxeo', 'pera loca', 'careta', 'cabezal', 'manopla', 'manoplas'] },
   { label: 'Aria Beauty', sub: 'Maquillaje, skincare y fragancias', action: 'department', key: 'beauty',
     keys: ['maquillaje', 'makeup', 'labial', 'pinta labios', 'lipstick', 'skincare', 'crema', 'cremas', 'perfume', 'fragancia', 'colonia', 'cologne', 'base de maquillaje', 'rimel', 'delineador', 'eyeliner', 'mascara de pestanas', 'pestanas postizas', 'sombra de ojos', 'rubor', 'polvo compacto', 'polvo facial', 'corrector', 'iluminador', 'highlighter', 'bronceador', 'cuidado de la piel', 'serum', 'suero facial', 'mascarilla facial', 'exfoliante', 'tonico facial', 'bloqueador solar', 'bloqueador', 'protector solar', 'desmaquillante', 'agua micelar', 'esmalte', 'esmalte de unas', 'quitaesmalte', 'unas', 'manicure', 'pedicure', 'plancha de cabello', 'rizadora', 'secadora de cabello', 'tinte de cabello', 'tinte', 'shampoo', 'acondicionador'] },
   { label: 'Aria Beauty', sub: 'Cuidado personal para hombre y mujer', action: 'department', key: 'beauty',
@@ -33207,6 +33394,12 @@ const CHAT_DOMAIN_FALLBACKS = [
    map. A bare keyword in one domain can swallow a longer phrase that belongs
    elsewhere ("tabla" eats "tabla de planchar"), so exact-phrase overrides win. */
 const CHAT_DOMAIN_OVERRIDES = [
+  /* BUCEO IS A CATEGORY (2026-10-02, Danny): "buceo" means the
+     dive-equipment category -- route to the Pesca Submarina department
+     (dive gear across every store), not just the Nautilus shop. "museo"
+     is what voice transcription hears for "buceo"; in a shopping
+     context it is always diving. */
+  { keys: ['buceo', 'museo', 'submarinismo'], label: 'Pesca Submarina', sub: 'Equipo de buceo, apnea y pesca submarina', action: 'department', key: 'spearfishing' },
   { keys: ['tabla de planchar'], label: 'Hogar', sub: 'Muebles, cocina y decoracion', action: 'department', key: 'home_goods' },
   { keys: ['gimnasio para bebe'], label: 'Mama y Bebe', sub: 'Todo para mama y bebe', action: 'department', key: 'moms' },
   { keys: ['patin del diablo'], label: 'Juguetes', sub: 'Juguetes para todas las edades', action: 'department', key: 'toys' },
@@ -33463,6 +33656,62 @@ async function executeAgentTool(tc){
   };
 }
 
+/* NAVIGATION ROUTER (2026-10-02, Danny): every axis lands somewhere.
+   Detects the axis from the phrasing BEFORE the agent runs, because the
+   agent's only tool is product search -- she cannot open a brand page, a
+   storefront or a department herself. Mirrors the Carousel City law:
+     - by store: "llevame a la tienda de Island Water Sports" -> storefront
+     - by brand: "estoy buscando Ray-Bans" -> the brand's section
+     - by department: "la seccion de buceo" / "llevame a pesca submarina"
+       -> the department page
+   Fires ONLY on explicit navigation phrasing. A product question that
+   merely names a brand or a store ("busco zapatillas Nike para correr",
+   "quiero ver aletas de buceo") stays with the agent and the product
+   search. Returns null when the turn is not navigation. */
+const NAV_DEPT_WORDS_RE = /\bsecci[oó]n\b|\bdepartamento\b|\bcategor[ía]a\b/i;
+const NAV_MOVE_RE = /ll[eé]vame|take me to|\bgo to\b|\bir a\b|abr(ir?|e)\b|entra(r)?\b/i;
+const BRAND_BROWSE_VERBS_RE = /quiero ver|mu[eé]strame|ens[eé][ñn]ame|la marca|todos? los|todas? las/i;
+function stripGreetingEs(t){
+  return String(t || '').replace(/^(hola|buenas|buenos d[ía]as|buenas tardes|buenas noches|hey|ara|aria)[,.!\s]+/i, '').trim();
+}
+async function chatNavigationRoute(text){
+  const t = stripGreetingEs(text);
+  if (!t || t.replace(/\s+/g, '').length < 3) return null;
+  /* 1. BY STORE: navigation intent + a store the site can actually open. */
+  if (STORE_NAV_INTENT_RE.test(t)){
+    const sHit = findStoreMention(t);
+    if (sHit) return { action: 'store', key: sHit.key, label: sHit.label,
+      line: '¡Claro! Te llevo a ' + sHit.label + ' — entra con el botón de abajo.' };
+  }
+  /* 2. BY BRAND: the message is essentially a browse request for the brand. */
+  let bRest = null;
+  const buscando = t.match(/^(estoy\s+)?buscando\s+(.+)$/i);
+  if (buscando) bRest = buscando[2];
+  else if (BRAND_BROWSE_VERBS_RE.test(t)) bRest = t;
+  if (bRest){
+    const bHit = findBrandMention(bRest, await chatBrandIndex());
+    if (bHit){
+      const restWords = bRest.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean).length;
+      const brandWords = String(bHit.label || '').replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(Boolean).length;
+      if (restWords <= brandWords + 2){
+        const line = bHit.count > 0
+          ? '¡Claro! Aquí tienes todo lo de ' + bHit.label + ' en nuestras tiendas.'
+          : 'En este momento no tenemos ' + bHit.label + ' disponible, pero dime qué buscas y te encuentro algo parecido.';
+        return { action: 'brand', key: bHit.key, label: bHit.label, count: bHit.count || 0, line };
+      }
+    }
+  }
+  /* 3. BY DEPARTMENT: explicit section phrasing ("la seccion de buceo"),
+     or a movement verb that named no store ("llevame a pesca submarina").
+     "Quiero ver" is viewing, not going -- that stays with the agent. */
+  if (NAV_DEPT_WORDS_RE.test(t) || NAV_MOVE_RE.test(t)){
+    const dHit = findDomainFallback(t);
+    if (dHit && !dHit.policy) return { action: dHit.action, key: dHit.key, label: dHit.label, sub: dHit.sub,
+      line: '¡Claro! Te llevo a ' + dHit.label + ' — entra con el botón de abajo.' };
+  }
+  return null;
+}
+
 /* Returns true when the agent handled the turn, false when the
    classic pipeline should take it. */
 async function runAgentLoop(text, recipient, ui){
@@ -33596,6 +33845,25 @@ async function runAssistantBrain(text){
     continuousMode = false; // navigating away ends the voice conversation
     assistantThinking = false;
     if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    return;
+  }
+
+  /* NAVIGATION ROUTER (2026-10-02, Danny): brand / store / department
+     phrasing lands on the right page in one turn -- the agent's product
+     search cannot open those pages, so this runs before her. */
+  const navRoute = await chatNavigationRoute(text);
+  if (navRoute){
+    hideAssistantTyping();
+    setOrbState('idle');
+    addAssistantMessage('bot', navRoute.line, null, { speak: false });
+    ariaChatHistory.push({ role: 'assistant', content: navRoute.line });
+    speakWithLily(navRoute.line);
+    if (navRoute.action === 'store') addAssistantStoreOffer(navRoute.key, navRoute.label);
+    else if (navRoute.action === 'brand'){ if (navRoute.count > 0) addAssistantBrandOffer(navRoute.key, navRoute.label, navRoute.count); }
+    else addAssistantSectionOffer(navRoute.label, navRoute.sub, 'department', navRoute.key);
+    if (statusEl) statusEl.textContent = prevStatus || 'Aquí para ayudarte a encontrar algo';
+    assistantThinking = false;
+    reopenMicForRetry();
     return;
   }
 
