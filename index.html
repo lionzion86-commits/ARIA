@@ -9587,7 +9587,11 @@ const SEARCH_SYNONYM_GROUPS = [
     words: ["pants", "pantalon", "pantalones",
       "jeans", "jean", "denim", "denims",
       "trousers", "trouser", "chinos", "chino", "khakis", "khaki",
-      "jogger", "joggers"],
+      "jogger", "joggers",
+      /* JOGGERS = SWEATPANTS (2026-10-02, Danny: "they technically mean
+         the same thing"). Bidirectional: "joggers" finds sweatpants
+         titles and "sweatpants" finds jogger titles. */
+      "sweatpant", "sweatpants"],
   },
   {
     concept: "watch",
@@ -10022,7 +10026,18 @@ function rankCatalogMatches(pool, query, opts){
      "zapatos" and "zapatillas" do not merely overlap — they run the
      identical token list, and return the identical items in the
      identical order. */
-  const toks = canonicalizeTokens(searchTokens(query));
+  let toks = canonicalizeTokens(searchTokens(query));
+  /* STYLE WORDS ARE NOT SEARCH TOKENS (2026-10-02, Danny). "joggers
+     deportivos" zeroed out because multi-word queries are AND and no
+     English title says "deportivos" -- the style is already captured as
+     a slot (extractShopSlots), and the agent path appends ' athletic'
+     the same way. These adjectives can only ever narrow a good product
+     search to nothing, so they are dropped from the token list and the
+     core product term does the matching. */
+  const STYLE_ONLY_TOKENS = new Set(['deportivo','deportiva','deportivos','deportivas',
+    'elegante','elegantes','casual','casuales','athletic','sport','sporty','formal','formales']);
+  const liveToks = toks.filter(t => !STYLE_ONLY_TOKENS.has(t));
+  if (liveToks.length) toks = liveToks;
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
 
   /* A store's name is answered by that store's stock (see the note on
@@ -29856,7 +29871,11 @@ async function runAssistantBrain(text){
      bubble used to sit silent while she "looked" -- a silent wait reads as
      broken. She says it through Lily now; the guard keeps a late TTS fetch
      from talking over the reply if the answer already started speaking. */
-  speakWithLily(interimNote, () => !ariaReplyVoiceStarted);
+  /* VOICE: never echo the shopper's words (2026-10-02, Danny).
+     The text bubble keeps the specific "Buscando X..." note; the spoken
+     audio is the generic "Dame un segundo." so Lily never repeats what
+     he just said out loud. */
+  speakWithLily('Dame un segundo.', () => !ariaReplyVoiceStarted);
   showAssistantTyping();
   if (statusEl) statusEl.textContent = willSearch ? 'Aria está buscando…' : 'Aria está pensando…';
   setOrbState('thinking');
