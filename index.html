@@ -1587,6 +1587,20 @@
   .store-logo-fallback{display:inline-flex; align-items:center; max-width:100%; height:26px; padding:0 10px; border-radius:999px; color:#fff; font-size:12px; font-weight:800; letter-spacing:-0.01em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
   /* TIENDAS STRIP + ENTRY TILES (2026-09-28): jump targets land clear of any sticky chrome. */
   [data-tiendas-strip], section[aria-label="Marcas"], section[aria-label="Explora"], [data-category-tabs], [data-store-rail]{ scroll-margin-top:8px; }
+  /* FULL-BLEED SECTION BANNERS (2026-10-02, Danny): every banner fills
+     edge to edge — no rounded corners, no side gaps, mobile and PC.
+     The breakout margins cancel any centered parent container's padding;
+     interior content keeps its own padding. */
+  .ariaAutoBanner,.ariaMotosBanner,.ariaSgBanner,.ariaToysBanner,
+  .ariaBeautyBanner,.ariaLatinoBanner,.ariaWomenBanner,.ariaMenBanner,
+  .ariaKidsBanner,.ariaCurvyBanner,.ariaClothingBanner,.ariaBtBanner,
+  .ariaJyBanner,.ariaPrBanner,.ariaShBanner,
+  #whyUsPromises,.ariaStoryBand,.ariaTypePanel,.ariaFullBleed{
+    border-radius:0 !important;
+    width:auto !important;
+    margin-left:calc(50% - 50vw) !important;
+    margin-right:calc(50% - 50vw) !important;
+  }
 </style>
 </head>
 <body class="antialiased">
@@ -2927,7 +2941,7 @@
            third copy of the words. It links to the section that gives
            each one in full.
            ============================================================ -->
-      <div id="whyUsPromises" class="ariaNavyBand relative overflow-hidden rounded-3xl mb-10">
+      <div id="whyUsPromises" class="ariaNavyBand relative overflow-hidden mb-10">
         <div class="ariaGoldHair"></div>
         <div class="px-5 sm:px-7 py-6 sm:py-7">
           <div class="flex items-baseline justify-between gap-4 mb-5">
@@ -2975,7 +2989,7 @@
            likes it); the LETTERS got the pop -- layered glow text-shadow,
            larger headline, semibold body, gold glow on kicker and link,
            pull quote bumped. Scrim untouched. -->
-      <div class="relative overflow-hidden rounded-3xl">
+      <div class="relative overflow-hidden ariaStoryBand">
         <img src="assets/nosotros/balcony-night.jpg" alt="" aria-hidden="true" class="ariaWhyPhoto"
              style="object-position:62% 40%" decoding="async" loading="lazy" onerror="this.remove()">
         <div class="ariaStoryScrim" aria-hidden="true"></div>
@@ -16577,7 +16591,7 @@ function latinoTypeTilesHTML(grouped){
       <span class="text-[15px] font-extrabold text-center" style="color:var(--navy)">${r.label}</span>
       <span class="text-[12px] font-semibold tabular" style="color:#6B7487">${r.count} producto${r.count === 1 ? '' : 's'}</span>
     </button>`).join('');
-  return `<section aria-label="Comprar por tipo de producto" class="rounded-3xl px-4 sm:px-5 py-5 mb-6 -mx-1" style="background:linear-gradient(160deg,#0d1526 0%,#16233f 60%,#0d1526 100%)">
+  return `<section aria-label="Comprar por tipo de producto" class="ariaTypePanel px-4 sm:px-5 py-5 mb-6" style="background:linear-gradient(160deg,#0d1526 0%,#16233f 60%,#0d1526 100%)">
     <div class="flex items-center gap-3 mb-4 px-1">
       <span class="h-px flex-1" style="background:linear-gradient(90deg,transparent,#E8B94A)"></span>
       <span class="text-[12px] font-extrabold tracking-[0.2em] uppercase whitespace-nowrap" style="color:#E8B94A">El vestidor</span>
@@ -16687,7 +16701,7 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
-  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -16766,7 +16780,7 @@ function gymRatBrandBannerHTML(spec, brandItems){
   const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
-  return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -17710,7 +17724,7 @@ function revealActiveChips(root){
    above the floor: Cascos lead, then Llantas, Repuestos, Accesorios.
    Zero emojis, text-only. */
 function motosHeroHTML(){
-  return '<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden rounded-3xl mb-6">'
+  return '<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden mb-6">'
     + '<div class="ariaMotosBannerHair" aria-hidden="true"></div>'
     + '<div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>'
     + '<div class="relative px-6 py-10 sm:py-12" style="z-index:1">'
@@ -19210,7 +19224,7 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
       <span class="text-[26px] font-extrabold leading-none text-white" style="letter-spacing:-0.02em">${escapeHtml(label)}</span>
       <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'}${onclick ? ' · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span>' : ''}</span>
     </span>`;
-  const cls = "block w-full text-left rounded-3xl overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4";
+  const cls = "block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4";
   const style = "position:relative;aspect-ratio:16/9;background:var(--navy)";
   if (onclick){
     return `<button onclick="${onclick}" aria-label="Ver ${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</button>`;
