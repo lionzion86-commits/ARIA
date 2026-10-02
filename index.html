@@ -16750,42 +16750,67 @@ function latinoDesignerStorefrontsHTML(items){
    by catalog size. Sales lead in every carousel (carouselPickItems).
    ============================================================ */
 const GYMRAT_BRANDS_SPEC = [
-  { key: 'gymshark',  label: 'Gymshark',         logo: 'assets/logos/gymshark.png' },
-  { key: 'youngla',   label: 'YoungLA',          logo: 'assets/logos/youngla.png' },
-  { key: 'alphalete', label: 'Alphalete',        logo: 'assets/logos/brands/alphalete.png' },
-  { key: 'nvgtn',     label: 'NVGTN',            logo: '' },
-  { key: 'venum',     label: 'Venum',            logo: 'assets/logos/brands/venum.png' },
-  { key: 'tatami',    label: 'Tatami Fightwear', logo: 'assets/logos/brands/tatamifightwear.svg' },
-  { key: 'everlast',  label: 'Everlast',         logo: 'assets/logos/brands/everlast.svg' },
+  { key: 'gymshark',  label: 'Gymshark',         logo: 'assets/logos/gymshark.png', heroImage: 'assets/brands/gymshark-hero.jpg' },
+  { key: 'youngla',   label: 'YoungLA',          logo: 'assets/logos/youngla.png', heroImage: 'assets/brands/youngla-hero.jpg' },
+  { key: 'alphalete', label: 'Alphalete',        logo: 'assets/logos/brands/alphalete.png', heroImage: 'assets/brands/alphalete-hero.jpg' },
+  { key: 'nvgtn',     label: 'NVGTN',            logo: '', heroImage: 'assets/brands/nvgtn-hero.jpg' },
+  { key: 'venum',     label: 'Venum',            logo: 'assets/logos/brands/venum.png', heroImage: 'assets/brands/venum-hero.jpg' },
+  { key: 'tatami',    label: 'Tatami Fightwear', logo: 'assets/logos/brands/tatamifightwear.svg', heroImage: 'assets/brands/tatami-hero.jpg' },
+  { key: 'everlast',  label: 'Everlast',         logo: 'assets/logos/brands/everlast.svg', heroImage: 'assets/brands/everlast-hero.jpg' },
 ];
 
-/* Hero image for a brand banner: first on-sale product with a photo,
-   else first product with a photo. Mirrors latinoDesignerHero. */
-function gymRatBrandHero(brandItems){
+/* ============================================================
+   BRAND ROOMS — GENERIC (2026-10-02, Danny).
+   "Every single selection, whether it's category, brand, or store,
+   needs to have a theme and a carousel setup across the board."
+
+   The Disenadores Latinos gallery pattern, generalized: any
+   department's "Nuestras marcas" gets one branded room per brand —
+   a wide editorial banner (the brand's own world: campaign/model
+   photography via spec.heroImage, else a product photo) + that
+   brand's product carousel (the shop floor).
+
+   spec: { key, label, logo?, heroImage? }
+   opts: { kicker, heading } — kicker is the department label in
+   gold above the brand name; heading is the section title
+   ("Nuestras marcas").
+   ============================================================ */
+
+/* Hero image for a brand room banner: the brand's own world first
+   (spec.heroImage — campaign/model photography), else first on-sale
+   product with a photo, else first product with a photo.
+   Danny 2026-10-02: "Nuestras marcas" was just product cards — every
+   brand gets the gallery-room treatment, backdrop first. */
+function brandRoomHero(spec, brandItems){
+  if (spec && spec.heroImage) return { __curated: spec.heroImage };
   const withImg = (brandItems || []).filter(it => it && (it.image || it.imageUrl || it.thumbnail));
   if (!withImg.length) return null;
   return withImg.find(isSaleItem) || withImg[0];
 }
 
-/* A brand's hero banner: 16/9, navy gradient scrim + sheen, gold
-   "GYM RAT" kicker, brand logo badge, white brand name, product
-   count + sale count, "Ver colección". Tapping filters to the brand.
+/* A brand's room banner: 16/9 full-bleed, brand-world photo, navy
+   gradient scrim + sheen, gold kicker, brand logo badge, big legible
+   brand name, product count + sale count, "Ver colección". Tapping
+   filters to the brand. opts: { kicker }.
    Mirrors latinoDesignerBannerHTML. */
-function gymRatBrandBannerHTML(spec, brandItems){
-  const hero = gymRatBrandHero(brandItems);
+function brandRoomBannerHTML(spec, brandItems, opts){
+  opts = opts || {};
+  const hero = brandRoomHero(spec, brandItems);
   const n = (brandItems || []).length;
   const saleN = (brandItems || []).filter(isSaleItem).length;
-  const raw = hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '';
-  const src = raw ? upgradeImageUrl(safeUrl(raw) || '') : '';
-  const retry = src ? imageRetryUrl(src) : '';
+  const curated = hero && hero.__curated ? hero.__curated : '';
+  const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
+  const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
+  const retry = !curated && src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
+  const kicker = opts.kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(opts.kicker)}</span>` : '';
   return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
     <span class="absolute inset-x-0 bottom-0 p-5 flex flex-col items-start gap-1">
-      <span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">Gym Rat</span>
+      ${kicker}
       ${logoImg}
       <span class="text-[26px] font-extrabold leading-none text-white" style="letter-spacing:-0.02em">${escapeHtml(spec.label)}</span>
       <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'}${saleN ? ` · ${saleN} en oferta` : ''} · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span></span>
@@ -16795,39 +16820,51 @@ function gymRatBrandBannerHTML(spec, brandItems){
 
 /* A brand's own product rail: their shop floor under their banner.
    Sales lead via carouselPickItems (biggest discount first, then halo). */
-function gymRatBrandRailHTML(spec, brandItems){
+function brandRoomRailHTML(spec, brandItems){
   const picks = carouselPickItems(brandItems, 15);
   if (!picks.length) return '';
   const cards = picks.map(it => carouselCardHTML(it, it.retailer || spec.key)).join('');
   return `<div class="ariaCarousel no-scrollbar mb-8" role="list" aria-label="Productos de ${escapeHtml(spec.label)}">${cards}</div>`;
 }
 
-/* The Gym Rat section: Ofertas rail on top (sale items across all gym
-   brands, biggest discount first), then one banner + rail per brand in
-   GYMRAT_BRANDS_SPEC order. Brands with no items are skipped. */
-function gymRatBrandStorefrontsHTML(items){
+/* The "Nuestras marcas" section, generic: Ofertas rail on top (sale
+   items across all brands, biggest discount first), then one banner +
+   rail per brand in spec order. Brands with no items are skipped.
+   opts: { kicker, heading, ofertasId }. groupBy is 'retailer'. */
+function brandRoomStorefrontsHTML(items, brandSpecs, opts){
+  opts = opts || {};
   const byBrand = {};
   for (const it of (items || [])){
     const r = String(it.retailer || '').toLowerCase();
     if (!r) continue;
     (byBrand[r] = byBrand[r] || []).push(it);
   }
-  const specs = GYMRAT_BRANDS_SPEC
+  const specs = (brandSpecs || [])
     .map(spec => ({ spec, items: byBrand[spec.key] || [] }))
     .filter(x => x.items.length > 0);
   if (!specs.length) return '';
   const saleItems = (items || []).filter(isSaleItem);
+  const ofertasId = opts.ofertasId || 'brandOfertas';
   const ofertasRail = saleItems.length >= 4
-    ? storeCarouselHTML({ id: 'gymratOfertas', title: 'Ofertas', items: saleItems, retailer: null })
+    ? storeCarouselHTML({ id: ofertasId, title: 'Ofertas', items: saleItems, retailer: null })
     : '';
   const blocks = specs.map(({ spec, items: bItems }) =>
-    `<section aria-label="${escapeHtml(spec.label)}">${gymRatBrandBannerHTML(spec, bItems)}${gymRatBrandRailHTML(spec, bItems)}</section>`).join('');
+    `<section aria-label="${escapeHtml(spec.label)}">${brandRoomBannerHTML(spec, bItems, { kicker: opts.kicker })}${brandRoomRailHTML(spec, bItems)}</section>`).join('');
   return `<div class="mt-1 mb-6">
     ${ofertasRail}
-    <h2 class="text-[20px] font-extrabold mb-4" style="letter-spacing:-0.02em;color:var(--navy)">Nuestras marcas</h2>
+    <h2 class="text-[20px] font-extrabold mb-4" style="letter-spacing:-0.02em;color:var(--navy)">${escapeHtml(opts.heading || 'Nuestras marcas')}</h2>
     ${blocks}
   </div>`;
 }
+
+/* Gym Rat wrappers: keep the existing call sites working. */
+function gymRatBrandHero(brandItems){ return brandRoomHero(null, brandItems); }
+function gymRatBrandBannerHTML(spec, brandItems){ return brandRoomBannerHTML(spec, brandItems, { kicker: 'Gym Rat' }); }
+function gymRatBrandRailHTML(spec, brandItems){ return brandRoomRailHTML(spec, brandItems); }
+function gymRatBrandStorefrontsHTML(items){
+  return brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas' });
+}
+
 
 /* The grid every listing surface uses: 2-across, large cards, the
    browsing density Ofertas was approved at. Named so a new surface
