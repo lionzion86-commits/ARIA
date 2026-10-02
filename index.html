@@ -28355,6 +28355,9 @@ function ttsDrained(st){
 function feedTts(st, delta, isFinal){
   if (st.settled) return;
   if (delta) st.buffer += delta;
+  /* MODEL SLOTS (2026-10-01): the [[SLOTS:{...}]] line streams through the
+     deltas -- strip it from the voice buffer so Lily never speaks JSON. */
+  if (st.buffer.includes('[[SLOTS:')) st.buffer = st.buffer.replace(/\[\[SLOTS:.*$/s, '');
   if (isFinal) st.streamDone = true;
   const out = splitSentences(st.buffer, isFinal);
   st.buffer = out.rest;
@@ -28832,6 +28835,61 @@ function extractShopSlots(text){
 /* Vague = a bare category ("zapatos", "zapatos women's") with no brand,
    style, budget or size to work with. In that case Aria asks ONE
    clarifying question instead of dumping the category. */
+/* MODEL-DRIVEN SLOTS (2026-10-01, Danny): "best plumbing". The model
+   ends shopping replies with [[SLOTS:{...}]] -- its authoritative read of
+   what the shopper meant. The client regexes are the fast first guess for
+   THIS turn's search; the model's slots are the source of truth carried
+   forward. Stripped before display, history, and speech. */
+const MODEL_SLOTS_RE = /\[\[SLOTS:(\{.*?\})\]\]\s*$/s;
+
+function extractModelSlots(reply){
+  const t = String(reply || '');
+  const m = t.match(MODEL_SLOTS_RE);
+  if (!m) return { clean: t, slots: null };
+  let parsed = null;
+  try { parsed = JSON.parse(m[1]); } catch(e){ /* malformed: ignore */ }
+  /* Strip the line even when the JSON is malformed -- a broken slots
+     line must never reach the shopper's eyes. */
+  const clean = t.slice(0, m.index).replace(/\s+$/, '');
+  return { clean, slots: (parsed && typeof parsed === 'object') ? parsed : null };
+}
+
+/* The model's understanding wins over the regex guess for every field
+   it actually filled. Conversions (PEN->USD, EU->US) run here so the
+   merged slots are immediately usable by filters and the next turn. */
+function mergeModelSlots(parsed){
+  if (!parsed) return;
+  const s = ariaShopSlots;
+  const str = (v) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+  const num = (v) => (typeof v === 'number' && isFinite(v) && v > 0) ? v : null;
+  const q = str(parsed.query); if (q) s.query = q;
+  const b = str(parsed.brand); if (b) s.brand = b;
+  const st = str(parsed.style);
+  if (st && /^(elegante|casual|deportivo)$/i.test(st)) s.style = st.toLowerCase();
+  const cs = str(parsed.clothingSize);
+  if (cs && /^(XS|S|M|L|XL|XXL)$/i.test(cs)) s.clothingSize = cs.toUpperCase();
+  const sz = str(parsed.size);
+  if (sz && /^\d+(\.\d+)?$/.test(sz)){
+    s.size = sz;
+    const n = parseFloat(sz);
+    if (n >= 35 && n <= 48){ s.sizeEU = true; const us = euToUs(String(Math.round(n))); if (us) s.sizeUS = us; }
+    else { s.sizeEU = false; s.sizeUS = null; }
+  }
+  const pen = num(parsed.maxPricePEN);
+  const usd = num(parsed.maxPriceUSD);
+  if (pen && typeof fxRate !== 'undefined' && fxRate){ s.maxPriceUSD = pen / fxRate; s.maxPriceLabel = 'S/' + Math.round(pen); }
+  else if (usd){ s.maxPriceUSD = usd; s.maxPriceLabel = '$' + usd; }
+  const oc = str(parsed.occasion); if (oc) s.occasion = oc;
+}
+
+/* One call: strip the slots line, merge the model's understanding,
+   return the clean reply for display/history/speech. */
+function applyModelSlots(reply){
+  const { clean, slots } = extractModelSlots(reply);
+  if (slots) mergeModelSlots(slots);
+  return clean;
+}
+
 function isVagueShoppingQuery(searchQuery, slots){
   const toks = String(searchQuery || '').trim().split(/\s+/).filter(Boolean);
   if (toks.length > 3 || /\d/.test(searchQuery)) return false;
@@ -29513,6 +29571,15 @@ async function runAssistantBrain(text){
       return;
     }
     let streamed = sink ? await streamAssistantReply(payload, sink, onTtsDelta) : null;
+    if (streamed){
+      /* The clarifying question streams like any reply: settle it, record
+         it, merge the model's slots -- the answer comes back next turn. */
+      const qline = applyModelSlots(streamed.reply) || '¿Para qué ocasión las buscas?';
+      sink.finish(qline);
+      hideAssistantTyping();
+      ariaChatHistory.push({ role: 'assistant', content: qline });
+      finishTtsPipeline(tts, qline, streamed.audio);
+    }
     if (!streamed){
       let res = null;
       try {
@@ -29524,7 +29591,8 @@ async function runAssistantBrain(text){
       if (res && res.ok){
         try {
           const dj = await res.json();
-          const line2 = dj && dj.reply;
+          const line2raw = dj && dj.reply;
+          const line2 = applyModelSlots(line2raw);
           if (line2){
             hideAssistantTyping();
             addAssistantMessage('bot', line2, null, { speak: false });
@@ -29771,7 +29839,7 @@ async function runAssistantBrain(text){
          with a one-liner when Groq twice returns zero content. It is spoken
          like any reply; the code rides the quiet note channel. */
       if (data.fallback) addAssistantNote('Código: Groq devolvió vacío tras reintento (fallback local)');
-      const reply = data.reply || 'Lo siento, no pude responder eso.';
+      const reply = applyModelSlots(data.reply) || 'Lo siento, no pude responder eso.';
       rememberAssistantTurn(text, reply);
       addAssistantMessage('bot', reply, data.audio);
       maybeAddStoreOfferFromReply(reply);
@@ -29782,7 +29850,9 @@ async function runAssistantBrain(text){
        left is to settle the text, record the turn, and let Ara speak --
        the same speak path addAssistantMessage uses, just reached after
        the words rather than with them. */
-    const reply = sink.finish(streamed.reply) || 'Lo siento, no pude responder eso.';
+    /* MODEL SLOTS (2026-10-01): strip the [[SLOTS:]] line and merge the
+       model's understanding before the reply settles anywhere. */
+    const reply = applyModelSlots(sink.finish(streamed.reply)) || 'Lo siento, no pude responder eso.';
     hideAssistantTyping();
     rememberAssistantTurn(text, reply);
     /* A REPLY THAT STOPPED MID-SENTENCE SAYS SO. The words already on

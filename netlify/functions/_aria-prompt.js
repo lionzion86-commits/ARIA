@@ -162,6 +162,7 @@ export function buildSystemPrompt(products = [], recipient = null, slots = null)
     recipientRulesEs(recipient),
     productRulesEs(products, recipient),
     shopSlotsEs(slots),
+    MODEL_SLOTS_ES,
   ].filter(Boolean).join("\n\n");
 }
 
@@ -186,6 +187,20 @@ export const SHOPPING_CONSULT_ES = `ERES UNA PERSONAL SHOPPER, NO UN BUSCADOR:
 - SÉ HONESTA: no ves el stock por talla en nuestro catálogo. Nunca afirmes que una talla específica está disponible.
 - Tallas de ropa (S, M, L, XL...): igual que el calzado — son una NOTA, nunca un filtro. Reconoce la talla y sigue recomendando.
 - Nunca inventes productos, precios, tallas ni tiendas. Si no hay nada bajo su presupuesto, dilo y ofrece la opción más cercana.`;
+
+/* MODEL-DRIVEN SLOTS (2026-10-01, Danny): "best plumbing". The client
+   regexes are a fast first guess, but YOU are the authority on what the
+   shopper meant. End every shopping-related reply with exactly one line:
+   [[SLOTS:{"query":"...","brand":"...","style":"...","size":"...","clothingSize":"...","maxPricePEN":null,"maxPriceUSD":null,"occasion":"..."}]]
+   - Include ONLY keys you have information for; null the rest or omit them.
+   - "query": product category/search words (English or Spanish), WITHOUT size or budget words. E.g. "zapatillas running".
+   - "brand": brand name or null. "style": elegante/casual/deportivo or null.
+   - "size": shoe size digits exactly as the shopper said them ("42", "10"); the client converts EU.
+   - "clothingSize": XS/S/M/L/XL/XXL or null. "occasion": e.g. "boda", "gym", or null.
+   - "maxPricePEN": number or null ("200 soles" -> 200). "maxPriceUSD": number or null ("$50" -> 50).
+   - NEVER skip it on a shopping turn, NEVER emit it on a non-shopping turn.
+   - The line is stripped before the shopper sees it. Never mention it, never speak it. */
+export const MODEL_SLOTS_ES = `Al final de cada respuesta de compras, en su propia línea: [[SLOTS:{"query":"...","brand":null,"style":null,"size":null,"clothingSize":null,"maxPricePEN":null,"maxPriceUSD":null,"occasion":null}]] con los datos que entendiste del pedido. Solo las claves con información; el resto null u omitidas. Nunca la menciones ni la expliques.`;
 
 export function shopSlotsEs(slots) {
   if (!slots || typeof slots !== "object") return "";
