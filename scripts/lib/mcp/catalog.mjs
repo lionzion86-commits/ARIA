@@ -16,17 +16,15 @@
    rather than shipping a quietly half-empty connector.
    ============================================================ */
 import { readFileSync, existsSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
 import { loadPageEngine } from "./page-slices.mjs";
-
-const REPO = fileURLToPath(new URL("../../../", import.meta.url));
+import { repoFile } from "./paths.mjs";
 
 /* The site's own list, read out of index.html so a catalogue added to
    the site reaches the connector without anyone remembering to add it
    here twice. */
 export function catalogueFilesFromPage() {
-  const html = readFileSync(REPO + "index.html", "utf8");
+  const html = readFileSync(repoFile("index.html"), "utf8");
   const m = /const CATALOGUE_FILES = \[([^\]]*)\]/.exec(html);
   if (!m) throw new Error("CATALOGUE_FILES moved in index.html — scripts/lib/mcp/catalog.mjs cannot find the catalogue list");
   const files = [...m[1].matchAll(/'([^']+)'/g)].map((x) => x[1].replace(/^\//, ""));
@@ -63,7 +61,7 @@ export function buildCatalog(opts = {}) {
   const errors = new Map();
 
   for (const rel of files) {
-    const path = REPO + rel;
+    const path = repoFile(rel);
     if (!existsSync(path)) { stats.missing.push(rel); continue; }
     let env;
     try { env = JSON.parse(readFileSync(path, "utf8")); }

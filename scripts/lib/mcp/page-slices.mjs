@@ -35,14 +35,13 @@
    ============================================================ */
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { fileURLToPath } from "node:url";
+import { repoFile } from "./paths.mjs";
 
-const INDEX_HTML = fileURLToPath(new URL("../../../index.html", import.meta.url));
-
-/** The page source, read once. */
+/** The page source, read once. Path resolves lazily so the bundled
+    layout (Netlify Functions) is probed at call time, not import time. */
 let pageSrc = null;
 function page() {
-  if (pageSrc === null) pageSrc = readFileSync(INDEX_HTML, "utf8");
+  if (pageSrc === null) pageSrc = readFileSync(repoFile("index.html"), "utf8");
   return pageSrc;
 }
 
