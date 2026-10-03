@@ -1,0 +1,13 @@
+# Netlify configuration for ariashop.pe.
+#
+# NOTE: build command / publish directory / environment are configured in the
+# Netlify UI and intentionally NOT duplicated here. This file only carries
+# settings that must live in the repo. Adding a [build] section here would
+# override the UI — do not add one without checking the UI first.
+
+[functions]
+  # The MCP connector (netlify/functions/mcp.js) reads index.html and the
+  # catalogue JSONs off disk at boot. Lambda bundles do not include repo
+  # files by default, so without this the function fails with ENOENT.
+  # ~91MB total — well under the 250MB unzipped Lambda limit.
+  included_files = ["index.html", "*-catalog.json", "department-cache*.json"]
