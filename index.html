@@ -12202,6 +12202,14 @@ function sunglassesDeptRailsHTML(items){
       const stores = new Set(pool.map(p => String(p.retailer || '').toLowerCase())).size;
       const picks = sgPicks(pool);
       if (!picks.length) continue;
+      /* Phase 2 brand rooms (2026-10-02): Oakley (flagship), Ray-Ban, ...
+         get the photo-room treatment instead of the text-only header. */
+      const spec = brandRoomSpecFor(b);
+      if (spec){
+        blocks.push(brandRoomDeptSectionHTML('sunglasses-brand-' + brandSlug(b), 'Lentes de sol ' + b,
+          spec, pool, picks, `sunglassesBrandFilter('${b.replace(/'/g, "\\'")}')`, 'Lentes de Sol', { xl: true }));
+        continue;
+      }
       const sub = pool.length + ' modelo' + (pool.length === 1 ? '' : 's')
         + (stores > 1 ? ' · ' + stores + ' tiendas' : '');
       blocks.push(deptRailSectionHTML('sunglasses-brand-' + brandSlug(b), 'Lentes de sol ' + b,
@@ -12383,8 +12391,17 @@ function deptBrandCarouselsHTML(items, sectionKey){
     });
     picks = categoryRailPicks(retailerKeys, [], pool, {}, 12, {});
     if (picks && picks.length >= 4){
-      blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
-        deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+      /* Phase 2 brand rooms (2026-10-02): a curated brand gets the
+         photo-room treatment instead of the text-only header. */
+      var spec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(b) : null;
+      if (spec){
+        var deptLabel = (typeof metaFor === 'function') ? (metaFor(DEPARTMENT_META, sectionKey).label || '') : '';
+        blocks.push(brandRoomDeptSectionHTML('brand-' + sectionKey + '-' + k, b, spec, pool, picks,
+          "brandRoomBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", deptLabel));
+      } else {
+        blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
+          deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+      }
     }
   }
   return blocks.join('');
@@ -17529,7 +17546,11 @@ function brandRoomBannerHTML(spec, brandItems, opts){
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
   const kicker = opts.kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(opts.kicker)}</span>` : '';
-  return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  /* Phase 2 (2026-10-02): brand-room banners outside Gym Rat filter by
+     BRAND, not store -- the tap is overridable; Gym Rat keeps the
+     default store filter. */
+  const tap = opts.onclick || `setCatalogStore('${jsAttr(spec.key)}')`;
+  return `<button onclick="${tap}" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -17587,6 +17608,106 @@ function gymRatBrandBannerHTML(spec, brandItems){ return brandRoomBannerHTML(spe
 function gymRatBrandRailHTML(spec, brandItems){ return brandRoomRailHTML(spec, brandItems); }
 function gymRatBrandStorefrontsHTML(items){
   return brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas' });
+}
+
+/* ============================================================
+   BRAND ROOMS -- PHASE 2 BATCH 1 (2026-10-02, Danny: full creative
+   authority, "the best-looking job, triple-verified").
+   Curated brand-world photo rooms for the highest-volume brands that
+   still showed text-only headers. Oakley FIRST (named by Danny --
+   the flagship), then Ray-Ban, Nike, Adidas, Puma, Sony, LEGO, Disney,
+   plus 3 more picked by catalog product count: Miu Miu (2,468),
+   New Balance (1,575), Crocs (1,130) -- the highest-volume brands
+   with a photographable brand world. Deliberately NOT picked despite
+   high counts: BaubleBar (6,984), JW PEI (2,351), Skims (2,269),
+   Kindred Bravely (1,838) -- no brand-world photography on Commons;
+   O'Neill (1,338) -- no usable Commons photos; Vivienne Westwood
+   (1,828) -- only memorial-scene photos of the flagship.
+   Same pattern as the Gym Rat rooms: spec.heroImage + asset in
+   assets/brands/, rendered by brandRoomBannerHTML. The registry is
+   GLOBAL: brandRoomSpecFor() lets any department's brand carousel
+   upgrade to the photo-room treatment when its brand is curated.
+   All photos: real photography from Wikimedia Commons, commercial-use
+   licenses (CC BY / CC BY-SA / CC0), downloaded and committed locally
+   -- never hotlinked. EXIF orientation verified, 2048x1152.
+   Attribution sits next to each reference, PR #276 style.
+   ============================================================ */
+const BRAND_ROOM_SPECS = [
+  /* FLAGSHIP (Danny named it): the Oakley 5th Ave NYC store.
+     Photo: 'The Oakley outlet at West 46th Street and 5th Avenue in
+     Midtown Manhattan' by Tdorante10, CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'oakley', label: 'Oakley', heroImage: 'assets/brands/oakley-hero.jpg' },
+  /* Photo: 'New Ray-Ban Store Miami Worldcenter' by Phillip Pessar,
+     CC BY 2.0, via Wikimedia Commons */
+  { key: 'rayban', label: 'Ray-Ban', heroImage: 'assets/brands/rayban-hero.jpg' },
+  /* Photo: 'Interior of Nike Factory Store at The Outlets' by
+     PaulGorduiz106, CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'nike', label: 'Nike', heroImage: 'assets/brands/nike-hero.jpg' },
+  /* Photo: 'Interior of an Adidas retail store in Houston, Texas' by
+     Soy Mencho, CC0 (public domain), via Wikimedia Commons */
+  { key: 'adidas', label: 'Adidas', heroImage: 'assets/brands/adidas-hero.jpg' },
+  /* Photo: 'Puma Store in Kerala' by Ganesh Mohan T, CC BY-SA 4.0,
+     via Wikimedia Commons */
+  { key: 'puma', label: 'Puma', heroImage: 'assets/brands/puma-hero.jpg' },
+  /* Photo: 'SONY STORE IN SHENZHEN' (UpperHills Mall) by Dinkun Chen,
+     CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'sony', label: 'Sony', heroImage: 'assets/brands/sony-hero.jpg' },
+  /* Photo: 'Interior of the Lego Store in Downtown Disney District at
+     Disneyland Resort' by Patrick Pelletier, CC BY-SA 3.0, via
+     Wikimedia Commons */
+  { key: 'lego', label: 'LEGO', heroImage: 'assets/brands/lego-hero.jpg' },
+  /* Photo: 'The Disney Store at Serramonte Center in Daly City,
+     California' by BrokenSphere, CC BY-SA 3.0, via Wikimedia Commons */
+  { key: 'disney', label: 'Disney', heroImage: 'assets/brands/disney-hero.jpg' },
+  /* Photo: Miu Miu window display, Landmark Atrium HK, by Sguidu Faiem
+     Saegoum, CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'miumiu', label: 'Miu Miu', heroImage: 'assets/brands/miumiu-hero.jpg' },
+  /* Photo: 'Store in The Mills at Jersey Gardens Mall in Elizabeth
+     New Jersey' (New Balance) by Curlyrnd, CC BY-SA 4.0, via
+     Wikimedia Commons */
+  { key: 'newbalance', label: 'New Balance', heroImage: 'assets/brands/newbalance-hero.jpg' },
+  /* Photo: 'Crocs Store Dadeland Mall, Miami FL 1 December 2022' by
+     Phillip Pessar, CC BY 2.0, via Wikimedia Commons */
+  { key: 'crocs', label: 'Crocs', heroImage: 'assets/brands/crocs-hero.jpg' },
+];
+
+/* Brand-room spec lookup, tolerant: 'Ray-Ban'/'ray ban' -> 'rayban',
+   'Miu Miu' -> 'miumiu', 'LEGO' -> 'lego'. Returns the spec or null. */
+function brandRoomSpecFor(brand){
+  const norm = String(brand || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  if (!norm || typeof BRAND_ROOM_SPECS === 'undefined') return null;
+  return BRAND_ROOM_SPECS.find(sp => sp.key === norm) || null;
+}
+
+/* Generic brand filter for brand-room banner taps (phase 2): narrows
+   the current department feed to the brand via the search term -- the
+   same mechanism toysBrandFilter / sunglassesBrandFilter use. */
+function brandRoomBrandFilter(brand){
+  catalogState.searchTerm = brand;
+  catalogState.subKey = null;
+  const input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  renderCatalogFeed();
+  const secs = document.getElementById('catalogSections');
+  if (secs) secs.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* A brand's photo room inside a department page: the curated banner
+   (brand-world photo, navy scrim, gold kicker, brand name, counts,
+   "Ver colección") with the brand's product rail directly beneath --
+   the text-only header is replaced, not duplicated. Cards and rail
+   markup mirror deptRailSectionHTML exactly so product taps behave
+   identically. onclickJs: the banner tap (a brand filter for that
+   department). opts passes through to railCardHTML (e.g. { xl: true }). */
+function brandRoomDeptSectionHTML(railId, ariaLabel, spec, pool, picks, onclickJs, kicker, opts){
+  if (!Array.isArray(picks) || !picks.length) return '';
+  deptRailsRendered[railId] = picks;
+  const cards = picks.map((p, i) => railCardHTML(p,
+    `openDeptRailProduct('${jsAttr(railId)}',${i})`,
+    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
+  const banner = brandRoomBannerHTML(spec, pool, { kicker: kicker, onclick: onclickJs });
+  return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">${banner}<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div></section>`;
 }
 
 
@@ -18640,8 +18761,16 @@ function toysDeptRailsHTML(items){
     var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
     if (picks.length){
       var slug = b.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'marca';
-      blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
-        deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+      /* Phase 2 brand rooms (2026-10-02): LEGO, Disney get the photo-room
+         treatment instead of the text-only header. */
+      var spec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(b) : null;
+      if (spec){
+        blocks.push(brandRoomDeptSectionHTML('toys-brand-' + slug, b, spec, pool, picks,
+          "toysBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", 'Juguetes'));
+      } else {
+        blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
+          deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+      }
     }
   });
   /* ---- OFERTAS: real discounts, biggest first. ---- */
