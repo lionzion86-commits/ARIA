@@ -15959,7 +15959,7 @@ const BRAND_LOGOS = {
   disney: { src: 'logos/brands/disney.svg' },
   quiksilver: { src: 'logos/brands/quiksilver.svg' },
   billabong: { src: 'logos/brands/billabong.svg' },
-  lego: { src: 'logos/brands/lego.png' },
+  lego: { src: 'logos/brands/lego.svg' },
   oakley: { src: 'logos/brands/oakley.png' },
   puma: { src: 'logos/brands/puma.png' },
   rayban: { src: 'logos/brands/rayban.png' },
@@ -17442,7 +17442,7 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
-  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -17553,7 +17553,7 @@ function brandRoomBannerHTML(spec, brandItems, opts){
      BRAND, not store -- the tap is overridable; Gym Rat keeps the
      default store filter. */
   const tap = opts.onclick || `setCatalogStore('${jsAttr(spec.key)}')`;
-  return `<button onclick="${tap}" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  return `<button onclick="${tap}" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -20168,7 +20168,7 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
       <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'}${onclick ? ' · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span>' : ''}</span>
     </span>`;
   const cls = "block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4";
-  const style = "position:relative;aspect-ratio:16/9;background:var(--navy)";
+  const style = "position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)";
   if (onclick){
     return `<button onclick="${onclick}" aria-label="Ver ${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</button>`;
   }
