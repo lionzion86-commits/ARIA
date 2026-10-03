@@ -20575,6 +20575,12 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Missy Light Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -20598,6 +20604,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Missy Flowers Light Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -20621,6 +20633,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Missy Flowers Light Blue Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -20645,6 +20663,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Isabel Burgundy Dress",
        "brand": "Capittana",
        "price": 150.0,
@@ -20690,6 +20713,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Peggy Black Silver Bikini Bottom",
        "brand": "Capittana",
        "price": 54.0,
@@ -20712,6 +20740,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Tiana Polka Dots Skirt",
        "brand": "Capittana",
        "price": 110.0,
@@ -20736,6 +20770,12 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Tiana Polka Dots Top",
        "brand": "Capittana",
        "price": 90.0,
@@ -20761,6 +20801,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Isabel Denim Dress",
        "brand": "Capittana",
        "price": 150.0,
@@ -20784,6 +20829,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Uchi Pearl Dress",
        "brand": "Capittana",
        "price": 330.0,
@@ -20808,6 +20857,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sisa Blue Skirt",
        "brand": "Capittana",
        "price": 120.0,
@@ -20832,6 +20885,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sisa Blue Top",
        "brand": "Capittana",
        "price": 140.0,
@@ -20856,6 +20913,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Polly Retro Pink Dress",
        "brand": "Capittana",
        "price": 130.0,
@@ -20879,6 +20940,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Mila Blue Maxi Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -20904,6 +20970,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mila Blue Mini Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -20926,6 +20996,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lali Mini White Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -20950,6 +21024,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Jime Ivory Skirt",
        "brand": "Capittana",
        "price": 120.0,
@@ -20975,6 +21053,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Jime Ivory Top",
        "brand": "Capittana",
        "price": 140.0,
@@ -21048,6 +21130,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Trinidad Flowers Fuchsia Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -21071,6 +21160,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Olivia Jade Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -21094,6 +21190,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lucero Red Low Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -21118,6 +21221,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Polka Dots Strawberry Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21142,6 +21252,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Polka Dots Yellow Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21165,6 +21282,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Jade Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -21189,6 +21313,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Kay Jade Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -21212,6 +21343,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Kay Jade Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -21236,6 +21374,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Isidora Retro Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21261,6 +21406,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Isidora Retro Pink Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21287,6 +21439,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Jade Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -21311,6 +21470,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Jade Hight Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21334,6 +21500,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Jade Low Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21357,6 +21530,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Jade Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21381,6 +21561,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Burgundy High Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21404,6 +21591,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Burgundy Low Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21427,6 +21621,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Burgundy Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21474,6 +21675,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sara Multicolor Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -21499,6 +21704,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sandra Pink Mini Dress",
        "brand": "Capittana",
        "price": 192.0,
@@ -21523,6 +21732,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Nessie Denim Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -21547,6 +21761,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Marilei Light Blue Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -21568,6 +21786,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Maddy Mint Knitted Stripes Short",
        "brand": "Capittana",
        "price": 80.0,
@@ -21593,6 +21815,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kaia Fuchsia Knitted Skirt",
        "brand": "Capittana",
        "price": 96.0,
@@ -21615,6 +21841,9 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Ella Multicolor Pastel Knitted Maxi Dress",
        "brand": "Capittana",
        "price": 154.0,
@@ -21639,6 +21868,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cornelia Green Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -21686,6 +21919,9 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Alexandra Ivory Maxi Dress",
        "brand": "Capittana",
        "price": 168.0,
@@ -21732,6 +21968,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad Flowers Blue Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21779,6 +22020,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Retro Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21800,6 +22048,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Retro Pink Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21822,6 +22077,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Bea Shell Light Blue Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -21843,6 +22105,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessia Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -21867,6 +22134,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessia Pink Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -21916,6 +22188,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Marilei Red Dress",
        "brand": "Capittana",
        "price": 208.0,
@@ -21937,6 +22213,9 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Ella Multicolor Knitted Maxi Dress",
        "brand": "Capittana",
        "price": 154.0,
@@ -21961,6 +22240,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Luli Caramel Skirt",
        "brand": "Capittana",
        "price": 200.0,
@@ -21982,6 +22265,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Luli Caramel Top",
        "brand": "Capittana",
        "price": 110.0,
@@ -22003,6 +22290,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Milena Blush Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -22025,6 +22316,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gaela Black and Ivory Skirt",
        "brand": "Capittana",
        "price": 130.0,
@@ -22049,6 +22344,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Dakota Wine Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -22072,6 +22372,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Dakota Wine Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -22096,6 +22401,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sweatshirt Polka Dots",
        "brand": "Capittana",
        "price": 110.0,
@@ -22119,6 +22428,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Olga Blue Skirt",
        "brand": "Capittana",
        "price": 140.0,
@@ -22142,6 +22455,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Barbara Multicolor Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -22163,6 +22480,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Abbie Multicolor Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -22187,6 +22508,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Flavia Stripes Top Blue",
        "brand": "Capittana",
        "price": 170.0,
@@ -22235,6 +22560,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Miri Multicolor Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -22257,6 +22587,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Miri Multicolor Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -22301,6 +22636,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Peggy Black Silver Bikini Top",
        "brand": "Capittana",
        "price": 126.0,
@@ -22344,6 +22684,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Miri Light Blue Crochet Flowers Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -22365,6 +22710,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Lina Gold Mesh Bikini Bottom",
        "brand": "Capittana",
        "price": 76.0,
@@ -22389,6 +22739,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Lina Gold Mesh Bikini Top",
        "brand": "Capittana",
        "price": 114.0,
@@ -22436,6 +22791,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Susane Fuchsia Terry Towel LW Bikini Bottom",
        "brand": "Capittana",
        "price": 68.0,
@@ -22459,6 +22819,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Susane Fuchsia Terry Towel Bikini Top",
        "brand": "Capittana",
        "price": 102.0,
@@ -22485,6 +22850,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Camille Denim Dress",
        "brand": "Capittana",
        "price": 210.0,
@@ -22510,6 +22881,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Josefa Jade Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -22534,6 +22910,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Josefa Deep Grape Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -22558,6 +22939,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Solange Fuchsia Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -22581,6 +22969,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Solange Aqua Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -22604,6 +22999,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Solange Black Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -22628,6 +23030,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Solange Black Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -22651,6 +23060,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Noe Beads Black & Beige Bikini Top",
        "brand": "Capittana",
        "price": 150.0,
@@ -22674,6 +23090,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Noe Beads Black & Beige Bikini Bottom",
        "brand": "Capittana",
        "price": 100.0,
@@ -22697,6 +23120,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Suemi Stripes Top",
        "brand": "Capittana",
        "price": 80.0,
@@ -22720,6 +23147,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Fuchsia Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -22744,6 +23178,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Fuchsia Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -22767,6 +23208,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Kelly Stripes Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -22790,6 +23238,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Vale Black Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -22813,6 +23266,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Vale Black Short",
        "brand": "Capittana",
        "price": 160.0,
@@ -22837,6 +23295,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Elsa Gold Short",
        "brand": "Capittana",
        "price": 95.0,
@@ -22861,6 +23323,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Elsa Mint Short",
        "brand": "Capittana",
        "price": 95.0,
@@ -22885,6 +23351,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Suemi Stripes Skirt",
        "brand": "Capittana",
        "price": 140.0,
@@ -22908,6 +23378,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Alicia Stripes Top",
        "brand": "Capittana",
        "price": 80.0,
@@ -22955,6 +23429,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Solange Fuchsia Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -22978,6 +23459,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Solange Aqua Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -23001,6 +23489,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Stripes Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -23025,6 +23520,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Adriana Denim Jumpsuit",
        "brand": "Capittana",
        "price": 280.0,
@@ -23048,6 +23548,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Juliette Brown Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -23072,6 +23576,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Juliette Brown Skirt",
        "brand": "Capittana",
        "price": 140.0,
@@ -23095,6 +23603,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Josefa Sand Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -23119,6 +23631,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Delia Gold Dress",
        "brand": "Capittana",
        "price": 340.0,
@@ -23142,6 +23658,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Melany Forest Green Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -23165,6 +23686,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Melany Brown Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -23188,6 +23714,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Aqua Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -23212,6 +23745,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Aqua Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -23235,6 +23775,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Moni Toffee Jacket",
        "brand": "Capittana",
        "price": 240.0,
@@ -23259,6 +23804,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Grecia Midi Navy Skirt",
        "brand": "Capittana",
        "price": 126.0,
@@ -23283,6 +23832,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Grecia Knitted Navy Top",
        "brand": "Capittana",
        "price": 77.0,
@@ -23307,6 +23860,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Navy Bikini Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -23331,6 +23891,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Navy Bikini Bottom",
        "brand": "Capittana",
        "price": 56.0,
@@ -23355,6 +23922,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nuri Pink Short",
        "brand": "Capittana",
        "price": 180.0,
@@ -23378,6 +23949,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nuri Pink Top",
        "brand": "Capittana",
        "price": 140.0,
@@ -23402,6 +23977,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nuri Steel Blue Short",
        "brand": "Capittana",
        "price": 180.0,
@@ -23426,6 +24005,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nuri Steel Blue Top",
        "brand": "Capittana",
        "price": 140.0,
@@ -23473,6 +24056,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cala Mint Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -23496,6 +24086,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cala Mint Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -23520,6 +24117,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cala Brown Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -23543,6 +24147,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cala Brown Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -23567,6 +24178,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cala Gold Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -23590,6 +24208,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cala Gold Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -23637,6 +24262,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Burgundy Bikini Bottom",
        "brand": "Capittana",
        "price": 108.0,
@@ -23660,6 +24292,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Burgundy Bikini Top",
        "brand": "Capittana",
        "price": 162.0,
@@ -23684,6 +24323,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Evelyn Stripes Steel Blue Mini Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -23707,6 +24351,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Beck Dress Steel Blue",
        "brand": "Capittana",
        "price": 340.0,
@@ -23730,6 +24379,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Beck Dress Pink",
        "brand": "Capittana",
        "price": 340.0,
@@ -23753,6 +24407,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Tangerine Bikini Top",
        "brand": "Capittana",
        "price": 162.0,
@@ -23777,6 +24438,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Tangerine Bikini Bottom",
        "brand": "Capittana",
        "price": 108.0,
@@ -23800,6 +24468,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Mint Bikini Bottom",
        "brand": "Capittana",
        "price": 108.0,
@@ -23823,6 +24498,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Mint Bikini Top",
        "brand": "Capittana",
        "price": 162.0,
@@ -23846,6 +24528,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Delia Navy Dress",
        "brand": "Capittana",
        "price": 340.0,
@@ -23869,6 +24556,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Rosy Brown Dress",
        "brand": "Capittana",
        "price": 320.0,
@@ -23892,6 +24584,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Beth Denim Short",
        "brand": "Capittana",
        "price": 80.0,
@@ -23914,6 +24611,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Lea Light Blue Mini Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -23962,6 +24664,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Emi Steel Blue Top",
        "brand": "Capittana",
        "price": 180.0,
@@ -23986,6 +24693,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Victoria Pink Mini Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -24009,6 +24721,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Nara Steel Black & White Skirt",
        "brand": "Capittana",
        "price": 190.0,
@@ -24033,6 +24750,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Nara Steel Black & White Top",
        "brand": "Capittana",
        "price": 150.0,
@@ -24057,6 +24779,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Steel Blue Low Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -24080,6 +24809,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Steel Blue Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -24127,6 +24863,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Noe Beads Top Burgundy",
        "brand": "Capittana",
        "price": 150.0,
@@ -24151,6 +24894,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Regina Brown Skirt",
        "brand": "Capittana",
        "price": 140.0,
@@ -24176,6 +24924,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Regina Brown Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -24200,6 +24953,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vale Pink Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -24224,6 +24981,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vale Pink Short",
        "brand": "Capittana",
        "price": 160.0,
@@ -24248,6 +25009,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kari Wavy Pink Top",
        "brand": "Capittana",
        "price": 112.0,
@@ -24290,6 +25055,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ali White Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -24313,6 +25082,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Missy Rose Light Brown Bikini Bottom",
        "brand": "Capittana",
        "price": 70.4,
@@ -24337,6 +25113,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Missy Rose Light Brown Bikini Top",
        "brand": "Capittana",
        "price": 105.6,
@@ -24361,6 +25144,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Toffee Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -24384,6 +25174,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Toffee Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -24452,6 +25249,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vale Gold Short",
        "brand": "Capittana",
        "price": 160.0,
@@ -24476,6 +25277,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vale Gold Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -24499,6 +25304,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Uchi Jade Dress",
        "brand": "Capittana",
        "price": 192.0,
@@ -24523,6 +25332,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Starla Blue Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -24544,6 +25357,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "ML",
+        "XL"
+       ],
        "name": "Sisa Fruits Skirt",
        "brand": "Capittana",
        "price": 130.0,
@@ -24567,6 +25385,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS",
+        "ML",
+        "XL"
+       ],
        "name": "Sisa Fruits Top",
        "brand": "Capittana",
        "price": 180.0,
@@ -24590,6 +25413,12 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessia Toffe Low Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -24613,6 +25442,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessia Toffe Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -24637,6 +25472,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Deer Dark Brown Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -24660,6 +25502,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Noah Retro Pink Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -24683,6 +25529,9 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Ella Stripes Knitted Maxi Dress",
        "brand": "Capittana",
        "price": 154.0,
@@ -24706,6 +25555,9 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Alexandra Multicolor Maxi Dress",
        "brand": "Capittana",
        "price": 161.0,
@@ -24730,6 +25582,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Aissa White Skirt",
        "brand": "Capittana",
        "price": 90.0,
@@ -24753,6 +25609,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Deer Dark Brown Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -24777,6 +25640,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Buttons Jade Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -24801,6 +25671,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Juliette Gold Skirt",
        "brand": "Capittana",
        "price": 140.0,
@@ -24826,6 +25701,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Juliette Gold Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -24851,6 +25731,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Lea Pink Dress",
        "brand": "Capittana",
        "price": 340.0,
@@ -24875,6 +25760,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ada Blue Dress",
        "brand": "Capittana",
        "price": 250.0,
@@ -24900,6 +25789,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ali Pearls Peach Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -24921,6 +25814,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nessa Black Dress",
        "brand": "Capittana",
        "price": 192.0,
@@ -24946,6 +25843,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Moni Chocolate Jacket",
        "brand": "Capittana",
        "price": 240.0,
@@ -24970,6 +25872,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Moni White Jacket",
        "brand": "Capittana",
        "price": 240.0,
@@ -24994,6 +25901,12 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Emilia Deer Brown Reversible Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -25041,6 +25954,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Valentina Deer Dark Brown Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -25064,6 +25984,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Valentina Deer Dark Brown Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -25087,6 +26013,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Victoria White Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -25161,6 +26092,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ada Green Dress",
        "brand": "Capittana",
        "price": 250.0,
@@ -25185,6 +26120,12 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Millie Chocolate Skirt",
        "brand": "Capittana",
        "price": 180.0,
@@ -25209,6 +26150,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Rosy Dress Burgundy",
        "brand": "Capittana",
        "price": 320.0,
@@ -25233,6 +26179,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Nara Steel Blue Top",
        "brand": "Capittana",
        "price": 150.0,
@@ -25258,6 +26209,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Nara Steel Blue Skirt",
        "brand": "Capittana",
        "price": 190.0,
@@ -25309,6 +26265,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alexia Jacket Denim",
        "brand": "Capittana",
        "price": 140.0,
@@ -25335,6 +26296,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessandra Toffee Skirt",
        "brand": "Capittana",
        "price": 150.0,
@@ -25359,6 +26325,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessandra Toffee Top",
        "brand": "Capittana",
        "price": 180.0,
@@ -25383,6 +26354,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Ivana Brown Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -25430,6 +26408,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Eva Dusty Pink Dress",
        "brand": "Capittana",
        "price": 330.0,
@@ -25454,6 +26437,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Sam Burgundy Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -25539,6 +26527,10 @@
        "weightKg": 0.6
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Starla Peach Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -25560,6 +26552,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sienna Black Butterfly Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -25583,6 +26579,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sandra Brown Mini Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -25606,6 +26606,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sandra Brown Maxi Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -25629,6 +26633,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sally White Top",
        "brand": "Capittana",
        "price": 110.0,
@@ -25653,6 +26661,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sally Black Top",
        "brand": "Capittana",
        "price": 110.0,
@@ -25679,6 +26691,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "ML"
+       ],
        "name": "Rumi Green Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -25703,6 +26719,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Piper Multicolor Knitted Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -25724,6 +26744,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Pipa Black Maxi Roses Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -25746,6 +26770,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Pipa Blue Cherries Maxi Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -25769,6 +26797,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Paloma Multicolor Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -25818,6 +26850,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nessa White Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -25841,6 +26877,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Natalie Pink Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -25865,6 +26905,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Natalie Polka Dots Brown Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -25889,6 +26933,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mey Pink Skirt",
        "brand": "Capittana",
        "price": 100.0,
@@ -25912,6 +26960,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mey Blue Skirt",
        "brand": "Capittana",
        "price": 130.0,
@@ -25934,6 +26986,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Martina Rose Crochet Dress",
        "brand": "Capittana",
        "price": 320.0,
@@ -25957,6 +27013,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Maggy Fuchsia Knitted Dress",
        "brand": "Capittana",
        "price": 250.0,
@@ -25980,6 +27040,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lia Multicolor Knitted Top",
        "brand": "Capittana",
        "price": 90.0,
@@ -26003,6 +27067,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lia Multicolor Knitted Midi Skirt",
        "brand": "Capittana",
        "price": 120.0,
@@ -26026,6 +27094,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kaia Ivory Knitted Skirt",
        "brand": "Capittana",
        "price": 96.0,
@@ -26050,6 +27122,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kaia Fuchsia Knitted Top",
        "brand": "Capittana",
        "price": 60.0,
@@ -26072,6 +27148,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Holly Multicolor Knitted Skirt",
        "brand": "Capittana",
        "price": 120.0,
@@ -26095,6 +27175,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gretta Zigzag Blue Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -26119,6 +27203,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Daphne White Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -26141,6 +27229,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cornelia Multicolor Pastel Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -26165,6 +27257,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cielo Multicolor Knitted Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -26189,6 +27285,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Bruna Stripes Knitted Skirt",
        "brand": "Capittana",
        "price": 130.0,
@@ -26235,6 +27335,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Fruits Slices Red Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -26257,6 +27364,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ella Magenta Knitted Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -26279,6 +27390,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad Gold Crochet Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -26301,6 +27417,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Stephanie Multicolor Crochet Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -26324,6 +27445,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Stephanie Multicolor Crochet Bikini Top",
        "brand": "Capittana",
        "price": 168.0,
@@ -26347,6 +27473,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lucero Off White Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -26370,6 +27503,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lucero Off White Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -26394,6 +27534,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ariel Strawberry Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -26441,6 +27585,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Emi Pink Top",
        "brand": "Capittana",
        "price": 180.0,
@@ -26466,6 +27615,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Addie Navy Skirt",
        "brand": "Capittana",
        "price": 154.0,
@@ -26490,6 +27643,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Addie Navy Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -26514,6 +27671,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Victoria Black Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -26538,6 +27700,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Victoria Burgundy Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -26562,6 +27729,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Andy Navy Dress",
        "brand": "Capittana",
        "price": 250.0,
@@ -26611,6 +27783,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L",
+        "XL"
+       ],
        "name": "Emi Burgundy Top",
        "brand": "Capittana",
        "price": 180.0,
@@ -26636,6 +27813,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Jules Deer Dark Brown Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -26681,6 +27862,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Acacia Retro Blue Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -26702,6 +27889,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Bea Shell Light Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -26723,6 +27917,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nala Mint Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -26742,6 +27940,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Liliana Pink Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -26765,6 +27967,12 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Bea Shell Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -26787,6 +27995,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Bea Shell Pink Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -26810,6 +28024,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Taylor Navy Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -26834,6 +28052,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Taylor Red Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -26878,6 +28100,13 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Ruffle Polka Dots Bikini Bottom",
        "brand": "Capittana",
        "price": 60.9,
@@ -26899,6 +28128,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Polka Dots Bikini Top",
        "brand": "Capittana",
        "price": 91.0,
@@ -26920,6 +28156,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Bea Shell White Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -26943,6 +28186,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Bea Shell White Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -26967,6 +28217,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Burgundy Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -26989,6 +28246,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Burgundy Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -27012,6 +28276,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ariel White Knitted Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -27035,6 +28303,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Didi Pink Mini Skirt",
        "brand": "Capittana",
        "price": 130.0,
@@ -27078,6 +28350,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lia Polka Dots Yellow Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -27102,6 +28381,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Polka Dots Black Bikini Top",
        "brand": "Capittana",
        "price": 86.0,
@@ -27125,6 +28411,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Polka Dots Black Bikini Bottom",
        "brand": "Capittana",
        "price": 86.0,
@@ -27148,6 +28441,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Marcela Pink Dress",
        "brand": "Capittana",
        "price": 270.0,
@@ -27216,6 +28513,13 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lucero Aqua Green Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -27241,6 +28545,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lucero Aqua Green Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -27266,6 +28577,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lucero Red High Waist Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -27292,6 +28610,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ceci Latte Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -27315,6 +28637,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Uchi Pink Dress",
        "brand": "Capittana",
        "price": 330.0,
@@ -27340,6 +28666,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lia Polka Strawberry Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -27365,6 +28698,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lia Polka Strawberry Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -27391,6 +28731,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Cherry Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -27416,6 +28763,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Cherry Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -27441,6 +28795,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Marcela Light Blue Dress",
        "brand": "Capittana",
        "price": 270.0,
@@ -27464,6 +28822,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cornelia Red Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -27487,6 +28849,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gala Polka Dots Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -27510,6 +28876,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad Flowers Baby Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -27531,6 +28902,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad Flowers Baby Pink Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -27623,6 +28999,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Tini Burgundy Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -27648,6 +29028,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Jime Pink Skirt",
        "brand": "Capittana",
        "price": 112.0,
@@ -27673,6 +29057,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Jime Pink Top",
        "brand": "Capittana",
        "price": 112.0,
@@ -27698,6 +29086,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Fatima Burgundy Dress",
        "brand": "Capittana",
        "price": 154.0,
@@ -27722,6 +29114,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kate Burgundy  Dress",
        "brand": "Capittana",
        "price": 176.0,
@@ -27745,6 +29141,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mila Neutro Mini Dress",
        "brand": "Capittana",
        "price": 160.0,
@@ -27815,6 +29215,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Daria Mini Black Dress",
        "brand": "Capittana",
        "price": 192.0,
@@ -27840,6 +29244,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Maritza Toffee Skirt",
        "brand": "Capittana",
        "price": 77.0,
@@ -27863,6 +29271,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lucinda Turquoise Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -27930,6 +29342,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kari Wavy Neutral Top",
        "brand": "Capittana",
        "price": 140.0,
@@ -27951,6 +29367,13 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Toffee Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -27973,6 +29396,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Toffee Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -27996,6 +29426,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Kay Tangerine  Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -28020,6 +29455,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Kay Tangerine Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -28043,6 +29483,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Buttons Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 61.6,
@@ -28067,6 +29514,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Buttons Pink Bikini Top",
        "brand": "Capittana",
        "price": 92.4,
@@ -28091,6 +29545,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Buttons Toffee Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -28115,6 +29576,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Buttons Toffee Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -28140,6 +29608,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Buttons Jade Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -28165,6 +29640,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Starla Beige Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -28188,6 +29667,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Uchi Black Dress",
        "brand": "Capittana",
        "price": 192.0,
@@ -28235,6 +29718,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mila Cherry Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -28257,6 +29744,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gala Burgundy Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -28302,6 +29793,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Elodie Multicolor Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -28324,6 +29819,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Jade Dress",
        "brand": "Capittana",
        "price": 182.0,
@@ -28345,6 +29844,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Honey Dress",
        "brand": "Capittana",
        "price": 208.0,
@@ -28366,6 +29869,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Baby Pink Dress",
        "brand": "Capittana",
        "price": 182.0,
@@ -28387,6 +29894,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mallory Red Skirt",
        "brand": "Capittana",
        "price": 128.0,
@@ -28410,6 +29921,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mallory Red Top",
        "brand": "Capittana",
        "price": 128.0,
@@ -28433,6 +29948,13 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Missy Yellow Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -28455,6 +29977,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Noah Retro Blue Dress",
        "brand": "Capittana",
        "price": 168.0,
@@ -28476,6 +30002,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Carla Red Dress",
        "brand": "Capittana",
        "price": 231.0,
@@ -28497,6 +30027,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ceci Black Dress",
        "brand": "Capittana",
        "price": 224.0,
@@ -28518,6 +30052,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ignacia Light Brown Dress",
        "brand": "Capittana",
        "price": 182.0,
@@ -28539,6 +30077,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kate White Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -28562,6 +30104,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ignacia Red Dress",
        "brand": "Capittana",
        "price": 182.0,
@@ -28583,6 +30129,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nara Blue Skirt",
        "brand": "Capittana",
        "price": 190.0,
@@ -28607,6 +30157,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nara Blue Top",
        "brand": "Capittana",
        "price": 160.0,
@@ -28631,6 +30185,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ceci Red Dress",
        "brand": "Capittana",
        "price": 224.0,
@@ -28652,6 +30210,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ceci Teal Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -28674,6 +30236,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Pipa Orange Maxi Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -28694,6 +30260,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rosalia Brown Skirt",
        "brand": "Capittana",
        "price": 216.0,
@@ -28716,6 +30286,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Sunset Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -28762,6 +30336,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Poppy Green Knitted Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -28784,6 +30362,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Blue Dress",
        "brand": "Capittana",
        "price": 156.0,
@@ -28809,6 +30391,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Colorblock Green Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -28829,6 +30415,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ceci Ivory Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -28852,6 +30442,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lucinda Flowers Dress",
        "brand": "Capittana",
        "price": 300.0,
@@ -28921,6 +30515,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Polka Dots Brown Bikini Top",
        "brand": "Capittana",
        "price": 126.0,
@@ -28945,6 +30546,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Eve Polka Dots Brown Bikini Bottom",
        "brand": "Capittana",
        "price": 86.0,
@@ -28968,6 +30576,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gretta Ruffles Espresso Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -28993,6 +30605,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Alonza Pearl Mini Skirt",
        "brand": "Capittana",
        "price": 110.0,
@@ -29017,6 +30633,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Alonza Pearl Cardigan",
        "brand": "Capittana",
        "price": 120.0,
@@ -29041,6 +30661,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad  White Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -29088,6 +30713,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Eve White Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -29111,6 +30741,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Eve White Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -29135,6 +30770,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Missy White Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -29158,6 +30798,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Missy White Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -29182,6 +30827,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Lily White Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -29205,6 +30855,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Lily White Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -29229,6 +30884,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessia White Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -29252,6 +30912,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Alessia White Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -29276,6 +30941,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Rose Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 104.0,
@@ -29299,6 +30969,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Rose Blue Bikini Top",
        "brand": "Capittana",
        "price": 156.0,
@@ -29324,6 +30999,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sandra Wavy Maxi Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -29348,6 +31027,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gretta Zigzag Brown Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -29395,6 +31078,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Piper Black Knitted Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -29418,6 +31105,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sally White Skirt",
        "brand": "Capittana",
        "price": 170.0,
@@ -29442,6 +31133,13 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Missy Rose Light Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -29465,6 +31163,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Tayla Light Blue Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -29488,6 +31190,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cornelia Red Pink Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -29511,6 +31217,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gaela Black and Ivory Top",
        "brand": "Capittana",
        "price": 130.0,
@@ -29535,6 +31245,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rumi Long Sleeve Black Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -29558,6 +31272,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rumi Long Sleeve Brown Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -29581,6 +31299,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rosalie Black Dress",
        "brand": "Capittana",
        "price": 168.0,
@@ -29604,6 +31326,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rosalia Blue Skirt",
        "brand": "Capittana",
        "price": 132.0,
@@ -29626,6 +31352,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gretta Dress Blue",
        "brand": "Capittana",
        "price": 260.0,
@@ -29650,6 +31380,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Lace Up Bikini Bottom",
        "brand": "Capittana",
        "price": 56.0,
@@ -29674,6 +31411,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Lily Lace Up Bikini Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -29698,6 +31442,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Rose Black & White Bikini Bottom",
        "brand": "Capittana",
        "price": 124.8,
@@ -29721,6 +31471,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Rose Black & White Bikini Top",
        "brand": "Capittana",
        "price": 124.8,
@@ -29745,6 +31501,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Lucy Green Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -29767,6 +31530,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Lucy Green Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -29790,6 +31560,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rumi Pink Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -29814,6 +31588,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Atira Vichy Fruits Bikini Bottom",
        "brand": "Capittana",
        "price": 56.0,
@@ -29836,6 +31617,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Atira Vichy Fruits Bikini Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -29858,6 +31646,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Trinidad Star Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -29881,6 +31676,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Trinidad Star Blue Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -29928,6 +31730,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Claudia Ivory Skirt",
        "brand": "Capittana",
        "price": 220.0,
@@ -29949,6 +31755,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Claudia Brown Skirt",
        "brand": "Capittana",
        "price": 220.0,
@@ -29970,6 +31780,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Dakota Blue Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -29994,6 +31809,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Dakota Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -30038,6 +31858,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kari Wavy Multicolor Top",
        "brand": "Capittana",
        "price": 140.0,
@@ -30061,6 +31885,11 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad Flowers Beige Bikini Bottom",
        "brand": "Capittana",
        "price": 92.0,
@@ -30084,6 +31913,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Trinidad Flowers Beige Bikini Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -30108,6 +31942,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Missy Rose Wine Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -30131,6 +31972,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Missy Rose Wine Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -30155,6 +32003,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lauren Dress Beige",
        "brand": "Capittana",
        "price": 220.0,
@@ -30199,6 +32051,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Abbie Neutro Knitted Maxi Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -30222,6 +32078,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ariel White & Silver Knitted Dress",
        "brand": "Capittana",
        "price": 280.0,
@@ -30246,6 +32106,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Meli Rainbow Light Denim Top",
        "brand": "Capittana",
        "price": 79.2,
@@ -30293,6 +32160,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Grecia Knitted Black Top",
        "brand": "Capittana",
        "price": 110.0,
@@ -30316,6 +32187,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Grecia Midi Black Skirt",
        "brand": "Capittana",
        "price": 180.0,
@@ -30339,6 +32214,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Gretta Red Ruffles Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -30362,6 +32241,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Annie Black Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -30409,6 +32292,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rochelle Sky Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -30432,6 +32319,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Milena Merlot Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -30456,6 +32347,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mariella Dress Onyx",
        "brand": "Capittana",
        "price": 260.0,
@@ -30479,6 +32374,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Mafer Blue Bikini Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -30502,6 +32404,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Mafer Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 56.0,
@@ -30524,6 +32433,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Gigi Lilac Bikini Bottom",
        "brand": "Capittana",
        "price": 61.6,
@@ -30548,6 +32464,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Gigi Lilac Bikini Top",
        "brand": "Capittana",
        "price": 92.4,
@@ -30572,6 +32495,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Missy Rose Light Blue Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -30596,6 +32525,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Rose Beige & Wine Bikini Bottom",
        "brand": "Capittana",
        "price": 104.0,
@@ -30618,6 +32553,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Rose Beige & Wine Bikini Top",
        "brand": "Capittana",
        "price": 156.0,
@@ -30641,6 +32582,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Rosalie Petroleo Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -30663,6 +32608,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Addie Black Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -30686,6 +32635,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Addie Black Skirt",
        "brand": "Capittana",
        "price": 220.0,
@@ -30709,6 +32662,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lauren Black and White Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -30733,6 +32690,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vero Black Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -30777,6 +32738,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mari Burgundy Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -30848,6 +32813,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Mafer Orange Bikini Bottom",
        "brand": "Capittana",
        "price": 56.0,
@@ -30872,6 +32844,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Mafer Orange Bikini Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -30896,6 +32875,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Flavia White Top",
        "brand": "Capittana",
        "price": 119.0,
@@ -30915,6 +32898,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mariella Brown Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -30984,6 +32971,13 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Gigi Pink Bikini Top",
        "brand": "Capittana",
        "price": 92.4,
@@ -31008,6 +33002,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Gigi Pink Bikini Bottom",
        "brand": "Capittana",
        "price": 61.6,
@@ -31031,6 +33032,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lumila White Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -31078,6 +33083,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Melissa Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 67.2,
@@ -31102,6 +33114,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Melissa Blue Bikini Top",
        "brand": "Capittana",
        "price": 100.8,
@@ -31125,6 +33144,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Gold Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -31148,6 +33171,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Zully Black Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -31171,6 +33198,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Liliana Neutral Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -31194,6 +33225,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Arlene Pink Dress",
        "brand": "Capittana",
        "price": 154.0,
@@ -31217,6 +33252,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Poppy Pink Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -31240,6 +33279,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Short Shell Black",
        "brand": "Capittana",
        "price": 220.0,
@@ -31262,6 +33305,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Alexis Multicolor Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -31286,6 +33333,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Olga Blue Top",
        "brand": "Capittana",
        "price": 110.0,
@@ -31309,6 +33360,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Kenya Purple Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -31332,6 +33388,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Kenya Purple Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -31356,6 +33417,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Beige Crochet Bikini Bottom",
        "brand": "Capittana",
        "price": 104.0,
@@ -31379,6 +33447,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Rose Beige Crochet Bikini Top",
        "brand": "Capittana",
        "price": 156.0,
@@ -31401,6 +33476,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Nia Vichy Orange Top",
        "brand": "Capittana",
        "price": 84.0,
@@ -31453,6 +33535,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Carolina Sea Dress",
        "brand": "Capittana",
        "price": 290.0,
@@ -31476,6 +33562,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Martina Multicolor White Dress",
        "brand": "Capittana",
        "price": 290.0,
@@ -31499,6 +33589,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Sabrina Multicolor Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -31521,6 +33615,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Maddy Yellow Knitted Stripes Short",
        "brand": "Capittana",
        "price": 80.0,
@@ -31546,6 +33644,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ariel Pink Knitted Dress",
        "brand": "Capittana",
        "price": 240.0,
@@ -31570,6 +33672,13 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Lucy Mint Bikini Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -31594,6 +33703,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L",
+        "XS",
+        "XL"
+       ],
        "name": "Lucy Mint Bikini Bottom",
        "brand": "Capittana",
        "price": 96.0,
@@ -31617,6 +33733,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Olga Stripes Top",
        "brand": "Capittana",
        "price": 130.0,
@@ -31681,6 +33801,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Raffa Ivory Knitted Top",
        "brand": "Capittana",
        "price": 180.0,
@@ -31704,6 +33828,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Piper Blue Midi Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -31724,6 +33852,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Tally Pastel Crochet Bikini Bottom",
        "brand": "Capittana",
        "price": 48.0,
@@ -31746,6 +33879,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Tally Pastel Crochet Bikini Top",
        "brand": "Capittana",
        "price": 72.0,
@@ -31768,6 +33906,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Mila Nude Slip Dress",
        "brand": "Capittana",
        "price": 50.0,
@@ -31791,6 +33933,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Valeria Black and White Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -31813,6 +33959,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cornelia Beige Wavy Maxi Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -31837,6 +33987,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Marissa Multicolor Punch Top",
        "brand": "Capittana",
        "price": 138.0,
@@ -31883,6 +34038,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Stephanie Black Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -31929,6 +34089,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Poppy Neutral Knitted Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -31953,6 +34117,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Atira Light Blue Bikini Top",
        "brand": "Capittana",
        "price": 108.0,
@@ -31975,6 +34146,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Atira Light Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 72.0,
@@ -32022,6 +34200,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ella Star Knitted Dress",
        "brand": "Capittana",
        "price": 220.0,
@@ -32044,6 +34226,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Ella Gold Knitted Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -32066,6 +34252,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Andrea Multicolor Light Blue Bikini Top",
        "brand": "Capittana",
        "price": 120.0,
@@ -32087,6 +34279,12 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Andrea Multicolor Light Blue Bikini Bottom",
        "brand": "Capittana",
        "price": 80.0,
@@ -32110,6 +34308,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Lucia Dress",
        "brand": "Capittana",
        "price": 269.0,
@@ -32132,6 +34334,11 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Gaia White Bikini Bottom",
        "brand": "Capittana",
        "price": 72.0,
@@ -32156,6 +34363,11 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Gaia White Bikini Top",
        "brand": "Capittana",
        "price": 108.0,
@@ -32179,6 +34391,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Alaia Multicolor Knitted Dress",
        "brand": "Capittana",
        "price": 161.0,
@@ -32201,6 +34417,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Alaia Beige Dress",
        "brand": "Capittana",
        "price": 161.0,
@@ -32224,6 +34444,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Poppy Multicolor Knitted Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -32246,6 +34470,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Cornelia Stripes Dress",
        "brand": "Capittana",
        "price": 200.0,
@@ -32270,6 +34498,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vivi Crochet Mini Skirt",
        "brand": "Capittana",
        "price": 170.0,
@@ -32293,6 +34525,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kaia Black Knitted Skirt",
        "brand": "Capittana",
        "price": 96.0,
@@ -32315,6 +34551,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Maya Multicolor Knitted Short",
        "brand": "Capittana",
        "price": 80.0,
@@ -32337,6 +34577,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nora Black Knitted Short",
        "brand": "Capittana",
        "price": 100.0,
@@ -32358,6 +34602,10 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Nora Black Knitted Top",
        "brand": "Capittana",
        "price": 100.0,
@@ -32381,6 +34629,9 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Elki Ivory Crochet Dress",
        "brand": "Capittana",
        "price": 126.0,
@@ -32403,6 +34654,10 @@
        "weightKg": 0.55
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Pam Ivory Skirt",
        "brand": "Capittana",
        "price": 90.0,
@@ -32426,6 +34681,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Piper Multicolor Zigzag Dress",
        "brand": "Capittana",
        "price": 260.0,
@@ -32473,6 +34732,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Holly Multicolor Knitted Top",
        "brand": "Capittana",
        "price": 99.0,
@@ -32496,6 +34759,9 @@
        "weightKg": 0.5
       },
       {
+       "availableSizes": [
+        "OS"
+       ],
        "name": "Mini Skirt Crochet",
        "brand": "Capittana",
        "price": 39.2,
@@ -32518,6 +34784,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Bruna Stripes Knitted Top",
        "brand": "Capittana",
        "price": 110.0,
@@ -32541,6 +34811,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Vivi Black Flowers Skirt",
        "brand": "Capittana",
        "price": 170.0,
@@ -32564,6 +34838,10 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Jade Multicolor Knitted Top",
        "brand": "Capittana",
        "price": 45.0,
@@ -32633,6 +34911,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Emma Light Blue Knitted Skirt",
        "brand": "Capittana",
        "price": 96.0,
@@ -32657,6 +34939,11 @@
        "weightKg": 0.44
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Smile, Sparkle, Shine Maple Top",
        "brand": "Capittana",
        "price": 55.0,
@@ -32682,6 +34969,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cuba Fuchsia Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -32705,6 +34999,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Cuba Fuchsia Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -32729,6 +35030,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Black with Crochet Bikini Top",
        "brand": "Capittana",
        "price": 132.0,
@@ -32753,6 +35061,13 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS",
+        "S",
+        "M",
+        "L",
+        "XL"
+       ],
        "name": "Alessia Black with Crochet Bikini Bottom",
        "brand": "Capittana",
        "price": 88.0,
@@ -32776,6 +35091,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kaia Black Knitted Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -32798,6 +35117,10 @@
        "weightKg": 0.33
       },
       {
+       "availableSizes": [
+        "XS/S",
+        "M/L"
+       ],
        "name": "Kaia Ivory Knitted Top",
        "brand": "Capittana",
        "price": 144.0,
@@ -32842,6 +35165,11 @@
        "weightKg": 0.6
       },
       {
+       "availableSizes": [
+        "S",
+        "M",
+        "L"
+       ],
        "name": "Health is Wealth Legging Polar Blue",
        "brand": "Capittana",
        "price": 85.0,
