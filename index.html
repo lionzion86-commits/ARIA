@@ -24669,8 +24669,78 @@ function rawFromTieredMarked(marked){
    reach a card. Evaluated on the RAW merchant price, before any margin
    math — so it works identically under the tiered margin. Retailers with
    verified legitimate 5-figure goods are exempt. */
-const ABSURD_PRICE_EXEMPT = new Set(['bhphoto','costco','islandwatersports','miumiu','ssense','farfetch','valsurf']);
+const ABSURD_PRICE_EXEMPT = new Set(['bhphoto','costco','islandwatersports','ssense','farfetch','valsurf']);
 const ABSURD_PRICE_RAW_USD = 10000;
+/* ABSURDITY QUARANTINE v2 (2026-10-02): category-aware ceilings. A $2,625
+   "wishbone" (verified live on nautilusspearfishing.com -- a $15 part) sailed
+   under the flat $10k rule, so product TYPE now carries its own ceiling at
+   every retailer, including luxury ones. LUXURY retailers get higher apparel
+   ceilings because their prices are real: miumiu.com spot-checked ($13,500
+   embroidered shirt, $9,500 shearling-trim cardigan, $725 boy-shorts all match
+   the feed) and silviatcherassi.com lists the Carolina Dress at $19,000.
+   A true fat-finger (10-100x) still trips even the luxury ceiling.
+   First matching rule wins. */
+const ABSURD_LUXURY_RETAILERS = new Set(['miumiu','ssense','farfetch','silviatcherassi']);
+/* [regex, ordinary ceiling USD, luxury ceiling USD, negative-context regexes] */
+const ABSURD_TYPE_CEILINGS = [
+  [/\b(wishbone|speargun tip|spear tip|tip adapter|mask strap|fin strap|mouthpiece|o-?ring|swivel|crimp|shooting line|reel line|defog|anti-?fog)\b/, 200, 200, [/chair/i, /sofa/i, /seating/i, /recliner/i]],
+  [/\b(buckle|hair clip|claw clip|lanyard)\b/, 200, Infinity, null],
+  [/\badapter\b/, 200, 200, [/power adapter/i, /usb-?c/i, /car seat/i, /stroller/i, /mount adapter/i, /macbook/i, /nikon/i, /camera/i]],
+  [/\b(screw|washer|shackle)\b/, 200, 200, [/bottle washer/i, /dishwasher/i]],
+  [/\b(gloves?|mittens?)\b/, 400, 1500, null],
+  [/\b(socks?|booties)\b/, 400, 1500, null],
+  [/\b(cap|beanie|snapback|trucker( hat)?)\b/, 400, 1500, [/laser/i, /hair growth/i]],
+  [/\bbelt\b/, 400, 2500, [/dress/i]],
+  [/\b(keychain|key chain)\b/, 400, 1500, null],
+  [/\bt-?shirt\b|\btee\b/, 2000, 15000, null],
+  [/\b(shirt|polo|tank ?top|singlet|henley)\b/, 2000, 15000, [/\bt-?shirt\b/i]],
+  [/\b(shorts|boxers?|bermudas?)\b/, 2000, 3000, null],
+  [/\b(sweatshirt|hoodie|crewneck|sweater|cardigan|pullover)\b/, 2000, 10000, null],
+  [/\b(sweatpants|joggers|leggings|tights|jeans|denim|chinos|trousers|pants)\b/, 2000, 6000, null],
+  [/\b(skirt)\b/, 3000, 15000, null],
+  [/\b(bikini|swimsuit|one-?piece)\b/, 2000, 5000, null],
+  [/\b(gown)\b/, 8000, 25000, null],
+  [/\b(dress|jumpsuit|romper)\b/, 8000, 25000, null],
+  [/\b(blouson|bomber)\b/, 6000, 25000, null],
+  [/\b(jacket|windbreaker|puffer)\b/, 6000, 25000, null],
+  [/\b(coat|parka|overcoat|trench)\b/, 40000, 40000, null],
+  [/\b(blazer|suit)\b/, 8000, 15000, null],
+  [/\b(handbag|tote|shoulder bag|crossbody|clutch|duffel|backpack)\b/, 8000, 10000, null],
+  [/\b(wallet|cardholder|card holder|purse)\b/, 3000, 5000, null],
+  [/\b(scarf|pashmina)\b/, 1500, 3000, null],
+  [/\b(sneakers?|loafers?|sandals?|heels?|pumps?|booties|boots)\b/, 2500, 5000, null],
+  [/\bwetsuit\b/, 1500, 1500, null],
+  [/\brash ?guard\b/, 500, 500, null],
+  [/\bspeargun\b/, 4000, 4000, [/\btip\b/i]],
+  [/\bpole spear\b|\bpolespear\b|\bhawaiian sling\b/, 600, 600, null],
+  [/\bbcd\b|\bbuoyancy compensator\b/, 1500, 1500, null],
+  [/\bregulator\b|\boctopus\b|\bfirst stage\b|\bsecond stage\b/, 2000, 2000, null],
+  [/\bdive computer\b/, 2500, 2500, null],
+  [/\bmask\b|\bsnorkel\b/, 500, 500, [/\bstrap\b/i]],
+  [/\bfins?\b|\bfin blades\b/, 1000, 1000, [/\bstrap\b/i]],
+  [/\bdive knife\b/, 400, 400, null],
+  [/\bdive light\b/, 800, 800, null],
+  [/\bweight belt\b|\bdive weights?\b/, 500, 500, null],
+  [/\b(speargun )?reel\b/, 600, 600, null],
+  [/\bpower bands?\b|\brubber bands?\b/, 200, 200, null],
+  [/\b(lipstick|mascara|eyeliner|foundation|concealer|blush|eyeshadow|bronzer|highlighter|setting spray)\b/, 500, 1500, null],
+  [/\b(perfume|eau de parfum|eau de toilette|cologne|fragrance)\b/, 1500, 3000, null],
+  [/\b(shampoo|conditioner|serum|moisturizer|cleanser|sunscreen|lotion)\b/, 500, 1500, null],
+];
+/* Lowest applicable ceiling for this product type. Ordinary retailers with
+   no matching rule fall through to the flat $10k rule below; luxury
+   retailers (no flat rule) get a $50k backstop -- 2x the priciest verified
+   item -- so an unclassified 10x fat-finger still gets caught. */
+function absurdCeilingUsd(retailer, title){
+  const t = String(title || '').toLowerCase();
+  const lux = ABSURD_LUXURY_RETAILERS.has(String(retailer || '').toLowerCase());
+  for (const [rx, ord, luxc, neg] of ABSURD_TYPE_CEILINGS){
+    if (!rx.test(t)) continue;
+    if (neg && neg.some(n => n.test(t))) continue;
+    return lux ? luxc : ord;
+  }
+  return lux ? 50000 : Infinity;
+}
 
 /* PER-RETAILER MIAMI SALES TAX (2026-09-27) -- Danny's call.
    Aria holds a FL LLC + EIN and is filing the FL DOR resale certificate
@@ -26727,7 +26797,11 @@ function normalizeLiveItem(item, hints){
      number. Checked on RAW price before margin, so tiers can't smuggle one
      through. */
   const __rkey = String((hints && hints.retailer) || item.retailer || '').toLowerCase();
-  const __absurd = Number.isFinite(rawPrice) && rawPrice > ABSURD_PRICE_RAW_USD && !ABSURD_PRICE_EXEMPT.has(__rkey);
+  /* v2: the product TYPE carries its own ceiling (a $2,625 "wishbone" is
+     absurd at any retailer); the flat $10k rule + exemptions cover the rest. */
+  const __typeCeil = absurdCeilingUsd(__rkey, title);
+  const __absurd = Number.isFinite(rawPrice) &&
+    (rawPrice > __typeCeil || (rawPrice > ABSURD_PRICE_RAW_USD && !ABSURD_PRICE_EXEMPT.has(__rkey) && !ABSURD_LUXURY_RETAILERS.has(__rkey)));
   if (__absurd && typeof console !== 'undefined' && console.warn) console.warn('[aria] absurd price quarantined:', __rkey, title, rawPrice);
   /* TIERED MARGIN (2026-10-02, Danny): brackets on the raw US shelf price,
      then the per-retailer Miami sales tax multiplies. */
