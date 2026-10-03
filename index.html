@@ -10450,52 +10450,71 @@ function detectBrandIntent(rawToks, pool, opts){
   const retailerNames = new Set();
   for (const r of (opts && opts.retailers) || [])
     for (const n of [r.key, r.label]) for (const t of searchTokens(n || '')) retailerNames.add(t);
-  const windows = [];
-  for (let size = 3; size >= 1; size--)
+  const windowsBySize = [];
+  for (let size = 3; size >= 1; size--){
+    const arr = [];
     for (let i = 0; i + size <= rawToks.length; i++){
       const win = rawToks.slice(i, i + size);
       const joins = [win.join('')];
       if (size === 2) joins.push(win[1] + win[0]);
       else if (size === 3) joins.push(win[2] + win[1] + win[0]);
-      windows.push({ joins, idx: win.map((_, k) => i + k) });
+      arr.push({ joins, idx: win.map((_, k) => i + k) });
     }
+    if (arr.length) windowsBySize.push(arr);
+  }
   const singleSkipped = (w) => {
     if (w.joins.length !== 1 || w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
     return !!synonymGroupOf(tok) || retailerNames.has(tok);
   };
-  for (const w of windows){
-    if (singleSkipped(w)) continue;
-    for (const j of w.joins){
-      const k = searchBrandKey(j);
-      if (!k || k.length < 2) continue;
-      const hit = vocab.get(k);
-      if (hit) return { key: k, label: hit.label, consumed: w.idx };
-    }
-  }
   const keys = [...vocab.keys()];
   const sqKeys = keys.map(k => fuzzySquashDoubles(k));
-  let best = null;
-  for (const w of windows){
-    if (singleSkipped(w)) continue;
-    for (const j of w.joins){
-      const k = searchBrandKey(j);
-      if (!k || k.length < 2) continue;
-      const maxDist = k.length >= 4 ? 2 : 1;
-      const sk = fuzzySquashDoubles(k);
-      for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
-        if (Math.abs(bk.length - k.length) > maxDist) continue;
-        const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
-        if (d <= maxDist && (!best || d < best.d)){
-          best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };
-          if (d === 0) break;
+  /* LONGEST WINDOW WINS (2026-10-03, Danny: "victoria secret sales"
+     showed SKIMBOARDS). The old shape ran the exact pass over every
+     window size before the fuzzy pass ran at all, so a single generic
+     word hijacked the query: "secret" (the deodorant brand) beat the
+     2-word fuzzy "victoriasecret"->"victoriassecret", and "la" (La Mer)
+     beat "yougla"->"youngla". Now each window size runs exact-then-
+     fuzzy before a smaller size is tried, so a multi-word brand always
+     outranks a one-word coincidence. */
+  for (const windows of windowsBySize){
+    for (const w of windows){
+      if (singleSkipped(w)) continue;
+      for (const j of w.joins){
+        const k = searchBrandKey(j);
+        if (!k || k.length < 2) continue;
+        const hit = vocab.get(k);
+        if (hit) return { key: k, label: hit.label, consumed: w.idx };
+      }
+    }
+    let best = null;
+    for (const w of windows){
+      if (singleSkipped(w)) continue;
+      for (const j of w.joins){
+        const k = searchBrandKey(j);
+        if (!k || k.length < 2) continue;
+        /* SHORT SINGLE TOKENS STAY TIGHT (2026-10-03): "hudi" (a
+           hoodie typo) fuzzy-matched the brand "gucci" at d=2 --
+           two substitutions on four letters is a coincidence, not
+           a brand. One-word queries under 5 chars get d<=1; the
+           product-word fuzzy layer still resolves the typo. */
+        const maxDist = (w.idx.length === 1 && k.length < 5) ? 1 : (k.length >= 4 ? 2 : 1);
+        const sk = fuzzySquashDoubles(k);
+        for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
+          if (Math.abs(bk.length - k.length) > maxDist) continue;
+          const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
+          if (d <= maxDist && (!best || d < best.d)){
+            best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };
+            if (d === 0) break;
+          }
         }
+        if (best && best.d === 0) break;
       }
       if (best && best.d === 0) break;
     }
-    if (best && best.d === 0) break;
+    if (best) return best;
   }
-  return best;
+  return null;
 }
 
 /* Brand-shelf order: measurable markdowns first, then
@@ -10801,6 +10820,17 @@ function rankCatalogMatches(pool, query, opts){
     'elegante','elegantes','casual','casuales','athletic','sport','sporty','formal','formales']);
   const liveToks = toks.filter(t => !STYLE_ONLY_TOKENS.has(t));
   if (liveToks.length) toks = liveToks;
+  /* SALES INTENT IS A MODIFIER, NOT A PRODUCT WORD (2026-10-03, Danny:
+     "victoria secret sales" / "ofertas victoria secret" must show the
+     brand's sale items). No product title says "ofertas" or
+     "descuentos", so requiring the word can only zero out a good brand
+     search -- the tokens leave the required set, and the brand shelf
+     below is already sales-first (the results page leads with sales
+     anyway). */
+  const SALES_INTENT_TOKENS = new Set(['sale','sales','oferta','ofertas',
+    'descuento','descuentos','rebaja','rebajas','liquidacion','clearance']);
+  const intentToks = toks.filter(t => !SALES_INTENT_TOKENS.has(t));
+  if (intentToks.length !== toks.length) toks = intentToks;
   /* GENDER IS PREFERENCE, NEVER A HARD REQUIREMENT (2026-10-02, Danny).
      "Aletas de buceo para mi papá" built the query "diving fins men's"
      and the multi-word AND rule then required every fin title to say
@@ -11102,6 +11132,13 @@ function catalogResultsAreThin(res){
 async function catalogSearch(query, opts){
   const t = translateQuery(query);
   const pool = await relatedPool();
+  /* HONEST EMPTY (2026-10-03): every catalogue fetch failed (dead
+     signal, CDN hiccup) -- the pool is empty and the search would
+     wrongly print "no tenemos 'X' en nuestro catalogo" as if we
+     did not carry it. Throw so the caller shows the retry card
+     instead of a lie. Rails keep their own degraded behaviour. */
+  if (typeof departmentCacheFailed !== 'undefined' && departmentCacheFailed)
+    throw new Error('catalogue failed to load');
   const res = rankCatalogMatches(pool, t.query, { ...(opts || {}), retailers: (opts && opts.retailers) || activeRetailers() });
   return { ...res, asked: query, translated: t.query, changed: t.changed };
 }
@@ -22885,7 +22922,14 @@ let liveSearchQueryUsed = '';   // the refined words the scan actually went out 
 /* Retry entry point for a failed catalogue search. The failed query is
    kept in module state so the retry button needs no inline quoting. */
 let lastFailedQuery = null;
-function retryFailedSearch(){ if (lastFailedQuery) showResults(lastFailedQuery); }
+function retryFailedSearch(){
+  if (!lastFailedQuery) return;
+  /* A retry has to be able to succeed: the failed fetches are
+     memoised, so replaying the search without resetting just
+     replays the failure. */
+  if (typeof resetCatalogState === 'function') resetCatalogState();
+  showResults(lastFailedQuery);
+}
 
 async function showResults(query, opts = {}){
   pushRoute({ view: 'resultsView', q: query });
