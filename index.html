@@ -10409,6 +10409,32 @@ function isStrictFinsQuery(toks){
   return finQueryKind(toks) !== null;
 }
 
+/* GENDER TOKENS IN QUERIES (2026-10-02, Danny). Canonical forms as
+   they appear after searchTokens+canonicalizeTokens: "para hombre"
+   arrives as "mens" (phrase table) and the recipient keyword
+   "men's" splits into "men"+"s". Spanish forms survive when
+   untranslated (folded, so nino/nina). */
+const GENDER_MALE_TOKENS = new Set(['mens', 'men', 'male', 'boy', 'boys',
+  'hombre', 'hombres', 'nino', 'ninos', 'nene', 'caballero', 'senor', 'varon']);
+const GENDER_FEMALE_TOKENS = new Set(['womens', 'women', 'female', 'girl', 'girls',
+  'mujer', 'mujeres', 'nina', 'ninas', 'nena', 'dama', 'damas', 'senora', 'senorita']);
+const GENDER_QUERY_TOKENS = new Set([...GENDER_MALE_TOKENS, ...GENDER_FEMALE_TOKENS]);
+/* GENDERLESS CATEGORIES (2026-10-02, Danny): dive fins and snorkels
+   have no men's or women's versions — gender qualifiers must not
+   touch them. Masks stay out: "mascara" collides with makeup
+   mascara in the word table, so the taxonomy does not support
+   them cleanly. */
+const GENDERLESS_CATEGORY_TOKENS = new Set(['fins', 'fin', 'snorkel', 'snorkels']);
+const GENDER_MATCH_BOOST = 0.5;
+function genderIntentFromTokens(toks){
+  const t = toks || [];
+  const m = t.some((x) => GENDER_MALE_TOKENS.has(x));
+  const f = t.some((x) => GENDER_FEMALE_TOKENS.has(x));
+  if (m && !f) return 'male';
+  if (f && !m) return 'female';
+  return null;
+}
+
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   query = expandBrandAliases(query);
@@ -10428,6 +10454,28 @@ function rankCatalogMatches(pool, query, opts){
     'elegante','elegantes','casual','casuales','athletic','sport','sporty','formal','formales']);
   const liveToks = toks.filter(t => !STYLE_ONLY_TOKENS.has(t));
   if (liveToks.length) toks = liveToks;
+  /* GENDER IS PREFERENCE, NEVER A HARD REQUIREMENT (2026-10-02, Danny).
+     "Aletas de buceo para mi papá" built the query "diving fins men's"
+     and the multi-word AND rule then required every fin title to say
+     "mens" — zero results for fins we stock. Two rules now:
+     1. GENDERLESS CATEGORIES (fins, snorkels — there are no men's or
+        women's fins): gender qualifiers leave the query entirely,
+        before matching. No preference either.
+     2. Everywhere else gender is a PREFERENCE: gender tokens leave the
+        required set and become a scoring boost, so "zapatos para mujer"
+        leads with women's shoes but never zeroes out unmarked/unisex
+        ones. The chat pipeline's productSuitsRecipient hard gate still
+        rejects positively opposite-gendered titles. */
+  const queryGender = genderIntentFromTokens(toks);
+  let genderBoost = null;
+  if (queryGender){
+    const genderlessQuery = toks.some((t) => GENDERLESS_CATEGORY_TOKENS.has(t));
+    /* A bare "s" is the remnant of a possessive split ("men's" ->
+       "men"+"s"); it can never be a meaningful requirement, so it
+       leaves with the gender tokens. */
+    toks = toks.filter((t) => !GENDER_QUERY_TOKENS.has(t) && t !== 's');
+    if (!genderlessQuery) genderBoost = queryGender;
+  }
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
 
   /* A store's name is answered by that store's stock (see the note on
@@ -10544,7 +10592,15 @@ function rankCatalogMatches(pool, query, opts){
        sanctioned modifier, not a word the title must contain. */
     if (toks.length > 1 && !isStrictFinsQuery(toks) && hits < toks.length) continue;
     if (hits === toks.length) exact++; else partial++;
-    scored.push({ item, score: scoreCatalogItem(item, toks, weights, words) });
+    let itemScore = scoreCatalogItem(item, toks, weights, words);
+    /* Gender preference boost (see above): a title positively signalling
+       the queried gender outranks an unmarked one. Guarded — the test
+       harness runs this slice without the chat helpers. */
+    if (genderBoost && typeof titleAudience === 'function'){
+      const aud = titleAudience(item.title || item.name || '');
+      if (aud && aud.gender === genderBoost) itemScore += GENDER_MATCH_BOOST;
+    }
+    scored.push({ item, score: itemScore });
   }
   scored.sort((a, b) => b.score - a.score);
   /* THE SCORE RIDES WITH THE ITEM. Ranking here and then handing the
@@ -33659,13 +33715,20 @@ function isVagueShoppingQuery(searchQuery, slots){
   return !(slots.brand || slots.style || slots.maxPriceUSD || slots.size);
 }
 
+/* The query reaching the strips below is already accent-folded by
+   normalizeQueryText ("papá" -> "papa"), but the recipient regexes are
+   written with accents — without folding the source, "papa" was never
+   stripped and poisoned the AND match. (2026-10-02, Danny.) */
+function foldAccents(s){
+  return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
 function buildChatSearchQuery(text, recipient){
   const base = translateSearchQuery(stripAriaVocative(String(text || '')))
     // Drop the Spanish framing so only the product words remain; left in,
     // "para mi sobrino de 14 años" is noise the retailer matches badly.
     .replace(/\bpara\s+(mi|mis|el|la|un|una)?\s*/gi, ' ')
-    .replace(new RegExp(RECIPIENT_MALE_RE.source, 'gi'), ' ')
-    .replace(new RegExp(RECIPIENT_FEMALE_RE.source, 'gi'), ' ')
+    .replace(new RegExp(foldAccents(RECIPIENT_MALE_RE.source), 'gi'), ' ')
+    .replace(new RegExp(foldAccents(RECIPIENT_FEMALE_RE.source), 'gi'), ' ')
     .replace(AGE_YEARS_RE, ' ')
     .replace(AGE_MONTHS_RE, ' ')
     /* THE ASKING WORDS, OUT. "búscame unos tenis" reached the catalogue
@@ -33673,7 +33736,7 @@ function buildChatSearchQuery(text, recipient){
        and an article -- noise that matches nothing and dilutes every
        score. chatAckEs already strips these to read the request back;
        the query that goes looking needs the same treatment. */
-    .replace(/\b(?:b[uú]sca(?:me)?|buscar|enc[uú]entra(?:me)?|encontrar|nec[eé]sito|quiero|quisiera|mu[eé]strame|ens[eé][ñn]ame|dame|tienes?|tienen|hay|ver)\b/gi, ' ')
+    .replace(/\b(?:b[uú]sca(?:ndo|me)?|buscar|enc[uú]entra(?:me)?|encontrar|nec[eé]sito|quiero|quisiera|mu[eé]strame|ens[eé][ñn]ame|dame|tienes?|tienen|hay|ver|estoy|adios)\b/gi, ' ')
     .replace(/\b(un|una|unos|unas|el|la|los|las|algun|alguna|algunos|algunas)\b/gi, ' ')
     /* SHOW-ALL WORDS, OUT (2026-09-28, Danny). "Muéstrame todas las
        Adidas" left "todas" in the query, and multi-word queries are AND
