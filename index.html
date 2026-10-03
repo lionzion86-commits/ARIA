@@ -24404,7 +24404,11 @@ function applyStoreTheme(viewId, retailer){
      spec gets the new photo-room banner (openStore) instead of the old
      generated backdrop -- never both. */
   const __hasBrandRoom = rkey && (typeof brandRoomSpecFor === 'function') && brandRoomSpecFor(rkey);
-  if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey] && !__hasBrandRoom){
+  if (__hasBrandRoom){
+    /* Brand-room banner (openStore) replaces the old generated backdrop;
+       the store theme stays. */
+  }
+  else if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey]){
     el.setAttribute('data-has-backdrop', '1');
     el.style.setProperty('--store-backdrop', "url('" + STORE_BACKDROPS[rkey] + "')");
   }
