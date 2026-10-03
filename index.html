@@ -6363,15 +6363,15 @@ const IMPORT_TAX_THRESHOLD_USD = 200;
 const IMPORT_TAX_RATE = 0.23;
 
 /* Resolve the dutiable base for a price. Prefer the stamped dutiableUsd
-   that normalizeLiveItem() puts on every item; otherwise back it out
-   exactly the way the price was built (price / LIVE_PRICE_MARKUP), which
+   that normalizeLiveItem() puts on every item; otherwise back the tiered
+   margin out the way the price was built (rawFromTieredMarked), which
    is the same reversal the admin margin view uses. Never NaN into a
    sum: callers guard with Number.isFinite. */
 function dutiableBaseUsd(usd, dutiableUsd){
   const d = Number(dutiableUsd);
   if (Number.isFinite(d) && d > 0) return Math.round(d * 100) / 100;
   const p = Number(usd);
-  if (Number.isFinite(p) && p > 0) return Math.round((p / LIVE_PRICE_MARKUP) * 100) / 100;
+  if (Number.isFinite(p) && p > 0) return Math.round(rawFromTieredMarked(p) * 100) / 100;
   return NaN;
 }
 
@@ -20190,6 +20190,18 @@ async function openStore(retailer){
     const isGendered = carried.some(([k]) => k === 'men' || k === 'women');
     deptEntries = carried.filter(([key]) => !(key === 'clothing' && isGendered));
   }
+  /* MARGIN INTEGRITY (2026-10-02, Danny): every store page shows OUR price
+     (tiered margin), never the raw merchant price. The catalogue cache
+     carries raw US prices and openStore never normalized — so every
+     ?tienda= page rendered raw prices with zero margin. Normalize once
+     here; the Destacados rail, the Ofertas room and every gallery room
+     below read these normalized items. Copies, not mutations: the cached
+     raw objects are shared across views. */
+  deptEntries = deptEntries.map(([dkey, ditems]) => [dkey,
+    (ditems || []).map(raw => {
+      try { return normalizeLiveItem(raw, { retailer, department: isNativeTaxonomy ? undefined : dkey }); }
+      catch { return null; }
+    }).filter(it => it && it.title)]);
   const storeTotal = deptEntries.reduce((n, [, items]) => n + items.length, 0);
   /* Brands are this store's, and only this store's, counted off its own
      stock (retailerBrandBuckets).
@@ -20265,7 +20277,11 @@ async function openStore(retailer){
   if (STORE_CATEGORY_STORES.includes(retailer)){
     let catHTML = '';
     for (const def of STORE_CATEGORY_DEFS){
-      const catItems = storeCategoryItems(retailerData, def);
+      /* Same margin-integrity normalization as deptEntries above: these
+         rooms read the catalogue cache directly. */
+      const catItems = storeCategoryItems(retailerData, def).map(raw => {
+        try { return normalizeLiveItem(raw, { retailer }); } catch { return null; }
+      }).filter(it => it && it.title);
       catHTML += storeCategoryGalleryHTML(def, catItems, retailer, __storeLabel);
     }
     if (catHTML){
@@ -20403,7 +20419,10 @@ function productCardOpenExpr(p, retailer){
     + `${needsSizeSelection(r, p.title)}, '${sizeCategoryFor(r, p.title)}', `
     + `'${jsAttr(p.rating != null ? String(p.rating) : '')}', null, `
     + `${Number.isFinite(p.catalogWeightKg) ? p.catalogWeightKg : 'null'}, `
-    + `${escapeHtml(JSON.stringify({ brand: p.brand || '', description: p.description || '' }))})`;
+    /* dutiableUsd rides through so the product page, cart and checkout read the
+       stamped import-tax base instead of reversing it (2026-10-02: margin
+       integrity — the reversal is only a legacy fallback now). */
+    + `${escapeHtml(JSON.stringify({ brand: p.brand || '', description: p.description || '', dutiableUsd: p.dutiableUsd ?? null }))})`;
 }
 
 /* ============================================================
@@ -24608,11 +24627,120 @@ function safeUrl(u){
 // include Miami-Dade's 7% sales tax — that tax is only added at the actual
 // register, so a price scraped straight off a retailer's site undercounts
 // the real cost by 7% before any markup is applied. SALES_TAX_RATE is
-// applied first, then LIVE_PRICE_MARKUP on top of the tax-inclusive price —
-// applying markup on top of pre-tax price (the previous behavior) was a
-// real margin leak on every single order.
+// applied on top of the margined shelf price — the tiered margin below is
+// computed on the raw US shelf price (Danny's brackets), then the Miami
+// sales tax multiplies, exactly as the flat 24% did.
 const SALES_TAX_RATE = 1.07;
+/* TIERED MARGINAL MARGIN (2026-10-02, Danny — LOCKED). The flat 24% priced
+   Peruvian shoppers out of luxury goods; 8% of something beats 24% of
+   nothing. Each rate applies ONLY to the price slice inside its band, so
+   the margin never goes backward as the price rises:
+     24% on the first $500 of the item's US shelf price,
+     18% on the slice $500–$2,000,
+     12% on the slice $2,000–$5,000,
+      8% on everything above $5,000.
+   $100 → $24 margin. $1,000 → $120 + $90 = $210. $6,000 → $830.
+   Under $500 this is exactly the old flat 24%, so every existing price
+   under $500 is unchanged. LIVE_PRICE_MARKUP stays defined as the
+   band-1 rate / legacy reference (tests and the admin view read it). */
 const LIVE_PRICE_MARKUP = 1.24;
+function tieredMarginUsd(rawUsd){
+  const r = Number(rawUsd);
+  if (!(r > 0)) return 0;
+  return Math.min(r, 500) * 0.24
+    + Math.min(Math.max(r - 500, 0), 1500) * 0.18
+    + Math.min(Math.max(r - 2000, 0), 3000) * 0.12
+    + Math.max(r - 5000, 0) * 0.08;
+}
+/* Inverse of the tiered markup for the legacy price→dutiable fallback
+   (pre-sales-tax): marked = raw + tieredMarginUsd(raw). Piecewise-linear
+   and strictly increasing, so each band inverts cleanly. Boundaries:
+   marked(500)=620, marked(2000)=2390, marked(5000)=5750. */
+function rawFromTieredMarked(marked){
+  const m = Number(marked);
+  if (!(m > 0)) return NaN;
+  if (m <= 620) return m / 1.24;
+  if (m <= 2390) return (m - 30) / 1.18;
+  if (m <= 5750) return (m - 150) / 1.12;
+  return (m - 350) / 1.08;
+}
+/* ABSURDITY QUARANTINE (2026-10-02): a merchant fat-finger ($20,475 for a
+   $20 speargun tip, measured live on nautilusspearfishing.com) must never
+   reach a card. Evaluated on the RAW merchant price, before any margin
+   math — so it works identically under the tiered margin. Retailers with
+   verified legitimate 5-figure goods are exempt. */
+const ABSURD_PRICE_EXEMPT = new Set(['bhphoto','costco','islandwatersports','ssense','farfetch','valsurf']);
+const ABSURD_PRICE_RAW_USD = 10000;
+/* ABSURDITY QUARANTINE v2 (2026-10-02): category-aware ceilings. A $2,625
+   "wishbone" (verified live on nautilusspearfishing.com -- a $15 part) sailed
+   under the flat $10k rule, so product TYPE now carries its own ceiling at
+   every retailer, including luxury ones. LUXURY retailers get higher apparel
+   ceilings because their prices are real: miumiu.com spot-checked ($13,500
+   embroidered shirt, $9,500 shearling-trim cardigan, $725 boy-shorts all match
+   the feed) and silviatcherassi.com lists the Carolina Dress at $19,000.
+   A true fat-finger (10-100x) still trips even the luxury ceiling.
+   First matching rule wins. */
+const ABSURD_LUXURY_RETAILERS = new Set(['miumiu','ssense','farfetch','silviatcherassi']);
+/* [regex, ordinary ceiling USD, luxury ceiling USD, negative-context regexes] */
+const ABSURD_TYPE_CEILINGS = [
+  [/\b(wishbone|speargun tip|spear tip|tip adapter|mask strap|fin strap|mouthpiece|o-?ring|swivel|crimp|shooting line|reel line|defog|anti-?fog)\b/, 200, 200, [/chair/i, /sofa/i, /seating/i, /recliner/i]],
+  [/\b(buckle|hair clip|claw clip|lanyard)\b/, 200, Infinity, null],
+  [/\badapter\b/, 200, 200, [/power adapter/i, /usb-?c/i, /car seat/i, /stroller/i, /mount adapter/i, /macbook/i, /nikon/i, /camera/i]],
+  [/\b(screw|washer|shackle)\b/, 200, 200, [/bottle washer/i, /dishwasher/i]],
+  [/\b(gloves?|mittens?)\b/, 400, 1500, null],
+  [/\b(socks?|booties)\b/, 400, 1500, null],
+  [/\b(cap|beanie|snapback|trucker( hat)?)\b/, 400, 1500, [/laser/i, /hair growth/i]],
+  [/\bbelt\b/, 400, 2500, [/dress/i]],
+  [/\b(keychain|key chain)\b/, 400, 1500, null],
+  [/\bt-?shirt\b|\btee\b/, 2000, 15000, null],
+  [/\b(shirt|polo|tank ?top|singlet|henley)\b/, 2000, 15000, [/\bt-?shirt\b/i]],
+  [/\b(shorts|boxers?|bermudas?)\b/, 2000, 3000, null],
+  [/\b(sweatshirt|hoodie|crewneck|sweater|cardigan|pullover)\b/, 2000, 10000, null],
+  [/\b(sweatpants|joggers|leggings|tights|jeans|denim|chinos|trousers|pants)\b/, 2000, 6000, null],
+  [/\b(skirt)\b/, 3000, 15000, null],
+  [/\b(bikini|swimsuit|one-?piece)\b/, 2000, 5000, null],
+  [/\b(gown)\b/, 8000, 25000, null],
+  [/\b(dress|jumpsuit|romper)\b/, 8000, 25000, null],
+  [/\b(blouson|bomber)\b/, 6000, 25000, null],
+  [/\b(jacket|windbreaker|puffer)\b/, 6000, 25000, null],
+  [/\b(coat|parka|overcoat|trench)\b/, 40000, 40000, null],
+  [/\b(blazer|suit)\b/, 8000, 15000, null],
+  [/\b(handbag|tote|shoulder bag|crossbody|clutch|duffel|backpack)\b/, 8000, 10000, null],
+  [/\b(wallet|cardholder|card holder|purse)\b/, 3000, 5000, null],
+  [/\b(scarf|pashmina)\b/, 1500, 3000, null],
+  [/\b(sneakers?|loafers?|sandals?|heels?|pumps?|booties|boots)\b/, 2500, 5000, null],
+  [/\bwetsuit\b/, 1500, 1500, null],
+  [/\brash ?guard\b/, 500, 500, null],
+  [/\bspeargun\b/, 4000, 4000, [/\btip\b/i]],
+  [/\bpole spear\b|\bpolespear\b|\bhawaiian sling\b/, 600, 600, null],
+  [/\bbcd\b|\bbuoyancy compensator\b/, 1500, 1500, null],
+  [/\bregulator\b|\boctopus\b|\bfirst stage\b|\bsecond stage\b/, 2000, 2000, null],
+  [/\bdive computer\b/, 2500, 2500, null],
+  [/\bmask\b|\bsnorkel\b/, 500, 500, [/\bstrap\b/i]],
+  [/\bfins?\b|\bfin blades\b/, 1000, 1000, [/\bstrap\b/i]],
+  [/\bdive knife\b/, 400, 400, null],
+  [/\bdive light\b/, 800, 800, null],
+  [/\bweight belt\b|\bdive weights?\b/, 500, 500, null],
+  [/\b(speargun )?reel\b/, 600, 600, null],
+  [/\bpower bands?\b|\brubber bands?\b/, 200, 200, null],
+  [/\b(lipstick|mascara|eyeliner|foundation|concealer|blush|eyeshadow|bronzer|highlighter|setting spray)\b/, 500, 1500, null],
+  [/\b(perfume|eau de parfum|eau de toilette|cologne|fragrance)\b/, 1500, 3000, null],
+  [/\b(shampoo|conditioner|serum|moisturizer|cleanser|sunscreen|lotion)\b/, 500, 1500, null],
+];
+/* Lowest applicable ceiling for this product type. Ordinary retailers with
+   no matching rule fall through to the flat $10k rule below; luxury
+   retailers (no flat rule) get a $50k backstop -- 2x the priciest verified
+   item -- so an unclassified 10x fat-finger still gets caught. */
+function absurdCeilingUsd(retailer, title){
+  const t = String(title || '').toLowerCase();
+  const lux = ABSURD_LUXURY_RETAILERS.has(String(retailer || '').toLowerCase());
+  for (const [rx, ord, luxc, neg] of ABSURD_TYPE_CEILINGS){
+    if (!rx.test(t)) continue;
+    if (neg && neg.some(n => n.test(t))) continue;
+    return lux ? luxc : ord;
+  }
+  return lux ? 50000 : Infinity;
+}
 
 /* PER-RETAILER MIAMI SALES TAX (2026-09-27) -- Danny's call.
    Aria holds a FL LLC + EIN and is filing the FL DOR resale certificate
@@ -24625,7 +24753,7 @@ const LIVE_PRICE_MARKUP = 1.24;
 
    Statuses:
      'exempt'  -- confirmed: enrolled + test checkout cleared tax-free.
-                  Cards for this retailer price at raw x 1.0 x 1.24.
+                  Cards for this retailer price at raw x 1.0 + tiered margin.
      'taxable' -- retailer policy PROHIBITS reseller purchases outright
                   (audit 2026-09-27: Target, Macy's, Kohl's, Old Navy,
                   Foot Locker, Victoria's Secret). No enrollment will ever
@@ -26663,7 +26791,23 @@ function normalizeLiveItem(item, hints){
   /* PER-RETAILER TAX (2026-09-27): the 7% is only in the cost when Aria really pays it --
      see TAX_EXEMPT_STATUS / salesTaxRateFor() near LIVE_PRICE_MARKUP. */
   const taxRate = salesTaxRateFor((hints && hints.retailer) || item.retailer);
-  const price = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate * LIVE_PRICE_MARKUP) : null;
+  /* ABSURDITY QUARANTINE (2026-10-02): raw merchant price over $10k from an
+     ordinary retailer is a fat-finger, never a price — null it so the card
+     renders the existing "Precio no disponible" state instead of an absurd
+     number. Checked on RAW price before margin, so tiers can't smuggle one
+     through. */
+  const __rkey = String((hints && hints.retailer) || item.retailer || '').toLowerCase();
+  /* v2: the product TYPE carries its own ceiling (a $2,625 "wishbone" is
+     absurd at any retailer); the flat $10k rule + exemptions cover the rest. */
+  const __typeCeil = absurdCeilingUsd(__rkey, title);
+  const __absurd = Number.isFinite(rawPrice) &&
+    (rawPrice > __typeCeil || (rawPrice > ABSURD_PRICE_RAW_USD && !ABSURD_PRICE_EXEMPT.has(__rkey) && !ABSURD_LUXURY_RETAILERS.has(__rkey)));
+  if (__absurd && typeof console !== 'undefined' && console.warn) console.warn('[aria] absurd price quarantined:', __rkey, title, rawPrice);
+  /* TIERED MARGIN (2026-10-02, Danny): brackets on the raw US shelf price,
+     then the per-retailer Miami sales tax multiplies. */
+  const price = !Number.isFinite(rawPrice) ? null
+    : __absurd ? null
+    : round2((rawPrice + tieredMarginUsd(rawPrice)) * taxRate);
   /* DUTIABLE BASE (2026-09-27): the true acquisition cost — raw US price
      plus whatever Miami sales tax Aria really pays at that retailer's
      register (per-retailer rate above), BEFORE the 24% service markup. Peru's import
@@ -26765,15 +26909,16 @@ function normalizeLiveItem(item, hints){
   const rawOriginal = item.regularPrice ?? item.wasPrice ?? item.was_price ?? item.originalPrice ?? item.compareAt;
   const rawOriginalNum = typeof rawOriginal === 'number' ? rawOriginal : (typeof rawOriginal === 'string' ? parseFloat(rawOriginal.replace(/[^0-9.]/g, '')) : NaN);
   // A real markdown, AND a big enough one to be worth showing. The
-  // percentage is computed from the raw retailer prices — SALES_TAX_RATE
-  // and LIVE_PRICE_MARKUP apply to both sides and cancel out, so this is
-  // the same number the badge will render.
+  // qualification is computed from the raw retailer prices — the tiered
+  // margin narrows the badge percentage slightly on items crossing
+  // brackets, which is honest: the badge shows the discount on what the
+  // shopper actually pays.
   const hasAnyDiscount = onSaleFlag && Number.isFinite(rawOriginalNum) && Number.isFinite(rawPrice) && rawOriginalNum > rawPrice;
   const discountPctRaw = hasAnyDiscount ? (1 - rawPrice / rawOriginalNum) * 100 : 0;
   // Rounded before comparing so what's kept always matches what the badge
   // shows — a 4.6% markdown renders as "-5%", so it should qualify.
   const hasRealDiscount = hasAnyDiscount && Math.round(discountPctRaw) >= MIN_DISCOUNT_PCT;
-  const originalPrice = hasRealDiscount ? round2(rawOriginalNum * taxRate * LIVE_PRICE_MARKUP) : null;
+  const originalPrice = hasRealDiscount ? round2((rawOriginalNum + tieredMarginUsd(rawOriginalNum)) * taxRate) : null;
 
   /* THE DESIGNER SURVIVES NORMALISATION.
 
@@ -29549,7 +29694,7 @@ function addToCart(item){
      estimate and the order's set-aside bucket all read dutiableUsd —
      what the goods really cost (raw x per-retailer sales-tax rate),
      never the marked-up card price. A line from an older build carries no stamp; the
-     exact reversal (price / LIVE_PRICE_MARKUP) restores it. */
+     tiered-margin inversion (rawFromTieredMarked) restores it. */
   const dBase = dutiableBaseUsd(item.priceUsd, item.dutiableUsd);
   if (Number.isFinite(dBase)) item = { ...item, dutiableUsd: dBase };
   const kg = Number(item.weightKg);

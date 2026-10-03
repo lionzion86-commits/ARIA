@@ -8520,24 +8520,6 @@
        "oversize": true
       },
       {
-       "name": "Twin Barb Swift Speargun Tip",
-       "retailer": "nautilus",
-       "brand": "JBL",
-       "price": 20475.0,
-       "image": "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/jbl-4x-explorer-closeup-01.jpg?v=1636492783",
-       "images": [
-        "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/jbl-4x-explorer-closeup-01.jpg?v=1636492783"
-       ],
-       "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/jbl-4x-explorer-closeup-01.jpg?v=1636492783",
-       "url": "https://nautilusspearfishing.com/products/twin-barb-swift-speargun-tip",
-       "type": "Arpones",
-       "weightKg": 0.5,
-       "weightEstimated": false,
-       "description": "Arpones JBL.",
-       "descriptionSource": "generated",
-       "oversize": true
-      },
-      {
        "name": "Two Piece Ball Float W Nylon Dive Flag",
        "retailer": "nautilus",
        "brand": "Marine Sport Mfg",
@@ -8773,10 +8755,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/aquabionic.jpg?v=1730758687",
        "url": "https://nautilusspearfishing.com/products/beuchat-aquabionic-evo",
-       "type": "Gorras y gorros",
+       "type": "Máscaras y snorkels",
        "weightKg": 3.99,
        "weightEstimated": false,
-       "description": "Gorras y gorros nautilusspearfishing.",
+       "description": "Máscaras y snorkels Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "S/M",
@@ -8799,10 +8781,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/masterlift-x-air-comfort.jpg?v=1730761189",
        "url": "https://nautilusspearfishing.com/products/beuchat-masterlift-x-air-comfort",
-       "type": "Gorras y gorros",
+       "type": "Chalecos de buceo (BCD)",
        "weightKg": 5.99,
        "weightEstimated": false,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Chalecos de buceo (BCD) Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "XS",
@@ -8825,10 +8807,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/masterlift-x-air-light-lady.jpg?v=1730762026",
        "url": "https://nautilusspearfishing.com/products/beuchat-masterlift-x-air-light-lady",
-       "type": "Gorras y gorros",
+       "type": "Chalecos de buceo (BCD)",
        "weightKg": 0.17,
        "weightEstimated": true,
-       "description": "Gorras y gorros nautilusspearfishing.",
+       "description": "Chalecos de buceo (BCD) Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "XS",
@@ -8853,10 +8835,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/powerjet-avec-sangles-a-ressorts.jpg?v=1730757920",
        "url": "https://nautilusspearfishing.com/products/beuchat-powerjet-with-spring-straps",
-       "type": "Gorras y gorros",
+       "type": "Aletas de buceo",
        "weightKg": 5.99,
        "weightEstimated": false,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Aletas de buceo Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "S/M",
@@ -8876,10 +8858,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/151703_1.jpg?v=1786122951",
        "url": "https://nautilusspearfishing.com/products/beuchat-shark",
-       "type": "Gorras y gorros",
+       "type": "Aletas de buceo",
        "weightKg": 1.5,
        "weightEstimated": false,
-       "description": "Gorras y gorros nautilusspearfishing.",
+       "description": "Aletas de buceo Beuchat.",
        "descriptionSource": "generated"
       },
       {
@@ -8919,10 +8901,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/vr-300_b1ee4805-4af4-469c-b703-34c9a111a14c.jpg?v=1730760334",
        "url": "https://nautilusspearfishing.com/products/beuchat-vr-300-first-and-second-stage",
-       "type": "Gorras y gorros",
+       "type": "Reguladores",
        "weightKg": 0.17,
        "weightEstimated": true,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Reguladores Beuchat.",
        "descriptionSource": "generated"
       },
       {
@@ -8936,10 +8918,10 @@
        ],
        "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/files/vrt-2-octopus.jpg?v=1730760553",
        "url": "https://nautilusspearfishing.com/products/beuchat-vr-octopus",
-       "type": "Gorras y gorros",
+       "type": "Reguladores",
        "weightKg": 2.49,
        "weightEstimated": false,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Reguladores Beuchat.",
        "descriptionSource": "generated"
       },
       {
@@ -9696,23 +9678,6 @@
        "weightKg": 0.25,
        "weightEstimated": false,
        "description": "Accesorios Headhunter.",
-       "descriptionSource": "generated"
-      },
-      {
-       "name": "Helix Coil Wishbone",
-       "retailer": "nautilus",
-       "brand": "Hammerhead",
-       "price": 2625.0,
-       "image": "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/Helix_Coil_Wishbone__39612.1541999667.jpg?v=1636574782",
-       "images": [
-        "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/Helix_Coil_Wishbone__39612.1541999667.jpg?v=1636574782"
-       ],
-       "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/Helix_Coil_Wishbone__39612.1541999667.jpg?v=1636574782",
-       "url": "https://nautilusspearfishing.com/products/helix-coil-wishbone",
-       "type": "Accesorios",
-       "weightKg": 0.5,
-       "weightEstimated": false,
-       "description": "Accesorios Hammerhead.",
        "descriptionSource": "generated"
       },
       {
