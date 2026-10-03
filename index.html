@@ -15955,17 +15955,17 @@ const BRAND_LOGOS = {
   hermes: { src: 'logos/brands/hermes.svg' },
 
   /* 2026-09-30, sixth wave: brand audit — official marks for top brands by product count. */
-  skims: { src: 'logos/brands/skims.svg' },
+  skims: { src: 'logos/brands/skims.png' },
   disney: { src: 'logos/brands/disney.svg' },
   quiksilver: { src: 'logos/brands/quiksilver.svg' },
   billabong: { src: 'logos/brands/billabong.svg' },
   lego: { src: 'logos/brands/lego.png' },
-  oakley: { src: 'logos/brands/oakley.svg' },
-  puma: { src: 'logos/brands/puma.svg' },
-  rayban: { src: 'logos/brands/rayban.svg' },
-  sony: { src: 'logos/brands/sony.svg' },
-  roxy: { src: 'logos/brands/roxy.svg' },
-  rvca: { src: 'logos/brands/rvca.svg' },
+  oakley: { src: 'logos/brands/oakley.png' },
+  puma: { src: 'logos/brands/puma.png' },
+  rayban: { src: 'logos/brands/rayban.png' },
+  sony: { src: 'logos/brands/sony.png' },
+  roxy: { src: 'logos/brands/roxy.png' },
+  rvca: { src: 'logos/brands/rvca.png' },
   volcom: { src: 'logos/brands/volcom.png' },
 
   ace: { src: 'logos/brands/ace.png' },
@@ -17925,6 +17925,28 @@ async function openCatalog(kind, key, opts = {}){
      section is a women's destination; Hombres is one tap away. */
   catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE, sunglassesTier: null, sunglassesFace: null, sunglassesView: 'stores', toysStore: null,
     curvyGender: (kind === 'department' && key === 'curvy') ? 'women' : null };
+  /* BRAND ROOMS (2026-10-02, Danny): a curated brand's own room page
+     (?categoria=<brand>&kind=brand) leads with its photo room -- the
+     curated brand-world photo, gold kicker, logo badge, counts and
+     "Ver colección" -- not the text-only header. Painted after the
+     catalogue loads so the counts are real. */
+  if (kind === 'brand'){
+    const __roomSpec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(key) : null;
+    if (__roomSpec){
+      const __pool = [];
+      for (const [, __its] of orderedRetailers) for (const __it of __its) __pool.push(__it);
+      if (!__pool.length) { /* brand with no items: keep the plain header */ }
+      else {
+      const __logo = (typeof brandLogoFor === 'function' && brandLogoFor(key)) || null;
+      const __spec = (__logo && __logo.src) ? Object.assign({}, __roomSpec, { logo: __logo.src }) : __roomSpec;
+      const __notice = document.getElementById('catalogNotice');
+      if (__notice) __notice.innerHTML = brandRoomBannerHTML(__spec, __pool, {
+        kicker: 'Marca',
+        onclick: "document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'})"
+      });
+      }
+    }
+  }
   /* NEVER A BLANK PAGE (2026-09-29, Danny): if render throws, show the
      empty state with retry instead of a dead page. */
   try { renderCatalogFeed(); }
@@ -20146,7 +20168,7 @@ function galleryMoreCardHTML(label, onclick){
     <span class="block py-8">
       <span class="block text-[12px] font-bold uppercase" style="letter-spacing:0.14em;color:#F4C463">Ver m\u00e1s en</span>
       <span class="block text-[17px] font-extrabold mt-2 leading-snug text-white">${escapeHtml(label)} &#8594;</span>
-      <span class="block text-[12px] mt-2 font-semibold" style="color:rgba(255,255,255,0.75)">Ver colecci\u00f3n completa</span>
+      <span class="block text-[12px] mt-2 font-semibold" style="color:rgba(255,255,255,0.75)">Ver colección completa</span>
     </span>
   </button>`;
 }
@@ -20384,6 +20406,27 @@ async function openStore(retailer){
     id: 'storeRail', title: 'Destacados',
     items: curatedDestacadosPicks(deptEntries, CAROUSEL_MAX), retailer,
   });
+  /* BRAND ROOMS (2026-10-02, Danny): a curated brand's own storefront
+     (?tienda=newbalance|crocs|miumiu) leads with its photo room -- the
+     curated brand-world photo, gold kicker, logo badge, counts and
+     "Ver colección" -- replacing the badge chip. The old generated
+     backdrop is suppressed for spec'd retailers in applyStoreTheme. */
+  const __roomSpec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(retailer) : null;
+  if (__roomSpec){
+    const __rkey = String(retailer || '').toLowerCase();
+    const __seen = new Set(); const __pool = [];
+    for (const [, __items] of deptEntries) for (const __it of __items){
+      const __dk = rawTitleOf(__it) + '::' + (__it.price ?? __it.effectivePrice ?? '');
+      if (__seen.has(__dk)) continue; __seen.add(__dk); __pool.push(__it);
+    }
+    const __logoFile = (typeof RETAILER_LOGO_FILE === 'object' && RETAILER_LOGO_FILE[__rkey])
+      || (((typeof brandLogoFor === 'function') && brandLogoFor(__rkey)) || {}).src || null;
+    const __spec = __logoFile ? Object.assign({}, __roomSpec, { logo: __logoFile }) : __roomSpec;
+    document.getElementById('storeViewHero').innerHTML = brandRoomBannerHTML(__spec, __pool, {
+      kicker: (meta && meta.tagline) || 'Tienda',
+      onclick: "document.getElementById('storeViewSections').scrollIntoView({behavior:'smooth'})"
+    });
+  }
   /* CATEGORY CAROUSELS (2026-09-30, Danny): Walmart and Target get
      merchandised shelves -- Ofertas, Moda Mujer, Zapatos, Deportes,
      Hogar, Decoracion, Dulces -- instead of just the count tiles.
@@ -24356,8 +24399,12 @@ function applyStoreTheme(viewId, retailer){
   el.removeAttribute('data-has-backdrop');
   if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', rkey);
   else el.removeAttribute('data-store-theme');
-  /* STORE BACKDROP (2026-10-02): interior photo behind the section */
-  if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey]){
+  /* STORE BACKDROP (2026-10-02): interior photo behind the section.
+     BRAND ROOMS (2026-10-02, Danny): a retailer with a curated brand-room
+     spec gets the new photo-room banner (openStore) instead of the old
+     generated backdrop -- never both. */
+  const __hasBrandRoom = rkey && (typeof brandRoomSpecFor === 'function') && brandRoomSpecFor(rkey);
+  if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey] && !__hasBrandRoom){
     el.setAttribute('data-has-backdrop', '1');
     el.style.setProperty('--store-backdrop', "url('" + STORE_BACKDROPS[rkey] + "')");
   }
