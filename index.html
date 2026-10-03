@@ -20424,6 +20424,7 @@ const TOY_NOT_HOME_GOODS_RX = /\b(pillow|pillowcase|cushion|throw|blanket|beddin
 function isToyItem(it){
   const name = String(it.title || it.name || '');
   if (TOY_NOT_HOME_GOODS_RX.test(name)) return false; /* Danny 2026-10-01 */
+  if (typeof isKidsFashionItem === 'function' && isKidsFashionItem(it)) return false; /* Danny 2026-10-03: clothes and Juguetes are separate */
   if (/\bbaby\s*doll\b/i.test(name)) return false; /* adult style */
   if (TOY_RX.test(name)) return true;
   /* Game consoles ARE toys, demoted below real toys at sort time (Danny).
@@ -20438,6 +20439,7 @@ function isToyItem(it){
 function isWomenFashionItem(it){
   const name = String(it.title || it.name || '');
   if (isKidsItem(it)) return false; /* Danny 2026-09-30: no kids in Moda Mujer */
+  if (typeof FRAGRANCE_RX !== 'undefined' && FRAGRANCE_RX.test(name)) return false; /* Danny 2026-10-03: fragrances are grooming */
   if (!WOMEN_FASHION_RX.test(name)) return false;
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
   return true;
@@ -20462,9 +20464,13 @@ function isKidsShoeItem(it){
 }
 /* ROPA DE HOMBRE (2026-10-01, Danny): strict men's marker, same discipline
    as Moda Mujer -- no guessing unmarked apparel into the men's room. */
+/* FRAGRANCES ARE GROOMING, NOT CLOTHING (2026-10-03, Danny): colognes/perfumes
+   matched "for Men" and leaked into Ropa de Hombre. They belong in Higiene. */
+const FRAGRANCE_RX = /\b(cologne|colognes|fragrance|fragrances|perfume|perfumes|parfum|eau de toilette|eau de parfum|body spray)\b/i;
 function isMenFashionItem(it){
   const name = String(it.title || it.name || '');
   if (isKidsItem(it)) return false;
+  if (FRAGRANCE_RX.test(name)) return false; /* Danny 2026-10-03 */
   if (!MEN_MARKER.test(name)) return false;
   if (WOMEN_NON_APPAREL_RX.test(name)) return false;
   return true;
@@ -20472,7 +20478,7 @@ function isMenFashionItem(it){
 /* HIGIENE POR GENERO (2026-10-01, Danny): bathroom and personal care split
    because men and women shop it differently -- beard care, men's deodorant
    and razors vs women's shaving, creams, and lotions. */
-const HYGIENE_RX = /\b(deodorant|antiperspirant|desodorante|antitranspirante|razor|shaver|shaving|afeitadora?|body\s*wash|shampoo|conditioner|acondicionador|toothpaste|pasta\s*dental|toothbrush|cepillo\s*dental|mouthwash|enjuague\s*bucal|aftershave|beard|barba|mustache|bigote)\b/i;
+const HYGIENE_RX = /\b(deodorant|antiperspirant|desodorante|antitranspirante|razor|shaver|shaving|afeitadora?|body\s*wash|shampoo|conditioner|acondicionador|toothpaste|pasta\s*dental|toothbrush|cepillo\s*dental|mouthwash|enjuague\s*bucal|aftershave|beard|barba|mustache|bigote|cologne|colognes|fragrance|fragrances|perfume|perfumes|parfum)\b/i;
 const HYGIENE_CARE_RX = /\b(lotion|locion|moisturizer|hidratante|crema\s*corporal)\b/i;
 function isHygieneItem(it){
   const name = String(it.title || it.name || '');
