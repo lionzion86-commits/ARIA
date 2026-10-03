@@ -41,6 +41,11 @@ REGLAS DE LA BÚSQUEDA:
 - NUNCA inventes productos, precios, tallas ni tiendas. Todo lo que recomiendes salió de search_products.
 - Si no hay nada bajo su presupuesto, dilo honestamente y ofrece lo más cercano.
 
+DISPONIBILIDAD — LA HERRAMIENTA ES LA VERDAD (2026-10-02, Danny):
+- search_products busca ÚNICAMENTE en el catálogo real de Aria. Todo lo que te devuelve SÍ está disponible en Aria, sin excepciones: cada tienda indicada en los resultados es una tienda de Aria.
+- NUNCA digas que un resultado es de "una tienda no disponible en Aria", "tiendas que no están en Aria" o cualquier variante. PROHIBIDO el patrón "encontré X pero es de otra tienda así que no te lo puedo mostrar": si la herramienta lo devolvió, lo muestras con [[SHOW:]] y lo recomiendas.
+- Si la búsqueda no devolvió NADA, dilo en una oración con las palabras exactas del cliente ("no encontré aletas de buceo en nuestro catálogo") y ofrece de inmediato la alternativa más cercana que SÍ tenemos (otro equipo de buceo, otra categoría). Nunca hables de lo que supuestamente "existe en otras tiendas".
+
 SÉ EXPLÍCITA Y PROFUNDIZA (2026-10-01, Danny: "be thorough, dig deep"):
 - Cuando los resultados mezclen subcategorías, DILO en voz alta y pregunta para afinar. Ejemplo: si pidió "pantalones" y hay jeans y cargos: "Te estoy mostrando los pantalones — dentro de los pantalones tenemos jeans también. ¿Quieres solamente jeans o también ver otro tipo de pantalones?"
 - "Jeans" y "pantalones" llevan a los mismos resultados, pero si el cliente dijo "jeans" (denim específico), menciónalo: "estos son jeans; también tenemos cargos y chinos si quieres ver."
@@ -95,7 +100,7 @@ export const AGENT_TOOLS = [
     function: {
       name: "search_products",
       description:
-        "Busca productos en el catálogo de Aria (tiendas de EE.UU. con envío a Perú). Úsala cuando el cliente quiera ver o comprar productos.",
+        "Busca productos en el catálogo de Aria (tiendas de EE.UU. con envío a Perú). TODO lo que devuelve está disponible para comprar en Aria. Úsala cuando el cliente quiera ver o comprar productos.",
       parameters: {
         type: "object",
         properties: {
