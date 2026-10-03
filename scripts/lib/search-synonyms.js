@@ -112,6 +112,7 @@ export const SEARCH_SYNONYM_GROUPS = [
       "tee", "tees",
       "shirt", "shirts",
       "polo", "polos",
+      "camisa", "camisas",
     ],
   },
   /* PERU 2026-09-26: "buzo" is any sweatshirt-type garment in Peru — with
@@ -123,6 +124,7 @@ export const SEARCH_SYNONYM_GROUPS = [
       "sweatshirt", "sweatshirts",
       "hoodie", "hoodies",
       "buzo", "buzos",
+      "sudadera", "sudaderas", "capucha", "capuchas",
     ],
   },
   /* REPORTED LIVE 2026-09-29 (Danny, iPhone): "gi" is the martial-arts
@@ -133,6 +135,64 @@ export const SEARCH_SYNONYM_GROUPS = [
   {
     concept: "gi",
     words: ["gi", "gis", "kimono", "kimonos"],
+  },
+  /* GOOGLE-GRADE SEARCH (2026-10-03, Danny): the top apparel/footwear
+     terms Peruvians type, EN<->ES. Mirrors the index.html additions. */
+  {
+    concept: "socks",
+    words: ["sock", "socks", "calcetin", "calcetines", "media", "medias"],
+  },
+  {
+    concept: "leggings",
+    words: ["legging", "leggings", "licra", "licras"],
+  },
+  {
+    concept: "cargo",
+    words: ["cargo", "cargos"],
+  },
+  {
+    concept: "skirt",
+    words: ["skirt", "skirts", "miniskirt", "miniskirts", "falda", "faldas"],
+  },
+  {
+    concept: "tank",
+    words: ["tank", "tanks", "bvd"],
+  },
+  {
+    concept: "belt",
+    words: ["belt", "belts", "correa", "correas", "cinturon", "cinturones"],
+  },
+  {
+    concept: "wallet",
+    words: ["wallet", "wallets", "billetera", "billeteras"],
+  },
+  {
+    concept: "sunglasses",
+    words: ["sunglasses", "sunglass", "lentes", "gafa", "gafas", "sol", "soles"],
+  },
+  {
+    concept: "suit",
+    words: ["suit", "suits", "traje", "trajes", "terno", "ternos"],
+  },
+  {
+    concept: "scarf",
+    words: ["scarf", "scarves", "bufanda", "bufandas", "chalina", "chalinas"],
+  },
+  {
+    concept: "gloves",
+    words: ["glove", "gloves", "guante", "guantes"],
+  },
+  {
+    concept: "pajamas",
+    words: ["pajama", "pajamas", "pijama", "pijamas"],
+  },
+  {
+    concept: "vest",
+    words: ["vest", "vests", "chaleco", "chalecos"],
+  },
+  {
+    concept: "robe",
+    words: ["robe", "robes", "bata", "batas"],
   },
 ];
 

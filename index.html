@@ -8204,10 +8204,12 @@ function sportHubItems(kind){
   return out;
 }
 function sportCarouselSection(label, deptKey, items){
-  if (items.length < 4) return '';
-  /* Sale carousel: biggest discounts first, then halo, then best sellers. */
-  const sorted = items.slice().sort((a, b) => (discountPct(b) - discountPct(a)) || 0);
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): biggest discounts first.
+     Tier-based so flagged-without-% sales count. */
+  const sorted = (Array.isArray(items) ? items : []).filter(p => itemSaleTier(p) > 0)
+    .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (carouselDiscountPct(b) - carouselDiscountPct(a)));
   const picks = sorted.slice(0, 12);
+  if (picks.length < 4) return '';
   return `<section aria-label="${label}" class="mb-8">
     <div class="flex items-center justify-between mb-4">
       <h2 class="ariaCarouselTitle text-[20px] font-extrabold tracking-[-0.02em]" style="color:var(--navy)">${label}</h2>
@@ -9624,12 +9626,15 @@ function relatedProducts(anchor, pool, opts){
   const anchorBrand = String(anchor?.brand || '').trim().toLowerCase();
   const sameDept = (it) => (it.departments || []).some(d => anchorDepts.has(d));
   const sameBrand = (it) => !!anchorBrand && String(it.brand || '').trim().toLowerCase() === anchorBrand;
+  /* Biggest discount first inside each relevance band (2026-10-03). */
+  const saleOrdered = (arr) => [...arr].sort((a, b) =>
+    (itemSaleTier(b) - itemSaleTier(a)) || (carouselDiscountPct(b) - carouselDiscountPct(a)));
   // 1. same brand + same department (Ray-Ban sunglasses on a Ray-Ban page)
-  if (anchorBrand) take(pool.filter(it => sameBrand(it) && sameDept(it)));
+  if (anchorBrand) take(saleOrdered(pool.filter(it => sameBrand(it) && sameDept(it))));
   // 2. same department (all sunglasses, any brand)
-  take(pool.filter(it => sameDept(it)));
+  take(saleOrdered(pool.filter(it => sameDept(it))));
   // 3. same brand, other departments (e.g. Ray-Ban optical on a sunglasses page)
-  if (anchorBrand && out.length < min) take(pool.filter(it => sameBrand(it) && !sameDept(it)));
+  if (anchorBrand && out.length < min) take(saleOrdered(pool.filter(it => sameBrand(it) && !sameDept(it))));
   return out;
 }
 
@@ -9959,6 +9964,8 @@ const SEARCH_SYNONYM_GROUPS = [
       "tee", "tees",
       "shirt", "shirts",
       "polo", "polos",
+      /* PERU 2026-10-03: "camisa" */
+      "camisa", "camisas",
     ],
   },
   /* PERU 2026-09-26: "buzo" is any sweatshirt-type garment in Peru — with
@@ -9970,6 +9977,8 @@ const SEARCH_SYNONYM_GROUPS = [
       "sweatshirt", "sweatshirts",
       "hoodie", "hoodies",
       "buzo", "buzos",
+      /* PERU 2026-10-03: "sudadera (con capucha)" is the word Peruvians type for hoodie */
+      "sudadera", "sudaderas", "capucha", "capuchas",
     ],
   },
   /* REPORTED LIVE 2026-09-29 (Danny, iPhone): "gi" is the martial-arts
@@ -10010,7 +10019,9 @@ const SEARCH_SYNONYM_GROUPS = [
   {
     concept: "sweater",
     words: ["sweater", "sweaters", "pullover", "pullovers",
-      "cardigan", "cardigans", "chompa", "chompas"],
+      "cardigan", "cardigans", "chompa", "chompas",
+      /* PERU 2026-10-03: "sueter" (accent folded by searchTokens) */
+      "sueter", "sueteres"],
   },
   /* SYNONYM-GAP AUDIT 2026-10-01. "shorts" missed 362 boardshorts (the
      compound defeats the plural shortcut). */
@@ -10023,7 +10034,9 @@ const SEARCH_SYNONYM_GROUPS = [
      bikinis; "malla" (Peruvian for swimsuit) had no mapping at all. */
   {
     concept: "swimsuit",
-    words: ["swimsuit", "swimsuits", "bikini", "bikinis"],
+    words: ["swimsuit", "swimsuits", "bikini", "bikinis",
+      /* PERU 2026-10-03: "malla" is the Peruvian word for swimsuit */
+      "malla", "mallas"],
   },
   /* SYNONYM-GAP AUDIT 2026-10-01. "blusa"->"blouse" was a DEAD END: no
      title says "blouse", 1,762 say "top". The group keeps "blouse"
@@ -10048,6 +10061,71 @@ const SEARCH_SYNONYM_GROUPS = [
   {
     concept: "tie",
     words: ["tie", "ties", "necktie", "neckties", "corbata", "corbatas"],
+  },
+  /* GOOGLE-GRADE SEARCH (2026-10-03, Danny): the top apparel/footwear
+     terms Peruvians type, EN<->ES. Same shape as every group above:
+     concept = the English word the catalogue uses. */
+  {
+    concept: "socks",
+    words: ["sock", "socks", "calcetin", "calcetines", "media", "medias"],
+  },
+  {
+    concept: "leggings",
+    words: ["legging", "leggings", "licra", "licras"],
+  },
+  {
+    concept: "cargo",
+    words: ["cargo", "cargos"],
+  },
+  {
+    concept: "skirt",
+    words: ["skirt", "skirts", "miniskirt", "miniskirts", "falda", "faldas"],
+  },
+  /* "bvd" is the Peruvian word for a tank top / sleeveless undershirt.
+     3 letters: whole-word-only, never matches inside longer words. */
+  {
+    concept: "tank",
+    words: ["tank", "tanks", "bvd"],
+  },
+  {
+    concept: "belt",
+    words: ["belt", "belts", "correa", "correas", "cinturon", "cinturones"],
+  },
+  {
+    concept: "wallet",
+    words: ["wallet", "wallets", "billetera", "billeteras"],
+  },
+  /* "lentes" is what Peruvians type for sunglasses ("lentes de sol").
+     "sol"/"soles" map here too; the Sol de Janeiro brand is rescued
+     by brand-intent detection, which runs on pre-canonical tokens. */
+  {
+    concept: "sunglasses",
+    words: ["sunglasses", "sunglass", "lentes", "gafa", "gafas", "sol", "soles"],
+  },
+  {
+    concept: "suit",
+    words: ["suit", "suits", "traje", "trajes", "terno", "ternos"],
+  },
+  /* "chalina" is the Peruvian word for a scarf/wrap. */
+  {
+    concept: "scarf",
+    words: ["scarf", "scarves", "bufanda", "bufandas", "chalina", "chalinas"],
+  },
+  {
+    concept: "gloves",
+    words: ["glove", "gloves", "guante", "guantes"],
+  },
+  {
+    concept: "pajamas",
+    words: ["pajama", "pajamas", "pijama", "pijamas"],
+  },
+  {
+    concept: "vest",
+    words: ["vest", "vests", "chaleco", "chalecos"],
+  },
+  {
+    concept: "robe",
+    words: ["robe", "robes", "bata", "batas"],
   },
 ];
 
@@ -10182,6 +10260,262 @@ function tokenHitsExpanded(words, t){
 }
 
 
+/* ============================================================
+   GOOGLE-GRADE SEARCH (2026-10-03, Danny): "The search bar needs
+   to work... like a Google search type of thing where it recognizes
+   the closest thing to it." Three layers on top of the exact token
+   machinery above:
+
+   1. BRAND INTENT. "young la" == "YoungLA" == "YOUNG LA" == "la
+      young" == "youg la": the query's tokens are scanned for a
+      stocked brand -- exact, spacing-insensitive, or fuzzy
+      (Damerau<=2). A hit HARD-CONSTRAINS the search to that brand:
+      a brand search never shows another brand's products, and a
+      brand the catalogue carries never dead-ends.
+   2. TYPO TOLERANCE. A token the vocabulary never saw exactly
+      ("hudi", "nik", "newbalnce") is matched against its closest
+      vocabulary words -- Damerau-Levenshtein <= 2 after collapsing
+      double letters ("hoodie"->"hodie"), so transpositions, missing
+      and extra letters all resolve. Bounded, length-bucketed,
+      computed once per token per search -- never per item.
+   3. CLOSEST MATCH. When the AND of all tokens hits nothing, the
+      best partial overlaps answer instead of a dead page.
+   Accent-insensitivity was already structural: searchTokens folds
+   accents on both the query and the index. Token order never
+   mattered: matching is over sets.
+   ============================================================ */
+
+/* brandKeyOf lives outside the pure slice (brand buckets); the slice
+   keeps its own reference so the pure search stays runnable in the
+   test harness. Identical logic. */
+const searchBrandKey = (typeof brandKeyOf === 'function') ? brandKeyOf
+  : (label) => String(label ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+
+/* Collapse consecutive duplicate letters: "hoodie" -> "hodie".
+   Typed-fast misspellings ("hudi") land within distance 2 of the
+   squashed form where they miss the raw word by 3. */
+function fuzzySquashDoubles(s){
+  return String(s || '').replace(/(.)\1+/g, '$1');
+}
+
+/* Damerau-Levenshtein (adjacent transposition costs 1) with early
+   termination past maxDist. Returns maxDist+1 when over budget. */
+function fuzzyEditDist(a, b, maxDist){
+  return fuzzyEditDistRaw(fuzzySquashDoubles(a), fuzzySquashDoubles(b), maxDist);
+}
+/* Raw core: inputs must already be double-squashed. */
+function fuzzyEditDistRaw(a, b, maxDist){
+  if (a === b) return 0;
+  const al = a.length, bl = b.length;
+  if (Math.abs(al - bl) > maxDist) return maxDist + 1;
+  let prev2 = new Array(bl + 1), prev = new Array(bl + 1), cur = new Array(bl + 1);
+  for (let j = 0; j <= bl; j++) prev[j] = j;
+  for (let i = 1; i <= al; i++){
+    cur[0] = i;
+    let rowMin = i;
+    const ai = a[i - 1], ai1 = i > 1 ? a[i - 2] : '';
+    for (let j = 1; j <= bl; j++){
+      const cost = ai === b[j - 1] ? 0 : 1;
+      let v = prev[j] + 1;
+      const ins = cur[j - 1] + 1, sub = prev[j - 1] + cost;
+      if (ins < v) v = ins;
+      if (sub < v) v = sub;
+      if (i > 1 && j > 1 && ai === b[j - 2] && ai1 === b[j - 1]){
+        const tr = prev2[j - 2] + 1;
+        if (tr < v) v = tr;
+      }
+      cur[j] = v;
+      if (v < rowMin) rowMin = v;
+    }
+    if (rowMin > maxDist) return maxDist + 1;
+    const tmp = prev2; prev2 = prev; prev = cur; cur = tmp;
+  }
+  const d = prev[bl];
+  return d <= maxDist ? d : maxDist + 1;
+}
+
+/* Length-bucketed vocabulary for the fuzzy pass, cached per index.
+   Edit distance <= 2 can only match words within +-2 in length, so a
+   token never scans the whole vocabulary. */
+const fuzzyBucketCache = new WeakMap();
+function fuzzyVocabBuckets(windex){
+  if (!windex || typeof windex.keys !== 'function') return null;
+  let b = fuzzyBucketCache.get(windex);
+  if (b) return b;
+  b = new Map();
+  for (const w of windex.keys()){
+    if (typeof w !== 'string' || w.length < 3) continue;
+    const l = w.length;
+    let arr = b.get(l);
+    if (!arr) b.set(l, arr = []);
+    /* Pre-squashed: the inner loop never re-squashes a vocab word. */
+    arr.push([w, fuzzySquashDoubles(w)]);
+  }
+  fuzzyBucketCache.set(windex, b);
+  return b;
+}
+
+/* The fuzzy form set for one query token: vocabulary words within
+   Damerau<=2 (<=1 for short tokens), plus their plural forms and
+   synonyms so "hudi" also finds "hoodies" and "buzos". Null when the
+   token already hits the vocabulary exactly -- the common case costs
+   nothing. A trailing-prefix shortcut covers "hood" -> "hoodie":
+   bounded to +2 chars so it can never become the open-ended prefix
+   match the 2026-09-26 pillowcase fix retired (the word must START
+   WITH the token -- "sweater" still never matches "sweat"). */
+function fuzzyFormsForToken(tok, buckets, windex){
+  if (!tok || tok.length < 3 || !buckets || !windex) return null;
+  if (windex.get(tok) && windex.get(tok).length) return null;
+  for (const f of matchFormsFor(tok)){ const l = windex.get(f); if (l && l.length) return null; }
+  const maxDist = tok.length >= 4 ? 2 : 1;
+  const squashed = fuzzySquashDoubles(tok);
+  const hits = new Set();
+  const consider = (w) => {
+    if (hits.has(w)) return;
+    hits.add(w);
+    for (const f of matchForms(w)) hits.add(f);
+    for (const s of synonymsOf(w)) for (const f of matchForms(s)) hits.add(f);
+  };
+  for (let l = Math.max(3, tok.length - maxDist); l <= tok.length + maxDist; l++){
+    const arr = buckets.get(l);
+    if (!arr) continue;
+    for (const pair of arr){
+      const w = pair[0];
+      if (w.length > tok.length && w.length - tok.length <= 2 && w.startsWith(tok)){ consider(w); continue; }
+      if (fuzzyEditDistRaw(squashed, pair[1], maxDist) <= maxDist) consider(w);
+    }
+  }
+  return hits;
+}
+
+/* One token's hit, exact first, fuzzy set on a miss. */
+function tokenHitsOneWithFuzzy(words, t, fs){
+  if (tokenHitsExpanded(words, t)) return true;
+  if (fs && fs.size) for (const w of words) if (fs.has(w)) return true;
+  return false;
+}
+
+/* Token-hit count with the fuzzy layer. */
+function catalogTokenHitsWithFuzzy(words, toks, fuzzySets){
+  let n = 0;
+  for (let i = 0; i < toks.length; i++)
+    if (tokenHitsOneWithFuzzy(words, toks[i], fuzzySets && fuzzySets[i])) n++;
+  return n;
+}
+
+/* Stocked-brand vocabulary, cached per pool. Key -> { label, count }.
+   The label kept is the most frequent casing ("YoungLA"). */
+const brandVocabCache = new WeakMap();
+function brandKeysOfPool(pool){
+  let m = pool && brandVocabCache.get(pool);
+  if (m) return m;
+  m = new Map();
+  for (const it of pool || []){
+    const b = it && it.brand;
+    if (!b) continue;
+    const k = searchBrandKey(b);
+    if (!k || k.length < 2) continue;
+    const lab = String(b).trim();
+    const e = m.get(k);
+    if (e){ e.count++; e.labels[lab] = (e.labels[lab] || 0) + 1; }
+    else m.set(k, { count: 1, labels: { [lab]: 1 } });
+  }
+  for (const e of m.values()){
+    let best = '', bestN = 0;
+    for (const lab of Object.keys(e.labels))
+      if (e.labels[lab] > bestN){ bestN = e.labels[lab]; best = lab; }
+    e.label = best;
+    delete e.labels;
+  }
+  if (pool) brandVocabCache.set(pool, m);
+  return m;
+}
+
+/* Brand intent over RAW (pre-canonicalisation) tokens: canonicalising
+   first would shred multi-word brands ("sol de janeiro" ->
+   "sunglasses de janeiro"). Longest window wins; a 2-token window is
+   tried in both orders ("la young" finds YoungLA). Single-token
+   windows skip synonym-group words ("polo" is a garment in Peru
+   before it is a brand) and retailer names ("target" the store is
+   not "Target" the brand). Exact pass first; the fuzzy pass
+   (Damerau<=2, <=1 for short keys) only runs when nothing matched
+   exactly. Returns { key, label, consumed } or null. */
+function detectBrandIntent(rawToks, pool, opts){
+  const vocab = brandKeysOfPool(pool);
+  if (!vocab.size || !rawToks.length) return null;
+  const retailerNames = new Set();
+  for (const r of (opts && opts.retailers) || [])
+    for (const n of [r.key, r.label]) for (const t of searchTokens(n || '')) retailerNames.add(t);
+  const windows = [];
+  for (let size = 3; size >= 1; size--)
+    for (let i = 0; i + size <= rawToks.length; i++){
+      const win = rawToks.slice(i, i + size);
+      const joins = [win.join('')];
+      if (size === 2) joins.push(win[1] + win[0]);
+      else if (size === 3) joins.push(win[2] + win[1] + win[0]);
+      windows.push({ joins, idx: win.map((_, k) => i + k) });
+    }
+  const singleSkipped = (w) => {
+    if (w.joins.length !== 1 || w.idx.length !== 1) return false;
+    const tok = rawToks[w.idx[0]];
+    return !!synonymGroupOf(tok) || retailerNames.has(tok);
+  };
+  for (const w of windows){
+    if (singleSkipped(w)) continue;
+    for (const j of w.joins){
+      const k = searchBrandKey(j);
+      if (!k || k.length < 2) continue;
+      const hit = vocab.get(k);
+      if (hit) return { key: k, label: hit.label, consumed: w.idx };
+    }
+  }
+  const keys = [...vocab.keys()];
+  const sqKeys = keys.map(k => fuzzySquashDoubles(k));
+  let best = null;
+  for (const w of windows){
+    if (singleSkipped(w)) continue;
+    for (const j of w.joins){
+      const k = searchBrandKey(j);
+      if (!k || k.length < 2) continue;
+      const maxDist = k.length >= 4 ? 2 : 1;
+      const sk = fuzzySquashDoubles(k);
+      for (let bki = 0; bki < keys.length; bki++){ const bk = keys[bki];
+        if (Math.abs(bk.length - k.length) > maxDist) continue;
+        const d = fuzzyEditDistRaw(sk, sqKeys[bki], maxDist);
+        if (d <= maxDist && (!best || d < best.d)){
+          best = { d, key: bk, label: vocab.get(bk).label, consumed: w.idx };
+          if (d === 0) break;
+        }
+      }
+      if (best && best.d === 0) break;
+    }
+    if (best && best.d === 0) break;
+  }
+  return best;
+}
+
+/* Brand-shelf order: measurable markdowns first, then
+   merchant-flagged sales, then price. Self-contained: the pure slice
+   cannot see the carousel sorters. */
+function brandShelfSort(a, b){
+  const dp = (p) => {
+    const pr = Number(p && p.price);
+    const op = Number(p && (p.originalPrice ?? p.wasPrice ?? p.compareAt ?? p.regularPrice));
+    return (pr > 0 && op > pr) ? (1 - pr / op) : 0;
+  };
+  const fa = (a && (a.onSale === true || a.isOnSale === true)) ? 1 : 0;
+  const fb = (b && (b.isOnSale === true || b.onSale === true)) ? 1 : 0;
+  return (dp(b) - dp(a)) || (fb - fa) || ((Number(b.price) || 0) - (Number(a.price) || 0));
+}
+
+/* Spanish stopwords: they can only ever narrow a good product search
+   to nothing under the AND rule ("sudadera con capucha" must not
+   require every hoodie title to say "con"). Dropped AFTER brand
+   intent -- "la" in "young la" is brand, not noise. */
+const ES_SEARCH_STOPWORDS = new Set(['de', 'la', 'el', 'los', 'las',
+  'en', 'con', 'para', 'por', 'un', 'una', 'uno', 'y', 'e', 'o',
+  'u', 'al', 'del', 'mi', 'tu', 'su', 'que', 'se', 'lo']);
+
 /* Coverage is the backbone; the two bonuses only order items that
    already matched. Matching every token outranks matching some, and a
    brand hit outranks an incidental word in a title -- someone typing
@@ -10301,25 +10635,25 @@ function catalogWordsWithCategory(item, intent, categoryOf){
   return words;
 }
 
-function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor){
+function catalogTokenWeights(pool, toks, intent, categoryOf, wordsFor, fuzzySets){
   const df = toks.map(() => 0);
   const wf = wordsFor || ((item) => intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item));
   for (const item of pool || []){
     if (!item || !item.title) continue;
     const words = wf(item);
-    toks.forEach((t, i) => { if (catalogTokenHits(words, [t])) df[i]++; });
+    toks.forEach((t, i) => { if (tokenHitsOneWithFuzzy(words, t, fuzzySets && fuzzySets[i])) df[i]++; });
   }
   return df.map(n => 1 / Math.log2(2 + n));
 }
 
-function scoreCatalogItem(item, toks, weights, wordsIn){
+function scoreCatalogItem(item, toks, weights, wordsIn, fuzzySets){
   const words = wordsIn || catalogWordsOf(item);
-  const hits = catalogTokenHits(words, toks);
+  const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
   if (!hits) return 0;
   let s;
   if (weights && weights.length === toks.length){
     let got = 0, all = 0;
-    toks.forEach((t, i) => { all += weights[i]; if (catalogTokenHits(words, [t])) got += weights[i]; });
+    toks.forEach((t, i) => { all += weights[i]; if (tokenHitsOneWithFuzzy(words, t, fuzzySets && fuzzySets[i])) got += weights[i]; });
     s = all > 0 ? got / all : 0;
   } else {
     s = hits / toks.length;
@@ -10438,11 +10772,20 @@ function genderIntentFromTokens(toks){
 function rankCatalogMatches(pool, query, opts){
   const limit = (opts && opts.limit) || CATALOG_SEARCH_LIMIT;
   query = expandBrandAliases(query);
+  /* BRAND INTENT FIRST (2026-10-03): runs on the RAW tokens --
+     canonicalising first would shred multi-word brands ("sol de
+     janeiro" -> "sunglasses de janeiro"). A hit hard-constrains the
+     search to that brand; the brand's tokens leave the token list. */
+  const rawToks = searchTokens(query);
+  const brandHit = detectBrandIntent(rawToks, pool, opts);
+  const brandKey = brandHit ? brandHit.key : null;
+  const brandLabel = brandHit ? brandHit.label : null;
+  const brandConsumed = brandHit ? new Set(brandHit.consumed) : new Set();
   /* SYNONYMS CANONICALISED UP FRONT, so "sneakers", "shoes",
      "zapatos" and "zapatillas" do not merely overlap — they run the
      identical token list, and return the identical items in the
      identical order. */
-  let toks = canonicalizeTokens(searchTokens(query));
+  let toks = canonicalizeTokens(rawToks.filter((_, i) => !brandConsumed.has(i)));
   /* STYLE WORDS ARE NOT SEARCH TOKENS (2026-10-02, Danny). "joggers
      deportivos" zeroed out because multi-word queries are AND and no
      English title says "deportivos" -- the style is already captured as
@@ -10476,6 +10819,18 @@ function rankCatalogMatches(pool, query, opts){
     toks = toks.filter((t) => !GENDER_QUERY_TOKENS.has(t) && t !== 's');
     if (!genderlessQuery) genderBoost = queryGender;
   }
+  /* Spanish stopwords leave AFTER brand intent ("la" in "young la" is
+     brand, not noise) and after gender: under the AND rule they can
+     only ever narrow a good search to nothing. */
+  toks = toks.filter(t => !ES_SEARCH_STOPWORDS.has(t));
+  /* Brand-only query ("young la", "new balance", "nik"): the brand's
+     shelf, sales first. A brand search never shows another brand. */
+  if (brandKey && !toks.length){
+    const shelf = (pool || [])
+      .filter(it => it && it.title && searchBrandKey(it.brand) === brandKey)
+      .sort(brandShelfSort);
+    return { items: shelf.slice(0, limit).map(x => ({ ...x })), exact: shelf.length, partial: 0, brand: brandLabel };
+  }
   if (!toks.length) return { items: [], exact: 0, partial: 0 };
 
   /* A store's name is answered by that store's stock (see the note on
@@ -10505,9 +10860,19 @@ function rankCatalogMatches(pool, query, opts){
      without an index (tests, live results) always take the old path.
      The duck-type check (not instanceof) also works across JS realms. */
   const windex = pool && pool._windex;
+  /* Fuzzy forms: one vocabulary lookup per token per search (null for
+     tokens the vocabulary already knows). Built even under a category
+     intent -- the index subset is skipped there, the scoring still
+     needs the forms. */
+  const fuzzyBuckets = (windex && typeof windex.get === 'function') ? fuzzyVocabBuckets(windex) : null;
+  const fuzzySets = toks.map(t => fuzzyFormsForToken(t, fuzzyBuckets, windex));
   if (windex && typeof windex.get === 'function' && !intent){
     const forms = new Set();
-    for (const t of toks) for (const f of matchFormsFor(t)) forms.add(f);
+    for (let fi = 0; fi < toks.length; fi++){
+      for (const f of matchFormsFor(toks[fi])) forms.add(f);
+      const fs = fuzzySets[fi];
+      if (fs) for (const w of fs) forms.add(w);
+    }
     const inSubset = new Set();
     for (const f of forms){
       const lst = windex.get(f);
@@ -10533,6 +10898,9 @@ function rankCatalogMatches(pool, query, opts){
   if (finKind === 'dive') candidates = candidates.filter(isDiveFinProduct);
   else if (finKind === 'surf') candidates = candidates.filter(isSurfFinProduct);
   if (retailerKey) candidates = candidates.filter(it => it && it.retailer === retailerKey);
+  /* BRAND HARD FILTER (2026-10-03): the constraint never leaks -- a
+     brand search shows that brand's products only. */
+  if (brandKey) candidates = candidates.filter(it => it && searchBrandKey(it.brand) === brandKey);
 
   const rawCategoryOf = (opts && opts.categoryOf)
     || (typeof catalogItemCategory === 'function' ? catalogItemCategory : () => null);
@@ -10570,9 +10938,10 @@ function rankCatalogMatches(pool, query, opts){
     }
     return intent ? catalogWordsWithCategory(item, intent, categoryOf) : catalogWordsOf(item);
   };
-  const weights = catalogTokenWeights(candidates, toks, intent, categoryOf, wordsFor);
+  const weights = catalogTokenWeights(candidates, toks, intent, categoryOf, wordsFor, fuzzySets);
   let exact = 0, partial = 0;
   const scored = [];
+  const nearMiss = [];
   for (const item of candidates){
     if (!item || !item.title) continue;
     let words = wordsFor(item);
@@ -10580,7 +10949,7 @@ function rankCatalogMatches(pool, query, opts){
        retailerNameTokens below. Copy before adding: words may be the
        item's shared precomputed set, which must never be mutated. */
     if (retailerToks){ words = new Set(words); for (const t of retailerToks) words.add(t); }
-    const hits = catalogTokenHits(words, toks);
+    const hits = catalogTokenHitsWithFuzzy(words, toks, fuzzySets);
     if (!hits) continue;
     /* MULTI-WORD QUERIES ARE AND, NOT OR (2026-09-28, Danny): tapping
        "MacBook Air" returned Nike products because the lone word "air"
@@ -10590,9 +10959,15 @@ function rankCatalogMatches(pool, query, opts){
        queries keep the old behaviour. A fin-kind query ("diving fins",
        "quillas") keeps its own rule: there the kind token is a
        sanctioned modifier, not a word the title must contain. */
-    if (toks.length > 1 && !isStrictFinsQuery(toks) && hits < toks.length) continue;
+    if (toks.length > 1 && !isStrictFinsQuery(toks) && hits < toks.length){
+      /* CLOSEST MATCH (2026-10-03, Danny): the AND found nothing it
+         could use -- park the partial overlap. If no full match
+         exists at all, these answer instead of a dead page. */
+      nearMiss.push({ item, score: scoreCatalogItem(item, toks, weights, words, fuzzySets), hits });
+      continue;
+    }
     if (hits === toks.length) exact++; else partial++;
-    let itemScore = scoreCatalogItem(item, toks, weights, words);
+    let itemScore = scoreCatalogItem(item, toks, weights, words, fuzzySets);
     /* Gender preference boost (see above): a title positively signalling
        the queried gender outranks an unmarked one. Guarded — the test
        harness runs this slice without the chat helpers. */
@@ -10610,7 +10985,33 @@ function rankCatalogMatches(pool, query, opts){
      "Airbrush Flawless Setting Spray" -- cheaper, and matching "air"
      because "Airbrush" starts with it. Relevance has to survive as a
      value on the item, not as the order of a list. */
-  return { items: scored.slice(0, limit).map(x => ({ ...x.item, matchScore: x.score })), exact, partial };
+  let out = scored.slice(0, limit);
+  let usedNearMiss = false;
+  /* CLOSEST MATCH needs every token KNOWN: a token that matched
+     nothing anywhere ("macbook") is not a near-miss, it is an unknown
+     word -- the 2026-09-28 AND rule still stands guard so a common word
+     like "air" cannot drag cross-category junk back in. weights[i] is
+     exactly 1 when token i matched zero candidates. */
+  const allTokensKnown = weights.every(w => w < 1);
+  if (!out.length && nearMiss.length && allTokensKnown){
+    /* Closest matches win over nothing: most tokens hit first, then score. */
+    nearMiss.sort((a, b) => (b.hits - a.hits) || (b.score - a.score));
+    out = nearMiss.slice(0, limit);
+    usedNearMiss = true;
+  }
+  /* BRAND FALLBACK (2026-10-03): the brand is real but the product
+     words missed everything -- the brand's shelf answers, never
+     another brand, never nothing. Mirrors the chat's 2026-10-01 rule. */
+  if (brandKey && !out.length){
+    const shelf = (pool || [])
+      .filter(it => it && it.title && searchBrandKey(it.brand) === brandKey)
+      .sort(brandShelfSort)
+      .slice(0, limit);
+    return { items: shelf.map(x => ({ ...x })), exact: 0, partial: 0, brand: brandLabel };
+  }
+  return { items: out.map(x => ({ ...x.item, matchScore: x.score })), exact,
+    partial: usedNearMiss ? nearMiss.length : partial,
+    ...(brandKey ? { brand: brandLabel } : {}) };
 }
 
 /* ============================================================
@@ -10644,6 +11045,8 @@ function rankCatalogMatches(pool, query, opts){
    ============================================================ */
 const BRAND_ALIASES = {
   'vs': "Victoria's Secret",
+  /* GOOGLE-GRADE SEARCH (2026-10-03): whole-query only, like 'vs'. */
+  'nb': 'New Balance',
 };
 
 function expandBrandAliases(query){
@@ -10738,6 +11141,11 @@ async function renderRelatedRail(anchorIn){
       && !isFootwear({ ...mine, title: anchor.title }, anchor.retailer)){
     relPool = pool.filter(it => !isFootwear(it, it.retailer));
   }
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the cross-sell rail shows
+     sales only -- if sneakers are ever suggested, they are the ones
+     ON SALE, never full-price $300 pairs. Full price surfaces
+     through explicit search. */
+  relPool = relPool.filter(it => itemSaleTier(it) > 0);
   const picks = relatedProducts({ ...anchor, departments: anchorDepts }, relPool);
   if (!picks.length) return;
 
@@ -11067,8 +11475,10 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
   /* COSTCO NEVER GOES THROUGH THE SALE/FEATURED FILL: its shelf is the
      women-shopper curation (cozy home first, boring tech accessories at
      the back, never candy) and the rail takes the first twelve of it. */
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the curation order stays,
+     but the rail only shows the curated shelf's sales. */
   if (String(key || '').toLowerCase() === 'costco' && Array.isArray(pool))
-    return costcoCuratedItems(pool).slice(0, STORE_RAIL_TOTAL);
+    return costcoCuratedItems(pool).filter(p => itemSaleTier(p) > 0).slice(0, STORE_RAIL_TOTAL);
   /* FARFETCH OPENS ON THE CLEARANCE RACK (2026-09-29, Danny): Peruvians
      already buy direct from Farfetch, so Aria's 24% markup only stays
      competitive on markdowns. The shelf leads with every genuine
@@ -11088,31 +11498,24 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
         seenFF.add(k);
         return true;
       });
-    /* Markdowns first, the deepest discount at the front. */
+    /* SALES-ONLY BROWSE (2026-10-03, Danny): the clearance rack is
+       markdowns only -- the halo fill is gone. Tier-based so
+       flagged-without-% sales count too. */
     const saleFF = deduped
-      .filter(p => Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
-      .sort((a, b) => pctFF(b) - pctFF(a));
-    const picksFF = saleFF.slice(0, STORE_RAIL_SALE);
-    const pickedKeys = new Set(picksFF.map(p => 'farfetch::' + (p.title || '')));
-    /* Then halo (most expensive) first, cheap last. */
-    if (picksFF.length < STORE_RAIL_TOTAL){
-      const rest = deduped
-        .filter(p => !pickedKeys.has('farfetch::' + (p.title || '')))
-        .sort((a, b) => Number(b.price) - Number(a.price));
-      for (const p of rest){
-        if (picksFF.length >= STORE_RAIL_TOTAL) break;
-        picksFF.push(p);
-      }
-    }
-    return picksFF;
+      .filter(p => itemSaleTier(p) > 0)
+      .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (pctFF(b) - pctFF(a)));
+    return saleFF.slice(0, STORE_RAIL_TOTAL);
   }
   const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
   const pct = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
   const seen = new Set();
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the store rail is its
+     sales, biggest tier then biggest discount first. The featured
+     fill of full-price items is gone. */
   const sale = (Array.isArray(saleItems) ? saleItems : [])
     .filter(p => p && p.retailer === key && hasRealImage(p)
       && Number.isFinite(Number(p.price)) && Number(p.price) > 0
-      && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
+      && itemSaleTier(p) > 0)
     .filter(p => { const k = itemKey(p); if (seen.has(k)) return false; seen.add(k); return true; })
     .sort((a, b) => {
       /* The window is not the sale rack: a markdown the Ofertas rail
@@ -11120,25 +11523,11 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
          within each group. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
-      return (ao - bo) || (pct(b) - pct(a));
+      const ta = itemSaleTier(a), tb = itemSaleTier(b);
+      if (tb !== ta) return tb - ta;
+      return (ao - bo) || (carouselDiscountPct(b) - carouselDiscountPct(a));
     });
-  const picks = sale.slice(0, STORE_RAIL_SALE);
-  const picked = new Set(picks.map(itemKey));
-  /* Featured fill: real products with a price and a photo. Never
-     priceless, never imageless, never a sale item twice. */
-  if (picks.length < STORE_RAIL_TOTAL && Array.isArray(pool)){
-    for (const it of pool){
-      if (picks.length >= STORE_RAIL_TOTAL) break;
-      if (!it || it.retailer !== key) continue;
-      const k = itemKey(it);
-      if (picked.has(k) || seen.has(k)) continue;
-      const price = Number(it.price);
-      if (!Number.isFinite(price) || price <= 0 || !it.image) continue;
-      if (it.onSale && Number(it.originalPrice) > price) continue;
-      picked.add(k);
-      picks.push(it);
-    }
-  }
+  const picks = sale.slice(0, STORE_RAIL_TOTAL);
   /* GYMSHARK OPENS ON A MODEL SHOT (2026-09-26, Danny). */
   if (String(key || '').toLowerCase() === 'gymshark') gymsharkRailLead(picks);
   return picks;
@@ -11322,10 +11711,13 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
     return 1;
   };
   const seen = new Set();
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the rail's pool is sales.
+     Tier 2 = measured % off, tier 1 = the merchant's own sale flag
+     without a measurable % (New Balance's 31 flagged items). */
   const sale = (Array.isArray(saleItems) ? saleItems : [])
     .filter(p => p && inSet(p) && hasRealImage(p)
       && Number.isFinite(Number(p.price)) && Number(p.price) > 0
-      && Number.isFinite(Number(p.originalPrice)) && Number(p.originalPrice) > Number(p.price))
+      && itemSaleTier(p) > 0)
     .filter(p => { const k = itemKey(p); if (seen.has(k)) return false; seen.add(k); return true; })
     .sort((a, b) => {
       /* A markdown the Ofertas rail already leads on yields to one it
@@ -11333,11 +11725,14 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
          the store rails, so the front page never reads as a copy. */
       const ao = ofertasKeys.has(itemKey(a)) ? 1 : 0;
       const bo = ofertasKeys.has(itemKey(b)) ? 1 : 0;
+      /* Measured markdowns outrank flagged-without-% sales. */
+      const ta = itemSaleTier(a), tb = itemSaleTier(b);
+      if (tb !== ta) return tb - ta;
       if (cheapFirst){
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
       }
-      return (fancyRank(a) - fancyRank(b)) || (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (pct(b) - pct(a));
+      return (fancyRank(a) - fancyRank(b)) || (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (carouselDiscountPct(b) - carouselDiscountPct(a));
     });
   /* Fancy lead: highest-priced fancy items open the rail, ahead of
      the sale picks. Skips anything already in sales (it will lead
@@ -11356,39 +11751,11 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
       leadPicks.push(p);
     }
   }
-  const saleCap = saleHeavy ? max : CATEGORY_RAIL_SALE;
-  const picks = [...leadPicks, ...sale.slice(0, saleCap)];
-  const picked = new Set(picks.map(itemKey));
-  /* Featured fill: real products with a price and a photo, mixed across
-     the category's stores. Never priceless, never imageless, never a
-     sale item twice. */
-  const fillPoolBase = womenFirst && Array.isArray(pool)
-    ? [...pool.filter(p => railBucketGenderIs(p, 'women')), ...pool.filter(p => !railBucketGenderIs(p, 'women'))]
-    : pool;
-  /* Toys-first fill: a stable sort by lead rank, so real toys fill the
-     rail before consoles and toy-grade boards do. */
-  const fillPool = (toyRankFn && Array.isArray(fillPoolBase))
-    ? [...fillPoolBase].sort((a, b) => toyRank(a) - toyRank(b))
-    : (cheapFirst && Array.isArray(fillPoolBase))
-    ? [...fillPoolBase].sort((a, b) => priceNum(a) - priceNum(b))
-    : (cleatsFirst && Array.isArray(fillPoolBase))
-    ? [...fillPoolBase].sort((a, b) => cleatRank(a) - cleatRank(b))
-    : (fancyFirst && Array.isArray(fillPoolBase))
-    ? [...fillPoolBase].sort((a, b) => fancyRank(a) - fancyRank(b))
-    : fillPoolBase;
-  if (picks.length < max && Array.isArray(fillPool)){
-    for (const it of fillPool){
-      if (picks.length >= max) break;
-      if (!it || !inSet(it)) continue;
-      const k = itemKey(it);
-      if (picked.has(k) || seen.has(k)) continue;
-      const price = Number(it.price);
-      if (!Number.isFinite(price) || price <= 0 || !it.image) continue;
-      if (it.onSale && Number(it.originalPrice) > price) continue;
-      picked.add(k);
-      picks.push(it);
-    }
-  }
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the rail is the sale slice,
+     filled to the shelf length. The old "featured fill" of full-price
+     items is gone -- full price surfaces through explicit search, not
+     browse. fancyLead (Miu Miu) stays: Danny's explicit per-rail call. */
+  const picks = [...leadPicks, ...sale.slice(0, Math.max(0, max - leadPicks.length))];
   return picks;
 }
 /* CATEGORY_RAIL_PICKS:SLICE-END */
@@ -11887,11 +12254,9 @@ function surfSkateDeptRailsHTML(byRetailer){
     .filter(isSale);
   blocks.push(deptRailSectionHTML('ss-ofertas', 'Ofertas en Surf & Skate',
     deptMixedRailHeadHTML('Ofertas en Surf & Skate', 'Descuentos por tienda'), ofertas));
-  /* The mixed featured rail: everything the markdown rail did not take. */
-  const destacados = categoryRailPicks(SURFSKATE_RAIL_STORES, [],
-    all.filter(p => !isSale(p)), noKeys, CATEGORY_RAIL_TOTAL);
-  blocks.push(deptRailSectionHTML('ss-destacados', 'Destacados en Surf & Skate',
-    deptMixedRailHeadHTML('Destacados en Surf & Skate', 'Selección por tienda'), destacados));
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): the full-price "everything
+     the markdown rail did not take" rail is gone -- browse blasts
+     sales only. */
   /* RETAILER GEAR CAROUSELS (2026-10-02, Danny): per-store rails moved
      to the generic deptRetailerGearCarouselsHTML -- every retailer with
      gear gets its own carousel shoulder-to-shoulder with the brands. */
@@ -12096,8 +12461,8 @@ function sunglassesRailHeadHTML(title, sub, brand){
       A retailer is never a brand.
    2. POR TIENDA: one carousel per retailer, below the brands.
    3. POR ESTILO: frame-shape category carousels with their own setup.
-   Inside EVERY carousel: biggest sales first, then expensive halo
-   pieces, then best sellers. "Mas marcas" is a full XL carousel, never
+   Inside EVERY carousel (2026-10-03, Danny): SALES ONLY, biggest
+   discount first. "Mas marcas" is a full XL carousel, never
    a lesser rail. */
 /* Gold-on-dark rail header for a STORE rail: "Ver todo" narrows the feed
    to that store via the existing store filter. */
@@ -12160,8 +12525,8 @@ function sunglassesDeptRailsHTML(items){
   const retailerKeys = [...new Set(list.map(it => it && it.retailer).filter(Boolean))];
   const noKeys = new Set();
   const blocks = [];
-  /* Shared merchandising (Danny): biggest sales first, then expensive
-     halo pieces, then best sellers. */
+  /* Shared merchandising (2026-10-03, Danny): SALES ONLY in carousels,
+     biggest discount first. */
   const sgDiscountOf = (p) => {
     const pr = Number(p.price), op = Number(p.originalPrice);
     return (pr > 0 && op > pr) ? (1 - pr / op) : 0;
@@ -12170,11 +12535,11 @@ function sunglassesDeptRailsHTML(items){
     (sgDiscountOf(b) - sgDiscountOf(a))
     || (Number(b.price || 0) - Number(a.price || 0))
     || ((Number(b.rating) || 0) - (Number(a.rating) || 0)));
+  /* SALES-ONLY BROWSE (2026-10-03): the tier filter inside
+     categoryRailPicks picks the sales (measured, then flagged). */
   const sgPicks = (pool) => {
     const sorted = sgMerchSort(pool);
-    const sale = sorted.filter(rawItemOnSale);
-    const rest = sorted.filter(p => !rawItemOnSale(p));
-    return categoryRailPicks(retailerKeys, sale, rest, noKeys, CATEGORY_RAIL_TOTAL, {});
+    return categoryRailPicks(retailerKeys, sorted, sorted, noKeys, CATEGORY_RAIL_TOTAL, {});
   };
   const brandSlug = (b) => b.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'otras';
 
@@ -12339,7 +12704,7 @@ function deptRetailerGearCarouselsHTML(items, sectionKey){
       var sy = (typeof rawItemOnSale === 'function' && rawItemOnSale(y)) ? 1 : 0;
       return sy - sx || Number(y.price) - Number(x.price);
     });
-    picks = categoryRailPicks([key], [], pool, {}, 12, {});
+    picks = categoryRailPicks([key], pool, pool, {}, 12, {});
     if (picks && picks.length >= 4){
       var label = useLabel ? carouselCityStoreLabel(key) : (key ? key.charAt(0).toUpperCase() + key.slice(1) : 'Tienda');
       blocks.push(deptRailSectionHTML('gear-' + sectionKey + '-' + key, label,
@@ -12381,7 +12746,7 @@ function deptBrandCarouselsHTML(items, sectionKey){
       var sy = (typeof rawItemOnSale === 'function' && rawItemOnSale(y)) ? 1 : 0;
       return sy - sx || Number(y.price) - Number(x.price);
     });
-    picks = categoryRailPicks(retailerKeys, [], pool, {}, 12, {});
+    picks = categoryRailPicks(retailerKeys, pool, pool, {}, 12, {});
     if (picks && picks.length >= 4){
       blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
         deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
@@ -12473,9 +12838,9 @@ function realBrandOf(item, retailerSet){
   return b;
 }
 
-/* Shared merchandising (Danny): biggest sales first (largest discount %),
+/* Shared merchandising (2026-10-03, Danny): sales first (largest discount %),
    then expensive halo pieces (price desc), then best sellers (rating desc).
-   Mirrors the Lentes de Sol sgMerchSort. */
+   Carousel rails take the sales slice only; see carouselCityPicks. */
 function carouselCityDiscountOf(p){
   const pr = Number(p && p.price), op = Number(p && p.originalPrice);
   return (pr > 0 && op > pr) ? (1 - pr / op) : 0;
@@ -12569,16 +12934,18 @@ function carouselCityStoreRailHeadHTML(label, sub, retailerKey){
 /* Shared rail picks: merch-sort the pool (sales, halo, best sellers), then
    delegate to categoryRailPicks so cards dedupe, require image + price,
    and respect picksOpts (fancyLead, cleatsFirst, ...). Mirrors sgPicks. */
+/* SALES-ONLY BROWSE (2026-10-03, Danny): Carousel City rails show
+   sales only. The sale set is tier-based (measured % off, then the
+   merchant's flagged sales); categoryRailPicks does the picking. */
 function carouselCityPicks(pool, list, opts){
   opts = opts || {};
   const sorted = merchSort(pool);
-  const sale = sorted.filter(carouselCityIsSale);
-  const rest = sorted.filter(p => !carouselCityIsSale(p));
   const total = (Number.isFinite(opts.railTotal) && opts.railTotal > 0) ? Math.floor(opts.railTotal)
     : ((typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12);
-  if (typeof categoryRailPicks !== 'function') return sorted.slice(0, total);
+  if (typeof categoryRailPicks !== 'function')
+    return sorted.filter(p => itemSaleTier(p) > 0).slice(0, total);
   const retailerKeys = [...new Set((Array.isArray(list) ? list : []).map(it => it && it.retailer).filter(Boolean))];
-  return categoryRailPicks(retailerKeys, sale, rest, new Set(), total, opts.picksOpts || {});
+  return categoryRailPicks(retailerKeys, sorted, sorted, new Set(), total, opts.picksOpts || {});
 }
 
 /* Small opts resolvers shared by the axis blocks. */
@@ -12636,7 +13003,11 @@ function brandCarouselsHTML(sectionKey, list, opts){
     blocks.push(deptRailSectionHTML(idp + '-brand-' + carouselCitySlug(b), b,
       heads.railHead(b, sub, b), picks, { xl: true }));
   }
+  /* SALES-ONLY BROWSE (2026-10-03): no brand had a sale -- the axis
+     header stands down rather than standing over empty rails. */
+  if (blocks.length <= 1) return '';
   return blocks.join('');
+
 }
 
 /* "Mas marcas": the long tail (brands below brandRailMin) gets a FULL XL
@@ -12744,7 +13115,7 @@ function carouselCityRailsHTML(sectionKey, items, opts){
      sales rail (no xl treatment). */
   if (opts.ofertas !== false){
     const saleMin = carouselCityMin(opts, 'saleMin', 4);
-    const onSale = merchSort(list.filter(carouselCityIsSale));
+    const onSale = merchSort(list.filter(p => itemSaleTier(p) > 0));
     if (onSale.length >= saleMin){
       const picks = carouselCityPicks(onSale, list, opts);
       if (picks.length){
@@ -18058,6 +18429,26 @@ function carouselIsSale(it){
     || (typeof it.percentOff === 'number' && it.percentOff > 0));
   return !!flag && carouselDiscountPct(it) >= CAROUSEL_MIN_DISCOUNT_PCT;
 }
+/* MERCHANT-FLAGGED SALE (2026-10-03, Danny): the merchant's own sale
+   flag counts even when the feed carries no original/compare-at price
+   to measure a % off -- New Balance's feed flags 31 items onSale with
+   zero original prices, and the old %-only detection was blind to all
+   of them. Tier 1 ranks below measured markdowns, above full price,
+   and never invents a % badge. */
+function itemIsOnSaleFlagged(it){
+  return !!(it && (it.onSale === true || it.isOnSale === true
+    || (typeof it.savingsAmount === 'number' && it.savingsAmount > 0)
+    || (typeof it.savingsPercent === 'number' && it.savingsPercent > 0)
+    || (typeof it.percentageOff === 'number' && it.percentageOff > 0)
+    || (typeof it.percentOff === 'number' && it.percentOff > 0)));
+}
+/* Sale tier: 2 = measured % off, 1 = flagged sale without a measurable
+   %, 0 = full price. */
+function itemSaleTier(it){
+  if (carouselDiscountPct(it) >= CAROUSEL_MIN_DISCOUNT_PCT) return 2;
+  if (itemIsOnSaleFlagged(it)) return 1;
+  return 0;
+}
 function carouselSaleLeadEligible(it){
   if (!carouselHasPhoto(it)) return false;
   if (!carouselIsSale(it)) return false;
@@ -18117,28 +18508,25 @@ function carouselPickItems(items, max, leadRank){
   /* One merchandising run over a list: sale leads by discount, then the
      rest, halo-priced first. Factored so a lead rank (gear: complete
      before parts) can run each band on its own. */
+  /* SALES-ONLY BROWSE (2026-10-03, Danny): "Peru's full of broke
+     people. I cannot be blasting $300 sneakers." Full-price items never
+     enter a browse carousel -- they surface through explicit search.
+     The old halo/plain bands are gone; the rail is sales, biggest
+     measured markdown first, merchant-flagged sales after. */
   const merchandised = (list) => {
     const leads = [];
     const otherSales = [];
-    const plain = [];
+    const flagged = [];
     for (const it of list){
       if (carouselSaleLeadEligible(it)) leads.push(it);
-      else if (carouselIsSale(it)) otherSales.push(it);
-      else plain.push(it);
+      else if (itemSaleTier(it) === 2) otherSales.push(it);
+      else if (itemSaleTier(it) === 1 && carouselHasPhoto(it)) flagged.push(it);
     }
     leads.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
     otherSales.sort((a, b) => carouselDiscountPct(b) - carouselDiscountPct(a));
-    /* HALO FIRST (2026-09-30, Danny): after the biggest discounts, the
-       most expensive pieces lead -- the broke shopper sees deals next to
-       aspirational luxury. */
-    plain.sort((a, b) => (Number(b.price) || 0) - (Number(a.price) || 0));
-    const head = carouselPhotoFirst(leads).slice(0, CAROUSEL_SALE_LEAD_MAX);
-    const spareLeads = carouselPhotoFirst(leads).slice(CAROUSEL_SALE_LEAD_MAX);
-    const tail = carouselSpreadSales(
-      carouselPhotoFirst(plain),
-      carouselPhotoFirst(spareLeads.concat(otherSales))
-    );
-    return head.concat(tail);
+    const sales = carouselPhotoFirst(leads)
+      .concat(carouselPhotoFirst(otherSales), carouselPhotoFirst(flagged));
+    return sales;
   };
   /* GEAR LEAD (2026-09-30, Danny): complete products get their own
      merchandising run before parts -- a sale on a $7 wishbone must not
@@ -19035,8 +19423,13 @@ function renderCatalogFeed(){
      must hit, but it may hit as any word in its group — "zapatos"
      narrows to the same shoes "sneakers" does. */
   const tokenGroups = rawTokens.map((w) => { const g = synonymGroupOf(w); return g ? g.words : [w]; });
+  /* BRAND-AWARE (2026-10-03): the bar matches title + brand, so a
+     brand word ("youngla") hits even when the title never names it.
+     Normalized the same way everywhere: "young la" == "YoungLA". */
   const searched = rawTokens.length
-    ? feed.filter(it => { const t = String(it.title || '').toLowerCase(); return tokenGroups.every((g) => g.some((w) => t.includes(w))); })
+    ? feed.filter(it => { const t = (String(it.title || '') + ' ' + String(it.brand || '')).toLowerCase();
+        const tb = t.replace(/[^a-z0-9]+/g, '');
+        return tokenGroups.every((g) => g.some((w) => t.includes(w) || tb.includes(w.replace(/[^a-z0-9]+/g, '')))); })
     : feed;
   /* Budget last, so its chip counts are taken against everything the
      other filters left standing — a band promising 12 has to deliver 12
@@ -34052,6 +34445,21 @@ function findBrandMention(text, brands){
     if (bl.length < 2) continue;
     if (normSquashed.indexOf(' ' + bl + ' ') !== -1) return b;
   }
+  /* SPACING-INSENSITIVE (2026-10-03): "young la" finds the "YoungLA"
+     label -- concatenated word pairs (and single words) are checked
+     against the squashed brand key. Keys under 4 chars stay on the
+     whole-word passes above so "la" never matches everything. */
+  const wWords = clean(text).split(' ').filter(Boolean)
+    .map(w => w.replace(/[^a-z0-9]/g, ''));
+  const wForms = new Set();
+  for (let wi = 0; wi < wWords.length; wi++){
+    wForms.add(wWords[wi]);
+    if (wi + 1 < wWords.length) wForms.add(wWords[wi] + wWords[wi + 1]);
+  }
+  for (const b of brands || []){
+    const bk = String(b.label || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (bk.length >= 4 && wForms.has(bk)) return b;
+  }
   return null;
 }
 /* The router's call to action: a navy button that opens the brand's page
@@ -34442,13 +34850,24 @@ async function executeAgentTool(tc){
     items = (res && res.items) || [];
   } catch(e){ return { results: [], count: 0, note: 'search failed' }; }
 
-  /* Brand filter: keep it only if it keeps something -- a brand the
-     catalog doesn't carry shouldn't zero out a good category search. */
+  /* BRAND FILTER, NORMALIZED (2026-10-03): "Young LA" == "youngla" ==
+     "YOUNG LA". Exact on the normalized brand key -- the old substring
+     match let a brand like "LA" leak into every "baLAnce" title, which
+     is how a Young LA search showed a New Balance carousel. A short
+     key (<4 chars) matches the brand field only, never a title
+     substring. Keeps the old contract: a brand the catalog does not
+     carry never zeroes out a good category search. */
   if (args.brand){
-    const bf = String(args.brand).toLowerCase();
-    const branded = items.filter(p =>
-      String(p.brand || '').toLowerCase().includes(bf) ||
-      String(p.title || '').toLowerCase().includes(bf));
+    const bfKey = typeof brandKeyOf === 'function'
+      ? brandKeyOf(args.brand)
+      : String(args.brand || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+    const branded = items.filter(p => {
+      if (!bfKey) return false;
+      if ((typeof brandKeyOf === 'function' ? brandKeyOf(p.brand) : String(p.brand || '').toLowerCase().replace(/[^a-z0-9]+/g, '')) === bfKey) return true;
+      if (bfKey.length < 4) return false;
+      const tWords = String(p.title || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').match(/[a-z0-9]+/g) || [];
+      return tWords.some(w => w === bfKey || w.indexOf(bfKey) !== -1);
+    });
     if (branded.length) items = branded;
   }
   let overBudget = false;
