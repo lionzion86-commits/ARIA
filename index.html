@@ -1628,6 +1628,19 @@
     margin-left:calc(50% - 50vw) !important;
     margin-right:calc(50% - 50vw) !important;
   }
+  /* BUTTON FULL-BLEED (2026-10-03): a <button> with width:auto SHRINKS
+     to its content instead of filling like a div does, so the breakout
+     above collapsed brand-room banner buttons to a ~391px left strip
+     (aspect-ratio 16/9 over min-height 220 = intrinsic width). A definite
+     100vw width restores the edge-to-edge hero; the breakout margins
+     above position it. Same geometry the div banners already use.
+     max-height caps the 16/9 ratio on wide screens (1920px would ask
+     for a 1080px-tall hero and bury the product rail); the cover photo
+     and bottom-pinned text adapt. Mobile (~220px) is untouched. */
+  button.ariaFullBleed{
+    width:100vw !important;
+    max-height:480px;
+  }
   /* DISENADORES LATINOS inner layers (Danny QA 2026-10-02): the banner's
      own image + scrim + hairline carry the base 24px radius, which rounds
      the photo inside the squared full-bleed frame. Square them too. */
@@ -12567,6 +12580,14 @@ function sunglassesDeptRailsHTML(items){
       const stores = new Set(pool.map(p => String(p.retailer || '').toLowerCase())).size;
       const picks = sgPicks(pool);
       if (!picks.length) continue;
+      /* Phase 2 brand rooms (2026-10-02): Oakley (flagship), Ray-Ban, ...
+         get the photo-room treatment instead of the text-only header. */
+      const spec = brandRoomSpecFor(b);
+      if (spec){
+        blocks.push(brandRoomDeptSectionHTML('sunglasses-brand-' + brandSlug(b), 'Lentes de sol ' + b,
+          spec, pool, picks, `sunglassesBrandFilter('${b.replace(/'/g, "\\'")}')`, 'Lentes de Sol', { xl: true }));
+        continue;
+      }
       const sub = pool.length + ' modelo' + (pool.length === 1 ? '' : 's')
         + (stores > 1 ? ' · ' + stores + ' tiendas' : '');
       blocks.push(deptRailSectionHTML('sunglasses-brand-' + brandSlug(b), 'Lentes de sol ' + b,
@@ -12748,8 +12769,17 @@ function deptBrandCarouselsHTML(items, sectionKey){
     });
     picks = categoryRailPicks(retailerKeys, pool, pool, {}, 12, {});
     if (picks && picks.length >= 4){
-      blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
-        deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+      /* Phase 2 brand rooms (2026-10-02): a curated brand gets the
+         photo-room treatment instead of the text-only header. */
+      var spec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(b) : null;
+      if (spec){
+        var deptLabel = (typeof metaFor === 'function') ? (metaFor(DEPARTMENT_META, sectionKey).label || '') : '';
+        blocks.push(brandRoomDeptSectionHTML('brand-' + sectionKey + '-' + k, b, spec, pool, picks,
+          "brandRoomBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", deptLabel));
+      } else {
+        blocks.push(deptRailSectionHTML('brand-' + sectionKey + '-' + k, b,
+          deptMixedRailHeadHTML(b, byBrand[b].length + ' modelos en todas las tiendas'), picks));
+      }
     }
   }
   return blocks.join('');
@@ -16309,17 +16339,17 @@ const BRAND_LOGOS = {
   hermes: { src: 'logos/brands/hermes.svg' },
 
   /* 2026-09-30, sixth wave: brand audit — official marks for top brands by product count. */
-  skims: { src: 'logos/brands/skims.svg' },
+  skims: { src: 'logos/brands/skims.png' },
   disney: { src: 'logos/brands/disney.svg' },
   quiksilver: { src: 'logos/brands/quiksilver.svg' },
   billabong: { src: 'logos/brands/billabong.svg' },
-  lego: { src: 'logos/brands/lego.png' },
-  oakley: { src: 'logos/brands/oakley.svg' },
-  puma: { src: 'logos/brands/puma.svg' },
-  rayban: { src: 'logos/brands/rayban.svg' },
-  sony: { src: 'logos/brands/sony.svg' },
-  roxy: { src: 'logos/brands/roxy.svg' },
-  rvca: { src: 'logos/brands/rvca.svg' },
+  lego: { src: 'logos/brands/lego.svg' },
+  oakley: { src: 'logos/brands/oakley.png' },
+  puma: { src: 'logos/brands/puma.png' },
+  rayban: { src: 'logos/brands/rayban.png' },
+  sony: { src: 'logos/brands/sony.png' },
+  roxy: { src: 'logos/brands/roxy.png' },
+  rvca: { src: 'logos/brands/rvca.png' },
   volcom: { src: 'logos/brands/volcom.png' },
 
   ace: { src: 'logos/brands/ace.png' },
@@ -17796,7 +17826,7 @@ function latinoDesignerBannerHTML(spec, designerItems){
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = src ? imageRetryUrl(src) : '';
   const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
-  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  return `<button onclick="setCatalogSub('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -17897,10 +17927,17 @@ function brandRoomBannerHTML(spec, brandItems, opts){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = !curated && src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  /* Brand-room hero is above-the-fold: fetch it the moment the banner is painted
+     (eager + high priority), never gated on intersection. A lazy hero injected via
+     innerHTML can sit unpainted while the intersection observer catches up. */
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="eager" fetchpriority="high" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
   const kicker = opts.kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(opts.kicker)}</span>` : '';
-  return `<button onclick="setCatalogStore('${jsAttr(spec.key)}')" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;aspect-ratio:16/9;background:var(--navy)">
+  /* Phase 2 (2026-10-02): brand-room banners outside Gym Rat filter by
+     BRAND, not store -- the tap is overridable; Gym Rat keeps the
+     default store filter. */
+  const tap = opts.onclick || `setCatalogStore('${jsAttr(spec.key)}')`;
+  return `<button onclick="${tap}" aria-label="Ver la colección de ${escapeHtml(spec.label)}" class="block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4" style="position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)">
     ${photo}
     <span class="absolute inset-0" style="background:linear-gradient(100deg,rgba(10,31,68,0.92) 0%,rgba(10,31,68,0.62) 42%,rgba(10,31,68,0.18) 72%,rgba(10,31,68,0.06) 100%)"></span>
     <span class="absolute inset-0" style="background:linear-gradient(115deg,transparent 42%,rgba(255,255,255,0.13) 50%,transparent 58%)"></span>
@@ -17958,6 +17995,106 @@ function gymRatBrandBannerHTML(spec, brandItems){ return brandRoomBannerHTML(spe
 function gymRatBrandRailHTML(spec, brandItems){ return brandRoomRailHTML(spec, brandItems); }
 function gymRatBrandStorefrontsHTML(items){
   return brandRoomStorefrontsHTML(items, GYMRAT_BRANDS_SPEC, { kicker: 'Gym Rat', heading: 'Nuestras marcas', ofertasId: 'gymratOfertas' });
+}
+
+/* ============================================================
+   BRAND ROOMS -- PHASE 2 BATCH 1 (2026-10-02, Danny: full creative
+   authority, "the best-looking job, triple-verified").
+   Curated brand-world photo rooms for the highest-volume brands that
+   still showed text-only headers. Oakley FIRST (named by Danny --
+   the flagship), then Ray-Ban, Nike, Adidas, Puma, Sony, LEGO, Disney,
+   plus 3 more picked by catalog product count: Miu Miu (2,468),
+   New Balance (1,575), Crocs (1,130) -- the highest-volume brands
+   with a photographable brand world. Deliberately NOT picked despite
+   high counts: BaubleBar (6,984), JW PEI (2,351), Skims (2,269),
+   Kindred Bravely (1,838) -- no brand-world photography on Commons;
+   O'Neill (1,338) -- no usable Commons photos; Vivienne Westwood
+   (1,828) -- only memorial-scene photos of the flagship.
+   Same pattern as the Gym Rat rooms: spec.heroImage + asset in
+   assets/brands/, rendered by brandRoomBannerHTML. The registry is
+   GLOBAL: brandRoomSpecFor() lets any department's brand carousel
+   upgrade to the photo-room treatment when its brand is curated.
+   All photos: real photography from Wikimedia Commons, commercial-use
+   licenses (CC BY / CC BY-SA / CC0), downloaded and committed locally
+   -- never hotlinked. EXIF orientation verified, 2048x1152.
+   Attribution sits next to each reference, PR #276 style.
+   ============================================================ */
+const BRAND_ROOM_SPECS = [
+  /* FLAGSHIP (Danny named it): the Oakley 5th Ave NYC store.
+     Photo: 'The Oakley outlet at West 46th Street and 5th Avenue in
+     Midtown Manhattan' by Tdorante10, CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'oakley', label: 'Oakley', heroImage: 'assets/brands/oakley-hero.jpg' },
+  /* Photo: 'New Ray-Ban Store Miami Worldcenter' by Phillip Pessar,
+     CC BY 2.0, via Wikimedia Commons */
+  { key: 'rayban', label: 'Ray-Ban', heroImage: 'assets/brands/rayban-hero.jpg' },
+  /* Photo: 'Interior of Nike Factory Store at The Outlets' by
+     PaulGorduiz106, CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'nike', label: 'Nike', heroImage: 'assets/brands/nike-hero.jpg' },
+  /* Photo: 'Interior of an Adidas retail store in Houston, Texas' by
+     Soy Mencho, CC0 (public domain), via Wikimedia Commons */
+  { key: 'adidas', label: 'Adidas', heroImage: 'assets/brands/adidas-hero.jpg' },
+  /* Photo: 'Puma Store in Kerala' by Ganesh Mohan T, CC BY-SA 4.0,
+     via Wikimedia Commons */
+  { key: 'puma', label: 'Puma', heroImage: 'assets/brands/puma-hero.jpg' },
+  /* Photo: 'SONY STORE IN SHENZHEN' (UpperHills Mall) by Dinkun Chen,
+     CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'sony', label: 'Sony', heroImage: 'assets/brands/sony-hero.jpg' },
+  /* Photo: 'Interior of the Lego Store in Downtown Disney District at
+     Disneyland Resort' by Patrick Pelletier, CC BY-SA 3.0, via
+     Wikimedia Commons */
+  { key: 'lego', label: 'LEGO', heroImage: 'assets/brands/lego-hero.jpg' },
+  /* Photo: 'The Disney Store at Serramonte Center in Daly City,
+     California' by BrokenSphere, CC BY-SA 3.0, via Wikimedia Commons */
+  { key: 'disney', label: 'Disney', heroImage: 'assets/brands/disney-hero.jpg' },
+  /* Photo: Miu Miu window display, Landmark Atrium HK, by Sguidu Faiem
+     Saegoum, CC BY-SA 4.0, via Wikimedia Commons */
+  { key: 'miumiu', label: 'Miu Miu', heroImage: 'assets/brands/miumiu-hero.jpg' },
+  /* Photo: 'Store in The Mills at Jersey Gardens Mall in Elizabeth
+     New Jersey' (New Balance) by Curlyrnd, CC BY-SA 4.0, via
+     Wikimedia Commons */
+  { key: 'newbalance', label: 'New Balance', heroImage: 'assets/brands/newbalance-hero.jpg' },
+  /* Photo: 'Crocs Store Dadeland Mall, Miami FL 1 December 2022' by
+     Phillip Pessar, CC BY 2.0, via Wikimedia Commons */
+  { key: 'crocs', label: 'Crocs', heroImage: 'assets/brands/crocs-hero.jpg' },
+];
+
+/* Brand-room spec lookup, tolerant: 'Ray-Ban'/'ray ban' -> 'rayban',
+   'Miu Miu' -> 'miumiu', 'LEGO' -> 'lego'. Returns the spec or null. */
+function brandRoomSpecFor(brand){
+  const norm = String(brand || '').toLowerCase().normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
+  if (!norm || typeof BRAND_ROOM_SPECS === 'undefined') return null;
+  return BRAND_ROOM_SPECS.find(sp => sp.key === norm) || null;
+}
+
+/* Generic brand filter for brand-room banner taps (phase 2): narrows
+   the current department feed to the brand via the search term -- the
+   same mechanism toysBrandFilter / sunglassesBrandFilter use. */
+function brandRoomBrandFilter(brand){
+  catalogState.searchTerm = brand;
+  catalogState.subKey = null;
+  const input = document.getElementById('catalogSearchInput');
+  if (input) input.value = brand;
+  renderCatalogFeed();
+  const secs = document.getElementById('catalogSections');
+  if (secs) secs.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* A brand's photo room inside a department page: the curated banner
+   (brand-world photo, navy scrim, gold kicker, brand name, counts,
+   "Ver colección") with the brand's product rail directly beneath --
+   the text-only header is replaced, not duplicated. Cards and rail
+   markup mirror deptRailSectionHTML exactly so product taps behave
+   identically. onclickJs: the banner tap (a brand filter for that
+   department). opts passes through to railCardHTML (e.g. { xl: true }). */
+function brandRoomDeptSectionHTML(railId, ariaLabel, spec, pool, picks, onclickJs, kicker, opts){
+  if (!Array.isArray(picks) || !picks.length) return '';
+  deptRailsRendered[railId] = picks;
+  const cards = picks.map((p, i) => railCardHTML(p,
+    `openDeptRailProduct('${jsAttr(railId)}',${i})`,
+    `data-dept-rail-card="${escapeHtml(railId)}" data-idx="${i}"`, opts)).join('');
+  const banner = brandRoomBannerHTML(spec, pool, { kicker: kicker, onclick: onclickJs });
+  return `<section aria-label="${escapeHtml(ariaLabel)}" class="mb-9">${banner}<div class="flex gap-3 overflow-x-auto pb-2 ariaRail">${cards}</div></section>`;
 }
 
 
@@ -18175,6 +18312,28 @@ async function openCatalog(kind, key, opts = {}){
      section is a women's destination; Hombres is one tap away. */
   catalogState = { kind, key, retailerFilter, subKey, budget: null, byRetailer: orderedRetailers, searchTerm: '', pageSize: LISTING_PAGE_SIZE, sunglassesTier: null, sunglassesFace: null, sunglassesView: 'stores', toysStore: null,
     curvyGender: (kind === 'department' && key === 'curvy') ? 'women' : null };
+  /* BRAND ROOMS (2026-10-02, Danny): a curated brand's own room page
+     (?categoria=<brand>&kind=brand) leads with its photo room -- the
+     curated brand-world photo, gold kicker, logo badge, counts and
+     "Ver colección" -- not the text-only header. Painted after the
+     catalogue loads so the counts are real. */
+  if (kind === 'brand'){
+    const __roomSpec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(key) : null;
+    if (__roomSpec){
+      const __pool = [];
+      for (const [, __its] of orderedRetailers) for (const __it of __its) __pool.push(__it);
+      if (!__pool.length) { /* brand with no items: keep the plain header */ }
+      else {
+      const __logo = (typeof brandLogoFor === 'function' && brandLogoFor(key)) || null;
+      const __spec = (__logo && __logo.src) ? Object.assign({}, __roomSpec, { logo: __logo.src }) : __roomSpec;
+      const __notice = document.getElementById('catalogNotice');
+      if (__notice) __notice.innerHTML = brandRoomBannerHTML(__spec, __pool, {
+        kicker: 'Marca',
+        onclick: "document.getElementById('catalogSections').scrollIntoView({behavior:'smooth'})"
+      });
+      }
+    }
+  }
   /* NEVER A BLANK PAGE (2026-09-29, Danny): if render throws, show the
      empty state with retry instead of a dead page. */
   try { renderCatalogFeed(); }
@@ -19043,8 +19202,16 @@ function toysDeptRailsHTML(items){
     var picks = categoryRailPicks(retailerKeys, pool.filter(rawItemOnSale), pool, noKeys, CATEGORY_RAIL_TOTAL, toysFirst ? { toyRankFn: toysFirst } : {});
     if (picks.length){
       var slug = b.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'marca';
-      blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
-        deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+      /* Phase 2 brand rooms (2026-10-02): LEGO, Disney get the photo-room
+         treatment instead of the text-only header. */
+      var spec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(b) : null;
+      if (spec){
+        blocks.push(brandRoomDeptSectionHTML('toys-brand-' + slug, b, spec, pool, picks,
+          "toysBrandFilter('" + String(b).replace(/'/g, "\\'") + "')", 'Juguetes'));
+      } else {
+        blocks.push(deptRailSectionHTML('toys-brand-' + slug, b,
+          deptMixedRailHeadHTML(b, e[1] + ' juguetes'), picks));
+      }
     }
   });
   /* ---- OFERTAS: real discounts, biggest first. ---- */
@@ -20363,6 +20530,9 @@ function storeCategoryCarouselHTML(def, items, retailer){
    with backoff for transient failures. Only then does the photo go, and
    the navy gradient + text remain -- never a broken-image glyph. */
 function galleryBannerPhotoError(img){
+  /* Only ever act on a genuine load failure of an attached image. A stale
+     retry timer from a re-rendered banner must never touch the new image. */
+  if (!img || !img.isConnected) return;
   const fb = img.getAttribute('data-img-fallback');
   if (fb){
     img.removeAttribute('data-img-fallback');
@@ -20372,11 +20542,21 @@ function galleryBannerPhotoError(img){
   const tries = Number(img.getAttribute('data-gb-tries') || '0');
   if (tries < 2){
     img.setAttribute('data-gb-tries', String(tries + 1));
-    const src = String(img.getAttribute('src') || '').split('?')[0];
-    setTimeout(() => { img.src = src + '?gbretry=' + (tries + 1); }, 900 * (tries + 1));
+    if (!img.getAttribute('data-gb-src')) img.setAttribute('data-gb-src', String(img.getAttribute('src') || '').split('?')[0]);
+    const src = img.getAttribute('data-gb-src');
+    const attempt = tries + 1;
+    setTimeout(() => {
+      if (!img.isConnected || img.getAttribute('data-gb-dead')) return;
+      img.src = src + '?gbretry=' + attempt;
+    }, 900 * attempt);
     return;
   }
-  img.remove();
+  /* CONFIRMED failure (initial load + 2 genuine retries all failed): hide just
+     the photo node. The banner box keeps its navy background, aspect ratio,
+     kicker, brand name and counts -- it degrades to the text header,
+     never a blank gap and never a broken-image glyph. */
+  img.setAttribute('data-gb-dead', '1');
+  img.style.display = 'none';
 }
 /* ============================================================
    STORE GALLERY ROOMS (2026-09-30, Danny): Every store gets the
@@ -20409,7 +20589,7 @@ function storeGalleryBannerHTML({label, items, onclick, kicker, heroImage}){
       <span class="text-[13px] font-semibold mt-1" style="color:rgba(255,255,255,0.85)">${n} producto${n === 1 ? '' : 's'}${onclick ? ' · <span style="text-decoration:underline;text-underline-offset:2px">Ver colección</span>' : ''}</span>
     </span>`;
   const cls = "block w-full text-left ariaFullBleed overflow-hidden focus-ring transition hover:shadow-[0_16px_40px_rgba(10,31,68,0.20)] mb-4";
-  const style = "position:relative;aspect-ratio:16/9;background:var(--navy)";
+  const style = "position:relative;display:block;width:100%;min-height:220px;aspect-ratio:16/9;background:var(--navy)";
   if (onclick){
     return `<button onclick="${onclick}" aria-label="Ver ${escapeHtml(label)}" class="${cls}" style="${style}">${inner}</button>`;
   }
@@ -20425,7 +20605,7 @@ function galleryMoreCardHTML(label, onclick){
     <span class="block py-8">
       <span class="block text-[12px] font-bold uppercase" style="letter-spacing:0.14em;color:#F4C463">Ver m\u00e1s en</span>
       <span class="block text-[17px] font-extrabold mt-2 leading-snug text-white">${escapeHtml(label)} &#8594;</span>
-      <span class="block text-[12px] mt-2 font-semibold" style="color:rgba(255,255,255,0.75)">Ver colecci\u00f3n completa</span>
+      <span class="block text-[12px] mt-2 font-semibold" style="color:rgba(255,255,255,0.75)">Ver colección completa</span>
     </span>
   </button>`;
 }
@@ -20675,6 +20855,27 @@ async function openStore(retailer){
     id: 'storeRail', title: 'Destacados',
     items: curatedDestacadosPicks(deptEntries, CAROUSEL_MAX), retailer,
   });
+  /* BRAND ROOMS (2026-10-02, Danny): a curated brand's own storefront
+     (?tienda=newbalance|crocs|miumiu) leads with its photo room -- the
+     curated brand-world photo, gold kicker, logo badge, counts and
+     "Ver colección" -- replacing the badge chip. The old generated
+     backdrop is suppressed for spec'd retailers in applyStoreTheme. */
+  const __roomSpec = (typeof brandRoomSpecFor === 'function') ? brandRoomSpecFor(retailer) : null;
+  if (__roomSpec){
+    const __rkey = String(retailer || '').toLowerCase();
+    const __seen = new Set(); const __pool = [];
+    for (const [, __items] of deptEntries) for (const __it of __items){
+      const __dk = rawTitleOf(__it) + '::' + (__it.price ?? __it.effectivePrice ?? '');
+      if (__seen.has(__dk)) continue; __seen.add(__dk); __pool.push(__it);
+    }
+    const __logoFile = (typeof RETAILER_LOGO_FILE === 'object' && RETAILER_LOGO_FILE[__rkey])
+      || (((typeof brandLogoFor === 'function') && brandLogoFor(__rkey)) || {}).src || null;
+    const __spec = __logoFile ? Object.assign({}, __roomSpec, { logo: __logoFile }) : __roomSpec;
+    document.getElementById('storeViewHero').innerHTML = brandRoomBannerHTML(__spec, __pool, {
+      kicker: (meta && meta.tagline) || 'Tienda',
+      onclick: "document.getElementById('storeViewSections').scrollIntoView({behavior:'smooth'})"
+    });
+  }
   /* CATEGORY CAROUSELS (2026-09-30, Danny): Walmart and Target get
      merchandised shelves -- Ofertas, Moda Mujer, Zapatos, Deportes,
      Hogar, Decoracion, Dulces -- instead of just the count tiles.
@@ -24654,8 +24855,16 @@ function applyStoreTheme(viewId, retailer){
   el.removeAttribute('data-has-backdrop');
   if (storeThemeFor(retailer)) el.setAttribute('data-store-theme', rkey);
   else el.removeAttribute('data-store-theme');
-  /* STORE BACKDROP (2026-10-02): interior photo behind the section */
-  if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey]){
+  /* STORE BACKDROP (2026-10-02): interior photo behind the section.
+     BRAND ROOMS (2026-10-02, Danny): a retailer with a curated brand-room
+     spec gets the new photo-room banner (openStore) instead of the old
+     generated backdrop -- never both. */
+  const __hasBrandRoom = rkey && (typeof brandRoomSpecFor === 'function') && brandRoomSpecFor(rkey);
+  if (__hasBrandRoom){
+    /* Brand-room banner (openStore) replaces the old generated backdrop;
+       the store theme stays. */
+  }
+  else if (rkey && typeof STORE_BACKDROPS === 'object' && STORE_BACKDROPS[rkey]){
     el.setAttribute('data-has-backdrop', '1');
     el.style.setProperty('--store-backdrop', "url('" + STORE_BACKDROPS[rkey] + "')");
   }
