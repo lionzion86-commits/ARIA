@@ -37,10 +37,13 @@ Reglas del saludo: energía de shopper personal que invita a comprar juntos, ami
 // product page actually is.
 //
 // What the product-page price really is (index.html):
-//   retail price x per-retailer sales-tax rate (1.07 default, 1.0 for
-//   DR-13-exempt retailers) x LIVE_PRICE_MARKUP (1.24)
-// i.e. the product plus whatever US sales tax Aria really pays at that
-// retailer's register, plus our margin. Never any flete.
+//   (retail price + tiered margin) x per-retailer sales-tax rate
+//   (1.07 default, 1.0 for DR-13-exempt retailers)
+// The margin is tiered and marginal (2026-10-02): 24% on the first $500
+// of the US shelf price, 18% on $500-$2,000, 12% on $2,000-$5,000, 8%
+// above $5,000. Under $500 this is exactly the old flat 24%.
+// i.e. the product plus our margin, plus whatever US sales tax Aria
+// really pays at that retailer's register. Never any flete.
 //
 // UPDATED 2026-09-18 (honest all-in pricing): over the $200 threshold the
 // card, product page and chat card now display that figure WITH Peru's

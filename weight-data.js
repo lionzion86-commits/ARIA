@@ -79,19 +79,38 @@ export function importTaxEstimateUsd(fobUsd, freightUsd = 0) {
    goods really cost: the raw US price plus whatever Miami sales tax Aria
    really pays at that retailer's register (per-retailer rate — 1.07 by
    default, 1.0 for DR-13-exempt retailers; see TAX_EXEMPT_STATUS in
-   index.html), BEFORE the 24% service markup. Every price on the site is
-   built as raw x taxRate x 1.24 (see normalizeLiveItem() in index.html),
-   so the base backs out exactly as price / 1.24 — the same reversal the
-   admin margin view uses. Items stamped at pricing time carry dutiableUsd
-   directly;
-   anything older (or tampered) gets the exact reversal here.
+   index.html), BEFORE the service markup. Every price on the site is
+   built as (raw + tieredMarginUsd(raw)) x taxRate (see normalizeLiveItem()
+   in index.html), so the base backs out via rawFromTieredMarked — the
+   same inversion the admin margin view uses. Items stamped at pricing
+   time carry dutiableUsd directly;
+   anything older (or tampered) gets the exact inversion here.
 
    This helper is the one definition for module-land (checkout,
    orders-create, item-weight). index.html mirrors it as a plain function
    because it is not a module — the two must stay identical, and the
    test suite pins that.
    ============================================================ */
-const PRICE_STACK_MARKUP = 1.24; // mirrors LIVE_PRICE_MARKUP in index.html
+const PRICE_STACK_MARKUP = 1.24; // band-1 rate; mirrors LIVE_PRICE_MARKUP in index.html
+
+/* TIERED MARGINAL MARGIN (2026-10-02, Danny — LOCKED). Must match
+   tieredMarginUsd()/rawFromTieredMarked() in index.html exactly. */
+export function tieredMarginUsd(rawUsd) {
+  const r = Number(rawUsd);
+  if (!(r > 0)) return 0;
+  return Math.min(r, 500) * 0.24
+    + Math.min(Math.max(r - 500, 0), 1500) * 0.18
+    + Math.min(Math.max(r - 2000, 0), 3000) * 0.12
+    + Math.max(r - 5000, 0) * 0.08;
+}
+export function rawFromTieredMarked(marked) {
+  const m = Number(marked);
+  if (!(m > 0)) return NaN;
+  if (m <= 620) return m / 1.24;
+  if (m <= 2390) return (m - 30) / 1.18;
+  if (m <= 5750) return (m - 150) / 1.12;
+  return (m - 350) / 1.08;
+}
 
 /**
  * Resolve the dutiable base for a price, in USD.
@@ -102,7 +121,7 @@ export function dutiableBaseUsd(priceUsd, dutiableUsd) {
   const d = Number(dutiableUsd);
   if (Number.isFinite(d) && d > 0) return Math.round(d * 100) / 100;
   const p = Number(priceUsd);
-  if (Number.isFinite(p) && p > 0) return Math.round((p / PRICE_STACK_MARKUP) * 100) / 100;
+  if (Number.isFinite(p) && p > 0) return Math.round(rawFromTieredMarked(p) * 100) / 100;
   return NaN;
 }
 

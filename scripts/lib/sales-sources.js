@@ -32,8 +32,21 @@ export const SALES_SOURCES = [
 
 // Must match index.html exactly.
 export const SALES_TAX_RATE = 1.07;
-export const LIVE_PRICE_MARKUP = 1.24;
+export const LIVE_PRICE_MARKUP = 1.24; // band-1 rate / legacy reference; live pricing uses tieredMarginUsd
 export const MIN_DISCOUNT_PCT = 5;
+
+/* TIERED MARGINAL MARGIN (2026-10-02, Danny — LOCKED). Must match
+   tieredMarginUsd() in index.html exactly: 24% on the first $500 of the
+   US shelf price, 18% on $500–$2,000, 12% on $2,000–$5,000, 8% above.
+   Under $500 this is exactly the old flat 24%. */
+export function tieredMarginUsd(rawUsd) {
+  const r = Number(rawUsd);
+  if (!(r > 0)) return 0;
+  return Math.min(r, 500) * 0.24
+    + Math.min(Math.max(r - 500, 0), 1500) * 0.18
+    + Math.min(Math.max(r - 2000, 0), 3000) * 0.12
+    + Math.max(r - 5000, 0) * 0.08;
+}
 
 import {
   bulkyWeightKg, freightUsd, freightShare, withBuffer, withoutBundledClauses,
@@ -357,7 +370,7 @@ export function normalizeDeal(item, retailer) {
   const title = item.title || item.name || item.productTitle || item.productName || "";
   const rawPrice = num(item.price ?? item.currentPrice ?? item.salePrice ?? item.effectivePrice
     ?? item?.priceInfo?.price ?? item?.priceInfo?.currentPrice);
-  const price = Number.isFinite(rawPrice) ? round2(rawPrice * SALES_TAX_RATE * LIVE_PRICE_MARKUP) : null;
+  const price = Number.isFinite(rawPrice) ? round2((rawPrice + tieredMarginUsd(rawPrice)) * SALES_TAX_RATE) : null;
 
   const rawImages = Array.isArray(item.images) ? item.images : [];
   const images = [...new Set([item.image, item.imageUrl, item.thumbnail, ...rawImages].map(safeUrl).filter(Boolean))].slice(0, 8);
@@ -414,7 +427,7 @@ export function normalizeDeal(item, retailer) {
     retailer,
     title,
     price,
-    originalPrice: round2(rawOriginal * SALES_TAX_RATE * LIVE_PRICE_MARKUP),
+    originalPrice: round2((rawOriginal + tieredMarginUsd(rawOriginal)) * SALES_TAX_RATE),
     rating,
     weightKg,
     // The card must be able to say "estimado" rather than print a guess as
