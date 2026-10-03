@@ -8758,7 +8758,7 @@
        "type": "Máscaras y snorkels",
        "weightKg": 3.99,
        "weightEstimated": false,
-       "description": "Gorras y gorros nautilusspearfishing.",
+       "description": "Máscaras y snorkels Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "S/M",
@@ -8784,7 +8784,7 @@
        "type": "Chalecos de buceo (BCD)",
        "weightKg": 5.99,
        "weightEstimated": false,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Chalecos de buceo (BCD) Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "XS",
@@ -8810,7 +8810,7 @@
        "type": "Chalecos de buceo (BCD)",
        "weightKg": 0.17,
        "weightEstimated": true,
-       "description": "Gorras y gorros nautilusspearfishing.",
+       "description": "Chalecos de buceo (BCD) Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "XS",
@@ -8838,7 +8838,7 @@
        "type": "Aletas de buceo",
        "weightKg": 5.99,
        "weightEstimated": false,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Aletas de buceo Beuchat.",
        "descriptionSource": "generated",
        "availableSizes": [
         "S/M",
@@ -8861,7 +8861,7 @@
        "type": "Aletas de buceo",
        "weightKg": 1.5,
        "weightEstimated": false,
-       "description": "Gorras y gorros nautilusspearfishing.",
+       "description": "Aletas de buceo Beuchat.",
        "descriptionSource": "generated"
       },
       {
@@ -8904,7 +8904,7 @@
        "type": "Reguladores",
        "weightKg": 0.17,
        "weightEstimated": true,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Reguladores Beuchat.",
        "descriptionSource": "generated"
       },
       {
@@ -8921,7 +8921,7 @@
        "type": "Reguladores",
        "weightKg": 2.49,
        "weightEstimated": false,
-       "description": "Gorras y gorros Beuchat.",
+       "description": "Reguladores Beuchat.",
        "descriptionSource": "generated"
       },
       {
