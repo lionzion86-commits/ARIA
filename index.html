@@ -1628,6 +1628,19 @@
     margin-left:calc(50% - 50vw) !important;
     margin-right:calc(50% - 50vw) !important;
   }
+  /* BUTTON FULL-BLEED (2026-10-03): a <button> with width:auto SHRINKS
+     to its content instead of filling like a div does, so the breakout
+     above collapsed brand-room banner buttons to a ~391px left strip
+     (aspect-ratio 16/9 over min-height 220 = intrinsic width). A definite
+     100vw width restores the edge-to-edge hero; the breakout margins
+     above position it. Same geometry the div banners already use.
+     max-height caps the 16/9 ratio on wide screens (1920px would ask
+     for a 1080px-tall hero and bury the product rail); the cover photo
+     and bottom-pinned text adapt. Mobile (~220px) is untouched. */
+  button.ariaFullBleed{
+    width:100vw !important;
+    max-height:480px;
+  }
   /* DISENADORES LATINOS inner layers (Danny QA 2026-10-02): the banner's
      own image + scrim + hairline carry the base 24px radius, which rounds
      the photo inside the squared full-bleed frame. Square them too. */
