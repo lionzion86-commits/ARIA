@@ -17543,7 +17543,10 @@ function brandRoomBannerHTML(spec, brandItems, opts){
   const raw = curated || (hero ? (hero.image || hero.imageUrl || hero.thumbnail) : '');
   const src = raw ? (curated ? raw : upgradeImageUrl(safeUrl(raw) || '')) : '';
   const retry = !curated && src ? imageRetryUrl(src) : '';
-  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
+  /* Brand-room hero is above-the-fold: fetch it the moment the banner is painted
+     (eager + high priority), never gated on intersection. A lazy hero injected via
+     innerHTML can sit unpainted while the intersection observer catches up. */
+  const photo = src ? `<img src="${escapeHtml(src)}" alt="" loading="eager" fetchpriority="high" decoding="async"${retry ? ` data-img-fallback="${escapeHtml(retry)}"` : ''} style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 25%" onerror="window.galleryBannerPhotoError&&galleryBannerPhotoError(this)">` : '';
   const logoImg = spec.logo ? `<img src="${escapeHtml(spec.logo)}" alt="${escapeHtml(spec.label)}" loading="lazy" style="height:40px;max-width:140px;object-fit:contain;background:#fff;border-radius:10px;padding:6px 10px;" onerror="this.remove()">` : '';
   const kicker = opts.kicker ? `<span class="text-[11px] font-extrabold uppercase" style="letter-spacing:0.18em;color:#F4C463">${escapeHtml(opts.kicker)}</span>` : '';
   /* Phase 2 (2026-10-02): brand-room banners outside Gym Rat filter by
@@ -20106,6 +20109,9 @@ function storeCategoryCarouselHTML(def, items, retailer){
    with backoff for transient failures. Only then does the photo go, and
    the navy gradient + text remain -- never a broken-image glyph. */
 function galleryBannerPhotoError(img){
+  /* Only ever act on a genuine load failure of an attached image. A stale
+     retry timer from a re-rendered banner must never touch the new image. */
+  if (!img || !img.isConnected) return;
   const fb = img.getAttribute('data-img-fallback');
   if (fb){
     img.removeAttribute('data-img-fallback');
@@ -20115,11 +20121,21 @@ function galleryBannerPhotoError(img){
   const tries = Number(img.getAttribute('data-gb-tries') || '0');
   if (tries < 2){
     img.setAttribute('data-gb-tries', String(tries + 1));
-    const src = String(img.getAttribute('src') || '').split('?')[0];
-    setTimeout(() => { img.src = src + '?gbretry=' + (tries + 1); }, 900 * (tries + 1));
+    if (!img.getAttribute('data-gb-src')) img.setAttribute('data-gb-src', String(img.getAttribute('src') || '').split('?')[0]);
+    const src = img.getAttribute('data-gb-src');
+    const attempt = tries + 1;
+    setTimeout(() => {
+      if (!img.isConnected || img.getAttribute('data-gb-dead')) return;
+      img.src = src + '?gbretry=' + attempt;
+    }, 900 * attempt);
     return;
   }
-  img.remove();
+  /* CONFIRMED failure (initial load + 2 genuine retries all failed): hide just
+     the photo node. The banner box keeps its navy background, aspect ratio,
+     kicker, brand name and counts -- it degrades to the text header,
+     never a blank gap and never a broken-image glyph. */
+  img.setAttribute('data-gb-dead', '1');
+  img.style.display = 'none';
 }
 /* ============================================================
    STORE GALLERY ROOMS (2026-09-30, Danny): Every store gets the
