@@ -1,0 +1,18 @@
+{
+  "total_products": 10285,
+  "fake_markdowns_fixed": 604,
+  "fake_markdowns_remaining": 0,
+  "non_toy_items_removed": 18,
+  "weights_filled_this_run": 794,
+  "weights_filled_by_source": {
+    "target_pdp_package_weight": 774,
+    "costco_spec_weight": 20
+  },
+  "weights_still_missing": 5787,
+  "weights_still_missing_by_retailer": {
+    "target": 1,
+    "walmart": 5725,
+    "costco": 61
+  },
+  "note": "weightKg stores RAW retailer package weight in kg. The 10% packaging cushion (x1.10) is applied at normalization/render, not in this file. Walmart PDPs are PerimeterX-blocked from direct HTTP; their weights remain missing."
+}
