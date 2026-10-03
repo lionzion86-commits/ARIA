@@ -569,7 +569,7 @@ export function loadPageRelatedSlice() {
    both invisible in the source and obvious in the output. */
 export function loadPageCatalogSearchSlice() {
   const html = readFileSync(INDEX, "utf8");
-  const from = html.indexOf("const CATALOG_SEARCH_LIMIT = 48;");
+  const from = html.indexOf("const CATALOG_SEARCH_LIMIT = 200;");
   const to = html.indexOf("/* END OF THE PURE SLICE");
   if (from < 0 || to < 0 || to <= from) {
     throw new Error("index.html catalog-search markers moved — update scripts/test/_page-script.mjs");
