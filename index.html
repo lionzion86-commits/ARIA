@@ -35036,13 +35036,26 @@ let intentionalStopAt = 0; // STALE-SESSION GUARD (2026-09-27): last deliberate 
 let lastStartAt = 0;       // last time start() actually began a session
 let lastSpeechAt = 0;    // timestamp of the last speech activity
 
-/* "Aria" is routinely transcribed as "area" (2026-09-27: Danny said
-   "Aria", the engine heard "area"). Normalize it back in name-like
-   positions only — never inside real words like "área de juegos". */
+/* "Aria" is routinely mangled by the es-PE recognizer. 2026-09-27: "area".
+   2026-10-02 (Danny's screenshots): "Área" WITH accent — the old
+   unaccented-only rule sailed right past it — and "Adiós" for "Aria"
+   ("Adiós estoy buscando unas aletas..."). Normalize it back in
+   name-like positions only:
+   - leading área/area -> Aria (accent-insensitive), except the real
+     phrase "área de juegos"
+   - leading adiós -> Aria, but ONLY when words (not a comma) follow —
+     a bare "adiós" or "adiós, gracias" is a real goodbye and must
+     still reach isGoodbye so the call can hang up
+   - área after a greeting (hola/oye/hey/buenas/disculpa/gracias)
+   Never inside real words: "área de juegos" keeps its accent and meaning.
+   Applied per-chunk in onresult (keeps the live input clean) AND to the
+   full buffer at ship time in flushSpeechBuffer, because the hotword can
+   straddle chunk boundaries. Idempotent: re-running on "Aria" is a no-op. */
 function normalizeAriaName(t){
   return String(t || '')
-    .replace(/^(\s*)area\b/i, '$1Aria')
-    .replace(/\b(hola|oye|hey|buenas|disculpa|gracias)\s+area\b/gi, '$1 Aria');
+    .replace(/^(\s*)[aá]rea\b(?!\s+de\s+juegos)/i, '$1Aria')
+    .replace(/^(\s*)adi[oó]s(?=\s+\S)/i, '$1Aria')
+    .replace(/\b(hola|oye|hey|buenas|disculpa|gracias)\s+[aá]rea\b/gi, '$1 Aria');
 }
 
 function resetSilenceTimer(){
@@ -35078,7 +35091,12 @@ function endTurnAndSend(){
 
 /* Ship the accumulated turn (if any) as a single chat message. */
 function flushSpeechBuffer(){
-  const text = spokenPunctuationToMarks(speechBuffer.trim());
+  /* HOTWORD REPAIR AT SHIP TIME (2026-10-02). Per-chunk normalization
+     in onresult keeps the live input clean, but the hotword can
+     straddle chunk boundaries and iOS returns accented "Área" — run
+     the corrector over the whole turn before it ships to the user
+     bubble, the brain, and the "Buscando…" status line. */
+  const text = normalizeAriaName(spokenPunctuationToMarks(speechBuffer.trim()));
   speechBuffer = '';
   const inputEl = document.getElementById('assistantInput');
   if (inputEl) inputEl.value = '';
