@@ -18483,9 +18483,24 @@ function revealActiveChips(root){
    banner — dark asphalt, chrome ghost type, racing-red accents. It sits
    above the product shelves the way a bike shop's window display sits
    above the floor: Cascos lead, then Llantas, Repuestos, Accesorios.
-   Zero emojis, text-only. */
+   Zero emojis, text-only.
+   PHOTO (2026-10-02): real motorcycle photograph as the backdrop —
+   'Honda CBR250R' by Rjcastillo, CC BY-SA 4.0, via Wikimedia Commons
+   (https://commons.wikimedia.org/wiki/File:Honda_CBR250R_24.04.2026.jpg).
+   Night shot, red sport bike: melts into the asphalt with the ghost type
+   riding over it. */
 function motosHeroHTML(){
   return '<section aria-label="Aria Motos" class="ariaMotosBanner relative overflow-hidden mb-6">'
+    /* Photo: 'Honda CBR250R' by Rjcastillo, CC BY-SA 4.0, via Wikimedia Commons
+       (File:Honda CBR250R 24.04.2026.jpg — local asset assets/theme/motos-hero.jpg, never hotlinked) */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background-image:url(\'assets/theme/motos-hero.jpg\');background-size:cover;background-position:center"></div>'
+    /* Legibility wash: night asphalt melts in from the left under the white
+       type, and the photo fades into the dark backdrop at the bottom — no hard edge */
+    + '<div class="absolute inset-0" aria-hidden="true"'
+    + ' style="background:linear-gradient(100deg, rgba(14,16,19,.80) 0%, rgba(14,16,19,.28) 45%, rgba(14,16,19,0) 70%)"></div>'
+    + '<div class="absolute inset-x-0 bottom-0 pointer-events-none" aria-hidden="true"'
+    + ' style="height:45%;background:linear-gradient(to bottom, rgba(14,16,19,0) 0%, #0E1013 100%)"></div>'
     + '<div class="ariaMotosBannerHair" aria-hidden="true"></div>'
     + '<div class="ariaMotosGhost" aria-hidden="true">MOTOS</div>'
     + '<div class="relative px-6 py-10 sm:py-12" style="z-index:1">'
