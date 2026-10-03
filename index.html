@@ -34722,6 +34722,8 @@ function goBrandFromChat(brandKey){
 const CHAT_STORE_ALIASES = {
   dicks: ['dick s', "dick's"],
   nautilus: ['tienda de buceo'],
+  victoriassecret: ['victoria secret', 'victorias secret'],
+  youngla: ['young la'],
 };
 let chatStoreIndexCache = null;
 function chatStoreIndex(){
@@ -34733,7 +34735,7 @@ function chatStoreIndex(){
      Sports, ProSoccer, Quiet Storm...) open real storefronts, so
      "llevame a la tienda de Island Water Sports" must find them. A
      store the site cannot open still never gets a button. */
-  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && (r.search || r.browse); });
+  let keys = Object.keys(all).filter((k) => { const r = all[k]; return r && !r.retired && (r.search || r.browse); });
   if (!keys.length) keys = (typeof LIVE_RETAILERS !== 'undefined' && Array.isArray(LIVE_RETAILERS)) ? LIVE_RETAILERS : Object.keys(labels);
   const seen = new Set();
   const out = [];
@@ -34755,11 +34757,28 @@ function chatStoreIndex(){
 function findStoreMention(text){
   const norm = ' ' + normBrandText(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ') + ' ';
   for (const s of chatStoreIndex()){
-    const name = normBrandText(s.alias || s.label).replace(/\s+/g, ' ').trim();
+    const name = normBrandText(s.alias || s.label).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
     if (name.length < 2) continue;
     if (norm.indexOf(' ' + name + ' ') !== -1) return s;
   }
   return null;
+}
+/* SALES ROUTER decision (2026-10-03, Danny): "quiero las ofertas de
+   Victoria's Secret" / "I want the sales from Victoria's Secret" walks
+   into that store's own page (?tienda=<key>), which leads with sales --
+   never the generic Ofertas feed. A stocked brand resolves to its brand
+   room. Brand-less sales intent ("ofertas", "show me sales") returns
+   action 'ofertas' and the caller keeps the old generic path. Pure
+   decision: no DOM, no navigation -- the Node harness tests this
+   directly. */
+async function routeSalesIntent(text){
+  const storeHit = findStoreMention(text);
+  if (storeHit) return { action: 'store', key: storeHit.key, label: storeHit.label };
+  let brands = null;
+  try { brands = await chatBrandIndex(); } catch(e){ brands = null; }
+  const brandHit = findBrandMention(text, brands || []);
+  if (brandHit && brandHit.count > 0) return { action: 'brand', key: brandHit.key, label: brandHit.label };
+  return { action: 'ofertas' };
 }
 /* Navigation intent in ES/EN: the shopper wants to walk into the store,
    not search inside it. */
@@ -35299,14 +35318,21 @@ async function runAssistantBrain(text){
     if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
     return;
   }
-  if (SALE_KEYWORDS.some(k => lowerText.includes(k))) {
+  if (SALE_KEYWORDS.some(k => lowerText.includes(k)) || /\bsales?\b/i.test(text)) {
     /* LILY SPEAKS THE SHORTCUT (2026-09-28, Danny's demo). This path used
        to talk through the browser's speechSynthesis -- the robot voice,
        silent on iPhones where it misfires -- because it never reaches the
        chat endpoints that render Lily's audio. The line is short, so the
        TTS round-trip is about a second: the text paints now, her voice
        follows over the Ofertas page. Browser voice stays the fallback. */
-    const salesLine = '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
+    /* BRAND/STORE + SALES (2026-10-03, Danny): a named store or brand with
+       sales intent walks into its own page (?tienda=<key> / brand room),
+       which leads with sales -- not the generic Ofertas feed. Brand-less
+       sales intent keeps the old generic path below. */
+    const salesTarget = await routeSalesIntent(text);
+    const salesLine = salesTarget.label
+      ? `¡Claro! Te llevo a las ofertas de ${salesTarget.label}.`
+      : '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
     addAssistantMessage('bot', salesLine, null, { speak: false });
     try {
       fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: salesLine }) })
@@ -35314,7 +35340,9 @@ async function runAssistantBrain(text){
         .then(d => { if (d && d.audio) speakWithAria(d.audio, salesLine); else speakText(salesLine); })
         .catch(() => speakText(salesLine));
     } catch (e) { speakText(salesLine); }
-    goSales();
+    if (salesTarget.action === 'store') openStore(salesTarget.key);
+    else if (salesTarget.action === 'brand') openCatalog('brand', salesTarget.key);
+    else goSales();
     dismissAssistantForNavigation();
     continuousMode = false; // navigating away ends the voice conversation
     assistantThinking = false;
