@@ -6804,7 +6804,7 @@ const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target"],"/sunglasses-catalog.json":["smartbuyglasses"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"]};
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -8221,7 +8221,13 @@ function sportCarouselSection(label, deptKey, items){
      Tier-based so flagged-without-% sales count. */
   const sorted = (Array.isArray(items) ? items : []).filter(p => itemSaleTier(p) > 0)
     .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (carouselDiscountPct(b) - carouselDiscountPct(a)));
-  const picks = sorted.slice(0, 12);
+  let picks = sorted.slice(0, 12);
+  /* GRACEFUL FILL (2026-10-03, Danny): sales lead; best sellers top up
+     the shelf when the sale slice is thin. */
+  if (sorted.length < RAIL_SALE_FILL_MIN && picks.length < 12){
+    const seenS = new Set(picks.map(p => `${p.retailer || ''}::${p.title || ''}`));
+    picks = picks.concat(railBestSellerFill(seenS, items, 12 - picks.length));
+  }
   if (picks.length < 4) return '';
   return `<section aria-label="${label}" class="mb-8">
     <div class="flex items-center justify-between mb-4">
@@ -11158,8 +11164,27 @@ async function renderRelatedRail(anchorIn){
      sales only -- if sneakers are ever suggested, they are the ones
      ON SALE, never full-price $300 pairs. Full price surfaces
      through explicit search. */
-  relPool = relPool.filter(it => itemSaleTier(it) > 0);
-  const picks = relatedProducts({ ...anchor, departments: anchorDepts }, relPool);
+  /* GRACEFUL FILL (2026-10-03, Danny): the cross-sell rail shows sales
+     first; when the sale slice is thin it tops up with best sellers
+     from the same shopper lane (same department/brand relevance first,
+     then rating desc) -- never cross-department randoms. */
+  const lanePool = relPool;
+  const salePool = relPool.filter(it => itemSaleTier(it) > 0);
+  let picks = relatedProducts({ ...anchor, departments: anchorDepts }, salePool);
+  if (picks.length < RAIL_SALE_FILL_MIN && picks.length < RELATED_RAIL_MAX){
+    const have = new Set(picks.map(relatedKeyOf)); have.add(relatedKeyOf(anchor));
+    const anchorBrand = String(anchor?.brand || '').trim().toLowerCase();
+    const sameDept = (it) => (it.departments || []).some(d => anchorDepts.has(d));
+    const sameBrand = (it) => !!anchorBrand && String(it.brand || '').trim().toLowerCase() === anchorBrand;
+    const laneRank = (it) => (sameBrand(it) && sameDept(it)) ? 0 : sameDept(it) ? 1 : sameBrand(it) ? 2 : 3;
+    const fill = lanePool
+      .filter(it => it && it.title && itemSaleTier(it) === 0 && !have.has(relatedKeyOf(it))
+        && Number.isFinite(Number(it.price)) && Number(it.price) > 0 && it.image)
+      .sort((a, b) => (laneRank(a) - laneRank(b))
+        || ((Number(b.rating) || 0) - (Number(a.rating) || 0)))
+      .slice(0, RELATED_RAIL_MAX - picks.length);
+    picks = picks.concat(fill);
+  }
   if (!picks.length) return;
 
   relatedRendered = picks;
@@ -11490,8 +11515,22 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
      the back, never candy) and the rail takes the first twelve of it. */
   /* SALES-ONLY BROWSE (2026-10-03, Danny): the curation order stays,
      but the rail only shows the curated shelf's sales. */
-  if (String(key || '').toLowerCase() === 'costco' && Array.isArray(pool))
-    return costcoCuratedItems(pool).filter(p => itemSaleTier(p) > 0).slice(0, STORE_RAIL_TOTAL);
+  if (String(key || '').toLowerCase() === 'costco' && Array.isArray(pool)){
+    const curated = costcoCuratedItems(pool);
+    const saleC = curated.filter(p => itemSaleTier(p) > 0).slice(0, STORE_RAIL_TOTAL);
+    /* GRACEFUL FILL (2026-10-03, Danny): the fill follows Danny's curation
+       order -- the next curated shelf items, non-sale, behind the sales. */
+    if (saleC.length < RAIL_SALE_FILL_MIN && saleC.length < STORE_RAIL_TOTAL){
+      const seenC = new Set(saleC.map(p => 'costco::' + (p.title || '')));
+      for (const p of curated){
+        if (saleC.length >= STORE_RAIL_TOTAL) break;
+        const k = 'costco::' + (p.title || '');
+        if (seenC.has(k) || itemSaleTier(p) > 0) continue;
+        seenC.add(k); saleC.push(p);
+      }
+    }
+    return saleC;
+  }
   /* FARFETCH OPENS ON THE CLEARANCE RACK (2026-09-29, Danny): Peruvians
      already buy direct from Farfetch, so Aria's 24% markup only stays
      competitive on markdowns. The shelf leads with every genuine
@@ -11517,7 +11556,15 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
     const saleFF = deduped
       .filter(p => itemSaleTier(p) > 0)
       .sort((a, b) => (itemSaleTier(b) - itemSaleTier(a)) || (pctFF(b) - pctFF(a)));
-    return saleFF.slice(0, STORE_RAIL_TOTAL);
+    const picksFF = saleFF.slice(0, STORE_RAIL_TOTAL);
+    /* GRACEFUL FILL (2026-10-03, Danny): the clearance rack leads; best
+       sellers top up the shelf when markdowns are thin. */
+    if (saleFF.length < RAIL_SALE_FILL_MIN && picksFF.length < STORE_RAIL_TOTAL){
+      const fill = railBestSellerFill(seenFF, deduped, STORE_RAIL_TOTAL - picksFF.length,
+        (p) => p.retailer === 'farfetch');
+      for (const p of fill){ seenFF.add('farfetch::' + (p.title || '')); picksFF.push(p); }
+    }
+    return picksFF;
   }
   const itemKey = (p) => `${p.retailer || ''}::${p.title || ''}`;
   const pct = (p) => Math.round((1 - Number(p.price) / Number(p.originalPrice)) * 100);
@@ -11541,6 +11588,13 @@ function storeRailPicks(key, saleItems, pool, ofertasKeys){
       return (ao - bo) || (carouselDiscountPct(b) - carouselDiscountPct(a));
     });
   const picks = sale.slice(0, STORE_RAIL_TOTAL);
+  /* GRACEFUL FILL (2026-10-03, Danny): the store's sales lead; when they
+     are thin the shelf fills with the store's best sellers (non-sale). */
+  if (sale.length < RAIL_SALE_FILL_MIN && picks.length < STORE_RAIL_TOTAL && Array.isArray(pool)){
+    const fill = railBestSellerFill(seen, pool, STORE_RAIL_TOTAL - picks.length,
+      (p) => String(p.retailer || '').toLowerCase() === String(key || '').toLowerCase());
+    for (const p of fill){ seen.add(itemKey(p)); picks.push(p); }
+  }
   /* GYMSHARK OPENS ON A MODEL SHOT (2026-09-26, Danny). */
   if (String(key || '').toLowerCase() === 'gymshark') gymsharkRailLead(picks);
   return picks;
@@ -11659,6 +11713,28 @@ function costcoCuratedItems(items){
    labelled as most-sold. (Keep it that way: no calls to page functions.) */
 const CATEGORY_RAIL_SALE = 8;   // sale cards lead the rail, at most this many
 const CATEGORY_RAIL_TOTAL = 12; // shelf length; fewer without apology
+/* SALES-FILL GRACEFUL DEGRADATION (2026-10-03, Danny): sales lead every
+   rail, always -- but a rail must never render near-empty. When the sale
+   slice holds fewer than RAIL_SALE_FILL_MIN items, the remainder of the
+   shelf fills with best sellers: non-sale items the rail hasn't picked,
+   rating desc then reviewCount desc. That is the standing "best seller"
+   proxy -- there is no sales-rank feed, so the fill is never labelled
+   most-sold. member(p) scopes the fill to the rail's own lane (a store's
+   items, a category's retailers); omit it for the whole pool. */
+const RAIL_SALE_FILL_MIN = 8;
+function railBestSellerFill(seen, pool, need, member){
+  if (!(need > 0) || !Array.isArray(pool)) return [];
+  const keyOf = (p) => `${p.retailer || ''}::${p.title || ''}`;
+  const inLane = (typeof member === 'function') ? member : (() => true);
+  return pool
+    .filter(p => p && inLane(p) && hasRealImage(p)
+      && Number.isFinite(Number(p.price)) && Number(p.price) > 0
+      && itemSaleTier(p) === 0 && !seen.has(keyOf(p)))
+    .sort((a, b) => ((Number(b.rating) || 0) - (Number(a.rating) || 0))
+      || ((Number(b.reviewCount) || Number(b.reviews) || 0) - (Number(a.reviewCount) || Number(a.reviews) || 0)))
+    .slice(0, Math.floor(need));
+}
+
 /* Foot socks and fin socks only -- board socks (board covers) are real
    surf gear and are never demoted. */
 const SURFSKATE_FOOT_SOCK_RX = /\b(skate socks?|fin socks?|neoprene socks?)\b/i;
@@ -11769,6 +11845,15 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      items is gone -- full price surfaces through explicit search, not
      browse. fancyLead (Miu Miu) stays: Danny's explicit per-rail call. */
   const picks = [...leadPicks, ...sale.slice(0, Math.max(0, max - leadPicks.length))];
+  /* GRACEFUL FILL (2026-10-03, Danny): sales lead, always -- but when the
+     sale slice holds fewer than RAIL_SALE_FILL_MIN items the shelf fills
+     out with best sellers (non-sale) so the rail never renders near-empty.
+     fancyLead (Miu Miu) keeps its explicit halo-first call; the fill only
+     tops up behind it. */
+  if (sale.length < RAIL_SALE_FILL_MIN && picks.length < max && Array.isArray(pool)){
+    const fill = railBestSellerFill(seen, pool, max - picks.length, inSet);
+    for (const p of fill){ seen.add(itemKey(p)); picks.push(p); }
+  }
   return picks;
 }
 /* CATEGORY_RAIL_PICKS:SLICE-END */
@@ -12972,8 +13057,15 @@ function carouselCityPicks(pool, list, opts){
   const sorted = merchSort(pool);
   const total = (Number.isFinite(opts.railTotal) && opts.railTotal > 0) ? Math.floor(opts.railTotal)
     : ((typeof CATEGORY_RAIL_TOTAL === 'number' && CATEGORY_RAIL_TOTAL > 0) ? CATEGORY_RAIL_TOTAL : 12);
-  if (typeof categoryRailPicks !== 'function')
-    return sorted.filter(p => itemSaleTier(p) > 0).slice(0, total);
+  if (typeof categoryRailPicks !== 'function'){
+    /* GRACEFUL FILL (2026-10-03): same rule as the live path above. */
+    const saleOnly = sorted.filter(p => itemSaleTier(p) > 0).slice(0, total);
+    if (saleOnly.length < RAIL_SALE_FILL_MIN && saleOnly.length < total){
+      const seenF = new Set(saleOnly.map(p => `${p.retailer || ''}::${p.title || ''}`));
+      return saleOnly.concat(railBestSellerFill(seenF, sorted, total - saleOnly.length));
+    }
+    return saleOnly;
+  }
   const retailerKeys = [...new Set((Array.isArray(list) ? list : []).map(it => it && it.retailer).filter(Boolean))];
   return categoryRailPicks(retailerKeys, sorted, sorted, new Set(), total, opts.picksOpts || {});
 }
