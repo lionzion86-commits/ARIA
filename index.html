@@ -26663,7 +26663,19 @@ function normalizeLiveItem(item, hints){
   /* PER-RETAILER TAX (2026-09-27): the 7% is only in the cost when Aria really pays it --
      see TAX_EXEMPT_STATUS / salesTaxRateFor() near LIVE_PRICE_MARKUP. */
   const taxRate = salesTaxRateFor((hints && hints.retailer) || item.retailer);
-  const price = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate * LIVE_PRICE_MARKUP) : null;
+  /* PRICE ABSURDITY QUARANTINE (2026-10-02): a retailer's own feed can carry a
+     fat-fingered price -- Nautilus listed a ~$20 speargun tip at $20,475.00 and
+     it rendered as a $24,272.78 card. No product on an ordinary retailer
+     legitimately costs five figures; when one does, the price is nulled so the
+     card renders "Precio no disponible" instead of a trust-destroying number,
+     and the item is flagged in the console for review. Retailers with verified
+     legitimate 5-figure items (pro photo gear, luxury fashion, efoils) are exempt. */
+  const ABSURD_PRICE_CAP_USD = 10000;
+  const ABSURD_PRICE_EXEMPT_RETAILERS = new Set(['bhphoto','costco','islandwatersports','miumiu','ssense','farfetch','valsurf']);
+  const _absurdRetailer = String((hints && hints.retailer) || item.retailer || '').toLowerCase();
+  const priceAbsurd = Number.isFinite(rawPrice) && rawPrice > ABSURD_PRICE_CAP_USD && !ABSURD_PRICE_EXEMPT_RETAILERS.has(_absurdRetailer);
+  if (priceAbsurd && typeof console !== 'undefined' && console.warn) console.warn('[aria] absurd price quarantined:', item.name || item.title, rawPrice, item.url || _absurdRetailer);
+  const price = (Number.isFinite(rawPrice) && !priceAbsurd) ? round2(rawPrice * taxRate * LIVE_PRICE_MARKUP) : null;
   /* DUTIABLE BASE (2026-09-27): the true acquisition cost — raw US price
      plus whatever Miami sales tax Aria really pays at that retailer's
      register (per-retailer rate above), BEFORE the 24% service markup. Peru's import
@@ -26671,7 +26683,7 @@ function normalizeLiveItem(item, hints){
      Stamped here because every product path (catalog + live) normalizes
      through this function, so the base travels with the item to the
      card, the product page, the cart, checkout and the order record. */
-  const dutiableUsd = Number.isFinite(rawPrice) ? round2(rawPrice * taxRate) : null;
+  const dutiableUsd = (Number.isFinite(rawPrice) && !priceAbsurd) ? round2(rawPrice * taxRate) : null;
   // The whole gallery, not just the first frame — spec §6 wants a
   // thumbnail strip "when the retailer supplies multiple images", so the
   // rest can no longer be thrown away here. Deduped and cleaned; an empty

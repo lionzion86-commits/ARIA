@@ -1,7 +1,7 @@
 {
  "generatedAt": "2026-09-26T16:46:47.383756+00:00",
  "source": "shopify:https://nautilusspearfishing.com",
- "declaredProductCount": 503,
+ "declaredProductCount": 502,
  "retailers": {
   "nautilus": {
    "label": "Nautilus Spearfishing",
@@ -8515,24 +8515,6 @@
        "type": "Arpones",
        "weightKg": 1.65,
        "weightEstimated": true,
-       "description": "Arpones JBL.",
-       "descriptionSource": "generated",
-       "oversize": true
-      },
-      {
-       "name": "Twin Barb Swift Speargun Tip",
-       "retailer": "nautilus",
-       "brand": "JBL",
-       "price": 20475.0,
-       "image": "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/jbl-4x-explorer-closeup-01.jpg?v=1636492783",
-       "images": [
-        "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/jbl-4x-explorer-closeup-01.jpg?v=1636492783"
-       ],
-       "thumbnail": "https://cdn.shopify.com/s/files/1/0549/4367/8687/products/jbl-4x-explorer-closeup-01.jpg?v=1636492783",
-       "url": "https://nautilusspearfishing.com/products/twin-barb-swift-speargun-tip",
-       "type": "Arpones",
-       "weightKg": 0.5,
-       "weightEstimated": false,
        "description": "Arpones JBL.",
        "descriptionSource": "generated",
        "oversize": true
