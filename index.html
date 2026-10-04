@@ -8643,7 +8643,10 @@ function itemBelongsToDepartment(item, bucketName, deptKey, retailer){
   /* Curvy is a filter over apparel, the way Ofertas is a filter over
      everything -- not a category a retailer scrapes into. */
   if (dept.extendedSizesOnly){
-    if (genderOfItem(item, bucketName) === 'kids') return false;
+    /* CURVY IS HER SECTION (Danny 2026-10-04): essentially women-only.
+       A man can still search -- extended sizes live in the regular sizes
+       too -- but the Curvy pool itself carries no men's or kids' items. */
+    if (genderOfItem(item, bucketName) !== 'women') return false;
     return hasExtendedSizes(item);
   }
   if (!dept.gender) return true;
@@ -13557,8 +13560,14 @@ function curvyTierFilter(tier){
   var input = document.getElementById('catalogSearchInput');
   if (input) input.value = '';
   if (typeof renderCatalogFeed === 'function') renderCatalogFeed();
-  var el = document.getElementById('catalogSections');
-  if (el && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth' });
+  /* The hero buttons now jump straight to the carousels: "Ofertas" scrolls
+     to the Ofertas Curvy sales rail, "Todo" to the top of the feed. */
+  setTimeout(function(){
+    var target = (tier === 'ofertas')
+      ? document.querySelector('section[aria-label="Ofertas Curvy"]')
+      : document.getElementById('catalogSections');
+    if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 60);
 }
 
 /* Department rails: one carousel per STORE (biggest store first), thin
@@ -13566,6 +13575,13 @@ function curvyTierFilter(tier){
    biggest real discounts first.
    CURVY WOMEN-FIRST (Danny, 2026-09-26): plus-size women's items lead —
    never men's stuff first. Passed via the womenFirst opt. */
+/* CURVY RAILS (restructured 2026-10-04, Danny): the sales carousel goes
+   FIRST ("Ofertas Curvy", biggest % off first, pure discount order), then
+   one carousel per store. Store order: CURVY_STORE_LEAD_ORDER (Lane Bryant,
+   Old Navy, Victoria's Secret) then by product count. Each store carousel
+   keeps the lingerie-first merchandising (bras/panties lead, Danny
+   2026-09-25); the pool is women-only so women lead by construction.
+   Thin stores group into "Más tiendas". */
 function curvyDeptRailsHTML(items){
   items = Array.isArray(items) ? items : [];
   if (typeof deptRailSectionHTML !== 'function' || typeof deptMixedRailHeadHTML !== 'function') return '';
@@ -13596,9 +13612,20 @@ function curvyDeptRailsHTML(items){
     }
     return pool.slice(0, RAIL_TOTAL);
   }
+  /* Lingerie leads each store carousel: bras and panties first, then the
+     rest ordered by the normal sale-first picks. */
+  function curvyPicks(pool, storeKey){
+    var ling = [], rest = [];
+    (pool || []).forEach(function(p){
+      var isLing = false;
+      try { isLing = (typeof subcategoryOfItem === 'function') && subcategoryOfItem(p) === 'lingerie'; } catch (e) {}
+      (isLing ? ling : rest).push(p);
+    });
+    return picks(ling, storeKey).concat(picks(rest, storeKey)).slice(0, RAIL_TOTAL);
+  }
   function verTiendaBtn(k){
     return '<button onclick="curvyStoreFilter(\'' + String(k).replace(/'/g, "\\'") + '\');return false;"'
-      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver tienda &#8594;</button>';
+      + ' class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#0E7C9B">Ver todo &#8594;</button>';
   }
 
   var valid = items.filter(function(p){
@@ -13607,12 +13634,28 @@ function curvyDeptRailsHTML(items){
     return !!(p.image || p.imageUrl || p.thumbnail || p.img);
   });
 
+  /* 1. SALES CAROUSEL FIRST -- pure discount order. */
+  var sales = valid.filter(function(p){ return curvyIsSale(p); });
+  if (sales.length >= SALE_RAIL_MIN){
+    out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas Curvy',
+      deptMixedRailHeadHTML('Ofertas Curvy', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+  }
+
+  /* 2. ONE CAROUSEL PER STORE -- lead stores first, then biggest. */
   var byStore = {};
   valid.forEach(function(p){
     var k = String(p.retailer || 'otros').toLowerCase();
     (byStore[k] = byStore[k] || []).push(p);
   });
-  var keys = Object.keys(byStore).sort(function(a, b){ return byStore[b].length - byStore[a].length; });
+  var leadRank = {};
+  if (typeof CURVY_STORE_LEAD_ORDER !== 'undefined' && Array.isArray(CURVY_STORE_LEAD_ORDER)){
+    CURVY_STORE_LEAD_ORDER.forEach(function(k, idx){ leadRank[String(k).toLowerCase()] = idx; });
+  }
+  var keys = Object.keys(byStore).sort(function(a, b){
+    var ra = (a in leadRank) ? leadRank[a] : 1e9;
+    var rb = (b in leadRank) ? leadRank[b] : 1e9;
+    return (ra - rb) || (byStore[b].length - byStore[a].length);
+  });
 
   var thin = [];
   keys.forEach(function(k){
@@ -13620,18 +13663,12 @@ function curvyDeptRailsHTML(items){
     if (pool.length < STORE_RAIL_MIN){ thin = thin.concat(pool); return; }
     var label = curvyStoreLabel(k);
     var head = deptMixedRailHeadHTML(label, pool.length + ' productos') + verTiendaBtn(k);
-    out.push(deptRailSectionHTML('curvy-store-' + k, label, head, picks(pool, k)));
+    out.push(deptRailSectionHTML('curvy-store-' + k, label, head, curvyPicks(pool, k)));
   });
 
   if (thin.length >= STORE_RAIL_MIN){
     out.push(deptRailSectionHTML('curvy-store-mas', 'Más tiendas',
-      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), picks(thin, null)));
-  }
-
-  var sales = valid.filter(function(p){ return curvyIsSale(p); });
-  if (sales.length >= SALE_RAIL_MIN){
-    out.push(deptRailSectionHTML('curvy-ofertas', 'Ofertas',
-      deptMixedRailHeadHTML('Ofertas', 'Los descuentos m&#225;s grandes primero'), picks(sales, null)));
+      deptMixedRailHeadHTML('Más tiendas', thin.length + ' productos'), curvyPicks(thin, null)));
   }
 
   return out.join('');
@@ -19809,6 +19846,24 @@ function renderCatalogFeed(){
   /* Every category drill-down leads with the rail (2026-09-24) — the
      feed's own top items, so the rail always agrees with the grid
      below it. Search, budget and sort all flow through `items`. */
+  /* CURVY RESTRUCTURE (Danny 2026-10-04): women-only section. Search first
+     (a man can still search -- extended sizes live in the regular sizes),
+     then the Ofertas Curvy sales carousel, then one carousel per store.
+     No gender chips, no flat grid, no sort dropdown -- carousels replace them. */
+  if (curvyDept){
+    sections.innerHTML = `
+    ${catalogSearchBarHTML()}
+    ${catalogStoreChipsHTML()}
+    ${budgetChipsHTML(searched, catalogState.budget, (k) => k ? `setCatalogBudget('${jsAttr(k)}')` : 'setCatalogBudget(null)')}
+    ${curvyDeptRailsHTML(items)}
+    ${term && !items.length ? `<div class="text-[13px] py-6 themeDim" style="color:#6B7487">Nada en caché para "${escapeHtml(term)}" en esta categoría.</div>` : ''}
+    ${!term && budgetBand && !items.length ? `<div class="text-[13px] py-6 themeDim" style="color:#6B7487">
+      Nada aquí por ${escapeHtml(budgetLabelInline(budgetBand))} — el total incluye el flete a tu puerta.
+      <button onclick="setCatalogBudget(null)" class="underline font-bold" style="color:var(--blue)">Ver todos los precios</button>
+    </div>` : ''}
+    <div id="catalogOnDemandWrap" class="mt-6"></div>`;
+  }
+  else {
   sections.innerHTML = `
      ${isLatinoDesigners && !catalogState.subKey ? latinoAtelierHeroHTML() : ''}
     ${storeCarouselHTML({ id: 'feedRail', title: 'Destacados', items: curvyDept ? curvyRailOrder(items) : items, retailer: null, leadRank: isGear ? gearPartRank : null })}
@@ -19841,6 +19896,7 @@ function renderCatalogFeed(){
       <button onclick="setCatalogBudget(null)" class="underline font-bold" style="color:var(--blue)">Ver todos los precios</button>
     </div>` : ''}
     <div id="catalogOnDemandWrap" class="mt-6"></div>`;
+  }
   // The <select> was just re-created, so put the chosen sort back on it.
   const sel = document.getElementById('catalogSort');
   if (sel) sel.value = sortBy;
@@ -27517,7 +27573,9 @@ const KID_MARKER = /\b(kids?|boys?|girls?|toddlers?|infants?|ni[ñn][oa]s?|newbo
 const MEN_MARKER = /\b(men'?s|mens|men|man|hombre|hombres|caballero)\b/i;
 /* DANNY 2026-10-01: match singular "woman"/"women" -- "Ballet Flats for
    Women" is women's footwear even without the possessive. */
-const WOMEN_MARKER = /\b(women'?s|womens|women|woman|mujer|mujeres|dama|femenina)\b/i;
+/* DANNY 2026-10-04: "maternity" is women's -- Curvy is essentially
+   women-only, and maternity titles carry no other gender marker. */
+const WOMEN_MARKER = /\b(women'?s|womens|women|woman|mujer|mujeres|dama|femenina|maternity)\b/i;
 
 // Collapses colour/size variants of the same product. Deliberately
 // excludes price — including it was the bug that let one shirt show up
