@@ -1337,6 +1337,7 @@
   .ariaBeautyBanner > img{ position:absolute; inset:0; width:100%; height:100%;
                            object-fit:cover; object-position:50% 42% }
   .ariaRail{ scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; touch-action:pan-x pan-y; }
+  #salesSearchInput::placeholder{ color:#8E9BC4; opacity:1; }
   @media (hover:none){ .ariaRail{ scroll-snap-type:x proximity; } }
   .ariaRail::-webkit-scrollbar{ display:none }
   .ariaRail > *{ scroll-snap-align:start }
@@ -3470,44 +3471,6 @@
   </div>
 </div>
 
-<!-- ============ MOBILE TIENDA BOTTOM SHEET (OFERTAS) ============ -->
-<!-- 2026-09-28, Danny: the Tienda checkbox wall buried products on phones.
-     On mobile the "Tienda" pill opens this sheet instead; it toggles the
-     same .salesStoreFilter checkboxes the desktop aside uses, so the two
-     UIs can never diverge. Searchable compact rows; "Ver resultados"
-     applies and closes. -->
-<div id="salesStoreOverlay" onclick="closeSalesStoreSheet(false)"
-  class="md:hidden fixed inset-0 z-[80] hidden opacity-0 transition-opacity duration-300" style="background:rgba(4,12,28,0.55)"></div>
-<div id="salesStoreSheet" role="dialog" aria-modal="true" aria-label="Filtrar por tienda"
-  class="md:hidden fixed inset-x-0 bottom-0 z-[80] hidden translate-y-full transition-transform duration-300 ease-out">
-  <div class="bg-white rounded-t-[22px] max-h-[82dvh] flex flex-col" style="box-shadow:0 -12px 40px rgba(4,12,28,0.25)">
-    <div class="px-5 pt-3.5 pb-3.5 border-b shrink-0" style="border-color:var(--line)">
-      <div class="w-10 h-1 rounded-full bg-zinc-300 mx-auto mb-2.5"></div>
-      <div class="flex items-center justify-between">
-        <div class="font-bold text-[16px]" style="color:var(--navy)">Tienda</div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="resetSalesStoreSheet()" class="text-[12.5px] font-semibold focus-ring" style="color:var(--blue)">Seleccionar todas</button>
-          <button type="button" onclick="closeSalesStoreSheet(false)" aria-label="Cerrar filtros"
-            class="w-9 h-9 rounded-full grid place-items-center focus-ring" style="background:#F1F4FA;color:var(--navy)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
-          </button>
-        </div>
-      </div>
-      <input id="salesStoreSearch" type="search" placeholder="Buscar tienda" autocomplete="off"
-        class="mt-3 w-full h-10 rounded-xl border px-3.5 text-[14px] focus-ring" style="border-color:var(--line)"
-        oninput="renderSalesStoreRows()">
-    </div>
-    <div class="px-5 py-2 overflow-y-auto grow">
-      <div id="salesStoreRows" class="text-[14.5px] text-zinc-600"></div>
-    </div>
-    <div class="px-5 py-4 border-t shrink-0" style="border-color:var(--line);background:#fff">
-      <button type="button" onclick="closeSalesStoreSheet(true)"
-        class="w-full h-[52px] rounded-2xl font-bold text-[15px] text-white focus-ring active:scale-[0.99] transition"
-        style="background:var(--blue)">Ver resultados</button>
-    </div>
-  </div>
-</div>
-
 <!-- ============ DEPARTMENT / BRAND CATALOG VIEW ============ -->
 <!-- Generic — reused for both a department tile and a brand tile click
      (see openCatalog(kind, key) in the script below). Renders one
@@ -3794,130 +3757,66 @@
 </div>
 
 <!-- ============ SALES / DEALS VIEW ============ -->
+<!-- 2026-10-04 REDESIGN: the flat 2-col grid + filter sidebar became
+     swipeable category carousels on the navy board. The old sort select's
+     38-char option labels forced its flex row past the 393px viewport
+     (the mobile cut-off Danny's iPhone caught); the short labels below
+     plus min-w-0/max-w-full keep the hero centered. Cards are the dark
+     railCardHTML variant (white price on #1a2744) -- the white-on-white
+     price of the old grid is gone by construction. -->
 <div id="salesView" class="view">
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
     <div data-honest-banner></div>
-    <!-- OFERTAS BANNER (2026-09-26): clearance-rack photo under a navy
-         gradient tint (darker left where the text sits) so the white
-         title stays legible. Danny iPhone QA: the flat navy bar looked empty. -->
-    <div class="rounded-2xl p-5 sm:p-6 mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3" style="background:linear-gradient(90deg, rgba(8,17,36,0.95) 0%, rgba(8,17,36,0.80) 48%, rgba(8,17,36,0.40) 100%), url('assets/ofertas/clearance-banner.webp') center 35%/cover no-repeat, #0A1428">
-      <div>
-        <h1 class="text-[22px] sm:text-[26px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2"><span aria-hidden="true" style="display:inline-flex"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#F4C463" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2.5c3.5 4.5 6 8 6 12a6 6 0 0 1-12 0c0-4 2.5-7.5 6-12z"/><path d="M12 21a3.5 3.5 0 0 0 3.5-3.5c0-2-1.5-3.5-3.5-6-2 2.5-3.5 4-3.5 6A3.5 3.5 0 0 0 12 21z"/></svg></span> Ofertas y liquidación</h1>
-        <p id="salesCount" class="text-[12.5px] mt-1" style="color:#B9C6E8"></p>
+
+    <!-- HERO: photo-led outlet atmosphere. The clearance photo carries the
+         frame; the gradient only beds the text down at the bottom. -->
+    <div class="rounded-2xl overflow-hidden mb-6 relative">
+      <div class="absolute inset-0" style="background:url('assets/ofertas/clearance-banner.webp') center 30%/cover no-repeat, #0A1428"></div>
+      <div class="absolute inset-0" style="background:linear-gradient(180deg, rgba(8,17,36,0.08) 0%, rgba(8,17,36,0.38) 55%, rgba(8,17,36,0.92) 100%)"></div>
+      <div class="relative px-5 pt-12 pb-5 sm:px-8 sm:pb-7 flex flex-col justify-end min-w-0" style="min-height:235px">
+        <h1 class="text-[24px] sm:text-[30px] font-extrabold tracking-[-0.02em] text-white flex items-center gap-2 min-w-0">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-full flex-shrink-0" style="background:var(--yellow)" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="var(--navy)" aria-hidden="true"><path d="M12 2c1 3-1 4.5-2.5 6C8 9.5 7 11 7 13a5 5 0 0 0 10 0c0-1.5-.5-2.5-1.2-3.6-.3 1-1 1.8-2 2.3.3-2.7-.5-6.4-1.8-9.7z"/></svg>
+          </span>
+          <span class="min-w-0">Ofertas y liquidación</span>
+        </h1>
+        <p id="salesCount" class="text-[13px] mt-1.5 font-medium" style="color:#D6DEF5"></p>
+        <div class="mt-3"><span id="salesFreshness" class="inline-block text-[11.5px] font-bold px-3 py-1.5 rounded-full" style="background:var(--yellow); color:var(--navy)"></span></div>
       </div>
-      <!-- Freshness is now stated honestly (spec §6): this page serves a
-           server-side cache, so it says when that cache was built rather
-           than claiming every view is a live search. Filled by
-           renderSalesFreshness(). -->
-      <div id="salesFreshness" class="text-[11.5px] font-bold px-3 py-1.5 rounded-full self-start sm:self-auto" style="background:var(--yellow); color:var(--navy)"></div>
     </div>
 
-    <!-- OFERTAS BOARD (2026-09-26): navy-black backboard under the banner
-         so the white product cards pop; inner text is lightened for
-         contrast. Danny iPhone QA: the white content area looked unfinished. -->
+    <!-- BOARD: search + sort + rails on navy -->
     <div class="rounded-2xl border border-white/10 p-5 sm:p-6" style="background:linear-gradient(165deg,#0A1428 0%,#0C1C40 55%,#0A1428 100%)">
-
-    <!-- Ofertas had no search of its own: the only search input on the way
-         here was the one on the store-picker page, which mobile used to
-         land on. Same input, same shared search path (showResults, which
-         hands the query to scrapeRetailer and its ES→EN table), now on
-         the feed itself. The hint under it exists
-         because shoppers read a search box on a deals page as "filter what
-         is on screen" — it is actually a live scan across the US stores. -->
-    <div class="mb-6">
-      <div class="relative max-w-[520px]">
-        <input id="salesSearchInput" onkeydown="if(event.key==='Enter')salesSearchSubmit()" placeholder="Ej. chompa, jeans, zapatillas…"
-          class="w-full h-[50px] bg-white border rounded-2xl pl-5 pr-[54px] text-[14px] outline-none focus-ring transition" style="border-color:var(--line)">
-        <button onclick="salesSearchSubmit()" aria-label="Buscar" class="absolute right-1.5 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl grid place-items-center text-white focus-ring" style="background:var(--blue)">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"><circle cx="11" cy="11" r="6"/><path d="m21 21-4.3-4.3"/></svg>
-        </button>
-      </div>
-      <p id="salesSearchHint" class="text-[11.5px] mt-2 max-w-[520px]" style="color:#AEB9D4">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en Estados Unidos</p>
-    </div>
-
-    <div class="grid lg:grid-cols-[240px_1fr] gap-8">
-
-      <!-- SALES FILTERS -->
-      <!-- MOBILE (2026-09-28, Danny): the checkbox wall buried products on
-           phones, so below md the aside hides and the "Tienda" pill in the
-           grid header opens a bottom sheet instead. Desktop keeps the
-           checkbox list exactly as-is. -->
-      <aside class="hidden md:block mb-2 lg:mb-0">
-        <div class="flex items-center justify-between mb-4">
-          <div class="font-bold text-[14px] text-white">Filtros</div>
-        </div>
-        <div class="space-y-6 text-[13px]">
-          <div>
-            <div class="font-semibold mb-2.5 text-white">Tienda</div>
-            <div id="salesStoreFilters" class="space-y-2" style="color:#C7D0E8"></div>
-          </div>
-        </div>
-      </aside>
-
-      <!-- SALES GRID -->
-      <!-- WHITE PANEL (2026-09-28, Danny iPhone QA): the navy board made
-           the dark card text unreadable — prices and descriptions vanished
-           into the background. The grid sits on white again; the navy
-           stays on the page chrome (banner, search, filters). -->
-      <div class="rounded-2xl bg-white p-4 sm:p-5">
-        <div class="flex items-center justify-between mb-4 gap-3">
-          <!-- MOBILE TIENDA PILL (2026-09-28, Danny): slim filter-bar entry
-               point on phones -- opens the store bottom sheet. The badge
-               counts excluded stores (unchecked), hidden when all are on. -->
-          <button type="button" id="salesStoreBtn" onclick="openSalesStoreSheet()" aria-label="Filtrar por tienda"
-            class="md:hidden h-9 px-3.5 rounded-lg border text-[13px] font-semibold flex items-center gap-1.5 focus-ring"
-            style="border-color:rgba(255,255,255,.25);color:#fff;background:rgba(255,255,255,.08)">
-            Tienda
-            <span id="salesStoreBadge" class="hidden min-w-[20px] h-5 px-1 rounded-full text-[11px] font-bold text-white grid place-items-center" style="background:var(--blue)"></span>
+      <div class="mb-6">
+        <div class="relative max-w-[520px]">
+          <input id="salesSearchInput" type="search" placeholder="Busca en ofertas: zapatillas, LEGO, perfume…" aria-label="Buscar en ofertas"
+            oninput="renderSalesRails()" onkeydown="if(event.key==='Enter'){event.preventDefault();runSalesScan()}"
+            class="w-full h-11 rounded-xl border pl-4 pr-12 text-[14px] focus-ring min-w-0" style="border-color:rgba(255,255,255,.25); background:rgba(255,255,255,.07); color:#fff" />
+          <button type="button" onclick="runSalesScan()" aria-label="Buscar"
+            class="absolute right-1.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center focus-ring" style="background:var(--yellow)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--navy)" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
           </button>
-          <select id="salesSort" onchange="renderSalesGrid()" class="ml-auto h-9 rounded-lg border px-3 text-[13px] focus-ring" style="border-color:var(--line)">
-            <option value="discount">Mayor descuento</option>
-            <option value="priceAsc">Mejor precio primero (total a tu puerta)</option>
-            <option value="priceDesc">Total a tu puerta: mayor a menor</option>
-          </select>
         </div>
-        <!-- Spec §6: "2 columns desktop / 1 column mobile" — deliberately
-             NOT a dense commodity grid. -->
-        <div id="salesGrid" class="grid grid-cols-2 gap-4 sm:gap-5 xl:grid-cols-3 xl:gap-6"></div>
+        <p class="text-[12.5px] mt-2" style="color:#B9C4E4">¿No encuentras lo que buscas? Escríbelo — lo rastreamos en vivo en Estados Unidos</p>
       </div>
-    </div>
-    </div><!-- /ofertas board -->
-  </div>
-</div>
 
-<!-- MOBILE FILTER BOTTOM SHEET (2026-09-28, Danny: products first). Same
-     pattern as the search results sheet (PR #156): the desktop sidebar is
-     hidden below lg; on phones this sheet is the only filter UI. Overlay
-     tap and the X close without applying; "Ver resultados" applies the
-     sheet checkbox state to the real filters and re-renders. -->
-<div id="salesFilterOverlay" onclick="closeSalesFilters(false)"
-  class="lg:hidden fixed inset-0 z-[80] hidden opacity-0 transition-opacity duration-300" style="background:rgba(4,12,28,0.55)"></div>
-<div id="salesFilterSheet" role="dialog" aria-modal="true" aria-label="Filtros"
-  class="lg:hidden fixed inset-x-0 bottom-0 z-[80] hidden translate-y-full transition-transform duration-300 ease-out">
-  <div class="bg-white rounded-t-[22px] max-h-[82dvh] flex flex-col" style="box-shadow:0 -12px 40px rgba(4,12,28,0.25)">
-    <div class="px-5 pt-3.5 pb-3.5 border-b shrink-0" style="border-color:var(--line)">
-      <div class="w-10 h-1 rounded-full bg-zinc-300 mx-auto mb-2.5"></div>
-      <div class="flex items-center justify-between">
-        <div class="font-bold text-[16px]" style="color:var(--navy)">Filtros</div>
-        <button type="button" onclick="closeSalesFilters(false)" aria-label="Cerrar filtros"
-          class="w-9 h-9 rounded-full grid place-items-center focus-ring" style="background:#F1F4FA;color:var(--navy)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 5l14 14M19 5L5 19"/></svg>
-        </button>
+      <!-- SORT: short labels only. The old 38-char options ("Mejor precio
+           primero (total a tu puerta)") sized the select past the viewport
+           on a 393px iPhone and shoved the whole page right. -->
+      <div class="flex justify-end mb-5">
+        <label class="sr-only" for="salesSort">Ordenar ofertas</label>
+        <select id="salesSort" onchange="renderSalesRails()" aria-label="Ordenar ofertas"
+          class="h-9 rounded-lg border px-3 text-[13px] focus-ring max-w-full min-w-0" style="border-color:rgba(255,255,255,.25); background:#16264B; color:#fff">
+          <option value="discount">Mayor descuento</option>
+          <option value="priceAsc">Menor precio</option>
+          <option value="priceDesc">Mayor precio</option>
+        </select>
       </div>
+
+      <div id="salesRails"></div>
     </div>
-    <div class="px-5 py-4 overflow-y-auto grow">
-      <div class="flex items-center justify-between mb-1">
-        <div class="font-semibold text-[13px]" style="color:var(--navy)">Tienda</div>
-        <button type="button" onclick="resetSalesSheetFilters()" class="text-[12.5px] font-semibold focus-ring" style="color:var(--blue)">Seleccionar todas</button>
-      </div>
-      <div id="salesSheetFilters" class="text-[14.5px] text-zinc-600"></div>
-    </div>
-    <div class="px-5 py-4 border-t shrink-0" style="border-color:var(--line);background:#fff">
-      <button type="button" onclick="closeSalesFilters(true)"
-        class="w-full h-[52px] rounded-2xl font-bold text-[15px] text-white focus-ring active:scale-[0.99] transition"
-        style="background:var(--blue)">Ver resultados</button>
-    </div>
+
   </div>
 </div>
 
@@ -9489,7 +9388,7 @@ window.addEventListener('DOMContentLoaded', initDepartmentTiles);
    THE HOME PAGE'S THREE RAILS -- ON THE PHONE AND ON THE DESKTOP.
 
    ONE SOURCE EACH, AND ALL THREE ARE SOURCES THAT ALREADY EXIST:
-   Ofertas reads saleItemsCache — literally what renderSalesGrid()
+   Ofertas reads saleItemsCache — literally what renderSalesRails()
    paints, so the rail and the feed can never disagree about what is on
    sale or by how much. Tiendas reads the retailer registry through the
    same chip the home page's store grid uses. Categorías reads the same
@@ -9501,7 +9400,7 @@ window.addEventListener('DOMContentLoaded', initDepartmentTiles);
    ============================================================ */
 
 /* The deals the rail is showing, in the order it is showing them, so a
-   tap opens the card that was tapped. Same pattern as salesRendered. */
+   tap opens the card that was tapped. Same pattern as salesRailsRendered. */
 let mobileDealsRendered = [];
 
 function openMobileDeal(idx){
@@ -21411,7 +21310,7 @@ async function applyRoute(route){
         // the doorway that once showed a pants title with no image and
         // no results after a shoe was tapped.
         const known = (searchResults || []).find(it => it.title === route.name)
-          || (salesRendered || []).find(it => it.title === route.name)
+          || Object.values(salesRailsRendered || {}).flat().find(it => it.title === route.name)
           || (autoPartsRendered || []).find(it => it.title === route.name);
         if (known) showProduct(known.retailer, known.title, known.price, known.weightKg, known.image || '',
           known.sizes || [], needsSizeSelection(known.retailer, known.title), sizeCategoryFor(known.retailer, known.title),
@@ -29209,7 +29108,7 @@ function estimatePartWeightKg(query, vehicle){
 }
 
 // Whatever the last part search painted, in display order — same pattern
-// as salesRendered/openSaleProduct(), so the card never has to inline a
+// as the rail renderers do, so the card never has to inline a
 // nine-argument showProduct() call into three onclick attributes.
 let autoPartsRendered = [];
 
@@ -31855,19 +31754,12 @@ function goSales(retailer){
   /* OFERTAS is a department too (key 'sale') - brand-blue tinted backdrop,
      never plain white (2026-09-28, Danny). */
   applyDeptTheme('salesView', 'department', 'sale', retailer);
-  // Already built at load; rebuilt only if something cleared it.
-  if (!document.querySelector('.salesStoreFilter')) initSalesFilters();
-  applySalesStoreFilter(retailer);
+  /* Retailer pre-filter survives the redesign (the #/ofertas/<tienda>
+     route still narrows every rail); the checkbox sidebar that used to
+     carry it is gone. */
+  salesRetailerFilter = retailer || null;
+  renderSalesRails();
   runSalesScan();
-}
-
-// null/undefined = every store checked (the default all-stores feed).
-function applySalesStoreFilter(retailer){
-  const boxes = Array.from(document.querySelectorAll('.salesStoreFilter'));
-  if (!boxes.length) return;
-  const wanted = retailer && boxes.some(cb => cb.value === retailer) ? retailer : null;
-  boxes.forEach(cb => { cb.checked = wanted ? cb.value === wanted : true; });
-  updateSalesStoreBadge();
 }
 
 // The feed's search is the same shared search path as every other search
@@ -31937,136 +31829,6 @@ function renderSalesFreshness(state){
    honest message now, not a loading state for work nobody should be
    paying for. salesStatusLines() and salesSkeletonCardHTML() went with
    them; the Ofertas page no longer has a scanning state at all. */
-
-/* CATALOG_RETAILERS, not GENERAL_RETAILERS: the deals feed now includes
-   file-backed stores (see fileBackedDeals), and a store whose deals are
-   in the feed with no checkbox to filter by is a store the shopper
-   cannot switch off. */
-function initSalesFilters(){
-  document.getElementById('salesStoreFilters').innerHTML = CATALOG_RETAILERS.map(r =>
-    `<label class="flex items-center gap-2"><input type="checkbox" checked value="${r}" class="salesStoreFilter accent-[#2F5FEE]" onchange="renderSalesGrid();updateSalesStoreBadge()"> ${LIVE_RETAILER_LABEL[r]}</label>`
-  ).join('');
-  updateSalesStoreBadge();
-}
-/* MOBILE TIENDA BOTTOM SHEET (2026-09-28, Danny: slim filter bar, never a
-   checkbox wall). Below md the sales aside hides; the "Tienda" pill opens
-   this sheet. Rows toggle the same .salesStoreFilter checkboxes the
-   desktop aside uses, so the two UIs can never diverge. "Ver resultados"
-   applies and closes; the pill badge counts excluded stores. */
-function openSalesStoreSheet(){
-  document.getElementById('salesStoreSearch').value = '';
-  renderSalesStoreRows();
-  const ov = document.getElementById('salesStoreOverlay');
-  const sheet = document.getElementById('salesStoreSheet');
-  ov.classList.remove('hidden');
-  sheet.classList.remove('hidden');
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    ov.classList.remove('opacity-0');
-    sheet.classList.remove('translate-y-full');
-  }));
-  document.body.style.overflow = 'hidden';
-  /* Double quotes are deliberate: a test in run-tests.mjs cuts its source
-     slice at the first single-quoted keydown registration on document
-     (see the size-guide note for the same rule). */
-  document.addEventListener("keydown", salesStoreSheetEscHandler);
-}
-function salesStoreSheetEscHandler(e){ if (e.key === 'Escape') closeSalesStoreSheet(false); }
-function renderSalesStoreRows(){
-  const q = (document.getElementById('salesStoreSearch').value || '').trim().toLowerCase();
-  const on = new Set(Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value));
-  const labelOf = r => (typeof LIVE_RETAILER_LABEL !== 'undefined' && LIVE_RETAILER_LABEL[r]) || r;
-  const rows = CATALOG_RETAILERS.filter(r => !q || labelOf(r).toLowerCase().indexOf(q) !== -1).map(r => {
-    const checked = on.has(r);
-    return '<button type="button" onclick="toggleSalesStoreRow(\'' + r.replace(/'/g, "\\'") + '\')"'
-      + ' class="w-full flex items-center justify-between gap-3 py-3 border-b text-left focus-ring" style="border-color:var(--line)" aria-pressed="' + (checked ? 'true' : 'false') + '">'
-      + '<span>' + escapeHtml(labelOf(r)) + '</span>'
-      + '<span class="w-6 h-6 rounded-full grid place-items-center shrink-0" style="' + (checked ? 'background:var(--blue)' : 'border:2px solid #CBD5E1') + '">'
-      + (checked ? '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12.5l5 5L20 6.5"/></svg>' : '')
-      + '</span></button>';
-  }).join('');
-  document.getElementById('salesStoreRows').innerHTML = rows
-    || '<div class="py-8 text-center text-[13.5px] text-zinc-500">Sin tiendas para &quot;' + escapeHtml(document.getElementById('salesStoreSearch').value.trim()) + '&quot;</div>';
-}
-function toggleSalesStoreRow(r){
-  const cb = document.querySelector('.salesStoreFilter[value="' + CSS.escape(r) + '"]');
-  if (!cb) return;
-  cb.checked = !cb.checked;
-  renderSalesGrid();
-  renderSalesStoreRows();
-  updateSalesStoreBadge();
-}
-function resetSalesStoreSheet(){
-  document.querySelectorAll('.salesStoreFilter').forEach(cb => { cb.checked = true; });
-  renderSalesGrid();
-  renderSalesStoreRows();
-  updateSalesStoreBadge();
-}
-function closeSalesStoreSheet(apply){
-  if (apply) renderSalesGrid();
-  const ov = document.getElementById('salesStoreOverlay');
-  const sheet = document.getElementById('salesStoreSheet');
-  ov.classList.add('opacity-0');
-  sheet.classList.add('translate-y-full');
-  setTimeout(() => { ov.classList.add('hidden'); sheet.classList.add('hidden'); }, 320);
-  document.body.style.overflow = '';
-  document.removeEventListener("keydown", salesStoreSheetEscHandler);
-}
-function updateSalesStoreBadge(){
-  const badge = document.getElementById('salesStoreBadge');
-  if (!badge) return;
-  const off = CATALOG_RETAILERS.length - document.querySelectorAll('.salesStoreFilter:checked').length;
-  badge.classList.toggle('hidden', off === 0);
-  if (off > 0) badge.textContent = String(off);
-}
-
-/* MOBILE FILTER BOTTOM SHEET for the Ofertas page (2026-09-28, Danny:
-   products first on mobile). Same pattern as the search results sheet:
-   the sheet edits a scratch copy of the store checkboxes — "Ver
-   resultados" copies the scratch state onto the real .salesStoreFilter
-   boxes and re-renders; closing any other way discards the change. */
-function openSalesFilters(){
-  const on = new Set(Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value));
-  document.getElementById('salesSheetFilters').innerHTML = CATALOG_RETAILERS.map(r => `
-    <label class="flex items-center gap-3 py-2 cursor-pointer"><input type="checkbox" value="${r}" ${on.has(r) ? 'checked' : ''} class="salesSheetStoreFilter w-5 h-5 shrink-0 accent-[#2F5FEE]"> <span>${escapeHtml(LIVE_RETAILER_LABEL[r] || r)}</span></label>
-  `).join('');
-  const ov = document.getElementById('salesFilterOverlay');
-  const sheet = document.getElementById('salesFilterSheet');
-  ov.classList.remove('hidden');
-  sheet.classList.remove('hidden');
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    ov.classList.remove('opacity-0');
-    sheet.classList.remove('translate-y-full');
-  }));
-  document.body.style.overflow = 'hidden';
-  document.addEventListener('keydown', salesFilterEscHandler);
-}
-function salesFilterEscHandler(e){ if (e.key === 'Escape') closeSalesFilters(false); }
-function resetSalesSheetFilters(){
-  document.querySelectorAll('.salesSheetStoreFilter').forEach(cb => { cb.checked = true; });
-}
-function closeSalesFilters(apply){
-  if (apply){
-    const on = new Set(Array.from(document.querySelectorAll('.salesSheetStoreFilter:checked')).map(cb => cb.value));
-    document.querySelectorAll('.salesStoreFilter').forEach(cb => { cb.checked = on.has(cb.value); });
-    renderSalesGrid();
-  }
-  const ov = document.getElementById('salesFilterOverlay');
-  const sheet = document.getElementById('salesFilterSheet');
-  ov.classList.add('opacity-0');
-  sheet.classList.add('translate-y-full');
-  setTimeout(() => { ov.classList.add('hidden'); sheet.classList.add('hidden'); }, 320);
-  document.body.style.overflow = '';
-  document.removeEventListener('keydown', salesFilterEscHandler);
-}
-/* Badge on the mobile "Filtros" button: counts unchecked stores. Hidden
-   when everything is checked. */
-function updateSalesFilterBadge(){
-  const badge = document.getElementById('salesFilterBadge');
-  if (!badge) return;
-  const off = CATALOG_RETAILERS.length - document.querySelectorAll('.salesStoreFilter:checked').length;
-  badge.classList.toggle('hidden', off === 0);
-  if (off > 0) badge.textContent = String(off);
-}
 
 // BUG FIX (2026-09-17): "Categorías" used to just scroll to the homepage's
 // small teaser grid — this is a real page with its own sort (name/product
@@ -32494,7 +32256,7 @@ async function runSalesScan(){
     salesGeneratedAt = cached?.generatedAt || feedGeneratedAt || null;
     salesStaleNote = cached ? salesFreshnessNote(cached.generatedAt, cached.stale)
       : (feedGeneratedAt ? salesFreshnessNote(feedGeneratedAt, false) : '');
-    renderSalesGrid();
+    renderSalesRails();
   } else {
     /* A COLD CACHE IS AN OPERATIONS PROBLEM, NOT A SHOPPER'S BILL.
        This used to launch a twelve-actor live scan from the browser. It
@@ -32505,7 +32267,7 @@ async function runSalesScan(){
     saleItemsCache = [];
     salesGeneratedAt = null;
     salesStaleNote = '';
-    renderSalesGrid();
+    renderSalesRails();
   }
   /* The full feed merges in on idle: same items, same order, just the
      ~4.8MB the lite head skipped. Deduped by retailer::title, then one
@@ -32530,7 +32292,7 @@ async function runSalesScan(){
       }
       if (!added) return;
       saleItemsCache = [...scraped, ...fromFiles].filter(passesOfertasGate);
-      renderSalesGrid();
+      renderSalesRails();
       try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
     } catch { /* the lite feed stands on its own */ }
   };
@@ -32578,7 +32340,7 @@ async function enrichSalesFromCatalog(){
   }
   if (added){
     saleItemsCache = saleItemsCache.filter(passesOfertasGate);
-    renderSalesGrid();
+    renderSalesRails();
     try { renderMobileDealsRail(); } catch { /* the rail paints on its own path */ }
     /* Shelves that painted before the markdowns arrived re-lead with
        them, matching the old boot order exactly. */
@@ -32588,64 +32350,6 @@ async function enrichSalesFromCatalog(){
 
 function discountPct(p){ return Math.round((1 - p.price / p.originalPrice) * 100); }
 
-// Whatever renderSalesGrid() last painted, in display order. Cards call
-// openSaleProduct(i) against this instead of inlining a nine-argument
-// showProduct() call into three separate onclick attributes.
-let salesRendered = [];
-let salesVisibleCount = 0;
-const SALES_PAGE_SIZE = 48;
-function showMoreSales(){
-  salesVisibleCount = Math.min(salesRendered.length, salesVisibleCount + SALES_PAGE_SIZE);
-  const grid = document.getElementById('salesGrid');
-  const moreBtn = grid.querySelector('.col-span-full.text-center.py-6');
-  if (moreBtn) moreBtn.remove();
-  const start = salesVisibleCount - SALES_PAGE_SIZE;
-  const frag = document.createElement('template');
-  frag.innerHTML = salesRendered.slice(start, salesVisibleCount).map((p, i) => saleCardHTML(p, start + i)).join('');
-  grid.append(...frag.content.childNodes);
-  const remaining = salesRendered.length - salesVisibleCount;
-  if (remaining > 0){
-    const div = document.createElement('div');
-    div.className = 'col-span-full text-center py-6';
-    div.innerHTML = `<button onclick="showMoreSales()" class="px-6 py-3 rounded-full text-[14px] font-semibold" style="background:var(--navy);color:#fff">Mostrar ${Math.min(remaining, SALES_PAGE_SIZE)} más (${remaining.toLocaleString('es-PE')} restantes)</button>`;
-    grid.append(div);
-  }
-}
-
-function openSaleProduct(idx){
-  const p = salesRendered[idx];
-  if (!p) return;
-  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
-    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
-    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
-    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
-}
-
-/* Spec §6 card: "large and in charge" — 1 column mobile / 2 desktop (set
-   on #salesGrid), a large 4:5 image area, big red discount badge,
-   retailer, name, PEN price, rating, prominent Comprar button.
-
-   object-fit: contain is deliberate and required by the spec: these are
-   retailer catalog shots, usually a model head to toe, and the old
-   object-cover in a 130px strip beheaded most of them. contain never
-   crops, at the cost of letterboxing — which is why the image sits on a
-   tinted panel rather than white.
-
-   Structure note: the whole card used to be one <button>, so a Comprar
-   button could not be nested inside it (invalid HTML, and a real
-   accessibility bug — nested interactive elements). The card is now a
-   div; the image and title are click targets, and Comprar is the single
-   real focusable control. */
-function saleCardHTML(p, idx){
-  /* OFERTAS CARDS SIT ON NAVY (2026-09-28, Danny iPhone QA). The Ofertas
-     board is a navy gradient and the cards have no white shell of their
-     own (white cards are the separate PR #168), so productCardHTML's
-     default navy-on-light treatments go invisible here: the sale price
-     and the outlined Comprar button both vanish. dark:true flips the
-     price and CTA to their on-navy treatments. */
-  return productCardHTML(p, { open: `openSaleProduct(${idx})`, dark: true });
-}
-
 /* The one large card, shared by the Ofertas feed and Aria Auto's part
    results. Aria Auto used to render a cramped 40px-thumbnail list, which
    made a $180 alternator look like a line in a dropdown; it now gets the
@@ -32653,7 +32357,7 @@ function saleCardHTML(p, idx){
    auto shopper's discount badge: what they check first.
 
    opts.open      JS expression run when the image, title or Comprar is
-                  clicked (openSaleProduct(i) / openAutoPart(i)).
+                  clicked (openSalesRailProduct(i) / openAutoPart(i)).
    opts.badgeHTML replaces the discount badge. Ofertas leaves it out and
                   gets the percentage; Aria Auto passes the fitment pill.
    opts.extraHTML a line under the price — search uses it for the same
@@ -32815,48 +32519,148 @@ function productCardHTML(p, opts){
   </div>`;
 }
 
-function renderSalesGrid(){
-  const activeStores = Array.from(document.querySelectorAll('.salesStoreFilter:checked')).map(cb => cb.value);
-  const sortBy = document.getElementById('salesSort').value;
 
-  let items = saleItemsCache.filter(p => activeStores.includes(p.retailer));
+/* ============================================================
+   OFERTAS RAILS (2026-10-04 redesign)
+   The flat 2-col grid became swipeable category carousels on the navy
+   board. Classification is title/brand-keyword based because the sales
+   feed carries no department taxonomy (category is null on every feed
+   item); the two title-based catalog classifiers that DO work on feed
+   items -- isFootwear() and isToy() -- are reused, everything else is a
+   conservative keyword pass. Priority order is first-match-wins; anything
+   unclassified still appears in "Las mayores ofertas". Rails with no
+   items are skipped, never rendered empty.
+   Cards are the dark railCardHTML variant (#1a2744 tile, white price) --
+   Danny's standing blue-tile treatment for navy rails -- which is also
+   the price-contrast fix: the old grid rendered productCardHTML with
+   dark:true (white text) on a WHITE panel.
+   ============================================================ */
+let salesRetailerFilter = null;  /* set by goSales(retailer) for #/ofertas/<tienda> */
+let salesRailsRendered = {};     /* catKey -> items currently painted */
+const OFERTAS_RAIL_CARD_N = 20;
 
-  // Price sorts rank by what the shopper actually pays at the door, not
-  // by the product price — see doorToDoorUsd(). Discount stays a
-  // discount: it is a claim about the markdown, not about the total.
-  if (sortBy === 'discount') items = ofertasLeadSort(items);
-  else items.sort(byDoorToDoor(sortBy));
+function ofertasDealText(p){ return `${p.title || ''} ${p.brand || ''}`; }
 
-  salesRendered = items;
-  salesVisibleCount = Math.min(items.length, SALES_PAGE_SIZE);
-  /* An empty grid is now always one of two honest things, never a live
-     scan: either the filters excluded everything, or the shared cache has
-     not been built yet. Neither is worth a shopper's money to resolve. */
-  const emptyMessage = saleItemsCache.length
-    ? 'Ninguna oferta de las tiendas seleccionadas. Activa más tiendas en los filtros.'
-    : 'Estamos actualizando las ofertas. Mientras tanto puedes buscar cualquier producto arriba — el buscador funciona con normalidad.';
-  /* Paginated: injecting thousands of cards at once janks low-end phones.
-     Render the first page; the button below appends more. */
-  const visible = items.slice(0, salesVisibleCount);
-  const moreCount = items.length - visible.length;
-  document.getElementById('salesGrid').innerHTML = items.length
-    ? visible.map((p, i) => saleCardHTML(p, i)).join('')
-      + (moreCount > 0
-        ? `<div class="col-span-full text-center py-6">` +
-          `<button onclick="showMoreSales()" class="px-6 py-3 rounded-full text-[14px] font-semibold" style="background:var(--navy);color:#fff">` +
-          `Mostrar ${Math.min(moreCount, SALES_PAGE_SIZE)} más (${moreCount.toLocaleString('es-PE')} restantes)</button></div>`
-        : '')
-    : `<div class="col-span-full text-center py-16 text-[13.5px]" style="color:#6B7487">${emptyMessage}</div>`;
-  // No longer claims "en vivo" — these may well be served from the cache,
-  // and the freshness badge states exactly when that cache was built.
-  document.getElementById('salesCount').textContent = items.length
-    ? `${items.length} oferta${items.length === 1 ? '' : 's'} real${items.length === 1 ? '' : 'es'}`
-    : '';
-  renderSalesFreshness();
-  updateSalesFilterBadge();
+const OFERTAS_JEWELRY_RX = /\b(jewelry|joyer[i\xed]a|bisuter[i\xed]a|necklaces?|collars?|bracelets?|pulseras?|brazaletes?|earrings?|aretes?|pendientes?|rings?|anillos?|sortijas?|pendants?|colgantes?|dijes?|charms?|anklets?|tobilleras?|brooches?|broches?|bangles?)\b/i;
+const OFERTAS_PET_RX = /\b(dog|cat|pet|puppy|kitten|perro|gato|mascota)s?\b/i;
+const OFERTAS_APPAREL_RX = /\b(dresses?|vestidos?|skirts?|faldas?|blouses?|blusas?|t-?shirts?|camisetas?|polos?|shirts?|camisas?|jeans?|pants?|pantal[o\xf3]ns?|trousers?|shorts?|boardshorts?|jackets?|chaquetas?|coats?|abrigos?|sweaters?|su[e\xe9]teres?|hoodies?|sudaderas?|cardigans?|blazers?|leggings?|mallas|tights?|jerseys?|bra\b|sost[e\xe9]ns?|brasiers?|panties?|underwear|ropa interior|bikinis?|swimsuits?|trajes? de ba[\xf1n]o|one-?pieces?|jumpsuits?|pajamas?|pijamas?|robes?|batas?|vests?|chalecos?|ties?|corbatas?|scarves?|scarfs?|bufandas?|gloves?|guantes?|socks?|calcet[i\xed]ns?|beanies?|caps?|hats?|gorras?|sombreros?)\b/i;
+const OFERTAS_WOMEN_RX = /\b(women'?s|woman|mujer|dama|ladies|female|femenin[oa])\b/i;
+const OFERTAS_MEN_RX = /\b(men'?s|man\b|hombre|caballero|male|masculin[oa])\b/i;
+const OFERTAS_KIDS_RX = /\b(kids|ni[\xf1n]os?|toddler|baby|beb[e\xe9]|infant|newborn)\b/i;
+const OFERTAS_ELECTRONICS_RX = /\b(tvs?|televisors?|televisions?|laptops?|notebooks?|tablets?|c[a\xe1]maras?|headphones?|aud[i\xed]fonos?|earbuds?|airpods|speakers?|parlantes?|bocinas?|altavoces?|soundbars?|monitors?|keyboards?|teclados?|chargers?|cargadores?|smartwatch|reloj inteligente|printers?|impresoras?|routers?|ssds?|hard drives?|microphones?|micr[o\xf3]fonos?|drones?|projectors?|proyectores?|kindle|gopro|consoles?|consolas?|controllers?)\b/i;
+const OFERTAS_BEAUTY_RX = /\b(makeup|maquillaje|cosm[e\xe9]ticos?|lipsticks?|labiales?|mascara|r[i\xed]mels?|perfumes?|fragancias?|fragrances?|colognes?|colonias?|skincare|serums?|s[e\xe9]rums?|cremas?|shampoos?|champ[u\xfa]s?|conditioners?|acondicionadores?|hair dryer|secador[ao]?s?|straighteners?|esmaltes?|nails?|u[\xf1n]as?|foundations?|blush|rubors?|eyeliners?|delineadors?|eyeshadows?|beauty|belleza|body wash|deodorants?|desodorantes?|lotions?|loc[i\xed][o\xf3]ns?)\b/i;
+const OFERTAS_SPORTS_RX = /\b(bicycles?|bicicletas?|bikes?|dumbbells?|mancuernas?|kettlebells?|pesas?|yoga|pilates|tents?|carpas?|campings?|sleeping bags?|fishings?|pescas?|soccer|f[u\xfa]tbols?|basketballs?|baloncestos?|tennis|golfs?|skateboards?|patinetas?|surfs?|kayaks?|pools?|piscinas?|inflables?|fitness|exercises?|ejercicios?|treadmills?|caminadoras?|ellipticals?|weights?|barbells?|bal[o\xf3]ns?|pelotas?|rackets?|raquetas?|helmets?|cascos?|padel|pickleball|volleyballs?|voleibols?|baseballs?|b[e\xe9]isbols?)\b/i;
+const OFERTAS_HOME_RX = /\b(sofas?|sill[o\xf3]ns?|couchs?|lamps?|l[a\xe1]mparas?|curtains?|cortinas?|rugs?|alfombras?|tapetes?|pillows?|almohadas?|coj[i\xed]ns?|blankets?|mantas?|frazadas?|edred[o\xf3]ns?|bedding|ropa de cama|s[a\xe1]banas?|kitchens?|cocinas?|cookwares?|ollas?|sart[e\xe9]ns?|dinnerwares?|vajillas?|decors?|decoraci[o\xf3]ns?|vases?|floreros?|candles?|velas?|frames?|marcos?|mirrors?|espejos?|storages?|almacenamientos?|organizers?|organizadors?|towels?|toallas?|clocks?|ventiladors?|vacuums?|aspiradoras?|mattresss?|mattresses?|colch[o\xf3]ns?|desks?|escritorios?|chairs?|sillas?|shelfs?|shelves?|estantes?)\b/i;
+
+function ofertasClassify(p){
+  const t = ofertasDealText(p);
+  if (isFootwear(p, p.retailer)) return 'zapatos';
+  /* Apparel resolves to a gendered rail or to nothing: a tee whose graphic
+     says "Television" is not electronics, and socks are not a category. */
+  if (OFERTAS_APPAREL_RX.test(t)){
+    if (OFERTAS_KIDS_RX.test(t)) return null;
+    if (OFERTAS_WOMEN_RX.test(t) && !OFERTAS_MEN_RX.test(t)) return 'moda-mujer';
+    if (OFERTAS_MEN_RX.test(t) && !OFERTAS_WOMEN_RX.test(t)) return 'moda-hombre';
+    return null;
+  }
+  /* "Collar" is Spanish for necklace -- unless it is on a dog. */
+  if (OFERTAS_JEWELRY_RX.test(t) && !OFERTAS_PET_RX.test(t)) return 'joyas';
+  /* Consoles are toys (standing Juguetes policy), so isToy runs before electronics. */
+  if (isToy(p, p.retailer, p.departments)) return 'juguetes';
+  if (OFERTAS_ELECTRONICS_RX.test(t)) return 'electronica';
+  if (OFERTAS_BEAUTY_RX.test(t)) return 'belleza';
+  if (OFERTAS_SPORTS_RX.test(t)) return 'deportes';
+  if (OFERTAS_HOME_RX.test(t)) return 'hogar';
+  return null;
 }
 
-initSalesFilters();
+/* Display order: Danny's five named categories lead, the rest follow by depth. */
+const OFERTAS_RAIL_DEFS = [
+  { key: 'zapatos',     label: 'Zapatos y zapatillas', dept: 'shoes' },
+  { key: 'joyas',       label: 'Joyas',                dept: 'joyas_accesorios' },
+  { key: 'moda-mujer',  label: 'Moda mujer',           dept: 'women' },
+  { key: 'moda-hombre', label: 'Moda hombre',          dept: 'men' },
+  { key: 'juguetes',    label: 'Juguetes',             dept: 'toys' },
+  { key: 'belleza',     label: 'Belleza',              dept: 'beauty' },
+  { key: 'hogar',       label: 'Hogar',                dept: 'home_goods' },
+  { key: 'electronica', label: 'Electrónica',          dept: 'electronics' },
+  { key: 'deportes',    label: 'Deportes',             dept: 'sporting_goods' },
+];
+
+function salesRailSectionHTML(catKey, label, items, deptKey){
+  const cards = items.map((p, i) =>
+    railCardHTML(p, `openSalesRailProduct('${catKey}',${i})`, '', { dark: true })).join('');
+  const verTodo = deptKey
+    ? `<button type="button" onclick="openCatalog('department','${deptKey}')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver todo</button>`
+    : '';
+  return `<section class="mb-8" aria-label="${escapeHtml(label)}">`
+    + `<div class="flex items-baseline justify-between gap-3 mb-3 px-1">`
+    + `<h2 class="text-[17px] sm:text-[19px] font-extrabold text-white tracking-[-0.01em] min-w-0">${escapeHtml(label)}</h2>${verTodo}</div>`
+    + `<div class="flex gap-3 overflow-x-auto pb-3 ariaRail">${cards}</div></section>`;
+}
+
+function openSalesRailProduct(catKey, idx){
+  const p = (salesRailsRendered[catKey] || [])[idx];
+  if (!p) return;
+  showProduct(p.retailer, p.title, p.price, p.weightKg, p.image || '', p.sizes || [],
+    needsSizeSelection(p.retailer, p.title), sizeCategoryFor(p.retailer, p.title),
+    p.rating != null ? String(p.rating) : '', p.images || [], p.catalogWeightKg ?? null,
+    { brand: p.brand, description: p.description || '', dutiableUsd: p.dutiableUsd ?? null });
+}
+
+function renderSalesRails(){
+  const host = document.getElementById('salesRails');
+  if (!host) return;
+  const sortBy = (document.getElementById('salesSort') || {}).value || 'discount';
+  let pool = (saleItemsCache || []).filter(p =>
+    Number.isFinite(Number(p.price)) && Number(p.price) > 0 &&
+    Number(p.originalPrice) > Number(p.price) && hasRealImage(p));
+  if (salesRetailerFilter) pool = pool.filter(p => String(p.retailer) === String(salesRetailerFilter));
+  const q = ((document.getElementById('salesSearchInput') || {}).value || '').trim().toLowerCase();
+  if (q) pool = pool.filter(p => ofertasDealText(p).toLowerCase().indexOf(q) !== -1);
+
+  const buckets = {};
+  for (const def of OFERTAS_RAIL_DEFS) buckets[def.key] = [];
+  for (const p of pool){
+    const c = ofertasClassify(p);
+    if (c && buckets[c]) buckets[c].push(p);
+  }
+
+  /* The lead rail keeps the established lead-brand ordering; every category
+     rail answers "biggest discount first" plainly. Price sorts rank by the
+     door-to-door total -- the number the shopper actually pays. */
+  const sortItems = (items) => sortBy === 'discount'
+    ? [...items].sort((a, b) => discountPct(b) - discountPct(a))
+    : [...items].sort(byDoorToDoor(sortBy));
+  const lead = (sortBy === 'discount' ? ofertasLeadSort(pool) : sortItems(pool)).slice(0, 24);
+
+  salesRailsRendered = { lead };
+  let html = '';
+  if (!pool.length){
+    html = `<div class="text-center py-16 text-[13.5px]" style="color:#B9C4E4">${
+      (saleItemsCache || []).length
+        ? 'Ninguna oferta coincide con tu b\u00fasqueda. Prueba con otra palabra.'
+        : 'Estamos actualizando las ofertas. Mientras tanto puedes buscar cualquier producto arriba \u2014 el buscador funciona con normalidad.'}</div>`;
+  } else {
+    html = salesRailSectionHTML('lead', 'Las mayores ofertas', lead, null);
+    for (const def of OFERTAS_RAIL_DEFS){
+      const items = sortItems(buckets[def.key]).slice(0, OFERTAS_RAIL_CARD_N);
+      if (!items.length) continue;
+      salesRailsRendered[def.key] = items;
+      html += salesRailSectionHTML(def.key, def.label, items, def.dept);
+    }
+  }
+  host.innerHTML = html;
+
+  const cnt = document.getElementById('salesCount');
+  if (cnt){
+    let label = pool.length ? `${pool.length.toLocaleString('es-PE')} ofertas reales` : '';
+    if (label && salesRetailerFilter && typeof LIVE_RETAILER_LABEL !== 'undefined')
+      label += ` \u00b7 ${LIVE_RETAILER_LABEL[salesRetailerFilter] || salesRetailerFilter}`;
+    cnt.textContent = label;
+  }
+  renderSalesFreshness();
+}
 initResultsFilters();
 initCategoriesFilters();
 renderHonestPricingBanners();
