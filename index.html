@@ -11920,8 +11920,7 @@ function isToy(item, retailer, bucketName){
    normalized pool carries `sizes`. hasExtendedSizes only reads the raw
    field, so the rail needs its own check. */
 function railHasExtendedSizes(p){
-  const list = Array.isArray(p && p.availableSizes) ? p.availableSizes
-    : Array.isArray(p && p.sizes) ? p.sizes : [];
+  const list = Array.isArray(p && (p.sizes ?? p.availableSizes)) ? (p.sizes ?? p.availableSizes) : [];
   return list.some(s => EXTENDED_SIZES.has(String(s).trim().toLowerCase()));
 }
 
@@ -27534,7 +27533,7 @@ function normalizeLiveItem(item, hints){
   // `variants` array is empty at our listing-level scrape depth, Foot
   // Locker has no such field either). Never fabricated — checkout.html
   // asks the customer to type their size instead when this is empty.
-  const sizes = Array.isArray(item.availableSizes) ? item.availableSizes.filter(s => typeof s === 'string' && s.trim()) : [];
+  const sizes = Array.isArray(item.sizes ?? item.availableSizes) ? (item.sizes ?? item.availableSizes).filter(s => typeof s === 'string' && s.trim()) : [];
 
   // Real on-sale signal, only when the retailer's own scrape data reports
   // one — confirmed present on live Target (isOnSale/regularPrice/
