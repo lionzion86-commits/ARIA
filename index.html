@@ -8463,10 +8463,12 @@ const EXTENDED_SIZES = new Set([
   'plus size',
 ]);
 
-/* The retailer's own list, or empty. Never derived from anything else. */
+/* The retailer's/catalog's own size list, or empty. Real data only — never derived or invented. Prefers `sizes`, falls back to `availableSizes`; whichever is non-empty wins. */
 function retailerSizesOf(item){
-  const raw = item?.availableSizes;
-  return Array.isArray(raw) ? raw.filter(s => typeof s === 'string' && s.trim()) : [];
+  const a = Array.isArray(item?.sizes) ? item.sizes : [];
+  const b = Array.isArray(item?.availableSizes) ? item.availableSizes : [];
+  const raw = a.length ? a : b;
+  return raw.filter(s => typeof s === 'string' && s.trim());
 }
 
 function extendedSizesOf(item){
@@ -12018,8 +12020,8 @@ function isToy(item, retailer, bucketName){
   return true;
 }
 /* Pool-safe extended sizes: raw catalog items carry `availableSizes`, the
-   normalized pool carries `sizes`. hasExtendedSizes only reads the raw
-   field, so the rail needs its own check. */
+   normalized pool carries `sizes`. The rail keeps its own sizes-first check,
+   independent of hasExtendedSizes. */
 function railHasExtendedSizes(p){
   const list = Array.isArray(p && (p.sizes ?? p.availableSizes)) ? (p.sizes ?? p.availableSizes) : [];
   return list.some(s => EXTENDED_SIZES.has(String(s).trim().toLowerCase()));
