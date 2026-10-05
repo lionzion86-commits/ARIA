@@ -1689,7 +1689,7 @@
   }
 </style>
 </head>
-<body class="antialiased"><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script>
+<body class="antialiased">
 
 <!-- HEADER -->
 <!-- ============================================================
@@ -19923,7 +19923,7 @@ function renderCatalogFeed(){
      every product with one -- a blank "Foto en camino" card never leads the
      grid. Stable sort keeps the sales/price order inside each group. */
   items.sort((a, b) => (hasRealImage(b) ? 1 : 0) - (hasRealImage(a) ? 1 : 0));
-  const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
+  const shown = items.slice(0, 5); /* DEBUG: limit to 5 */
 
   const storeCount = byRetailer.size;
   const n = items.length;
@@ -36803,6 +36803,6 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
-<script>(function(){  function log(m){    window.__errs.push("T5: "+m);    var d=document.getElementById("dbg-err");    if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,6000);}  }  log("tracer5 installed");  var origShow = window.showPage;  if(typeof origShow==="function"){    window.showPage = function(id){      log("showPage('"+id+"')");      return origShow.apply(this, arguments);    };    log("showPage wrapped");  }  var el = document.getElementById("catalogView");  if(el){    var origInner = Object.getOwnPropertyDescriptor(Element.prototype, "innerHTML");    log("watching catalogView innerHTML");  }  var lastState = "";  setInterval(function(){    try{      var e=document.getElementById("catalogView");      if(!e) return;      var active=e.classList.contains("active");      var len=(e.innerHTML||"").length;      var state=active+"|"+len;      if(state!==lastState){        log("state: active="+active+" len="+len);        lastState=state;      }    }catch(err){}  },300);  log("watcher started");})();</script></body>
+</body>
 </html>
 
