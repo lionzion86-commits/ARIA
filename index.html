@@ -36803,6 +36803,6 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
-<script>(function(){  function log(m){    window.__errs.push("TRACE3: "+m);    var d=document.getElementById("dbg-err");    if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,5000);}  }  log("tracer3 installed");  setInterval(function(){    try{      var el=document.getElementById("catalogView");      if(!el) return;      var cs=getComputedStyle(el);      log("computed: display="+cs.display+" visibility="+cs.visibility+" opacity="+cs.opacity+" height="+cs.height);    }catch(e){}  },2000);})();</script></body>
+<script>(function(){  function log(m){    window.__errs.push("TRACE4: "+m);    var d=document.getElementById("dbg-err");    if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,5000);}  }  log("tracer4 installed");  setTimeout(function(){    try{      var el=document.getElementById("catalogView");      if(!el){log("no catalogView");return;}      var html=el.innerHTML||"";      log("htmlLen="+html.length);      log("first500="+html.slice(0,500).replace(/\n/g," "));      log("has h1="+(html.indexOf("<h1")>-1)+" has img="+(html.indexOf("<img")>-1)+" has button="+(html.indexOf("<button")>-1));      var cs=getComputedStyle(el);      log("display="+cs.display);    }catch(e){log("err "+e.message);}  },4000);})();</script></body>
 </html>
 
