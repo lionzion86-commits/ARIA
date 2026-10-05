@@ -1689,7 +1689,7 @@
   }
 </style>
 </head>
-<body class="antialiased"><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){window.__errs.push("ERR: "+(e.message||e.error));var d=document.getElementById("dbg-err");if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,5000);}});window.addEventListener("unhandledrejection",function(e){window.__errs.push("REJ: "+(e.reason&&e.reason.message||e.reason));var d=document.getElementById("dbg-err");if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,5000);}});</script><script>function dbgStep(s){window.__errs.push("STEP: "+s);var d=document.getElementById("dbg-err");if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,5000);}}</script>
+<body class="antialiased">
 
 <!-- HEADER -->
 <!-- ============================================================
@@ -18420,7 +18420,7 @@ async function openCatalog(kind, key, opts = {}){
   // The aisle is part of the address: it gets its own URL, so one back
   // press returns to the aisle list rather than out of the category.
   const subKey = opts.subKey || null;
-  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter, subKey }); dbgStep('after pushRoute');
+  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter, subKey });
   /* BUG FIX: the "Ofertas" department tile came through here and landed on
      the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
      so a shopper tapping Ofertas from the homepage got a store list while
@@ -18433,8 +18433,8 @@ async function openCatalog(kind, key, opts = {}){
   applyStoreTheme('catalogView', retailerFilter);
   showPage('catalogView');
   applyStoreTheme('catalogView', retailerFilter);
-  applyDeptTheme('catalogView', kind, key, retailerFilter); dbgStep('after applyDeptTheme');
-  dbgStep('before loadFxRate'); await loadFxRate(); dbgStep('after loadFxRate');
+  applyDeptTheme('catalogView', kind, key, retailerFilter);
+  await loadFxRate();
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   /* NATIVE TAXONOMY (2026-09-29): the key IS the Spanish label already --
      metaFor's title-cased fallback would mangle "Máscaras y snorkels". */
@@ -18480,11 +18480,14 @@ async function openCatalog(kind, key, opts = {}){
     : (kind === 'department' && key === 'sunglasses') ? (typeof sunglassesHeroHTML === 'function' ? sunglassesHeroHTML() : '')
     : (kind === 'department' && key === 'toys') ? (typeof toysHeroHTML === 'function' ? toysHeroHTML() : '')
     : '';
-  dbgStep('before skeleton'); try { document.getElementById('catalogSections').innerHTML =
+  document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
-      (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`; } catch(e){ dbgStep('SKELETON ERROR: '+e.message); throw e; }
+      (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
 
-  const data = await loadDepartmentCache();
+  const data = await Promise.race([
+    loadDepartmentCache(),
+    new Promise(resolve => setTimeout(() => resolve({ retailers: {} }), 10000))
+  ]);
   departmentCacheData = data;
   /* Named again now the catalogue is in hand. On a deep link the title
      above was drawn from the slug, because the only source of a brand's
@@ -21025,7 +21028,10 @@ async function openStore(retailer){
     return;
   }
 
-  const data = await loadDepartmentCache();
+  const data = await Promise.race([
+    loadDepartmentCache(),
+    new Promise(resolve => setTimeout(() => resolve({ retailers: {} }), 10000))
+  ]);
   departmentCacheData = data;
   const retailerData = data.retailers[retailer];
   /* A carried store with NO catalogue data is not an empty store: the
@@ -29001,7 +29007,10 @@ function autoCatalogBlockHTML(source){
 let advanceCatalogItemsCache = null;
 async function advanceCatalogItems(){
   if (advanceCatalogItemsCache) return advanceCatalogItemsCache;
-  const data = await loadDepartmentCache();
+  const data = await Promise.race([
+    loadDepartmentCache(),
+    new Promise(resolve => setTimeout(() => resolve({ retailers: {} }), 10000))
+  ]);
   const bucket = data && data.retailers && data.retailers.advanceauto;
   const out = [];
   const depts = (bucket && bucket.departments) || {};
