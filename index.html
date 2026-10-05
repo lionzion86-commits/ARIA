@@ -11972,7 +11972,12 @@ const SURFSKATE_CORE_GEAR_TYPES = new Set([
   'Tablas de surf','Bodyboards','Skimboards','SUP / Paddle surf',
   'Skateboards completos','Longboards','Cruisers','Decks (tablas de skate)',
 ]);
-const SURFSKATE_CORE_GEAR_RX = /\b(skate\s?decks?|complete skateboards?|skateboards? completos?|surfboards?|tablas? de surf|longboards?|cruisers?|bodyboards?|skimboards?)\b/i;
+const SURFSKATE_CORE_GEAR_RX = /\b(decks?|skateboards?|longboards?|cruisers?|surfboards?|bodyboards?|skimboards?|tablas?\s+de\s+surf)\b/i;
+/* Title words that disqualify a loose core-gear match: the title mentioned a
+   board but the item is apparel or an accessory (
+   `Surfboard Hoodie`, `Longboard Fin`). Type-based matches are the retailer's
+   own taxonomy and skip this check. */
+const SURFSKATE_NON_GEAR_RX = /\b(hoodie|hoodies|sudaderas?|tee|tees|t-shirt|camisetas?|shirts?|jackets?|chaquetas?|fins?|quillas?|leash(es)?|correas?|racks?|bags?|covers?|fundas?|shorts?|caps?|gorras?|socks?|calcetines|pads?|wax|cera|backpacks?|mochilas?|keychains?|llaveros?|stickers?)\b/i;
 function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, opts){
   const keys = new Set((Array.isArray(retailerKeys) ? retailerKeys : []).map(k => String(k || '').toLowerCase()));
   const max = Number.isFinite(total) && total > 0 ? Math.floor(total) : CATEGORY_RAIL_TOTAL;
@@ -12017,7 +12022,8 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
   const coreGearRank = (p) => {
     if (!coreGearFirst) return 0;
     if (p && SURFSKATE_CORE_GEAR_TYPES.has(String(p.type || '').trim())) return 0;
-    if (SURFSKATE_CORE_GEAR_RX.test(String((p && p.title) || ''))) return 0;
+    const _cgt = String((p && p.title) || '');
+    if (SURFSKATE_CORE_GEAR_RX.test(_cgt) && !SURFSKATE_NON_GEAR_RX.test(_cgt)) return 0;
     return 1;
   };
   /* FUTBOL CLEATS-FIRST (2026-10-01, Danny): the hook is discounted
