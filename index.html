@@ -56,8 +56,8 @@
   ::selection{background:var(--blue);color:#fff}
   .focus-ring:focus-visible{outline:2px solid var(--blue); outline-offset:2px}
   @media (prefers-reduced-motion: reduce){ *{animation:none!important; transition:none!important} }
-  .view{display:none}
-  .view.active{display:block}
+  
+  
   /* ============================================================
      PER-STORE AMBIENT THEMES (2026-09-24) — full rollout: every carried
      store gets a brand-grounded ambient (PR #49), lit in its real identity.
@@ -3410,7 +3410,7 @@
 </div>
 
 <!-- ============ RESULTS VIEW ============ -->
-<div id="resultsView" class="view">
+<div id="resultsView" class="view" hidden>
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
     <div data-honest-banner></div>
@@ -3626,7 +3626,7 @@
      section per retailer that actually carries that department/brand,
      sourced entirely from department-cache.json (real scraped data, same
      RULE as everywhere else on this site — no invented products). -->
-<div id="catalogView" class="view">
+<div id="catalogView" class="view" hidden>
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
     <button onclick="catalogGoBack()" class="themeBack text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
@@ -3654,7 +3654,7 @@
      store picked from inside a category never comes here: that keeps the
      category and filters the category feed instead (setCatalogStore()),
      because a shopper must never re-pick what they already picked. -->
-<div id="storeView" class="view">
+<div id="storeView" class="view" hidden>
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
     <button onclick="goHome()" class="themeBack text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
@@ -3677,7 +3677,7 @@
      the "search first, then click a store" half of the entry-point-
      scoping rule; a direct logo click anywhere else on the site always
      goes to openStore() (the full section) instead. -->
-<div id="storeResultsView" class="view">
+<div id="storeResultsView" class="view" hidden>
   <div class="max-w-[1240px] mx-auto px-5 py-10">
     <div data-honest-banner></div>
     <button onclick="storeResultsGoBack()" class="themeBack text-[13px] font-semibold mb-5 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
@@ -3695,7 +3695,7 @@
      the script below for addToCart()/renderCartView() etc. Tax-zone bar
      and cross-sell rail both live here (not on the payment step), per
      the brief. -->
-<div id="cartView" class="view">
+<div id="cartView" class="view" hidden>
   <div class="max-w-[760px] mx-auto px-5 py-10">
     <button onclick="goHome()" class="text-[13px] font-semibold mb-6 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
@@ -3779,7 +3779,7 @@
      retailer scraper anywhere in this codebase returns a description or
      brand field, so this deliberately shows no generated marketing copy,
      only real metadata. -->
-<div id="productView" class="view">
+<div id="productView" class="view" hidden>
   <div class="max-w-[720px] mx-auto px-5 py-10">
     <button onclick="goBack()" class="text-[13px] font-semibold mb-6 inline-flex items-center gap-1 focus-ring rounded" style="color:var(--blue)">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg>
@@ -3913,7 +3913,7 @@
      plus min-w-0/max-w-full keep the hero centered. Cards are the dark
      railCardHTML variant (white price on #1a2744) -- the white-on-white
      price of the old grid is gone by construction. -->
-<div id="salesView" class="view">
+<div id="salesView" class="view" hidden>
   <div class="max-w-[1240px] mx-auto px-5 py-6">
 
     <div data-honest-banner></div>
@@ -3978,7 +3978,7 @@
      used on the Ofertas page (aside filters on desktop, a sort <select>
      next to the grid) — built from the same real department-cache.json
      data as the homepage tiles, never a separate/fake catalog. -->
-<div id="categoriesView" class="view">
+<div id="categoriesView" class="view" hidden>
   <!-- Navy hero band, same language as the Precio Honesto section. -->
 
   <section class="ariaNavyBand relative overflow-hidden">
@@ -4044,7 +4044,7 @@
 </div>
 
 <!-- ============ HOW IT WORKS VIEW ============ -->
-<div id="howView" class="view">
+<div id="howView" class="view" hidden>
   <!-- Photo hero (2026-09-25): full-bleed cargo-plane image with a navy
        gradient overlay; the same headline sits in white/gold over it. -->
   <section class="comoHero relative overflow-hidden">
@@ -4273,7 +4273,7 @@
 </div>
 
 <!-- ============ STORES VIEW ============ -->
-<div id="storesView" class="view">
+<div id="storesView" class="view" hidden>
   <!-- THE PRECIO HONESTO RHYTHM (2026-09-20).
 
        The verdict on the old page was "looks fucking awful": one navy
@@ -4836,7 +4836,7 @@
     .ariaNavLink[data-nav="salesView"]{color:#5B9BD5}
     #mobileMenu a{color:#F4C463}
   </style>
-<div id="ariaAutoView" class="view">
+<div id="ariaAutoView" class="view" hidden>
   <!-- ARIA AUTO (2026-09-29, Danny): full-bleed shop photo, navy wash, light selector card -->
   <div class="aaBg" aria-hidden="true"></div>
   <div class="aaShade" aria-hidden="true"></div>
@@ -4925,7 +4925,7 @@
      kicker, the shared .ariaCard component) so the promise and the story
      behind it look like they come from the same company.
      The Best Buy mention is gone: it was never a store Aria searches. -->
-<div id="aboutView" class="view">
+<div id="aboutView" class="view" hidden>
 
   <!-- 1 · HEADER BAND -->
   <section class="ariaNavyBand relative overflow-hidden">
@@ -5098,7 +5098,7 @@
 <!-- ============ RESTRICCIONES VIEW ============ -->
 <!-- ADDED 2026-09-26 (Danny): customer-facing import-restriction chart. -->
 <!-- Toy and food per-order limits in plain language. -->
-<div id="restrictionsView" class="view">
+<div id="restrictionsView" class="view" hidden>
 
   <section class="ariaNavyBand relative overflow-hidden">
     <div class="ariaGoldHair"></div>
@@ -5160,7 +5160,7 @@
 <!-- REBUILT 2026-09-19 in the Precio Honesto language. Copy unchanged:
      the five steps and the three scenarios are word for word what was
      here before, only the treatment is new. -->
-<div id="returnsView" class="view">
+<div id="returnsView" class="view" hidden>
 
   <section class="ariaNavyBand relative overflow-hidden">
     <!-- HERO FOTOGRAFICO (2026-09-25): pedido por Danny. Overlay navy para legibilidad. -->
@@ -5420,7 +5420,7 @@
      invent specific legal clauses (liability limits, arbitration, etc.)
      that would need real legal drafting once the entity is registered;
      same honest "en trámite" framing as the footer and Nosotros page. -->
-<div id="termsView" class="view">
+<div id="termsView" class="view" hidden>
   <section class="ariaNavyBand relative overflow-hidden">
     <img src="assets/terminos/header-texture.jpg" alt="" aria-hidden="true" class="terms-texture" />
     <div class="ariaGoldHair"></div>
@@ -5469,7 +5469,7 @@
      you set — never hardcoded/committed). The operator enters only the
      5 real-world actuals per order; everything else auto-fills from the
      order record orders-create.js already captured at checkout time. -->
-<div id="adminView" class="view">
+<div id="adminView" class="view" hidden>
   <!-- INTERIOR PAGE SYSTEM (2026-09-20). Same navy band as Tiendas, Aria
        Auto and Cómo funciona. The white nav above it is untouched. -->
   <section class="ariaNavyBand relative overflow-hidden">
@@ -5620,7 +5620,7 @@
   </div>
 </div>
 
-<div id="keyclubView" class="view">
+<div id="keyclubView" class="view" hidden>
 
   <!-- ============ KEY CLUB HERO ============ -->
   <section class="ariaNavyBand relative overflow-hidden">
@@ -21690,14 +21690,13 @@ function setActiveNav(viewId){
 }
 
 function showPage(id){
-  if (id !== 'homeView' && typeof hideGreetBubble === 'function') hideGreetBubble();
-  setActiveNav(id);
-  if (STATIC_ROUTE_VIEWS.has(id)) pushRoute({ view: id });
-  ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
-  // A restore sets its own scroll position (see applyRoute) — clobbering
-  // it here is what makes "back" land at the top of the page instead of
-  // on the card the customer was looking at.
-  if (!isRestoringRoute) window.scrollTo({top:0, behavior:'instant'});
+  // REBUILT 2026-10-05: Minimal view switching using hidden attribute.
+  // No side effects (no nav updates, no scroll, no bubble) — just visibility.
+  for (var i=0; i<ALL_VIEWS.length; i++){
+    var v = ALL_VIEWS[i];
+    var el = document.getElementById(v);
+    if (el) el.hidden = (v !== id);
+  }
 }
 
 function goHome(){
