@@ -301,6 +301,15 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  zumiez: {
+    key: "zumiez",
+    label: "Zumiez",
+    color: "#111111",
+    tagline: "Streetwear, skate y sneakers",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* ============================================================
      SURF & SKATE BATCH (2026-09-26, Danny) — nine real surf / skate /
      spearfishing shops, full Shopify catalogues pulled the same day,
