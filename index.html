@@ -1689,7 +1689,7 @@
   }
 </style>
 </head>
-<body class="antialiased">
+<body class="antialiased"><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script>
 
 <!-- HEADER -->
 <!-- ============================================================
@@ -33630,7 +33630,7 @@ function toggleAssistant(){
   document.getElementById('assistantIconSpark').classList.toggle('hidden', assistantOpen);
   document.getElementById('assistantIconClose').classList.toggle('hidden', !assistantOpen);
 
-  /* The phone's sheet. The flag on <body><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script> is what hides the launcher
+  /* The phone's sheet. The flag on <body> is what hides the launcher
      while the sheet is up -- a fixed orb in the bottom-right corner is
      underneath a bottom sheet, sitting on its input row. */
   document.body.toggleAttribute('data-chat-open', assistantOpen);
