@@ -18484,10 +18484,7 @@ async function openCatalog(kind, key, opts = {}){
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
       (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
 
-  const data = await Promise.race([
-    loadDepartmentCache(),
-    new Promise(resolve => setTimeout(() => resolve({ retailers: {} }), 10000))
-  ]);
+  const data = await loadDepartmentCache();
   departmentCacheData = data;
   /* Named again now the catalogue is in hand. On a deep link the title
      above was drawn from the slug, because the only source of a brand's
@@ -21028,10 +21025,7 @@ async function openStore(retailer){
     return;
   }
 
-  const data = await Promise.race([
-    loadDepartmentCache(),
-    new Promise(resolve => setTimeout(() => resolve({ retailers: {} }), 10000))
-  ]);
+  const data = await loadDepartmentCache();
   departmentCacheData = data;
   const retailerData = data.retailers[retailer];
   /* A carried store with NO catalogue data is not an empty store: the
@@ -29007,10 +29001,7 @@ function autoCatalogBlockHTML(source){
 let advanceCatalogItemsCache = null;
 async function advanceCatalogItems(){
   if (advanceCatalogItemsCache) return advanceCatalogItemsCache;
-  const data = await Promise.race([
-    loadDepartmentCache(),
-    new Promise(resolve => setTimeout(() => resolve({ retailers: {} }), 10000))
-  ]);
+  const data = await loadDepartmentCache();
   const bucket = data && data.retailers && data.retailers.advanceauto;
   const out = [];
   const depts = (bucket && bucket.departments) || {};
@@ -36812,6 +36803,22 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  // Find the Motos button and override its onclick
+  var btns = document.querySelectorAll('button');
+  for(var i=0;i<btns.length;i++){
+    var b = btns[i];
+    var oc = b.getAttribute('onclick')||'';
+    if(oc.indexOf("'motos'")>-1){
+      b.setAttribute('onclick', "showPage('catalogView');return false;");
+      console.log('Overrode Motos button to only showPage');
+      break;
+    }
+  }
+});
+</script>
 </body>
 </html>
 
