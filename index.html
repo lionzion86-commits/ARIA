@@ -36805,19 +36805,17 @@ initRouter();
 
 
 <script>
-document.addEventListener('DOMContentLoaded', function(){
-  // Find the Motos button and override its onclick
-  var btns = document.querySelectorAll('button');
-  for(var i=0;i<btns.length;i++){
-    var b = btns[i];
-    var oc = b.getAttribute('onclick')||'';
-    if(oc.indexOf("'motos'")>-1){
-      b.setAttribute('onclick', "showPage('catalogView');return false;");
-      console.log('Overrode Motos button to only showPage');
-      break;
+(function(){
+  var origOpenCatalog = window.openCatalog;
+  window.openCatalog = function(kind, key, opts){
+    if(kind==='department' && key==='motos'){
+      console.log('OVERRIDE: only showPage, no openCatalog logic');
+      showPage('catalogView');
+      return;
     }
-  }
-});
+    return origOpenCatalog.apply(this, arguments);
+  };
+})();
 </script>
 </body>
 </html>
