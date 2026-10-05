@@ -224,6 +224,18 @@ export const RETAILERS = {
     search: false,
     browse: true,
   },
+  /* FINISH LINE (2026-10-05) -- catalogue but no actor, the Macy's pattern:
+     browse: true, search: false. Mirrors the index.html row. */
+  finishline: {
+    key: "finishline",
+    label: "Finish Line",
+    color: "#000000",
+    logo: "logos/finishline.png",
+    tagline: "Zapatillas y ropa deportiva",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
 
   /* B&H PHOTO (2026-09-26) — catalogue but no actor, the Macy's pattern:
      browse: true, search: false. Mirrors the index.html row; the page is a
