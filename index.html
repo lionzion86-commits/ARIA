@@ -11963,6 +11963,16 @@ function railBestSellerFill(seen, pool, need, member){
 /* Foot socks and fin socks only -- board socks (board covers) are real
    surf gear and are never demoted. */
 const SURFSKATE_FOOT_SOCK_RX = /\b(skate socks?|fin socks?|neoprene socks?)\b/i;
+/* Surf leashes are accessories, not the hook (2026-10-05, Danny): they
+   sort after every other sale item on the Surf & Skate rail. */
+const SURFSKATE_LEASH_RX = /\bleash(es)?\b|\bcorreas?\s+de\s+surf\b/i;
+/* Core surf/skate gear leads the rail (2026-10-05, Danny): decks,
+   completes, boards -- the items that represent surf & skate. */
+const SURFSKATE_CORE_GEAR_TYPES = new Set([
+  'Tablas de surf','Bodyboards','Skimboards','SUP / Paddle surf',
+  'Skateboards completos','Longboards','Cruisers','Decks (tablas de skate)',
+]);
+const SURFSKATE_CORE_GEAR_RX = /\b(skate\s?decks?|complete skateboards?|skateboards? completos?|surfboards?|tablas? de surf|longboards?|cruisers?|bodyboards?|skimboards?)\b/i;
 function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, opts){
   const keys = new Set((Array.isArray(retailerKeys) ? retailerKeys : []).map(k => String(k || '').toLowerCase()));
   const max = Number.isFinite(total) && total > 0 ? Math.floor(total) : CATEGORY_RAIL_TOTAL;
@@ -11995,6 +12005,21 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
      womenFirst. */
   const demoteSocks = Boolean(opts && opts.demoteSockSales);
   const sockRank = (p) => (demoteSocks && SURFSKATE_FOOT_SOCK_RX.test(String((p && p.title) || ''))) ? 1 : 0;
+  /* SURF & SKATE LEASHES-LAST (2026-10-05, Danny): leashes are minor
+     accessories -- they must not lead the rail ahead of boards and decks.
+     Opt-in per rail, like demoteSockSales. */
+  const demoteLeashes = Boolean(opts && opts.demoteLeashSales);
+  const leashRank = (p) => (demoteLeashes && SURFSKATE_LEASH_RX.test(String((p && p.title) || ''))) ? 1 : 0;
+  /* SURF & SKATE CORE-GEAR-FIRST (2026-10-05, Danny): decks, completes
+     and boards lead the rail -- they are what surf & skate means.
+     Opt-in per rail, like cleatsFirst. */
+  const coreGearFirst = Boolean(opts && opts.coreGearFirst);
+  const coreGearRank = (p) => {
+    if (!coreGearFirst) return 0;
+    if (p && SURFSKATE_CORE_GEAR_TYPES.has(String(p.type || '').trim())) return 0;
+    if (SURFSKATE_CORE_GEAR_RX.test(String((p && p.title) || ''))) return 0;
+    return 1;
+  };
   /* FUTBOL CLEATS-FIRST (2026-10-01, Danny): the hook is discounted
      cleats -- chimpunes lead the rail, biggest discount first. Messi
      shoes count as cleats. Opt-in per rail, like womenFirst. */
@@ -12046,7 +12071,7 @@ function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, op
         const pa = priceNum(a), pb = priceNum(b);
         if (pa !== pb) return pa - pb;
       }
-      return (fancyRank(a) - fancyRank(b)) || (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (ao - bo) || (carouselDiscountPct(b) - carouselDiscountPct(a));
+      return (fancyRank(a) - fancyRank(b)) || (coreGearRank(a) - coreGearRank(b)) || (toyRank(a) - toyRank(b)) || (cleatRank(a) - cleatRank(b)) || (womanRank(a) - womanRank(b)) || (sockRank(a) - sockRank(b)) || (leashRank(a) - leashRank(b)) || (ao - bo) || (carouselDiscountPct(b) - carouselDiscountPct(a));
     });
   /* Fancy lead: highest-priced fancy items open the rail, ahead of
      the sale picks. Skips anything already in sales (it will lead
@@ -12233,6 +12258,9 @@ const CATEGORY_RAILS = [
     test: (p) => isSurfSkate(p, p.retailer),
     /* Sales lead -- unless the sale is socks (2026-09-26, Danny). */
     demoteSockSales: true,
+    /* 2026-10-05, Danny: leashes sort last, core gear (decks/boards) leads. */
+    demoteLeashSales: true,
+    coreGearFirst: true,
     open: "openCatalog('department','surf_skate')" },
   /* ARIA FIGHT CLUB (2026-09-27, Danny): the fight-sports pill. Danny's
      name, verbatim — jiu-jitsu, boxeo, kickboxing, Muay Thai, MMA. */
@@ -16364,7 +16392,7 @@ async function computeCategoryZonePicks(ofertasKeys){
     categoryRailsRendered[cat.key] = categoryRailPicks(stores,
       saleSrc.filter(test),
       (Array.isArray(pool) ? pool : []).filter(test),
-      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy });
+      ofertasKeys, CATEGORY_RAIL_TOTAL, { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, cheapFirst: cat.cheapFirst, cleatsFirst: cat.cleatsFirst, fancyFirst: cat.fancyFirst, fancyLead: cat.fancyLead, saleHeavy: cat.saleHeavy, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst });
   }
   /* TABBED CATEGORY BROWSER (2026-09-26): one navy band, twelve pills.
      The pills and the single rail render once the pool lands; an empty
@@ -32299,7 +32327,7 @@ async function renderCategoriesGrid(){
     const picks = categoryRailPicks(stores,
       saleSrc.filter(test), poolArr.filter(test),
       ofertasKeys, CATEGORY_RAIL_TOTAL,
-      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null });
+      { womenFirst: cat.womenFirst, demoteSockSales: cat.demoteSockSales, toyRankFn: cat.toysFirst ? toyLeadRank : null, demoteLeashSales: cat.demoteLeashSales, coreGearFirst: cat.coreGearFirst });
     if (!picks.length) continue;
     categoriesViewRendered[cat.key] = picks;
     sections.push({ cat, picks });
