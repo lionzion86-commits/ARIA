@@ -33580,7 +33580,10 @@ async function greetAssistantStreaming(){
      same tick the chat opens and Lily's TTS fetch fires at once, so first
      audio is a single TTS round trip. */
   ariaReplyVoiceStarted = false;
-  assistantReplyHasTappables = false;
+  /* The quick-reply chips render on every open (toggleAssistant), so the
+     greeting always shows something to tap -- the mic stays off after her
+     voice per Danny's 2026-10-02 law, and his cue line closes the turn. */
+  assistantReplyHasTappables = true;
   addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
   /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
      ariaChatHistory, or the shopper's first real question goes out with
@@ -33657,8 +33660,23 @@ function addAssistantMessage(role, text, audioBase64, opts){
    it -- so the fallback silently never spoke. Now it does: the browser's
    Spanish voice, reopening the mic when the utterance ends under the same
    half-duplex contract as Ara's audio. */
+/* SPOKEN MARKUP HYGIENE (2026-10-04, Danny: the SLOTS leak). Internal
+   [[SLOTS:{...}]] / [[SHOW:...]] markup must never reach a voice --
+   Lily's or the browser's. Belt-and-suspenders: every speak entry point
+   cleans its own text, so a reply path that forgot applyModelSlots can
+   never speak JSON aloud. Idempotent: already-clean text passes through
+   unchanged. */
+function cleanSpokenText(t){
+  return applyModelSlots(String(t || ''))
+    .replace(/\[\[SLOTS:.*?\]\]/gs, '')
+    .replace(/\[\[SHOW:[^\]]*\]\]/g, '')
+    .replace(/\s+/g, ' ').trim();
+}
+
 function speakText(text){
+  text = cleanSpokenText(text);
   ariaVoiceTurnId++;
+  closeMicForSpeak();
   const reopen = () => afterAriaVoiceEnds();
   try {
     if (!('speechSynthesis' in window) || !text) { setTimeout(reopen, 400); return; }
@@ -33681,6 +33699,7 @@ function speakText(text){
    a late TTS fetch never talks over the answer that already started. */
 let ariaReplyVoiceStarted = false;
 function speakWithLily(text, guard){
+  text = cleanSpokenText(text);
   const cancelled = () => { try { return !!(guard && !guard()); } catch(e){ return false; } };
   const fallback = () => { if (!cancelled() && typeof speakText === 'function') speakText(text); };
   try {
@@ -33691,6 +33710,22 @@ function speakWithLily(text, guard){
   } catch (e) { fallback(); }
 }
 
+/* TURN-TAKING, ONE PLACE (2026-10-04, Danny: the echo bug). Every speak
+   path closes the mic BEFORE Aria makes a sound: she never listens to
+   herself, and never to the shopper's reaction while she is talking.
+   ariaVoiceActive is the hard interlock -- startListening() refuses
+   while it is set, so even a stray re-arm cannot go hot mid-utterance.
+   Each speak path reopens the mic when its audio actually ends. */
+function closeMicForSpeak(){
+  intentionalStop = true;
+  intentionalStopAt = Date.now();
+  micLive = false;
+  ariaVoiceActive = true;
+  clearSpeechCapTimer();
+  if (recognition) { try { recognition.stop(); } catch(e) {} }
+  if (typeof setAssistantMicState === 'function') setAssistantMicState(false);
+}
+
 function speakAssistantReply(text, audioBase64){
   /* TURN-TAKING (2026-09-27). The mic is closed for the whole speak phase
      on every path: Aria never listens to herself, and never to the
@@ -33698,12 +33733,7 @@ function speakAssistantReply(text, audioBase64){
      when the audio actually ends. */
   ariaVoiceTurnId++;
   micOffCueId++;
-  intentionalStop = true;
-  intentionalStopAt = Date.now();
-  micLive = false;
-  clearSpeechCapTimer();
-  if (recognition) { try { recognition.stop(); } catch(e) {} }
-  setAssistantMicState(false);
+  closeMicForSpeak();
   if (audioBase64) {
     speakWithAria(audioBase64, text);
   } else if (typeof speakText === 'function') {
@@ -34023,7 +34053,7 @@ function splitSentences(text, isFinal){
    or "failed". requested counts sentences handed to TTS; playCursor is
    the next sentence due to play. */
 function ttsNewPipeline(){
-  return { buffer: "", slots: [], requested: 0, playCursor: 0, playerBusy: false,
+  return { buffer: "", slots: [], texts: [], requested: 0, playCursor: 0, playerBusy: false,
            streamDone: false, settled: false, everPlayed: false,
            fullReply: "", doneAudio: null, onSettled: null };
 }
@@ -34090,6 +34120,7 @@ function feedTts(st, delta, isFinal){
 function requestSentenceAudio(st, text){
   const idx = st.requested++;
   st.slots[idx] = "pending";
+  st.texts[idx] = text;
   const ctrl = new AbortController();
   /* A hung TTS request must never wedge the turn: 9s, then the sentence
      is skipped and the queue moves on. */
@@ -34106,9 +34137,37 @@ function requestSentenceAudio(st, text){
     .finally(() => { clearTimeout(timer); pumpTtsAudio(st); });
 }
 
+/* One browser-voice sentence: the parity fallback when a pipelined
+   sentence's Lily audio failed. Never the turn decision -- just the next
+   pump when it ends. */
+function speakPipelinedSentenceFallback(st, text){
+  st.playerBusy = true;
+  try {
+    closeMicForSpeak();
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+    setOrbState('speaking');
+    const u = new SpeechSynthesisUtterance(cleanSpokenText(text));
+    u.lang = 'es-PE';
+    const next = () => { setOrbState('idle'); st.playerBusy = false; pumpTtsAudio(st); };
+    u.onend = next; u.onerror = next;
+    window.speechSynthesis.speak(u);
+  } catch(e){ setOrbState('idle'); st.playerBusy = false; pumpTtsAudio(st); }
+}
+
 /* Plays the next ready sentence, in order. */
 function pumpTtsAudio(st){
   if (st.playerBusy || st.settled) return;
+  /* VOICE/TEXT PARITY (2026-10-04, Danny: "if I wrote it, she says
+     it"). A sentence whose Lily audio failed used to be skipped --
+     her voice became a short summary of her text. It is spoken with
+     the browser voice instead; only a sentence with no playable voice
+     at all is skipped. */
+  if (st.playCursor < st.requested && st.slots[st.playCursor] === "failed"){
+    const idx = st.playCursor++;
+    const sentText = (st.texts && st.texts[idx]) || '';
+    if (sentText && 'speechSynthesis' in window){ speakPipelinedSentenceFallback(st, sentText); return; }
+    /* no voice available for this sentence: skip it, keep the queue moving */
+  }
   const next = ttsPeek(st);
   if (next === "pending" || next === undefined){ settleTtsAudio(st); return; }
   const base64 = ttsConsume(st);
@@ -34119,6 +34178,7 @@ function pumpTtsAudio(st){
 
 function playTtsAudio(base64, onEnded){
   try {
+    closeMicForSpeak();
     ariaReplyVoiceStarted = true;
     setOrbState("speaking");
     ariaAudioPlayer.src = "data:audio/mp3;base64," + base64;
@@ -34150,7 +34210,10 @@ function settleTtsAudio(st){
        whole-reply fallback below carries the turn's voice -- and its own end
        runs the afterAriaVoiceEnds turn decision. Firing onSettled now would
        talk over it and double-handle the turn. */
-    if (st.doneAudio) { speakWithAria(st.doneAudio, st.fullReply); return; }
+    /* PARITY (2026-10-04, Danny: "if I wrote it, she says it"): the
+       done-audio was rendered server-side from the unstripped reply, so
+       it cannot be verified to match the words on screen. The stripped
+       fullReply is re-rendered instead. */
     if (st.fullReply && typeof speakWithLily === "function") { speakWithLily(st.fullReply); return; }
     if (typeof speakText === "function") { speakText(st.fullReply); return; }
   }
@@ -34264,6 +34327,15 @@ const CHAT_PROGRESS_AFTER_MS = 5000;
 // Turns that are plainly not product requests: asking these about shipping
 // or customs should not spend four scrapes, or claim to be "buscando" them.
 const CHAT_NON_SHOPPING_RE = /\b(env[ií]os?|demora|tarda|aduana|arancel(es)?|impuestos?|flete|pagar?|pagos?|tarjeta|yape|plin|devoluci[oó]n|devoluciones|garant[ií]a|reembolso|rastre(?:o|a|ar|ando)|seguimiento|c[oó]mo funciona|qui[eé]nes son|d[oó]nde est[aá]n)\b/i;
+/* GREETING-ONLY (2026-10-04, Danny: echo bug -- "Buscando bien gracias"
+   was her own voice transcribed). "hola" is a conversation, not a
+   shopping query: a message that is only greetings/thanks/small talk
+   never triggers a product search, and the model answers it
+   conversationally. A greeting WITH product words ("hola, busco
+   zapatos") still searches. Tested against the vocative-stripped text
+   so "Hola Aria, ¿cómo estás?" stays conversational too. */
+const _CHAT_GREET_WORDS = 'hola|buenas?|buenos?\\s*d[ií]as|buenas?\\s*tardes|buenas?\\s*noches|hey|hello|hi|qu[eé]\\s*tal|c[óo]mo\\s*(?:est[aá]s|va)|gracias|muchas?\\s*gracias|thank\\s*you|thanks|de\\s*nada|chao|adi[oó]s|bye|hasta\\s*luego|nos\\s*vemos|eso\\s*es\\s*todo';
+const CHAT_GREETING_ONLY_RE = new RegExp('^(?:' + _CHAT_GREET_WORDS + ')(?:[\\s!.,?¡¿…]+(?:' + _CHAT_GREET_WORDS + '))*[\\s!.,?¡¿…]*$', 'i');
 
 function chatStoreLabel(retailer){ return LIVE_RETAILER_LABEL[retailer] || retailer; }
 function joinEs(list){
@@ -34562,12 +34634,12 @@ const MODEL_SLOTS_RE = /\[\[SLOTS:(\{.*?\})\]\]\s*$/s;
 function extractModelSlots(reply){
   const t = String(reply || '');
   const m = t.match(MODEL_SLOTS_RE);
-  if (!m) return { clean: t, slots: null };
   let parsed = null;
-  try { parsed = JSON.parse(m[1]); } catch(e){ /* malformed: ignore */ }
-  /* Strip the line even when the JSON is malformed -- a broken slots
-     line must never reach the shopper's eyes. */
-  const clean = t.slice(0, m.index).replace(/\s+$/, '');
+  try { parsed = m ? JSON.parse(m[1]) : null; } catch(e){ /* malformed: ignore */ }
+  /* Strip EVERY slots block, not just the trailing one -- a mid-reply or
+     malformed [[SLOTS:]] line must never reach the shopper's eyes (or
+     ears). Only the trailing block is parsed for slot data. */
+  const clean = t.replace(/\[\[SLOTS:.*?\]\]/gs, '').replace(/\s+$/, '');
   return { clean, slots: (parsed && typeof parsed === 'object') ? parsed : null };
 }
 
@@ -34611,6 +34683,21 @@ function isVagueShoppingQuery(searchQuery, slots){
   const toks = String(searchQuery || '').trim().split(/\s+/).filter(Boolean);
   if (toks.length > 3 || /\d/.test(searchQuery)) return false;
   return !(slots.brand || slots.style || slots.maxPriceUSD || slots.size);
+}
+
+/* True when a single-token query is almost certainly a misspelling of a
+   catalogue word: unknown exactly, but the fuzzy layer resolves it.
+   Routes typos straight to search instead of consult mode. */
+async function chatQueryLooksLikeTypo(searchQuery){
+  const toks = String(searchQuery || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (toks.length !== 1) return false;
+  const tok = toks[0];
+  if (tok.length < 3) return false;
+  let pool = null;
+  try { pool = await relatedPool(); } catch(e){ return false; }
+  const windex = pool && pool._windex;
+  if (!windex || typeof windex.get !== 'function') return false;
+  return !!fuzzyFormsForToken(tok, fuzzyVocabBuckets(windex), windex);
 }
 
 /* The query reaching the strips below is already accent-folded by
@@ -35097,46 +35184,57 @@ async function runAssistantLiveSearch(query){
   const pending = new Set(CHAT_RETAILERS);
   const failedStores = [];
   let added = 0;
-  const progressTimer = setTimeout(() => {
-    if (!pending.size) return;
-    const done = CHAT_RETAILERS.filter(r => !pending.has(r)).map(chatStoreLabel);
-    const left = Array.from(pending).map(chatStoreLabel);
-    setAssistantTypingLabel(done.length
-      ? `Ya revisé ${joinEs(done)}, buscando en ${joinEs(left)}…`
-      : `Buscando en ${joinEs(left)}…`);
-  }, CHAT_PROGRESS_AFTER_MS);
+  let progressTimer = null;
+  try {
+    progressTimer = setTimeout(() => {
+      if (!pending.size) return;
+      const done = CHAT_RETAILERS.filter(r => !pending.has(r)).map(chatStoreLabel);
+      const left = Array.from(pending).map(chatStoreLabel);
+      setAssistantTypingLabel(done.length
+        ? `Ya revisé ${joinEs(done)}, buscando en ${joinEs(left)}…`
+        : `Buscando en ${joinEs(left)}…`);
+    }, CHAT_PROGRESS_AFTER_MS);
 
-  await Promise.allSettled(CHAT_RETAILERS.map(async (retailer) => {
-    let raw = [];
-    try {
-      raw = await scrapeRetailer(retailer, query, 6);
-    } catch (e) {
-      failedStores.push(retailer);
+    await Promise.allSettled(CHAT_RETAILERS.map(async (retailer) => {
+      let raw = [];
+      try {
+        raw = await scrapeRetailer(retailer, query, 6);
+      } catch (e) {
+        failedStores.push(retailer);
+        pending.delete(retailer);
+        return;
+      }
       pending.delete(retailer);
-      return;
-    }
-    pending.delete(retailer);
-    await loadFxRate();
-    const normalized = raw.map(it => normalizeLiveItem(it, { retailer })).filter(it => it.title && it.price != null);
-    for (const it of normalized){
-      if (added >= CHAT_MAX_CARDS) break;
-      addAssistantProductCard(it, retailer);
-      added++;
-    }
-  }));
-  clearTimeout(progressTimer);
-  hideAssistantTyping();
-  setOrbState('idle');
+      await loadFxRate();
+      const normalized = raw.map(it => normalizeLiveItem(it, { retailer })).filter(it => it.title && it.price != null);
+      for (const it of normalized){
+        if (added >= CHAT_MAX_CARDS) break;
+        addAssistantProductCard(it, retailer);
+        added++;
+      }
+    }));
 
-  /* THE CATALOGUE CARDS ABOVE STAY, whatever happens here -- this only
-     ever adds. And "every store failed" is our fault, said as our fault,
-     never as a claim about the product. */
-  if (failedStores.length === CHAT_RETAILERS.length){
+    /* THE CATALOGUE CARDS ABOVE STAY, whatever happens here -- this only
+       ever adds. And "every store failed" is our fault, said as our fault,
+       never as a claim about the product. */
+    if (failedStores.length === CHAT_RETAILERS.length){
+      addAssistantNote('La búsqueda en vivo no está disponible en este momento. Lo de arriba es lo que tenemos en catálogo.');
+    } else if (!added){
+      addAssistantNote('Busqué en vivo y no encontré nada más para eso.');
+    }
+  } catch(e){
+    /* NEVER A DEAD END (2026-10-04, Danny: "Buscar en vivo" failed
+       twice). Any unexpected failure -- not just a per-store scrape
+       failure -- degrades to the honest note instead of stranding the
+       typing indicator and a disabled button. */
+    console.error('[aria-chat] live search failed:', e);
     addAssistantNote('La búsqueda en vivo no está disponible en este momento. Lo de arriba es lo que tenemos en catálogo.');
-  } else if (!added){
-    addAssistantNote('Busqué en vivo y no encontré nada más para eso.');
+  } finally {
+    if (progressTimer) clearTimeout(progressTimer);
+    hideAssistantTyping();
+    setOrbState('idle');
+    if (btn){ btn.remove(); }
   }
-  if (btn){ btn.remove(); }
 }
 
 /* RATE-LIMIT COOLDOWN (2026-09-27): Groq 429s the account when it's had
@@ -35390,10 +35488,17 @@ async function runAgentLoop(text, recipient, ui){
     if (data.reply){
       hideAssistantTyping();
       setOrbState('idle');
-      const reply = String(data.reply);
-      /* The bubble speaks through Lily: addAssistantMessage plays the
-         server-rendered audio when present, browser voice otherwise. */
-      addAssistantMessage('bot', reply, data.audio || null);
+      /* SLOTS STRIP + VOICE/TEXT PARITY (2026-10-04, Danny). The agent's
+         prompt inherits the base prompt's [[SLOTS:{...}]] instruction,
+         but this path never stripped it -- raw markup reached the bubble,
+         the chat history, and Lily's voice (via data.audio, rendered
+         server-side from the unstripped reply). The cleaned text is what
+         she wrote: it is displayed, remembered, AND spoken. Server audio
+         is dropped -- it cannot be verified to match the words on
+         screen, and "if I wrote it, she says it". */
+      const reply = applyModelSlots(String(data.reply)) || 'Lo siento, no pude responder eso.';
+      addAssistantMessage('bot', reply, null, { speak: false });
+      speakWithLily(reply);
       for (const id of (data.show || [])){
         const cached = agentProductCache.get(id);
         if (cached) addAssistantProductCard(cached.item, cached.retailer);
@@ -35539,10 +35644,20 @@ async function runAssistantBrain(text){
   let consultMode = false;
   lastChatSearchQuery = searchQuery;
   assistantLiveOffered = '';   // a new question gets its own offer
-  const willSearch = searchQuery.length >= 3 && !CHAT_NON_SHOPPING_RE.test(text);
+  const isGreetingOnly = CHAT_GREETING_ONLY_RE.test(stripAriaVocative(text).trim());
+  const willSearch = searchQuery.length >= 3 && !CHAT_NON_SHOPPING_RE.test(text) && !isGreetingOnly;
   /* CONSULT MODE (2026-10-01, Danny): a vague first turn ("buscame
      zapatos") gets ONE clarifying question, not a category dump. */
   consultMode = willSearch && !reuseChatQuery && isVagueShoppingQuery(searchQuery, slots);
+  /* TYPO, NOT VAGUE (2026-10-04, Danny: "chort" must find shorts). A
+     single-token query the catalogue never saw exactly, but the fuzzy
+     layer resolves ("chort"->"short", "hudi"->"hoodie"), is a
+     misspelling -- not a vague category. It searches instead of asking
+     a clarifying question. Genuinely vague words ("zapatos") are in the
+     vocabulary and keep the consult behaviour. */
+  if (consultMode){
+    try { if (await chatQueryLooksLikeTypo(searchQuery)) consultMode = false; } catch(e){}
+  }
   if (consultMode) slots.consultMode = true; else delete slots.consultMode;
 
   /* NO DEAD TIME (2026-09-19). The acknowledgment goes up BEFORE anything
@@ -36225,6 +36340,7 @@ function afterAriaVoiceEnds(){
   /* One decision per spoken turn. */
   if (ariaVoiceEndFiredFor === ariaVoiceTurnId) return;
   ariaVoiceEndFiredFor = ariaVoiceTurnId;
+  ariaVoiceActive = false;
   setOrbState('idle');
   if (typeof continuousMode === 'undefined' || !continuousMode) return;
   if (typeof assistantThinking !== 'undefined' && assistantThinking) return;
@@ -36233,8 +36349,20 @@ function afterAriaVoiceEnds(){
     speakMicOffCue();
     return;
   }
-  echoGuardUntil = Date.now() + 800; /* her speaker tail, not the shopper */
-  startListening();
+  /* SETTLE BUFFER (2026-10-04, Danny: echo bug). Her last syllable is
+     still in the air when onended fires -- re-arming inside it is what
+     transcribed Lily as a phantom user turn ("Hola bien gracias"). The
+     mic re-arms after a beat, and the echo guard covers the whole window
+     so the tail can never ship as a turn. */
+  const turn = ariaVoiceTurnId;
+  echoGuardUntil = Date.now() + MIC_REARM_BUFFER_MS + 800;
+  setTimeout(() => {
+    if (turn !== ariaVoiceTurnId) return;
+    if (typeof continuousMode === 'undefined' || !continuousMode) return;
+    if (typeof assistantThinking !== 'undefined' && assistantThinking) return;
+    if (ariaVoiceActive) return;
+    startListening();
+  }, MIC_REARM_BUFFER_MS);
 }
 
 /* Lily speaks Danny's cue line verbatim, then silence -- the mic is NOT
@@ -36243,7 +36371,7 @@ function afterAriaVoiceEnds(){
 function speakMicOffCue(){
   const myCue = ++micOffCueId;
   setAssistantMicTapToTalk();
-  const done = () => { if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
+  const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
   try {
     fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: MIC_OFF_CUE }) })
       .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
@@ -36253,6 +36381,7 @@ function speakMicOffCue(){
         if ('speechSynthesis' in window){
           try {
             window.speechSynthesis.cancel();
+            ariaVoiceActive = true;
             const u = new SpeechSynthesisUtterance(MIC_OFF_CUE);
             u.lang = 'es-PE'; u.onend = done; u.onerror = done;
             window.speechSynthesis.speak(u);
@@ -36268,6 +36397,7 @@ function speakMicOffCue(){
 function playMicOffCueAudio(base64, onEnded){
   try {
     ariaReplyVoiceStarted = true;
+    ariaVoiceActive = true;
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
     setOrbState('speaking');
     ariaAudioPlayer.src = 'data:audio/mp3;base64,' + base64;
@@ -36405,7 +36535,12 @@ recognition.onerror = (e) => {
     if (++voiceErrorStreak >= VOICE_ERROR_STREAK_MAX) {
       stopContinuousMode();
       voiceErrorStreak = 0;
-      showToast('El micrófono no está respondiendo — toca el micrófono para intentarlo de nuevo.');
+      /* GRACEFUL DEGRADE (2026-10-04, Danny: the post-greeting tooltip).
+         An auto re-arm the shopper never asked for must never surface a
+         scary toast -- the pill just settles into tap-to-talk. The toast
+         is reserved for a tap the shopper actually made. */
+      if (micStartByUser) showToast('El micrófono no está respondiendo — toca el micrófono para intentarlo de nuevo.');
+      else setAssistantMicTapToTalk();
     }
   }
 };
@@ -36424,7 +36559,7 @@ recognition.onend = () => {
   // (iOS kills sessions mid-turn) and the conversation is open, resume
   // seamlessly — the buffer and the turn survive. Otherwise the mic
   // simply closes below.
-  if (continuousMode && typeof assistantThinking !== 'undefined' && !assistantThinking && Date.now() - lastSpeechAt < 3000) {
+  if (continuousMode && !ariaVoiceActive && typeof assistantThinking !== 'undefined' && !assistantThinking && Date.now() - lastSpeechAt < 3000) {
     resetSilenceTimer();
     /* The 400ms window is long enough for a turn to begin -- re-check
        inside it, so the mic can never reopen mid-think. */
@@ -36449,8 +36584,18 @@ recognition.onend = () => {
 
 let micLive = false;      // we believe the recognizer is running (onstart/onend + intentional stops)
 let lastMicStartAt = 0;   // debounce: a second start inside 400ms is a double-fire, not a request
-function startListening(){
+let ariaVoiceActive = false; // Lily/browser voice is audible: the mic must never start (echo bug, 2026-10-04)
+let micStartByUser = false;  // the last startListening came from a tap -- drives the graceful-error routing
+/* SETTLE BUFFER (2026-10-04, Danny: echo bug). Her last syllable is still
+   in the air when onended fires; re-arming inside it transcribed Lily as
+   a phantom user turn. The mic re-arms this long after her voice ends. */
+const MIC_REARM_BUFFER_MS = 1100;
+function startListening(fromUser){
   if (!recognition) { showToast('Tu navegador no soporta entrada por voz — escribe tu búsqueda.'); return; }
+  /* HARD INTERLOCK (2026-10-04, Danny: echo bug). The mic never starts
+     while Aria's voice is audible -- not on a re-arm, not on a resume,
+     not on a tap racing her audio. */
+  if (ariaVoiceActive) return;
   /* IDEMPOTENT RE-ARM (2026-10-02, Danny): the mic-error-on-cycle bug.
      start() on a live or still-settling recognizer throws and can poison
      the session -- and the stop() inside speakAssistantReply usually never
@@ -36460,6 +36605,7 @@ function startListening(){
   const now = Date.now();
   if (now - lastMicStartAt < 400) return;
   lastMicStartAt = now;
+  micStartByUser = !!fromUser;
   try { recognition.start(); lastStartAt = now; } catch(e) { /* already listening */ }
 }
 
@@ -36475,7 +36621,8 @@ function toggleContinuousMode(){
   micOffCueId++;
   try { ariaAudioPlayer.pause(); } catch(e){}
   if ('speechSynthesis' in window) { try { window.speechSynthesis.cancel(); } catch(e){} }
-  startListening();
+  ariaVoiceActive = false; /* barge-in cut her audio: the interlock releases with it */
+  startListening(true);
 }
 
 /* --- Voice output: Aria's real voice (Ara, via Grok) with browser TTS as fallback --- */
@@ -36491,6 +36638,7 @@ function unlockAudioForMobile(){
 
 function speakWithAria(audioBase64, ariaText){
   ariaVoiceTurnId++;
+  closeMicForSpeak();
         currentAriaSpeech = ariaText || '';
   ariaReplyVoiceStarted = true;
   try {
