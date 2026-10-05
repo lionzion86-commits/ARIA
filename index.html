@@ -1688,8 +1688,8 @@
     border-radius:0 !important;
   }
 </style>
-<style>#catalogView, #catalogView * { color: #000 !important; }</style></head>
-<body class="antialiased">
+</head>
+<body class="antialiased"><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script>
 
 <!-- HEADER -->
 <!-- ============================================================
@@ -19923,7 +19923,7 @@ function renderCatalogFeed(){
      every product with one -- a blank "Foto en camino" card never leads the
      grid. Stable sort keeps the sales/price order inside each group. */
   items.sort((a, b) => (hasRealImage(b) ? 1 : 0) - (hasRealImage(a) ? 1 : 0));
-  const shown = items.slice(0, 5); /* DEBUG: limit to 5 */
+  const shown = items.slice(0, 5);
 
   const storeCount = byRetailer.size;
   const n = items.length;
@@ -36803,6 +36803,6 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
-</body>
+<script>(function(){  function log(m){    window.__errs.push("T6: "+m);    var d=document.getElementById("dbg-err");    if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,6000);}  }  log("tracer6 installed");  // Hook into the render by watching catalogGrid  var lastLen = 0;  setInterval(function(){    try{      var grid=document.getElementById("catalogGrid");      if(!grid) return;      var len=(grid.innerHTML||"").length;      if(len!==lastLen && len>0){        log("grid len="+len);        // Get first 3 product titles        var cards=grid.querySelectorAll('[data-product-title], .product-card, [class*="card"]');        log("cards found: "+cards.length);        for(var i=0;i<Math.min(3,cards.length);i++){          var t=(cards[i].textContent||"").slice(0,80).replace(/\n/g," ");          log("card"+i+": "+t);        }        // Check for suspicious HTML        var html=grid.innerHTML;        if(html.indexOf("<script")>-1) log("WARN: <script> in grid!");        if(html.indexOf("display:none")>-1) log("WARN: display:none in grid!");        lastLen=len;      }    }catch(e){log("err "+e.message);}  },1000);})();</script></body>
 </html>
 
