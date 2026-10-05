@@ -63,6 +63,7 @@ export const RETAILER_DELIVERY = {
   ccs:             { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   valsurf:         { miamiMin: 5, miamiMax: 8, tier: "yellow" },
   bathandbodyworks:{ miamiMin: 3, miamiMax: 7, tier: "yellow" },
+  boxlunch:        { miamiMin: 3, miamiMax: 7, tier: "yellow" },
   oldnavy:        { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   partycity:      { miamiMin: 5, miamiMax: 7, tier: "yellow" },
   samsclub:       { miamiMin: 3, miamiMax: 5, tier: "yellow" },

@@ -1012,6 +1012,16 @@ export const RETAILERS = {
     retired: true,
     retiredNote: "Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.",
   },
+  boxlunch: {
+    key: "boxlunch",
+    label: "BoxLunch",
+    color: "#F26522",
+    logo: "logos/boxlunch.png",
+    tagline: "Regalos pop que donan comidas",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
      Both are real rows: they appear on Tiendas, they carry their own

@@ -352,6 +352,26 @@
   [data-store-theme="bathandbodyworks"] .themeChips .chipLabel{ color:#B9D9F2 !important; }
   [data-store-theme="bathandbodyworks"] #catalogSort{ border-color:#8FC3EE !important; }
   [data-store-theme="bathandbodyworks"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+  /* BOXLUNCH — warm orange on deep charcoal. Brand orange #F26522. */
+  [data-store-theme="boxlunch"]{
+    background:
+      radial-gradient(560px 300px at 12% -4%, rgba(242,101,34,0.30), rgba(242,101,34,0) 70%),
+      radial-gradient(620px 330px at 88% 4%, rgba(242,101,34,0.14), rgba(242,101,34,0) 70%),
+      radial-gradient(900px 560px at 50% 118%, rgba(74,32,8,0.40), rgba(74,32,8,0) 72%),
+      linear-gradient(180deg, #171310 0%, #100D0A 52%, #080706 100%);
+  }
+  [data-store-theme="boxlunch"] h1{ color:#FFFFFF; }
+  [data-store-theme="boxlunch"] #catalogSubtitle,
+  [data-store-theme="boxlunch"] #storeViewSubtitle,
+  [data-store-theme="boxlunch"] #storeResultsSubtitle{ color:#F5CFAE; }
+  [data-store-theme="boxlunch"] .themeBack{ color:#FBDDBE !important; }
+  [data-store-theme="boxlunch"] .themeChips [aria-pressed="true"]{
+    background:#C24E14 !important; border-color:#F26522 !important; color:#fff !important;
+  }
+  [data-store-theme="boxlunch"] .themeChips .chipLabel{ color:#F5CFAE !important; }
+  [data-store-theme="boxlunch"] #catalogSort{ border-color:#E8A96F !important; }
+  [data-store-theme="boxlunch"] .ariaCarouselTitle{ color:#FFFFFF !important; }
+
   /* MACY'S — heritage department-store glamour, red star + gold
      Macy's red #E21A2C with star-gold; chip deepened for contrast.
   */
@@ -2336,6 +2356,21 @@
       </div>
       <div id="mStoreRail-farfetch" data-store-rail-row="farfetch" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
     </section>
+<section aria-label="BoxLunch" data-store-rail="boxlunch" class="ariaNavyBand relative overflow-hidden storeRailCompact">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #F26522 20%, #F26522 80%, transparent)"></div>
+      <div class="flex items-center justify-between gap-3 px-5 pt-5 pb-3">
+        <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/boxlunch.png" alt="BoxLunch" data-retailer="boxlunch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[19px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">BoxLunch</span>
+        </span>
+        <button onclick="openStore('boxlunch')" class="text-[12.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+      </div>
+      <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
+      <div id="mStoreRail-boxlunch" data-store-rail-row="boxlunch" class="flex gap-3 overflow-x-auto px-5 pb-5 ariaRail"></div>
+    </section>
 <!-- Target rail removed per Danny 2026-09-30: Target has its own store page -->
 
 
@@ -2830,6 +2865,23 @@
           <button onclick="openStore('farfetch')" class="text-[13.5px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
         </div>
       <div id="dStoreRail-farfetch" data-store-rail-row="farfetch" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="BoxLunch" data-store-rail="boxlunch" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #F26522 20%, #F26522 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/boxlunch.png" alt="BoxLunch" data-retailer="boxlunch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">BoxLunch</span>
+        </span>
+          <button onclick="openStore('boxlunch')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
+      <div id="dStoreRail-boxlunch" data-store-rail-row="boxlunch" class="flex gap-4 overflow-x-auto px-8 pb-7 ariaRail"></div>
       </div>
     </section>
 <!-- Target rail removed per Danny 2026-09-30 -->
@@ -4544,6 +4596,23 @@
         </div>
         <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 5–8 días.</span></div>
       <div id="tStoreRail-valsurf" data-store-rail-row="valsurf" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
+      </div>
+    </section>
+<section aria-label="BoxLunch" data-store-rail="boxlunch" class="ariaNavyBand relative overflow-hidden">
+  <div class="storeRailAccent" style="background:linear-gradient(90deg, transparent, #F26522 20%, #F26522 80%, transparent)"></div>
+      <div class="max-w-[1120px] mx-auto">
+        <div class="flex items-center justify-between gap-3 px-5 pt-6 pb-4">
+          <span class="flex items-center gap-3 min-w-0">
+          <span class="storeRailPlaque"><img src="logos/boxlunch.png" alt="BoxLunch" data-retailer="boxlunch" loading="lazy" decoding="async"
+           class="h-[22px] w-auto max-w-[120px] object-contain"
+           onerror="this.setAttribute('data-logo-failed','1'); window.storeLogoFallback && storeLogoFallback(this)">
+          </span>
+          <span class="text-[21px] font-extrabold uppercase tracking-[-0.01em] leading-none truncate min-w-0" style="color:#fff">BoxLunch</span>
+        </span>
+          <button onclick="openStore('boxlunch')" class="text-[13px] font-bold flex-shrink-0 focus-ring rounded" style="color:#F4C463">Ver tienda &#8594;</button>
+        </div>
+        <div class="px-5 pb-1 -mt-1"><span class="text-[11.5px] font-semibold" style="color:rgba(255,255,255,.78)">Llega a nuestro almacén en Miami en 3–7 días.</span></div>
+      <div id="tStoreRail-boxlunch" data-store-rail-row="boxlunch" class="flex gap-4 overflow-x-auto px-5 pb-7 ariaRail"></div>
       </div>
     </section>
   </section>
@@ -6691,12 +6760,12 @@ const DEPT_CACHE_PARTS = ['/department-cache-walmart.json', '/department-cache-t
    Danny — no separate section. Both files bucket everything under
    sporting_goods so the department picks it up with no other change;
    the aisle split below is what keeps skate, surf and fitness apart. */
-const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', '/sunglasses-catalog.json'];
+const CATALOGUE_FILES = ['/macys-catalog.json', '/ssense-catalog.json', '/beauty-catalog.json', '/lanebryant-catalog.json', '/dicks-catalog.json', '/pacsun-catalog.json', '/skims-catalog.json', '/revolve-catalog.json', '/ulta-catalog.json', '/yesstyle-catalog.json', '/miumiu-catalog.json', '/partycity-catalog.json', '/samsclub-catalog.json', '/costco-catalog.json', '/gymrat-catalog.json', '/kohls-catalog.json', '/newbalance-catalog.json', '/bhphoto-catalog.json', '/advanceauto-catalog.json', '/nautilus-catalog.json', '/islandwatersports-catalog.json', '/quietstorm-catalog.json', '/surfworld-catalog.json', '/surfstation-catalog.json', '/mainland-catalog.json', '/parrot-catalog.json', '/ccs-catalog.json', '/valsurf-catalog.json', '/venum-catalog.json', '/tatami-catalog.json', '/everlast-catalog.json', '/mmawarehouse-catalog.json', '/combatcorner-catalog.json', '/fuji-catalog.json', '/fightclub-catalog.json', '/crocs-catalog.json', '/baublebar-catalog.json', '/jwpei-catalog.json', '/meliebianco-catalog.json', '/bentgo-catalog.json', '/mushie-catalog.json', '/ezpz-catalog.json', '/statebags-catalog.json', '/books-catalog.json', '/moms-catalog.json', '/ae-catalog.json', '/farfetch-catalog.json', '/target-catalog.json', '/soccer-catalog.json', '/tennis-catalog.json', '/latino-designers-dtc-catalog.json', '/jewelry-catalog.json', '/moto-catalog.json', '/juguetes-catalog.json', ('/sunglasses-catalog.json', '/boxlunch-catalog.json'];)
 /* Which source file carries which retailer keys — generated from the
    files' own envelopes, so a rail can fetch its retailer without
    downloading the file first to learn that. Regenerate if a catalog's
    retailer set changes. */
-const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"]};
+const SOURCE_RETAILERS = {"/department-cache-walmart.json":["walmart"],"/department-cache-target.json":["target"],"/department-cache-oldnavy.json":["oldnavy"],"/department-cache-footlocker.json":["footlocker"],"/macys-catalog.json":["macys"],"/ssense-catalog.json":["ssense"],"/beauty-catalog.json":["sephora","victoriassecret"],"/lanebryant-catalog.json":["lanebryant"],"/dicks-catalog.json":["dicks"],"/pacsun-catalog.json":["pacsun"],"/skims-catalog.json":["skims"],"/revolve-catalog.json":["revolve"],"/ulta-catalog.json":["ulta"],"/yesstyle-catalog.json":["yesstyle"],"/miumiu-catalog.json":["miumiu"],"/partycity-catalog.json":["partycity"],"/samsclub-catalog.json":["samsclub"],"/costco-catalog.json":["costco"],"/gymrat-catalog.json":["gymshark","youngla","alphalete"],"/kohls-catalog.json":["kohls"],"/newbalance-catalog.json":["newbalance"],"/bhphoto-catalog.json":["bhphoto"],"/advanceauto-catalog.json":["advanceauto"],"/nautilus-catalog.json":["nautilus"],"/islandwatersports-catalog.json":["islandwatersports"],"/quietstorm-catalog.json":["quietstorm"],"/surfworld-catalog.json":["surfworld"],"/surfstation-catalog.json":["surfstation"],"/mainland-catalog.json":["mainland"],"/parrot-catalog.json":["parrot"],"/ccs-catalog.json":["ccs"],"/valsurf-catalog.json":["valsurf"],"/venum-catalog.json":["venum"],"/tatami-catalog.json":["tatami"],"/everlast-catalog.json":["everlast"],"/mmawarehouse-catalog.json":["mmawarehouse"],"/combatcorner-catalog.json":["combatcorner"],"/fuji-catalog.json":["fuji"],"/fightclub-catalog.json":["elite","gameness"],"/crocs-catalog.json":["crocs"],"/baublebar-catalog.json":["baublebar"],"/jwpei-catalog.json":["jwpei"],"/meliebianco-catalog.json":["meliebianco"],"/bentgo-catalog.json":["bentgo"],"/mushie-catalog.json":["mushie"],"/ezpz-catalog.json":["ezpz"],"/statebags-catalog.json":["statebags"],"/books-catalog.json":["assouline","chronicle"],"/moms-catalog.json":["babybrezza","bellybandit","dagnedover","drbrowns","elvie","freshlypicked","hatch","jujube","kindredbravely","lillebaby","mockingbird","momcozy","munchkin","nanit","owlet","spectra","walmartbaby"],"/ae-catalog.json":["americaneagle"],"/farfetch-catalog.json":["farfetch"],"/target-catalog.json":["target"],"/soccer-catalog.json":["prosoccer","xtremesoccer","academy"],"/tennis-catalog.json":["tennisexpress","tenniswarehouse"],"/moto-catalog.json":["revzilla","denniskirk"],"/juguetes-catalog.json":["walmart","target","costco"],"/sunglasses-catalog.json":["smartbuyglasses"],"/boxlunch-catalog.json":["boxlunch"]};
 /* One promise per source URL: the eager rail, the scroll observer, the
    background warm and search all share the same fetch — nothing is
    ever downloaded twice in one page life. */
@@ -11381,7 +11450,7 @@ function renderMobileDealsRail(){
    Every rail card prints the store's Miami delivery line (see storeCardHTML).
    SSENSE and Farfetch anchor the luxury end: browsable and honest,
    but slow. (Farfetch added 2026-09-29, Danny.) */
-const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf'];
+const STORE_RAIL_STORES = ['newbalance', 'victoriassecret', 'gymshark', 'sephora', 'macys', 'kohls', 'dicks', 'costco', 'ssense', 'farfetch', 'target', 'nautilus', 'islandwatersports', 'quietstorm', 'surfworld', 'surfstation', 'mainland', 'parrot', 'ccs', 'valsurf', 'boxlunch'];
 /* HOMEPAGE_HIDDEN_STORES (2026-09-26, Danny): front-page real estate is
    for things people buy consistently. Rare big-ticket destinations --
    B&H's $3,000 cameras -- stay findable (Tiendas directory, category
@@ -16529,6 +16598,7 @@ const TIENDAS_STRIP = [
   {k:'combatcorner',l:'Combat Corner',c:'#000000',logo:'logos/combatcorner.png'},
   {k:'pacsun',l:'PacSun',c:'#111111',logo:'logos/pacsun.png'},
   {k:'fuji',l:'FUJI Sports',c:'#1A1A1A',logo:'logos/fuji.png'},
+  {k:'boxlunch',l:'BoxLunch',c:'#F26522',logo:'logos/boxlunch.png'},
 ];
 /* Logos light enough to sit directly on navy (2026-09-29, Danny): measured
    mean opaque-pixel brightness of each logo file; the rest ride a white chip. */
@@ -24567,6 +24637,7 @@ const RETAILERS = {
      is committed at repo root. Surfaces through the Disenadores Latinos
      department AND as a standalone store rail (2026-09-29, Danny). */
   farfetch:        { key: 'farfetch',        label: 'Farfetch',        color: '#000000', logo: 'logos/farfetch.svg', tagline: 'Disenadores latinos — Farm Rio, Johanna Ortiz y mas', kind: 'general', search: false, browse: true },
+  boxlunch:         { key: 'boxlunch',     label: 'BoxLunch',           color: '#F26522', logo: 'logos/boxlunch.png',               tagline: 'Regalos pop que donan comidas',                 kind: 'general', search: false, browse: true },
 };
 
 function retailerFor(key){ return RETAILERS[String(key || '').toLowerCase()] || null; }
@@ -24612,6 +24683,7 @@ const RETAILER_DELIVERY = {
   ccs: { miamiMin: 3, miamiMax: 6, tier: "yellow" },
   valsurf: { miamiMin: 5, miamiMax: 8, tier: "yellow" },
   bathandbodyworks: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
+  boxlunch: { miamiMin: 3, miamiMax: 7, tier: "yellow" },
   oldnavy: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
   partycity: { miamiMin: 5, miamiMax: 7, tier: "yellow" },
   samsclub: { miamiMin: 3, miamiMax: 5, tier: "yellow" },
@@ -24836,6 +24908,7 @@ const STORE_THEMES = {
   ulta: { glow: '#FF9A4D' },
   yesstyle: { glow: '#6FD35F' },
   bathandbodyworks: { glow: '#5AA9E6' },
+  boxlunch: { glow: '#F26522' },
   macys: { glow: '#F04444' },
   skims: { glow: '#A68B6B' },
   revolve: { glow: '#F2EDE6' },
@@ -25498,6 +25571,7 @@ const TAX_EXEMPT_STATUS = {
   newbalance: 'unknown',
   ulta: 'unknown',
   bathandbodyworks: 'unknown',
+  boxlunch: 'unknown',
   pacsun: 'unknown',
   gymshark: 'unknown',
   youngla: 'unknown',
