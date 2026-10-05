@@ -1012,6 +1012,16 @@ export const RETAILERS = {
     retired: true,
     retiredNote: "Pull bloqueado por proteccion anti-bot (2026-09-25). Sin catalogo.",
   },
+  hottopic: {
+    key: "hottopic",
+    label: "Hot Topic",
+    color: "#D8232A",
+    logo: "logos/hottopic.png",
+    tagline: "Band tees, anime y cultura pop",
+    kind: "general",
+    search: false,
+    browse: true,
+  },
   /* SEPHORA AND VICTORIA'S SECRET (2026-09-20, mandatory per the brief).
 
      Both are real rows: they appear on Tiendas, they carry their own
