@@ -11977,7 +11977,7 @@ const SURFSKATE_CORE_GEAR_RX = /\b(decks?|skateboards?|longboards?|cruisers?|sur
    board but the item is apparel or an accessory (
    `Surfboard Hoodie`, `Longboard Fin`). Type-based matches are the retailer's
    own taxonomy and skip this check. */
-const SURFSKATE_NON_GEAR_RX = /\b(hoodie|hoodies|sudaderas?|tee|tees|t-shirt|camisetas?|shirts?|jackets?|chaquetas?|fins?|quillas?|leash(es)?|correas?|racks?|bags?|covers?|fundas?|shorts?|caps?|gorras?|socks?|calcetines|pads?|wax|cera|backpacks?|mochilas?|keychains?|llaveros?|stickers?)\b/i;
+const SURFSKATE_NON_GEAR_RX = /\b(hoodie|hoodies|sudaderas?|fleece|polar|tee|tees|t-shirt|camisetas?|shirts?|polos?|jackets?|chaquetas?|fins?|quillas?|leash(es)?|correas?|racks?|bags?|covers?|fundas?|shorts?|caps?|gorras?|socks?|calcetines|pads?|wax|cera|backpacks?|mochilas?|keychains?|llaveros?|stickers?|wheels?|ruedas?|trucks?|bearings?|rodamientos?|balineras?|tools?|herramientas?|hardware|griptape|grip\s*tape|lija)\b/i;
 function categoryRailPicks(retailerKeys, saleItems, pool, ofertasKeys, total, opts){
   const keys = new Set((Array.isArray(retailerKeys) ? retailerKeys : []).map(k => String(k || '').toLowerCase()));
   const max = Number.isFinite(total) && total > 0 ? Math.floor(total) : CATEGORY_RAIL_TOTAL;
