@@ -36923,6 +36923,55 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
+<script>
+// NAV REDIRECT OVERRIDE (2026-10-05) — Replaces broken SPA navigation with redirects to standalone pages.
+// The SPA's showPage/openCatalog blanks interior views. These overrides send users to bulletproof standalone pages instead.
+(function(){
+  // Department → standalone page mapping
+  function deptUrl(key){
+    if(key === 'motos') return '/motos.html';
+    if(key === 'sale') return '/ofertas.html';
+    if(key === 'latino_designers') return '/disenadores.html';
+    return '/departamento.html?dept=' + encodeURIComponent(key);
+  }
+  // Override openCatalog
+  const _oc = window.openCatalog;
+  window.openCatalog = function(kind, key, opts){
+    if(kind === 'department'){
+      window.location.href = deptUrl(key);
+    } else if(kind === 'brand'){
+      window.location.href = '/marca.html?marca=' + encodeURIComponent(key);
+    } else {
+      // Fallback: try original (should not happen)
+      if(_oc) return _oc.apply(this, arguments);
+    }
+  };
+  // Override openStore
+  const _os = window.openStore;
+  window.openStore = function(retailer){
+    window.location.href = '/tienda.html?tienda=' + encodeURIComponent(retailer);
+  };
+  // Override goSales
+  window.goSales = function(retailer){
+    window.location.href = '/ofertas.html';
+  };
+  // Override doSearch — preserve the query
+  window.doSearch = function(which){
+    const id = which===2 ? 'searchInput2' : (which==='d' ? 'searchInputD' : 'searchInput');
+    const el = document.getElementById(id);
+    const raw = el ? el.value.trim() : '';
+    if(!raw){
+      if(window.showToast) showToast('Escribe algo para buscar.');
+      return;
+    }
+    window.location.href = '/search.html?q=' + encodeURIComponent(raw);
+  };
+  // Override openAriaAuto
+  window.openAriaAuto = function(sourceKey){
+    window.location.href = '/auto.html';
+  };
+})();
+</script>
 </body>
 </html>
 
