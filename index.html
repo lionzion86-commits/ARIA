@@ -33630,7 +33630,7 @@ function toggleAssistant(){
   document.getElementById('assistantIconSpark').classList.toggle('hidden', assistantOpen);
   document.getElementById('assistantIconClose').classList.toggle('hidden', !assistantOpen);
 
-  /* The phone's sheet. The flag on <body><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script> is what hides the launcher
+  /* The phone's sheet. The flag on <body><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script> is what hides the launcher
      while the sheet is up -- a fixed orb in the bottom-right corner is
      underneath a bottom sheet, sitting on its input row. */
   document.body.toggleAttribute('data-chat-open', assistantOpen);
@@ -36803,6 +36803,6 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
-</body>
+<script>(function(){  function log(m){    window.__errs.push("TRACE: "+m);    var d=document.getElementById("dbg-err");    if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,3000);}  }  log("tracer installed. typeof openCatalog="+typeof openCatalog+", routerReady="+ (typeof routerReady!=="undefined"?routerReady:"undef"));  document.addEventListener("click",function(e){    var t=e.target;    var info=(t.tagName||"?")+"."+(t.className||"").toString().slice(0,60);    log("click on "+info+" onclick="+(t.getAttribute&&t.getAttribute("onclick")||"none").slice(0,80));  },true);  if(typeof openCatalog==="function"){    var orig=openCatalog;    openCatalog=async function(kind,key,opts){      log("openCatalog called kind="+kind+" key="+key);      try{        var r=await orig.call(this,kind,key,opts);        log("openCatalog returned normally");        return r;      }catch(err){        log("openCatalog THREW: "+(err&&err.message||err));        throw err;      }    };    log("openCatalog wrapped");  }else{    log("openCatalog NOT A FUNCTION - cannot wrap");  }})();</script></body>
 </html>
 
