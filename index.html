@@ -1689,7 +1689,7 @@
   }
 </style>
 </head>
-<body class="antialiased"><div id="dbg-err" style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#b00;color:#fff;font:12px monospace;padding:8px;white-space:pre-wrap;display:none;max-height:40vh;overflow:auto"></div><script>window.__errs=[];window.addEventListener("error",function(e){  window.__errs.push("ERR: "+(e.message||e.error)+" @"+(e.filename||"")+":"+(e.lineno||""));  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});window.addEventListener("unhandledrejection",function(e){  var r=e.reason;  var m="UNHANDLED: "+String((r&&(r.message||r))||r).slice(0,300);  window.__errs.push(m);  var d=document.getElementById("dbg-err");  if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,2000);}});</script>
+<body class="antialiased">
 
 <!-- HEADER -->
 <!-- ============================================================
@@ -18434,7 +18434,7 @@ async function openCatalog(kind, key, opts = {}){
   showPage('catalogView');
   applyStoreTheme('catalogView', retailerFilter);
   applyDeptTheme('catalogView', kind, key, retailerFilter);
-  await loadFxRate();
+  loadFxRate(); /* FIX: don't block render on FX */
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   /* NATIVE TAXONOMY (2026-09-29): the key IS the Spanish label already --
      metaFor's title-cased fallback would mangle "Máscaras y snorkels". */
@@ -19923,7 +19923,7 @@ function renderCatalogFeed(){
      every product with one -- a blank "Foto en camino" card never leads the
      grid. Stable sort keeps the sales/price order inside each group. */
   items.sort((a, b) => (hasRealImage(b) ? 1 : 0) - (hasRealImage(a) ? 1 : 0));
-  const shown = items.slice(0, 5);
+  const shown = items.slice(0, catalogState.pageSize || LISTING_PAGE_SIZE);
 
   const storeCount = byRetailer.size;
   const n = items.length;
@@ -36803,6 +36803,6 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
-<script>(function(){  function log(m){    window.__errs.push("T7: "+m);    var d=document.getElementById("dbg-err");    if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,6000);}  }  log("tracer7 installed");  setInterval(function(){    try{      var el=document.getElementById("catalogView");      if(!el) return;      var r=el.getBoundingClientRect();      var cs=getComputedStyle(el);      log("rect: top="+Math.round(r.top)+" left="+Math.round(r.left)+" w="+Math.round(r.width)+" h="+Math.round(r.height)+" display="+cs.display);      var grid=document.getElementById("catalogGrid");      if(grid){        var gr=grid.getBoundingClientRect();        log("grid rect: h="+Math.round(gr.height)+" children="+grid.children.length);      }    }catch(e){}  },2000);  log("watcher started");})();</script></body>
+</body>
 </html>
 
