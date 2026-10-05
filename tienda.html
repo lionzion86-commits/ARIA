@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tienda — Aria Shop</title>
+<meta name="description" content="Compra en tiendas de Estados Unidos con entrega en Perú. Precio honesto, sin letra pequeña.">
+<style>
+/* Standalone Tienda template — one page for every store (?tienda=clave).
+   Zero dependencies: no frameworks, no CDN. If this stylesheet failed to
+   load, the page still renders as plain readable HTML — never blank. */
+:root{
+  --navy:#0A1F44; --blue:#2F5FEE; --blue-dark:#1E46C4; --sky:#EAF0FF;
+  --paper:#FAFAF8; --green:#1C8A4B; --green-bg:#EAF7EF; --line:#E4E6EC;
+  --amber:#B8860B; --yellow:#FFC72C; --red:#D92D20; --store:#0A1F44;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--paper);color:var(--navy);-webkit-font-smoothing:antialiased}
+/* ---- header ---- */
+.site-header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.header-inner{max-width:1240px;margin:0 auto;padding:0 12px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wordmark{text-decoration:none;display:flex;align-items:center;gap:8px}
+.wordmark .w1{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);font-size:20px}
+.wordmark .w2{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-size:20px}
+.main-nav{display:none;align-items:center;gap:20px;font-size:13.5px}
+.main-nav a{color:var(--navy);text-decoration:none;opacity:.75;white-space:nowrap}
+.main-nav a:hover{opacity:1}
+@media(min-width:1024px){.main-nav{display:flex}}
+.header-meta{font-size:13px;color:#6b7280;white-space:nowrap}
+/* ---- hero ---- */
+.hero{background:linear-gradient(135deg,var(--store) 0%,#0A1F44 70%);color:#fff;
+  padding:36px 12px 30px}
+.hero-inner{max-width:1240px;margin:0 auto}
+.hero-logo{background:#fff;border-radius:16px;display:inline-flex;align-items:center;
+  padding:10px 18px;margin-bottom:14px;max-width:100%}
+.hero-logo img{height:40px;max-width:220px;object-fit:contain;display:block}
+.hero-name{margin:0 0 6px;font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.02em}
+.hero-tag{margin:0;color:rgba(255,255,255,.82);font-size:15px;max-width:640px}
+.eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;color:#fff;background:rgba(255,255,255,.16);
+  padding:6px 12px;border-radius:999px;margin-bottom:12px}
+/* ---- page ---- */
+.page{max-width:1240px;margin:0 auto;padding:20px 12px 64px}
+@media(min-width:640px){.page{padding:28px 20px 72px}}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px;align-items:center}
+.toolbar input[type="search"]{flex:1 1 220px;min-width:0;padding:11px 14px;font-size:14px;
+  border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--navy)}
+.toolbar select{padding:11px 12px;font-size:14px;border:1px solid var(--line);
+  border-radius:12px;background:#fff;color:var(--navy)}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.chip{border:1px solid var(--line);background:#fff;color:var(--navy);font-size:13px;
+  font-weight:700;padding:8px 14px;border-radius:999px;cursor:pointer}
+.chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+.count-line{font-size:13.5px;color:#4b5563;margin:0 0 14px}
+/* ---- grid & cards ---- */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
+@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;position:relative;text-decoration:none;color:inherit}
+.card-img{position:relative;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:contain;display:block}
+.badge{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;
+  font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;z-index:2}
+.card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.card-brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}
+.card-title{font-size:13.5px;font-weight:600;line-height:1.35;margin:0;color:var(--navy);
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-prices{margin-top:auto;padding-top:8px}
+.price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price{font-size:19px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.price-old{font-size:13.5px;color:#9aa1b2;text-decoration:line-through;font-variant-numeric:tabular-nums}
+.price-pen{font-size:12.5px;color:#4b5563;font-variant-numeric:tabular-nums}
+/* ---- store directory ---- */
+.dir-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.dir-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
+@media(min-width:1024px){.dir-grid{grid-template-columns:repeat(4,1fr)}}
+.dir-card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  text-decoration:none;color:inherit;display:flex;flex-direction:column}
+.dir-band{height:64px;display:flex;align-items:center;justify-content:center;padding:10px;background:#fff;border-bottom:1px solid var(--line)}
+.dir-band img{max-height:40px;max-width:80%;object-fit:contain}
+.dir-body{padding:12px 14px}
+.dir-name{font-weight:800;font-size:14px;color:var(--navy)}
+.dir-tag{font-size:12.5px;color:#6b7280;margin-top:2px}
+/* ---- states ---- */
+.state{border:1px dashed var(--line);border-radius:16px;background:#fff;
+  padding:48px 24px;text-align:center;color:#4b5563;font-size:15px}
+.state h2{color:var(--navy);font-size:20px;margin:0 0 8px}
+.state p{margin:0 0 18px}
+.btn{display:inline-block;background:var(--blue);color:#fff;border:0;cursor:pointer;
+  font-size:15px;font-weight:800;padding:12px 26px;border-radius:12px;text-decoration:none}
+.btn:hover{background:var(--blue-dark)}
+.skel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.skel-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
+@media(min-width:1024px){.skel-grid{grid-template-columns:repeat(4,1fr)}}
+.skel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.skel .ph{aspect-ratio:1/1;background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);
+  background-size:200% 100%;animation:sh 1.4s infinite}
+.skel .ln{height:12px;border-radius:6px;background:#eef0f4;margin:10px 12px}
+.skel .ln.short{width:55%}
+@keyframes sh{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel .ph{animation:none}}
+/* ---- footer ---- */
+.site-footer{border-top:1px solid var(--line);background:#fff;margin-top:24px}
+.footer-inner{max-width:1240px;margin:0 auto;padding:28px 12px;font-size:13px;color:#6b7280;
+  display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
+.site-footer a{color:var(--blue);text-decoration:none}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="wordmark" href="/" aria-label="Aria Shop — inicio">
+      <span class="w1">Aria</span><span class="w2">Shop</span>
+    </a>
+    <nav class="main-nav" aria-label="Principal">
+      <a href="/">Inicio</a>
+      <a href="ofertas.html">Ofertas</a>
+      <a href="tienda.html" aria-current="page">Tiendas</a>
+      <a href="search.html">Buscar</a>
+    </nav>
+    <span class="header-meta">Perú · PEN</span>
+  </div>
+</header>
+
+<div class="hero" id="hero" hidden>
+  <div class="hero-inner">
+    <span class="eyebrow">Tienda en Estados Unidos</span>
+    <div class="hero-logo" id="heroLogo" hidden><img id="heroLogoImg" alt=""></div>
+    <h1 class="hero-name" id="heroName">Tienda</h1>
+    <p class="hero-tag" id="heroTag"></p>
+  </div>
+</div>
+
+<main class="page">
+  <div id="dirWrap" hidden>
+    <span class="eyebrow">Tiendas en Estados Unidos</span>
+    <h1 class="hero-name" style="color:var(--navy);margin-bottom:8px">Todas las tiendas</h1>
+    <p class="count-line" id="dirCount"></p>
+    <div class="dir-grid" id="dirGrid"></div>
+  </div>
+
+  <div id="storeWrap" hidden>
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="Busca en esta tienda…" aria-label="Buscar en esta tienda" autocomplete="off">
+      <select id="sort" aria-label="Ordenar">
+        <option value="relevance">Destacados</option>
+        <option value="discount">Mayor descuento</option>
+        <option value="priceAsc">Menor precio</option>
+        <option value="priceDesc">Mayor precio</option>
+      </select>
+    </div>
+    <div class="chips" id="deptChips"></div>
+    <p class="count-line" id="countLine"></p>
+    <div id="content">
+      <div class="skel-grid" aria-hidden="true">
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+        <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      </div>
+    </div>
+    <noscript>
+      <div class="state"><h2>Activa JavaScript</h2>
+      <p>Los productos se cargan con JavaScript. Actívalo para verlos.</p></div>
+    </noscript>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>Aria Shop — Compra en Estados Unidos, entregado en Perú.</span>
+    <span><a href="/">Volver al inicio</a></span>
+  </div>
+</footer>
+
+<script>
+/* Standalone Tienda template — one page for all 77 stores (?tienda=clave).
+   Bulletproof by design:
+   - Static HTML shell renders immediately (never blank).
+   - Missing/invalid ?tienda renders the full store directory, not an error.
+   - Every fetch has a timeout; total failure shows a retry panel.
+   - One bad product can never kill the grid (per-card try/catch).
+   - window.onerror shows a slim banner instead of a silent death. */
+(function(){
+'use strict';
+
+/* ---------- embedded store registry (77 active stores) ---------- */
+var STORES = {"revolve": {"label": "Revolve", "color": "#000000", "logo": "/logos/revolve.png", "tagline": "Moda contemporánea y de diseñador", "files": ["/revolve-catalog.json"]}, "target": {"label": "Target", "color": "#CC0000", "logo": "/logos/target.svg", "tagline": "Ropa, hogar y belleza", "files": ["/department-cache-target.json", "/target-catalog.json", "/juguetes-catalog.json"]}, "footlocker": {"label": "Foot Locker", "color": "#000000", "logo": "/logos/footlocker.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/department-cache-footlocker.json"]}, "newbalance": {"label": "New Balance", "color": "#E21836", "logo": "/logos/brands/newbalance.svg", "tagline": "Zapatillas y ropa deportiva", "files": ["/newbalance-catalog.json"]}, "walmart": {"label": "Walmart", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Ahorra dinero. Vive mejor.", "files": ["/department-cache-walmart.json", "/juguetes-catalog.json"]}, "advanceauto": {"label": "Advance Auto Parts", "color": "#EA1927", "logo": "/logos/advanceauto.svg", "tagline": "Frenos y repuestos — vía Aria Auto", "files": ["/advanceauto-catalog.json"]}, "macys": {"label": "Macy's", "color": "#E21A2C", "logo": "/logos/macys.png", "tagline": "Moda mujer, marcas y vestidos", "files": ["/macys-catalog.json"]}, "kohls": {"label": "Kohl's", "color": "#C41230", "logo": "/logos/kohls.svg", "tagline": "Ropa y hogar para toda la familia", "files": ["/kohls-catalog.json"]}, "dicks": {"label": "Dick's Sporting Goods", "color": "#D22630", "logo": "/logos/dicks.png", "tagline": "Skate, surf y fitness", "files": ["/dicks-catalog.json"]}, "finishline": {"label": "Finish Line", "color": "#000000", "logo": "/logos/finishline.png", "tagline": "Zapatillas y ropa deportiva", "files": ["/finishline-catalog.json"]}, "bhphoto": {"label": "B&H Photo", "color": "#A7392F", "logo": "/logos/bhphoto.svg", "tagline": "Cámaras, fotografía y electrónica", "files": ["/bhphoto-catalog.json"]}, "costco": {"label": "Costco", "color": "#E31837", "logo": "/logos/costco.svg", "tagline": "Precios de almacén, todo por mayor", "files": ["/costco-catalog.json", "/juguetes-catalog.json"]}, "victoriassecret": {"label": "Victoria's Secret", "color": "#E31C79", "logo": "/logos/victoriassecret.png", "tagline": "Lencería, brumas corporales y fragancias", "files": ["/beauty-catalog.json"]}, "ulta": {"label": "Ulta Beauty", "color": "#F88038", "logo": "/logos/ulta.png", "tagline": "Maquillaje, skincare y cuidado del cabello", "files": ["/ulta-catalog.json"]}, "pacsun": {"label": "PacSun", "color": "#111111", "logo": "/logos/pacsun.png", "tagline": "Moda surf y skate", "files": ["/pacsun-catalog.json"]}, "zumiez": {"label": "Zumiez", "color": "#111111", "logo": "/logos/zumiez.png", "tagline": "Streetwear, skate y sneakers", "files": ["/zumiez-catalog.json"]}, "nautilus": {"label": "Nautilus Spearfishing", "color": "#213236", "logo": "/logos/nautilus.png", "tagline": "Pesca submarina — arpones y buceo", "files": ["/nautilus-catalog.json"]}, "prosoccer": {"label": "ProSoccer", "color": "#0066CC", "logo": "/logos/prosoccer.png", "tagline": "Fútbol en oferta — chimpunes y más", "files": ["/soccer-catalog.json"]}, "xtremesoccer": {"label": "Xtreme Soccer", "color": "#CC0000", "logo": "/logos/xtremesoccer.png", "tagline": "Fútbol en oferta", "files": ["/soccer-catalog.json"]}, "tennisexpress": {"label": "Tennis Express", "color": "#008000", "logo": "/logos/tennisexpress.png", "tagline": "Tenis en oferta — raquetas y más", "files": ["/tennis-catalog.json"]}, "tenniswarehouse": {"label": "Tennis Warehouse", "color": "#FF6600", "logo": "/logos/tenniswarehouse.png", "tagline": "Tenis en oferta", "files": ["/tennis-catalog.json"]}, "academy": {"label": "Academy Sports", "color": "#003DA5", "logo": "/logos/academy.png", "tagline": "Fútbol en oferta — chimpunes", "files": ["/soccer-catalog.json"]}, "islandwatersports": {"label": "Island Water Sports", "color": "#373435", "logo": "/logos/islandwatersports.svg", "tagline": "Surf shop de Florida — tablas y playa", "files": ["/islandwatersports-catalog.json"]}, "quietstorm": {"label": "Quiet Storm Surf Shop", "color": "#141414", "logo": "/logos/quietstorm.png", "tagline": "Surf shop — tablas, skate y ropa", "files": ["/quietstorm-catalog.json"]}, "surfworld": {"label": "Surf World", "color": "#00A9DC", "logo": "/logos/surfworld.png", "tagline": "Surf shop Fort Lauderdale", "files": ["/surfworld-catalog.json"]}, "surfstation": {"label": "Surf Station", "color": "#111111", "logo": "/logos/surfstation.png", "tagline": "Surf, skate y ropa desde 1984", "files": ["/surfstation-catalog.json"]}, "mainland": {"label": "Mainland Skate & Surf", "color": "#0F6FEF", "logo": "/logos/mainland.png", "tagline": "Skate shop — tablas y marcas", "files": ["/mainland-catalog.json"]}, "parrot": {"label": "Parrot Surf & Skate", "color": "#111111", "logo": "/logos/parrot.png", "tagline": "Surf y skate — tablas y neopreno", "files": ["/parrot-catalog.json"]}, "ccs": {"label": "CCS", "color": "#2AADEB", "logo": "/logos/ccs.png", "tagline": "El skate shop online", "files": ["/ccs-catalog.json"]}, "valsurf": {"label": "Val Surf", "color": "#0F506F", "logo": "/logos/valsurf.png", "tagline": "Surf y skate — 60 años", "files": ["/valsurf-catalog.json"]}, "oldnavy": {"label": "Old Navy", "color": "#001E62", "logo": "/logos/oldnavy.svg", "tagline": "Ropa casual para toda la familia", "files": ["/department-cache-oldnavy.json"]}, "samsclub": {"label": "Sam's Club", "color": "#0B6CFF", "logo": "/logos/samsclub.svg", "tagline": "Mayoreo y esenciales para el hogar", "files": ["/samsclub-catalog.json"]}, "lanebryant": {"label": "Lane Bryant", "color": "#C41230", "logo": "/logos/lanebryant.png", "tagline": "Moda femenina en tallas grandes", "files": ["/lanebryant-catalog.json"]}, "alphalete": {"label": "Alphalete", "color": "#000000", "logo": "/logos/alphalete.png", "tagline": "Ropa de gym premium", "files": ["/gymrat-catalog.json"]}, "youngla": {"label": "YoungLA", "color": "#000000", "logo": "/logos/youngla.png", "tagline": "Ropa de gym — oversize y streetwear", "files": ["/gymrat-catalog.json"]}, "gymshark": {"label": "Gymshark", "color": "#000000", "logo": "/logos/gymshark.png", "tagline": "Ropa de gym — leggings, tops y conjuntos", "files": ["/gymrat-catalog.json"]}, "venum": {"label": "Venum", "color": "#000000", "logo": "/logos/brands/venum.png", "tagline": "MMA y boxeo — guantes, shorts y equipo", "files": ["/venum-catalog.json"]}, "tatami": {"label": "Tatami Fightwear", "color": "#1A1A1A", "logo": "/logos/brands/tatamifightwear.svg", "tagline": "Jiu-jitsu — gis, rashguards y spats", "files": ["/tatami-catalog.json"]}, "everlast": {"label": "Everlast", "color": "#000000", "logo": "/logos/brands/everlast.svg", "tagline": "Boxeo — guantes, sacos y protección", "files": ["/everlast-catalog.json"]}, "mmawarehouse": {"label": "MMAWarehouse", "color": "#1A1A1A", "logo": "/logos/mmawarehouse.png", "tagline": "MMA — guantes, canilleras y equipo", "files": ["/mmawarehouse-catalog.json"]}, "combatcorner": {"label": "Combat Corner", "color": "#000000", "logo": "/logos/combatcorner.png", "tagline": "Boxeo y MMA — equipo de pelea", "files": ["/combatcorner-catalog.json"]}, "fuji": {"label": "FUJI Sports", "color": "#1A1A1A", "logo": "/logos/fuji.png", "tagline": "Jiu-jitsu y judo — gis y equipo", "files": ["/fuji-catalog.json"]}, "crocs": {"label": "Crocs", "color": "#000000", "logo": "/logos/brands/crocs.svg", "tagline": "Clogs, sandalias y calzado cómodo", "files": ["/crocs-catalog.json"]}, "baublebar": {"label": "BaubleBar", "color": "#000000", "logo": "/logos/brands/baublebar.png", "tagline": "Joyería de moda — collares, aretes y pulseras", "files": ["/baublebar-catalog.json"]}, "jwpei": {"label": "JW PEI", "color": "#000000", "logo": "/logos/brands/jwpei.png", "tagline": "Carteras veganas — crossbody, totes y minis", "files": ["/jwpei-catalog.json"]}, "meliebianco": {"label": "Melie Bianco", "color": "#000000", "logo": "/logos/brands/meliebianco.png", "tagline": "Carteras y accesorios", "files": ["/meliebianco-catalog.json"]}, "bentgo": {"label": "Bentgo", "color": "#000000", "logo": "/logos/brands/bentgo.png", "tagline": "Loncheras bento para niños", "files": ["/bentgo-catalog.json"]}, "mushie": {"label": "Mushie", "color": "#000000", "logo": "/logos/brands/mushie.png", "tagline": "Vasos y vajilla para niños", "files": ["/mushie-catalog.json"]}, "ezpz": {"label": "ezpz", "color": "#000000", "logo": "/logos/ezpz.png", "tagline": "Platos y vasos para niños", "files": ["/ezpz-catalog.json"]}, "statebags": {"label": "State Bags", "color": "#000000", "logo": "/logos/statebags.png", "tagline": "Mochilas y loncheras para niños", "files": ["/statebags-catalog.json"]}, "assouline": {"label": "Assouline", "color": "#000000", "logo": "/logos/assouline.png", "tagline": "Libros de mesa de lujo — moda, arte y viajes", "files": ["/books-catalog.json"]}, "chronicle": {"label": "Chronicle Books", "color": "#1A1A1A", "logo": "/logos/chronicle.png", "tagline": "Libros ilustrados — fotografía, arte y diseño", "files": ["/books-catalog.json"]}, "walmartbaby": {"label": "Walmart Bebé", "color": "#0071CE", "logo": "/logos/walmart.svg", "tagline": "Coches, autoasientos y todo para el bebé", "files": ["/moms-catalog.json"]}, "momcozy": {"label": "Momcozy", "color": "#2E6E63", "logo": "/logos/momcozy.png", "tagline": "Lactancia y cuidado del bebé", "files": ["/moms-catalog.json"]}, "elvie": {"label": "Elvie", "color": "#7A4E8C", "logo": "/logos/elvie.png", "tagline": "Extractores de leche inteligentes", "files": ["/moms-catalog.json"]}, "spectra": {"label": "Spectra", "color": "#C2185B", "logo": "/logos/spectra.png", "tagline": "Extractores de leche", "files": ["/moms-catalog.json"]}, "munchkin": {"label": "Munchkin", "color": "#E8590C", "logo": "/logos/munchkin.png", "tagline": "Alimentación y cuidado del bebé", "files": ["/moms-catalog.json"]}, "babybrezza": {"label": "Baby Brezza", "color": "#1971C2", "logo": "/logos/babybrezza.png", "tagline": "Alimentación del bebé", "files": ["/moms-catalog.json"]}, "drbrowns": {"label": "Dr. Brown's", "color": "#1864AB", "logo": "/logos/drbrowns.png", "tagline": "Biberones y alimentación", "files": ["/moms-catalog.json"]}, "mockingbird": {"label": "Mockingbird", "color": "#343A40", "logo": "/logos/mockingbird.png", "tagline": "Coches premium", "files": ["/moms-catalog.json"]}, "nanit": {"label": "Nanit", "color": "#0C8599", "logo": "/logos/nanit.png", "tagline": "Monitoreo inteligente del bebé", "files": ["/moms-catalog.json"]}, "owlet": {"label": "Owlet", "color": "#5F3DC4", "logo": "/logos/owlet.png", "tagline": "Monitoreo del bebé", "files": ["/moms-catalog.json"]}, "kindredbravely": {"label": "Kindred Bravely", "color": "#8C5E58", "logo": "/logos/kindredbravely.png", "tagline": "Lactancia y maternidad", "files": ["/moms-catalog.json"]}, "hatch": {"label": "Hatch", "color": "#A61E4D", "logo": "/logos/hatch.png", "tagline": "Ropa de maternidad", "files": ["/moms-catalog.json"]}, "bellybandit": {"label": "Belly Bandit", "color": "#6B4F2A", "logo": "/logos/bellybandit.png", "tagline": "Soporte pre y postparto", "files": ["/moms-catalog.json"]}, "freshlypicked": {"label": "Freshly Picked", "color": "#B07D4F", "logo": "/logos/freshlypicked.png", "tagline": "Pañaleras de cuero", "files": ["/moms-catalog.json"]}, "jujube": {"label": "JuJuBe", "color": "#E64980", "logo": "/logos/jujube.png", "tagline": "Pañaleras y accesorios", "files": ["/moms-catalog.json"]}, "dagnedover": {"label": "Dagne Dover", "color": "#495057", "logo": "/logos/dagnedover.png", "tagline": "Pañaleras", "files": ["/moms-catalog.json"]}, "lillebaby": {"label": "LÍLLÉbaby", "color": "#2B8A3E", "logo": "/logos/lillebaby.png", "tagline": "Portabebés ergonómicos", "files": ["/moms-catalog.json"]}, "skims": {"label": "Skims", "color": "#605848", "logo": "/logos/skims.png", "tagline": "Shapewear, ropa interior y loungewear", "files": ["/skims-catalog.json"]}, "ssense": {"label": "SSENSE", "color": "#000000", "logo": "/logos/ssense.png", "tagline": "Diseñador y lujo, importado igual que todo lo demás", "files": ["/ssense-catalog.json"]}, "miumiu": {"label": "Miu Miu", "color": "#000000", "logo": "/logos/miumiu.png", "tagline": "Bolsos, calzado y moda italiana", "files": ["/miumiu-catalog.json"]}, "yesstyle": {"label": "YesStyle", "color": "#50A838", "logo": "/logos/yesstyle.png", "tagline": "Belleza coreana y japonesa", "files": ["/yesstyle-catalog.json"]}, "bathandbodyworks": {"label": "Bath & Body Works", "color": "#0F4C81", "logo": "/logos/bathandbodyworks.png", "tagline": "Cremas, jabones y velas aromáticas", "files": []}, "farfetch": {"label": "Farfetch", "color": "#000000", "logo": "/logos/farfetch.svg", "tagline": "Disenadores latinos — Farm Rio, Johanna Ortiz y mas", "files": ["/farfetch-catalog.json"]}, "hottopic": {"label": "Hot Topic", "color": "#D8232A", "logo": "/logos/hottopic.png", "tagline": "Band tees, anime y cultura pop", "files": ["/hottopic-catalog.json"]}, "boxlunch": {"label": "BoxLunch", "color": "#F26522", "logo": "/logos/boxlunch.png", "tagline": "Regalos pop que donan comidas", "files": ["/boxlunch-catalog.json"]}};
+
+/* ---------- config ---------- */
+var BASE = '';
+var FX_URL = BASE + '/.netlify/functions/exchange-rate';
+var TIMEOUT_MS = 25000;
+var PAGE_SIZE = 48;
+
+/* ---------- tiny helpers ---------- */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function $(id){ return document.getElementById(id); }
+function qs(name){
+  try {
+    var m = new RegExp('[?&]' + name + '=([^&#]*)').exec(location.search);
+    return m ? decodeURIComponent(m[1].replace(/\+/g, ' ')) : '';
+  } catch (e) { return ''; }
+}
+/* ---------- pricing: tiered marginal margin (LOCKED 2026-10-02) ---------- */
+function tieredMarginUsd(raw){
+  var r = Number(raw);
+  if (!(r > 0)) return 0;
+  return Math.min(r,500)*0.24
+    + Math.min(Math.max(r-500,0),1500)*0.18
+    + Math.min(Math.max(r-2000,0),3000)*0.12
+    + Math.max(r-5000,0)*0.08;
+}
+function finalUsd(raw){
+  var r = Number(raw);
+  if (!(r > 0)) return NaN;
+  return Math.round((r + tieredMarginUsd(r)) * 100) / 100;
+}
+function fmtUSD(n){
+  if (!isFinite(n)) return 'Precio no disponible';
+  return '$' + Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+function money(n){
+  var v = Number(n);
+  if (!Number.isFinite(v)) return '—';
+  return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function discountPct(p){
+  var o = Number(p.originalPrice), pr = Number(p.price);
+  if (!(o > 0) || !(pr >= 0)) return 0;
+  return Math.round((1 - pr / o) * 100);
+}
+function realImage(p){
+  var cands = [];
+  if (p.image) cands.push(p.image);
+  if (p.imageUrl) cands.push(p.imageUrl);
+  if (p.img) cands.push(p.img);
+  if (p.thumbnail) cands.push(p.thumbnail);
+  if (Array.isArray(p.images)) for (var i = 0; i < p.images.length; i++) cands.push(p.images[i]);
+  for (var j = 0; j < cands.length; j++){
+    var u = cands[j];
+    if (typeof u !== 'string' || !u) continue;
+    if (u.indexOf('foto-en-camino') !== -1 || u.indexOf('placeholder') !== -1 || u.indexOf('no-image') !== -1) continue;
+    if (u.indexOf('http') === 0 && u.length > 20) return u;
+  }
+  return null;
+}
+
+/* ---------- fetch with timeout ---------- */
+function fetchJson(url){
+  return new Promise(function(resolve, reject){
+    var ctrl = null, timer = null;
+    try { ctrl = new AbortController(); } catch (e) {}
+    if (ctrl) timer = setTimeout(function(){ try { ctrl.abort(); } catch (e2) {} }, TIMEOUT_MS);
+    var opts = ctrl ? { signal: ctrl.signal } : {};
+    fetch(url, opts).then(function(res){
+      if (timer) clearTimeout(timer);
+      if (!res.ok) { reject(new Error('HTTP ' + res.status)); return; }
+      res.json().then(resolve, reject);
+    }, function(err){
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+    if (!ctrl) setTimeout(function(){ reject(new Error('timeout')); }, TIMEOUT_MS);
+  });
+}
+
+/* ---------- state ---------- */
+var storeKey = '';
+var storeMeta = null;
+var allItems = [];     // normalized products
+var deptLabels = {};   // dept key -> label
+var fxVenta = null;
+var visibleCount = PAGE_SIZE;
+
+/* ---------- item normalization ---------- */
+function normItem(raw, deptKey){
+  if (!raw || typeof raw !== 'object') return null;
+  var name = raw.name || raw.title || '';
+  var price = Number(raw.price);
+  if (!name || !(price > 0)) return null;
+  var img = realImage(raw);
+  if (!img) return null;
+  return {
+    name: String(name),
+    brand: raw.brand ? String(raw.brand) : '',
+    price: price,
+    originalPrice: raw.originalPrice != null ? Number(raw.originalPrice) : null,
+    onSale: !!raw.onSale,
+    image: img,
+    url: raw.url || raw.link || '',
+    dept: deptKey || ''
+  };
+}
+
+/* ---------- data loading ---------- */
+function loadStore(){
+  var files = storeMeta.files || [];
+  if (!files.length){
+    return Promise.resolve({ items: [], empty: 'nocatalog' });
+  }
+  return Promise.all(files.map(function(f){
+    var url = f.charAt(0) === '/' ? BASE + f : f;
+    return fetchJson(url).then(function(j){ return { ok: true, json: j }; },
+                               function(){ return { ok: false }; });
+  })).then(function(results){
+    var items = [], depts = {}, anyOk = false;
+    for (var i = 0; i < results.length; i++){
+      var r = results[i];
+      if (!r.ok || !r.json) continue;
+      anyOk = true;
+      var retailers = r.json.retailers;
+      if (!retailers || typeof retailers !== 'object') continue;
+      var bucket = retailers[storeKey];
+      if (!bucket) continue;
+      var departments = bucket.departments || {};
+      var keys = Object.keys(departments);
+      for (var d = 0; d < keys.length; d++){
+        var dk = keys[d];
+        var entry = departments[dk];
+        var label = dk, arr = null;
+        if (entry && typeof entry === 'object' && !Array.isArray(entry)){
+          label = entry.label || dk;
+          arr = entry.items;
+        } else if (Array.isArray(entry)){
+          arr = entry;
+        }
+        if (!Array.isArray(arr)) continue;
+        depts[dk] = String(label);
+        for (var j = 0; j < arr.length; j++){
+          var n = null;
+          try { n = normItem(arr[j], dk); } catch (e) { n = null; }
+          if (n) items.push(n);
+        }
+      }
+    }
+    // dedupe by name+image
+    var seen = {}, out = [];
+    for (var k = 0; k < items.length; k++){
+      var key = items[k].name + '||' + items[k].image;
+      if (seen[key]) continue;
+      seen[key] = 1;
+      out.push(items[k]);
+    }
+    deptLabels = depts;
+    return { items: out, empty: anyOk ? (out.length ? '' : 'nodata') : 'failed' };
+  });
+}
+
+/* ---------- FX (non-blocking) ---------- */
+function loadFx(){
+  fetchJson(FX_URL).then(function(j){
+    var v = Number(j && (j.venta || j.Venta));
+    if (Number.isFinite(v) && v > 0){
+      fxVenta = v;
+      try { renderPenPrices(); } catch (e) {}
+    }
+  }, function(){});
+}
+
+/* ---------- rendering: store page ---------- */
+function currentFilters(){
+  var q = (($('q') || {}).value || '').trim().toLowerCase();
+  var sort = (($('sort') || {}).value || 'relevance');
+  return { q: q, sort: sort, dept: activeDept };
+}
+var activeDept = '';
+function filteredItems(){
+  var f = currentFilters();
+  var pool = allItems;
+  if (f.dept) pool = pool.filter(function(p){ return p.dept === f.dept; });
+  if (f.q){
+    var words = f.q.split(/\s+/).filter(Boolean);
+    pool = pool.filter(function(p){
+      var t = (p.name + ' ' + p.brand).toLowerCase();
+      for (var i = 0; i < words.length; i++){
+        if (t.indexOf(words[i]) === -1) return false;
+      }
+      return true;
+    });
+  }
+  var arr = pool.slice();
+  if (f.sort === 'priceAsc') arr.sort(function(a,b){ return a.price - b.price; });
+  else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return b.price - a.price; });
+  else if (f.sort === 'discount') arr.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+  return arr;
+}
+function penHTML(usd){
+  var f = finalUsd(usd);
+  if (!fxVenta || !isFinite(f)) return '';
+  return '<div class="price-pen" data-usd="' + esc(f) + '">S/ ' +
+    (f * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) + '</div>';
+}
+function cardHTML(p){
+  var f = finalUsd(p.price);
+  var pct = discountPct(p);
+  var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
+  var open = p.url ? '<a class="card" href="' + esc(p.url) + '" target="_blank" rel="noopener">' : '<div class="card">';
+  var close = p.url ? '</a>' : '</div>';
+  return open +
+    '<div class="card-img">' +
+      (pct >= 5 ? '<span class="badge">-' + pct + '%</span>' : '') +
+      '<img src="' + esc(p.image) + '" alt="' + esc(p.name) + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' +
+    '</div>' +
+    '<div class="card-body">' + brand +
+      '<h3 class="card-title">' + esc(p.name) + '</h3>' +
+      '<div class="card-prices"><div class="price-row">' +
+        '<span class="price">' + fmtUSD(f) + '</span>' +
+        (pct >= 5 && p.originalPrice ? '<span class="price-old">' + money(p.originalPrice) + '</span>' : '') +
+      '</div>' + penHTML(p.price) + '</div>' +
+    '</div>' + close;
+}
+function renderPenPrices(){
+  if (!fxVenta) return;
+  var els = document.querySelectorAll('.price-pen');
+  for (var i = 0; i < els.length; i++){
+    var usd = Number(els[i].getAttribute('data-usd'));
+    if (!Number.isFinite(usd)) continue;
+    els[i].textContent = 'S/ ' + (usd * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+}
+function renderDeptChips(){
+  var host = $('deptChips');
+  if (!host) return;
+  var keys = Object.keys(deptLabels).sort(function(a,b){
+    return String(deptLabels[a]).localeCompare(String(deptLabels[b]), 'es');
+  });
+  if (!keys.length){ host.innerHTML = ''; return; }
+  var html = '<button type="button" class="chip' + (activeDept === '' ? ' active' : '') + '" data-dept="">Todo</button>';
+  for (var i = 0; i < keys.length; i++){
+    html += '<button type="button" class="chip' + (activeDept === keys[i] ? ' active' : '') +
+      '" data-dept="' + esc(keys[i]) + '">' + esc(deptLabels[keys[i]]) + '</button>';
+  }
+  host.innerHTML = html;
+  var btns = host.querySelectorAll('.chip');
+  for (var j = 0; j < btns.length; j++){
+    btns[j].addEventListener('click', function(){
+      activeDept = this.getAttribute('data-dept') || '';
+      visibleCount = PAGE_SIZE;
+      try { renderDeptChips(); render(); } catch (e) {}
+    });
+  }
+}
+function render(){
+  var host = $('content');
+  if (!host) return;
+  var list;
+  try { list = filteredItems(); }
+  catch (e){ return renderError('No pudimos ordenar los productos.', true); }
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = list.length
+    ? list.length.toLocaleString('es-PE') + ' productos en ' + storeMeta.label
+    : '';
+  if (!list.length){
+    var emptyMsg = allItems.length
+      ? '<h2>Sin resultados</h2><p>Ningún producto coincide con tu búsqueda en ' + esc(storeMeta.label) + '.</p>'
+      : '<h2>Estamos actualizando el catálogo</h2><p>' + esc(storeMeta.label) + ' está cargando sus productos. Vuelve en unos minutos.</p>';
+    host.innerHTML = '<div class="state">' + emptyMsg +
+      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
+    bindRetry();
+    return;
+  }
+  var html = '<div class="grid">';
+  var n = Math.min(visibleCount, list.length);
+  for (var i = 0; i < n; i++){
+    try { html += cardHTML(list[i]); }
+    catch (e) { /* one bad card never kills the grid */ }
+  }
+  html += '</div>';
+  if (list.length > n){
+    html += '<div style="text-align:center;margin-top:22px"><button class="btn" id="moreBtn" type="button">Ver más productos</button></div>';
+  }
+  host.innerHTML = html;
+  var more = $('moreBtn');
+  if (more) more.addEventListener('click', function(){
+    visibleCount += PAGE_SIZE;
+    try { render(); } catch (e) {}
+  });
+}
+function renderError(msg, allowRetry){
+  var host = $('content');
+  if (!host) return;
+  host.innerHTML = '<div class="state"><h2>Algo salió mal</h2>' +
+    '<p>' + esc(msg || 'No pudimos cargar la tienda.') + '</p>' +
+    (allowRetry ? '<button class="btn" id="retryBtn" type="button">Reintentar</button>' : '') + '</div>';
+  bindRetry();
+}
+function bindRetry(){
+  var b = $('retryBtn');
+  if (b) b.addEventListener('click', function(){ boot(true); });
+}
+function renderNoCatalog(){
+  var host = $('content');
+  if (!host) return;
+  host.innerHTML = '<div class="state"><h2>Catálogo en preparación</h2>' +
+    '<p>Estamos conectando el catálogo de ' + esc(storeMeta.label) + '. ' +
+    'Compramos por encargo mientras terminamos la integración.</p>' +
+    '<a class="btn" href="search.html">Buscar productos</a></div>';
+}
+
+/* ---------- rendering: store directory ---------- */
+function renderDirectory(){
+  var dirWrap = $('dirWrap'), storeWrap = $('storeWrap'), hero = $('hero');
+  if (hero) hero.hidden = true;
+  if (storeWrap) storeWrap.hidden = true;
+  if (!dirWrap) return;
+  dirWrap.hidden = false;
+  document.title = 'Tiendas en Estados Unidos — Aria Shop';
+  var keys = Object.keys(STORES).sort(function(a,b){
+    return STORES[a].label.localeCompare(STORES[b].label, 'es');
+  });
+  var dc = $('dirCount');
+  if (dc) dc.textContent = keys.length + ' tiendas';
+  var html = '';
+  for (var i = 0; i < keys.length; i++){
+    try {
+      var k = keys[i], s = STORES[k];
+      html += '<a class="dir-card" href="tienda.html?tienda=' + esc(k) + '">' +
+        '<div class="dir-band">' +
+          (s.logo ? '<img src="' + esc(s.logo) + '" alt="' + esc(s.label) + '" loading="lazy" onerror="this.style.display=\'none\'">' : esc(s.label)) +
+        '</div>' +
+        '<div class="dir-body"><div class="dir-name">' + esc(s.label) + '</div>' +
+        (s.tagline ? '<div class="dir-tag">' + esc(s.tagline) + '</div>' : '') +
+        '</div></a>';
+    } catch (e) {}
+  }
+  var grid = $('dirGrid');
+  if (grid) grid.innerHTML = html;
+}
+
+/* ---------- boot ---------- */
+var booted = false;
+function paintHero(){
+  var hero = $('hero');
+  if (!hero || !storeMeta) return;
+  hero.hidden = false;
+  try { hero.style.setProperty('--store', storeMeta.color || '#0A1F44'); } catch (e) {}
+  var nm = $('heroName'), tag = $('heroTag'), lw = $('heroLogo'), li = $('heroLogoImg');
+  if (nm) nm.textContent = storeMeta.label;
+  if (tag) tag.textContent = storeMeta.tagline || 'Compra en Estados Unidos, entregado en Perú.';
+  if (lw && li && storeMeta.logo){
+    li.src = storeMeta.logo;
+    li.alt = storeMeta.label;
+    li.onerror = function(){ lw.hidden = true; };
+    lw.hidden = false;
+  }
+  document.title = storeMeta.label + ' — Aria Shop';
+}
+function boot(isRetry){
+  if (booted && !isRetry) return;
+  booted = true;
+  var key = (qs('tienda') || '').toLowerCase().trim();
+  if (!key || !STORES[key]){
+    // No valid store: the directory IS the page. Never blank, never an error.
+    renderDirectory();
+    return;
+  }
+  storeKey = key;
+  storeMeta = STORES[key];
+  var sw = $('storeWrap'), dw = $('dirWrap');
+  if (dw) dw.hidden = true;
+  if (sw) sw.hidden = false;
+  paintHero();
+  loadFx();
+  loadStore().then(function(res){
+    allItems = res.items || [];
+    visibleCount = PAGE_SIZE;
+    try {
+      if (res.empty === 'nocatalog' || res.empty === 'nodata'){
+        renderNoCatalog();
+        return;
+      }
+      if (res.empty === 'failed' && !allItems.length){
+        renderError('No pudimos cargar ' + storeMeta.label + '. Revisa tu conexión e inténtalo de nuevo.', true);
+        return;
+      }
+      renderDeptChips();
+      render();
+    } catch (e){ renderError('No pudimos mostrar la tienda.', true); }
+  }, function(){
+    renderError('No pudimos cargar ' + (storeMeta ? storeMeta.label : 'la tienda') + '. Revisa tu conexión e inténtalo de nuevo.', true);
+  });
+}
+function bindUI(){
+  var q = $('q'), s = $('sort'), t = null;
+  if (q) q.addEventListener('input', function(){
+    if (t) clearTimeout(t);
+    t = setTimeout(function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} }, 180);
+  });
+  if (s) s.addEventListener('change', function(){ visibleCount = PAGE_SIZE; try { render(); } catch (e) {} });
+}
+window.addEventListener('error', function(ev){
+  try {
+    if (document.getElementById('fatalBanner')) return;
+    var b = document.createElement('div');
+    b.id = 'fatalBanner';
+    b.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#0A1F44;color:#fff;padding:10px 14px;font-size:13px;text-align:center';
+    b.innerHTML = 'Algo salió mal en esta página. <a href="" style="color:#FFC72C;font-weight:800">Recargar</a> · <a href="/" style="color:#FFC72C;font-weight:800">Inicio</a>';
+    document.body.appendChild(b);
+  } catch (e) {}
+});
+
+try {
+  bindUI();
+  boot(false);
+} catch (e) {
+  try { renderDirectory(); } catch (e2) {}
+}
+})();
+</script>
+</body>
+</html>
