@@ -1689,7 +1689,7 @@
   }
 </style>
 </head>
-<body class="antialiased">
+<body class="antialiased"><script>function dbgStep(s){ window.__errs.push("STEP: "+s); var d=document.getElementById("dbg-err"); if(d){d.style.display="block";d.textContent=window.__errs.join("\n").slice(0,5000);} }</script>
 
 <!-- HEADER -->
 <!-- ============================================================
@@ -18420,7 +18420,7 @@ async function openCatalog(kind, key, opts = {}){
   // The aisle is part of the address: it gets its own URL, so one back
   // press returns to the aisle list rather than out of the category.
   const subKey = opts.subKey || null;
-  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter, subKey });
+  pushRoute({ view: 'catalogView', kind, catKey: key, retailerFilter, subKey }); dbgStep("after pushRoute");
   /* BUG FIX: the "Ofertas" department tile came through here and landed on
      the store-picker page ("Disponible en 4 tiendas — elige una tienda"),
      so a shopper tapping Ofertas from the homepage got a store list while
@@ -18433,8 +18433,8 @@ async function openCatalog(kind, key, opts = {}){
   applyStoreTheme('catalogView', retailerFilter);
   showPage('catalogView');
   applyStoreTheme('catalogView', retailerFilter);
-  applyDeptTheme('catalogView', kind, key, retailerFilter);
-  loadFxRate(); /* FIX: don't block render on FX */
+  applyDeptTheme('catalogView', kind, key, retailerFilter); dbgStep("after applyDeptTheme");
+  dbgStep("before loadFxRate"); await loadFxRate(); dbgStep("after loadFxRate");
   const meta = metaFor(kind === 'brand' ? BRAND_META : DEPARTMENT_META, key);
   /* NATIVE TAXONOMY (2026-09-29): the key IS the Spanish label already --
      metaFor's title-cased fallback would mangle "Máscaras y snorkels". */
@@ -18480,7 +18480,7 @@ async function openCatalog(kind, key, opts = {}){
     : (kind === 'department' && key === 'sunglasses') ? (typeof sunglassesHeroHTML === 'function' ? sunglassesHeroHTML() : '')
     : (kind === 'department' && key === 'toys') ? (typeof toysHeroHTML === 'function' ? toysHeroHTML() : '')
     : '';
-  document.getElementById('catalogSections').innerHTML =
+  dbgStep("before skeleton"); document.getElementById('catalogSections').innerHTML =
     `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">${
       (retailerFilter ? [retailerFilter] : CATALOG_RETAILERS).map(r => liveRetailerSkeleton(r)).join('')}</div>`;
 
