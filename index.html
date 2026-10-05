@@ -16693,7 +16693,7 @@ const TIENDAS_STRIP = [
   {k:'macys',l:'Macy\'s',c:'#E21A2C',logo:'logos/macys.png'},
   {k:'kohls',l:'Kohl\'s',c:'#C41230',logo:'logos/kohls.svg'},
   {k:'newbalance',l:'New Balance',c:'#E21836',logo:'logos/brands/newbalance.svg'},
-  {k:'dicks',l:'Dick\'s',c:'#D22630',logo:''},
+  {k:'dicks',l:'Dick\'s',c:'#D22630',logo:'logos/dicks.png'},
   {k:'finishline',l:'Finish Line',c:'#000000',logo:'logos/finishline.png'},
   {k:'costco',l:'Costco',c:'#E31837',logo:'logos/costco.svg'},
   {k:'ssense',l:'SSENSE',c:'#000000',logo:'logos/ssense.png'},
@@ -24495,7 +24495,7 @@ const RETAILERS = {
      colourways merged) is committed at repo root. Footwear answers to
      Zapatos via isFootwear; apparel files to Gym Rat too. Colour sampled
      from the real mark (#E21836). Mirrors scripts/lib/retailers.js. */
-  newbalance:      { key: 'newbalance',      label: 'New Balance',       color: '#E21836', tagline: 'Zapatillas y ropa deportiva',                            kind: 'general', search: false, browse: true },
+  newbalance:      { key: 'newbalance',      label: 'New Balance',       color: '#E21836', logo: 'logos/brands/newbalance.svg', tagline: 'Zapatillas y ropa deportiva',                            kind: 'general', search: false, browse: true },
   walmart:         { key: 'walmart',         label: 'Walmart',           color: '#0071CE', logo: 'logos/walmart.svg',    tagline: 'Ahorra dinero. Vive mejor.',                      kind: 'general', search: true },
   autozone:        { key: 'autozone',        label: 'AutoZone',          color: '#1C8A4B', logo: 'logos/autozone.png', darkLogo: true, tagline: 'Repuestos y autopartes — vía Aria Auto',       kind: 'auto',    search: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.'},
   /* ADVANCE AUTO PARTS (2026-09-26) — the Macy's pattern for Aria Auto:
@@ -24535,12 +24535,12 @@ const RETAILERS = {
      own range label in availableSizes so Curvy sees them — no invented
      size runs. Colour sampled from the real mark (#C41230).
      Mirrors scripts/lib/retailers.js. */
-  kohls:           { key: 'kohls',           label: "Kohl's",            color: '#C41230', tagline: 'Ropa y hogar para toda la familia',                       kind: 'general', search: false, browse: true },
+  kohls:           { key: 'kohls',           label: "Kohl's",            color: '#C41230', logo: 'logos/kohls.svg', tagline: 'Ropa y hogar para toda la familia',                       kind: 'general', search: false, browse: true },
   /* DICK'S + PACSUN (2026-09-25) — catalogue but no actor (Macy's pattern):
      browse: true, search: false. No logo file yet, so the wordmark pill
      on brand colour; colours are brand-red / near-black from the brands'
      public identity, not sampled from artwork. Mirrors scripts/lib/retailers.js. */
-  dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
+  dicks:           { key: 'dicks',           label: "Dick's Sporting Goods", color: '#D22630', logo: 'logos/dicks.png', tagline: 'Skate, surf y fitness',                          kind: 'general', search: false, browse: true },
   /* FINISH LINE (2026-10-05) -- catalogue but no actor, the Macy's pattern:
      browse: true, search: false. finishline-catalog.json (600 apparel
      products, Nike/adidas/Jordan-led; the sneakers pull glitched twice on
@@ -24600,11 +24600,11 @@ const RETAILERS = {
   nautilus:         { key: 'nautilus',         label: 'Nautilus Spearfishing', color: '#213236', logo: 'logos/nautilus.png', darkLogo: true,         tagline: 'Pesca submarina — arpones y buceo',      kind: 'general', search: false, browse: true },
   /* FUTBOL + TENIS (2026-09-29, Danny): soccer/tennis outlet specialists.
      Browse-only catalogs, the Macy's pattern. */
-  prosoccer:        { key: 'prosoccer',        label: 'ProSoccer',        color: '#0066CC', tagline: 'Fútbol en oferta — chimpunes y más',            kind: 'general', search: false, browse: true },
-  xtremesoccer:     { key: 'xtremesoccer',     label: 'Xtreme Soccer',    color: '#CC0000', tagline: 'Fútbol en oferta',                               kind: 'general', search: false, browse: true },
-  tennisexpress:    { key: 'tennisexpress',    label: 'Tennis Express',   color: '#008000', tagline: 'Tenis en oferta — raquetas y más',               kind: 'general', search: false, browse: true },
-  tenniswarehouse:  { key: 'tenniswarehouse',  label: 'Tennis Warehouse', color: '#FF6600', tagline: 'Tenis en oferta',                               kind: 'general', search: false, browse: true },
-  academy:           { key: 'academy',           label: 'Academy Sports',    color: '#003DA5', tagline: 'Fútbol en oferta — chimpunes',                        kind: 'general', search: false, browse: true },
+  prosoccer:        { key: 'prosoccer',        label: 'ProSoccer',        color: '#0066CC', logo: 'logos/prosoccer.png', tagline: 'Fútbol en oferta — chimpunes y más',            kind: 'general', search: false, browse: true },
+  xtremesoccer:     { key: 'xtremesoccer',     label: 'Xtreme Soccer',    color: '#CC0000', logo: 'logos/xtremesoccer.png', tagline: 'Fútbol en oferta',                               kind: 'general', search: false, browse: true },
+  tennisexpress:    { key: 'tennisexpress',    label: 'Tennis Express',   color: '#008000', logo: 'logos/tennisexpress.png', tagline: 'Tenis en oferta — raquetas y más',               kind: 'general', search: false, browse: true },
+  tenniswarehouse:  { key: 'tenniswarehouse',  label: 'Tennis Warehouse', color: '#FF6600', logo: 'logos/tenniswarehouse.png', darkLogo: true, tagline: 'Tenis en oferta',                               kind: 'general', search: false, browse: true },
+  academy:           { key: 'academy',           label: 'Academy Sports',    color: '#003DA5', logo: 'logos/academy.png', tagline: 'Fútbol en oferta — chimpunes',                        kind: 'general', search: false, browse: true },
   islandwatersports: { key: 'islandwatersports', label: 'Island Water Sports', color: '#373435', logo: 'logos/islandwatersports.svg', tagline: 'Surf shop de Florida — tablas y playa', kind: 'general', search: false, browse: true },
   quietstorm:      { key: 'quietstorm',      label: 'Quiet Storm Surf Shop', color: '#141414', logo: 'logos/quietstorm.png', darkLogo: true,      tagline: 'Surf shop — tablas, skate y ropa',        kind: 'general', search: false, browse: true },
   surfworld:       { key: 'surfworld',       label: 'Surf World',          color: '#00A9DC', logo: 'logos/surfworld.png', darkLogo: true,       tagline: 'Surf shop Fort Lauderdale',               kind: 'general', search: false, browse: true },
@@ -24687,8 +24687,8 @@ const RETAILERS = {
   meliebianco:    { key: 'meliebianco',    label: 'Melie Bianco',    color: '#000000', logo: 'logos/brands/meliebianco.png', tagline: 'Carteras y accesorios',                            kind: 'general', search: false, browse: true },
   bentgo:         { key: 'bentgo',         label: 'Bentgo',          color: '#000000', logo: 'logos/brands/bentgo.png', tagline: 'Loncheras bento para niños',                       kind: 'general', search: false, browse: true },
   mushie:         { key: 'mushie',         label: 'Mushie',          color: '#000000', logo: 'logos/brands/mushie.png', tagline: 'Vasos y vajilla para niños',                       kind: 'general', search: false, browse: true },
-  ezpz:           { key: 'ezpz',           label: 'ezpz',            color: '#000000', tagline: 'Platos y vasos para niños',                        kind: 'general', search: false, browse: true },
-  statebags:      { key: 'statebags',      label: 'State Bags',      color: '#000000', tagline: 'Mochilas y loncheras para niños',                  kind: 'general', search: false, browse: true },
+  ezpz:           { key: 'ezpz',           label: 'ezpz',            color: '#000000', logo: 'logos/ezpz.png', tagline: 'Platos y vasos para niños',                        kind: 'general', search: false, browse: true },
+  statebags:      { key: 'statebags',      label: 'State Bags',      color: '#000000', logo: 'logos/statebags.png', tagline: 'Mochilas y loncheras para niños',                  kind: 'general', search: false, browse: true },
   /* ARIA BEAUTY BRAND AISLES (2026-09-27, Danny): browsable brand keys inside beauty-catalog.json. Wordmark pills until logos land. */
   townley:         { key: 'townley',         label: 'Townley Girl',        color: '#EC008C', tagline: 'Maquillaje lavable para niñas',              kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
   morphe:          { key: 'morphe',          label: 'Morphe',              color: '#000000', tagline: 'Sets de brochas y maquillaje',               kind: 'general', search: false, browse: true, retired: true, retiredNote: 'Sin catalogo (2026-09-29). Re-activar cuando llegue el pull.', catalog: 'beauty' },
@@ -24707,28 +24707,28 @@ const RETAILERS = {
      APIs. No logo files yet — wordmark pill fallback, the documented
      pattern. Macy's pattern: browse: true, search: false.
      Mirrors scripts/lib/retailers.js. */
-  assouline:       { key: 'assouline',       label: 'Assouline',         color: '#000000', tagline: 'Libros de mesa de lujo — moda, arte y viajes', kind: 'general', search: false, browse: true },
-  chronicle:       { key: 'chronicle',       label: 'Chronicle Books',   color: '#1A1A1A', tagline: 'Libros ilustrados — fotografía, arte y diseño', kind: 'general', search: false, browse: true },
+  assouline:       { key: 'assouline',       label: 'Assouline',         color: '#000000', logo: 'logos/assouline.png', tagline: 'Libros de mesa de lujo — moda, arte y viajes', kind: 'general', search: false, browse: true },
+  chronicle:       { key: 'chronicle',       label: 'Chronicle Books',   color: '#1A1A1A', logo: 'logos/chronicle.png', darkLogo: true, tagline: 'Libros ilustrados — fotografía, arte y diseño', kind: 'general', search: false, browse: true },
   /* ARIA MOMS (2026-09-27, Danny): browsable mom+baby brand keys inside
      moms-catalog.json. Wordmark pills, the documented fallback.
      Mirrors scripts/lib/retailers.js. */
-  walmartbaby:     { key: 'walmartbaby',     label: 'Walmart Bebé',      color: '#0071CE',                             tagline: 'Coches, autoasientos y todo para el bebé',      kind: 'general', catalog: 'moms', search: false, browse: true },
-  momcozy:         { key: 'momcozy',         label: 'Momcozy',           color: '#2E6E63',                             tagline: 'Lactancia y cuidado del bebé',                 kind: 'general', catalog: 'moms', search: false, browse: true },
-  elvie:           { key: 'elvie',           label: 'Elvie',             color: '#7A4E8C',                             tagline: 'Extractores de leche inteligentes',            kind: 'general', catalog: 'moms', search: false, browse: true },
-  spectra:         { key: 'spectra',         label: 'Spectra',           color: '#C2185B',                             tagline: 'Extractores de leche',                       kind: 'general', catalog: 'moms', search: false, browse: true },
-  munchkin:        { key: 'munchkin',        label: 'Munchkin',          color: '#E8590C',                             tagline: 'Alimentación y cuidado del bebé',              kind: 'general', catalog: 'moms', search: false, browse: true },
+  walmartbaby:     { key: 'walmartbaby',     label: 'Walmart Bebé',      color: '#0071CE', logo: 'logos/walmart.svg',                             tagline: 'Coches, autoasientos y todo para el bebé',      kind: 'general', catalog: 'moms', search: false, browse: true },
+  momcozy:         { key: 'momcozy',         label: 'Momcozy',           color: '#2E6E63', logo: 'logos/momcozy.png',                             tagline: 'Lactancia y cuidado del bebé',                 kind: 'general', catalog: 'moms', search: false, browse: true },
+  elvie:           { key: 'elvie',           label: 'Elvie',             color: '#7A4E8C', logo: 'logos/elvie.png',                             tagline: 'Extractores de leche inteligentes',            kind: 'general', catalog: 'moms', search: false, browse: true },
+  spectra:         { key: 'spectra',         label: 'Spectra',           color: '#C2185B', logo: 'logos/spectra.png',                             tagline: 'Extractores de leche',                       kind: 'general', catalog: 'moms', search: false, browse: true },
+  munchkin:        { key: 'munchkin',        label: 'Munchkin',          color: '#E8590C', logo: 'logos/munchkin.png',                             tagline: 'Alimentación y cuidado del bebé',              kind: 'general', catalog: 'moms', search: false, browse: true },
   babybrezza:      { key: 'babybrezza',      label: 'Baby Brezza',       color: '#1971C2',      logo: 'logos/babybrezza.png', tagline: 'Alimentación del bebé',                        kind: 'general', catalog: 'moms', search: false, browse: true },
-  drbrowns:        { key: 'drbrowns',        label: "Dr. Brown's",       color: '#1864AB',                             tagline: 'Biberones y alimentación',                     kind: 'general', catalog: 'moms', search: false, browse: true },
-  mockingbird:     { key: 'mockingbird',     label: 'Mockingbird',       color: '#343A40',                             tagline: 'Coches premium',                               kind: 'general', catalog: 'moms', search: false, browse: true },
-  nanit:           { key: 'nanit',           label: 'Nanit',             color: '#0C8599',                             tagline: 'Monitoreo inteligente del bebé',               kind: 'general', catalog: 'moms', search: false, browse: true },
-  owlet:           { key: 'owlet',           label: 'Owlet',             color: '#5F3DC4',                             tagline: 'Monitoreo del bebé',                           kind: 'general', catalog: 'moms', search: false, browse: true },
-  kindredbravely:  { key: 'kindredbravely',  label: 'Kindred Bravely',   color: '#8C5E58',                             tagline: 'Lactancia y maternidad',                      kind: 'general', catalog: 'moms', search: false, browse: true },
-  hatch:           { key: 'hatch',           label: 'Hatch',             color: '#A61E4D',                             tagline: 'Ropa de maternidad',                           kind: 'general', catalog: 'moms', search: false, browse: true },
-  bellybandit:     { key: 'bellybandit',     label: 'Belly Bandit',      color: '#6B4F2A',                             tagline: 'Soporte pre y postparto',                      kind: 'general', catalog: 'moms', search: false, browse: true },
-  freshlypicked:   { key: 'freshlypicked',   label: 'Freshly Picked',    color: '#B07D4F',                             tagline: 'Pañaleras de cuero',                           kind: 'general', catalog: 'moms', search: false, browse: true },
-  jujube:          { key: 'jujube',          label: 'JuJuBe',            color: '#E64980',                             tagline: 'Pañaleras y accesorios',                       kind: 'general', catalog: 'moms', search: false, browse: true },
-  dagnedover:      { key: 'dagnedover',      label: 'Dagne Dover',       color: '#495057',                             tagline: 'Pañaleras',                                    kind: 'general', catalog: 'moms', search: false, browse: true },
-  lillebaby:       { key: 'lillebaby',       label: 'LÍLLÉbaby',         color: '#2B8A3E',                             tagline: 'Portabebés ergonómicos',                       kind: 'general', catalog: 'moms', search: false, browse: true },
+  drbrowns:        { key: 'drbrowns',        label: "Dr. Brown's",       color: '#1864AB', logo: 'logos/drbrowns.png', darkLogo: true,                             tagline: 'Biberones y alimentación',                     kind: 'general', catalog: 'moms', search: false, browse: true },
+  mockingbird:     { key: 'mockingbird',     label: 'Mockingbird',       color: '#343A40', logo: 'logos/mockingbird.png',                             tagline: 'Coches premium',                               kind: 'general', catalog: 'moms', search: false, browse: true },
+  nanit:           { key: 'nanit',           label: 'Nanit',             color: '#0C8599', logo: 'logos/nanit.png',                             tagline: 'Monitoreo inteligente del bebé',               kind: 'general', catalog: 'moms', search: false, browse: true },
+  owlet:           { key: 'owlet',           label: 'Owlet',             color: '#5F3DC4', logo: 'logos/owlet.png', darkLogo: true,                             tagline: 'Monitoreo del bebé',                           kind: 'general', catalog: 'moms', search: false, browse: true },
+  kindredbravely:  { key: 'kindredbravely',  label: 'Kindred Bravely',   color: '#8C5E58', logo: 'logos/kindredbravely.png',                             tagline: 'Lactancia y maternidad',                      kind: 'general', catalog: 'moms', search: false, browse: true },
+  hatch:           { key: 'hatch',           label: 'Hatch',             color: '#A61E4D', logo: 'logos/hatch.png',                             tagline: 'Ropa de maternidad',                           kind: 'general', catalog: 'moms', search: false, browse: true },
+  bellybandit:     { key: 'bellybandit',     label: 'Belly Bandit',      color: '#6B4F2A', logo: 'logos/bellybandit.png',                             tagline: 'Soporte pre y postparto',                      kind: 'general', catalog: 'moms', search: false, browse: true },
+  freshlypicked:   { key: 'freshlypicked',   label: 'Freshly Picked',    color: '#B07D4F', logo: 'logos/freshlypicked.png',                             tagline: 'Pañaleras de cuero',                           kind: 'general', catalog: 'moms', search: false, browse: true },
+  jujube:          { key: 'jujube',          label: 'JuJuBe',            color: '#E64980', logo: 'logos/jujube.png',                             tagline: 'Pañaleras y accesorios',                       kind: 'general', catalog: 'moms', search: false, browse: true },
+  dagnedover:      { key: 'dagnedover',      label: 'Dagne Dover',       color: '#495057', logo: 'logos/dagnedover.png',                             tagline: 'Pañaleras',                                    kind: 'general', catalog: 'moms', search: false, browse: true },
+  lillebaby:       { key: 'lillebaby',       label: 'LÍLLÉbaby',         color: '#2B8A3E', logo: 'logos/lillebaby.png',                             tagline: 'Portabebés ergonómicos',                       kind: 'general', catalog: 'moms', search: false, browse: true },
   skims:           { key: 'skims',           label: 'Skims',             color: '#605848', logo: 'logos/skims.png',      tagline: 'Shapewear, ropa interior y loungewear',        kind: 'general', search: false, browse: true },
 /* MERCHANDISING ORDER (2026-09-26, Danny): reliable shippers first.
    Delivery transparency is the merchandising strategy now — the stores
