@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diseñadores Latinos — Aria Shop</title>
+<meta name="description" content="La pasarela latinoamericana, en tu puerta. Farm Rio, Johanna Ortiz, Agua Bendita y más — comprados en Estados Unidos, entregados en Perú.">
+<style>
+/* ============ DISEÑADORES LATINOS — standalone page ============
+   Self-contained: no external CSS/JS dependencies. Every rule below
+   is in this file so the page renders even if every network request
+   fails. Zero emojis. */
+:root{
+  --navy:#0A1F44; --navy2:#16233F; --gold:#F4C463; --gold2:#E8B94A;
+  --sale:#FFDE59; --line:#E5E9F0; --ink:#101828; --muted:#667085;
+  --bg:#FAFBFC; --card:#FFFFFF; --danger:#B42318; --dangerbg:#FEF3F2;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+a{color:inherit}
+img{display:block;max-width:100%}
+button{font:inherit;cursor:pointer}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+@media(min-width:640px){.wrap{padding:0 24px}}
+
+/* ---------- header ---------- */
+.site-header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.site-header .bar{max-width:1240px;margin:0 auto;padding:0 16px;height:64px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wordmark{text-decoration:none;display:flex;align-items:center;gap:8px}
+.wordmark .w1{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);font-size:19px}
+.wordmark .w2{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--gold2);font-size:19px}
+.back-link{display:inline-flex;align-items:center;gap:8px;text-decoration:none;font-weight:700;font-size:14px;color:var(--navy);border:1px solid var(--line);border-radius:999px;padding:8px 16px;background:#fff}
+.back-link:hover{border-color:var(--navy)}
+.pe-badge{display:none;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+@media(min-width:640px){.pe-badge{display:inline-flex}}
+.inpage-nav{display:flex;gap:4px}
+.inpage-nav a{text-decoration:none;font-size:13.5px;font-weight:700;color:var(--navy);padding:8px 12px;border-radius:10px}
+.inpage-nav a:hover{background:#EEF2F7}
+@media(max-width:560px){.inpage-nav{display:none}}
+
+/* ---------- fatal / load error (never blank) ---------- */
+.fatal{background:var(--dangerbg);border-bottom:1px solid #FECDCA;color:var(--danger);font-weight:600;font-size:14px}
+.fatal .wrap{padding-top:10px;padding-bottom:10px}
+.load-error{margin:18px 0;background:#fff;border:1px solid #FECDCA;border-radius:16px;padding:22px;text-align:center}
+.load-error h3{margin:0 0 8px;font-size:18px;color:var(--danger)}
+.load-error p{margin:0 0 16px;color:var(--muted);font-size:14px}
+.retry-btn{background:var(--navy);color:#fff;border:0;border-radius:999px;padding:12px 28px;font-weight:800;font-size:15px}
+.retry-btn:hover{filter:brightness(1.12)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;overflow:hidden;background:linear-gradient(160deg,#0d1526 0%,#16233f 60%,#0d1526 100%);color:#fff}
+.hero img.hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.hero .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,16,32,.30) 0%,rgba(10,16,32,.10) 35%,rgba(10,16,32,.90) 100%)}
+.hero .scrim2{position:absolute;inset:0;background:linear-gradient(100deg,rgba(10,16,32,.72) 0%,rgba(10,16,32,0) 62%)}
+.hero-inner{position:relative;padding:64px 0 40px;max-width:1240px;margin:0 auto;padding-left:16px;padding-right:16px}
+@media(min-width:640px){.hero-inner{padding:88px 24px 52px}}
+.eyebrow{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--gold2);margin-bottom:10px}
+.hero h1{margin:0 0 10px;font-size:32px;line-height:1.05;letter-spacing:-.02em;color:#fff}
+@media(min-width:640px){.hero h1{font-size:44px}}
+.hero p{margin:0;max-width:44ch;font-size:15px;color:rgba(255,255,255,.84)}
+.hero-meta{margin-top:14px;font-size:13px;color:rgba(255,255,255,.62)}
+.hero-meta strong{color:var(--gold2)}
+
+/* ---------- vestidor (product-type tiles) ---------- */
+.vestidor{margin:26px 0 6px;background:linear-gradient(160deg,#0d1526 0%,#16233f 60%,#0d1526 100%);border-radius:20px;padding:22px 16px}
+@media(min-width:640px){.vestidor{padding:26px 22px}}
+.vestidor-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.vestidor-head .rule{height:1px;flex:1}
+.vestidor-head .rule.l{background:linear-gradient(90deg,transparent,var(--gold2))}
+.vestidor-head .rule.r{background:linear-gradient(90deg,var(--gold2),transparent)}
+.vestidor-head .t{font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;color:var(--gold2);white-space:nowrap}
+.tile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.tile-grid{grid-template-columns:repeat(4,1fr)}}
+@media(min-width:1024px){.tile-grid{grid-template-columns:repeat(7,1fr)}}
+.tile{border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.06);border-radius:14px;padding:14px 8px;color:#fff;text-align:center;transition:background .15s}
+.tile:hover{background:rgba(255,255,255,.12)}
+.tile[aria-pressed="true"]{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.tile .tl{display:block;font-size:14px;font-weight:800}
+.tile .tc{display:block;font-size:12px;font-weight:600;opacity:.75;margin-top:2px;font-variant-numeric:tabular-nums}
+
+/* ---------- designer chips ---------- */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:16px 0 4px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;height:38px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--navy);font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px}
+.chip .n{font-variant-numeric:tabular-nums;opacity:.6;font-weight:600}
+.chip[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff}
+.chip[aria-pressed="true"] .n{opacity:.75}
+
+/* ---------- designer room (gallery) ---------- */
+.room{margin:26px 0 8px;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.room-banner{position:relative;min-height:170px;background:linear-gradient(120deg,#0d1526,#1d2c4e)}
+@media(min-width:640px){.room-banner{min-height:210px}}
+.room-banner img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 22%}
+.room-banner .scrim{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,16,32,.05) 20%,rgba(10,16,32,.82) 100%)}
+.room-banner .sheen{position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.14) 0%,rgba(255,255,255,0) 40%)}
+.room-id{position:absolute;left:18px;right:18px;bottom:14px;color:#fff}
+.room-id .c{font-size:11px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold2)}
+.room-id h2{margin:2px 0;font-size:24px;letter-spacing:-.01em}
+@media(min-width:640px){.room-id h2{font-size:30px}}
+.room-id .m{font-size:13px;color:rgba(255,255,255,.78)}
+.room-rail{padding:14px 0 6px}
+.rail{display:flex;gap:12px;overflow-x:auto;padding:4px 16px 14px;scroll-snap-type:x mandatory;scrollbar-width:thin}
+.rail::-webkit-scrollbar{height:6px}
+.rail::-webkit-scrollbar-thumb{background:#CBD5E1;border-radius:3px}
+.room-foot{padding:0 18px 18px}
+.show-all{background:none;border:1px solid var(--line);border-radius:999px;padding:10px 22px;font-weight:800;font-size:14px;color:var(--navy)}
+.show-all:hover{border-color:var(--navy)}
+.room-note{padding:26px 18px;color:var(--muted);font-size:14px}
+
+/* ---------- product card ---------- */
+.card{flex:0 0 164px;scroll-snap-align:start;background:var(--card);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+@media(min-width:640px){.card{flex-basis:196px}}
+.card a{text-decoration:none;color:inherit;display:block}
+.card-img{position:relative;aspect-ratio:3/4;background:#F1F4F9;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:cover}
+.card-img.noimg::after{content:"Aria";position:absolute;inset:0;display:grid;place-items:center;color:#9AA6BC;font-weight:800;letter-spacing:.2em;font-size:12px}
+.card-body{padding:10px 10px 12px}
+.card-brand{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-name{margin:4px 0 8px;font-size:13px;font-weight:600;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:35px}
+.price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price{font-size:17px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.price-was{font-size:13px;color:var(--muted);text-decoration:line-through;font-variant-numeric:tabular-nums}
+.sale-badge{display:inline-block;background:var(--sale);color:var(--navy);font-size:11px;font-weight:800;border-radius:6px;padding:2px 7px}
+.price-pen{margin-top:2px;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.price-na{font-size:13px;color:var(--muted);font-weight:600}
+
+/* ---------- coming soon strip ---------- */
+.soon{margin:30px 0 8px}
+.soon h2{font-size:20px;margin:0 0 4px;color:var(--navy)}
+.soon p{margin:0 0 14px;color:var(--muted);font-size:14px}
+.soon-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:640px){.soon-grid{grid-template-columns:repeat(3,1fr)}}
+.soon-card{border:1px dashed #CBD5E1;border-radius:14px;padding:16px 14px;background:#fff}
+.soon-card .n{font-weight:800;color:var(--navy);font-size:15px}
+.soon-card .c{font-size:12px;color:var(--muted);font-weight:600}
+.soon-card .s{margin-top:6px;font-size:12px;color:var(--gold2);font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+
+/* ---------- section titles / misc ---------- */
+.sec-title{font-size:21px;font-weight:800;color:var(--navy);margin:26px 0 2px;letter-spacing:-.01em}
+.sec-sub{color:var(--muted);font-size:14px;margin:0 0 4px}
+.loading{padding:34px 0;text-align:center;color:var(--muted);font-size:14px}
+.spinner{display:inline-block;width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--navy);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:-5px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{background:#fff;border:1px solid var(--line);border-radius:16px;padding:28px;text-align:center;color:var(--muted);margin:18px 0}
+
+/* ---------- footer ---------- */
+.site-footer{margin-top:44px;background:var(--navy);color:rgba(255,255,255,.78);font-size:13px}
+.site-footer .wrap{padding-top:28px;padding-bottom:28px;display:flex;flex-wrap:wrap;gap:18px;align-items:center;justify-content:space-between}
+.site-footer .fw{font-weight:800;letter-spacing:.12em;color:#fff;text-transform:uppercase}
+.site-footer a{color:var(--gold2);text-decoration:none;font-weight:700}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="bar">
+    <a class="wordmark" href="https://ariashop.pe/" aria-label="Aria Shop — inicio">
+      <span class="w1">Aria</span><span class="w2">Shop</span>
+    </a>
+    <nav class="inpage-nav" aria-label="En esta página">
+      <a href="#vestidor">Por tipo</a>
+      <a href="#galeria">Diseñadores</a>
+      <a href="#proximamente">Próximamente</a>
+    </nav>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="pe-badge">Perú · PEN</span>
+      <a class="back-link" href="https://ariashop.pe/">← Inicio</a>
+    </div>
+  </div>
+  <div id="fatalError" class="fatal" hidden>
+    <div class="wrap"><span id="fatalMsg">Algo falló al cargar esta página.</span> <a href="" onclick="location.reload();return false;" style="font-weight:800">Recargar</a></div>
+  </div>
+</header>
+
+<main>
+  <!-- HERO: static, renders with zero JS -->
+  <section class="hero" aria-label="Diseñadores Latinos">
+    <img class="hero-bg" src="assets/latino/runway-hero.jpg" alt="" aria-hidden="true" loading="eager" decoding="async" onerror="this.remove()">
+    <div class="scrim" aria-hidden="true"></div>
+    <div class="scrim2" aria-hidden="true"></div>
+    <div class="hero-inner">
+      <span class="eyebrow">Alta costura latina</span>
+      <h1>Diseñadores Latinos</h1>
+      <p>La pasarela latinoamericana, en tu puerta. El talento de Brasil, Colombia y Perú, comprado en Estados Unidos y entregado en Perú.</p>
+      <div class="hero-meta" id="heroMeta">Cargando la colección…</div>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <!-- VESTIDOR: product-type tiles, primary navigation -->
+    <section id="vestidor" class="vestidor" aria-label="Comprar por tipo de prenda">
+      <div class="vestidor-head">
+        <span class="rule l"></span><span class="t">El vestidor</span><span class="rule r"></span>
+      </div>
+      <div class="tile-grid" id="typeTiles" role="group" aria-label="Tipo de prenda">
+        <noscript><p style="color:#fff">Activa JavaScript para filtrar por tipo de prenda.</p></noscript>
+      </div>
+    </section>
+
+    <!-- Designer filter chips -->
+    <div class="chips" id="designerChips" role="radiogroup" aria-label="Filtrar por diseñador"></div>
+
+    <!-- Load error panel: shown only if the catalog fetch fails. Never a blank page. -->
+    <div id="loadError" class="load-error" hidden>
+      <h3>No pudimos cargar la colección</h3>
+      <p id="loadErrorDetail">Revisa tu conexión e inténtalo de nuevo. Ningún producto se perdió: la colección sigue en nuestras tiendas.</p>
+      <button class="retry-btn" id="retryBtn" type="button">Reintentar</button>
+    </div>
+
+    <div id="loadingState" class="loading"><span class="spinner" aria-hidden="true"></span>Cargando diseñadores…</div>
+
+    <!-- Gallery: one room per designer -->
+    <div id="galeria" aria-live="polite"></div>
+    <div id="emptyState" class="empty-state" hidden>
+      <p style="margin:0;font-weight:700;color:var(--navy)">Sin resultados con esos filtros.</p>
+      <p style="margin:6px 0 0">Prueba con otro diseñador o tipo de prenda.</p>
+    </div>
+
+    <!-- Designers whose collections are still being connected -->
+    <section id="proximamente" class="soon" aria-label="Próximamente en la pasarela">
+      <h2>También en la pasarela</h2>
+      <p>Estas casas están por abrir su sala. Vuelve pronto.</p>
+      <div class="soon-grid" id="soonGrid"></div>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <span class="fw">Aria Shop</span>
+    <span>La pasarela latinoamericana, en tu puerta.</span>
+    <a href="https://ariashop.pe/">← Volver a ariashop.pe</a>
+  </div>
+</footer>
+
+<noscript>
+  <div style="max-width:1240px;margin:0 auto;padding:24px 16px">
+    <p style="font-weight:700">Esta página necesita JavaScript para mostrar la colección de diseñadores.</p>
+  </div>
+</noscript>
+
+<script>
+(function(){
+'use strict';
+/* ============================================================
+   DISEÑADORES LATINOS — standalone gallery page.
+   Bulletproof contract: this page NEVER renders blank.
+   - Header, hero, footer are static HTML (no JS needed).
+   - Designer/chip/tile shells render from hardcoded spec data.
+   - The catalog fetch is the only network dependency; on failure
+     an error panel with a retry button appears — never emptiness.
+   - Every render step is individually try/caught: one bad designer
+     or product cannot take down the rest of the page.
+   ============================================================ */
+
+/* ---------- tiny utils (copied semantics from the main site) ---------- */
+function $(id){ return document.getElementById(id); }
+function escapeHtml(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function safeUrl(u){ return (typeof u === 'string' && /^https?:\/\//i.test(u)) ? u : null; }
+function round2(n){ return Math.round(n * 100) / 100; }
+function fmtUSD(n){
+  return '$' + Number(n).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function fmtPEN(usd, rate){
+  if (!Number.isFinite(usd) || !Number.isFinite(rate) || rate <= 0) return null;
+  return 'S/ ' + (round2(usd * rate)).toLocaleString('es-PE', {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+/* TIERED MARGINAL MARGIN (Danny, locked 2026-10-02): 24% first $500,
+   18% $500–$2,000, 12% $2,000–$5,000, 8% above. Same math as main site. */
+function tieredMarginUsd(rawUsd){
+  var r = Number(rawUsd);
+  if (!(r > 0)) return 0;
+  return Math.min(r, 500) * 0.24
+    + Math.min(Math.max(r - 500, 0), 1500) * 0.18
+    + Math.min(Math.max(r - 2000, 0), 3000) * 0.12
+    + Math.max(r - 5000, 0) * 0.08;
+}
+/* Final USD card price: raw shelf + tiered margin, then Miami 7% sales
+   tax (none of these designers' retailers are DR-13 exempt). */
+function ariaPrice(rawUsd){
+  var r = Number(rawUsd);
+  if (!(r > 0)) return null;
+  return round2((r + tieredMarginUsd(r)) * 1.07);
+}
+
+/* ---------- global safety net: never a silent blank ---------- */
+function showFatal(msg){
+  try{
+    var bar = $('fatalError'), m = $('fatalMsg');
+    if (m && msg) m.textContent = msg;
+    if (bar) bar.hidden = false;
+  }catch(e){/* last resort: nothing else to do */}
+}
+window.addEventListener('error', function(){
+  showFatal('Algo falló al cargar esta página. Recarga para intentarlo de nuevo.');
+});
+
+/* ---------- hardcoded spec (no network needed to render shells) ---------- */
+var DESIGNERS = [
+  { key:'farmrio',         label:'Farm Rio',            match:'farm rio',            country:'Brasil',   hero:'assets/designers/farmrio.jpg' },
+  { key:'aguabendita',     label:'Agua Bendita',        match:'agua bendita',        country:'Colombia', hero:'assets/designers/aguabendita.jpg' },
+  { key:'patbo',           label:'PatBO',               match:'patbo',               country:'Brasil',   hero:'assets/designers/patbo.jpg' },
+  { key:'johannaortiz',    label:'Johanna Ortiz',       match:'johanna ortiz',       country:'Colombia', hero:'assets/designers/johannaortiz.jpg' },
+  { key:'silviatcherassi', label:'Silvia Tcherassi',    match:'silvia tcherassi',    country:'Colombia', hero:'assets/designers/silviatcherassi.jpg' },
+  { key:'capittana',       label:'Capittana',           match:'capittana',           country:'Perú',     hero:'assets/designers/capittana.jpg' },
+  { key:'ancora',          label:'Ancora Swimwear',     match:'ancora swimwear',     country:'',         hero:'assets/designers/ancora.jpg' },
+  { key:'eberjey',         label:'Eberjey',             match:'eberjey',             country:'',         hero:'assets/designers/eberjey.jpg' },
+  { key:'vix',             label:'Vix',                 match:'vix',                 country:'',         hero:'assets/designers/vix.jpg' },
+  { key:'montce',          label:'Montce',              match:'montce',              country:'',         hero:'assets/designers/montce.jpg' },
+  { key:'tns',             label:'TNS',                 match:'tns',                 country:'',         hero:'assets/designers/tns.jpg' },
+  { key:'osklen',          label:'Osklen',              match:'osklen',              country:'Brasil',   hero:'assets/latino/designers/osklen.jpg' },
+  { key:'lennyniemeyer',   label:'Lenny Niemeyer',      match:'lenny niemeyer',      country:'Brasil',   hero:'assets/latino/designers/lennyniemeyer.jpg' },
+  { key:'adrianadegreas',  label:'Adriana Degreas',     match:'adriana degreas',     country:'Brasil',   hero:'assets/latino/runway-hero.jpg' },
+  { key:'andresotalora',   label:'Andres Otalora',      match:'andres otalora',      country:'Colombia', hero:'assets/latino/designers/andresotalora.jpg' },
+  { key:'dondeesteban',    label:'Donde Esteban',       match:'donde esteban',       country:'Colombia', hero:'assets/latino/backstage.jpg' },
+  { key:'amirslama',       label:'Amir Slama',          match:'amir slama',          country:'Brasil',   hero:'assets/latino/amirslama-hero.jpg' },
+  { key:'alexandrebirman', label:'Alexandre Birman',    match:'alexandre birman',   country:'Brasil',   hero:'assets/latino/designers/alexandrebirman.jpg' },
+  { key:'sarahchofakian',  label:'Sarah Chofakian',     match:'sarah chofakian',     country:'Brasil',   hero:'' },
+  { key:'aguabyaguabendita', label:'Agua by Agua Bendita', match:'agua by agua bendita', country:'Colombia', hero:'' }
+];
+var PRODUCT_TYPES = [
+  { key:'trajes_bano', label:'Trajes de Baño', keywords:['bikini','swimsuit','swim','one-piece','two-piece','beach','swimwear','rash guard'] },
+  { key:'carteras',    label:'Carteras',       keywords:['bag','handbag','purse','tote','clutch','backpack','crossbody','satchel'] },
+  { key:'joyas',       label:'Joyas',          keywords:['jewelry','earring','necklace','bracelet','ring','pendant','charm'] },
+  { key:'zapatos',     label:'Zapatos',        keywords:['shoe','sandal','heel','sneaker','flat','mule','boot','loafer','espadrille'] },
+  { key:'sombreros',   label:'Sombreros',      keywords:['hat','cap','beanie','fedora','visor'] },
+  { key:'accesorios',  label:'Accesorios',     keywords:['scarf','belt','sunglasses','wallet','glove','shawl','pareo','sarong'] },
+  { key:'ropa',        label:'Ropa',           keywords:[] }
+];
+var DATA_URLS = ['/latino-designers-dtc-catalog.json', 'https://ariashop.pe/latino-designers-dtc-catalog.json'];
+var FX_URLS   = ['/.netlify/functions/exchange-rate', 'https://ariashop.pe/.netlify/functions/exchange-rate'];
+var FETCH_TIMEOUT_MS = 20000;
+var CARDS_PER_ROOM = 24;
+
+/* ---------- state ---------- */
+var state = {
+  items: [],            // normalized items
+  byDesigner: {},       // key -> [items]
+  typeCounts: {},       // typeKey -> count
+  fxRate: null,
+  designerFilter: 'all',
+  typeFilter: 'all',
+  loaded: false
+};
+
+/* ---------- network with timeout + fallbacks ---------- */
+function fetchWithTimeout(url, ms){
+  var ctrl;
+  try { ctrl = new AbortController(); }
+  catch(e){ return fetch(url); } // very old browser: no timeout, still try
+  var t = setTimeout(function(){ try{ ctrl.abort(); }catch(e){} }, ms);
+  return fetch(url, {signal: ctrl.signal}).then(function(res){
+    clearTimeout(t); return res;
+  }, function(err){ clearTimeout(t); throw err; });
+}
+function fetchFirstJson(urls){
+  var i = 0;
+  function attempt(){
+    if (i >= urls.length) return Promise.reject(new Error('all urls failed'));
+    var u = urls[i++];
+    return fetchWithTimeout(u, FETCH_TIMEOUT_MS).then(function(res){
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }).catch(function(){ return attempt(); });
+  }
+  return attempt();
+}
+function loadFxRate(){
+  return fetchFirstJson(FX_URLS).then(function(data){
+    var v = data && data.venta;
+    return (typeof v === 'number' && v > 0) ? v : null;
+  }).catch(function(){ return null; }); // FX never blocks rendering; USD-only fallback
+}
+
+/* ---------- classification (same rules as main site) ---------- */
+function designerKeyFor(item){
+  var b = String((item && item.brand) || '').toLowerCase().trim();
+  if (!b) return null;
+  for (var i = 0; i < DESIGNERS.length; i++){
+    if (b === DESIGNERS[i].match) return DESIGNERS[i].key;
+  }
+  return null;
+}
+function productTypeOf(item){
+  var n = String((item && item.name) || '').toLowerCase();
+  for (var i = 0; i < PRODUCT_TYPES.length; i++){
+    var t = PRODUCT_TYPES[i];
+    if (!t.keywords.length) continue;
+    for (var k = 0; k < t.keywords.length; k++){
+      if (n.indexOf(t.keywords[k]) !== -1) return t.key;
+    }
+  }
+  return 'ropa';
+}
+function ingest(data){
+  var retailers = (data && data.retailers) || {};
+  var all = [], byD = {}, typeCounts = {};
+  Object.keys(retailers).forEach(function(rk){
+    var bucket = retailers[rk] && retailers[rk].departments && retailers[rk].departments.latino_designers;
+    var items = (bucket && bucket.items) || [];
+    items.forEach(function(it){
+      try{
+        var price = ariaPrice(it.price);
+        var oRaw = (it.originalPrice != null) ? ariaPrice(it.originalPrice) : null;
+        var norm = {
+          name: it.name || 'Producto sin título',
+          brand: it.brand || '',
+          brandKey: designerKeyFor(it),
+          price: price,
+          originalPrice: (oRaw != null && price != null && oRaw > price) ? oRaw : null,
+          onSale: !!it.onSale,
+          image: safeUrl(it.image),
+          url: safeUrl(it.url),
+          ptype: productTypeOf(it)
+        };
+        all.push(norm);
+        if (norm.brandKey){
+          if (!byD[norm.brandKey]) byD[norm.brandKey] = [];
+          byD[norm.brandKey].push(norm);
+        }
+        typeCounts[norm.ptype] = (typeCounts[norm.ptype] || 0) + 1;
+      }catch(e){/* one bad item never kills the ingest */}
+    });
+  });
+  state.items = all;
+  state.byDesigner = byD;
+  state.typeCounts = typeCounts;
+  state.loaded = true;
+}
+
+/* ---------- rendering: every step individually guarded ---------- */
+function cardHTML(it){
+  try{
+    var name = escapeHtml(it.name);
+    var brand = escapeHtml(it.brand);
+    var img = it.image
+      ? '<img src="' + escapeHtml(it.image) + '" alt="' + name + '" loading="lazy" decoding="async" onerror="var w=this.closest(\'.card-img\');if(w)w.classList.add(\'noimg\');this.remove();">'
+      : '';
+    var priceBlock;
+    if (it.price == null){
+      priceBlock = '<div class="price-na">Precio no disponible</div>';
+    } else {
+      var saleBadge = '';
+      var was = '';
+      if (it.onSale && it.originalPrice != null){
+        var pct = Math.round((1 - it.price / it.originalPrice) * 100);
+        if (pct > 0) saleBadge = ' <span class="sale-badge">-' + pct + '%</span>';
+        was = '<span class="price-was">' + fmtUSD(it.originalPrice) + '</span>';
+      }
+      var pen = fmtPEN(it.price, state.fxRate);
+      priceBlock = '<div class="price-row"><span class="price">' + fmtUSD(it.price) + '</span>' + was + saleBadge + '</div>'
+        + (pen ? '<div class="price-pen">' + escapeHtml(pen) + ' · TC hoy ' + escapeHtml(String(state.fxRate)) + '</div>' : '');
+    }
+    var open = it.url ? '<a href="' + escapeHtml(it.url) + '" target="_blank" rel="noopener">' : '<a href="#" onclick="return false;">';
+    return '<article class="card">' + open
+      + '<div class="card-img' + (it.image ? '' : ' noimg') + '">' + img + '</div>'
+      + '<div class="card-body"><div class="card-brand">' + brand + '</div>'
+      + '<h3 class="card-name">' + name + '</h3>'
+      + priceBlock
+      + '</div></a></article>';
+  }catch(e){ return ''; } // one bad card renders as nothing, never breaks the rail
+}
+
+function roomHTML(spec, items, expanded){
+  try{
+    var shown = expanded ? items : items.slice(0, CARDS_PER_ROOM);
+    var cards = shown.map(cardHTML).join('');
+    var more = (!expanded && items.length > CARDS_PER_ROOM)
+      ? '<div class="room-foot"><button type="button" class="show-all" data-room="' + escapeHtml(spec.key) + '">Ver los ' + items.length + ' productos</button></div>'
+      : '';
+    var empty = items.length === 0
+      ? '<div class="room-note">Aún no hay productos de ' + escapeHtml(spec.label) + ' en esta colección.</div>'
+      : '';
+    var heroImg = spec.hero
+      ? '<img src="' + escapeHtml(spec.hero) + '" alt="" aria-hidden="true" loading="lazy" decoding="async" onerror="this.remove()">'
+      : '';
+    var country = spec.country ? '<div class="c">' + escapeHtml(spec.country) + '</div>' : '';
+    return '<section class="room" data-designer="' + escapeHtml(spec.key) + '" aria-label="' + escapeHtml(spec.label) + '">'
+      + '<div class="room-banner">' + heroImg
+      + '<div class="scrim" aria-hidden="true"></div><div class="sheen" aria-hidden="true"></div>'
+      + '<div class="room-id">' + country
+      + '<h2>' + escapeHtml(spec.label) + '</h2>'
+      + '<div class="m">' + items.length + ' producto' + (items.length === 1 ? '' : 's') + '</div>'
+      + '</div></div>'
+      + (items.length
+          ? '<div class="room-rail"><div class="rail">' + cards + '</div></div>' + more
+          : empty)
+      + '</section>';
+  }catch(e){ return ''; }
+}
+
+function filteredItems(list){
+  var tf = state.typeFilter;
+  if (tf === 'all') return list;
+  return list.filter(function(it){ return it.ptype === tf; });
+}
+
+function renderGallery(){
+  var gal = $('galeria');
+  if (!gal) return;
+  try{
+    var rooms = [];
+    var anyVisible = false;
+    DESIGNERS.forEach(function(spec){
+      var items = state.byDesigner[spec.key] || [];
+      if (!items.length) return; // designers without data live in the "próximamente" strip
+      if (state.designerFilter !== 'all' && state.designerFilter !== spec.key) return;
+      var list = filteredItems(items);
+      if (!list.length) return;
+      anyVisible = true;
+      rooms.push(roomHTML(spec, list, state['expanded_' + spec.key] === true));
+    });
+    gal.innerHTML = rooms.join('');
+    Array.prototype.forEach.call(gal.querySelectorAll('.show-all'), function(btn){
+      btn.addEventListener('click', function(){
+        try{
+          state['expanded_' + btn.getAttribute('data-room')] = true;
+          renderGallery();
+        }catch(e){ showFatal('No pudimos mostrar más productos.'); }
+      });
+    });
+    var empty = $('emptyState');
+    if (empty) empty.hidden = anyVisible;
+  }catch(e){
+    showFatal('No pudimos mostrar la galería.');
+  }
+}
+
+function renderChips(){
+  var box = $('designerChips');
+  if (!box) return;
+  try{
+    var total = state.loaded ? state.items.length : 0;
+    var html = '<button type="button" class="chip" data-d="all" role="radio" aria-checked="' + (state.designerFilter === 'all') + '" aria-pressed="' + (state.designerFilter === 'all') + '">Todo' + (state.loaded ? ' <span class="n">' + total + '</span>' : '') + '</button>';
+    DESIGNERS.forEach(function(spec){
+      var n = state.byDesigner[spec.key] ? state.byDesigner[spec.key].length : 0;
+      if (state.loaded && !n) return; // only carried designers get a chip once loaded
+      var on = state.designerFilter === spec.key;
+      html += '<button type="button" class="chip" data-d="' + escapeHtml(spec.key) + '" role="radio" aria-checked="' + on + '" aria-pressed="' + on + '">'
+        + escapeHtml(spec.label) + (state.loaded ? ' <span class="n">' + n + '</span>' : '') + '</button>';
+    });
+    box.innerHTML = html;
+    Array.prototype.forEach.call(box.querySelectorAll('.chip'), function(btn){
+      btn.addEventListener('click', function(){
+        try{
+          state.designerFilter = btn.getAttribute('data-d') || 'all';
+          renderChips(); renderGallery();
+        }catch(e){ showFatal('No pudimos aplicar el filtro.'); }
+      });
+    });
+  }catch(e){ showFatal('No pudimos mostrar los filtros.'); }
+}
+
+function renderTiles(){
+  var box = $('typeTiles');
+  if (!box) return;
+  try{
+    var html = '';
+    PRODUCT_TYPES.forEach(function(t){
+      var on = state.typeFilter === t.key;
+      var count = state.loaded ? (state.typeCounts[t.key] || 0) : null;
+      html += '<button type="button" class="tile" data-t="' + escapeHtml(t.key) + '" aria-pressed="' + on + '">'
+        + '<span class="tl">' + escapeHtml(t.label) + '</span>'
+        + '<span class="tc">' + (count == null ? '···' : count + ' producto' + (count === 1 ? '' : 's')) + '</span>'
+        + '</button>';
+    });
+    box.innerHTML = html;
+    Array.prototype.forEach.call(box.querySelectorAll('.tile'), function(btn){
+      btn.addEventListener('click', function(){
+        try{
+          var k = btn.getAttribute('data-t');
+          state.typeFilter = (state.typeFilter === k) ? 'all' : k; // tapping the active tile clears the filter
+          renderTiles(); renderGallery();
+        }catch(e){ showFatal('No pudimos aplicar el filtro.'); }
+      });
+    });
+  }catch(e){ showFatal('No pudimos mostrar las categorías.'); }
+}
+
+function renderSoon(){
+  var grid = $('soonGrid');
+  if (!grid) return;
+  try{
+    var html = '';
+    DESIGNERS.forEach(function(spec){
+      var n = state.byDesigner[spec.key] ? state.byDesigner[spec.key].length : 0;
+      if (n) return; // carried designers have their own room
+      html += '<div class="soon-card"><div class="n">' + escapeHtml(spec.label) + '</div>'
+        + (spec.country ? '<div class="c">' + escapeHtml(spec.country) + '</div>' : '')
+        + '<div class="s">Próximamente</div></div>';
+    });
+    grid.innerHTML = html;
+    var sec = $('proximamente');
+    if (sec) sec.style.display = html ? '' : 'none';
+  }catch(e){/* non-critical strip; stay silent */}
+}
+
+function renderHeroMeta(){
+  var el = $('heroMeta');
+  if (!el) return;
+  try{
+    if (!state.loaded){ el.innerHTML = 'Cargando la colección…'; return; }
+    var nDesigners = Object.keys(state.byDesigner).length;
+    var nItems = state.items.length;
+    el.innerHTML = '<strong>' + nDesigners + '</strong> diseñadores · <strong>' + nItems.toLocaleString('es-PE') + '</strong> productos · Comprados en EE.&nbsp;UU., entregados en Perú';
+  }catch(e){/* non-critical */}
+}
+
+function renderAll(){
+  renderHeroMeta();
+  renderChips();
+  renderTiles();
+  renderGallery();
+  renderSoon();
+}
+
+function showLoadError(detail){
+  try{
+    var p = $('loadError'), d = $('loadErrorDetail'), l = $('loadingState');
+    if (l) l.hidden = true;
+    if (d && detail) d.textContent = detail;
+    if (p) p.hidden = false;
+  }catch(e){ showFatal('No pudimos cargar la colección.'); }
+}
+
+/* ---------- boot ---------- */
+function load(){
+  var l = $('loadingState');
+  try{ if (l) l.hidden = false; }catch(e){}
+  var err = $('loadError');
+  try{ if (err) err.hidden = true; }catch(e){}
+  // FX and catalog load in parallel; FX failure never blocks products.
+  var fxP = loadFxRate().then(function(r){ state.fxRate = r; });
+  fetchFirstJson(DATA_URLS).then(function(data){
+    return fxP.then(function(){
+      ingest(data);
+      try{ if (l) l.hidden = true; }catch(e){}
+      renderAll();
+    });
+  }).catch(function(){
+    try{ if (l) l.hidden = true; }catch(e2){}
+    showLoadError('No pudimos descargar el catálogo (verifica tu conexión). Toca reintentar: la colección sigue intacta en nuestras tiendas.');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    // Shells render immediately from hardcoded spec — visible before any network.
+    renderChips();
+    renderTiles();
+    renderSoon();
+    var retry = $('retryBtn');
+    if (retry) retry.addEventListener('click', function(){ load(); });
+    load();
+  }catch(e){
+    showFatal('Algo falló al iniciar la página. Recarga para intentarlo de nuevo.');
+  }
+});
+})(); /* close IIFE */
+</script>
+</body>
+</html>

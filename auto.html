@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aria Auto — El repuesto exacto para tu auto | Aria Shop</title>
+<meta name="description" content="Elige tu vehículo y busca repuestos: comparamos precios en tiendas de Estados Unidos.">
+<style>
+  :root{
+    --navy:#0A1F44; --navy2:#12295A; --blue:#1D4ED8; --gold:#F4C463;
+    --line:#E2E8F0; --sky:#EFF6FF; --ink:#0F172A; --mut:#64748B; --paper:#F8FAFC;
+    --ok:#15803D; --warn:#B45309;
+  }
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:var(--paper);line-height:1.5}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+  /* Header */
+  .topbar{background:var(--navy);color:#CBD5E1;font-size:12.5px}
+  .topbar .wrap{display:flex;gap:18px;align-items:center;height:36px;overflow-x:auto;white-space:nowrap}
+  .topbar a{text-decoration:none;opacity:.85}
+  .topbar a:hover{opacity:1}
+  .mainnav{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+  .mainnav .wrap{display:flex;align-items:center;gap:22px;height:64px}
+  .brand{font-weight:900;letter-spacing:-.02em;font-size:20px;color:var(--navy);text-decoration:none}
+  .brand span{color:var(--blue)}
+  .navlinks{display:flex;gap:18px;margin-left:auto;font-size:14px;font-weight:600}
+  .navlinks a{text-decoration:none;color:#334155;padding:6px 2px}
+  .navlinks a.active{color:var(--navy);border-bottom:2px solid var(--gold)}
+  /* Hero */
+  .hero{position:relative;overflow:hidden;background:linear-gradient(160deg,#0A1F44 0%,#132E63 55%,#0A1F44 100%);color:#fff}
+  .hero::after{content:"AUTO";position:absolute;right:-10px;top:50%;transform:translateY(-54%) skewX(-8deg);font-size:120px;font-weight:900;letter-spacing:.02em;color:rgba(255,255,255,.05);pointer-events:none;user-select:none}
+  .hero .wrap{position:relative;padding:56px 20px}
+  .kicker{font-size:11.5px;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
+  .hero h1{margin:0 0 14px;font-size:clamp(30px,6vw,44px);font-weight:800;letter-spacing:-.03em;line-height:1.08;max-width:20ch}
+  .hero h1 em{font-style:normal;color:var(--gold)}
+  .hero p{margin:0;color:#AFBBD6;font-size:16px;max-width:60ch}
+  /* Cards */
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;padding:22px}
+  @media(min-width:640px){.card{padding:28px}}
+  .step{font-weight:800;font-size:15px;color:var(--navy);margin:0 0 16px}
+  .grid3{display:grid;gap:12px}
+  @media(min-width:640px){.grid3{grid-template-columns:1fr 1fr 1fr}}
+  label.lbl{display:block;font-size:12px;font-weight:800;color:var(--navy);margin-bottom:6px}
+  select,input[type=text]{width:100%;height:50px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:14.5px;background:#fff;color:var(--ink);outline:none}
+  select:focus,input[type=text]:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(29,78,216,.15)}
+  select:disabled{opacity:.55;cursor:not-allowed;background:#F8FAFC}
+  .btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 26px;border:0;border-radius:14px;background:var(--gold);color:#1A1408;font-size:15px;font-weight:800;cursor:pointer;text-decoration:none}
+  .btn:hover{filter:brightness(.96)}
+  .btn-blue{background:var(--blue);color:#fff}
+  .btn-ghost{background:#fff;border:1px solid var(--line);color:var(--navy)}
+  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+  .chip{height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#fff;font-size:12.5px;font-weight:700;color:var(--navy);cursor:pointer}
+  .chip:hover{box-shadow:0 2px 8px rgba(10,31,68,.12)}
+  .searchrow{position:relative}
+  .searchrow .btn-blue{position:absolute;right:6px;top:6px;min-height:38px;padding:0 18px;font-size:13.5px}
+  .searchrow input{padding-right:110px;height:54px;border-radius:16px}
+  .vsummary{font-size:12.5px;color:var(--mut);margin-bottom:12px}
+  /* Results */
+  .srcblock{margin-top:26px}
+  .srcblock>h2{font-size:17px;font-weight:800;color:var(--navy);margin:0 0 4px;display:flex;align-items:center;gap:10px}
+  .srcsub{font-size:12.5px;color:var(--mut);margin:0 0 14px}
+  .cards{display:grid;gap:12px}
+  @media(min-width:640px){.cards{grid-template-columns:1fr 1fr}}
+  .pcard{display:flex;gap:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px}
+  .pcard img{width:96px;height:96px;object-fit:contain;border-radius:10px;background:#F8FAFC;flex-shrink:0}
+  .pimg-fallback{width:96px;height:96px;border-radius:10px;background:var(--sky);color:var(--blue);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;text-align:center;flex-shrink:0;padding:6px}
+  .pbody{min-width:0;flex:1}
+  .ptitle{font-size:14px;font-weight:700;color:var(--ink);margin:0 0 4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .pmeta{font-size:12px;color:var(--mut);margin:0 0 6px}
+  .ppart{font-size:12px;font-weight:700;color:var(--navy);margin:0 0 8px}
+  .pprice{font-size:19px;font-weight:900;color:var(--navy)}
+  .pprice small{font-size:12.5px;font-weight:600;color:var(--mut);display:block}
+  .badge{display:inline-block;font-size:11px;font-weight:800;border-radius:999px;padding:3px 10px;margin-top:8px}
+  .badge.ok{background:#DCFCE7;color:var(--ok)}
+  .badge.warn{background:#FEF3C7;color:var(--warn)}
+  /* States */
+  .statecard{text-align:center;padding:40px 20px;background:#fff;border:1px dashed var(--line);border-radius:20px;color:var(--mut)}
+  .statecard h3{color:var(--navy);margin:0 0 8px;font-size:17px}
+  .statecard p{margin:0 0 16px;font-size:14px;max-width:52ch;margin-left:auto;margin-right:auto}
+  .spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;margin:0 auto 14px;animation:spin 0.9s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .skel{background:linear-gradient(90deg,#EEF2F7 25%,#E2E8F0 50%,#EEF2F7 75%);background-size:200% 100%;animation:sh 1.2s infinite;border-radius:12px}
+  @keyframes sh{to{background-position:-200% 0}}
+  /* Fatal banner */
+  #fatalBanner{display:none;background:#FEF2F2;border-bottom:2px solid #FCA5A5;color:#991B1B;padding:14px 0;font-size:14px}
+  #fatalBanner .wrap{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+  #fatalBanner strong{font-weight:800}
+  /* Footer */
+  footer{margin-top:64px;background:var(--navy);color:#94A3B8;font-size:13px}
+  footer .wrap{padding:36px 20px;display:flex;gap:18px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+  footer a{color:#CBD5E1;text-decoration:none}
+  .note{font-size:12px;color:var(--mut);margin-top:18px}
+  .hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<div id="fatalBanner" role="alert">
+  <div class="wrap">
+    <div><strong>Algo salió mal.</strong> <span id="fatalMsg">La página tuvo un problema inesperado.</span></div>
+    <button class="btn btn-ghost" style="min-height:40px" onclick="location.reload()">Reintentar</button>
+    <a class="btn btn-ghost" style="min-height:40px" href="index.html">Volver al inicio</a>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="wrap">
+    <a href="index.html">Cómo funciona</a>
+    <a href="index.html">Por qué Aria</a>
+    <a href="index.html">Precio honesto</a>
+  </div>
+</div>
+
+<nav class="mainnav" aria-label="Principal">
+  <div class="wrap">
+    <a class="brand" href="index.html">ARIA<span>SHOP</span></a>
+    <div class="navlinks">
+      <a href="index.html">Inicio</a>
+      <a href="auto.html" class="active" aria-current="page">Aria Auto</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="kicker">Aria Auto</div>
+    <h1>El repuesto <em>exacto</em> para tu auto.</h1>
+    <p>Elige tu vehículo y busca la pieza que necesitas — comparamos precios en tiendas de repuestos de Estados Unidos.</p>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:28px; padding-bottom:20px">
+
+  <!-- STEP 1: vehicle -->
+  <section class="card" aria-labelledby="t-vehiculo" style="background:linear-gradient(135deg,var(--sky) 0%,#fff 60%)">
+    <h2 class="step" id="t-vehiculo">1. Elige tu vehículo</h2>
+    <div class="grid3">
+      <div>
+        <label class="lbl" for="autoYear">Año</label>
+        <select id="autoYear"><option value="">Cargando…</option></select>
+      </div>
+      <div>
+        <label class="lbl" for="autoMake">Marca</label>
+        <select id="autoMake" disabled><option value="">Primero elige un año</option></select>
+      </div>
+      <div>
+        <label class="lbl" for="autoModel">Modelo</label>
+        <select id="autoModel" disabled><option value="">Primero elige una marca</option></select>
+      </div>
+    </div>
+    <p class="note" id="vehicleNote">Selecciona año, marca y modelo para activar la búsqueda de repuestos.</p>
+  </section>
+
+  <!-- STEP 2: part search -->
+  <section id="searchCard" class="card hidden" style="margin-top:18px" aria-labelledby="t-buscar">
+    <h2 class="step" id="t-buscar">2. Busca la pieza que necesitas</h2>
+    <div class="vsummary" id="vehicleSummary"></div>
+    <div class="searchrow">
+      <input id="partQuery" type="text" placeholder="Ej. pastillas de freno, filtro de aceite o número de parte (D2076)" autocomplete="off">
+      <button class="btn btn-blue" id="searchBtn">Buscar</button>
+    </div>
+    <div class="chips" aria-label="Categorías de repuestos">
+      <span style="font-size:12px;font-weight:800;color:#8A93A8;align-self:center;margin-right:4px">Explora:</span>
+      <button class="chip" data-q="pastillas de freno">Frenos</button>
+      <button class="chip" data-q="filtro de aceite">Filtros de aceite</button>
+      <button class="chip" data-q="filtro de aire">Filtros de aire</button>
+      <button class="chip" data-q="bujías">Bujías</button>
+      <button class="chip" data-q="limpiaparabrisas">Limpiaparabrisas</button>
+      <button class="chip" data-q="bobina de encendido">Encendido</button>
+      <button class="chip" data-q="sensor de oxígeno">Sensores</button>
+      <button class="chip" data-q="correa de accesorios">Correas</button>
+    </div>
+  </section>
+
+  <!-- Results -->
+  <div id="results" style="margin-top:8px" aria-live="polite"></div>
+
+  <p class="note">Precios estimados en dólares con nuestro margen de servicio incluido; el equivalente en soles usa el tipo de cambio venta del día. El precio final puerta a puerta se confirma antes de pedir. Los números de parte mostrados te sirven para verificar el calce por tu cuenta.</p>
+</main>
+
+<footer>
+  <div class="wrap">
+    <a class="brand" href="index.html" style="color:#fff">ARIA<span style="color:var(--gold)">SHOP</span></a>
+    <div style="display:flex;gap:18px;flex-wrap:wrap">
+      <a href="index.html">Inicio</a>
+      <a href="auto.html">Aria Auto</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+"use strict";
+/* ============================================================
+   ARIA AUTO — standalone page (2026-10-05).
+   Zero dependencies on the SPA (no showPage, no pushRoute).
+   Every failure path renders a message + retry. Never blank.
+   ============================================================ */
+
+function showFatal(msg){
+  try{
+    var b = document.getElementById('fatalBanner');
+    var m = document.getElementById('fatalMsg');
+    if (m && msg) m.textContent = String(msg);
+    if (b) b.style.display = 'block';
+  }catch(e){ /* banner itself failed; nothing more we can do */ }
+}
+window.addEventListener('error', function(ev){
+  // Only surface real script failures, not resource 404s.
+  if (ev && ev.message) showFatal('Error: ' + ev.message);
+});
+
+function $(id){ try{ return document.getElementById(id); }catch(e){ return null; } }
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+/* ---------- Static vehicle data (from main, 2009–2026) ---------- */
+var YEARS = (function(){
+  var out = [], y;
+  for (y = 2026; y >= 2009; y--) out.push(String(y));
+  return out;
+})();
+var VEHICLES = [
+  { make:'Toyota', models:['Camry','Corolla','Hilux','Avalon','Yaris','Prius','Prius C','Prius V','RAV4','Highlander','4Runner','Sequoia','Land Cruiser','Tacoma','Tundra','Sienna','Venza','C-HR','Corolla Cross','GR86','Supra','FJ Cruiser','Matrix'] },
+  { make:'Honda', models:['Accord','Civic','Insight','Fit','CR-V','HR-V','Pilot','Passport','Ridgeline','Odyssey','Element','Crosstour','Clarity'] },
+  { make:'Ford', models:['F-150','Escape','F-250','F-350','Ranger','Maverick','Explorer','Edge','Expedition','Bronco','Bronco Sport','EcoSport','Fusion','Focus','Fiesta','Taurus','Mustang','Flex','C-Max','Transit Connect'] },
+  { make:'Kia', models:['Optima','Sportage','K5','Forte','Rio','Soul','Sorento','Telluride','Seltos','Niro','Sedona','Carnival','Cadenza','K900','Amanti','Borrego','Stinger','EV6','EV9','K4'] },
+  { make:'Hyundai', models:['Elantra','Tucson','Sonata','Accent','Veloster','Ioniq','Santa Fe','Santa Cruz','Kona','Palisade','Venue','Azera','Genesis Coupe','Entourage'] },
+  { make:'Chevrolet', models:['Silverado 1500','Malibu','Silverado 2500HD','Colorado','Cruze','Impala','Sonic','Spark','Cobalt','HHR','Equinox','Traverse','Trailblazer','Trax','Tahoe','Suburban','Blazer','Camaro','Corvette','Bolt EV','Bolt EUV'] },
+  { make:'Nissan', models:['Altima','Rogue','Sentra','Versa','Maxima','Rogue Sport','Murano','Pathfinder','Armada','Xterra','Frontier','Titan','Kicks','Juke','Cube','Leaf','370Z','GT-R','Quest'] },
+  { make:'Subaru', models:['Outback','Forester','Legacy','Impreza','Crosstrek','Ascent','WRX','BRZ','Tribeca','Baja'] },
+  { make:'Volvo', models:['XC90','S60','S80','S90','V60','V70','V90','XC40','XC60','XC70','C30','C70'] },
+  { make:'BMW', models:['3 Series','X5','1 Series','2 Series','4 Series','5 Series','6 Series','7 Series','8 Series','X1','X2','X3','X4','X6','X7','Z4','i3','i4','iX'] },
+  { make:'Mercedes-Benz', models:['C-Class','E-Class','A-Class','S-Class','CLA','CLS','GLA','GLB','GLC','GLE','GLS','G-Class','SLK','SL-Class','Metris','Sprinter'] },
+  { make:'Audi', models:['A4','Q5','A3','A5','A6','A7','A8','Q3','Q7','Q8','TT','S4','S5','allroad','e-tron'] },
+  { make:'Jeep', models:['Grand Cherokee','Wrangler','Cherokee','Compass','Patriot','Renegade','Gladiator','Liberty','Commander'] }
+];
+var selectedVehicle = null;
+
+/* ---------- Pricing: tiered marginal margin (locked 2026-10-02) ----------
+   24% on first $500, 18% on $500–$2,000, 12% on $2,000–$5,000, 8% above. */
+function marginPrice(usd){
+  var p = Number(usd);
+  if (!(p > 0)) return null;
+  var m = 0, prev = 0;
+  var bands = [[500,0.24],[2000,0.18],[5000,0.12],[Infinity,0.08]];
+  for (var i = 0; i < bands.length; i++){
+    var cap = bands[i][0], rate = bands[i][1];
+    var slice = Math.min(p, cap) - prev;
+    if (slice > 0) m += slice * rate;
+    prev = cap;
+    if (p <= cap) break;
+  }
+  return p + m;
+}
+function fmtUSD(n){ return '$' + Number(n).toFixed(2); }
+function fmtPEN(n){ return 'S/ ' + Number(n).toFixed(2); }
+
+/* ---------- FX rate (venta), with fallback ---------- */
+var fxRate = 3.44, fxLoaded = false;
+function loadFx(){
+  if (fxLoaded) return Promise.resolve(fxRate);
+  fxLoaded = true;
+  var ctl = null;
+  try{ ctl = new AbortController(); }catch(e){}
+  var timer = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, 8000);
+  return fetch('/.netlify/functions/exchange-rate', ctl ? { signal: ctl.signal } : {})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      var v = j && (Number(j.venta) || Number(j.rate));
+      if (v > 0 && v < 20) fxRate = v;
+      return fxRate;
+    })
+    .catch(function(){ return fxRate; })
+    .then(function(v){ clearTimeout(timer); return v; });
+}
+
+/* ---------- Auto cache (lazy, timeout, never throws) ---------- */
+var cachePromise = null;
+function getAutoCache(){
+  if (cachePromise) return cachePromise;
+  var ctl = null;
+  try{ ctl = new AbortController(); }catch(e){}
+  var timer = setTimeout(function(){ try{ ctl && ctl.abort(); }catch(e){} }, 25000);
+  cachePromise = fetch('/auto-cache.json', ctl ? { signal: ctl.signal } : {})
+    .then(function(r){
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(function(j){ clearTimeout(timer); return j; })
+    .catch(function(err){
+      clearTimeout(timer);
+      cachePromise = null; // allow retry
+      throw err;
+    });
+  return cachePromise;
+}
+
+/* ---------- Search across the cache ----------
+   Exact key first (year|make|model|query), then keyword fallback. */
+function searchCache(cache, vehicle, query){
+  var out = { exact: [], fallback: [] };
+  try{
+    var ps = (cache && cache.partSearches) || {};
+    var q = String(query || '').trim().toLowerCase();
+    if (!q) return out;
+    var key = vehicle.year + '|' + vehicle.make.toLowerCase() + '|' +
+              vehicle.model.toLowerCase() + '|' + q;
+    if (ps[key]) out.exact = collectItems(ps[key]);
+    // Keyword fallback: score other keys by token overlap on the query part.
+    var tokens = q.split(/[\s,;:\/\\-]+/).filter(function(t){ return t.length > 2; });
+    if (!tokens.length) return out;
+    var seen = {};
+    var scored = [];
+    var keys = Object.keys(ps);
+    for (var i = 0; i < keys.length; i++){
+      var k = keys[i];
+      if (k === key) continue;
+      var parts = k.split('|');
+      if (parts.length < 4) continue;
+      var kq = parts.slice(3).join('|');
+      var hits = 0;
+      for (var t = 0; t < tokens.length; t++){
+        if (kq.indexOf(tokens[t]) !== -1) hits++;
+      }
+      if (!hits) continue;
+      var sameMake = parts[1] === vehicle.make.toLowerCase();
+      scored.push({ key: k, score: hits * 10 + (sameMake ? 5 : 0) });
+    }
+    scored.sort(function(a,b){ return b.score - a.score; });
+    for (var s = 0; s < scored.length && out.fallback.length < 60; s++){
+      var items = collectItems(ps[scored[s].key]);
+      for (var j = 0; j < items.length && out.fallback.length < 60; j++){
+        var id = itemId(items[j]);
+        if (!id || seen[id]) continue;
+        seen[id] = 1;
+        out.fallback.push(items[j]);
+      }
+    }
+  }catch(e){ /* never throw from search */ }
+  return out;
+}
+function collectItems(bySource){
+  var items = [];
+  try{
+    var sources = Object.keys(bySource || {});
+    for (var i = 0; i < sources.length; i++){
+      var arr = bySource[sources[i]];
+      if (!Array.isArray(arr)) continue;
+      for (var j = 0; j < arr.length; j++){
+        var n = normItem(sources[i], arr[j]);
+        if (n) items.push(n);
+      }
+    }
+  }catch(e){}
+  return items;
+}
+function itemId(it){
+  return String((it && (it.partNumber || it.title)) || '');
+}
+function normItem(sourceKey, raw){
+  try{
+    if (!raw || typeof raw !== 'object') return null;
+    var price = raw.discounted_price != null ? raw.discounted_price : raw.price;
+    price = Number(price);
+    return {
+      source: sourceKey,
+      title: raw.productTitle || raw.title || 'Repuesto',
+      image: raw.thumbnail || (Array.isArray(raw.images) && raw.images[0]) || null,
+      brand: raw.brand || raw.sub_brand || '',
+      partNumber: raw.part_number || raw.partNumber || raw.sku || raw.mpn || null,
+      oem: raw.oem_part_number || raw.oemPartNumber || null,
+      lineCode: raw.line_code || raw.lineCode || '',
+      priceUSD: (price > 0) ? price : null,
+      fitted: String(raw.vehicle_fitment || '').toUpperCase() === 'VEHICLE_SPECIFIC'
+    };
+  }catch(e){ return null; }
+}
+var SOURCE_LABELS = { autozone: 'AutoZone', advanceauto: 'Advance Auto Parts', rockauto: 'RockAuto' };
+function sourceLabel(k){ return SOURCE_LABELS[String(k||'').toLowerCase()] || String(k||'Tienda'); }
+
+/* ---------- Render ---------- */
+function partCard(it, vehicle, exact){
+  var aria = marginPrice(it.priceUSD);
+  var pen = aria != null ? fmtPEN(aria * fxRate) : null;
+  var pn = it.partNumber ? (it.lineCode ? it.lineCode + ' ' + it.partNumber : it.partNumber) : null;
+  var img = it.image
+    ? '<img src="' + esc(it.image) + '" alt="' + esc(it.title) + '" loading="lazy" onerror="this.outerHTML=\'<div class=&quot;pimg-fallback&quot;>Sin imagen</div>\'">'
+    : '<div class="pimg-fallback">Sin imagen</div>';
+  var fit = exact && it.fitted
+    ? '<span class="badge ok">Compatible con tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) + '</span>'
+    : '<span class="badge warn">Verifica el calce con el número de parte</span>';
+  return '<div class="pcard">' + img +
+    '<div class="pbody">' +
+      '<p class="ptitle">' + esc(it.title) + '</p>' +
+      '<p class="pmeta">' + esc(sourceLabel(it.source)) + (it.brand ? ' · ' + esc(it.brand) : '') + '</p>' +
+      (pn ? '<p class="ppart">N.º de parte: ' + esc(pn) + '</p>' : '') +
+      (aria != null
+        ? '<div class="pprice">' + fmtUSD(aria) + (pen ? '<small>' + pen + ' aprox.</small>' : '') + '</div>'
+        : '<div class="pprice" style="font-size:14px;color:var(--mut)">Precio no disponible</div>') +
+      fit +
+    '</div></div>';
+}
+
+function renderLoading(){
+  var r = $('results');
+  if (!r) return;
+  var sk = '';
+  for (var i = 0; i < 4; i++) sk += '<div class="skel" style="height:124px"></div>';
+  r.innerHTML = '<div class="srcblock"><h2>Buscando repuestos…</h2>' +
+    '<p class="srcsub">Descargando el catálogo y filtrando por tu vehículo.</p>' +
+    '<div class="cards">' + sk + '</div></div>';
+}
+
+function renderError(title, msg, retryFnName){
+  var r = $('results');
+  if (!r) return;
+  r.innerHTML = '<div class="statecard" style="margin-top:26px">' +
+    '<div class="spinner" style="display:none"></div>' +
+    '<h3>' + esc(title) + '</h3><p>' + esc(msg) + '</p>' +
+    '<button class="btn" onclick="' + retryFnName + '()">Reintentar</button> ' +
+    '<a class="btn btn-ghost" href="index.html">Volver al inicio</a></div>';
+  var sp = r.querySelector('.spinner');
+  if (sp) sp.style.display = 'none';
+  window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' });
+}
+
+function renderEmpty(query, vehicle){
+  var r = $('results');
+  if (!r) return;
+  r.innerHTML = '<div class="statecard" style="margin-top:26px">' +
+    '<h3>Sin resultados para "' + esc(query) + '"</h3>' +
+    '<p>No encontramos ese repuesto para tu ' + esc(vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model) +
+    ' en el catálogo actual. Prueba con un término más general (ej. "filtro", "freno") o con el número de parte del fabricante.</p>' +
+    '<button class="btn btn-ghost" onclick="document.getElementById(\'partQuery\').focus()">Probar otra búsqueda</button></div>';
+}
+
+function renderResults(groups, vehicle, query){
+  var r = $('results');
+  if (!r) return;
+  var html = '';
+  function block(title, sub, items, exact){
+    if (!items.length) return;
+    var cards = items.slice(0, 24).map(function(it){ return partCard(it, vehicle, exact); }).join('');
+    html += '<div class="srcblock"><h2>' + esc(title) + '</h2>' +
+      '<p class="srcsub">' + esc(sub) + '</p>' +
+      '<div class="cards">' + cards + '</div></div>';
+  }
+  // Group by source for the "compare stores" feel.
+  function bySource(items){
+    var m = {};
+    items.forEach(function(it){
+      var k = it.source || 'tienda';
+      (m[k] = m[k] || []).push(it);
+    });
+    return m;
+  }
+  var eg = bySource(groups.exact), fg = bySource(groups.fallback);
+  Object.keys(eg).forEach(function(s){
+    block('Resultados para tu vehículo — ' + sourceLabel(s),
+          'Coincidencias del catálogo para ' + vehicle.year + ' ' + vehicle.make + ' ' + vehicle.model + '.',
+          eg[s], true);
+  });
+  Object.keys(fg).forEach(function(s){
+    block('También te puede servir — ' + sourceLabel(s),
+          'Coincidencias por palabra clave. Confirma el calce con el número de parte antes de pedir.',
+          fg[s], false);
+  });
+  if (!html){
+    renderEmpty(query, vehicle);
+    return;
+  }
+  r.innerHTML = html;
+  try{ window.scrollTo({ top: r.offsetTop - 80, behavior: 'smooth' }); }catch(e){}
+}
+
+/* ---------- Search flow ---------- */
+var lastQuery = '';
+function doSearch(){
+  lastQuery = '';
+  try{
+    var qEl = $('partQuery');
+    var q = qEl ? qEl.value.trim() : '';
+    if (!selectedVehicle){
+      renderError('Elige tu vehículo primero', 'Selecciona año, marca y modelo para buscar repuestos compatibles.', 'focusVehicle');
+      return;
+    }
+    if (!q){
+      renderError('Escribe qué buscas', 'Ejemplos: "pastillas de freno", "filtro de aceite" o un número de parte como "D2076".', 'focusQuery');
+      return;
+    }
+    lastQuery = q;
+    renderLoading();
+    loadFx().catch(function(){});
+    getAutoCache().then(function(cache){
+      var groups;
+      try{ groups = searchCache(cache, selectedVehicle, q); }
+      catch(e){ groups = { exact: [], fallback: [] }; }
+      if (!groups.exact.length && !groups.fallback.length){
+        renderEmpty(q, selectedVehicle);
+      } else {
+        renderResults(groups, selectedVehicle, q);
+      }
+    }).catch(function(err){
+      renderError(
+        'No pudimos cargar el catálogo',
+        'Revisa tu conexión e inténtalo de nuevo. (' + String((err && err.message) || 'error de red') + ')',
+        'retrySearch'
+      );
+    });
+  }catch(e){
+    showFatal('No pudimos iniciar la búsqueda.');
+  }
+}
+function retrySearch(){ doSearch(); }
+function focusVehicle(){
+  var y = $('autoYear');
+  if (y){ y.focus(); try{ y.scrollIntoView({behavior:'smooth',block:'center'}); }catch(e){} }
+  var r = $('results'); if (r) r.innerHTML = '';
+}
+function focusQuery(){
+  var q = $('partQuery');
+  if (q){ q.focus(); }
+  var r = $('results'); if (r) r.innerHTML = '';
+}
+
+/* ---------- Vehicle selector ---------- */
+function setOptions(sel, items, placeholder){
+  if (!sel) return;
+  var html = '<option value="">' + esc(placeholder) + '</option>';
+  for (var i = 0; i < items.length; i++){
+    html += '<option value="' + esc(items[i]) + '">' + esc(items[i]) + '</option>';
+  }
+  sel.innerHTML = html;
+}
+function hideSearch(){
+  selectedVehicle = null;
+  var sc = $('searchCard'), rw = $('results');
+  if (sc) sc.classList.add('hidden');
+  if (rw){ rw.classList.add('hidden'); rw.innerHTML = ''; }
+}
+function maybeReveal(){
+  try{
+    var y = $('autoYear'), mk = $('autoMake'), md = $('autoModel');
+    var yv = y && y.value, mkv = mk && mk.value, mdv = md && md.value;
+    if (!yv || !mkv || !mdv){ hideSearch(); return; }
+    selectedVehicle = { year: yv, make: mkv, model: mdv };
+    var vs = $('vehicleSummary');
+    if (vs) vs.textContent = 'Buscando para: ' + yv + ' ' + mkv + ' ' + mdv;
+    var sc = $('searchCard'), rw = $('results');
+    if (sc) sc.classList.remove('hidden');
+    if (rw){ rw.classList.add('hidden'); rw.innerHTML = ''; }
+    var note = $('vehicleNote');
+    if (note) note.textContent = 'Vehículo seleccionado: ' + yv + ' ' + mkv + ' ' + mdv + '. Ahora busca tu repuesto abajo.';
+  }catch(e){ showFatal('No pudimos activar el buscador.'); }
+}
+
+function init(){
+  try{
+    var y = $('autoYear'), mk = $('autoMake'), md = $('autoModel');
+    if (!y || !mk || !md) throw new Error('selector no encontrado');
+    setOptions(y, YEARS, 'Selecciona un año');
+    mk.disabled = true; md.disabled = true;
+
+    y.addEventListener('change', function(){
+      try{
+        hideSearch();
+        if (y.value){
+          setOptions(mk, VEHICLES.map(function(v){ return v.make; }), 'Selecciona una marca');
+          mk.disabled = false;
+        } else {
+          setOptions(mk, [], 'Primero elige un año'); mk.disabled = true;
+        }
+        setOptions(md, [], 'Primero elige una marca'); md.disabled = true;
+        maybeReveal();
+      }catch(e){ showFatal('Error al elegir el año.'); }
+    });
+
+    mk.addEventListener('change', function(){
+      try{
+        hideSearch();
+        var v = null;
+        for (var i = 0; i < VEHICLES.length; i++){
+          if (VEHICLES[i].make === mk.value){ v = VEHICLES[i]; break; }
+        }
+        if (v){
+          setOptions(md, v.models, 'Selecciona un modelo');
+          md.disabled = false;
+        } else {
+          setOptions(md, [], 'Primero elige una marca'); md.disabled = true;
+        }
+        maybeReveal();
+      }catch(e){ showFatal('Error al elegir la marca.'); }
+    });
+
+    md.addEventListener('change', function(){
+      try{ maybeReveal(); }catch(e){ showFatal('Error al elegir el modelo.'); }
+    });
+
+    var q = $('partQuery');
+    if (q) q.addEventListener('keydown', function(ev){
+      if (ev && ev.key === 'Enter'){ ev.preventDefault(); doSearch(); }
+    });
+    var sb = $('searchBtn');
+    if (sb) sb.addEventListener('click', doSearch);
+
+    var chips = document.querySelectorAll('.chip[data-q]');
+    for (var c = 0; c < chips.length; c++){
+      (function(ch){
+        ch.addEventListener('click', function(){
+          try{
+            var qq = $('partQuery');
+            if (qq) qq.value = ch.getAttribute('data-q') || '';
+            doSearch();
+          }catch(e){ showFatal('No pudimos iniciar la búsqueda.'); }
+        });
+      })(chips[c]);
+    }
+  }catch(e){
+    showFatal('No pudimos cargar el selector de vehículos. Recarga la página.');
+  }
+}
+
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+</script>
+</body>
+</html>

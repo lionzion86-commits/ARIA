@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ofertas — Aria Shop</title>
+<meta name="description" content="Las mayores ofertas de tiendas de Estados Unidos, con entrega en Perú. Precio honesto, sin letra pequeña.">
+<style>
+/* Standalone Ofertas page. Zero dependencies: no frameworks, no CDN.
+   If this stylesheet failed to load, the page would still render as
+   plain readable HTML — never blank. */
+:root{
+  --navy:#0A1F44; --blue:#2F5FEE; --blue-dark:#1E46C4; --sky:#EAF0FF;
+  --paper:#FAFAF8; --green:#1C8A4B; --green-bg:#EAF7EF; --line:#E4E6EC;
+  --amber:#B8860B; --yellow:#FFC72C; --red:#D92D20;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;font-family:'Manrope',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  background:var(--paper);color:var(--navy);-webkit-font-smoothing:antialiased}
+/* ---- header ---- */
+.site-header{position:sticky;top:0;z-index:30;background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.header-inner{max-width:1240px;margin:0 auto;padding:0 12px;height:64px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px}
+.wordmark{text-decoration:none;display:flex;align-items:center;gap:8px}
+.wordmark .w1{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--navy);font-size:20px}
+.wordmark .w2{font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--amber);font-size:20px}
+.main-nav{display:none;align-items:center;gap:20px;font-size:13.5px}
+.main-nav a{color:var(--navy);text-decoration:none;opacity:.75;white-space:nowrap}
+.main-nav a:hover{opacity:1}
+.main-nav a.active{opacity:1;color:var(--blue);font-weight:800}
+@media(min-width:1024px){.main-nav{display:flex}}
+.header-meta{font-size:13px;color:#6b7280;white-space:nowrap}
+/* ---- page ---- */
+.page{max-width:1240px;margin:0 auto;padding:20px 12px 64px}
+@media(min-width:640px){.page{padding:28px 20px 72px}}
+.eyebrow{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--blue);background:var(--sky);
+  padding:6px 12px;border-radius:999px;margin-bottom:12px}
+h1.page-title{margin:0 0 6px;font-size:clamp(28px,5vw,40px);font-weight:800;letter-spacing:-.02em}
+.page-sub{margin:0 0 16px;color:#4b5563;font-size:15px;max-width:640px}
+.fresh{display:inline-block;font-size:12.5px;font-weight:700;color:var(--navy);
+  background:var(--yellow);padding:5px 12px;border-radius:999px;margin-bottom:18px}
+/* ---- toolbar ---- */
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:18px;align-items:center}
+.toolbar input[type="search"]{flex:1 1 220px;min-width:0;padding:11px 14px;font-size:14px;
+  border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--navy)}
+.toolbar select{padding:11px 12px;font-size:14px;border:1px solid var(--line);
+  border-radius:12px;background:#fff;color:var(--navy)}
+.count-line{font-size:13.5px;color:#4b5563;margin:0 0 14px}
+/* ---- grid & cards ---- */
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.grid{grid-template-columns:repeat(3,1fr);gap:16px}}
+@media(min-width:1024px){.grid{grid-template-columns:repeat(4,1fr)}}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  display:flex;flex-direction:column;position:relative}
+.card-img{position:relative;aspect-ratio:1/1;background:#f1f2f6;overflow:hidden}
+.card-img img{width:100%;height:100%;object-fit:contain;display:block}
+.badge{position:absolute;top:8px;left:8px;background:var(--red);color:#fff;
+  font-size:12px;font-weight:800;padding:4px 9px;border-radius:999px;z-index:2}
+.store-tag{position:absolute;bottom:8px;left:8px;background:rgba(10,31,68,.85);color:#fff;
+  font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;z-index:2;max-width:calc(100% - 16px);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card-body{padding:10px 12px 14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.card-brand{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#6b7280}
+.card-title{font-size:13.5px;font-weight:600;line-height:1.35;margin:0;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-prices{margin-top:auto;padding-top:8px}
+.price-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.price{font-size:19px;font-weight:800;color:var(--navy);font-variant-numeric:tabular-nums}
+.price-old{font-size:13.5px;color:#9aa1b2;text-decoration:line-through;font-variant-numeric:tabular-nums}
+.price-pen{font-size:12.5px;color:#4b5563;font-variant-numeric:tabular-nums}
+/* ---- states ---- */
+.state{border:1px dashed var(--line);border-radius:16px;background:#fff;
+  padding:48px 24px;text-align:center;color:#4b5563;font-size:15px}
+.state h2{color:var(--navy);font-size:20px;margin:0 0 8px}
+.state p{margin:0 0 18px}
+.btn{display:inline-block;background:var(--blue);color:#fff;border:0;cursor:pointer;
+  font-size:15px;font-weight:800;padding:12px 26px;border-radius:12px}
+.btn:hover{background:var(--blue-dark)}
+.skel-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+@media(min-width:640px){.skel-grid{grid-template-columns:repeat(3,1fr);gap:16px}}
+@media(min-width:1024px){.skel-grid{grid-template-columns:repeat(4,1fr)}}
+.skel{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.skel .ph{aspect-ratio:1/1;background:linear-gradient(100deg,#eef0f4 40%,#f7f8fb 50%,#eef0f4 60%);
+  background-size:200% 100%;animation:sh 1.4s infinite}
+.skel .ln{height:12px;border-radius:6px;background:#eef0f4;margin:10px 12px}
+.skel .ln.short{width:55%}
+@keyframes sh{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.skel .ph{animation:none}}
+/* ---- footer ---- */
+.site-footer{border-top:1px solid var(--line);background:#fff;margin-top:24px}
+.footer-inner{max-width:1240px;margin:0 auto;padding:28px 12px;font-size:13px;color:#6b7280;
+  display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center;justify-content:space-between}
+.site-footer a{color:var(--blue);text-decoration:none}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="wordmark" href="https://ariashop.pe/" aria-label="Aria Shop — inicio">
+      <span class="w1">Aria</span><span class="w2">Shop</span>
+    </a>
+    <nav class="main-nav" aria-label="Principal">
+      <a href="https://ariashop.pe/">Inicio</a>
+      <a href="ofertas.html" class="active" aria-current="page">Ofertas</a>
+      <a href="https://ariashop.pe/?tiendas=1">Tiendas en Estados Unidos</a>
+      <a href="https://ariashop.pe/?nosotros=1">Nosotros</a>
+    </nav>
+    <span class="header-meta">Perú · PEN</span>
+  </div>
+</header>
+
+<main class="page">
+  <span class="eyebrow">Ofertas reales</span>
+  <h1 class="page-title">Ofertas</h1>
+  <p class="page-sub">Descuentos verificados de tiendas de Estados Unidos, con el precio honesto que pagas puesto en Perú.</p>
+  <div><span class="fresh" id="freshBadge" hidden></span></div>
+
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="Busca en las ofertas…" aria-label="Buscar en las ofertas" autocomplete="off">
+    <select id="sort" aria-label="Ordenar">
+      <option value="discount">Mayor descuento</option>
+      <option value="priceAsc">Menor precio</option>
+      <option value="priceDesc">Mayor precio</option>
+    </select>
+    <select id="store" aria-label="Filtrar por tienda">
+      <option value="">Todas las tiendas</option>
+    </select>
+  </div>
+  <p class="count-line" id="countLine"></p>
+
+  <div id="content">
+    <div class="skel-grid" id="skeleton" aria-hidden="true">
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+      <div class="skel"><div class="ph"></div><div class="ln"></div><div class="ln short"></div></div>
+    </div>
+  </div>
+  <noscript>
+    <div class="state"><h2>Activa JavaScript</h2>
+    <p>Las ofertas se cargan con JavaScript. Actívalo para verlas.</p></div>
+  </noscript>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <span>Aria Shop — Compra en Estados Unidos, entregado en Perú.</span>
+    <span><a href="https://ariashop.pe/">Volver al inicio</a></span>
+  </div>
+</footer>
+
+<script>
+/* Standalone Ofertas — bulletproof by design.
+   - Static HTML shell renders immediately (never blank).
+   - Data loads from 3 independent sources, best-first.
+   - Every step is guarded; total failure shows an error panel with retry. */
+(function(){
+'use strict';
+
+/* ---------- retailer labels (from main site) ---------- */
+var RETAILER_LABELS = {
+  'academy': 'Academy Sports',
+  'advanceauto': 'Advance Auto Parts',
+  'alphalete': 'Alphalete',
+  'americaneagle': 'American Eagle',
+  'anua': 'Anua',
+  'assouline': 'Assouline',
+  'autozone': 'AutoZone',
+  'babybrezza': 'Baby Brezza',
+  'bathandbodyworks': 'Bath & Body Works',
+  'baublebar': 'BaubleBar',
+  'beautyofjoseon': 'Beauty of Joseon',
+  'bellybandit': 'Belly Bandit',
+  'bentgo': 'Bentgo',
+  'bestbuy': 'Best Buy',
+  'bhphoto': 'B&H Photo',
+  'boxlunch': 'BoxLunch',
+  'brickell': 'Brickell',
+  'ccs': 'CCS',
+  'chronicle': 'Chronicle Books',
+  'combatcorner': 'Combat Corner',
+  'cosrx': 'COSRX',
+  'costco': 'Costco',
+  'crocs': 'Crocs',
+  'dagnedover': 'Dagne Dover',
+  'dyson': 'Dyson',
+  'elvie': 'Elvie',
+  'everlast': 'Everlast',
+  'everymanjack': 'Every Man Jack',
+  'ezpz': 'ezpz',
+  'farfetch': 'Farfetch',
+  'fendi': 'Fendi',
+  'finishline': 'Finish Line',
+  'footlocker': 'Foot Locker',
+  'freshlypicked': 'Freshly Picked',
+  'fuji': 'FUJI Sports',
+  'goldengoose': 'Golden Goose',
+  'gymshark': 'Gymshark',
+  'hatch': 'Hatch',
+  'hottopic': 'Hot Topic',
+  'islandwatersports': 'Island Water Sports',
+  'jujube': 'JuJuBe',
+  'jwpei': 'JW PEI',
+  'kindredbravely': 'Kindred Bravely',
+  'lanebryant': 'Lane Bryant',
+  'laneige': 'Laneige',
+  'lillebaby': 'LÍLLÉbaby',
+  'mainland': 'Mainland Skate & Surf',
+  'medicube': 'Medicube',
+  'mediheal': 'Mediheal',
+  'meliebianco': 'Melie Bianco',
+  'miumiu': 'Miu Miu',
+  'mmawarehouse': 'MMAWarehouse',
+  'mockingbird': 'Mockingbird',
+  'momcozy': 'Momcozy',
+  'morphe': 'Morphe',
+  'munchkin': 'Munchkin',
+  'mushie': 'Mushie',
+  'nanit': 'Nanit',
+  'nautilus': 'Nautilus Spearfishing',
+  'newbalance': 'New Balance',
+  'nordstrom': 'Nordstrom',
+  'oldnavy': 'Old Navy',
+  'owlet': 'Owlet',
+  'pacsun': 'PacSun',
+  'parrot': 'Parrot Surf & Skate',
+  'prosoccer': 'ProSoccer',
+  'quietstorm': 'Quiet Storm Surf Shop',
+  'revolve': 'Revolve',
+  'rockauto': 'RockAuto',
+  'sephora': 'Sephora',
+  'skims': 'Skims',
+  'skin1004': 'SKIN1004',
+  'spectra': 'Spectra',
+  'ssense': 'SSENSE',
+  'statebags': 'State Bags',
+  'sunglasshut': 'Sunglass Hut',
+  'surfstation': 'Surf Station',
+  'surfworld': 'Surf World',
+  'target': 'Target',
+  'tatami': 'Tatami Fightwear',
+  'tennisexpress': 'Tennis Express',
+  'tenniswarehouse': 'Tennis Warehouse',
+  'townley': 'Townley Girl',
+  'ulta': 'Ulta Beauty',
+  'valsurf': 'Val Surf',
+  'venum': 'Venum',
+  'walmart': 'Walmart',
+  'walmartbaby': 'Walmart Bebé',
+  'xtremesoccer': 'Xtreme Soccer',
+  'yesstyle': 'YesStyle',
+  'youngla': 'YoungLA',
+  'zumiez': 'Zumiez',
+};
+
+/* ---------- config ---------- */
+var BASE = 'https://ariashop.pe';
+var SRC = {
+  lite:  BASE + '/ofertas-feed-lite.json',
+  full:  BASE + '/ofertas-feed.json',
+  cache: BASE + '/.netlify/functions/sales-cache',
+  fx:    BASE + '/.netlify/functions/exchange-rate'
+};
+var TIMEOUT_MS = 20000;      // per-request timeout: never hang forever
+var PRICE_CAP_USD = 150;     // Ofertas = entry-shopper deals (matches main site)
+var MIN_PCT = 0.05, MAX_PCT = 0.70;  // visible, honest discounts only
+
+/* ---------- tiny helpers ---------- */
+function esc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function $(id){ return document.getElementById(id); }
+function storeLabel(key){
+  if (!key) return 'Tienda';
+  if (RETAILER_LABELS[key]) return RETAILER_LABELS[key];
+  return String(key).replace(/[-_]+/g,' ').replace(/\b\w/g, function(c){ return c.toUpperCase(); });
+}
+function money(n){
+  var v = Number(n);
+  if (!Number.isFinite(v)) return '—';
+  return '$' + v.toLocaleString('en-US',{minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function discountPct(p){
+  var o = Number(p.originalPrice), pr = Number(p.price);
+  if (!(o > 0) || !(pr >= 0)) return 0;
+  return Math.round((1 - pr / o) * 100);
+}
+function realImage(p){
+  var cands = [];
+  if (p.image) cands.push(p.image);
+  if (p.imageUrl) cands.push(p.imageUrl);
+  if (p.img) cands.push(p.img);
+  if (p.thumbnail) cands.push(p.thumbnail);
+  if (Array.isArray(p.images)) for (var i = 0; i < p.images.length; i++) cands.push(p.images[i]);
+  for (var j = 0; j < cands.length; j++){
+    var u = cands[j];
+    if (typeof u !== 'string' || !u) continue;
+    if (u.indexOf('foto-en-camino') !== -1 || u.indexOf('placeholder') !== -1 || u.indexOf('no-image') !== -1) continue;
+    if (u.indexOf('http') === 0 && u.length > 20) return u;
+  }
+  return null;
+}
+/* Visible-discount gate — mirrors the main site's isSaleItem. */
+function isDeal(p){
+  if (!p) return false;
+  var price = Number(p.price), orig = Number(p.originalPrice);
+  if (!(orig > price) || !(price > 0)) return false;
+  var pct = (orig - price) / orig;
+  if (!(pct >= MIN_PCT && pct <= MAX_PCT)) return false;
+  if (price > PRICE_CAP_USD) return false;
+  return !!realImage(p);
+}
+function relTime(iso){
+  if (!iso) return null;
+  var t = new Date(iso).getTime();
+  if (!Number.isFinite(t)) return null;
+  var mins = Math.floor((Date.now() - t) / 60000);
+  if (mins < 2) return 'hace un momento';
+  if (mins < 60) return 'hace ' + mins + ' min';
+  var hrs = Math.floor(mins / 60);
+  if (hrs < 24) return 'hace ' + hrs + ' h';
+  var d = Math.floor(hrs / 24);
+  return d === 1 ? 'hace 1 día' : 'hace ' + d + ' días';
+}
+
+/* ---------- fetch with timeout ---------- */
+function fetchJson(url){
+  return new Promise(function(resolve, reject){
+    var ctrl = null, timer = null;
+    try { ctrl = new AbortController(); } catch (e) { /* old browser */ }
+    if (ctrl) timer = setTimeout(function(){ try { ctrl.abort(); } catch (e2) {} }, TIMEOUT_MS);
+    var opts = ctrl ? { signal: ctrl.signal } : {};
+    fetch(url, opts).then(function(res){
+      if (timer) clearTimeout(timer);
+      if (!res.ok) { reject(new Error('HTTP ' + res.status)); return; }
+      res.json().then(resolve, reject);
+    }, function(err){
+      if (timer) clearTimeout(timer);
+      reject(err);
+    });
+    if (!ctrl) setTimeout(function(){ reject(new Error('timeout')); }, TIMEOUT_MS);
+  });
+}
+
+/* ---------- state ---------- */
+var allDeals = [];      // normalized deal items
+var fxVenta = null;     // PEN per USD (venta), null until loaded
+var generatedAt = null; // feed timestamp for the freshness badge
+
+/* ---------- data loading: 3 sources, best-first ---------- */
+function loadDeals(){
+  var liteItems = [], liteAt = null;
+  var fullItems = [], fullAt = null;
+  var cacheItems = [], cacheAt = null;
+
+  function fromFeed(json){
+    if (!json || !Array.isArray(json.items)) return { items: [], at: null };
+    return { items: json.items, at: json.generatedAt || null };
+  }
+
+  // Source 1: lite feed (fast, 800 items). Source 2: full feed.
+  // Source 3: Netlify sales-cache (scraped deals). Merge all, dedupe.
+  return fetchJson(SRC.lite).then(function(j){
+    var r = fromFeed(j); liteItems = r.items; liteAt = r.at;
+  }, function(){ /* fall through */ }).then(function(){
+    if (liteItems.length) return null; // lite is enough to paint
+    return fetchJson(SRC.full).then(function(j){
+      var r = fromFeed(j); fullItems = r.items; fullAt = r.at;
+    }, function(){ /* fall through */ });
+  }).then(function(){
+    return fetchJson(SRC.cache).then(function(j){
+      var r = fromFeed(j); cacheItems = r.items; cacheAt = r.at;
+    }, function(){ /* cache is optional */ });
+  }).then(function(){
+    var seen = {}, merged = [];
+    function push(items){
+      for (var i = 0; i < items.length; i++){
+        var p = items[i];
+        if (!p) continue;
+        var k = (p.retailer || '') + '::' + (p.title || '');
+        if (seen[k]) continue;
+        seen[k] = 1;
+        merged.push(p);
+      }
+    }
+    push(cacheItems); push(liteItems); push(fullItems);
+    generatedAt = cacheAt || liteAt || fullAt || null;
+    allDeals = merged.filter(isDeal);
+    return allDeals;
+  });
+}
+
+/* ---------- FX rate (non-blocking, PEN display only) ---------- */
+function loadFx(){
+  fetchJson(SRC.fx).then(function(j){
+    var v = Number(j && (j.venta || j.Venta));
+    if (Number.isFinite(v) && v > 0){
+      fxVenta = v;
+      try { renderPenPrices(); } catch (e) { /* PEN line is decorative */ }
+    }
+  }, function(){ /* USD-only is fine */ });
+}
+
+/* ---------- rendering ---------- */
+function currentFilters(){
+  var q = (($('q') || {}).value || '').trim().toLowerCase();
+  var sort = (($('sort') || {}).value || 'discount');
+  var store = (($('store') || {}).value || '');
+  return { q: q, sort: sort, store: store };
+}
+function filteredDeals(){
+  var f = currentFilters();
+  var pool = allDeals;
+  if (f.store) pool = pool.filter(function(p){ return String(p.retailer) === f.store; });
+  if (f.q) pool = pool.filter(function(p){
+    var t = ((p.title || '') + ' ' + (p.brand || '')).toLowerCase();
+    return t.indexOf(f.q) !== -1;
+  });
+  var arr = pool.slice();
+  if (f.sort === 'priceAsc') arr.sort(function(a,b){ return Number(a.price) - Number(b.price); });
+  else if (f.sort === 'priceDesc') arr.sort(function(a,b){ return Number(b.price) - Number(a.price); });
+  else arr.sort(function(a,b){ return discountPct(b) - discountPct(a); });
+  return arr;
+}
+function cardHTML(p){
+  var img = realImage(p);
+  var pct = discountPct(p);
+  var brand = p.brand ? '<div class="card-brand">' + esc(p.brand) + '</div>' : '';
+  return '<article class="card">' +
+    '<div class="card-img">' +
+      '<span class="badge">-' + pct + '%</span>' +
+      (img ? '<img src="' + esc(img) + '" alt="' + esc(p.title || 'Producto') + '" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">' : '') +
+      '<span class="store-tag">' + esc(storeLabel(p.retailer)) + '</span>' +
+    '</div>' +
+    '<div class="card-body">' + brand +
+      '<h3 class="card-title">' + esc(p.title || 'Producto') + '</h3>' +
+      '<div class="card-prices"><div class="price-row">' +
+        '<span class="price">' + money(p.price) + '</span>' +
+        '<span class="price-old">' + money(p.originalPrice) + '</span>' +
+      '</div>' +
+      '<div class="price-pen" data-usd="' + esc(p.price) + '"' + (fxVenta ? '' : ' hidden') + '>' +
+        (fxVenta ? 'S/ ' + (Number(p.price) * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2}) : '') +
+      '</div></div>' +
+    '</div></article>';
+}
+function renderPenPrices(){
+  if (!fxVenta) return;
+  var els = document.querySelectorAll('.price-pen');
+  for (var i = 0; i < els.length; i++){
+    var usd = Number(els[i].getAttribute('data-usd'));
+    if (!Number.isFinite(usd)) continue;
+    els[i].hidden = false;
+    els[i].textContent = 'S/ ' + (usd * fxVenta).toLocaleString('es-PE',{minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+}
+function renderFresh(){
+  var b = $('freshBadge');
+  if (!b) return;
+  var rel = relTime(generatedAt);
+  if (rel){ b.hidden = false; b.textContent = 'Actualizado ' + rel; }
+  else { b.hidden = true; }
+}
+function renderStoreFilter(){
+  var sel = $('store');
+  if (!sel) return;
+  var cur = sel.value;
+  var map = {};
+  for (var i = 0; i < allDeals.length; i++){ map[allDeals[i].retailer] = 1; }
+  var keys = Object.keys(map).sort(function(a,b){
+    return storeLabel(a).localeCompare(storeLabel(b), 'es');
+  });
+  var html = '<option value="">Todas las tiendas</option>';
+  for (var j = 0; j < keys.length; j++){
+    var k = keys[j];
+    html += '<option value="' + esc(k) + '"' + (k === cur ? ' selected' : '') + '>' + esc(storeLabel(k)) + '</option>';
+  }
+  sel.innerHTML = html;
+}
+function render(){
+  var host = $('content');
+  if (!host) return;
+  var deals;
+  try { deals = filteredDeals(); }
+  catch (e){ return renderError('No pudimos ordenar las ofertas.', true); }
+  var cnt = $('countLine');
+  if (cnt) cnt.textContent = deals.length
+    ? deals.length.toLocaleString('es-PE') + ' ofertas reales'
+    : '';
+  if (!allDeals.length){
+    // Sources answered but nothing qualified: say so plainly, never blank.
+    host.innerHTML = '<div class="state"><h2>Estamos actualizando las ofertas</h2>' +
+      '<p>Vuelve en unos minutos — las revisamos varias veces al día.</p>' +
+      '<button class="btn" id="retryBtn" type="button">Reintentar</button></div>';
+    bindRetry();
+    return;
+  }
+  if (!deals.length){
+    host.innerHTML = '<div class="state"><h2>Sin resultados</h2>' +
+      '<p>Ninguna oferta coincide con tu búsqueda. Prueba con otra palabra.</p></div>';
+    return;
+  }
+  var html = '<div class="grid">';
+  for (var i = 0; i < deals.length; i++){
+    try { html += cardHTML(deals[i]); }
+    catch (e) { /* one bad card never kills the grid */ }
+  }
+  html += '</div>';
+  host.innerHTML = html;
+  renderFresh();
+}
+function renderError(msg, allowRetry){
+  var host = $('content');
+  if (!host) return;
+  host.innerHTML = '<div class="state"><h2>Algo salió mal</h2>' +
+    '<p>' + esc(msg || 'No pudimos cargar las ofertas.') + '</p>' +
+    (allowRetry ? '<button class="btn" id="retryBtn" type="button">Reintentar</button>' : '') + '</div>';
+  bindRetry();
+}
+function bindRetry(){
+  var b = $('retryBtn');
+  if (b) b.addEventListener('click', function(){ boot(true); });
+}
+
+/* ---------- boot ---------- */
+var booted = false;
+function boot(isRetry){
+  if (booted && !isRetry) return;
+  booted = true;
+  if (isRetry) renderLoading();
+  loadFx(); // background, never blocks
+  loadDeals().then(function(){
+    try {
+      renderStoreFilter();
+      render();
+    } catch (e) { renderError('No pudimos mostrar las ofertas.', true); }
+  }, function(){
+    renderError('No pudimos cargar las ofertas. Revisa tu conexión e inténtalo de nuevo.', true);
+  });
+}
+function renderLoading(){
+  var host = $('content');
+  if (!host) return;
+  host.innerHTML = '<div class="state"><h2>Cargando ofertas…</h2>' +
+    '<p>Buscando los mejores descuentos.</p></div>';
+}
+function bindUI(){
+  var q = $('q'), s = $('sort'), st = $('store');
+  var t = null;
+  if (q) q.addEventListener('input', function(){
+    if (t) clearTimeout(t);
+    t = setTimeout(function(){ try { render(); } catch (e) {} }, 180);
+  });
+  if (s) s.addEventListener('change', function(){ try { render(); } catch (e) {} });
+  if (st) st.addEventListener('change', function(){ try { render(); } catch (e) {} });
+}
+
+try {
+  bindUI();
+  boot(false);
+} catch (e) {
+  renderError('No pudimos iniciar la página de ofertas.', true);
+}
+})();
+</script>
+</body>
+</html>
