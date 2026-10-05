@@ -1039,6 +1039,12 @@ export const RETAILERS = {
     color: "#D8232A",
     logo: "logos/hottopic.png",
     tagline: "Band tees, anime y cultura pop",
+  boxlunch: {
+    key: "boxlunch",
+    label: "BoxLunch",
+    color: "#F26522",
+    logo: "logos/boxlunch.png",
+    tagline: "Regalos pop que donan comidas",
     kind: "general",
     search: false,
     browse: true,
