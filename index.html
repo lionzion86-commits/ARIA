@@ -36934,7 +36934,41 @@ initRouter();
     if(key === 'latino_designers') return '/disenadores.html';
     return '/departamento.html?dept=' + encodeURIComponent(key);
   }
-  // Override openCatalog
+  function doRedirect(){
+    const params = new URLSearchParams(window.location.search);
+    // Check for SPA routes in URL
+    if(params.has('categoria')){
+      const key = params.get('categoria');
+      const kind = params.get('kind') || 'department';
+      if(kind === 'brand'){
+        window.location.replace('/marca.html?marca=' + encodeURIComponent(key));
+        return true;
+      } else {
+        window.location.replace(deptUrl(key));
+        return true;
+      }
+    }
+    if(params.has('tienda')){
+      window.location.replace('/tienda.html?tienda=' + encodeURIComponent(params.get('tienda')));
+      return true;
+    }
+    if(params.has('ofertas')){
+      window.location.replace('/ofertas.html');
+      return true;
+    }
+    // Check for search query param (from old SPA)
+    if(params.has('q') && document.title.includes('Aria Shop')){
+      // Only redirect if we're on the SPA index, not already on search.html
+      if(!window.location.pathname.includes('search.html')){
+        window.location.replace('/search.html?q=' + encodeURIComponent(params.get('q')));
+        return true;
+      }
+    }
+    return false;
+  }
+  // Run on page load — catch direct URL visits
+  if(doRedirect()) return;
+  // Override openCatalog (for clicks)
   const _oc = window.openCatalog;
   window.openCatalog = function(kind, key, opts){
     if(kind === 'department'){
@@ -36942,7 +36976,6 @@ initRouter();
     } else if(kind === 'brand'){
       window.location.href = '/marca.html?marca=' + encodeURIComponent(key);
     } else {
-      // Fallback: try original (should not happen)
       if(_oc) return _oc.apply(this, arguments);
     }
   };
@@ -36972,6 +37005,7 @@ initRouter();
   };
 })();
 </script>
+
 </body>
 </html>
 
