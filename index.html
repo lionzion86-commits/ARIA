@@ -21693,7 +21693,7 @@ function showPage(id){
   if (id !== 'homeView' && typeof hideGreetBubble === 'function') hideGreetBubble();
   setActiveNav(id);
   if (STATIC_ROUTE_VIEWS.has(id)) pushRoute({ view: id });
-  ALL_VIEWS.forEach(v => document.getElementById(v).classList.toggle('active', v===id));
+  ALL_VIEWS.forEach(v => { var el=document.getElementById(v); if(el){ el.classList.toggle('active', v===id); el.style.display = (v===id ? 'block' : 'none'); } });
   // A restore sets its own scroll position (see applyRoute) — clobbering
   // it here is what makes "back" land at the top of the page instead of
   // on the card the customer was looking at.
@@ -36803,20 +36803,6 @@ sweepFounderPhoto();
 initRouter();
 </script>
 
-
-<script>
-(function(){
-  var origOpenCatalog = window.openCatalog;
-  window.openCatalog = function(kind, key, opts){
-    if(kind==='department' && key==='motos'){
-      console.log('OVERRIDE: only showPage, no openCatalog logic');
-      showPage('catalogView');
-      return;
-    }
-    return origOpenCatalog.apply(this, arguments);
-  };
-})();
-</script>
 </body>
 </html>
 
