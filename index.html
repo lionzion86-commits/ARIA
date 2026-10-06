@@ -6147,7 +6147,7 @@
      bounded float lives in the ariaOrbFloat keyframes so it reads alive.
      The trail lives in #ariaOrbTrail, behind it. -->
 <div id="ariaOrbTrail" aria-hidden="true" class="fixed inset-0 z-30 pointer-events-none overflow-hidden"></div>
-<button id="assistantBtn" onclick="toggleAssistant()" aria-label="Asistente de compras Aria"
+<button id="assistantBtn" onclick="toggleAssistant()" onpointerdown="ariaWarmOnIntent()" onmouseenter="ariaWarmOnIntent()" aria-label="Asistente de compras Aria"
   class="fixed z-40 w-16 h-16 rounded-full grid place-items-center focus-ring">
   <div id="assistantIconSpark" class="relative" style="width:100%;height:100%;">
     <!-- Aria's face, alive (2026-09-27, Danny): two pixel-registered frames
@@ -33811,22 +33811,18 @@ function toggleAssistant(){
 hideGreetBubble();
 if (assistantOpen) {
   if (!continuousMode) { continuousMode = true; }
-  /* THE WRITTEN GREETING IS ONCE; THE CALL IS EVERY TIME.
+  /* ONE GREETING, AND IT IS THE SPOKEN ONE.
 
-     Both used to hang off "is the message list empty", which is only
-     true on the very first open. Reopen the panel and nothing
-     started: no greeting, no call, and a mic button that looked live
-     because the page had been in a call ten minutes ago. Danny:
-     "No auto-greeting. Chat opens with text only."
+     This used to fork on "is the message list empty": paint the
+     written hello on the first open, just open the line on later
+     ones. Both branches now do the same thing, because the written
+     hello is gone — see greetAssistantStreaming.
 
-     They are different questions. Painting the hello twice would be
-     silly; opening the line every time the shopper opens the chat is
-     the whole feature. */
-  if (document.getElementById('assistantMessages').children.length === 0) {
-    greetAssistantStreaming();
-  } else {
-    startRealtimeOnOpen();
-  }
+     The call is opened EVERY time the panel opens, which is the half
+     of the old fork that was right: a reopened panel used to start
+     nothing and leave a mic button that looked live because the page
+     had been in a call ten minutes ago. */
+  greetAssistantStreaming();
 }
 }
 
@@ -33846,11 +33842,26 @@ async function greetAssistantStreaming(){
   /* The quick-reply chips render on every open (toggleAssistant), so the
      greeting always shows something to tap. */
   if (ariaClassicVoiceOnly()) assistantReplyHasTappables = true;
-  addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
-  /* THE GREETING IS A TURN TOO (2026-09-27). It must reach
-     ariaChatHistory, or the shopper's first real question goes out with
-     an empty history and the model greets AGAIN instead of answering. */
-  ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
+  /* NOTHING IS WRITTEN HERE. SHE SAYS HELLO, AND THE TRANSCRIPT OF
+     WHAT SHE SAID IS THE MESSAGE.
+
+     A fixed line used to be painted the instant the panel opened.
+     That was two bugs at once. It made a silent call look like a
+     working one — text on screen, no voice, nothing to tell them
+     apart — and when the voice DID land, its transcript was added as
+     a second bubble: 'then when she replies, it is a second
+     greeting.'
+
+     response.output_audio_transcript.done already writes what she
+     actually said, to the panel and to ariaChatHistory both, so the
+     history stays complete without a line written on her behalf.
+     The written line now appears in exactly one case — the call
+     could not be opened at all — and showRealtimeError owns it.
+
+     This is also why an empty panel is the correct thing to show
+     while the handshake runs. Whatever is on screen before she
+     speaks is a claim that the chat is working, and until audio
+     arrives we do not know that. */
   hideAssistantTyping();
   setOrbState('idle');
   /* SHE SAYS HELLO IN HER OWN VOICE, AND THE CALL IS ALREADY LIVE
@@ -37084,6 +37095,111 @@ let ariaRTWanted = false;     // the shopper asked for live voice
    redirected in netlify.toml to the function the page used before. */
 const REALTIME_TOKEN_URL = '/api/realtime-token';
 
+/* ==================================================================
+   THE TOKEN IS MINTED BEFORE THE TAP.
+
+   Opening the call used to begin with a POST to our own function,
+   awaited, before a single WebRTC call was made. On a cold Netlify
+   function that is most of the wait between tapping the orb and
+   hearing her — and it is dead time, because nothing about minting a
+   token depends on the tap.
+
+   So it is minted on INTENT instead: pointerdown on the launcher,
+   which fires before the click that opens the panel, and mouseenter
+   on a desktop, which fires earlier still. By the time the panel is
+   open the token is usually already in hand and the handshake starts
+   immediately.
+
+   WHY THIS IS NOT PREFETCHED ON PAGE LOAD. An ephemeral client
+   secret is good for about a minute. A token minted when the page
+   loaded is expired before most shoppers reach the chat, so it would
+   buy nothing and cost a function invocation on every single page
+   view. Intent is the earliest signal that is still close enough to
+   the call to be worth anything.
+   ================================================================== */
+
+/* How much life a token must have left before we are willing to open
+   a call with it. The handshake is not instant and a secret that
+   expires mid-SDP fails in a way that looks like a server fault. */
+const TOKEN_MIN_LIFE_MS = 15000;
+/* What we assume when the endpoint does not tell us. OpenAI's
+   ephemeral secrets are documented at a minute; assuming longer
+   would mean handing out dead tokens. */
+const TOKEN_ASSUMED_LIFE_MS = 60000;
+
+let ariaTokenCache = null;       /* { mint, minted } */
+let ariaTokenInFlight = null;    /* single-flight, so intent + tap mint once */
+
+/* Pure, so it is directly testable: a cache entry is usable only
+   while it has real life left on it. */
+function ariaTokenUsable(cache, now){
+  if (!cache || !cache.mint || !cache.mint.token) return false;
+  const t = typeof now === 'number' ? now : Date.now();
+  const exp = cache.mint.expires_at;
+  if (exp){
+    /* The API speaks epoch SECONDS. Anything that large is already
+       milliseconds, so accept both rather than mis-reading one as
+       the other and treating a live token as ancient. */
+    const ms = exp > 1e12 ? exp : exp * 1000;
+    return (ms - t) > TOKEN_MIN_LIFE_MS;
+  }
+  return (t - cache.minted) < (TOKEN_ASSUMED_LIFE_MS - TOKEN_MIN_LIFE_MS);
+}
+
+/* Never throws. Every failure comes back named, because the caller
+   puts these words on screen and 'something went wrong' was what
+   four rounds of testing were spent getting rid of. */
+async function ariaMintRealtimeToken(){
+  try {
+    const res = await fetch(REALTIME_TOKEN_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok){
+      /* 503 means no API key on this deploy: expected on a preview
+         without one, and the single most likely reason the shop is
+         quietly silent. Named, not swallowed. */
+      let body = null;
+      try { body = await res.json(); } catch {}
+      /* `detail` names the actual field or key problem; `error` is
+         the category. The specific one goes on screen. */
+      const said = body && (body.detail || body.error);
+      return { ok: false,
+        said: said || ('el servidor respondió ' + res.status),
+        detail: body && body.attempts ? JSON.stringify(body.attempts) : String(res.status) };
+    }
+    const mint = await res.json();
+    if (!mint || !mint.token) return { ok: false, said: 'el servidor no devolvió un token', detail: null };
+    return { ok: true, mint };
+  } catch (e){
+    return { ok: false, said: 'no pude contactar al servidor', detail: e.message };
+  }
+}
+
+/* Ask for a token. Safe to call on every pointerdown: a usable one is
+   returned as it stands, and a mint already running is joined rather
+   than raced. */
+function ariaWarmRealtimeToken(){
+  if (ariaTokenUsable(ariaTokenCache, Date.now())) return Promise.resolve({ ok: true, mint: ariaTokenCache.mint });
+  if (ariaTokenInFlight) return ariaTokenInFlight;
+  ariaTokenInFlight = ariaMintRealtimeToken()
+    .then((r) => {
+      ariaTokenCache = r.ok ? { mint: r.mint, minted: Date.now() } : null;
+      return r;
+    })
+    .finally(() => { ariaTokenInFlight = null; });
+  return ariaTokenInFlight;
+}
+
+/* The inline handler on the launcher. Guarded because an inline
+   attribute can fire before this script has finished evaluating, and
+   a ReferenceError there would be thrown inside the tap that opens
+   the chat. Warming is an optimisation; it may never break the open. */
+function ariaWarmOnIntent(){
+  try { ariaWarmRealtimeToken(); } catch (e) {}
+}
+
 /* How long a "disconnected" peer connection is given to come back
    before the call is declared dead. WebRTC recovers from short drops
    on its own; a tunnel should not end the conversation. */
@@ -37616,6 +37732,37 @@ function buildAudioSink(){
       };
     },
     attach(stream){
+      /* THE SILENT FILE IS EVICTED FIRST, AND THAT IS THE GREETING BUG.
+
+         ariaUnlockLiveAudio() primes the element inside the tap by
+         setting el.src = SILENT_WAV — a WAV with a valid header and
+         ZERO SAMPLES. That is what makes the element legal to play on
+         iOS. It is also, until this line existed, what the element
+         went on playing.
+
+         The spec says srcObject wins over src. Safari does not
+         reliably agree: assigning srcObject while a src attribute is
+         still on the element can leave the old resource selected. The
+         resource here is zero samples of nothing, so the call comes
+         up perfectly healthy and perfectly silent — paused false,
+         volume 1, not muted, a live track arriving, and no sound.
+         Every diagnostic we have said the audio was fine.
+
+         It also explains why the microphone 'fixed' it. Hanging up
+         and redialling runs the unlock again, which SKIPS priming
+         once srcObject is set — so the second call never reassigned
+         src, and the second call was the one he could hear. Danny:
+         'I have to speak first... then when she replies, it is a
+         second greeting.'
+
+         So: strip the attribute, load() to drop the resource the
+         element already selected, and only then hand it the stream.
+         load() must come BEFORE the assignment — after it, it would
+         restart the stream we just attached. */
+      try {
+        el.removeAttribute('src');
+        el.load();
+      } catch (e) { /* an element that cannot be reset still gets the stream */ }
       /* ONE ASSIGNMENT, ONE PATH. Wrapped because this throwing used
          to skip everything after it, which is silence. */
       try { el.srcObject = stream; } catch (e) {
@@ -37673,30 +37820,17 @@ async function startRealtimeVoiceOnce(){
   const can = realtimeAvailable();
   if (!can.ok) return noteRealtimeFailure('el navegador no la soporta', can.reason);
 
-  let mint;
-  try {
-    const res = await fetch(REALTIME_TOKEN_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    });
-    if (!res.ok){
-      /* 503 means no API key on this deploy: expected on a preview
-         without one, and the single most likely reason the shop is
-         quietly on the old loop. Named, not swallowed. */
-      /* The endpoint now says what went wrong in words. Pass them
-         through rather than inventing a vaguer sentence on top. */
-      let body = null;
-      try { body = await res.json(); } catch {}
-      /* `detail` names the actual field or key problem; `error` is the
-         category. The specific one goes on screen. */
-      const said = body && (body.detail || body.error);
-      return noteRealtimeFailure(said || ('el servidor respondió ' + res.status),
-        body && body.attempts ? JSON.stringify(body.attempts) : String(res.status));
-    }
-    mint = await res.json();
-  } catch (e){ return noteRealtimeFailure('no pude contactar al servidor', e.message); }
-  if (!mint || !mint.token) return noteRealtimeFailure('el servidor no devolvió un token', null);
+  /* Usually already in hand: the launcher warmed it on pointerdown,
+     before the click that opened this panel. Falls back to minting
+     one now, which is what every path that is not the orb does — the
+     retry button, the microphone, a call reopened from a link. */
+  const got = await ariaWarmRealtimeToken();
+  /* AN EPHEMERAL SECRET IS GOOD FOR ONE SESSION. Dropping it here
+     means a second call mints its own instead of replaying a secret
+     the server has already spent. */
+  ariaTokenCache = null;
+  if (!got.ok) return noteRealtimeFailure(got.said, got.detail);
+  const mint = got.mint;
 
   const T = window.AriaRealtimeTurn;
   let turn = T.createVoiceTurnState();
@@ -38032,6 +38166,27 @@ function cueRealtime(cue){
   return a && b;
 }
 
+/* TEN SECONDS OF HIS SILENCE, NOT HERS.
+
+   The opening nudge asks her to pitch get_top_sales, which is the
+   right move for a shopper who tapped the microphone and never said
+   anything. It is the wrong move for everyone else, because it names
+   a product he never asked about — Danny: 'I say hola and she
+   responds perfect, let me look for Legos. I never said Legos.'
+
+   Armed when her audio ENDS, so the countdown measures his silence.
+   Only while he has never spoken: once he has, this is cancelled for
+   good and CUE_CHECKIN is the right handler for a later lull. */
+function armOpeningNudge(){
+  if (!ariaRT || ariaRTSpoke) return;
+  if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
+  ariaRTOpeningTimer = setTimeout(() => {
+    ariaRTOpeningTimer = null;
+    if (!ariaRT || ariaRTSpoke) return;
+    cueRealtime(CUE_OPENING_SILENCE);
+  }, CALL_OPENING_SILENCE_MS);
+}
+
 /**
  * Any activity — speech from either side, or a tap, or a scroll —
  * means the line is still worth paying for.
@@ -38148,6 +38303,16 @@ function showRealtimeError(){
      is for us, and it is in the words the brief asks for so it can be
      found in a log without knowing what to search for. */
   console.error('REALTIME VOICE FAILED:', why, detail || '');
+  /* NOW the written line earns its place. The spoken greeting is the
+     only greeting when the call works; when it cannot be opened there
+     is no voice to duplicate, and a shopper looking at an error bar
+     over an empty panel has been handed nothing. No voice must not
+     mean no shop assistant — typing still works. */
+  const list = document.getElementById('assistantMessages');
+  if (list && list.children.length === 0){
+    addAssistantMessage('bot', ARIA_GREETING_FALLBACK, null, { speak: false });
+    ariaChatHistory.push({ role: 'assistant', content: ARIA_GREETING_FALLBACK });
+  }
 }
 
 /** The shopper tapped "Intentar de nuevo". */
@@ -38243,15 +38408,13 @@ function sendRealtimeGreeting(send, left){
        be retried — she just never spoke, and nothing said why. */
     ariaRTGreeted = true;
     console.info('[aria] greeting sent');
-    /* THE NUDGE STARTS WHEN SHE FINISHES OPENING, not when the call
-       connects: the ten seconds are his silence, not hers. Armed once
-       per call, cancelled the moment he speaks. */
-    if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
-    ariaRTOpeningTimer = setTimeout(() => {
-      ariaRTOpeningTimer = null;
-      if (!ariaRT || ariaRTSpoke) return;
-      cueRealtime(CUE_OPENING_SILENCE);
-    }, CALL_OPENING_SILENCE_MS);
+    /* THE NUDGE IS ARMED WHERE SHE STOPS TALKING, not here. This
+       block used to start the ten seconds the moment the greeting
+       was SENT, and the comment claimed otherwise. Her greeting takes
+       several seconds to speak, so the shopper's real window was ten
+       seconds minus however long she talked — and a shopper who
+       answered a beat late got pitched the sales rail instead of a
+       reply. See armOpeningNudge, called when her audio ends. */
     return true;
   }
   if (remaining > 0){
@@ -38303,6 +38466,8 @@ async function onRealtimeEvent(event, turn, send){
       }
       setOrbState('idle');
       setRealtimeState('listening');
+      /* She has stopped talking, so his ten seconds start now. */
+      armOpeningNudge();
       break;
     case 'response.function_call_arguments.done':
       await runRealtimeTool(event, send);

@@ -558,12 +558,13 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      preference. 500 tokens is generous for three sentences and
      impossible to filibuster from. */
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
-  /* coral, not marin (2026-10-06): marin is the most polished voice
-     and polished was the complaint — it read as a composed
-     professional rather than the warm Peruvian friend we wanted.
-     Pinned so it cannot drift back silently; ARIA_REALTIME_VOICE
-     changes it without a deploy. */
-  assert.equal(session.audio.output.voice, "coral", "the voice changed without a decision");
+  /* nova (2026-10-06, Danny: "Set the realtime voice for Nova").
+     This has moved twice — marin read as a composed professional,
+     coral was picked as the warmest female voice on reasoning alone.
+     Danny has now heard them on a phone, which no one working on this
+     file can do, so his pick wins. Pinned so it cannot drift back
+     silently; ARIA_REALTIME_VOICE changes it without a deploy. */
+  assert.equal(session.audio.output.voice, "nova", "the voice changed without a decision");
   /* The transcript is a separate ASR from what she hears, so this
      only drives the text on screen — but an empty model name turns
      the subtitles off entirely, which reads as her not listening. */
@@ -711,10 +712,26 @@ check("a fallback is never silent again", () => {
   /* Asserted as the assignment, not just the fallback expression:
      `const said = null` left the `said || (...)` line intact and
      passed an earlier version of this. */
-  assert.match(body, /const said = body && \(body\.detail \|\| body\.error\);/,
+  /* THE MINT MOVED OUT OF THE START PATH. It runs on pointerdown now,
+     before the tap that opens the panel, so the server's words are
+     read in ariaMintRealtimeToken — but they must still arrive on
+     screen unflattened, which is what this always guarded. */
+  const mAt = page.indexOf("async function ariaMintRealtimeToken(){");
+  assert.ok(mAt > 0, "ariaMintRealtimeToken is gone");
+  let md = 0, mEnd = -1;
+  for (let k = page.indexOf("{", mAt); k < page.length; k++){
+    if (page[k] === "{") md++;
+    else if (page[k] === "}" && --md === 0){ mEnd = k; break; }
+  }
+  const mintBody = page.slice(mAt, mEnd + 1);
+  assert.match(mintBody, /const said = body && \(body\.detail \|\| body\.error\);/,
     "the page does not read the server's own message");
-  assert.match(body, /said \|\| \('el servidor respondió ' \+ res\.status\)/,
+  assert.match(mintBody, /said \|\| \('el servidor respondió ' \+ res\.status\)/,
     "the page invents its own message instead of showing the server's");
+  /* …and the start path turns a failed mint into a named failure
+     rather than a bare false. */
+  assert.match(body, /if \(!got\.ok\) return noteRealtimeFailure\(got\.said, got\.detail\);/,
+    "a failed mint no longer reaches noteRealtimeFailure");
   /* The shopper is told which engine they got — and it must be
      rendered by the function that owns the line, not set alongside it.
      The first version set the text in the fallback path, where
@@ -991,7 +1008,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   assert.ok(Array.isArray(last.tools) && last.tools.length === REALTIME_TOOLS.length,
     "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
-  assert.equal(last.audio.output.voice, "coral", "the voice was shed");
+  assert.equal(last.audio.output.voice, "nova", "the voice was shed");
 });
 
 await checkAsync("even the smallest session keeps what makes her Aria", async () => {
@@ -1026,7 +1043,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
     "the minimal session dropped turn detection — no barge-in, no answering");
   assert.equal(minimal.audio.input.turn_detection.interrupt_response, true,
     "the minimal session cannot be interrupted");
-  assert.equal(minimal.audio.output.voice, "coral", "the minimal session dropped the voice");
+  assert.equal(minimal.audio.output.voice, "nova", "the minimal session dropped the voice");
 });
 
 await checkAsync("a 502 says which field OpenAI refused", async () => {
@@ -1234,12 +1251,43 @@ check("the chat opens quiet when live voice is the mode", () => {
   const tAt = page.indexOf("function toggleAssistant(){");
   assert.ok(tAt > 0, "toggleAssistant is gone");
   const tBody = page.slice(tAt, page.indexOf("\nasync function greetAssistantStreaming", tAt));
-  assert.match(tBody, /children\.length === 0\)\s*\{[\s\S]{0,120}greetAssistantStreaming\(\);[\s\S]{0,80}\}\s*else\s*\{[\s\S]{0,120}startRealtimeOnOpen\(\);/,
-    "reopening the chat does not start a call — only the first open ever does");
+  /* THE FORK IS GONE. It existed to paint the written hello exactly
+     once while still opening the line every time. There is no written
+     hello any more, so both branches did the same thing. */
+  assert.ok(!/children\.length === 0/.test(tBody),
+    "the chat still forks on whether the panel has been opened before");
+  assert.match(tBody, /greetAssistantStreaming\(\);/,
+    "opening the chat no longer starts the call");
   assert.ok(!/speakWithLily/.test(body),
     "the deleted TTS engine is back in the greeting");
-  assert.match(body, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
-    "the written greeting was removed too — the chat would open empty");
+  /* NOTHING IS WRITTEN BEFORE SHE SPEAKS (Danny, 2026-10-06: "the
+     chat opens with a TEXT greeting but no audio... then when she
+     replies, it is a second greeting").
+
+     A fixed line painted on open was two bugs. It made a silent call
+     indistinguishable from a working one, and it was duplicated the
+     moment her real greeting's transcript landed. Her transcript is
+     the message now. */
+  assert.ok(!/addAssistantMessage\('bot', ARIA_GREETING_FALLBACK/.test(body),
+    "a written greeting is painted on open again — a silent call will look like a working one");
+  /* The transcript is what reaches the panel and the history, so
+     removing the written line cannot leave the model greeting twice. */
+  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,400}addAssistantMessage\('bot', event\.transcript\.trim\(\)/,
+    "what she actually says never reaches the panel");
+  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,400}ariaChatHistory\.push\(\{ role: 'assistant'/,
+    "what she says never reaches the history — her first real answer would greet again");
+  /* …and the written line is still there for the one case that needs
+     it: no call at all. An error bar over an empty panel is nothing. */
+  const eAt = page.indexOf("function showRealtimeError(){");
+  assert.ok(eAt > 0, "showRealtimeError is gone");
+  let ed = 0, eEnd = -1;
+  for (let k = page.indexOf("{", eAt); k < page.length; k++){
+    if (page[k] === "{") ed++;
+    else if (page[k] === "}" && --ed === 0){ eEnd = k; break; }
+  }
+  const errBody = page.slice(eAt, eEnd + 1);
+  assert.match(errBody, /addAssistantMessage\('bot', ARIA_GREETING_FALLBACK, null, \{ speak: false \}\)/,
+    "a shopper whose call failed gets an error bar over an empty panel");
   /* The flag that arms the cue is classic-only. */
   assert.match(body, /if \(ariaClassicVoiceOnly\(\)\) assistantReplyHasTappables = true;/,
     "the greeting still arms the mic-off cue in live-voice mode");
@@ -1338,8 +1386,16 @@ check("the element carries the audio, and the WebAudio graph never does", () => 
 
   /* Driven: attach, duck, restore. */
   const timers = [];
+  /* THE ORDER OF THE RESET IS THE TEST. See the attach assertions. */
+  const order = [];
+  let _srcObject = null;
   const el = { muted: false, volume: 1, paused: true, autoplay: false, playsInline: false,
-               srcObject: null, play(){ this.paused = false; return { catch(){} }; } };
+               src: "data:audio/wav;base64,SILENT",
+               get srcObject(){ return _srcObject; },
+               set srcObject(v){ _srcObject = v; order.push("srcObject"); },
+               play(){ this.paused = false; return { catch(){} }; },
+               removeAttribute(n){ if (n === "src"){ this.src = null; order.push("removeAttribute"); } },
+               load(){ order.push("load"); } };
   const ctx = { state: "running", resume(){ ctx.state = "running"; } };
   const sink = new Function("Audio", "window", "ariaUnlockAudioContext", "console",
     "CUT_RESTORE_MS", "setTimeout", "clearTimeout", "ariaUnlockLiveAudio", "tape",
@@ -1360,6 +1416,24 @@ check("the element carries the audio, and the WebAudio graph never does", () => 
 
   sink.attach({ id: "remote" });
   assert.equal(el.srcObject.id, "remote", "the stream was not attached to the element");
+  /* THE SILENT FILE IS EVICTED BEFORE THE STREAM ARRIVES, AND THAT IS
+     THE GREETING BUG (Danny, 2026-10-06: "the chat opens with a TEXT
+     greeting but no audio... I have to speak first").
+
+     ariaUnlockLiveAudio primes the element inside the tap with
+     SILENT_WAV — a valid header and ZERO SAMPLES — because that is
+     what makes it legal to play on iOS. Safari does not reliably let
+     srcObject supersede a src that is still set, so the element went
+     on playing the silent file: paused false, volume 1, not muted, a
+     live track attached, and no sound. Every diagnostic we had said
+     the audio was healthy.
+
+     load() must come BETWEEN the two. Before removeAttribute it
+     reloads the silence; after the assignment it restarts the stream
+     we just attached. */
+  assert.deepEqual(order, ["removeAttribute", "load", "srcObject"],
+    "the primed silent file is not evicted before the stream is attached — Safari will keep playing it");
+  assert.equal(el.src, null, "the silent file is still selected on the element");
   assert.equal(el.muted, false, "the element is muted after attaching — nothing would be audible");
   assert.equal(el.volume, 1, "the element is silent after attaching");
   assert.equal(el.paused, false, "the element was never asked to play");
@@ -2773,56 +2847,65 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
   assert.match(cue, /get_top_sales/, "the nudge does not reach the sales tool");
   assert.match(cue, /No preguntes si sigue ahí/, "the nudge asks if he is still there");
 
-  /* ARMED ON THE GREETING, not on connect: the ten seconds are his
-     silence, not hers. Driven through the real function. */
-  const at = page.indexOf("function sendRealtimeGreeting(send, left){");
-  let d = 0, end = -1;
-  for (let k = page.indexOf("{", at); k < page.length; k++){
-    if (page[k] === "{") d++;
-    else if (page[k] === "}" && --d === 0){ end = k; break; }
-  }
-  const src = page.slice(at, end + 1)
-    .replace(/if \(ariaRTGreeted\) return false;/, "if (__state.greeted) return false;")
-    .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
-    .replace(/ariaRTGreetRetrying/g, "__state.retrying")
-    .replace(/ariaRTSpoke/g, "__state.spoke");
+  /* ARMED WHERE SHE STOPS TALKING, NOT WHERE THE GREETING IS SENT.
 
-  const drive = (sendOk) => {
-    const state = { greeted: false, retrying: false, spoke: false, cues: [], timers: [] };
-    const fn = new Function("__state", "console", "GREETING_ATTEMPTS", "GREETING_RETRY_MS",
-      "setTimeout", "clearTimeout", "ariaRT", "ariaRTOpeningTimer", "cueRealtime",
-      "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS", "REALTIME_GREETING_BRIEF",
-      src + "\n return sendRealtimeGreeting;");
-    const greet = fn(state, { info(){}, warn(){} }, 3, 500,
-      (f, delay) => { state.timers.push({ f, delay }); return { id: state.timers.length }; },
-      () => {}, {}, null,
-      (c) => { state.cues.push(c); return true; }, "[nudge]", 10000, "saluda");
-    greet(() => sendOk);
-    return state;
+     Danny, 2026-10-06: "I tap mic, say hola, and she responds
+     perfect, let me look for Legos. I never said Legos."
+
+     The nudge tells her to pitch get_top_sales, and Lego is in the
+     sales feed — so the Legos came from this cue, not from a
+     mis-transcription. It used to start counting the moment the
+     greeting was SENT, so her several seconds of talking came out of
+     the shopper's ten, and anyone who answered a beat late was sold
+     to instead of answered. */
+  const gAt = page.indexOf("function sendRealtimeGreeting(send, left){");
+  let gd = 0, gEnd = -1;
+  for (let k = page.indexOf("{", gAt); k < page.length; k++){
+    if (page[k] === "{") gd++;
+    else if (page[k] === "}" && --gd === 0){ gEnd = k; break; }
+  }
+  const greetSrc = page.slice(gAt, gEnd + 1);
+  assert.ok(!/CALL_OPENING_SILENCE_MS/.test(greetSrc),
+    "the greeting arms the nudge again — her talking would eat the shopper's ten seconds");
+
+  /* It is armed when her audio ends instead. */
+  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,500}armOpeningNudge\(\);/,
+    "nothing arms the nudge when she stops talking — a silent shopper is never offered anything");
+
+  const aAt = page.indexOf("function armOpeningNudge(){");
+  assert.ok(aAt > 0, "armOpeningNudge is gone");
+  let ad = 0, aEnd = -1;
+  for (let k = page.indexOf("{", aAt); k < page.length; k++){
+    if (page[k] === "{") ad++;
+    else if (page[k] === "}" && --ad === 0){ aEnd = k; break; }
+  }
+  const armSrc = page.slice(aAt, aEnd + 1);
+
+  const driveArm = (spoke) => {
+    const st = { cues: [], timers: [] };
+    const fn = new Function("ariaRT", "ariaRTSpoke", "ariaRTOpeningTimer", "setTimeout",
+      "clearTimeout", "cueRealtime", "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS",
+      armSrc + "\n return armOpeningNudge;")(
+        {}, spoke, null,
+        (f, delay) => { st.timers.push({ f, delay }); return st.timers.length; },
+        () => {}, (c) => { st.cues.push(c); return true; }, "[nudge]", 10000);
+    fn();
+    return st;
   };
 
-  const ok = drive(true);
-  assert.equal(ok.greeted, true, "the greeting did not go out");
-  const nudge = ok.timers.find(t => t.delay === 10000);
-  assert.ok(nudge, "a successful greeting armed no opening-silence nudge");
-
-  /* He stayed quiet: she offers. */
+  /* He has not spoken: the ten seconds are armed, and firing offers. */
+  const quiet = driveArm(false);
+  const nudge = quiet.timers.find(t => t.delay === 10000);
+  assert.ok(nudge, "her audio ending armed no opening-silence nudge");
   nudge.f();
-  assert.deepEqual(ok.cues, ["[nudge]"], "ten seconds of silence produced no offer");
+  assert.deepEqual(quiet.cues, ["[nudge]"], "ten seconds of silence produced no offer");
 
-  /* He spoke first: she must NOT offer, or a shopper who said "busco
-     zapatillas Nike" gets pitched the general sales anyway. */
-  const spoke = drive(true);
-  spoke.spoke = true;
-  spoke.timers.find(t => t.delay === 10000).f();
+  /* He said "hola": nothing is armed at all. A greeting is a reply,
+     and replying to it with a product pitch is the Legos bug. */
+  const spoke = driveArm(true);
+  assert.deepEqual(spoke.timers, [],
+    "she armed the sales pitch at a shopper who had already spoken");
   assert.deepEqual(spoke.cues, [], "she pitched the sales at a shopper who had already spoken");
-
-  /* A greeting that never went out arms nothing — otherwise the first
-     thing he hears is an offer with no hello in front of it. */
-  const failed = drive(false);
-  assert.equal(failed.greeted, false, "a failed send was recorded as greeted");
-  assert.ok(!failed.timers.some(t => t.delay === 10000),
-    "a greeting that never went out still armed the nudge");
 });
 
 await checkAsync("the vague shopper gets real deals, grouped so she can offer a choice", async () => {
@@ -3977,7 +4060,99 @@ await checkAsync("two taps during the handshake open one call, not two", async (
    The floor is the cheapest possible detector: a suite that shrinks
    has to say so. Raise it when tests are added; it is not meant to
    track the count exactly, only to catch a collapse. */
-const MIN_CHECKS = 75;
+check("the token is minted on intent, once, and spent once", () => {
+  /* The call used to begin with an awaited POST to our own function.
+     On a cold Netlify function that is most of the wait between
+     tapping the orb and hearing her, and none of it depends on the
+     tap. It is minted on pointerdown now. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const tStart = page.indexOf("const TOKEN_MIN_LIFE_MS");
+  const tEnd = page.indexOf("function ariaWarmOnIntent(){");
+  assert.ok(tStart > 0 && tEnd > tStart, "the token warmer is gone");
+  let fetches = 0;
+  const fakeFetch = () => { fetches++; return new Promise(() => {}); };
+  const api = new Function("fetch", "REALTIME_TOKEN_URL", "JSON",
+    page.slice(tStart, tEnd) +
+    "\n return { usable: ariaTokenUsable, warm: ariaWarmRealtimeToken };")(
+      fakeFetch, "/api/realtime-token", JSON);
+
+  const now = 1_700_000_000_000;
+  /* expires_at is epoch SECONDS from the API. */
+  assert.equal(api.usable({ mint: { token: "t", expires_at: (now / 1000) + 60 }, minted: now }, now), true,
+    "a token with a minute left is treated as dead");
+  assert.equal(api.usable({ mint: { token: "t", expires_at: (now / 1000) + 5 }, minted: now }, now), false,
+    "a token that expires mid-handshake is handed out anyway");
+  /* Milliseconds are accepted too, rather than read as a date in 1970
+     and every live token thrown away. */
+  assert.equal(api.usable({ mint: { token: "t", expires_at: now + 60000 }, minted: now }, now), true,
+    "an expiry already in milliseconds is misread as seconds");
+  /* No expiry given: fall back to the documented minute, with margin. */
+  assert.equal(api.usable({ mint: { token: "t" }, minted: now - 1000 }, now), true,
+    "a token minted a second ago is treated as dead");
+  assert.equal(api.usable({ mint: { token: "t" }, minted: now - 50000 }, now), false,
+    "a token almost certainly expired is handed out anyway");
+  assert.equal(api.usable(null, now), false, "no token at all reads as usable");
+  assert.equal(api.usable({ mint: {} , minted: now }, now), false, "a reply with no token reads as usable");
+
+  /* SINGLE FLIGHT. pointerdown warms it and the click that follows
+     asks again a few milliseconds later, while the first mint is
+     still in the air. Two mints would be two secrets and one wasted
+     function invocation. The in-flight promise is assigned
+     synchronously, so this is testable without awaiting. */
+  api.warm();
+  api.warm();
+  assert.equal(fetches, 1, "warming twice mints two tokens — pointerdown and click would each pay for one");
+
+  /* …and the start path spends it rather than replaying a secret the
+     server has already consumed. */
+  const sAt = page.indexOf("async function startRealtimeVoiceOnce()");
+  const sBody = page.slice(sAt, page.indexOf("/** End the session", sAt));
+  assert.match(sBody, /const got = await ariaWarmRealtimeToken\(\);[\s\S]{0,400}ariaTokenCache = null;/,
+    "the ephemeral secret is kept after the call that spent it");
+
+  /* The launcher is what warms it: pointerdown fires before the click
+     that opens the panel. Wired inline, and guarded, because a
+     ReferenceError here would be thrown inside the tap that opens the
+     chat — warming may never break the open. */
+  assert.match(page, /id="assistantBtn"[^>]*onpointerdown="ariaWarmOnIntent\(\)"/,
+    "the launcher does not warm the token before the tap");
+  assert.match(page, /function ariaWarmOnIntent\(\)\{\s*try \{ ariaWarmRealtimeToken\(\); \} catch \(e\) \{\}/,
+    "warming on intent is unguarded — a throw would land inside the tap that opens the chat");
+});
+
+check("a greeting is answered, never sold to", () => {
+  /* Danny, 2026-10-06: "I tap mic, say hola, and she responds
+     perfect, let me look for Legos — I never said Legos."
+
+     Not a transcription fault. The vague-shopper rule counted a
+     one-word reply as vagueness and sent her to get_top_sales, and
+     Lego is in the sales feed, so she named a real deal he never
+     asked for. "Hola" is a greeting, not a shopper without
+     direction. */
+  const t = readFileSync(ROOT + "scripts/lib/realtime-voice.js", "utf8");
+  assert.match(t, /UN SALUDO NO ES VAGUEDAD/,
+    "nothing tells her a greeting is not a vague shopper");
+  /* The words she will actually hear, so the rule is reachable. */
+  for (const hello of ["Hola", "buenas", "aló", "qué tal", "buenos días"]){
+    assert.ok(t.includes(hello), `the greeting rule does not cover "${hello}"`);
+  }
+  /* The two prohibitions that stop the Legos answer. */
+  assert.match(t, /NUNCA contestes un saludo con ofertas/,
+    "she may still answer a greeting with the sales rail");
+  assert.match(t, /NUNCA nombres un producto, una marca ni una categoría que él no\s+haya mencionado/,
+    "she may still name a product the shopper never mentioned");
+  /* Vagueness is now downstream of a question, not of a hello. */
+  assert.match(t, /Es vago cuando, DESPUÉS de que le preguntaste qué busca/,
+    "vagueness is still judged before she has asked him anything");
+  assert.match(t, /"Hola" NO cuenta como respuesta de una sola palabra/,
+    "a one-word greeting still reads as a one-word answer");
+  /* The silence case must still reach the sales — that is the whole
+     point of the nudge, and it is the one case he never speaks. */
+  assert.match(t, /tocó el micrófono y se queda callado sin ni siquiera\s+saludar/,
+    "the silent shopper is no longer offered the sales at all");
+});
+
+const MIN_CHECKS = 95;
 if (passed + failures.length < MIN_CHECKS){
   console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} checks ran, expected at least ${MIN_CHECKS}.`);
   console.log("  The file is probably truncated, or a check threw outside its harness.\n");
