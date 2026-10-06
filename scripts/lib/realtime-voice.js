@@ -39,19 +39,41 @@ export * from "./realtime-turn.js";
    is a brand decision (see the note in the PR body). Both are
    overridable by environment so neither needs a deploy. */
 export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
-/* NOVA, BY INSTRUCTION (2026-10-06, Danny: "Set the realtime voice
-   for Nova").
+/* THE REALTIME API TAKES ITS OWN TEN VOICES, AND NOVA IS NOT ONE.
 
-   The history, because this has moved twice: marin was the first
-   pick and read as a composed professional rather than a friend;
-   coral was chosen as the warmest of the female voices. Danny has
-   now heard them on a phone, which I cannot do from here, and picked
-   nova. A heard opinion beats a reasoned one, so this is his call and
-   the reasoning above is kept only so nobody re-litigates it from
-   scratch.
+   Danny asked for Nova (2026-10-06) and it shipped as "nova", which
+   is not a voice this API accepts — nova belongs to the text-to-
+   speech API, whose list overlaps but is not the same. It had to be
+   reverted in a follow-up commit, and the only reason it was caught
+   is that someone looked. An unknown voice is rejected at mint time,
+   so the symptom is a session that will not open at all: no voice,
+   not a different voice.
 
-   ARIA_REALTIME_VOICE still overrides without a deploy. */
+   So the list is written down and enforced below rather than left as
+   a thing to remember. If Danny wants a different voice, it is one of
+   these, and ARIA_REALTIME_VOICE still changes it without a deploy.
+
+   coral stands as the warmest of the female voices; marin and cedar
+   are OpenAI's newest and are Realtime-only; shimmer and sage are the
+   next two worth trying. */
+export const REALTIME_VOICES = Object.freeze([
+  "alloy", "ash", "ballad", "cedar", "coral",
+  "echo", "marin", "sage", "shimmer", "verse",
+]);
 export const REALTIME_VOICE_DEFAULT = "coral";
+
+/* A voice the API does not know fails the whole mint, so a typo in a
+   Netlify variable takes the assistant down rather than changing how
+   she sounds. Named and survivable instead. */
+export function resolveRealtimeVoice(want, warn) {
+  const v = String(want || "").trim().toLowerCase();
+  if (!v) return REALTIME_VOICE_DEFAULT;
+  if (REALTIME_VOICES.includes(v)) return v;
+  (warn || ((m) => console.warn(m)))(
+    `[aria] ARIA_REALTIME_VOICE="${want}" is not a Realtime voice; ` +
+    `using ${REALTIME_VOICE_DEFAULT}. Valid: ${REALTIME_VOICES.join(", ")}`);
+  return REALTIME_VOICE_DEFAULT;
+}
 export const REALTIME_API_BASE = "https://api.openai.com/v1/realtime";
 
 /* Capped so one answer cannot become a monologue. See the note where it
@@ -516,7 +538,7 @@ export function buildRealtimeInstructions(recipient = null) {
  */
 export function buildRealtimeSession(opts = {}) {
   const model = opts.model || REALTIME_MODEL_DEFAULT;
-  const voice = opts.voice || REALTIME_VOICE_DEFAULT;
+  const voice = resolveRealtimeVoice(opts.voice);
   /* Both tunable from Netlify so the feel can be adjusted against a
      real phone in a real car, which is the only place it can be
      judged, without waiting for a deploy each time. */

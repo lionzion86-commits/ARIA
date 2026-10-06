@@ -28,6 +28,7 @@ import { strict as assert } from "node:assert";
 import {
   buildRealtimeSession, buildRealtimeInstructions, TURN_DETECTION, buildTurnDetection,
   REALTIME_TOOLS, REALTIME_TOOL_NAMES, REALTIME_MODEL_DEFAULT,
+  REALTIME_VOICES, REALTIME_VOICE_DEFAULT, resolveRealtimeVoice,
 } from "../lib/realtime-voice.js";
 import {
   createVoiceTurnState, voiceTurnReducer, parseToolArguments, realtimeSupported,
@@ -558,13 +559,14 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      preference. 500 tokens is generous for three sentences and
      impossible to filibuster from. */
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
-  /* nova (2026-10-06, Danny: "Set the realtime voice for Nova").
-     This has moved twice — marin read as a composed professional,
-     coral was picked as the warmest female voice on reasoning alone.
-     Danny has now heard them on a phone, which no one working on this
-     file can do, so his pick wins. Pinned so it cannot drift back
-     silently; ARIA_REALTIME_VOICE changes it without a deploy. */
-  assert.equal(session.audio.output.voice, "nova", "the voice changed without a decision");
+  /* coral, and NOT nova. Danny asked for Nova; nova is a text-to-
+     speech voice and the Realtime API does not accept it, so it had
+     to be reverted. An unknown voice fails the mint outright — the
+     symptom is no voice at all, not a different one. Pinned so it
+     cannot drift silently; ARIA_REALTIME_VOICE changes it without a
+     deploy, and resolveRealtimeVoice now refuses anything off the
+     list rather than letting it reach the API. */
+  assert.equal(session.audio.output.voice, "coral", "the voice changed without a decision");
   /* The transcript is a separate ASR from what she hears, so this
      only drives the text on screen — but an empty model name turns
      the subtitles off entirely, which reads as her not listening. */
@@ -1008,7 +1010,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   assert.ok(Array.isArray(last.tools) && last.tools.length === REALTIME_TOOLS.length,
     "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
-  assert.equal(last.audio.output.voice, "nova", "the voice was shed");
+  assert.equal(last.audio.output.voice, "coral", "the voice was shed");
 });
 
 await checkAsync("even the smallest session keeps what makes her Aria", async () => {
@@ -1043,7 +1045,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
     "the minimal session dropped turn detection — no barge-in, no answering");
   assert.equal(minimal.audio.input.turn_detection.interrupt_response, true,
     "the minimal session cannot be interrupted");
-  assert.equal(minimal.audio.output.voice, "nova", "the minimal session dropped the voice");
+  assert.equal(minimal.audio.output.voice, "coral", "the minimal session dropped the voice");
 });
 
 await checkAsync("a 502 says which field OpenAI refused", async () => {
@@ -4150,6 +4152,41 @@ check("a greeting is answered, never sold to", () => {
      point of the nudge, and it is the one case he never speaks. */
   assert.match(t, /tocó el micrófono y se queda callado sin ni siquiera\s+saludar/,
     "the silent shopper is no longer offered the sales at all");
+});
+
+check("a voice the Realtime API does not have can never ship", () => {
+  /* Danny asked for Nova and it shipped as "nova", which this API
+     does not accept — nova is a text-to-speech voice. It had to be
+     reverted in a follow-up commit, and nothing in the suite would
+     have caught it. An unknown voice is rejected at mint time, so the
+     symptom is a session that never opens: no voice at all, rather
+     than the wrong one. */
+  assert.deepEqual([...REALTIME_VOICES].sort(),
+    ["alloy","ash","ballad","cedar","coral","echo","marin","sage","shimmer","verse"],
+    "the Realtime voice list drifted from what the API documents");
+  /* The text-to-speech voices that are NOT Realtime voices. These are
+     exactly the ones someone will reach for by mistake. */
+  for (const tts of ["nova","fable","onyx"])
+    assert.ok(!REALTIME_VOICES.includes(tts),
+      `"${tts}" is a text-to-speech voice and would fail the mint`);
+  assert.ok(REALTIME_VOICES.includes(REALTIME_VOICE_DEFAULT),
+    "the default voice is not one the API accepts");
+
+  /* A bad env var degrades to the default and says so, rather than
+     taking the assistant down. */
+  const said = [];
+  assert.equal(resolveRealtimeVoice("nova", (m) => said.push(m)), REALTIME_VOICE_DEFAULT,
+    "an invalid voice was passed through to the API");
+  assert.equal(said.length, 1, "an invalid voice was swapped out silently");
+  assert.match(said[0], /not a Realtime voice/, "the warning does not say what is wrong");
+  /* A valid one is honoured, including case and padding from a
+     hand-typed Netlify variable. */
+  assert.equal(resolveRealtimeVoice("marin"), "marin", "a valid voice was rejected");
+  assert.equal(resolveRealtimeVoice("  CEDAR "), "cedar", "a valid voice was rejected on case alone");
+  assert.equal(resolveRealtimeVoice(""), REALTIME_VOICE_DEFAULT, "an unset variable did not fall back");
+  /* And the session itself is built through that gate. */
+  assert.equal(buildRealtimeSession({ voice: "nova" }).audio.output.voice, REALTIME_VOICE_DEFAULT,
+    "buildRealtimeSession still hands an invalid voice to the API");
 });
 
 const MIN_CHECKS = 95;
