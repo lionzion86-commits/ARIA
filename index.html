@@ -5458,6 +5458,16 @@
        classic inline script; modules are deferred, so the main script may
        have run its first bundle sync before the data lands — the bridge
        re-syncs, and the sync itself never prunes what it cannot verify. -->
+  <!-- VOZ EN VIVO (2026-10-05): the pure half of the realtime voice —
+       the turn state machine, the tool-argument parser and the
+       capability check. Its own module block on purpose: if this one
+       404s the combo-deals bridge below must still run, and vice
+       versa. A missing window.AriaRealtimeTurn simply means the page
+       uses the speech-to-text loop it has always used. -->
+  <script type="module">
+    import * as AriaRealtimeTurn from './scripts/lib/realtime-turn.js';
+    window.AriaRealtimeTurn = AriaRealtimeTurn;
+  </script>
   <script type="module">
     import { COMBO_DEALS } from './combo-deals.js';
     window.COMBO_DEALS = COMBO_DEALS;
@@ -6206,7 +6216,7 @@
          40px grey outline, which is under Apple's 44px minimum and read
          as secondary; it is navy-filled and 48px now. Speaking is how
          most of this shop's customers will actually ask. -->
-    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleContinuousMode()" aria-label="Hablar con Aria" title="Hablar con Aria" aria-pressed="false" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--navy); color:#fff">
+    <button id="assistantMicBtn" onclick="unlockAudioForMobile();toggleAriaVoice()" aria-label="Hablar con Aria" title="Hablar con Aria" aria-pressed="false" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--navy); color:#fff">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </button>
     <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="flex-1 h-12 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
@@ -36820,6 +36830,408 @@ function startListening(fromUser){
   micStartByUser = !!fromUser;
   try { recognition.start(); lastStartAt = now; } catch(e) { /* already listening */ }
 }
+
+/* ============================================================
+   ARIA EN VIVO — THE TRANSPORT.
+
+   WHAT THE SHOPPER GETS. The microphone stays open. Aria listens while
+   she talks. Start speaking over her and she stops inside a frame,
+   mid-word, and answers what you just said instead of finishing the
+   sentence she had started.
+
+   WHAT REPLACED WHAT. The old loop could not do that, structurally:
+   runAssistantBrain closes the microphone for the whole think phase
+   (intentionalStop), so there was no moment at which the shopper was
+   able to interrupt. That loop is still here and still the fallback —
+   it works in every browser, needs no key, and is what every shopper
+   has today. This runs instead of it only when it can run WELL.
+
+   THE PIECE THAT IS EASY TO GET WRONG: stopping the sound. The server
+   truncates its own response when interrupt_response fires, but that
+   decision travels back over the network, and until it lands the audio
+   already in flight keeps playing — which the brief explicitly
+   forbids. So the remote audio is routed through a GainNode and the
+   gain is slammed to zero LOCALLY the instant the shopper's voice is
+   detected. The cut is immediate and owes nothing to the round trip.
+
+   ECHO IS WHY THIS NEEDS WEBRTC. "Listening while speaking" means the
+   microphone hears Aria. Without echo cancellation she interrupts
+   herself on her own voice, forever. getUserMedia's echoCancellation
+   is doing real work here; it is not a nicety.
+
+   START OF THE REALTIME CLIENT SLICE — the decisions are in
+   scripts/lib/realtime-turn.js and tested there. This file is the
+   plumbing around them.
+   ============================================================ */
+
+/* The bridge for the pure half. index.html is a plain <script> and
+   cannot import, so a module block publishes it on window. If that
+   fetch ever 404s the object is simply absent and realtimeAvailable()
+   answers false — the page falls back instead of throwing, which is
+   the failure mode combo-deals.js taught this repo to design for. */
+let ariaRT = null;            // the live session, or null
+let ariaRTWanted = false;     // the shopper asked for live voice
+const ARIA_RT_FLAG = 'ariaLiveVoice';
+
+/** Is the live path usable at all, right now, in this browser? */
+function realtimeAvailable(){
+  const T = window.AriaRealtimeTurn;
+  if (!T || typeof T.realtimeSupported !== 'function') {
+    return { ok: false, reason: 'el módulo de voz en vivo no cargó' };
+  }
+  return T.realtimeSupported({
+    RTCPeerConnection: window.RTCPeerConnection,
+    mediaDevices: navigator.mediaDevices,
+    isSecureContext: window.isSecureContext,
+  });
+}
+
+/* Opt-in while it is new: ?voz=vivo turns it on, and the choice sticks
+   so Danny does not retype it every reload. Off by default means a bad
+   realtime day can never take the shop's voice down with it. */
+function realtimeOptedIn(){
+  try {
+    const q = new URLSearchParams(location.search).get('voz');
+    if (q === 'vivo'){ localStorage.setItem(ARIA_RT_FLAG, '1'); return true; }
+    if (q === 'clasica'){ localStorage.removeItem(ARIA_RT_FLAG); return false; }
+    return localStorage.getItem(ARIA_RT_FLAG) === '1';
+  } catch { return false; }
+}
+
+/* ------------------------------------------------------------------
+   AUDIO OUT — one graph, built once, so the cut is instantaneous.
+   ------------------------------------------------------------------ */
+function buildAudioSink(){
+  const AC = window.AudioContext || window.webkitAudioContext;
+  const el = new Audio();
+  el.autoplay = true;
+  /* iOS will not play a stream attached to a muted element, and will
+     not start one at all outside a gesture — the session only ever
+     starts from a tap, which is that gesture. */
+  el.playsInline = true;
+  if (!AC) return { el, gain: null, ctx: null, cut(){ el.muted = true; }, open(){ el.muted = false; } };
+  const ctx = new AC();
+  const gain = ctx.createGain();
+  gain.gain.value = 1;
+  return {
+    el, gain, ctx,
+    attach(stream){
+      try {
+        const src = ctx.createMediaStreamSource(stream);
+        src.connect(gain);
+        gain.connect(ctx.destination);
+        /* The element still gets the stream: some browsers will not
+           keep a WebRTC track alive unless it is attached to one.
+           It stays muted so the audible path is the graph we control. */
+        el.srcObject = stream;
+        el.muted = true;
+      } catch {
+        el.srcObject = stream;
+        el.muted = false;   // no graph: the element is the only path
+      }
+    },
+    /* setTargetAtTime rather than a bare assignment: a hard step on a
+       live waveform is an audible click, and a 15ms ramp is still
+       "immediately" to a human ear. */
+    cut(){ try { gain.gain.setTargetAtTime(0, ctx.currentTime, 0.005); } catch { el.muted = true; } },
+    open(){ try { gain.gain.setTargetAtTime(1, ctx.currentTime, 0.01); } catch { el.muted = false; } },
+  };
+}
+
+/* ------------------------------------------------------------------
+   THE SESSION
+   ------------------------------------------------------------------ */
+
+async function startRealtimeVoice(){
+  if (ariaRT) return true;
+  const can = realtimeAvailable();
+  if (!can.ok){ console.info('[aria] voz en vivo no disponible:', can.reason); return false; }
+
+  let mint;
+  try {
+    const res = await fetch('/.netlify/functions/aria-realtime-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+    });
+    if (!res.ok){
+      /* 503 means the key is not configured — expected on a preview
+         without it, and not worth a scary message. */
+      console.info('[aria] voz en vivo no disponible:', res.status);
+      return false;
+    }
+    mint = await res.json();
+  } catch (e){ console.info('[aria] no pude abrir la sesión de voz:', e.message); return false; }
+  if (!mint || !mint.token) return false;
+
+  const T = window.AriaRealtimeTurn;
+  let turn = T.createVoiceTurnState();
+  const sink = buildAudioSink();
+  let mic = null, pc = null, dc = null;
+
+  try {
+    mic = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        /* The three that make listening-while-speaking possible. */
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+  } catch (e){
+    /* Refused permission is a decision, not a fault: say nothing loud
+       and leave the old mic button exactly as it was. */
+    console.info('[aria] micrófono denegado:', e.name);
+    return false;
+  }
+
+  pc = new RTCPeerConnection();
+  pc.ontrack = (ev) => { if (ev.streams && ev.streams[0]) sink.attach(ev.streams[0]); };
+  for (const track of mic.getTracks()) pc.addTrack(track, mic);
+
+  dc = pc.createDataChannel('oai-events');
+  const send = (obj) => { try { if (dc.readyState === 'open') dc.send(JSON.stringify(obj)); } catch {} };
+
+  dc.onmessage = (ev) => {
+    let event;
+    try { event = JSON.parse(ev.data); } catch { return; }
+    const { state, actions } = T.voiceTurnReducer(turn, event);
+    turn = state;
+    for (const action of actions){
+      if (action === 'stopPlayback' || action === 'clearAudioQueue' || action === 'dropAudio') sink.cut();
+      else if (action === 'playAudio') sink.open();
+      else if (action === 'cancelResponse') send({ type: 'response.cancel' });
+    }
+    onRealtimeEvent(event, turn, send);
+  };
+
+  dc.onopen = () => {
+    /* The session was already configured when the token was minted.
+       This only re-asserts turn detection, which is the one thing a
+       reconnect can lose. */
+    send({ type: 'session.update', session: { type: 'realtime', audio: { input: { turn_detection: {
+      type: 'semantic_vad', eagerness: 'auto', create_response: true, interrupt_response: true,
+    } } } } });
+  };
+
+  try {
+    const offer = await pc.createOffer();
+    await pc.setLocalDescription(offer);
+    const sdpRes = await fetch(`${mint.call_url}?model=${encodeURIComponent(mint.model)}`, {
+      method: 'POST',
+      body: offer.sdp,
+      headers: { Authorization: `Bearer ${mint.token}`, 'Content-Type': 'application/sdp' },
+    });
+    if (!sdpRes.ok) throw new Error('SDP ' + sdpRes.status);
+    await pc.setRemoteDescription({ type: 'answer', sdp: await sdpRes.text() });
+  } catch (e){
+    console.info('[aria] no pude conectar la voz en vivo:', e.message);
+    try { mic.getTracks().forEach(t => t.stop()); } catch {}
+    try { pc.close(); } catch {}
+    return false;
+  }
+
+  ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
+  setRealtimeUi(true);
+  return true;
+}
+
+/** End the session and give the microphone back. */
+function stopRealtimeVoice(){
+  if (!ariaRT) return;
+  try { ariaRT.mic.getTracks().forEach(t => t.stop()); } catch {}
+  try { ariaRT.dc.close(); } catch {}
+  try { ariaRT.pc.close(); } catch {}
+  try { ariaRT.sink.cut(); } catch {}
+  ariaRT = null;
+  ariaRTWanted = false;
+  setRealtimeUi(false);
+}
+
+/** Mute without ending: the shopper's privacy control. */
+function toggleRealtimeMute(){
+  if (!ariaRT) return false;
+  const tracks = ariaRT.mic.getAudioTracks();
+  const nowMuted = tracks.length ? tracks[0].enabled : false;
+  for (const t of tracks) t.enabled = !nowMuted ? false : true;
+  const muted = tracks.length ? !tracks[0].enabled : false;
+  setRealtimeUi(true, muted);
+  return muted;
+}
+
+/* ------------------------------------------------------------------
+   EVENTS THAT ARE NOT AUDIO — transcript, tools, errors.
+   ------------------------------------------------------------------ */
+async function onRealtimeEvent(event, turn, send){
+  switch (event.type){
+    case 'input_audio_buffer.speech_started':
+      setOrbState('listening');
+      break;
+    case 'conversation.item.input_audio_transcription.completed':
+      /* What the shopper said, on screen, so the conversation has a
+         readable record and the text history stays in step. */
+      if (event.transcript && event.transcript.trim()){
+        addAssistantMessage('user', event.transcript.trim());
+        ariaChatHistory.push({ role: 'user', content: event.transcript.trim() });
+      }
+      break;
+    case 'response.output_audio_transcript.done':
+      if (event.transcript && event.transcript.trim()){
+        addAssistantMessage('bot', event.transcript.trim(), null, { speak: false });
+        ariaChatHistory.push({ role: 'assistant', content: event.transcript.trim() });
+      }
+      setOrbState('idle');
+      break;
+    case 'response.function_call_arguments.done':
+      await runRealtimeTool(event, send);
+      break;
+    case 'error':
+      console.info('[aria] realtime error', event.error && event.error.message);
+      setOrbState('idle');
+      break;
+    default:
+      break;
+  }
+}
+
+/* The four tools. Two answer from the catalogue already in memory —
+   instant, and the same data the cards are built from. Two go to the
+   server because the money formula and the order book live there. */
+async function runRealtimeTool(event, send){
+  const T = window.AriaRealtimeTurn;
+  const parsed = T.parseToolArguments(event.name, event.arguments);
+  let output;
+  if (!parsed.ok){
+    output = { error: parsed.error };
+  } else {
+    try { output = await executeRealtimeTool(event.name, parsed.args); }
+    catch (e){ output = { unavailable: 'esa consulta se me trabó, déjame intentar de nuevo' }; }
+  }
+  send({
+    type: 'conversation.item.create',
+    item: { type: 'function_call_output', call_id: event.call_id, output: JSON.stringify(output) },
+  });
+  /* The model does not speak again on its own after a tool result. */
+  send({ type: 'response.create' });
+}
+
+async function executeRealtimeTool(name, args){
+  if (name === 'search_products'){
+    const limit = Math.min(Math.max(Math.round(args.limit || 4), 1), 8);
+    let budgetUsd = args.max_price_usd;
+    if (!budgetUsd && args.max_price_pen){
+      await loadFxRate();
+      if (typeof fxRate === 'number' && fxRate > 0) budgetUsd = args.max_price_pen / fxRate;
+    }
+    const q = [args.brand, args.query].filter(Boolean).join(' ');
+    let res;
+    try { res = await catalogSearch(q, { limit: 60 }); }
+    catch { return { unavailable: 'el catálogo no cargó, no puedo buscar ahorita' }; }
+    let items = (res && res.items) || [];
+    if (budgetUsd) items = items.filter(i => Number(i.price) <= budgetUsd);
+    items = items.slice(0, limit);
+    if (!items.length) return { products: [], note: 'no encontré nada que encaje con eso' };
+    /* The cards go up as she speaks, so the shopper is looking at the
+       products while hearing about them. */
+    for (const it of items) addAssistantProductCard(it, it.retailer);
+    return {
+      products: items.map(i => ({
+        id: realtimeProductId(i),
+        title: i.title, brand: i.brand || null, store: i.retailer,
+        price_usd: i.price, weight_kg: i.weightKg ?? null,
+      })),
+    };
+  }
+
+  if (name === 'get_product_details'){
+    const it = realtimeProductById(args.product_id);
+    if (!it) return { unavailable: 'no tengo ese producto a la mano' };
+    return {
+      id: args.product_id, title: it.title, brand: it.brand || null, store: it.retailer,
+      price_usd: it.price, weight_kg: it.weightKg ?? null,
+      sizes: Array.isArray(it.sizes) ? it.sizes : [],
+      on_sale: !!it.originalPrice && it.originalPrice > it.price,
+      original_price_usd: it.originalPrice || null,
+    };
+  }
+
+  if (name === 'calculate_total_delivered_price'){
+    const it = realtimeProductById(args.product_id);
+    if (!it) return { unavailable: 'no tengo ese producto a la mano' };
+    const res = await fetch('/.netlify/functions/aria-realtime-tool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: name, args: {
+        priceUsd: it.price, dutiableUsd: it.dutiableUsd, weightKg: it.weightKg, quantity: args.quantity || 1,
+      } }),
+    });
+    if (!res.ok) return { unavailable: 'no pude calcular el total ahorita' };
+    return await res.json();
+  }
+
+  if (name === 'get_order_status'){
+    const res = await fetch('/.netlify/functions/aria-realtime-tool', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: name, args: { order_ref: args.order_ref } }),
+    });
+    if (!res.ok) return { unavailable: 'no pude consultar el pedido ahorita' };
+    return await res.json();
+  }
+  return { error: 'herramienta desconocida' };
+}
+
+/* Products the voice has mentioned, so a follow-up ("¿cuánto me sale
+   la segunda?") resolves to the same item the shopper heard about. */
+const ariaRTProducts = new Map();
+function realtimeProductId(item){
+  const id = 'v' + (ariaRTProducts.size + 1);
+  ariaRTProducts.set(id, item);
+  ariaRTProducts.set(String(item.title || '').toLowerCase(), item);
+  return id;
+}
+function realtimeProductById(id){
+  const k = String(id || '');
+  return ariaRTProducts.get(k) || ariaRTProducts.get(k.toLowerCase()) || null;
+}
+
+/* ------------------------------------------------------------------
+   UI
+   ------------------------------------------------------------------ */
+function setRealtimeUi(live, muted){
+  const status = document.getElementById('assistantStatus');
+  const micBtn = document.getElementById('assistantMicBtn');
+  if (status) {
+    status.textContent = !live ? 'Aquí para ayudarte a encontrar algo'
+      : muted ? 'Micrófono apagado — toca para hablar'
+      : 'En vivo — habla cuando quieras, puedes interrumpirme';
+  }
+  if (micBtn){
+    micBtn.style.background = live && !muted ? 'var(--blue)' : '';
+    micBtn.style.color = live && !muted ? '#fff' : 'var(--navy)';
+    micBtn.setAttribute('aria-pressed', live && !muted ? 'true' : 'false');
+  }
+}
+
+/**
+ * The microphone button, now with two behaviours behind it.
+ *
+ * Live voice is tried first and only when the shopper opted in; if it
+ * cannot start for any reason — no key, no permission, no WebRTC, a
+ * dead module — the old continuous-listening loop runs exactly as it
+ * does today. The shopper is never left with a button that does
+ * nothing.
+ */
+async function toggleAriaVoice(){
+  if (ariaRT){ stopRealtimeVoice(); return; }
+  if (realtimeOptedIn()){
+    ariaRTWanted = true;
+    unlockAudioForMobile();
+    if (await startRealtimeVoice()) return;
+    /* fell through: say nothing, just use the loop that works */
+  }
+  toggleContinuousMode();
+}
+
+/* END OF THE REALTIME CLIENT SLICE */
 
 function toggleContinuousMode(){
   if (continuousMode && micLive) {

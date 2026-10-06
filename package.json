@@ -7,6 +7,7 @@
     "test": "node scripts/test/run-tests.mjs",
     "test:browser": "node scripts/test/browser-tests.mjs",
     "test:mcp": "node scripts/test/mcp-tests.mjs",
+    "test:realtime": "node scripts/test/realtime-voice-tests.mjs",
     "mcp": "node mcp-server.js"
   }
 }
