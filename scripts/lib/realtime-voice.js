@@ -39,20 +39,19 @@ export * from "./realtime-turn.js";
    is a brand decision (see the note in the PR body). Both are
    overridable by environment so neither needs a deploy. */
 export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
-/* WARMTH OVER POLISH (2026-10-06, Danny: "I'd like for it to be
-   Peruvian" and "more jollier").
+/* NOVA, BY INSTRUCTION (2026-10-06, Danny: "Set the realtime voice
+   for Nova").
 
-   marin is OpenAI's newest and most polished realtime voice, and
-   polished is exactly the complaint: it reads as a composed
-   professional, not the friend we wanted. coral is the warmest of the
-   female voices and the closest thing available to a cheerful woman
-   on the phone.
+   The history, because this has moved twice: marin was the first
+   pick and read as a composed professional rather than a friend;
+   coral was chosen as the warmest of the female voices. Danny has
+   now heard them on a phone, which I cannot do from here, and picked
+   nova. A heard opinion beats a reasoned one, so this is his call and
+   the reasoning above is kept only so nobody re-litigates it from
+   scratch.
 
-   I CANNOT HEAR ANY OF THEM from here, so this is a reasoned pick and
-   not a verified one. ARIA_REALTIME_VOICE switches it without a
-   deploy; shimmer (softer, breathier) and sage are the next two worth
-   trying, and marin is one env var away if this is worse. */
-export const REALTIME_VOICE_DEFAULT = "coral";
+   ARIA_REALTIME_VOICE still overrides without a deploy. */
+export const REALTIME_VOICE_DEFAULT = "nova";
 export const REALTIME_API_BASE = "https://api.openai.com/v1/realtime";
 
 /* Capped so one answer cannot become a monologue. See the note where it
@@ -394,14 +393,34 @@ no busques productos todavía. Primero entiende QUÉ necesita:
     explícale sin jerga: nada de "streetwear" ni "hardware". Si es un
     chibolo que sabe lo que quiere, ve directo.
 
+UN SALUDO NO ES VAGUEDAD, Y ESTA ES LA REGLA MÁS IMPORTANTE DE TODA
+ESTA SECCIÓN.
+
+"Hola", "buenas", "aló", "hey", "qué tal", "buenos días" — eso es
+alguien saludando. No te ha pedido nada todavía. Contéstale el saludo
+y hazle UNA pregunta abierta, y para ahí:
+
+  "¡Hola! ¿Qué estás buscando hoy?"
+
+  - NUNCA contestes un saludo con ofertas, con un rubro, ni con un
+    producto. Pedir get_top_sales porque alguien dijo "hola" es
+    venderle algo que no pidió.
+  - NUNCA nombres un producto, una marca ni una categoría que él no
+    haya mencionado. Si no te dijo qué busca, no tienes nada que
+    buscar y no tienes nada que ofrecer.
+  - "Hola" NO cuenta como respuesta de una sola palabra. Es un saludo.
+  - Recién es vago cuando YA le preguntaste qué busca y aun así no
+    sabe. Ahí sí, y solo ahí, van las ofertas.
+
 SI NO SABE QUÉ QUIERE, LLÉVALO A LAS OFERTAS. Un comprador vago no
 necesita veinte preguntas, necesita una razón para comprar — y la
 razón son los descuentos.
 
-Es vago cuando dice "no sé", "estoy viendo", "qué hay", "qué me
-recomiendas", "algo bonito", "algo para regalo", o cuando contesta
-con una sola palabra tipo "ropa" o "zapatos". También cuando tocó el
-micrófono y se queda callado.
+Es vago cuando, DESPUÉS de que le preguntaste qué busca, dice "no sé",
+"estoy viendo", "qué hay", "qué me recomiendas", "algo bonito", "algo
+para regalo", o contesta con una sola palabra tipo "ropa" o "zapatos".
+También cuando tocó el micrófono y se queda callado sin ni siquiera
+saludar.
 
 Qué haces: pide get_top_sales y dale las DOS o TRES categorías con los
 descuentos más fuertes, con la emoción de quien tiene un dato bueno:

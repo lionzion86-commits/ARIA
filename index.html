@@ -38166,6 +38166,27 @@ function cueRealtime(cue){
   return a && b;
 }
 
+/* TEN SECONDS OF HIS SILENCE, NOT HERS.
+
+   The opening nudge asks her to pitch get_top_sales, which is the
+   right move for a shopper who tapped the microphone and never said
+   anything. It is the wrong move for everyone else, because it names
+   a product he never asked about — Danny: 'I say hola and she
+   responds perfect, let me look for Legos. I never said Legos.'
+
+   Armed when her audio ENDS, so the countdown measures his silence.
+   Only while he has never spoken: once he has, this is cancelled for
+   good and CUE_CHECKIN is the right handler for a later lull. */
+function armOpeningNudge(){
+  if (!ariaRT || ariaRTSpoke) return;
+  if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
+  ariaRTOpeningTimer = setTimeout(() => {
+    ariaRTOpeningTimer = null;
+    if (!ariaRT || ariaRTSpoke) return;
+    cueRealtime(CUE_OPENING_SILENCE);
+  }, CALL_OPENING_SILENCE_MS);
+}
+
 /**
  * Any activity — speech from either side, or a tap, or a scroll —
  * means the line is still worth paying for.
@@ -38387,15 +38408,13 @@ function sendRealtimeGreeting(send, left){
        be retried — she just never spoke, and nothing said why. */
     ariaRTGreeted = true;
     console.info('[aria] greeting sent');
-    /* THE NUDGE STARTS WHEN SHE FINISHES OPENING, not when the call
-       connects: the ten seconds are his silence, not hers. Armed once
-       per call, cancelled the moment he speaks. */
-    if (ariaRTOpeningTimer) clearTimeout(ariaRTOpeningTimer);
-    ariaRTOpeningTimer = setTimeout(() => {
-      ariaRTOpeningTimer = null;
-      if (!ariaRT || ariaRTSpoke) return;
-      cueRealtime(CUE_OPENING_SILENCE);
-    }, CALL_OPENING_SILENCE_MS);
+    /* THE NUDGE IS ARMED WHERE SHE STOPS TALKING, not here. This
+       block used to start the ten seconds the moment the greeting
+       was SENT, and the comment claimed otherwise. Her greeting takes
+       several seconds to speak, so the shopper's real window was ten
+       seconds minus however long she talked — and a shopper who
+       answered a beat late got pitched the sales rail instead of a
+       reply. See armOpeningNudge, called when her audio ends. */
     return true;
   }
   if (remaining > 0){
@@ -38447,6 +38466,8 @@ async function onRealtimeEvent(event, turn, send){
       }
       setOrbState('idle');
       setRealtimeState('listening');
+      /* She has stopped talking, so his ten seconds start now. */
+      armOpeningNudge();
       break;
     case 'response.function_call_arguments.done':
       await runRealtimeTool(event, send);

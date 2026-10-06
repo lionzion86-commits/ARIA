@@ -558,12 +558,13 @@ check("she cannot be made to monologue, and the model is the one Danny picked", 
      preference. 500 tokens is generous for three sentences and
      impossible to filibuster from. */
   assert.equal(session.max_response_output_tokens, 500, "there is no ceiling on response length");
-  /* coral, not marin (2026-10-06): marin is the most polished voice
-     and polished was the complaint — it read as a composed
-     professional rather than the warm Peruvian friend we wanted.
-     Pinned so it cannot drift back silently; ARIA_REALTIME_VOICE
-     changes it without a deploy. */
-  assert.equal(session.audio.output.voice, "coral", "the voice changed without a decision");
+  /* nova (2026-10-06, Danny: "Set the realtime voice for Nova").
+     This has moved twice — marin read as a composed professional,
+     coral was picked as the warmest female voice on reasoning alone.
+     Danny has now heard them on a phone, which no one working on this
+     file can do, so his pick wins. Pinned so it cannot drift back
+     silently; ARIA_REALTIME_VOICE changes it without a deploy. */
+  assert.equal(session.audio.output.voice, "nova", "the voice changed without a decision");
   /* The transcript is a separate ASR from what she hears, so this
      only drives the text on screen — but an empty model name turns
      the subtitles off entirely, which reads as her not listening. */
@@ -1007,7 +1008,7 @@ await checkAsync("one rejected field does not lose the whole call", async () => 
   assert.ok(Array.isArray(last.tools) && last.tools.length === REALTIME_TOOLS.length,
     "the tools were shed");
   assert.equal(last.audio.input.turn_detection.type, "semantic_vad", "turn detection was shed");
-  assert.equal(last.audio.output.voice, "coral", "the voice was shed");
+  assert.equal(last.audio.output.voice, "nova", "the voice was shed");
 });
 
 await checkAsync("even the smallest session keeps what makes her Aria", async () => {
@@ -1042,7 +1043,7 @@ await checkAsync("even the smallest session keeps what makes her Aria", async ()
     "the minimal session dropped turn detection — no barge-in, no answering");
   assert.equal(minimal.audio.input.turn_detection.interrupt_response, true,
     "the minimal session cannot be interrupted");
-  assert.equal(minimal.audio.output.voice, "coral", "the minimal session dropped the voice");
+  assert.equal(minimal.audio.output.voice, "nova", "the minimal session dropped the voice");
 });
 
 await checkAsync("a 502 says which field OpenAI refused", async () => {
@@ -2846,56 +2847,65 @@ await checkAsync("a shopper who taps the mic and says nothing is offered the sal
   assert.match(cue, /get_top_sales/, "the nudge does not reach the sales tool");
   assert.match(cue, /No preguntes si sigue ahí/, "the nudge asks if he is still there");
 
-  /* ARMED ON THE GREETING, not on connect: the ten seconds are his
-     silence, not hers. Driven through the real function. */
-  const at = page.indexOf("function sendRealtimeGreeting(send, left){");
-  let d = 0, end = -1;
-  for (let k = page.indexOf("{", at); k < page.length; k++){
-    if (page[k] === "{") d++;
-    else if (page[k] === "}" && --d === 0){ end = k; break; }
-  }
-  const src = page.slice(at, end + 1)
-    .replace(/if \(ariaRTGreeted\) return false;/, "if (__state.greeted) return false;")
-    .replace(/ariaRTGreeted = true;/, "__state.greeted = true;")
-    .replace(/ariaRTGreetRetrying/g, "__state.retrying")
-    .replace(/ariaRTSpoke/g, "__state.spoke");
+  /* ARMED WHERE SHE STOPS TALKING, NOT WHERE THE GREETING IS SENT.
 
-  const drive = (sendOk) => {
-    const state = { greeted: false, retrying: false, spoke: false, cues: [], timers: [] };
-    const fn = new Function("__state", "console", "GREETING_ATTEMPTS", "GREETING_RETRY_MS",
-      "setTimeout", "clearTimeout", "ariaRT", "ariaRTOpeningTimer", "cueRealtime",
-      "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS", "REALTIME_GREETING_BRIEF",
-      src + "\n return sendRealtimeGreeting;");
-    const greet = fn(state, { info(){}, warn(){} }, 3, 500,
-      (f, delay) => { state.timers.push({ f, delay }); return { id: state.timers.length }; },
-      () => {}, {}, null,
-      (c) => { state.cues.push(c); return true; }, "[nudge]", 10000, "saluda");
-    greet(() => sendOk);
-    return state;
+     Danny, 2026-10-06: "I tap mic, say hola, and she responds
+     perfect, let me look for Legos. I never said Legos."
+
+     The nudge tells her to pitch get_top_sales, and Lego is in the
+     sales feed — so the Legos came from this cue, not from a
+     mis-transcription. It used to start counting the moment the
+     greeting was SENT, so her several seconds of talking came out of
+     the shopper's ten, and anyone who answered a beat late was sold
+     to instead of answered. */
+  const gAt = page.indexOf("function sendRealtimeGreeting(send, left){");
+  let gd = 0, gEnd = -1;
+  for (let k = page.indexOf("{", gAt); k < page.length; k++){
+    if (page[k] === "{") gd++;
+    else if (page[k] === "}" && --gd === 0){ gEnd = k; break; }
+  }
+  const greetSrc = page.slice(gAt, gEnd + 1);
+  assert.ok(!/CALL_OPENING_SILENCE_MS/.test(greetSrc),
+    "the greeting arms the nudge again — her talking would eat the shopper's ten seconds");
+
+  /* It is armed when her audio ends instead. */
+  assert.match(page, /case 'response\.output_audio_transcript\.done':[\s\S]{0,500}armOpeningNudge\(\);/,
+    "nothing arms the nudge when she stops talking — a silent shopper is never offered anything");
+
+  const aAt = page.indexOf("function armOpeningNudge(){");
+  assert.ok(aAt > 0, "armOpeningNudge is gone");
+  let ad = 0, aEnd = -1;
+  for (let k = page.indexOf("{", aAt); k < page.length; k++){
+    if (page[k] === "{") ad++;
+    else if (page[k] === "}" && --ad === 0){ aEnd = k; break; }
+  }
+  const armSrc = page.slice(aAt, aEnd + 1);
+
+  const driveArm = (spoke) => {
+    const st = { cues: [], timers: [] };
+    const fn = new Function("ariaRT", "ariaRTSpoke", "ariaRTOpeningTimer", "setTimeout",
+      "clearTimeout", "cueRealtime", "CUE_OPENING_SILENCE", "CALL_OPENING_SILENCE_MS",
+      armSrc + "\n return armOpeningNudge;")(
+        {}, spoke, null,
+        (f, delay) => { st.timers.push({ f, delay }); return st.timers.length; },
+        () => {}, (c) => { st.cues.push(c); return true; }, "[nudge]", 10000);
+    fn();
+    return st;
   };
 
-  const ok = drive(true);
-  assert.equal(ok.greeted, true, "the greeting did not go out");
-  const nudge = ok.timers.find(t => t.delay === 10000);
-  assert.ok(nudge, "a successful greeting armed no opening-silence nudge");
-
-  /* He stayed quiet: she offers. */
+  /* He has not spoken: the ten seconds are armed, and firing offers. */
+  const quiet = driveArm(false);
+  const nudge = quiet.timers.find(t => t.delay === 10000);
+  assert.ok(nudge, "her audio ending armed no opening-silence nudge");
   nudge.f();
-  assert.deepEqual(ok.cues, ["[nudge]"], "ten seconds of silence produced no offer");
+  assert.deepEqual(quiet.cues, ["[nudge]"], "ten seconds of silence produced no offer");
 
-  /* He spoke first: she must NOT offer, or a shopper who said "busco
-     zapatillas Nike" gets pitched the general sales anyway. */
-  const spoke = drive(true);
-  spoke.spoke = true;
-  spoke.timers.find(t => t.delay === 10000).f();
+  /* He said "hola": nothing is armed at all. A greeting is a reply,
+     and replying to it with a product pitch is the Legos bug. */
+  const spoke = driveArm(true);
+  assert.deepEqual(spoke.timers, [],
+    "she armed the sales pitch at a shopper who had already spoken");
   assert.deepEqual(spoke.cues, [], "she pitched the sales at a shopper who had already spoken");
-
-  /* A greeting that never went out arms nothing — otherwise the first
-     thing he hears is an offer with no hello in front of it. */
-  const failed = drive(false);
-  assert.equal(failed.greeted, false, "a failed send was recorded as greeted");
-  assert.ok(!failed.timers.some(t => t.delay === 10000),
-    "a greeting that never went out still armed the nudge");
 });
 
 await checkAsync("the vague shopper gets real deals, grouped so she can offer a choice", async () => {
@@ -4108,6 +4118,38 @@ check("the token is minted on intent, once, and spent once", () => {
     "the launcher does not warm the token before the tap");
   assert.match(page, /function ariaWarmOnIntent\(\)\{\s*try \{ ariaWarmRealtimeToken\(\); \} catch \(e\) \{\}/,
     "warming on intent is unguarded — a throw would land inside the tap that opens the chat");
+});
+
+check("a greeting is answered, never sold to", () => {
+  /* Danny, 2026-10-06: "I tap mic, say hola, and she responds
+     perfect, let me look for Legos — I never said Legos."
+
+     Not a transcription fault. The vague-shopper rule counted a
+     one-word reply as vagueness and sent her to get_top_sales, and
+     Lego is in the sales feed, so she named a real deal he never
+     asked for. "Hola" is a greeting, not a shopper without
+     direction. */
+  const t = readFileSync(ROOT + "scripts/lib/realtime-voice.js", "utf8");
+  assert.match(t, /UN SALUDO NO ES VAGUEDAD/,
+    "nothing tells her a greeting is not a vague shopper");
+  /* The words she will actually hear, so the rule is reachable. */
+  for (const hello of ["Hola", "buenas", "aló", "qué tal", "buenos días"]){
+    assert.ok(t.includes(hello), `the greeting rule does not cover "${hello}"`);
+  }
+  /* The two prohibitions that stop the Legos answer. */
+  assert.match(t, /NUNCA contestes un saludo con ofertas/,
+    "she may still answer a greeting with the sales rail");
+  assert.match(t, /NUNCA nombres un producto, una marca ni una categoría que él no\s+haya mencionado/,
+    "she may still name a product the shopper never mentioned");
+  /* Vagueness is now downstream of a question, not of a hello. */
+  assert.match(t, /Es vago cuando, DESPUÉS de que le preguntaste qué busca/,
+    "vagueness is still judged before she has asked him anything");
+  assert.match(t, /"Hola" NO cuenta como respuesta de una sola palabra/,
+    "a one-word greeting still reads as a one-word answer");
+  /* The silence case must still reach the sales — that is the whole
+     point of the nudge, and it is the one case he never speaks. */
+  assert.match(t, /tocó el micrófono y se queda callado sin ni siquiera\s+saludar/,
+    "the silent shopper is no longer offered the sales at all");
 });
 
 const MIN_CHECKS = 95;
