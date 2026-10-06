@@ -60,7 +60,7 @@ export const REALTIME_VOICES = Object.freeze([
   "alloy", "ash", "ballad", "cedar", "coral",
   "echo", "marin", "sage", "shimmer", "verse",
 ]);
-export const REALTIME_VOICE_DEFAULT = "coral";
+export const REALTIME_VOICE_DEFAULT = "shimmer";
 
 /* A voice the API does not know fails the whole mint, so a typo in a
    Netlify variable takes the assistant down rather than changing how
