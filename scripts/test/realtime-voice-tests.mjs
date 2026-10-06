@@ -350,62 +350,73 @@ check("the page falls back rather than throwing when the module is absent", () =
     "the turn module is not bridged into the page");
   assert.match(page, /const T = window\.AriaRealtimeTurn;\s*\n\s*if \(!T/,
     "the page assumes the bridge loaded");
-  /* The mic button must still work when live voice cannot start. */
-  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,1600}toggleContinuousMode\(\);/,
-    "a failed realtime start does not fall back to the old loop");
+  /* THE FALLBACK THIS ONCE ASSERTED IS GONE (2026-10-06, Danny: "No
+     fallback. No kill switch. No way to revert."). It used to require
+     that a failed start reached toggleContinuousMode(); requiring
+     that now would be requiring the bug he reported — he tested the
+     preview, got the old Lily voice, and the fallback was what hid
+     the real failure. A failed start must stop at the error. */
+  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,1600}showRealtimeError\(\);/,
+    "a failed realtime start does not stop at the visible error");
+  /* BRACE-MATCHED. "\n}\n" never matches in a CRLF file, so the slice
+     ran past the end of the function and into the old loop's own
+     definition — which of course mentions it. */
+  const tAt = page.indexOf("async function toggleAriaVoice()");
+  let td = 0, tEnd = -1;
+  for (let k = page.indexOf("{", tAt); k < page.length; k++){
+    if (page[k] === "{") td++;
+    else if (page[k] === "}" && --td === 0){ tEnd = k; break; }
+  }
+  assert.ok(tEnd > tAt, "toggleAriaVoice is unbalanced");
+  assert.ok(!/toggleContinuousMode\(\)/.test(page.slice(tAt, tEnd)),
+    "the old loop is still reachable from the mic button");
 });
 
-check("live voice is the default, and ?voz=clasica is a real kill switch", () => {
-  /* RUN, NOT GREPPED. The first version of this checked that the
-     function existed and was called — and a mutation replacing its
-     whole body with `return true` passed it. The function is lifted
-     out of the page and executed against a stubbed location and
-     localStorage instead.
+check("there is no switch, no flag and no way back to the old voice", () => {
+  /* THIS TEST USED TO RUN realtimeEnabled() AGAINST A STUBBED
+     location AND localStorage, because a mutation replacing its body
+     with `return true` had passed a grep-based version.
 
-     The default flipped on 2026-10-06 (Danny approved full
-     gpt-realtime), so the thing worth protecting is now the opposite:
-     that the kill switch still works and still sticks. */
+     The function is gone (2026-10-06, Danny: "DELETE the
+     realtimeEnabled() function entirely... No fallback. No kill
+     switch. No way to revert."), so there is nothing left to run. An
+     earlier pass had reduced it to `return true`, which is worse than
+     either: a switch that lies, with every call site still reading as
+     though a choice existed.
+
+     What the test asserts now is the absence itself — and absence is
+     exactly what rots quietly, so it is checked by name. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const from = page.indexOf("function realtimeEnabled(){");
-  assert.ok(from > 0, "realtimeEnabled is gone from index.html");
-  const src = page.slice(from, page.indexOf("\n}", from) + 2);
-  const flagM = /const ARIA_RT_FLAG = '([^']+)'/.exec(page);
-  assert.ok(flagM, "ARIA_RT_FLAG is gone from index.html");
-  const make = (search, stored, hostile) => {
-    const store = new Map(stored !== undefined ? [[flagM[1], stored]] : []);
-    /* ARIA_RT_FLAG is declared outside the function; without it the
-       body throws into its own catch, which once looked exactly like
-       a passing test. */
-    const fn = new Function("location", "localStorage", "URLSearchParams", "ARIA_RT_FLAG",
-      src + "; return realtimeEnabled();");
-    const ls = hostile
-      ? { getItem(){ throw new Error("denied"); }, setItem(){ throw new Error("denied"); },
-          removeItem(){ throw new Error("denied"); } }
-      : { getItem: (k) => (store.has(k) ? store.get(k) : null),
-          setItem: (k, v) => store.set(k, String(v)),
-          removeItem: (k) => store.delete(k) };
-    return { on: fn({ search }, ls, URLSearchParams, flagM[1]), store };
-  };
-  /* THE KILL SWITCH IS GONE, BY DANNY'S OWN HAND (2026-10-06,
-     "Remove realtimeEnabled kill switch - Realtime voice is the only
-     path"). This test used to assert that ?voz=clasica turned live
-     voice off and that the choice persisted. It no longer can: the
-     function returns true unconditionally.
+  assert.ok(!/function realtimeEnabled\s*\(/.test(page),
+    "realtimeEnabled() is back in index.html");
+  /* COMMENTS STRIPPED FIRST. The rule is that nothing CALLS it, not
+     that nobody may name it: the tombstone comment explaining why it
+     went deserves to say which function it is talking about. */
+  const noComments = page
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+  assert.ok(!/realtimeEnabled\(\)/.test(noComments),
+    "something still calls realtimeEnabled()");
+  assert.ok(!/const ARIA_RT_FLAG\s*=/.test(page),
+    "the localStorage kill-switch flag is back");
+  assert.ok(!/localStorage[^\n]*ariaLiveVoice/.test(page),
+    "something still reads the old kill-switch value out of localStorage");
 
-     What the test is FOR survives the change — live voice must be on
-     no matter what the URL or the browser does — so that is what it
-     asserts now. The old expectations are not restored: he removed
-     the switch deliberately, and a test that argues with the decision
-     is just a test that fails. */
-  assert.equal(make("").on, true, "live voice is not the default");
-  assert.equal(make("?utm_source=fb").on, true, "an unrelated query string turned it off");
-  assert.equal(make("?voz=clasica").on, true,
-    "?voz=clasica turns live voice off — the kill switch was removed on purpose");
-  assert.equal(make("", "0").on, true, "a stored flag from before the removal still kills the voice");
-  assert.equal(make("?voz=vivo", "0").on, true, "?voz=vivo does not keep live voice on");
-  /* A browser that refuses localStorage outright must not lose the
-     voice — the case that made this unconditional worth checking. */
-  assert.equal(make("", undefined, true).on, true, "a locked-down browser lost live voice");
+  /* The two ?voz flags that remain are about AUDIO PROCESSING, not
+     about which engine runs — ?voz=crudo hands the raw microphone to
+     OpenAI, ?voz=limpio puts the browser's own filter back. Those stay
+     useful. What must not come back is a flag that selects an engine. */
+  const engineFlags = page.match(/voz'\)\s*===\s*'(vivo|clasica)'/g) || [];
+  assert.equal(engineFlags.length, 0,
+    `an engine-selecting ?voz flag is back: ${engineFlags.join(", ")}`);
+
+  /* And the one remaining classic-voice predicate must be false
+     always, or the old speak paths wake up again. */
+  const at = page.indexOf("function ariaClassicVoiceOnly(){");
+  assert.ok(at > 0, "ariaClassicVoiceOnly is gone — check its five call sites");
+  const body = page.slice(at, page.indexOf("}", at) + 1);
+  const fn = new Function(body + "; return ariaClassicVoiceOnly();");
+  assert.equal(fn(), false, "the classic voice can still own a turn");
 });
 
 check("the mute button actually stops transmitting", () => {
@@ -643,10 +654,14 @@ check("a fallback is never silent again", () => {
      The first version set the text in the fallback path, where
      setAssistantMicState overwrote it a moment later and the browser
      check caught what the grep could not. */
-  /* The classic loop labels itself whenever it runs — now only when
-     somebody chose it, since nothing selects it automatically. */
-  assert.match(page, /ariaRTFellBack = true;\s*\r?\n\s*toggleContinuousMode\(\);/,
-    "the old loop runs without labelling itself");
+  /* NOTHING SELECTS THE OLD LOOP ANY MORE, so there is no longer a
+     labelled fallback to assert. ariaRTFellBack and the pill text it
+     drives stay in place: the flag is now only ever false, and the
+     label is the thing that would have to be right if a fallback ever
+     came back. Asserting that the flag is never SET is the live rule. */
+  const setsFellBack = (page.match(/ariaRTFellBack = true/g) || []);
+  assert.equal(setsFellBack.length, 0,
+    "something falls back to the old loop and labels it — there is no fallback now");
   const pill = page.slice(page.indexOf("THE LISTENING PILL"));
   assert.match(pill.slice(0, 1400), /ariaRTFellBack\)[\s\S]{0,120}modo clásico/,
     "the listening pill does not say which engine is running");
@@ -769,38 +784,32 @@ check("there is no automatic fallback to the old loop, at all", () => {
      "the same thing as before" for exactly that reason. The old loop
      is still there and still works — only a person can choose it. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const toggle = page.slice(page.indexOf("async function toggleAriaVoice()"));
-  const body = toggle.slice(0, toggle.indexOf("\n}\n"));
-
-  /* Failing to start must show the error and return, never continue. */
-  assert.match(body, /showRealtimeError\(\);\s*\r?\n\s*return;/,
-    "a failed live start does not stop at the error");
-  /* …and the old loop must not be reachable from the failure path. */
-  /* Sliced to INSIDE the realtimeEnabled() branch: the one call to
-     the old loop that remains sits after that branch and is reached
-     only when a person chose it. */
-  /* THE BRANCH IS STILL HERE, but realtimeEnabled() now returns true
-     unconditionally (Danny removed the switch), so it is taken every
-     time. The assertion that matters is unchanged: nothing inside it
-     reaches the old loop. */
-  const enter = body.indexOf("if (realtimeEnabled()){");
-  assert.ok(enter > 0, "the live-voice branch is gone");
-  let depth = 0, close = -1;
-  for (let k = body.indexOf("{", enter); k < body.length; k++){
-    if (body[k] === "{") depth++;
-    else if (body[k] === "}" && --depth === 0){ close = k; break; }
+  /* BRACE-MATCHED: "\n}\n" never matches in a CRLF file. */
+  const tAt2 = page.indexOf("async function toggleAriaVoice()");
+  let td2 = 0, tEnd2 = -1;
+  for (let k = page.indexOf("{", tAt2); k < page.length; k++){
+    if (page[k] === "{") td2++;
+    else if (page[k] === "}" && --td2 === 0){ tEnd2 = k; break; }
   }
-  assert.ok(close > enter, "the live-voice branch is unbalanced");
-  const liveBranch = body.slice(enter, close);
-  assert.ok(!/toggleContinuousMode\(\)/.test(liveBranch),
-    "the old loop still starts automatically when live voice fails");
-  /* The call to the old loop still exists after the branch — now dead
-     code, since the branch above always returns — and that is his to
-     remove, not mine to quietly delete. */
-  assert.match(body.slice(close), /toggleContinuousMode\(\);/,
-    "the old loop is unreachable even on purpose");
-  /* The ?voz=clasica route itself was removed with the kill switch,
-     so there is nothing left to assert about it here. */
+  assert.ok(tEnd2 > tAt2, "toggleAriaVoice is unbalanced");
+  const body = page.slice(tAt2, tEnd2 + 1);
+
+  /* Failing to start must END at the visible error. It used to need a
+     `return;` after it because code followed; the fallback that
+     followed is gone, so the error is now the last thing in the
+     function — which is the stronger shape, not a weaker one. */
+  assert.match(body, /showRealtimeError\(\);[\s\r\n]*\}$/,
+    "a failed live start does not end at the visible error");
+  /* THERE IS NO BRANCH LEFT TO SLICE. This used to find
+     `if (realtimeEnabled()){`, check that nothing inside it reached
+     the old loop, and then check that the old loop WAS still
+     reachable after it for someone who asked by URL. Both halves are
+     obsolete: the switch is deleted and the deliberate route with it.
+
+     The whole function is the live path now, so the whole function is
+     what must not mention the old loop. */
+  assert.ok(!/toggleContinuousMode\(\)/.test(body),
+    "the old loop is still reachable from the mic button");
 
   /* The error is visible, says why, and offers a retry. */
   assert.match(page, /function showRealtimeError\(\)/, "there is no visible error");
@@ -1067,47 +1076,55 @@ check("no old voice function can make a sound during a live call", () => {
   }
 });
 
-check("the mic-off cue never fires in live-voice mode", () => {
-  /* The rule widened on 2026-10-06. It used to be "not while a call is
-     up"; it is now "not when live voice is the mode", because the cue
-     — "aprieta el micrófono" — is advice about a button that is about
-     to become a hang-up, and it fired on chat open, before any call.
+check("the mic-off cue is gone, and so is the request it used to make", () => {
+  /* WHAT THIS USED TO TEST. The cue — "aprieta el micrófono" — was
+     advice about a button that is about to become a hang-up, and it
+     fired on chat open, before any call. The rule widened twice: not
+     during a call, then not when live voice is the mode. It is now
+     moot, because live voice is the ONLY mode.
 
-     Run with a stubbed fetch so a guarded cue makes no request at all,
-     rather than making one and discarding the audio. */
+     So the cue's body was unreachable: its first line returned every
+     time. It was ALSO still making an HTTP request on the way out —
+     the TTS endpoint had been switched off by renaming it to
+     aria-tts-DISABLED-BY-DANNY, which switched it off by breaking it,
+     so a dead path still cost a round trip and a 404 in the console.
+
+     What survives is the one effect that mattered: releasing the
+     speak interlock, so nothing downstream waits on a cue that is
+     never coming. */
   const page = readFileSync(ROOT + "index.html", "utf8");
-  const src = (name) => {
-    const at = page.indexOf("function " + name + "(");
-    assert.ok(at > 0, `${name} is gone`);
-    let d = 0, end = -1;
-    for (let k = page.indexOf("{", at); k < page.length; k++){
-      if (page[k] === "{") d++;
-      else if (page[k] === "}" && --d === 0){ end = k; break; }
-    }
-    return page.slice(at, end + 1);
-  };
-  const prelude = src("ariaClassicVoiceOnly") + "\n" + src("ariaLiveCallActive") + "\n";
+  const at = page.indexOf("function speakMicOffCue(){");
+  assert.ok(at > 0, "speakMicOffCue is gone entirely — check its callers");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const body = page.slice(at, end + 1);
 
-  const run = ({ live, realtime }) => {
-    const fetches = [];
-    const fn = new Function("ariaRT", "ariaRTOpening", "realtimeEnabled", "fetch", "micOffCueId",
-      "ariaVoiceActive", "setAssistantMicTapToTalk", "setOrbState", "MIC_OFF_CUE", "window",
-      "SpeechSynthesisUtterance", "playMicOffCueAudio",
-      prelude + src("speakMicOffCue") + "\n return speakMicOffCue;");
-    fn(live ? { pc: {} } : null, false, () => realtime,
-      (u) => { fetches.push(u); return { then(){ return this; }, catch(){ return this; } }; },
-      0, false, () => {}, () => {}, "cue",
-      { speechSynthesis: { cancel(){}, speak(){} } }, function(){ return {}; }, () => {})();
-    return fetches.length;
-  };
+  /* It must still clear the interlock, and do nothing else. */
+  const run = new Function("ariaVoiceActive", "fetch", "speechSynthesis",
+    "const __seen = []; " + body.replace("ariaVoiceActive = false", "__seen.push('released')") +
+    "; speakMicOffCue(); return __seen;");
+  const seen = run(true, () => { throw new Error("the cue made a request"); }, undefined);
+  assert.deepEqual(seen, ["released"], "the cue no longer releases the speak interlock");
 
-  assert.equal(run({ live: true,  realtime: true  }), 0, "the cue ran during a live call");
-  /* THE CASE DANNY HIT: live voice is the mode, no call yet. */
-  assert.equal(run({ live: false, realtime: true  }), 0,
-    "the cue ran on chat open while live voice was the mode");
-  /* …and ?voz=clasica keeps it, unchanged. */
-  assert.equal(run({ live: false, realtime: false }), 1,
-    "the classic cue stopped working");
+  /* No request, no speech, from anywhere in the body. */
+  assert.ok(!/fetch\s*\(/.test(body), "the cue still makes an HTTP request");
+  assert.ok(!/SpeechSynthesisUtterance/.test(body), "the cue can still speak");
+  assert.ok(!/aria-tts/.test(body), "the cue still references the old TTS endpoint");
+
+  /* AND NOTHING IN THE PAGE CALLS THE OLD ENDPOINT ANY MORE, by any
+     name. Renaming it to a 404 left five callers firing requests that
+     could only fail. */
+  const noComments = page
+    .replace(/\/\*[\s\S]*?\*\//g, " ")
+    .replace(/^\s*\/\/.*$/gm, " ");
+  const ttsCalls = noComments.match(/fetch\(\s*["'][^"']*aria-tts[^"']*["']/g) || [];
+  assert.equal(ttsCalls.length, 0,
+    `the old TTS endpoint is still called ${ttsCalls.length} time(s): ${ttsCalls.join(", ")}`);
+  assert.ok(!/DISABLED-BY-DANNY/.test(noComments),
+    "an endpoint is still disabled by renaming it rather than by not calling it");
 });
 
 check("the chat opens quiet when live voice is the mode", () => {
@@ -2964,5 +2981,25 @@ await checkAsync("the same store question is not asked twice over the wire", asy
 });
 
 /* ============================================================ */
+/* A FLOOR ON THE TEST COUNT.
+
+   Twice now this suite has reported success while running less of
+   itself than it should: once when an async test under the
+   synchronous harness turned assertion rejections into unhandled
+   rejections that killed the process before the summary, and once
+   when an edit to one test TRUNCATED the file — taking thirty tests
+   and the summary printer with it. The second one exited 0, printed
+   no failures, and printed no summary either, which reads as a pass
+   to anything skimming the output.
+
+   The floor is the cheapest possible detector: a suite that shrinks
+   has to say so. Raise it when tests are added; it is not meant to
+   track the count exactly, only to catch a collapse. */
+const MIN_CHECKS = 75;
+if (passed + failures.length < MIN_CHECKS){
+  console.log(`\n  SUITE INCOMPLETE: ${passed + failures.length} checks ran, expected at least ${MIN_CHECKS}.`);
+  console.log("  The file is probably truncated, or a check threw outside its harness.\n");
+  process.exit(1);
+}
 console.log(`\n  ${passed} passed, ${failures.length} failed\n`);
 if (failures.length){ for (const f of failures) console.log("  FAIL  " + f); process.exit(1); }

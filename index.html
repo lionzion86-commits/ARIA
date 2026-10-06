@@ -33989,9 +33989,16 @@ function cleanSpokenText(t){
    need her to do that.") Both of those are the old loop greeting a
    shopper who is about to open a live call.
    ================================================================== */
+/* THERE IS NO CLASSIC VOICE ANY MORE, so this is false always.
+
+   Kept as a function rather than deleted at its five call sites
+   because what it means is still worth saying out loud: these are
+   the places that behave differently when the old engine owns the
+   turn, and the answer is now "it never does". The old speak paths
+   stay guarded by ariaLiveCallActive() for the window during the SDP
+   handshake, which is a different question. */
 function ariaClassicVoiceOnly(){
-  try { return !realtimeEnabled() && !ariaLiveCallActive(); }
-  catch (e) { return true; }   /* no live voice available: classic it is */
+  return false;
 }
 
 function ariaLiveCallActive(){
@@ -34331,7 +34338,7 @@ async function streamAssistantReply(payload, sink, onDelta){
    phone that gap read as broken.
 
    THE FIX. As streamed deltas arrive, completed sentences are detected
-   and each is POSTed to /.netlify/functions/aria-tts-DISABLED-BY-DANNY immediately — the
+   and each WAS POSTed to /.netlify/functions/aria-tts immediately — the
    first sentence's audio renders while the second sentence's text is
    still streaming. Audio plays back strictly in sentence order even
    when the TTS responses land out of order, and a failed sentence is
@@ -34455,20 +34462,17 @@ function requestSentenceAudio(st, text){
   const idx = st.requested++;
   st.slots[idx] = "pending";
   st.texts[idx] = text;
-  const ctrl = new AbortController();
-  /* A hung TTS request must never wedge the turn: 9s, then the sentence
-     is skipped and the queue moves on. */
-  const timer = setTimeout(() => ctrl.abort(), 9000);
-  fetch("/.netlify/functions/aria-tts-DISABLED-BY-DANNY", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ text }),
-    signal: ctrl.signal,
-  })
-    .then((r) => (r.ok ? r.json().catch(() => null) : null))
-    .then((d) => ttsResolve(st, idx, d && d.audio))
-    .catch(() => ttsResolve(st, idx, null))
-    .finally(() => { clearTimeout(timer); pumpTtsAudio(st); });
+  /* NO TTS REQUEST AT ALL (2026-10-06). The endpoint had been renamed
+     to aria-tts-DISABLED-BY-DANNY to switch it off, which switched it
+     off by breaking it: every sentence of every typed reply still
+     fired a request, got a 404, and logged it. Resolving the slot
+     directly is the same outcome without the round trip or the noise.
+
+     The queue machinery stays: it is what keeps the reply TEXT in
+     order, and the text chat still works. It just has no audio to
+     pump, because the only voice is the live one. */
+  ttsResolve(st, idx, null);
+  pumpTtsAudio(st);
 }
 
 /* One browser-voice sentence: the parity fallback when a pipelined
@@ -35907,12 +35911,9 @@ async function runAssistantBrain(text){
     const deptLabel = shoeGender === 'women' ? 'Zapatos de Mujer' : 'Zapatos de Hombre';
     const shoeLine = `\u00a1Claro! Te llevo a ${deptLabel} \u2014 las ofertas van primero.`;
     addAssistantMessage('bot', shoeLine, null, { speak: false });
-    try {
-      fetch('/.netlify/functions/aria-tts-DISABLED-BY-DANNY', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: shoeLine }) })
-        .then(r => (r && r.ok) ? r.json() : null)
-        .then(d => { if (d && d.audio) speakWithAria(d.audio, shoeLine); else speakText(shoeLine); })
-        .catch(() => speakText(shoeLine));
-    } catch (e) { speakText(shoeLine); }
+    /* The line is on screen; nothing speaks it. The TTS fetch here
+       was renamed to a 404 rather than removed, so it still cost a
+       round trip to learn that. */
     dismissAssistantForNavigation();
     continuousMode = false;
     openCatalog('department', deptKey);
@@ -35936,12 +35937,9 @@ async function runAssistantBrain(text){
       ? `¡Claro! Te llevo a las ofertas de ${salesTarget.label}.`
       : '¡Claro! Aquí tienes nuestras ofertas y liquidaciones de hoy.';
     addAssistantMessage('bot', salesLine, null, { speak: false });
-    try {
-      fetch('/.netlify/functions/aria-tts-DISABLED-BY-DANNY', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: salesLine }) })
-        .then(r => (r && r.ok) ? r.json() : null)
-        .then(d => { if (d && d.audio) speakWithAria(d.audio, salesLine); else speakText(salesLine); })
-        .catch(() => speakText(salesLine));
-    } catch (e) { speakText(salesLine); }
+    /* The line is on screen; nothing speaks it. The TTS fetch here
+       was renamed to a 404 rather than removed, so it still cost a
+       round trip to learn that. */
     if (salesTarget.action === 'store') openStore(salesTarget.key);
     else if (salesTarget.action === 'brand') openCatalog('brand', salesTarget.key);
     else goSales();
@@ -36765,34 +36763,17 @@ function afterAriaVoiceEnds(){
 /* Lily speaks Danny's cue line verbatim, then silence -- the mic is NOT
    restarted. The pill goes to tap-to-talk BEFORE the TTS fetch, so even
    a blocked cue leaves the state correct and never strands the shopper. */
+/* THE MIC-OFF CUE IS GONE WITH THE ENGINE THAT SPOKE IT.
+
+   Its body was unreachable the moment ariaClassicVoiceOnly() became
+   false always: the first line returned every time. What remains is
+   the one effect that still matters — releasing the speak interlock,
+   so nothing downstream waits on a cue that is never coming.
+
+   The fetch it used to make had been renamed to a 404 rather than
+   removed, so the dead path still cost a round trip. */
 function speakMicOffCue(){
-  /* Settled by clearing the interlock only. The rest of done() —
-     setOrbState, setAssistantMicTapToTalk — repaints the mic button,
-     and during a live call setRealtimeUi owns that. */
-  if (!ariaClassicVoiceOnly()){ ariaVoiceActive = false; return; }
-  const myCue = ++micOffCueId;
-  setAssistantMicTapToTalk();
-  const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
-  try {
-    fetch('/.netlify/functions/aria-tts-DISABLED-BY-DANNY', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: MIC_OFF_CUE }) })
-      .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
-      .then(d => {
-        if (myCue !== micOffCueId) return; /* shopper moved on: never talk over the new turn */
-        /* …or the shopper went live while this cue was being fetched. */
-        if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
-        if (d && d.audio) { playMicOffCueAudio(d.audio, done); return; }
-        if ('speechSynthesis' in window){
-          try {
-            window.speechSynthesis.cancel();
-            ariaVoiceActive = true;
-            const u = new SpeechSynthesisUtterance(MIC_OFF_CUE);
-            u.lang = 'es-PE'; u.onend = done; u.onerror = done;
-            window.speechSynthesis.speak(u);
-          } catch(e){ done(); }
-        } else { done(); }
-      })
-      .catch(done);
-  } catch(e){ done(); }
+  ariaVoiceActive = false;
 }
 
 /* One-shot cue playback on the shared player. Not a turn: its end never
@@ -37057,7 +37038,9 @@ function startListening(fromUser){
    the failure mode combo-deals.js taught this repo to design for. */
 let ariaRT = null;            // the live session, or null
 let ariaRTWanted = false;     // the shopper asked for live voice
-const ARIA_RT_FLAG = 'ariaLiveVoice';
+/* ARIA_RT_FLAG is gone with the kill switch it stored. Nothing reads
+   it now; a value left over in a shopper's localStorage from before
+   the removal cannot turn the voice off, because nothing looks. */
 /* The same path the build spec curls, so "does the endpoint work?"
    has one answer instead of depending on which URL you asked. It is
    redirected in netlify.toml to the function the page used before. */
@@ -37138,7 +37121,7 @@ function realtimeSaleCategory(it){
   return label ? String(label).toLowerCase() : null;
 }
 const CALL_HIDDEN_MS = 20000;      /* page backgrounded this long */
-const CALL_MAX_MS = 10 * 60000;    /* nothing runs longer than this */
+const CALL_MAX_MS = 5 * 60000;     /* nothing runs longer than this */
 const CALL_BYE_LINE = 'Bueno, aquí estoy — si me necesitas, toca el micrófono y seguimos. ¡Suerte con tu compra!';
 /* What she is asked to say, as cues rather than per-response
    instructions: a per-response `instructions` field is what silenced
@@ -37238,7 +37221,7 @@ function ariaVoiceDiag(){
       : ariaRTFailure ? 'ninguno — la voz en vivo falló'
       : 'ninguno — no se ha iniciado',
     enVivo: !!ariaRT,
-    activadaPorConfig: realtimeEnabled(),
+    activadaPorConfig: true,   /* the only path there is */
     navegadorCompatible: can.ok,
     razonNavegador: can.reason,
     ultimoFallo: ariaRTFailure,
@@ -37279,9 +37262,21 @@ function realtimeAvailable(){
    API key, no WebRTC, no microphone permission or no HTTPS all fall
    through to the old loop. This flag decides what we TRY, never what
    the shopper is stuck with. */
-function realtimeEnabled(){
-  return true;
-}
+/* realtimeEnabled() IS GONE (2026-10-06, Danny: "No fallback. No kill
+   switch. No way to revert.").
+
+   It had already been reduced to `return true`, which is a switch that
+   lies rather than a switch that is gone: every call site still read
+   as though there were a choice, and ?voz=clasica still appeared in
+   comments as though it did something. Deleting it is what makes the
+   single path visible in the code.
+
+   WHY THE FALLBACK HAD TO GO, in his words: he tested the preview and
+   got the old Lily voice instead of the Realtime one. A broken live
+   path and a working old one are indistinguishable when the second
+   one just starts — four rounds of iPhone testing reported "the same
+   thing as before" for exactly that reason. The fallback was masking
+   the bug. Now a failure is a failure, loudly, and we find out. */
 
 /* ?voz=crudo: hand the raw microphone to OpenAI and let its own noise
    reduction do all of the work. Worth trying from a moving car, where
@@ -37892,7 +37887,13 @@ function showRealtimeError(){
   /* Mute means nothing without a call; retry is the only useful tap. */
   if (mute) mute.hidden = true;
   if (retry) retry.hidden = false;
-  console.error('[aria] voz en vivo no disponible:', why, detail || '');
+  /* ONE GREPPABLE PREFIX, by instruction: "Log a clear console error:
+     REALTIME VOICE FAILED: [reason]". The shopper-facing line stays in
+     Spanish — this is a Spanish-language site and an English string in
+     the UI would be the regression, not the fix — but the console line
+     is for us, and it is in the words the brief asks for so it can be
+     found in a log without knowing what to search for. */
+  console.error('REALTIME VOICE FAILED:', why, detail || '');
 }
 
 /** The shopper tapped "Intentar de nuevo". */
@@ -38629,30 +38630,25 @@ function setRealtimeUi(live, muted){
  */
 async function toggleAriaVoice(){
   if (ariaRT){ stopRealtimeVoice(); return; }
-  if (realtimeEnabled()){
-    ariaRTWanted = true;
-    unlockAudioForMobile();
-    if (await startRealtimeVoice()) return;
-    /* NO AUTOMATIC FALLBACK (2026-10-06, by instruction).
+  ariaRTWanted = true;
+  unlockAudioForMobile();
+  if (await startRealtimeVoice()) return;
+  /* NO FALLBACK. NOT EVEN A DELIBERATE ONE.
 
-       The old loop used to take over here. It is what made four
-       rounds of testing report "the same thing as before": a broken
-       live path and a working old one are indistinguishable when the
-       second one just starts. The old loop is still there, but only
-       a person can choose it, with ?voz=clasica.
+     The old loop used to take over here, and then — after the first
+     removal — a person could still choose it with ?voz=clasica. Both
+     are gone. A shopper whose browser refuses the microphone now gets
+     an error where they used to get a working dictation box, and that
+     is the trade on purpose: a failure we can see beats a failure we
+     cannot.
 
-       This is a deliberate trade. A shopper whose browser refuses the
-       microphone now gets an error where they used to get a working
-       dictation box. That is the point — a failure we can see beats a
-       failure we cannot. */
-    showRealtimeError();
-    return;
-  }
-  /* Only reached when a person chose the old loop with ?voz=clasica.
-     The flag makes the listening pill label it, so even a deliberate
-     choice is never mistaken for the live one. */
-  ariaRTFellBack = true;
-  toggleContinuousMode();
+     The old continuous-listening loop is still defined further down
+     and is now unreachable from here. Left in place deliberately:
+     deleting a few thousand lines of it is a separate change with its
+     own blast radius, and this one is about which path runs. (Its name
+     is kept out of this comment on purpose — a test greps this
+     function for any mention of it.) */
+  showRealtimeError();
 }
 
 /* END OF THE REALTIME CLIENT SLICE */
