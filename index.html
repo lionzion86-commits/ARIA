@@ -33918,7 +33918,30 @@ function cleanSpokenText(t){
     .replace(/\s+/g, ' ').trim();
 }
 
+/* ==================================================================
+   IS A LIVE CALL ON RIGHT NOW?
+
+   Every function below that can make a sound asks this first. The
+   entry points were guarded on 2026-10-06 (e4086f2), but a guard at
+   the entrance does nothing for work already inside the building: a
+   TTS fetch started before the shopper tapped the mic resolves AFTER
+   ariaRT is set, and its callback played Lily straight over the live
+   call. Two voices at once.
+
+   try/catch rather than `typeof ariaRT !== 'undefined'`: ariaRT is a
+   `let` declared further down this file, and `typeof` does NOT shield
+   a let in its temporal dead zone — it throws ReferenceError exactly
+   like a bare reference. Only a catch actually covers the case where
+   one of these is somehow called before that line runs.
+   ================================================================== */
+function ariaLiveCallActive(){
+  try { return !!ariaRT; } catch (e) { return false; }
+}
+
 function speakText(text){
+  /* No settle step here on purpose: afterAriaVoiceEnds() re-arms the
+     old microphone, which is the last thing a live call needs. */
+  if (ariaLiveCallActive()) return;
   text = cleanSpokenText(text);
   ariaVoiceTurnId++;
   closeMicForSpeak();
@@ -33944,13 +33967,17 @@ function speakText(text){
    a late TTS fetch never talks over the answer that already started. */
 let ariaReplyVoiceStarted = false;
 function speakWithLily(text, guard){
+  if (ariaLiveCallActive()) return;
   text = cleanSpokenText(text);
   const cancelled = () => { try { return !!(guard && !guard()); } catch(e){ return false; } };
   const fallback = () => { if (!cancelled() && typeof speakText === 'function') speakText(text); };
   try {
     fetch('/.netlify/functions/aria-tts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: text }) })
       .then(r => (r && r.ok) ? r.json() : null)
-      .then(d => { if (cancelled()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
+      /* THE RACE THIS WHOLE CHANGE EXISTS FOR. The fetch was started
+         before the call; by the time it lands the shopper may be
+         mid-sentence with Aria. Re-checked here, not just at entry. */
+      .then(d => { if (cancelled() || ariaLiveCallActive()) return; if (d && d.audio) speakWithAria(d.audio, text); else fallback(); })
       .catch(fallback);
   } catch (e) { fallback(); }
 }
@@ -33972,6 +33999,7 @@ function closeMicForSpeak(){
 }
 
 function speakAssistantReply(text, audioBase64){
+  if (ariaLiveCallActive()) return;
   /* TURN-TAKING (2026-09-27). The mic is closed for the whole speak phase
      on every path: Aria never listens to herself, and never to the
      shopper's reaction while she is talking. Each speak path reopens it
@@ -34386,6 +34414,8 @@ function requestSentenceAudio(st, text){
    sentence's Lily audio failed. Never the turn decision -- just the next
    pump when it ends. */
 function speakPipelinedSentenceFallback(st, text){
+  /* Hand the queue back to the pump, which settles it. No audio. */
+  if (ariaLiveCallActive()){ st.playerBusy = false; pumpTtsAudio(st); return; }
   st.playerBusy = true;
   try {
     closeMicForSpeak();
@@ -34402,6 +34432,12 @@ function speakPipelinedSentenceFallback(st, text){
 /* Plays the next ready sentence, in order. */
 function pumpTtsAudio(st){
   if (st.playerBusy || st.settled) return;
+  /* A live call started mid-stream. Settle the whole queue rather
+     than draining it sentence by sentence: there is nothing worth
+     speaking from the old pipeline while she is on a call, and
+     marking it settled stops every later callback from recursing
+     back in here. */
+  if (ariaLiveCallActive()){ st.playerBusy = false; st.settled = true; return; }
   /* VOICE/TEXT PARITY (2026-10-04, Danny: "if I wrote it, she says
      it"). A sentence whose Lily audio failed used to be skipped --
      her voice became a short summary of her text. It is spoken with
@@ -34422,6 +34458,10 @@ function pumpTtsAudio(st){
 }
 
 function playTtsAudio(base64, onEnded){
+  /* The completion callback still runs so the queue is not left
+     half-finished; the pump above is already settled, so this is a
+     no-op rather than a loop. */
+  if (ariaLiveCallActive()){ try { if (onEnded) onEnded(); } catch (e) {} return; }
   try {
     closeMicForSpeak();
     ariaReplyVoiceStarted = true;
@@ -36636,6 +36676,10 @@ function afterAriaVoiceEnds(){
    restarted. The pill goes to tap-to-talk BEFORE the TTS fetch, so even
    a blocked cue leaves the state correct and never strands the shopper. */
 function speakMicOffCue(){
+  /* Settled by clearing the interlock only. The rest of done() —
+     setOrbState, setAssistantMicTapToTalk — repaints the mic button,
+     and during a live call setRealtimeUi owns that. */
+  if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
   const myCue = ++micOffCueId;
   setAssistantMicTapToTalk();
   const done = () => { ariaVoiceActive = false; if (myCue !== micOffCueId) return; setOrbState('idle'); setAssistantMicTapToTalk(); };
@@ -36644,6 +36688,8 @@ function speakMicOffCue(){
       .then(r => (r && r.ok) ? r.json().catch(() => null) : null)
       .then(d => {
         if (myCue !== micOffCueId) return; /* shopper moved on: never talk over the new turn */
+        /* …or the shopper went live while this cue was being fetched. */
+        if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
         if (d && d.audio) { playMicOffCueAudio(d.audio, done); return; }
         if ('speechSynthesis' in window){
           try {
@@ -36662,6 +36708,7 @@ function speakMicOffCue(){
 /* One-shot cue playback on the shared player. Not a turn: its end never
    re-arms the mic, it just settles the pill. */
 function playMicOffCueAudio(base64, onEnded){
+  if (ariaLiveCallActive()){ ariaVoiceActive = false; return; }
   try {
     ariaReplyVoiceStarted = true;
     ariaVoiceActive = true;
@@ -37204,6 +37251,12 @@ async function startRealtimeVoice(){
   }
 
   ariaRT = { pc, dc, mic, sink, send, get turn(){ return turn; } };
+  /* THE GAP BETWEEN THE TAP AND THE CALL. A greeting or a mic-off cue
+     can already be mid-utterance by the time the session comes up.
+     The guards above stop anything NEW from starting; these two stop
+     what is already audible. */
+  try { if ('speechSynthesis' in window) window.speechSynthesis.cancel(); } catch (e) {}
+  try { ariaAudioPlayer.pause(); } catch (e) {}
   ariaRTFailure = null;
   setRealtimeUi(true);
   return true;
@@ -37559,14 +37612,38 @@ function toggleContinuousMode(){
 let ariaAudioPlayer = new Audio();
 let audioUnlocked = false;
 
+/* A 44-byte WAV header with zero samples: valid audio, no sound. */
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+
+/**
+ * iOS will not play audio that did not begin inside a user gesture, so
+ * the first tap plays something to unlock the element. This one stays
+ * UNGUARDED on purpose — toggleAriaVoice calls it deliberately before
+ * opening a live call, and guarding it would leave the call mute on
+ * iPhone.
+ *
+ * IT UNLOCKS WITH SILENCE, NOT WITH WHATEVER IS LOADED. It used to
+ * call play() on the element as it stood. By the first mic tap the
+ * greeting has usually already run through speakWithAria, so src still
+ * held that greeting and the unlock replayed a slice of it — the old
+ * voice, audible, in the moment before the live session exists to
+ * silence it.
+ */
 function unlockAudioForMobile(){
   if (audioUnlocked) return;
-  ariaAudioPlayer.play().catch(() => {});
-  ariaAudioPlayer.pause();
   audioUnlocked = true;
+  try {
+    ariaAudioPlayer.src = SILENT_WAV;
+    const pr = ariaAudioPlayer.play();
+    if (pr && typeof pr.catch === 'function') pr.catch(() => {});
+  } catch (e) {}
+  try { ariaAudioPlayer.pause(); } catch (e) {}
 }
 
 function speakWithAria(audioBase64, ariaText){
+  /* As with speakText: no settle, because settling re-arms the old
+     microphone in the middle of a live call. */
+  if (ariaLiveCallActive()) return;
   ariaVoiceTurnId++;
   closeMicForSpeak();
         currentAriaSpeech = ariaText || '';

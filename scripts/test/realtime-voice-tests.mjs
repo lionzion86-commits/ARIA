@@ -937,6 +937,161 @@ await checkAsync("a healthy mint costs exactly one call", async () => {
   assert.ok(body.turn_detection, "the page is not told the turn detection to re-assert");
 });
 
+check("no old voice function can make a sound during a live call", () => {
+  /* LIFTED AND RUN, not grepped. Each of these is pulled out of the
+     page and executed twice — once with a live call and once without
+     — against stubs that record every sound. Grepping for the guard
+     would pass a guard placed after the audio starts. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const bodyOf = (name) => {
+    const at = page.indexOf("function " + name + "(");
+    assert.ok(at > 0, `${name} is gone from index.html`);
+    let d = 0, end = -1;
+    for (let k = page.indexOf("{", at); k < page.length; k++){
+      if (page[k] === "{") d++;
+      else if (page[k] === "}" && --d === 0){ end = k; break; }
+    }
+    return page.slice(at, end + 1);
+  };
+
+  const guard = bodyOf("ariaLiveCallActive");
+
+  /* Every function that can reach an audio API, with the arguments it
+     takes and what "settled" means for it. */
+  const cases = [
+    { fn: "speakText",                      args: ["hola"] },
+    /* Delegates rather than speaking itself, so its delegates count
+       as sound: if the guard fails it hands the job straight on. */
+    { fn: "speakAssistantReply",            args: ["hola", "QUJD"], delegates: ["speakWithAria", "speakText"] },
+    { fn: "speakWithAria",                  args: ["QUJD", "hola"] },
+    { fn: "playTtsAudio",                   args: ["QUJD", "__done"], settles: true },
+    { fn: "playMicOffCueAudio",             args: ["QUJD", "__done"] },
+    { fn: "speakPipelinedSentenceFallback", args: ["__st", "hola"] },
+  ];
+
+  for (const c of cases){
+    for (const live of [true, false]){
+      const sounds = [];
+      const env = {
+        ariaRT: live ? { pc: {} } : null,
+        /* Every way the page can emit sound, recording instead. */
+        window: {
+          speechSynthesis: { cancel(){}, speak(){ sounds.push("speechSynthesis"); } },
+          SpeechSynthesisUtterance: function(){ return {}; },
+        },
+        ariaAudioPlayer: { set src(v){ this._s = v; }, get src(){ return this._s; },
+                           play(){ sounds.push("audioElement"); return { catch(){} } }, pause(){} },
+        SpeechSynthesisUtterance: function(){ return {}; },
+      };
+      let settled = false;
+      const delegates = c.delegates || [];
+      const names = [...delegates, "ariaRT","window","ariaAudioPlayer","SpeechSynthesisUtterance",
+        "cleanSpokenText","closeMicForSpeak","setOrbState","afterAriaVoiceEnds","ariaVoiceTurnId",
+        "micOffCueId","ariaReplyVoiceStarted","currentAriaSpeech","orbState","continuousMode",
+        "reopenMicForRetry","pumpTtsAudio","ariaVoiceActive","setAssistantMicTapToTalk","__done","__st"];
+      const vals = [...delegates.map(() => () => { sounds.push("delegated"); }),
+        env.ariaRT, env.window, env.ariaAudioPlayer, env.SpeechSynthesisUtterance,
+        (t) => t, () => {}, () => {}, () => {}, 0,
+        0, false, "", "idle", false,
+        () => {}, () => {}, false, () => {}, () => { settled = true; }, { playerBusy: false, settled: false }];
+
+      const fn = new Function(...names,
+        guard + "\n" + bodyOf(c.fn) + "\n return " + c.fn + ";");
+      const callable = fn(...vals);
+      const args = c.args.map(a => a === "__done" ? (() => { settled = true; })
+                                 : a === "__st" ? vals[names.indexOf("__st")] : a);
+      try { callable(...args); } catch (e) { assert.fail(`${c.fn} threw (live=${live}): ${e.message}`); }
+
+      if (live){
+        assert.equal(sounds.length, 0,
+          `${c.fn} made a sound during a live call: ${sounds.join(", ")}`);
+        if (c.settles) assert.ok(settled, `${c.fn} guarded but left its turn hanging`);
+      } else {
+        assert.ok(sounds.length > 0,
+          `${c.fn} makes no sound even without a live call — the guard is too wide`);
+      }
+    }
+  }
+});
+
+check("the mic-off cue does not even reach for the network on a call", () => {
+  /* Run, not grepped: fetch is stubbed so a live call must produce no
+     request at all, and no call must still make one. The cue is the
+     easiest of these to leave half-guarded, because its audio happens
+     two callbacks deep. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function speakMicOffCue(){");
+  assert.ok(at > 0, "speakMicOffCue is gone");
+  let d = 0, end = -1;
+  for (let k = page.indexOf("{", at); k < page.length; k++){
+    if (page[k] === "{") d++;
+    else if (page[k] === "}" && --d === 0){ end = k; break; }
+  }
+  const guardSrc = page.slice(page.indexOf("function ariaLiveCallActive(){"),
+                              page.indexOf("\n}", page.indexOf("function ariaLiveCallActive(){")) + 2);
+  const body = page.slice(at, end + 1);
+
+  for (const live of [true, false]){
+    const fetches = [];
+    const fn = new Function("ariaRT", "fetch", "micOffCueId", "ariaVoiceActive",
+      "setAssistantMicTapToTalk", "setOrbState", "MIC_OFF_CUE", "window",
+      "SpeechSynthesisUtterance", "playMicOffCueAudio",
+      guardSrc + "\n" + body + "\n return speakMicOffCue;");
+    const callable = fn(
+      live ? { pc: {} } : null,
+      (u) => { fetches.push(u); return { then(){ return this; }, catch(){ return this; } }; },
+      0, false, () => {}, () => {}, "cue",
+      { speechSynthesis: { cancel(){}, speak(){} } }, function(){ return {}; }, () => {});
+    callable();
+    if (live) assert.equal(fetches.length, 0, "the cue hit the network during a live call");
+    else assert.equal(fetches.length, 1, "the cue stopped working when no call is live");
+  }
+});
+
+check("the async callbacks re-check, not just the entry points", () => {
+  /* The race that started this: a TTS fetch begun before the tap
+     lands after ariaRT is set. An entry guard cannot see that. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  assert.match(page, /if \(cancelled\(\) \|\| ariaLiveCallActive\(\)\) return;/,
+    "speakWithLily's fetch callback does not re-check for a live call");
+  const cue = page.slice(page.indexOf("function speakMicOffCue()"));
+  assert.match(cue.slice(0, 1400), /shopper moved on[\s\S]{0,200}ariaLiveCallActive\(\)/,
+    "the mic-off cue's fetch callback does not re-check for a live call");
+  /* The pump settles the whole queue rather than draining it. */
+  const pump = page.slice(page.indexOf("function pumpTtsAudio(st){"));
+  assert.match(pump.slice(0, 900), /ariaLiveCallActive\(\)\)\{ st\.playerBusy = false; st\.settled = true; return; \}/,
+    "the sentence queue is not settled when a live call starts");
+});
+
+check("starting a call silences whatever is already playing", () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const start = page.indexOf("ariaRT = { pc, dc, mic, sink, send");
+  assert.ok(start > 0, "the session assignment moved");
+  const after = page.slice(start, start + 900);
+  assert.match(after, /speechSynthesis\.cancel\(\)/, "a mid-utterance browser voice is not cancelled");
+  assert.match(after, /ariaAudioPlayer\.pause\(\)/, "a mid-playback reply is not paused");
+});
+
+check("the iOS unlock cannot replay the last thing she said", () => {
+  /* It must stay unguarded — toggleAriaVoice calls it on purpose and
+     a guarded unlock leaves the call mute on iPhone — so it is made
+     harmless instead: it unlocks with silence rather than with
+     whatever src the greeting left loaded. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const at = page.indexOf("function unlockAudioForMobile(){");
+  const body = page.slice(at, page.indexOf("\n}", at));
+  assert.ok(!/ariaLiveCallActive/.test(body),
+    "the unlock is guarded, which leaves a live call mute on iOS");
+  assert.match(body, /ariaAudioPlayer\.src = SILENT_WAV;[\s\S]{0,120}play\(\)/,
+    "the unlock plays whatever is loaded instead of silence");
+  /* And the silence is real: a WAV header declaring zero samples. */
+  const wav = /const SILENT_WAV = 'data:audio\/wav;base64,([A-Za-z0-9+/=]+)'/.exec(page);
+  assert.ok(wav, "SILENT_WAV is gone");
+  const buf = Buffer.from(wav[1], "base64");
+  assert.equal(buf.slice(0, 4).toString(), "RIFF", "SILENT_WAV is not a WAV");
+  assert.equal(buf.readUInt32LE(40), 0, "SILENT_WAV contains actual samples");
+});
+
 check("the browser never receives the standing API key", () => {
   const page = readFileSync(ROOT + "index.html", "utf8");
   assert.ok(!page.includes("OPENAI_API_KEY"), "index.html references OPENAI_API_KEY");
