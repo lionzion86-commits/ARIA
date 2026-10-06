@@ -51,7 +51,7 @@ export const REALTIME_MODEL_DEFAULT = "gpt-realtime";
    scratch.
 
    ARIA_REALTIME_VOICE still overrides without a deploy. */
-export const REALTIME_VOICE_DEFAULT = "nova";
+export const REALTIME_VOICE_DEFAULT = "coral";
 export const REALTIME_API_BASE = "https://api.openai.com/v1/realtime";
 
 /* Capped so one answer cannot become a monologue. See the note where it
