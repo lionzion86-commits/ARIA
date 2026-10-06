@@ -386,14 +386,25 @@ check("live voice is the default, and ?voz=clasica is a real kill switch", () =>
           removeItem: (k) => store.delete(k) };
     return { on: fn({ search }, ls, URLSearchParams, flagM[1]), store };
   };
+  /* THE KILL SWITCH IS GONE, BY DANNY'S OWN HAND (2026-10-06,
+     "Remove realtimeEnabled kill switch - Realtime voice is the only
+     path"). This test used to assert that ?voz=clasica turned live
+     voice off and that the choice persisted. It no longer can: the
+     function returns true unconditionally.
+
+     What the test is FOR survives the change — live voice must be on
+     no matter what the URL or the browser does — so that is what it
+     asserts now. The old expectations are not restored: he removed
+     the switch deliberately, and a test that argues with the decision
+     is just a test that fails. */
   assert.equal(make("").on, true, "live voice is not the default");
   assert.equal(make("?utm_source=fb").on, true, "an unrelated query string turned it off");
-  assert.equal(make("?voz=clasica").on, false, "?voz=clasica did not turn it off");
-  assert.equal(make("", "0").on, false, "the stored kill switch was not remembered");
-  assert.equal(make("?voz=vivo", "0").on, true, "?voz=vivo did not undo the kill switch");
-  /* …and the kill switch persists, or it is useless the next reload. */
-  assert.equal(make("?voz=clasica").store.get(flagM[1]), "0", "the kill switch was not stored");
-  /* A browser that refuses localStorage outright must not lose the voice. */
+  assert.equal(make("?voz=clasica").on, true,
+    "?voz=clasica turns live voice off — the kill switch was removed on purpose");
+  assert.equal(make("", "0").on, true, "a stored flag from before the removal still kills the voice");
+  assert.equal(make("?voz=vivo", "0").on, true, "?voz=vivo does not keep live voice on");
+  /* A browser that refuses localStorage outright must not lose the
+     voice — the case that made this unconditional worth checking. */
   assert.equal(make("", undefined, true).on, true, "a locked-down browser lost live voice");
 });
 
@@ -768,7 +779,12 @@ check("there is no automatic fallback to the old loop, at all", () => {
   /* Sliced to INSIDE the realtimeEnabled() branch: the one call to
      the old loop that remains sits after that branch and is reached
      only when a person chose it. */
+  /* THE BRANCH IS STILL HERE, but realtimeEnabled() now returns true
+     unconditionally (Danny removed the switch), so it is taken every
+     time. The assertion that matters is unchanged: nothing inside it
+     reaches the old loop. */
   const enter = body.indexOf("if (realtimeEnabled()){");
+  assert.ok(enter > 0, "the live-voice branch is gone");
   let depth = 0, close = -1;
   for (let k = body.indexOf("{", enter); k < body.length; k++){
     if (body[k] === "{") depth++;
@@ -778,10 +794,13 @@ check("there is no automatic fallback to the old loop, at all", () => {
   const liveBranch = body.slice(enter, close);
   assert.ok(!/toggleContinuousMode\(\)/.test(liveBranch),
     "the old loop still starts automatically when live voice fails");
-  /* It stays reachable only for someone who asked for it by URL. */
+  /* The call to the old loop still exists after the branch — now dead
+     code, since the branch above always returns — and that is his to
+     remove, not mine to quietly delete. */
   assert.match(body.slice(close), /toggleContinuousMode\(\);/,
     "the old loop is unreachable even on purpose");
-  assert.match(page, /if \(q === 'clasica'\)/, "?voz=clasica no longer selects the old loop");
+  /* The ?voz=clasica route itself was removed with the kill switch,
+     so there is nothing left to assert about it here. */
 
   /* The error is visible, says why, and offers a retry. */
   assert.match(page, /function showRealtimeError\(\)/, "there is no visible error");
