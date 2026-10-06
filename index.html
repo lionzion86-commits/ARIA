@@ -6231,7 +6231,7 @@
   </div>
   <div id="assistantQuickRow" class="ariaQuickRail border-t px-3 py-2.5 flex-shrink-0" style="border-color:var(--line); background:#fff"></div>
 
-  <div class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
+  <div id="assistantComposer" class="border-t px-3 py-3 flex items-center gap-2 flex-shrink-0" style="border-color:var(--line)">
     <!-- VOICE IS THE FIRST THING IN THE ROW AND THE LOUDEST. It was a
          40px grey outline, which is under Apple's 44px minimum and read
          as secondary; it is navy-filled and 48px now. Speaking is how
@@ -6240,7 +6240,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
     </button>
     <input id="assistantInput" type="text" placeholder="Escribe o toca el micrófono…" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="flex-1 h-12 px-3.5 rounded-full border text-[13.5px] focus-ring" style="border-color:var(--line)" onkeydown="if(event.key==='Enter')sendAssistantText()">
-    <button onclick="sendAssistantText()" aria-label="Enviar" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
+    <button id="assistantSendBtn" onclick="sendAssistantText()" aria-label="Enviar" class="w-12 h-12 rounded-full grid place-items-center flex-shrink-0 text-white focus-ring transition" style="background:var(--blue)">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 14-7-7 14-2-5-5-2Z"/></svg>
     </button>
   </div>
@@ -35758,6 +35758,21 @@ async function runAgentLoop(text, recipient, ui){
 }
 
 async function runAssistantBrain(text){
+  /* NEVER DURING A LIVE CALL. (2026-10-06, Danny: "I can even hear the
+     noise of the button being pressed down even though I'm not pressing
+     it.")
+
+     This function is the old pipeline: it closes the microphone for the
+     whole think phase, waits on a silence timer, answers with ElevenLabs
+     through a second audio element, and then calls recognition.start()
+     again — and on iOS that last call is the click he heard. All three
+     of its callers (the text box, a quick-reply chip, a recognition
+     result) could reach it while a realtime session was open, so one tap
+     on a chip mid-call dropped him back into walkie-talkie with two
+     voices talking over each other.
+
+     On a live call the words go down the open line instead. */
+  if (ariaRT){ speakIntoRealtime(text); return; }
   if (assistantThinking) return;
   assistantThinking = true;
   ariaReplyVoiceStarted = false;
@@ -36851,6 +36866,10 @@ function startListening(fromUser){
      produces onend, so liveness can't be answered from events alone.
      micLive is cleared on every intentional stop below. */
   if (micLive) return;
+  /* The speech-to-text microphone and the realtime microphone must
+     never be open at once: two getUserMedia consumers fight, and
+     recognition.start() is what makes the click on iOS. */
+  if (ariaRT) return;
   const now = Date.now();
   if (now - lastMicStartAt < 400) return;
   lastMicStartAt = now;
@@ -36936,6 +36955,8 @@ function ariaVoiceDiag(){
     razonNavegador: can.reason,
     ultimoFallo: ariaRTFailure,
     moduloCargado: !!window.AriaRealtimeTurn,
+    estricto: realtimeStrict(),
+    audioCrudo: realtimeRawAudio(),
   };
 }
 window.ariaVoiceDiag = ariaVoiceDiag;
@@ -36980,6 +37001,20 @@ function realtimeEnabled(){
    reduction do all of the work. Worth trying from a moving car, where
    two layers of processing fight each other. Sticks like the other
    flags so it survives the reload. */
+/* ?voz=estricto — live voice or nothing.
+   For judging the real thing: if the realtime session cannot start,
+   the old loop is NOT quietly substituted. The call simply does not
+   begin and the reason is on screen. Nobody should ever have to
+   wonder again which engine a test was about. */
+function realtimeStrict(){
+  try {
+    const q = new URLSearchParams(location.search).get('voz');
+    if (q === 'estricto'){ localStorage.setItem('ariaVoiceStrict', '1'); return true; }
+    if (q === 'vivo' || q === 'clasica'){ localStorage.removeItem('ariaVoiceStrict'); return false; }
+    return localStorage.getItem('ariaVoiceStrict') === '1';
+  } catch { return false; }
+}
+
 function realtimeRawAudio(){
   try {
     const q = new URLSearchParams(location.search).get('voz');
@@ -37146,6 +37181,21 @@ async function startRealtimeVoice(){
   ariaRTFailure = null;
   setRealtimeUi(true);
   return true;
+}
+
+/**
+ * Typed or tapped text, spoken into the session that is already open.
+ *
+ * The line is live, so there is nothing to "send": the text becomes a
+ * conversation item and she answers it in the same voice she was using
+ * a second ago, without the microphone ever closing.
+ */
+function speakIntoRealtime(text){
+  if (!ariaRT || !text) return;
+  ariaChatHistory.push({ role: 'user', content: text });
+  ariaRT.send({ type: 'conversation.item.create',
+    item: { type: 'message', role: 'user', content: [{ type: 'input_text', text }] } });
+  ariaRT.send({ type: 'response.create' });
 }
 
 /** End the session and give the microphone back. */
@@ -37365,6 +37415,16 @@ function setRealtimeUi(live, muted){
   }
   /* The bar exists only for the duration of a call. */
   if (bar) bar.hidden = !live;
+  /* AND THE SEND BUTTON GOES AWAY WITH IT. On an open line there is
+     nothing to send, and a send button is the single strongest cue
+     that this is a form rather than a call. The mic button stays —
+     it is how the call ends. */
+  const composer = document.getElementById('assistantComposer');
+  const input = document.getElementById('assistantInput');
+  const sendBtn = document.getElementById('assistantSendBtn');
+  if (sendBtn) sendBtn.hidden = live;
+  if (input) input.hidden = live;
+  if (composer) composer.style.justifyContent = live ? 'flex-end' : '';
   if (muteBtn){
     muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
     muteBtn.setAttribute('aria-label', muted ? 'Activar micrófono' : 'Silenciar micrófono');
@@ -37395,6 +37455,15 @@ async function toggleAriaVoice(){
        whole round of feedback ended up being about the wrong engine.
        The listening pill renders it; setting the text here would be
        overwritten by setAssistantMicState a moment later. */
+    if (realtimeStrict()){
+      /* Strict: say what went wrong and stop. No silent downgrade. */
+      const status = document.getElementById('assistantStatus');
+      const why = (ariaRTFailure && ariaRTFailure.reason) || 'no pude abrir la llamada';
+      if (status) status.textContent = 'Voz en vivo no disponible: ' + why;
+      addAssistantMessage('bot', 'No pude abrir la conversación en vivo: ' + why +
+        '. Escríbeme y te sigo ayudando igual.', null, { speak: false });
+      return;
+    }
     ariaRTFellBack = true;
   } else {
     ariaRTFellBack = false;

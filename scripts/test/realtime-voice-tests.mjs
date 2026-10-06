@@ -331,7 +331,7 @@ check("the page falls back rather than throwing when the module is absent", () =
   assert.match(page, /const T = window\.AriaRealtimeTurn;\s*\n\s*if \(!T/,
     "the page assumes the bridge loaded");
   /* The mic button must still work when live voice cannot start. */
-  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,900}toggleContinuousMode\(\);/,
+  assert.match(page, /if \(await startRealtimeVoice\(\)\) return;[\s\S]{0,1600}toggleContinuousMode\(\);/,
     "a failed realtime start does not fall back to the old loop");
 });
 
@@ -417,6 +417,12 @@ check("the call controls exist and only while a call does", () => {
   /* Hidden in the markup: a mute button that mutes nothing, shown to a
      shopper who is not on a call, is worse than no button. */
   assert.match(page, /id="assistantCallBar" hidden/, "the call bar is visible before any call");
+  /* NO SEND BUTTON ON AN OPEN LINE. There is nothing to send, and a
+     send button is the strongest cue that this is a form, not a call. */
+  assert.match(page, /if \(sendBtn\) sendBtn\.hidden = live;/,
+    "the send button does not disappear during a call");
+  assert.match(page, /if \(input\) input\.hidden = live;/,
+    "the text box does not disappear during a call");
   const ui = page.slice(page.indexOf("function setRealtimeUi("));
   assert.match(ui.slice(0, ui.indexOf("\n}")), /bar\.hidden = !live/,
     "the call bar is not tied to whether a call is open");
@@ -428,6 +434,10 @@ check("the call controls exist and only while a call does", () => {
   assert.match(page, /Aria está hablando/, "there is no speaking state");
   assert.match(page, /action === 'playAudio'\)\{ sink\.open\(\); setRealtimeState\('speaking'\); \}/,
     "playing her audio does not put the bar into the speaking state");
+  /* The cut itself, asserted as its real condition — `if (false)`
+     silently disarmed barge-in and still passed an earlier version. */
+  assert.match(page, /if \(action === 'stopPlayback' \|\| action === 'clearAudioQueue' \|\| action === 'dropAudio'\)\{/,
+    "barge-in no longer cuts the audio it is supposed to cut");
   assert.match(page, /case 'input_audio_buffer\.speech_started':[\s\S]{0,160}setRealtimeState\('listening'\);/,
     "the shopper speaking does not put the bar into the listening state");
 });
@@ -595,6 +605,119 @@ check("echo cancellation stays pinned on", () => {
   /* …while the two that fight the server's own processing can go. */
   assert.match(block, /noiseSuppression: !realtimeRawAudio\(\)/, "noise suppression is not tunable");
   assert.match(block, /autoGainControl: !realtimeRawAudio\(\)/, "automatic gain is not tunable");
+});
+
+check("the old pipeline cannot run during a live call", () => {
+  /* THE BUG THIS PREVENTS (2026-10-06). runAssistantBrain is the
+     speech-to-text pipeline: it closes the microphone for its think
+     phase, waits on a silence timer, answers through a second audio
+     element and then calls recognition.start() again — which is the
+     click Danny heard on iOS. All three of its callers could reach it
+     mid-call, so one tap on a quick-reply chip put two engines on the
+     line at once. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const brain = page.slice(page.indexOf("async function runAssistantBrain(text){"));
+  const head = brain.slice(0, brain.indexOf("if (assistantThinking) return;"));
+  assert.match(head, /if \(ariaRT\)\{ speakIntoRealtime\(text\); return; \}/,
+    "the classic brain can still run while a realtime session is open");
+  /* …and it must come BEFORE anything that touches the microphone. */
+  assert.ok(!/intentionalStop/.test(head), "the mic is closed before the live-call guard runs");
+
+  /* The speech-to-text microphone must never open during a call: two
+     getUserMedia consumers fight, and start() is what clicks. */
+  const i = page.indexOf("try { recognition.start();");
+  const before = page.slice(Math.max(0, i - 700), i);
+  assert.match(before, /if \(ariaRT\) return;/,
+    "recognition.start() is reachable during a live call");
+
+  /* Typed text goes down the open line instead of opening a new one. */
+  assert.match(page, /function speakIntoRealtime\(text\)/, "there is no way to speak text into the session");
+  const speak = page.slice(page.indexOf("function speakIntoRealtime(text){"));
+  const speakBody = speak.slice(0, speak.indexOf("\n}"));
+  assert.match(speakBody, /type: 'conversation\.item\.create'[\s\S]{0,200}input_text/,
+    "typed text is not sent as a conversation item of text");
+  assert.match(speakBody, /ariaChatHistory\.push\(\{ role: 'user', content: text \}\)/,
+    "typed text never reaches the conversation history");
+  assert.match(speakBody, /type: 'response\.create'/, "she is never asked to answer the typed text");
+});
+
+check("nothing in the live path records, chunks, or auto-sends", () => {
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  /* A voice-message architecture would need one of these. None exist. */
+  assert.ok(!/MediaRecorder/.test(page), "a MediaRecorder appeared — that is chunking");
+  const start = page.indexOf("async function startRealtimeVoice()");
+  const end = page.indexOf("/* END OF THE REALTIME CLIENT SLICE */");
+  const slice = page.slice(start, end);
+  assert.ok(!/MediaRecorder|ondataavailable/.test(slice), "the live path records instead of streaming");
+  assert.ok(!/setTimeout\([^)]*silen/i.test(slice), "the live path has a silence timer");
+  assert.ok(!/SILENCE_TIMEOUT/.test(slice), "the live path uses the old auto-send timeout");
+
+  /* ONE getUserMedia, ONE peer connection, the track added once. */
+  assert.equal((slice.match(/getUserMedia\(/g) || []).length, 1, "the mic is opened more than once");
+  assert.equal((slice.match(/new RTCPeerConnection\(/g) || []).length, 1, "more than one peer connection");
+  assert.equal((slice.match(/pc\.addTrack\(/g) || []).length, 1, "the track is added more than once");
+
+  /* THE INVARIANT THAT MATTERS: the mic is never touched between
+     turns. Two stops exist and both are legitimate — cleaning up a
+     call that failed to connect, and ending one — so the assertion is
+     about WHERE, not how many: nothing in the per-event path may stop
+     or disable it. */
+  /* The two handlers that run on every event of every turn, and
+     nothing else: the data-channel reducer loop and the transcript /
+     tool handler. Connecting and ending the call legitimately touch
+     the microphone; these must not. */
+  const reducerLoop = page.slice(page.indexOf("  dc.onmessage = (ev) => {"),
+                                 page.indexOf("  dc.onopen = () => {"));
+  const eventHandler = page.slice(page.indexOf("async function onRealtimeEvent(event, turn, send){"),
+                                  page.indexOf("async function runRealtimeTool"));
+  assert.ok(reducerLoop.length > 200 && eventHandler.length > 200, "the per-event path moved");
+  for (const [name, path] of [["reducer loop", reducerLoop], ["event handler", eventHandler]]){
+    assert.ok(!/\.stop\(\)/.test(path), `the ${name} stops the microphone between turns`);
+    assert.ok(!/enabled\s*=/.test(path), `the ${name} disables the microphone between turns`);
+    assert.ok(!/getUserMedia/.test(path), `the ${name} reopens the microphone per turn`);
+    assert.ok(!/recognition\./.test(path), `the ${name} touches speech recognition`);
+  }
+
+  /* Stopping belongs to ending the call and to a failed connect. */
+  const stopFn = page.slice(page.indexOf("function stopRealtimeVoice()"));
+  assert.match(stopFn.slice(0, 400), /mic\.getTracks\(\)\.forEach\(t => t\.stop\(\)\)/,
+    "ending the call no longer releases the microphone");
+  /* Disabling belongs to mute, and to nothing else. */
+  const mute = page.slice(page.indexOf("function toggleRealtimeMute()"));
+  assert.match(mute.slice(0, 700), /t\.enabled = !muted/, "mute no longer owns the enabled flag");
+});
+
+check("strict mode refuses to substitute the old loop", () => {
+  /* So an acceptance test can never again be about the wrong engine. */
+  const page = readFileSync(ROOT + "index.html", "utf8");
+  const from = page.indexOf("function realtimeStrict(){");
+  assert.ok(from > 0, "there is no strict mode");
+  const src = page.slice(from, page.indexOf("\n}", from) + 2);
+  const make = (search, stored) => {
+    const store = new Map(stored !== undefined ? [["ariaVoiceStrict", stored]] : []);
+    const fn = new Function("location", "localStorage", "URLSearchParams", src + "; return realtimeStrict();");
+    return fn({ search }, { getItem: k => (store.has(k) ? store.get(k) : null),
+                            setItem: (k,v) => store.set(k,String(v)),
+                            removeItem: k => store.delete(k) }, URLSearchParams);
+  };
+  assert.equal(make(""), false, "strict mode is on for ordinary shoppers");
+  assert.equal(make("?voz=estricto"), true, "?voz=estricto does not turn it on");
+  assert.equal(make("", "1"), true, "strict mode is not remembered");
+  assert.equal(make("?voz=vivo", "1"), false, "?voz=vivo does not clear strict mode");
+  /* And the refusal path must return before the classic loop runs. */
+  const toggle = page.slice(page.indexOf("async function toggleAriaVoice()"));
+  const body = toggle.slice(0, toggle.indexOf("\n}\n"));
+  /* Asserted as the actual branch: an earlier version checked only
+     that the string appeared before toggleContinuousMode, which a
+     mutation to `if (false)` passed by deleting the string. */
+  assert.match(body, /if \(realtimeStrict\(\)\)\{/, "the refusal is not guarded by strict mode");
+  assert.match(body, /Voz en vivo no disponible: /, "strict mode does not say why");
+  /* …and it must return before the old loop is reached. */
+  const refusal = body.slice(body.indexOf("if (realtimeStrict()){"));
+  assert.ok(refusal.indexOf("return;") < refusal.indexOf("}"),
+    "strict mode falls through into the old loop anyway");
+  assert.ok(body.indexOf("if (realtimeStrict()){") < body.indexOf("toggleContinuousMode();"),
+    "strict mode is checked after the old loop has already started");
 });
 
 check("the browser never receives the standing API key", () => {
