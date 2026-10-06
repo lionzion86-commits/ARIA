@@ -34668,6 +34668,682 @@ function recipientLabelEs(recipient){
   return [g, band, age].filter(Boolean).join(', ');
 }
 
+/* ============================================================
+   MODO REGALO (2026-10-05, Danny) — SHE ASKS BEFORE SHE SHOWS.
+
+   THE BUG, MEASURED. "Mi hija cumple 6 años" built the chat query
+   "cumple girls" — "cumple" is an occasion word nobody strips, and
+   "girls" collides with GIRL, a skateboard brand we stock. The brand
+   matcher hard-constrains on that, so the shopper asking about her
+   six-year-old got sixteen skate decks and a Pac-Man hoodie. Not one
+   toy. The search was never going to work, because nothing in the
+   sentence says what the child LIKES.
+
+   A good salesperson does not answer that sentence with products. She
+   asks two or three questions first. That is all this is: a short
+   conversation that fills four slots — interest, category, character,
+   budget — and only then looks at the catalogue, with the slots as
+   real filters.
+
+   WHY IT IS DETERMINISTIC. The questions, the chips and the filtering
+   are plain functions, not a prompt. A model asked to "ask 2-3
+   questions" asks four on a bad day, forgets the age on another, and
+   cannot be tested. These can: every rule below is exercised against
+   the real catalogue in scripts/test/gift-mode-tests.mjs.
+
+   WHAT IT NEVER DOES. It never hijacks a shopper who already said what
+   they want — "solo muéstrame juguetes" is an instruction, not an
+   opening, and giftModeShouldYield() hands those straight back to the
+   normal search. Three questions is the ceiling, and any slot already
+   filled is never asked about again.
+
+   START OF THE GIFT MODE PURE SLICE — everything from here to the END
+   marker is free of the DOM and of network calls, and is run directly
+   by the test suite. Rendering and wiring live outside it.
+   ============================================================ */
+
+/* The occasions a Peruvian shopper actually names. Accent-tolerant on
+   both spellings of "cumpleaños", because dictation drops the tilde. */
+const GIFT_OCCASION_RE = /\b(cumplea[nñ]os|cumple|navidad|nochebuena|reyes|d[ií]a\s+del?\s+(?:ni[nñ]o|ni[nñ]a|la\s+madre|madre|mam[aá]|padre|pap[aá])|graduaci[oó]n|aniversario|baby\s*shower|quincea[nñ]era|quince\s+a[nñ]os|santo|bautizo)\b/i;
+
+/* Kinship, which is how a gift is described. Deliberately NARROWER
+   than RECIPIENT_MALE_RE/FEMALE_RE above: those include bare "mujer"
+   and "niño", which appear in ordinary shopping sentences
+   ("zapatos de mujer") and would turn every one of them into a gift
+   interview. A gift needs a PERSON, not a demographic. */
+const GIFT_KIN_RE = /\b(hij[oa]|sobrin[oa]|niet[oa]|ahijad[oa]|herman[oa]|prim[oa]|mam[aá]|madre|pap[aá]|padre|espos[oa]|marido|novi[oa]|amig[oa]|t[ií][oa]|abuel[oa]|suegr[oa]|cu[nñ]ad[oa]|enamorad[oa]|pareja)s?\b/i;
+
+/* Characters a child asks for by name. Matching is on the folded,
+   lowercased title, so "PAW Patrol" and "paw patrol" are one thing.
+   Each entry: the canonical label a shopper would recognise, and the
+   pattern that finds it in a product title. */
+const GIFT_CHARACTERS = [
+  { label: 'Barbie',        re: /\bbarbie\b/i },
+  { label: 'PAW Patrol',    re: /\bpaw\s*patrol\b|\bpatrulla\s+canina\b/i },
+  { label: 'Disney',        re: /\bdisney\b/i },
+  { label: 'Frozen',        re: /\bfrozen\b|\belsa\b|\bana\s+y\s+elsa\b/i },
+  { label: 'Spider-Man',    re: /\bspider-?man\b|\bhombre\s+ara[nñ]a\b/i },
+  { label: 'Super Mario',   re: /\b(super\s*)?mario\b|\bluigi\b/i },
+  { label: 'Pokémon',       re: /\bpok[eé]mon\b|\bpikachu\b/i },
+  { label: 'Hot Wheels',    re: /\bhot\s*wheels\b/i },
+  { label: 'LEGO',          re: /\blego\b/i },
+  { label: 'Bluey',         re: /\bbluey\b/i },
+  { label: 'Minecraft',     re: /\bminecraft\b/i },
+  { label: 'Sonic',         re: /\bsonic\b/i },
+  { label: 'Peppa Pig',     re: /\bpeppa\b/i },
+  { label: 'Encanto',       re: /\bencanto\b|\bmirabel\b/i },
+  { label: 'Stitch',        re: /\bstitch\b|\blilo\b/i },
+  { label: 'Marvel',        re: /\bmarvel\b|\bavengers\b|\bvengadores\b/i },
+  { label: 'Princesas',     re: /\bprincesa?s?\b|\bprincess\b/i },
+  { label: 'Unicornios',    re: /\bunicorni?o?s?\b|\bunicorn\b/i },
+  { label: 'Dinosaurios',   re: /\bdinosaurios?\b|\bdinosaur\b|\bt-?rex\b/i },
+  { label: 'Sesame Street', re: /\bsesame\b|\belmo\b|\bplaza\s+s[eé]samo\b/i },
+];
+
+/* The interest buckets P1 offers, and what each one means against the
+   catalogue. `depts` are department keys; `re` matches the Spanish
+   titles the catalogue actually carries (they are translated at
+   ingest, so "art set" is rare and "set de arte" is not).
+   */
+const GIFT_CATEGORIES = [
+  { key: 'juguetes', label: 'Juguetes', pill: 'Juguetes',
+    depts: ['toys'],
+    re: /\b(juguete|mu[nñ]eca|peluche|figura|bloques|lego|carrito|pista|set\s+de\s+juego|rompecabezas|juego\s+de\s+mesa|doll|plush|playset)\b/i,
+    broad: true },
+  { key: 'ropa', label: 'Ropa', pill: 'Ropa',
+    depts: ['kids', 'clothing', 'women', 'men'],
+    re: /\b(polo|camiseta|camisa|pantal[oó]n|vestido|chaqueta|casaca|buzo|pijama|short|falda|poler[oa]|sudadera|hoodie|conjunto)\b/i },
+  { key: 'arte', label: 'Arte y manualidades', pill: 'Arte y manualidades',
+    depts: ['toys', 'home_goods'],
+    re: /\b(arte|manualidad|pintura|pintar|colorear|dibuj|crayon|crayola|plastilina|acuarela|marcador|plumones|l[aá]pices|caballete|art\s+set|craft|coloring|paint)\b/i },
+  { key: 'deportes', label: 'Deportes', pill: 'Deportes',
+    depts: ['sporting_goods', 'toys', 'soccer', 'tennis'],
+    re: /\b(pelota|bal[oó]n|f[uú]tbol|b[aá]squet|b[eé]isbol|v[oó]ley|bicicleta|patine|scooter|skate|raqueta|deporte|nataci[oó]n)\b/i },
+  { key: 'libros', label: 'Libros', pill: 'Libros',
+    depts: ['toys'],
+    re: /\b(libro|cuento|libros?\s+para\s+colorear|coloring\s+book|book)\b/i },
+  { key: 'mochilas', label: 'Mochilas y accesorios', pill: 'Mochilas y accesorios',
+    depts: ['kids', 'clothing'],
+    re: /\b(mochila|backpack|lonchera|cartuchera|gorra|billetera|termo|botella)\b/i },
+];
+
+/* The four budget bands P1..P3 offers, in USD. `max: null` is
+   "sin límite" — a chosen band, not a missing answer, which is why it
+   is a value rather than the absence of one. */
+const GIFT_BUDGETS = [
+  { key: 'u25',  label: 'Menos de $25', min: 0,   max: 25 },
+  { key: '25-50',label: '$25–$50',      min: 25,  max: 50 },
+  { key: '50-100',label:'$50–$100',     min: 50,  max: 100 },
+  { key: 'any',  label: 'Sin límite',   min: 0,   max: null },
+];
+
+/* An explicit order is an order. A shopper who has already named the
+   thing they want does not get interviewed about it — the brief is
+   emphatic, and it is also just manners. */
+const GIFT_EXPLICIT_RE = /\b(solo|s[oó]lo|nada\s+m[aá]s|just)\s+(mu[eé]strame|ens[eé][nñ]ame|dame|quiero|ver|show|give)\b|\bmu[eé]strame\s+(?:ya|directo|los|las|todo)\b|\bsin\s+preguntas\b/i;
+
+/** True when this turn is an instruction to show, not an opening. */
+function giftModeShouldYield(text){
+  return GIFT_EXPLICIT_RE.test(String(text || ''));
+}
+
+/**
+ * Does this turn open a gift interview?
+ *
+ * BOTH, NEVER EITHER. An occasion alone is a season ("ofertas de
+ * navidad"); a person alone is ordinary shopping ("zapatos para mi
+ * hija"). Interviewing someone who asked a plain question is worse
+ * than the bug this feature fixes, so the bar is a named occasion AND
+ * a named person — and an explicit order overrides both.
+ *
+ * This lives in the slice rather than in runGiftMode because it is the
+ * single most consequential decision here, and in the wiring it was
+ * untestable: two mutations that broke it (either-or instead of both,
+ * and ignoring an explicit order) were caught by nothing.
+ */
+function giftModeOpens(text){
+  if (giftModeShouldYield(text)) return false;
+  return !!(giftOccasionOf(text) && giftKinOf(text));
+}
+
+/** The occasion named in the text, normalised, or null. */
+function giftOccasionOf(text){
+  const m = GIFT_OCCASION_RE.exec(String(text || ''));
+  if (!m) return null;
+  const raw = m[0].toLowerCase();
+  if (/cumple/.test(raw)) return 'cumpleaños';
+  if (/navidad|nochebuena|reyes/.test(raw)) return 'navidad';
+  if (/ni[nñ][oa]/.test(raw)) return 'día del niño';
+  if (/madre|mam/.test(raw)) return 'día de la madre';
+  if (/padre|pap/.test(raw)) return 'día del padre';
+  if (/quince/.test(raw)) return 'quinceañera';
+  return raw;
+}
+
+/** The kinship word, so Aria can say "tu hija" rather than "ella". */
+function giftKinOf(text){
+  const m = GIFT_KIN_RE.exec(String(text || ''));
+  return m ? m[0].toLowerCase() : null;
+}
+
+/** Every character named in a piece of text. */
+function giftCharactersIn(text){
+  const t = String(text || '');
+  return GIFT_CHARACTERS.filter(c => c.re.test(t)).map(c => c.label);
+}
+
+/** The interest bucket a reply names, by pill label or by free text. */
+function giftCategoryOf(text){
+  const t = String(text || '');
+  for (const c of GIFT_CATEGORIES) {
+    if (new RegExp('^\\s*' + c.pill.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i').test(t)) return c.key;
+  }
+  for (const c of GIFT_CATEGORIES) if (c.re.test(t)) return c.key;
+  return null;
+}
+
+/* Budget from a pill OR from the way people actually say it: "como
+   $30", "30 dólares", "unos 100 soles". Soles are converted with the
+   venta rate the caller passes in — never a guessed one, so a missing
+   rate means the soles figure is ignored rather than mispriced. */
+function giftBudgetOf(text, fxVenta){
+  const t = String(text || '');
+  for (const b of GIFT_BUDGETS) if (b.label.toLowerCase() === t.trim().toLowerCase()) return b;
+  if (/\bsin\s+l[ií]mite\b|\bno\s+importa\b|\bcualquiera\b/i.test(t)) return GIFT_BUDGETS[3];
+  const soles = t.match(/(\d{1,5})\s*(?:soles|s\/)/i) || (/^\s*s\/\s*(\d{1,5})/i.exec(t));
+  const dollars = t.match(/(?:\$|d[oó]lares?\s*)\s*(\d{1,5})|(\d{1,5})\s*d[oó]lares?/i);
+  let usd = null;
+  if (dollars) usd = Number(dollars[1] || dollars[2]);
+  else if (soles && Number.isFinite(fxVenta) && fxVenta > 0) usd = Number(soles[1]) / fxVenta;
+  /* A bare number is only a budget when the question asked for one;
+     the caller signals that by passing the P3 context. */
+  if (usd === null) return null;
+  if (!Number.isFinite(usd) || usd <= 0) return null;
+  /* A stated figure is a ceiling with a little room — "como $30" means
+     $30-ish, and refusing a $32 set because of it would be obtuse. */
+  return { key: 'custom', label: `hasta $${Math.round(usd)}`, min: 0, max: Math.round(usd * 1.15) };
+}
+
+/** A bare number, for the turn right after the budget question. */
+function giftBareAmountOf(text, fxVenta){
+  const t = String(text || '').trim();
+  const bare = /^(\d{1,5})$/.exec(t);
+  if (bare) return { key: 'custom', label: `hasta $${bare[1]}`, min: 0, max: Math.round(Number(bare[1]) * 1.15) };
+  return giftBudgetOf(t, fxVenta);
+}
+
+/**
+ * Fold one turn into the gift state.
+ *
+ * The state is the whole memory of the interview: what was asked, what
+ * came back. Slots only ever fill — a later turn adding a character
+ * does not erase the category from an earlier one, which is the
+ * difference between a conversation and a form that resets.
+ */
+function giftStateAdvance(state, text, fxVenta){
+  const s = {
+    active: true,
+    occasion: null, kin: null, gender: null, ageYears: null, ageBand: null,
+    category: null, characters: [], budget: null,
+    asked: [], turns: 0,
+    ...(state || {}),
+  };
+  s.turns++;
+  const t = String(text || '');
+
+  if (!s.occasion) s.occasion = giftOccasionOf(t);
+  if (!s.kin) s.kin = giftKinOf(t);
+
+  const chars = giftCharactersIn(t);
+  for (const c of chars) if (!s.characters.includes(c)) s.characters.push(c);
+
+  if (!s.category) s.category = giftCategoryOf(t);
+
+  /* The budget is only read when it was asked for, or when the shopper
+     volunteers a currency. A bare "6" in "cumple 6 años" is an age. */
+  const askedBudget = s.asked.includes('P3');
+  const b = askedBudget ? giftBareAmountOf(t, fxVenta) : giftBudgetOf(t, fxVenta);
+  if (!s.budget && b) s.budget = b;
+
+  /* "No sé" / "todo" is an answer: it closes the question without
+     filling the slot, so the interview moves on instead of repeating
+     itself. */
+  if (/\b(no\s+s[eé]|ni\s+idea|cualquier\s+cosa|lo\s+que\s+sea|todo|de\s+todo)\b/i.test(t)) s.vague = true;
+
+  return s;
+}
+
+/**
+ * The next question, or null when it is time to show products.
+ *
+ * THREE IS THE CEILING and it is enforced here rather than trusted to
+ * a prompt: `asked` is the record, and a fourth question cannot be
+ * returned however little is known. A slot already filled is never
+ * asked about — including by the shopper's opening sentence, which is
+ * why "mi hija de 6 a la que le encanta Barbie" skips straight past P1.
+ */
+function nextGiftQuestion(state){
+  const s = state || {};
+  const asked = s.asked || [];
+  if (asked.length >= 3) return null;
+
+  const kin = s.kin ? `tu ${s.kin}` : 'esa persona';
+  const child = s.ageBand === 'kids' || s.ageBand === 'baby' || (Number.isFinite(s.ageYears) && s.ageYears < 13);
+
+  /* P1 — what do they like? Always first, and skipped only when the
+     opening sentence already answered it. */
+  if (!asked.includes('P1') && !s.category && !s.characters.length){
+    const pills = (child
+      ? ['Juguetes', 'Ropa', 'Arte y manualidades', 'Deportes']
+      : ['Ropa', 'Arte y manualidades', 'Deportes', 'Mochilas y accesorios']);
+    const ageBit = Number.isFinite(s.ageYears) ? ` de ${s.ageYears} años` : '';
+    return {
+      id: 'P1',
+      text: child
+        ? `¡Qué lindo! ¿Qué le gusta a ${kin}${ageBit}? ¿Juguetes, ropa, algún personaje que le encante?`
+        : `¡Qué bueno! ¿Qué le gusta a ${kin}? Cuéntame un poco y te busco algo que le quede perfecto.`,
+      pills,
+    };
+  }
+
+  /* P2 — which way do we go? Adapts: a named character narrows to that
+     character's shelf, a bare category widens to neighbouring ones. */
+  if (!asked.includes('P2')){
+    if (s.characters.length){
+      const c = s.characters[0];
+      return {
+        id: 'P2',
+        text: `¡Perfecto! ¿Buscas juguetes de ${c}, o también ropa o mochilas?`,
+        pills: [`Juguetes de ${c}`, 'Ropa', 'Mochilas y accesorios'],
+      };
+    }
+    if (s.category === 'arte'){
+      return { id: 'P2',
+        text: '¡Una artista! ¿Estás pensando en un set de arte completo, o prefieres libros para colorear?',
+        pills: ['Set de arte', 'Libros para colorear'] };
+    }
+    if (!s.category){
+      return { id: 'P2',
+        text: 'Te ayudo a explorar. ¿Te tinca más por juguetes, ropa, o algo para hacer deporte?',
+        pills: child ? ['Juguetes', 'Ropa', 'Deportes'] : ['Ropa', 'Deportes', 'Mochilas y accesorios'] };
+    }
+    /* A category is known and no character: go straight to budget. */
+  }
+
+  /* P3 — budget, and only when it would actually change what she
+     shows. Skipped when the shopper already named one. */
+  if (!asked.includes('P3') && !s.budget){
+    return {
+      id: 'P3',
+      text: '¿Tienes un presupuesto en mente? Así te muestro lo mejor en ese rango.',
+      pills: GIFT_BUDGETS.map(b => b.label),
+    };
+  }
+  return null;
+}
+
+/* ------------------------------------------------------------------
+   CURATION — the part that decides what a six-year-old never sees.
+   ------------------------------------------------------------------ */
+
+/* Retailers whose stock is adult by construction. A child's birthday
+   gift never comes from a luxury house, whatever the title says. */
+const GIFT_ADULT_RETAILERS = new Set([
+  'ssense', 'farfetch', 'miumiu', 'revolve', 'skims', 'johannaortiz',
+  'silviatcherassi', 'patbo', 'farmrio', 'victoriassecret', 'sephora',
+  'ulta', 'lanebryant', 'baublebar', 'jwpei', 'meliebianco', 'statebags',
+  'mensgrooming', 'bhphoto', 'advanceauto', 'nautilus',
+]);
+
+/* Departments that are adults-only for a child's gift. */
+const GIFT_ADULT_DEPTS = new Set([
+  'women', 'men', 'curvy', 'mens_grooming', 'beauty', 'spearfishing',
+  'sunglasses', 'home_decor',
+]);
+
+/* Title words that mark a product as made for a grown-up. */
+const GIFT_ADULT_TITLE_RE = /\b(para\s+(?:mujer|hombre|dama|caballero|adultos?)|for\s+(?:adults?|women|men)\b|teens?\s+and\s+adults?|adults?\s+only|adults?\s+set\b|de\s+(?:mujer|hombre)\b|women'?s|men'?s|lencer[ií]a|lingerie|brasier|sost[eé]n|bikini|vino|whisky|cerveza|afeitar|shaving|perfume|colonia|maquillaje|serum|retinol|antiarrugas|anti-?aging|c[oó]ctel|tacones|high\s+heel)\b/i;
+
+/* A birthday is not Halloween. Seasonal decor and costume filler keep
+   turning up on "girl" searches and read as a joke when the shopper
+   asked about a child's birthday. */
+const GIFT_WRONG_OCCASION_RE = /\b(halloween|calabaza|pumpkin|disfraz|costume|d[ií]a\s+de\s+muertos|christmas|navide[nñ][oa]|[aá]rbol\s+de\s+navidad|ornament|wreath|corona\s+navide[nñ]a|decoraci[oó]n|advent)\b/i;
+
+/* The hard ceiling on a child's gift when no budget was given. A
+   $1,186 designer jacket is not a present for a six-year-old, and the
+   shopper should never have to say so. */
+const GIFT_CHILD_PRICE_CEILING_USD = 150;
+
+/* "para niños de 5 años en adelante" / "4+" — 725 titles carry their
+   own age guidance, which beats any guess we could make. */
+const GIFT_TITLE_AGE_RE = /(?:para\s+(?:ni[nñ][oa]s?\s+de\s+)?|edades?\s+|a\s+partir\s+de\s+)(\d{1,2})\s*(?:a[nñ]os?)?\s*(?:en\s+adelante|\+|y\s+m[aá]s)?|\b(\d{1,2})\s*\+(?:\s*a[nñ]os)?/i;
+
+/** The minimum age a title states, or null. */
+function giftTitleMinAge(title){
+  const m = GIFT_TITLE_AGE_RE.exec(String(title || ''));
+  if (!m) return null;
+  const n = Number(m[1] || m[2]);
+  return Number.isFinite(n) && n >= 0 && n <= 18 ? n : null;
+}
+
+/**
+ * Is this product a sane gift for this recipient?
+ *
+ * Returns a reason string when it is NOT, so the test suite can assert
+ * on WHY a product was dropped rather than only that the count fell.
+ */
+function giftRejectReason(item, state){
+  const s = state || {};
+  const title = String(item && item.title || '');
+  const price = Number(item && item.price);
+  const retailer = String(item && item.retailer || '').toLowerCase();
+  const depts = (item && item.departments) || [];
+  const child = Number.isFinite(s.ageYears) ? s.ageYears < 13
+    : (s.ageBand === 'kids' || s.ageBand === 'baby');
+
+  if (!title) return 'sin título';
+  if (!(price > 0)) return 'sin precio';
+
+  /* The occasion filter applies to everyone: nobody's birthday present
+     is a Halloween pumpkin. */
+  if (s.occasion && s.occasion !== 'navidad' && GIFT_WRONG_OCCASION_RE.test(title)) {
+    return 'temporada equivocada';
+  }
+
+  if (child){
+    if (GIFT_ADULT_RETAILERS.has(retailer)) return 'tienda de adultos';
+    if (depts.some(d => GIFT_ADULT_DEPTS.has(String(d)))) return 'sección de adultos';
+    if (GIFT_ADULT_TITLE_RE.test(title)) return 'producto de adulto';
+    const ceiling = (s.budget && Number.isFinite(s.budget.max)) ? s.budget.max : GIFT_CHILD_PRICE_CEILING_USD;
+    if (price > ceiling) return 'fuera de presupuesto';
+    /* A toy that says "8+" is not for a five-year-old. One with no
+       stated age is simply unknown and stays. */
+    const minAge = giftTitleMinAge(title);
+    if (minAge !== null && Number.isFinite(s.ageYears) && s.ageYears < minAge) return 'edad no apropiada';
+  }
+
+  if (s.budget && Number.isFinite(s.budget.max) && price > s.budget.max) return 'fuera de presupuesto';
+  if (s.budget && Number.isFinite(s.budget.min) && s.budget.min > 0 && price < s.budget.min) return 'bajo el rango';
+
+  if (s.category){
+    const cat = GIFT_CATEGORIES.find(c => c.key === s.category);
+    if (cat){
+      const inDept = depts.some(d => cat.depts.includes(String(d)));
+      /* THE SAME RULE giftCandidates USES, and it has to be: a looser
+         test here let a football through on an art search, because the
+         toy aisle is on art's department list. `broad` categories ARE
+         their aisle; narrow ones need the pattern as well. */
+      if (cat.broad ? !inDept : !(inDept && cat.re.test(title))) return 'otra categoría';
+    }
+  }
+  return null;
+}
+
+/* How well a surviving product answers the interview. Higher first. */
+function giftScore(item, state){
+  const s = state || {};
+  const title = String(item && item.title || '');
+  let score = 0;
+  /* A named character is the single strongest signal — it is the thing
+     the child actually asked for. */
+  for (const label of (s.characters || [])){
+    const c = GIFT_CHARACTERS.find(x => x.label === label);
+    if (c && c.re.test(title)) { score += 100; break; }
+  }
+  if (s.category){
+    const cat = GIFT_CATEGORIES.find(c => c.key === s.category);
+    if (cat && cat.re.test(title)) score += 20;
+  }
+  const r = Number(item && item.rating);
+  if (Number.isFinite(r) && r > 0) score += Math.min(r, 5) * 3;
+  /* A real markdown is worth surfacing, but never enough to outrank
+     the thing the child asked for. */
+  if (item && item.originalPrice && item.originalPrice > item.price) score += 5;
+  return score;
+}
+
+const GIFT_MAX_RESULTS = 12;
+
+/**
+ * The shelf Aria shows at the end of the interview.
+ *
+ * SPREAD THE PRICES. Twelve near-identical $9 figures is a worse answer
+ * than four of those plus something to grow into, so the survivors are
+ * taken in score order but no more than three may come from any one
+ * retailer — the catalogue is 70% Walmart and Target by volume, and
+ * without this every answer looks like one store's aisle.
+ */
+function curateGiftResults(items, state, opts){
+  const max = (opts && opts.max) || GIFT_MAX_RESULTS;
+  const kept = [];
+  const rejected = new Map();
+  for (const it of (items || [])){
+    const why = giftRejectReason(it, state);
+    if (why){ rejected.set(why, (rejected.get(why) || 0) + 1); continue; }
+    kept.push(it);
+  }
+  kept.sort((a, b) => giftScore(b, state) - giftScore(a, state) || Number(a.price) - Number(b.price));
+  /* ROUND-ROBIN BY STORE, not a per-store cap. A flat cap of three was
+     the first attempt and it STARVED the answer: fifty good art sets
+     across two stores became six products, because the cap stopped
+     counting and nothing refilled. Taking one store at a time in score
+     order spreads the answer AND fills it — a lopsided catalogue
+     (Walmart and Target are most of it by volume) costs variety, never
+     quantity. */
+  const byRetailer = new Map();
+  for (const it of kept){
+    const r = String(it.retailer || '');
+    if (!byRetailer.has(r)) byRetailer.set(r, []);
+    byRetailer.get(r).push(it);
+  }
+  const queues = [...byRetailer.values()];
+  const out = [];
+  for (let round = 0; out.length < max; round++){
+    let placed = false;
+    for (const q of queues){
+      if (round >= q.length) continue;
+      out.push(q[round]);
+      placed = true;
+      if (out.length >= max) break;
+    }
+    if (!placed) break;
+  }
+  return { products: out, kept: kept.length, rejected };
+}
+
+/* ------------------------------------------------------------------
+   CANDIDATES — selected structurally, not by a text search.
+
+   The first version of this handed `rankCatalogMatches` the category
+   LABEL ("arte y manualidades"). Multi-word queries are AND, no title
+   says all three words, and the answer was 57 candidates — every one
+   of them from an adult store, so the shopper got nothing. The
+   interview already produced STRUCTURE (a department, a regex, a
+   character); turning that back into a sentence and asking a text
+   ranker to recover it was throwing the answer away.
+
+   The catalogue is also only half translated: among 12,832 toys,
+   "craft" appears 282 times and "colorear" zero. So the patterns match
+   both languages, and a category is never assumed to be thin just
+   because its Spanish name is.
+   ------------------------------------------------------------------ */
+
+/** Everything worth considering for this interview. */
+function giftCandidates(pool, state){
+  const s = state || {};
+  const cat = GIFT_CATEGORIES.find(c => c.key === s.category) || null;
+  const charRes = (s.characters || [])
+    .map(l => GIFT_CHARACTERS.find(c => c.label === l))
+    .filter(Boolean).map(c => c.re);
+  const out = [];
+  for (const it of (pool || [])){
+    const title = String(it && it.title || '');
+    if (!title) continue;
+    /* A named character is its own ticket: a PAW Patrol backpack
+       belongs in the answer whatever department filed it. */
+    if (charRes.length && charRes.some(re => re.test(title))){ out.push(it); continue; }
+    if (!cat){
+      /* No category yet: for a child, the toy aisle is the sane
+         default; for an adult, everything stays in play. */
+      const child = Number.isFinite(s.ageYears) ? s.ageYears < 13 : (s.ageBand === 'kids' || s.ageBand === 'baby');
+      if (!child || (it.departments || []).includes('toys')) out.push(it);
+      continue;
+    }
+    const inDept = (it.departments || []).some(d => cat.depts.includes(String(d)));
+    /* `broad` means the department IS the category — every item in the
+       toy aisle is a juguete, and demanding a keyword as well would
+       drop most of the aisle. Narrow categories need the pattern. */
+    /* A narrow category needs BOTH: the pattern and the aisle. The
+       pattern alone let "paint" match Iron Maiden tees, painted
+       skinny jeans and a Thrasher sticker, because "arte" words
+       appear all over apparel. */
+    if (cat.broad ? inDept : (cat.re.test(title) && inDept)) out.push(it);
+  }
+  return out;
+}
+
+/* END OF THE GIFT MODE PURE SLICE — everything above is run directly by
+   scripts/test/gift-mode-tests.mjs. Below needs the DOM. */
+
+/* ============================================================
+   MODO REGALO — THE WIRING.
+
+   The slice above is pure and tested; this is the part that talks to
+   the panel. It owns one piece of state (`ariaGiftState`), renders the
+   chips into the row the quick replies already use, and hands the turn
+   back to the normal brain the moment the interview is over or the
+   shopper steps out of it.
+   ============================================================ */
+
+/* The interview in progress, or null. Cleared when it finishes, when
+   the shopper asks for something else outright, and when the panel is
+   closed — a half-finished interview from yesterday reading as context
+   today is worse than starting over. */
+let ariaGiftState = null;
+let ariaGiftShown = 0;   // how many products the last answer put up
+
+/** The interview's chips, in the row the quick replies normally use. */
+function renderGiftPills(pills){
+  const row = document.getElementById('assistantQuickRow');
+  if (!row) return;
+  if (!pills || !pills.length){ renderAssistantQuickReplies(); return; }
+  row.innerHTML = pills.map(p =>
+    `<button type="button" class="ariaQuickChip focus-ring" data-quick-reply="${escapeHtml(p)}"
+       onclick="sendAssistantQuickReply(this.getAttribute('data-quick-reply'))">${escapeHtml(p)}</button>`).join('');
+}
+
+/** Put the standing quick replies back when the interview ends. */
+function clearGiftMode(){
+  ariaGiftState = null;
+  ariaGiftShown = 0;
+  renderAssistantQuickReplies();
+}
+
+/* "Ver más" after an answer: the same interview, a bigger shelf. */
+const GIFT_MORE_RE = /\b(ver\s+m[aá]s|m[aá]s\s+opciones|otras\s+opciones|mu[eé]strame\s+m[aá]s|m[aá]s\s+por\s+favor)\b/i;
+
+/**
+ * Handle this turn as part of a gift interview, or decline it.
+ * Returns true when the turn was answered here.
+ */
+async function runGiftMode(text, recipient){
+  const t = String(text || '');
+
+  /* AN ORDER IS AN ORDER. "Solo muéstrame juguetes" ends the interview
+     and goes to the normal search — being asked three questions after
+     saying that is the exact thing the brief forbids. */
+  if (giftModeShouldYield(t)){ clearGiftMode(); return false; }
+
+  const starting = !ariaGiftState;
+  if (starting && !giftModeOpens(t)) return false;
+
+  /* "Ver más" re-runs the same interview with a longer shelf. */
+  if (!starting && ariaGiftShown && GIFT_MORE_RE.test(t)){
+    await showGiftResults(ariaGiftState, ariaGiftShown + 12);
+    return true;
+  }
+
+  await loadFxRate();
+  ariaGiftState = giftStateAdvance(ariaGiftState, t, typeof fxRate === 'number' ? fxRate : null);
+  /* The recipient comes from the machinery the rest of the chat already
+     uses, so the interview and the search agree about who this is for. */
+  if (recipient){
+    if (recipient.gender) ariaGiftState.gender = recipient.gender;
+    if (recipient.ageBand) ariaGiftState.ageBand = recipient.ageBand;
+    if (Number.isFinite(recipient.ageYears)) ariaGiftState.ageYears = recipient.ageYears;
+  }
+
+  const q = nextGiftQuestion(ariaGiftState);
+  if (q){
+    ariaGiftState.asked.push(q.id);
+    hideAssistantTyping();
+    setOrbState('idle');
+    addAssistantMessage('bot', q.text, null, { speak: false });
+    ariaChatHistory.push({ role: 'assistant', content: q.text });
+    renderGiftPills(q.pills);
+    assistantReplyHasTappables = true;
+    speakWithLily(q.text);
+    return true;
+  }
+
+  await showGiftResults(ariaGiftState, GIFT_MAX_RESULTS);
+  return true;
+}
+
+/** The curated shelf at the end of the interview. */
+async function showGiftResults(state, max){
+  hideAssistantTyping();
+  setOrbState('idle');
+  const pool = await relatedPool();
+  const candidates = giftCandidates(pool, state);
+  const { products } = curateGiftResults(candidates, state, { max });
+
+  if (!products.length){
+    /* HONEST, AND STILL USEFUL. Saying "no encontré" and stopping wastes
+       the interview; the slots are still good, so the offer is to widen
+       the one most likely to be the problem. */
+    const line = state.budget && Number.isFinite(state.budget.max)
+      ? `No encontré nada que encaje en ese presupuesto. ¿Quieres que mire un poco más arriba?`
+      : `No encontré nada que me convenza para eso. ¿Probamos con otra categoría?`;
+    addAssistantMessage('bot', line, null, { speak: false });
+    ariaChatHistory.push({ role: 'assistant', content: line });
+    renderGiftPills(['Subir el presupuesto', 'Ver juguetes', 'Ver ropa']);
+    speakWithLily(line);
+    clearGiftMode();
+    return;
+  }
+
+  /* "VER MÁS" APPENDS, IT DOES NOT REPEAT. The first version re-rendered
+     the whole shelf: twelve cards became thirty-six, the first twelve of
+     them duplicates of what was already on screen. Only the tail past
+     what has already been shown goes up. */
+  const fresh = products.slice(ariaGiftShown);
+  if (!fresh.length){
+    const none = 'Eso es todo lo que tengo que valga la pena para esto. ¿Probamos con otra categoría o subimos el presupuesto?';
+    addAssistantMessage('bot', none, null, { speak: false });
+    ariaChatHistory.push({ role: 'assistant', content: none });
+    renderGiftPills(['Subir el presupuesto', 'Buscar otra cosa']);
+    speakWithLily(none);
+    return;
+  }
+  const intro = ariaGiftShown
+    ? 'Aqu\u00ed tienes m\u00e1s opciones:'
+    : 'Basado en lo que me dijiste, estos le van a encantar:';
+  addAssistantMessage('bot', intro, null, { speak: false });
+  ariaChatHistory.push({ role: 'assistant', content: intro });
+  for (const p of fresh) addAssistantProductCard(p, p.retailer);
+  ariaGiftShown = products.length;
+
+  const closer = '¿Te gusta alguno o quieres ver más opciones?';
+  addAssistantMessage('bot', closer, null, { speak: false });
+  renderGiftPills(['Ver más opciones', 'Cambiar presupuesto', 'Buscar otra cosa']);
+  assistantReplyHasTappables = true;
+  /* One spoken line, not two: she says the intro and the question
+     together so the shelf is not narrated twice. */
+  speakWithLily(`${intro} ${closer}`);
+}
+
+
 /* Turns the recipient into words the US retailer's catalogue actually
    uses, so the search itself is narrowed rather than only the results.
    "zapatos para mi sobrino de 14 años" -> "shoes boys". */
@@ -35823,6 +36499,20 @@ async function runAssistantBrain(text){
   }
 
   const recipient = extractRecipient(text, ariaChatHistory);
+  /* MODO REGALO (2026-10-05). An occasion plus a person is an interview,
+     not a search: she asks before she shows. Placed after the navigation
+     routers so "llévame a juguetes" still walks there, and before the
+     product pipeline so "mi hija cumple 6 años" never reaches the query
+     builder that turned it into "cumple girls". Declines the turn
+     (returns false) for everything that is not a gift. */
+  try {
+    if (await runGiftMode(text, recipient)){
+      if (statusEl) statusEl.textContent = prevStatus || 'Aqu\u00ed para ayudarte a encontrar algo';
+      assistantThinking = false;
+      reopenMicForRetry();
+      return;
+    }
+  } catch (e) { clearGiftMode(); /* a broken interview must not eat the turn */ }
   /* PERSONAL SHOPPER SLOTS (2026-10-01, Danny). Budget ("200 soles"),
      size ("talla 7") and style accumulate across turns so a follow-up
      like "no mas de 200 soles" refines the previous search instead of
