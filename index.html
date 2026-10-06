@@ -10701,7 +10701,91 @@ function detectBrandIntent(rawToks, pool, opts){
   const singleSkipped = (w) => {
     if (w.joins.length !== 1 || w.idx.length !== 1) return false;
     const tok = rawToks[w.idx[0]];
+    /* A Spanish function word on its own is never a brand. The token
+       filter already drops these, but it runs AFTER this — which is
+       how "hasta" became HABA. Single-token only: "de" and "la" are
+       in that set and multi-word brands are built out of them.
+       ("sol de janeiro", "young la".) */
+    if (ES_SEARCH_STOPWORDS.has(tok)) return true;
     return !!synonymGroupOf(tok) || retailerNames.has(tok);
+  };
+  /* ============================================================
+     A WORD THE CATALOGUE ACTUALLY SELLS IS NOT A MISSPELLED BRAND.
+
+     "chimpunes" translates to "soccer cleats", 503 products carry
+     the word "cleats", and the search returned Beats headphones.
+     Danny: "I never said Legos" was the last one of these; this is
+     "chimpunes up to $500" answered with Beats Solo 4.
+
+     cleats -> beats is Damerau 2 (substitute c, drop l), and Beats
+     is a stocked brand, so the fuzzy brand pass claimed the token
+     and HARD-CONSTRAINED the whole search to one brand of
+     headphones. The category intent was computed correctly
+     (queryCategoryIntent -> soccer) and never got a say, because a
+     brand hit outranks everything by design.
+
+     The product fuzzy layer already refuses to correct a word the
+     vocabulary knows exactly — fuzzyFormsForToken returns null on an
+     exact hit. The brand layer was missing the same guard, and it is
+     the more dangerous of the two, because its hit is a hard filter
+     rather than an extra way to match.
+
+     So: a single-token window whose token the catalogue indexes
+     exactly never reaches the FUZZY brand pass. The exact pass is
+     untouched, so searching "beats" still gets Beats; "polo" and
+     "target" keep their own older guards above.
+
+     Only single-token windows: "young la" -> "youngla" and
+     "victoria secret" -> "victoriassecret" are multi-token and
+     cannot be shadowed by one ordinary word.
+
+     THE SAME TEST THE PRODUCT LAYER USES, AND NO THRESHOLD. A first
+     attempt put a document-frequency floor here, on the theory that a
+     brand hit is a hard filter and so should demand more evidence
+     than the additive product layer. The measurements killed it:
+
+       cleats 503   shoes 1877   hoodie 2619   perfume 77
+       shin 39      guards 31    hasta 9       nik 15
+
+     "shin" and "guards" are ordinary product words sitting at 39 and
+     31, below "nik" at 15 by less than a factor of three. Any floor
+     that keeps "nik" also lets "shin guards" be captured by the
+     brand Skin, and "hasta" by the brand HABA — both of which this
+     file was doing. There is no clean cut, and a tuned constant
+     would drift every time a catalogue is added.
+
+     So the rule is the binary one its sibling already uses: the
+     vocabulary either knows the word or it does not.
+
+     WHAT IT COSTS. "nik" no longer resolves to Nike as a brand,
+     because fifteen skateboards are named "Nik Stain" — so "nik"
+     now returns those, which is a defensible literal answer rather
+     than a wrong one. Brand typos that are not also product words
+     ("newbalnce", "yougla", "hudi", "nkie" — all zero) are
+     untouched. */
+  const windex = pool && pool._windex;
+  /* An ad-hoc pool carries no inverted index — the index is attached
+     to the cached array, deliberately, so other pools take the old
+     path. Falling back to the word sets costs one pass over a pool
+     that is small by definition, and failing open here would quietly
+     put the brand hijack back for every such caller. */
+  let adhocWords = null;
+  const poolKnows = (tok) => {
+    if (windex){ const l = windex.get(tok); return !!(l && l.length); }
+    if (!adhocWords){
+      adhocWords = new Set();
+      for (const it of (pool || [])){
+        const ws = it && (it._wordSet
+          || (typeof catalogWordsOf === 'function' ? catalogWordsOf(it) : null));
+        if (ws) for (const word of ws) adhocWords.add(word);
+      }
+    }
+    return adhocWords.has(tok);
+  };
+  const knownProductWord = (w) => {
+    if (w.idx.length !== 1) return false;
+    const tok = rawToks[w.idx[0]];
+    return !!tok && poolKnows(tok);
   };
   const keys = [...vocab.keys()];
   const sqKeys = keys.map(k => fuzzySquashDoubles(k));
@@ -10726,6 +10810,9 @@ function detectBrandIntent(rawToks, pool, opts){
     let best = null;
     for (const w of windows){
       if (singleSkipped(w)) continue;
+      /* The exact pass above already had its chance at this token.
+         If the catalogue sells the word, it is a product word. */
+      if (knownProductWord(w)) continue;
       for (const j of w.joins){
         const k = searchBrandKey(j);
         if (!k || k.length < 2) continue;
@@ -10771,9 +10858,21 @@ function brandShelfSort(a, b){
    to nothing under the AND rule ("sudadera con capucha" must not
    require every hoodie title to say "con"). Dropped AFTER brand
    intent -- "la" in "young la" is brand, not noise. */
+/* THE BUDGET HALF OF A SPOKEN QUERY IS NOT A PRODUCT.
+
+   "chimpunes hasta 500 dolares" translated to "soccer cleats hasta
+   500 dolares" and returned HABA wooden kitchens: "hasta" is one
+   edit from the stocked brand HABA, and the brand pass claimed it.
+
+   Only the words that can never be part of a brand are added.
+   "sol" and "soles" are deliberately NOT here — Sol de Janeiro is a
+   stocked brand — and "de" and "la" were already here and must stay
+   reachable to multi-word brands, which is why the skip below is
+   single-token only. */
 const ES_SEARCH_STOPWORDS = new Set(['de', 'la', 'el', 'los', 'las',
   'en', 'con', 'para', 'por', 'un', 'una', 'uno', 'y', 'e', 'o',
-  'u', 'al', 'del', 'mi', 'tu', 'su', 'que', 'se', 'lo']);
+  'u', 'al', 'del', 'mi', 'tu', 'su', 'que', 'se', 'lo',
+  'hasta', 'desde', 'dolar', 'dolares']);
 
 /* Coverage is the backbone; the two bonuses only order items that
    already matched. Matching every token outranks matching some, and a
@@ -22337,6 +22436,11 @@ const ES_EN_WORDS = {
   ballerina: "ballet flats",
   balerina: "ballet flats",
   chimpun: "soccer cleats",
+  /* The same boot, the other half of the continent. The category
+     intent regex already knew "guayos"; the dictionary did not, so
+     the word reached the ranker untranslated and answered with shin
+     guards. */
+  guayo: "soccer cleats",
   // bags and carry
   canguro: "fanny pack",
   rinonera: "fanny pack",
